@@ -1037,6 +1037,45 @@ export class DynamicFlowEngine {
   }
 
   /**
+   * Create lead from session data and set session.data.leadId for success step placeholders
+   */
+  private async createLeadAndSetSession(): Promise<void> {
+    try {
+      const Lead = (await import('../models/Lead')).default;
+      
+      const leadData = {
+        companyId: this.company._id,
+        name: this.session.data.citizenName || 'WhatsApp User',
+        contactInfo: this.userPhone,
+        // Fallback or use session data if available
+        projectType: this.session.data.projectType || 'General Inquiry',
+        projectDescription: this.session.data.description || 'Lead captured from WhatsApp chatbot interaction.',
+        budgetRange: this.session.data.budget || 'Not specified',
+        timeline: this.session.data.timeline || 'Not specified',
+        source: 'whatsapp',
+        status: 'NEW',
+        metadata: {
+            from: this.userPhone,
+            sessionData: this.session.data
+        }
+      };
+      
+      const lead = new Lead(leadData);
+      await lead.save();
+      
+      console.log(`✅ Lead created successfully: ${lead.leadId}`);
+      
+      this.session.data.leadId = lead.leadId;
+      await updateSession(this.session);
+      
+      // Notify admin logic can be added here if needed
+      
+    } catch (err: any) {
+      console.error('❌ Error creating lead in flow:', err);
+    }
+  }
+
+  /**
    * Replace placeholders in message templates
    * Example: "Hello {citizenName}, your ticket is {ticketId}"
    * Dynamic values come from session.data (set by backend when creating grievance/appointment or from API step for track).
@@ -1122,15 +1161,22 @@ export class DynamicFlowEngine {
           return;
         }
         console.log(`   Executing next step: ${nextStepId}`);
-        // Create grievance/appointment in DB before success step so placeholders (grievanceId, appointmentId, etc.) are set
         const isGrievanceConfirm = (currentStep.stepId === 'grievance_confirm' || (currentStep.stepId && currentStep.stepId.startsWith('grievance_confirm_')));
         const isAppointmentConfirm = (currentStep.stepId === 'appointment_confirm' || (currentStep.stepId && currentStep.stepId.startsWith('appointment_confirm_')));
+        // Lead Capture Triggers
+        const isLeadConfirm = (currentStep.stepId === 'lead_confirm' || (currentStep.stepId && currentStep.stepId.startsWith('lead_confirm_')));
+        
         const isGrievanceSuccess = nextStepId === 'grievance_success' || (nextStepId && nextStepId.startsWith('grievance_success'));
         const isAppointmentSubmitted = nextStepId === 'appointment_submitted' || (nextStepId && nextStepId.startsWith('appointment_submitted'));
+        // Lead Capture Success Step
+        const isLeadSuccess = nextStepId === 'lead_success' || (nextStepId && nextStepId.startsWith('lead_success'));
+
         if (isGrievanceConfirm && isGrievanceSuccess && (buttonId === 'confirm_yes' || String(buttonId).startsWith('confirm_yes'))) {
           await this.createGrievanceAndSetSession();
         } else if (isAppointmentConfirm && isAppointmentSubmitted && (buttonId === 'appt_confirm_yes' || String(buttonId).startsWith('appt_confirm_yes'))) {
           await this.createAppointmentAndSetSession();
+        } else if (isLeadConfirm && isLeadSuccess && (buttonId === 'lead_confirm_yes' || String(buttonId).startsWith('lead_confirm_yes'))) {
+          await this.createLeadAndSetSession();
         }
         await this.runNextStepIfDifferent(nextStepId, currentStep.stepId);
         return;

@@ -62,6 +62,16 @@ export enum UserRole {
   ANALYTICS_VIEWER = 'ANALYTICS_VIEWER'
 }
 
+export enum Module {
+  GRIEVANCE = 'GRIEVANCE',
+  APPOINTMENT = 'APPOINTMENT',
+  STATUS_TRACKING = 'STATUS_TRACKING',
+  LEAD_CAPTURE = 'LEAD_CAPTURE',
+  DOCUMENT_UPLOAD = 'DOCUMENT_UPLOAD',
+  GEO_LOCATION = 'GEO_LOCATION',
+  MULTI_LANGUAGE = 'MULTI_LANGUAGE'
+}
+
 // Role permissions mapping - must match backend
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   [UserRole.SUPER_ADMIN]: Object.values(Permission), // All permissions

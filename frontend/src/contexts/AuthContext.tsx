@@ -17,6 +17,7 @@ interface User {
   companyId?: string | { _id: string; name: string };
   departmentId?: string | { _id: string; name: string };
   isActive: boolean;
+  enabledModules?: string[];
 }
 
 interface AuthContextType {

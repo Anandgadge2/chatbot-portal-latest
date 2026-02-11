@@ -19,7 +19,8 @@ import StatusUpdateModal from '@/components/grievance/StatusUpdateModal';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import toast from 'react-hot-toast';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Building, Users, FileText, Calendar, ArrowLeft, BarChart2, Search, Filter, ArrowUpDown, Download, RefreshCw, CheckCircle, Clock, TrendingUp, Trash2, MessageSquare, Mail, Settings, Workflow } from 'lucide-react';
+import { Building, Users, FileText, Calendar, ArrowLeft, BarChart2, Search, Filter, ArrowUpDown, Download, RefreshCw, CheckCircle, Clock, TrendingUp, Trash2, MessageSquare, Mail, Settings, Workflow, UserPlus } from 'lucide-react';
+import { Module } from '@/lib/permissions';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
@@ -43,7 +44,9 @@ export default function CompanyDrillDown() {
     pendingGrievances: 0,
     resolvedGrievances: 0
   });
+  const [leads, setLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingLeads, setLoadingLeads] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedGrievance, setSelectedGrievance] = useState<Grievance | null>(null);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
@@ -96,6 +99,11 @@ export default function CompanyDrillDown() {
       const usersRes = await userAPI.getAll({ companyId });
       if (usersRes.success) {
         setUsers(usersRes.data.users);
+      }
+
+      // Fetch leads if module enabled
+      if (companyRes.data.company.enabledModules?.includes(Module.LEAD_CAPTURE)) {
+        await fetchLeads(companyId);
       }
 
       // Fetch grievances
@@ -436,8 +444,15 @@ export default function CompanyDrillDown() {
             <TabsTrigger value="overview" className="px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100">Overview</TabsTrigger>
             <TabsTrigger value="departments" className="px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100">Departments</TabsTrigger>
             <TabsTrigger value="users" className="px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100">Users</TabsTrigger>
-            <TabsTrigger value="grievances" className="px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100">Grievances</TabsTrigger>
-            <TabsTrigger value="appointments" className="px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100">Appointments</TabsTrigger>
+            {(!company || company.enabledModules?.includes(Module.GRIEVANCE)) && (
+              <TabsTrigger value="grievances" className="px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100">Grievances</TabsTrigger>
+            )}
+            {(!company || company.enabledModules?.includes(Module.APPOINTMENT)) && (
+              <TabsTrigger value="appointments" className="px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100">Appointments</TabsTrigger>
+            )}
+            {(!company || company.enabledModules?.includes(Module.LEAD_CAPTURE)) && (
+              <TabsTrigger value="leads" className="px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100">Project Leads</TabsTrigger>
+            )}
             <TabsTrigger value="analytics" className="px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100">Analytics</TabsTrigger>
           </TabsList>
 
@@ -477,37 +492,59 @@ export default function CompanyDrillDown() {
                 </CardContent>
               </Card>
 
-              <Card className="group relative overflow-hidden bg-gradient-to-br from-purple-500 via-purple-600 to-fuchsia-700 border-0 shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 cursor-pointer rounded-2xl" onClick={() => setActiveTab('grievances')}>
-                <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-bl-[100px]"></div>
-                <CardHeader className="pb-2 relative">
-                  <CardTitle className="text-white/90 text-sm font-medium flex items-center gap-2">
-                    <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
-                      <FileText className="w-4 h-4 text-white" />
-                    </div>
-                    Grievances
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="relative">
-                  <p className="text-4xl font-bold text-white mb-1">{stats.totalGrievances}</p>
-                  <p className="text-sm text-white/70">{stats.pendingGrievances} pending</p>
-                </CardContent>
-              </Card>
+              {(!company || company.enabledModules?.includes(Module.GRIEVANCE)) && (
+                <Card className="group relative overflow-hidden bg-gradient-to-br from-purple-500 via-purple-600 to-fuchsia-700 border-0 shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 cursor-pointer rounded-2xl" onClick={() => setActiveTab('grievances')}>
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-bl-[100px]"></div>
+                  <CardHeader className="pb-2 relative">
+                    <CardTitle className="text-white/90 text-sm font-medium flex items-center gap-2">
+                      <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
+                        <FileText className="w-4 h-4 text-white" />
+                      </div>
+                      Grievances
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="relative">
+                    <p className="text-4xl font-bold text-white mb-1">{stats.totalGrievances}</p>
+                    <p className="text-sm text-white/70">{stats.pendingGrievances} pending</p>
+                  </CardContent>
+                </Card>
+              )}
 
-              <Card className="group relative overflow-hidden bg-gradient-to-br from-amber-500 via-orange-600 to-red-600 border-0 shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 cursor-pointer rounded-2xl" onClick={() => setActiveTab('appointments')}>
-                <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-bl-[100px]"></div>
-                <CardHeader className="pb-2 relative">
-                  <CardTitle className="text-white/90 text-sm font-medium flex items-center gap-2">
-                    <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
-                      <Calendar className="w-4 h-4 text-white" />
-                    </div>
-                    Appointments
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="relative">
-                  <p className="text-4xl font-bold text-white mb-1">{stats.totalAppointments}</p>
-                  <p className="text-sm text-white/70">Scheduled appointments</p>
-                </CardContent>
-              </Card>
+              {(!company || company.enabledModules?.includes(Module.APPOINTMENT)) && (
+                <Card className="group relative overflow-hidden bg-gradient-to-br from-amber-500 via-orange-600 to-red-600 border-0 shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 cursor-pointer rounded-2xl" onClick={() => setActiveTab('appointments')}>
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-bl-[100px]"></div>
+                  <CardHeader className="pb-2 relative">
+                    <CardTitle className="text-white/90 text-sm font-medium flex items-center gap-2">
+                      <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
+                        <Calendar className="w-4 h-4 text-white" />
+                      </div>
+                      Appointments
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="relative">
+                    <p className="text-4xl font-bold text-white mb-1">{stats.totalAppointments}</p>
+                    <p className="text-sm text-white/70">Scheduled appointments</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {(!company || company.enabledModules?.includes(Module.LEAD_CAPTURE)) && (
+                <Card className="group relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 border-0 shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 cursor-pointer rounded-2xl" onClick={() => setActiveTab('leads')}>
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-bl-[100px]"></div>
+                  <CardHeader className="pb-2 relative">
+                    <CardTitle className="text-white/90 text-sm font-medium flex items-center gap-2">
+                      <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
+                        <UserPlus className="w-4 h-4 text-white" />
+                      </div>
+                      Project Leads
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="relative">
+                    <p className="text-4xl font-bold text-white mb-1">{leads.length}</p>
+                    <p className="text-sm text-white/70">Total leads captured</p>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* Company Details Card */}
@@ -897,19 +934,20 @@ export default function CompanyDrillDown() {
           </TabsContent>
 
           {/* Grievances Tab */}
-          <TabsContent value="grievances" className="space-y-6">
-            <Card className="rounded-2xl border-0 shadow-xl overflow-hidden bg-white/80 backdrop-blur-sm">
-              <CardHeader className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white px-6 py-5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
-                      <FileText className="w-6 h-6 text-white" />
+          {(!company || company.enabledModules?.includes(Module.GRIEVANCE)) && (
+            <TabsContent value="grievances" className="space-y-6">
+              <Card className="rounded-2xl border-0 shadow-xl overflow-hidden bg-white/80 backdrop-blur-sm">
+                <CardHeader className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white px-6 py-5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
+                        <FileText className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl font-bold text-white">Grievances ({filteredGrievances.length})</CardTitle>
+                        <CardDescription className="text-blue-100">All grievances submitted for this company</CardDescription>
+                      </div>
                     </div>
-                    <div>
-                      <CardTitle className="text-xl font-bold text-white">Grievances ({filteredGrievances.length})</CardTitle>
-                      <CardDescription className="text-blue-100">All grievances in this company</CardDescription>
-                    </div>
-                  </div>
                   <div className="flex items-center gap-2">
                     {/* Bulk Delete Button */}
                     {selectedGrievances.size > 0 && (
@@ -1078,21 +1116,23 @@ export default function CompanyDrillDown() {
               </CardContent>
             </Card>
           </TabsContent>
+          )}
 
           {/* Appointments Tab */}
-          <TabsContent value="appointments" className="space-y-6">
-            <Card className="rounded-2xl border-0 shadow-xl overflow-hidden bg-white/80 backdrop-blur-sm">
-              <CardHeader className="bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 text-white px-6 py-5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
-                      <Calendar className="w-6 h-6 text-white" />
+          {(!company || company.enabledModules?.includes(Module.APPOINTMENT)) && (
+            <TabsContent value="appointments" className="space-y-6">
+              <Card className="rounded-2xl border-0 shadow-xl overflow-hidden bg-white/80 backdrop-blur-sm">
+                <CardHeader className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white px-6 py-5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
+                        <Calendar className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl font-bold text-white">Appointments ({filteredAppointments.length})</CardTitle>
+                        <CardDescription className="text-indigo-100">All scheduled appointments for this company</CardDescription>
+                      </div>
                     </div>
-                    <div>
-                      <CardTitle className="text-xl font-bold text-white">Appointments ({filteredAppointments.length})</CardTitle>
-                      <CardDescription className="text-purple-100">All appointments in this company</CardDescription>
-                    </div>
-                  </div>
                   <div className="flex items-center gap-2">
                     {/* Bulk Delete Button */}
                     {selectedAppointments.size > 0 && (
@@ -1256,6 +1296,106 @@ export default function CompanyDrillDown() {
               </CardContent>
             </Card>
           </TabsContent>
+          )}
+
+          {/* Project Leads Tab */}
+          {(!company || company.enabledModules?.includes(Module.LEAD_CAPTURE)) && (
+            <TabsContent value="leads" className="space-y-6">
+              <Card className="rounded-2xl border-0 shadow-xl overflow-hidden bg-white/80 backdrop-blur-sm">
+                <CardHeader className="bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 text-white px-6 py-5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                        <UserPlus className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl font-bold text-white">Project Leads ({leads.length})</CardTitle>
+                        <CardDescription className="text-blue-100 mt-0.5">Leads captured from chatbot</CardDescription>
+                      </div>
+                    </div>
+                    <Button 
+                      onClick={() => companyId && fetchLeads(companyId)} 
+                      variant="outline" 
+                      className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+                    >
+                      <RefreshCw className={`w-4 h-4 mr-2 ${loadingLeads ? 'animate-spin' : ''}`} />
+                      Refresh
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {loadingLeads ? (
+                    <div className="p-12 flex justify-center items-center">
+                      <LoadingSpinner size="lg" />
+                    </div>
+                  ) : leads.length === 0 ? (
+                    <div className="text-center py-20 px-6">
+                      <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <UserPlus className="w-10 h-10 text-slate-300" />
+                      </div>
+                      <h3 className="text-xl font-bold text-slate-800 mb-2">No Leads Found</h3>
+                      <p className="text-slate-500 max-w-xs mx-auto">
+                        This company hasn't captured any leads through the chatbot yet.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-slate-50 text-slate-600 text-xs uppercase tracking-wider font-semibold border-b border-slate-100">
+                          <tr>
+                            <th className="px-6 py-4 text-left">Lead Info</th>
+                            <th className="px-6 py-4 text-left">Project</th>
+                            <th className="px-6 py-4 text-left">Budget/Timeline</th>
+                            <th className="px-6 py-4 text-left">Contact</th>
+                            <th className="px-6 py-4 text-left">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {leads.map((lead) => (
+                            <tr key={lead._id} className="hover:bg-slate-50/50 transition-colors">
+                              <td className="px-6 py-4">
+                                <div>
+                                  <p className="font-bold text-slate-800">{lead.name}</p>
+                                  <p className="text-xs text-slate-500">{lead.companyName}</p>
+                                  <p className="text-[10px] text-slate-400 mt-1">{new Date(lead.createdAt).toLocaleDateString()}</p>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <div>
+                                  <p className="text-sm font-medium text-blue-600">{lead.projectType}</p>
+                                  <p className="text-xs text-slate-500 truncate max-w-[200px]">{lead.projectDescription}</p>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <div>
+                                  <p className="text-sm font-bold text-slate-700">{lead.budgetRange || 'N/A'}</p>
+                                  <p className="text-xs text-slate-500">{lead.timeline || 'N/A'}</p>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <p className="text-sm font-medium text-slate-700">{lead.contactInfo}</p>
+                              </td>
+                              <td className="px-6 py-4">
+                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
+                                  lead.status === 'NEW' ? 'bg-blue-100 text-blue-700' :
+                                  lead.status === 'CONTACTED' ? 'bg-amber-100 text-amber-700' :
+                                  lead.status === 'QUALIFIED' ? 'bg-purple-100 text-purple-700' :
+                                  lead.status === 'CONVERTED' ? 'bg-emerald-100 text-emerald-700' :
+                                  'bg-slate-100 text-slate-600'
+                                }`}>
+                                  {lead.status}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
 
           {/* Analytics Tab */}
           <TabsContent value="analytics" className="space-y-6">

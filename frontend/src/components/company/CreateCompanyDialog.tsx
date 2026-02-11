@@ -8,17 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { companyAPI, CreateCompanyData, Company } from '@/lib/api/company';
 import toast from 'react-hot-toast';
 import { validatePhoneNumber, validatePassword, validateTelephone } from '@/lib/utils/phoneUtils';
-
-// Available modules
-const AVAILABLE_MODULES = [
-  { id: 'GRIEVANCE', name: 'Grievance Management', description: 'Handle citizen complaints and grievances' },
-  { id: 'APPOINTMENT', name: 'Appointment Booking', description: 'Schedule and manage appointments' },
-  { id: 'STATUS_TRACKING', name: 'Status Tracking', description: 'Track application and request status' },
-  { id: 'LEAD_CAPTURE', name: 'Lead Capture', description: 'Capture and manage leads' },
-  { id: 'DOCUMENT_UPLOAD', name: 'Document Upload', description: 'Allow document uploads' },
-  { id: 'GEO_LOCATION', name: 'Geo Location', description: 'Location-based services' },
-  { id: 'MULTI_LANGUAGE', name: 'Multi Language', description: 'Support multiple languages' }
-];
+import { Module } from '@/lib/permissions';
+import { AVAILABLE_MODULES } from '@/config/modules';
 
 interface CreateCompanyDialogProps {
   isOpen: boolean;

@@ -1,17 +1,15 @@
 import express, { Request, Response } from 'express';
 import Lead from '../models/Lead';
+import { authenticate } from '../middleware/auth';
 import { requireDatabaseConnection } from '../middleware/dbConnection';
-import { LeadStatus } from '../config/constants';
+import Company from '../models/Company';
+import { LeadStatus, Module } from '../config/constants';
 
 const router = express.Router();
 
 router.use(requireDatabaseConnection);
 
-/**
- * @route   POST /api/leads/chatbot
- * @desc    Submit a lead from the chatbot flow
- * @access  Public (via Chatbot API Call node)
- */
+// Submit lead from chatbot (Public)
 router.post('/chatbot', async (req: Request, res: Response) => {
   try {
     const { 
@@ -67,15 +65,31 @@ router.post('/chatbot', async (req: Request, res: Response) => {
   }
 });
 
+// Protected routes - require authentication
+router.use(authenticate);
+
 /**
  * @route   GET /api/leads
  * @desc    Get leads for a company
- * @access  Private (Authentication handled by separate middleware if needed)
+ * @access  Private
  */
 router.get('/', async (req: Request, res: Response) => {
   try {
     const { companyId } = req.query;
     if (!companyId) return res.status(400).json({ success: false, message: 'companyId is required' });
+
+    // Validate that the company has the LEAD_CAPTURE module enabled
+    const company = await Company.findById(companyId);
+    if (!company) {
+      return res.status(404).json({ success: false, message: 'Company not found' });
+    }
+
+    if (!company.enabledModules?.includes(Module.LEAD_CAPTURE)) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Lead Capture module is not enabled for this company' 
+      });
+    }
 
     const leads = await Lead.find({ companyId }).sort({ createdAt: -1 });
     res.json({ success: true, data: leads });

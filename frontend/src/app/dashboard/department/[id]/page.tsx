@@ -20,6 +20,7 @@ import StatusUpdateModal from '@/components/grievance/StatusUpdateModal';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Module } from '@/lib/permissions';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
@@ -284,7 +285,14 @@ export default function DepartmentDetail() {
           <TabsList className="inline-flex h-12 items-center justify-center rounded-2xl bg-white/80 backdrop-blur-sm p-1.5 shadow-lg border border-slate-200/50 gap-1">
             <TabsTrigger value="overview" className="px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-teal-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100">Overview</TabsTrigger>
             <TabsTrigger value="users" className="px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-teal-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100">Users</TabsTrigger>
-            <TabsTrigger value="grievances" className="px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-teal-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100">Grievances</TabsTrigger>
+            {user && (user.enabledModules?.includes(Module.GRIEVANCE) || !user.companyId) && (
+              <TabsTrigger 
+                value="grievances" 
+                className="px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-teal-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100"
+              >
+                Grievances
+              </TabsTrigger>
+            )}
             <TabsTrigger value="analytics" className="px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-teal-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100">Analytics</TabsTrigger>
           </TabsList>
 
@@ -322,35 +330,37 @@ export default function DepartmentDetail() {
               </Card>
 
               {/* Grievances - Gradient Purple Card */}
-              <Card 
-                className="group relative overflow-hidden bg-gradient-to-br from-purple-500 via-purple-600 to-fuchsia-700 border-0 shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 cursor-pointer rounded-2xl"
-                onClick={() => setActiveTab('grievances')}
-              >
-                <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-30"></div>
-                <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-bl-[100px]"></div>
-                <CardHeader className="pb-2 relative">
-                  <CardTitle className="text-white/90 text-sm font-medium flex items-center justify-between">
-                    <span className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
-                        <FileText className="w-4 h-4 text-white" />
-                      </div>
-                      Active Grievances
-                    </span>
-                    <svg className="w-5 h-5 text-white/60 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="relative">
-                  <p className="text-4xl font-bold text-white mb-2">{grievances.length}</p>
-                  <p className="text-sm text-white/80 font-medium">
-                    <span className="inline-flex items-center gap-1 bg-white/20 px-2 py-0.5 rounded-full text-xs">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-                      {stats.pendingGrievances} pending
-                    </span>
-                  </p>
-                </CardContent>
-              </Card>
+              {user && (user.enabledModules?.includes(Module.GRIEVANCE) || !user.companyId) && (
+                <Card 
+                  className="group relative overflow-hidden bg-gradient-to-br from-purple-500 via-purple-600 to-fuchsia-700 border-0 shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 cursor-pointer rounded-2xl"
+                  onClick={() => setActiveTab('grievances')}
+                >
+                  <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-30"></div>
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-bl-[100px]"></div>
+                  <CardHeader className="pb-2 relative">
+                    <CardTitle className="text-white/90 text-sm font-medium flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
+                          <FileText className="w-4 h-4 text-white" />
+                        </div>
+                        Active Grievances
+                      </span>
+                      <svg className="w-5 h-5 text-white/60 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="relative">
+                    <p className="text-4xl font-bold text-white mb-2">{grievances.length}</p>
+                    <p className="text-sm text-white/80 font-medium">
+                      <span className="inline-flex items-center gap-1 bg-white/20 px-2 py-0.5 rounded-full text-xs">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                        {stats.pendingGrievances} pending
+                      </span>
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Appointments card removed - Appointments are only for CEO/Company Admin, not for departments */}
             </div>
@@ -479,124 +489,126 @@ export default function DepartmentDetail() {
           </TabsContent>
 
           {/* Grievances Tab */}
-          <TabsContent value="grievances" className="space-y-6">
-            <Card className="rounded-2xl border-0 shadow-xl overflow-hidden bg-white/80 backdrop-blur-sm">
-              <CardHeader className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white px-6 py-5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
-                      <FileText className="w-6 h-6 text-white" />
+          {user && (user.enabledModules?.includes(Module.GRIEVANCE) || !user.companyId) && (
+            <TabsContent value="grievances" className="space-y-6">
+              <Card className="rounded-2xl border-0 shadow-xl overflow-hidden bg-white/80 backdrop-blur-sm">
+                <CardHeader className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white px-6 py-5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
+                        <FileText className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl font-bold text-white">Active Grievances ({filteredGrievances.length})</CardTitle>
+                        <CardDescription className="text-blue-100">All active grievances in this department</CardDescription>
+                      </div>
                     </div>
-                    <div>
-                      <CardTitle className="text-xl font-bold text-white">Active Grievances ({filteredGrievances.length})</CardTitle>
-                      <CardDescription className="text-blue-100">All active grievances in this department</CardDescription>
+                    <div className="flex gap-2">
+                      <Link href="/resolved-grievances" className="flex items-center gap-2 px-4 py-2 bg-emerald-500/80 text-white rounded-xl hover:bg-emerald-500 transition-all">
+                        <CheckCircle className="w-4 h-4" />
+                        View Resolved
+                      </Link>
+                      <button onClick={() => exportToCSV(filteredGrievances, 'grievances')} className="flex items-center gap-2 px-4 py-2 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all border border-white/30">
+                        <Download className="w-4 h-4" />
+                        Export
+                      </button>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Link href="/resolved-grievances" className="flex items-center gap-2 px-4 py-2 bg-emerald-500/80 text-white rounded-xl hover:bg-emerald-500 transition-all">
-                      <CheckCircle className="w-4 h-4" />
-                      View Resolved
-                    </Link>
-                    <button onClick={() => exportToCSV(filteredGrievances, 'grievances')} className="flex items-center gap-2 px-4 py-2 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all border border-white/30">
-                      <Download className="w-4 h-4" />
-                      Export
-                    </button>
+                </CardHeader>
+                
+                {/* Filters */}
+                <div className="px-6 py-4 bg-white/50 border-b border-slate-200">
+                  <div className="flex flex-wrap gap-3 items-center">
+                    <div className="relative flex-1 min-w-[200px]">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                      <input type="text" placeholder="Search grievances..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                    </div>
+                    <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="px-4 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500">
+                      <option value="all">All Status</option>
+                      <option value="PENDING">Pending</option>
+                      <option value="ASSIGNED">Assigned</option>
+                    </select>
                   </div>
                 </div>
-              </CardHeader>
-              
-              {/* Filters */}
-              <div className="px-6 py-4 bg-white/50 border-b border-slate-200">
-                <div className="flex flex-wrap gap-3 items-center">
-                  <div className="relative flex-1 min-w-[200px]">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <input type="text" placeholder="Search grievances..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-                  </div>
-                  <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="px-4 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500">
-                    <option value="all">All Status</option>
-                    <option value="PENDING">Pending</option>
-                    <option value="ASSIGNED">Assigned</option>
-                  </select>
-                </div>
-              </div>
-              
-              <CardContent className="p-0">
-                {filteredGrievances.length === 0 ? (
-                  <div className="text-center py-16">
-                    <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500 text-lg">No grievances found</p>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto max-h-[600px]">
-                    <table className="w-full">
-                      <thead className="sticky top-0 z-20 bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border-b border-blue-100">
-                        <tr>
-                          <th className="px-3 py-4 text-center text-[11px] font-bold text-blue-700 uppercase">Sr. No.</th>
-                          <th className="px-4 py-4 text-left text-[11px] font-bold text-blue-700 uppercase">Grievance ID</th>
-                          <th className="px-4 py-4 text-left text-[11px] font-bold text-blue-700 uppercase">Citizen</th>
-                          <th className="px-4 py-4 text-left text-[11px] font-bold text-blue-700 uppercase">Category</th>
-                          <th className="px-4 py-4 text-left text-[11px] font-bold text-blue-700 uppercase">Status</th>
-                          <th className="px-4 py-4 text-left text-[11px] font-bold text-blue-700 uppercase">Created</th>
-                          <th className="px-4 py-4 text-center text-[11px] font-bold text-blue-700 uppercase">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {filteredGrievances.map((g, index) => (
-                          <tr key={g._id} className="hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-indigo-50/50 transition-all">
-                            <td className="px-3 py-4 text-center">
-                              <span className="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-gradient-to-br from-blue-100 to-indigo-100 text-blue-700 text-xs font-bold">{index + 1}</span>
-                            </td>
-                            <td className="px-4 py-4"><span className="font-bold text-sm text-blue-700">{g.grievanceId}</span></td>
-                            <td className="px-4 py-4">
-                              <button onClick={async () => {
-                                const response = await grievanceAPI.getById(g._id);
-                                if (response.success) { setSelectedGrievance(response.data.grievance); setShowGrievanceDetail(true); }
-                              }} className="text-left hover:text-blue-600">
-                                <p className="font-semibold text-gray-900 hover:underline">{g.citizenName}</p>
-                                <p className="text-xs text-gray-500">{g.citizenPhone}</p>
-                              </button>
-                            </td>
-                            <td className="px-4 py-4"><span className="text-xs font-medium bg-blue-50 text-blue-600 px-2 py-1 rounded">{g.category || 'General'}</span></td>
-                            <td className="px-4 py-4">
-                              <button
-                                onClick={() => {
-                                  setSelectedGrievanceForStatus(g);
-                                  setShowGrievanceStatusModal(true);
-                                }}
-                                disabled={updatingGrievanceStatus.has(g._id)}
-                                className={`px-3 py-1.5 text-[10px] font-bold border border-gray-200 rounded bg-white hover:border-purple-400 hover:bg-purple-50 focus:outline-none focus:ring-1 focus:ring-purple-500 uppercase tracking-tight transition-all ${
-                                  updatingGrievanceStatus.has(g._id) ? 'opacity-50 cursor-wait' : ''
-                                }`}
-                              >
-                                {g.status}
-                              </button>
-                            </td>
-                            <td className="px-4 py-4 text-sm text-gray-600">
-                              <div className="flex flex-col">
-                                <span className="font-medium text-gray-800">{new Date(g.createdAt).toLocaleDateString()}</span>
-                                <span className="text-[10px] text-gray-400">{new Date(g.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                              </div>
-                            </td>
-                            <td className="px-4 py-4 text-center">
-                              <button onClick={async () => {
-                                const response = await grievanceAPI.getById(g._id);
-                                if (response.success) { setSelectedGrievance(response.data.grievance); setShowGrievanceDetail(true); }
-                              }} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all" title="View Details">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                </svg>
-                              </button>
-                            </td>
+                
+                <CardContent className="p-0">
+                  {filteredGrievances.length === 0 ? (
+                    <div className="text-center py-16">
+                      <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500 text-lg">No grievances found</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto max-h-[600px]">
+                      <table className="w-full">
+                        <thead className="sticky top-0 z-20 bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border-b border-blue-100">
+                          <tr>
+                            <th className="px-3 py-4 text-center text-[11px] font-bold text-blue-700 uppercase">Sr. No.</th>
+                            <th className="px-4 py-4 text-left text-[11px] font-bold text-blue-700 uppercase">Grievance ID</th>
+                            <th className="px-4 py-4 text-left text-[11px] font-bold text-blue-700 uppercase">Citizen</th>
+                            <th className="px-4 py-4 text-left text-[11px] font-bold text-blue-700 uppercase">Category</th>
+                            <th className="px-4 py-4 text-left text-[11px] font-bold text-blue-700 uppercase">Status</th>
+                            <th className="px-4 py-4 text-left text-[11px] font-bold text-blue-700 uppercase">Created</th>
+                            <th className="px-4 py-4 text-center text-[11px] font-bold text-blue-700 uppercase">Actions</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {filteredGrievances.map((g, index) => (
+                            <tr key={g._id} className="hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-indigo-50/50 transition-all">
+                              <td className="px-3 py-4 text-center">
+                                <span className="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-gradient-to-br from-blue-100 to-indigo-100 text-blue-700 text-xs font-bold">{index + 1}</span>
+                              </td>
+                              <td className="px-4 py-4"><span className="font-bold text-sm text-blue-700">{g.grievanceId}</span></td>
+                              <td className="px-4 py-4">
+                                <button onClick={async () => {
+                                  const response = await grievanceAPI.getById(g._id);
+                                  if (response.success) { setSelectedGrievance(response.data.grievance); setShowGrievanceDetail(true); }
+                                }} className="text-left hover:text-blue-600">
+                                  <p className="font-semibold text-gray-900 hover:underline">{g.citizenName}</p>
+                                  <p className="text-xs text-gray-500">{g.citizenPhone}</p>
+                                </button>
+                              </td>
+                              <td className="px-4 py-4"><span className="text-xs font-medium bg-blue-50 text-blue-600 px-2 py-1 rounded">{g.category || 'General'}</span></td>
+                              <td className="px-4 py-4">
+                                <button
+                                  onClick={() => {
+                                    setSelectedGrievanceForStatus(g);
+                                    setShowGrievanceStatusModal(true);
+                                  }}
+                                  disabled={updatingGrievanceStatus.has(g._id)}
+                                  className={`px-3 py-1.5 text-[10px] font-bold border border-gray-200 rounded bg-white hover:border-purple-400 hover:bg-purple-50 focus:outline-none focus:ring-1 focus:ring-purple-500 uppercase tracking-tight transition-all ${
+                                    updatingGrievanceStatus.has(g._id) ? 'opacity-50 cursor-wait' : ''
+                                  }`}
+                                >
+                                  {g.status}
+                                </button>
+                              </td>
+                              <td className="px-4 py-4 text-sm text-gray-600">
+                                <div className="flex flex-col">
+                                  <span className="font-medium text-gray-800">{new Date(g.createdAt).toLocaleDateString()}</span>
+                                  <span className="text-[10px] text-gray-400">{new Date(g.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                </div>
+                              </td>
+                              <td className="px-4 py-4 text-center">
+                                <button onClick={async () => {
+                                  const response = await grievanceAPI.getById(g._id);
+                                  if (response.success) { setSelectedGrievance(response.data.grievance); setShowGrievanceDetail(true); }
+                                }} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all" title="View Details">
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                  </svg>
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
 
           {/* Appointments Tab - Removed for Department Admin */}
           {/* Appointments are only managed by Company Admin */}

@@ -13,6 +13,7 @@ import { departmentAPI, Department } from '@/lib/api/department';
 import { userAPI, User } from '@/lib/api/user';
 import { grievanceAPI, Grievance } from '@/lib/api/grievance';
 import { appointmentAPI, Appointment } from '@/lib/api/appointment';
+import { leadAPI, Lead } from '@/lib/api/lead';
 import CreateDepartmentDialog from '@/components/department/CreateDepartmentDialog';
 import CreateUserDialog from '@/components/user/CreateUserDialog';
 import EditUserDialog from '@/components/user/EditUserDialog';
@@ -20,7 +21,7 @@ import ChangePermissionsDialog from '@/components/user/ChangePermissionsDialog';
 import UserDetailsDialog from '@/components/user/UserDetailsDialog';
 import { ProtectedButton } from '@/components/ui/ProtectedButton';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
-import { Permission, hasPermission } from '@/lib/permissions';
+import { Permission, hasPermission, Module } from '@/lib/permissions';
 import toast from 'react-hot-toast';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import GrievanceDetailDialog from '@/components/grievance/GrievanceDetailDialog';
@@ -133,6 +134,7 @@ function DashboardContent() {
   const [users, setUsers] = useState<User[]>([]);
   const [grievances, setGrievances] = useState<Grievance[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [leads, setLeads] = useState<Lead[]>([]);
   const [company, setCompany] = useState<Company | null>(null);
   const [showDepartmentDialog, setShowDepartmentDialog] = useState(false);
   const [showUserDialog, setShowUserDialog] = useState(false);
@@ -158,6 +160,7 @@ function DashboardContent() {
   const [loadingStats, setLoadingStats] = useState(false);
   const [loadingGrievances, setLoadingGrievances] = useState(false);
   const [loadingAppointments, setLoadingAppointments] = useState(false);
+  const [loadingLeads, setLoadingLeads] = useState(false);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [loadingDepartments, setLoadingDepartments] = useState(false);
   const [updatingGrievanceStatus, setUpdatingGrievanceStatus] = useState<Set<string>>(new Set());
@@ -225,6 +228,13 @@ function DashboardContent() {
   const [grievanceSearch, setGrievanceSearch] = useState('');
   const [appointmentSearch, setAppointmentSearch] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Helper to check module access - prioritizes latest company config over user session
+  const hasModule = useCallback((module: Module) => {
+    if (user?.role === 'SUPER_ADMIN') return true;
+    const modules = company?.enabledModules || user?.enabledModules || [];
+    return modules.includes(module);
+  }, [user, company]);
 
   // Export functions
   const exportToCSV = (data: any[], filename: string, columns: { key: string; label: string }[]) => {
@@ -532,6 +542,23 @@ function DashboardContent() {
     }
   }, [appointmentPage, appointmentPagination.limit]);
 
+  const fetchLeads = useCallback(async () => {
+    if (!user?.companyId) return;
+    setLoadingLeads(true);
+    try {
+      const companyId = typeof user.companyId === 'object' ? user.companyId._id : user.companyId;
+      const response = await leadAPI.getAll({ companyId });
+      if (response.success) {
+        setLeads(response.data);
+      }
+    } catch (error: any) {
+      console.error('Failed to fetch leads:', error);
+      toast.error('Failed to load leads');
+    } finally {
+      setLoadingLeads(false);
+    }
+  }, [user?.companyId]);
+
   useEffect(() => {
     if (mounted && user && user.role !== 'SUPER_ADMIN') {
       fetchDashboardData();
@@ -550,10 +577,15 @@ function DashboardContent() {
       setTimeout(() => {
         fetchGrievances(grievancePage);
         fetchAppointments(appointmentPage);
+        if (hasModule(Module.LEAD_CAPTURE)) {
+          fetchLeads();
+        }
       }, 100);
 
       const pollInterval = setInterval(async () => {
         try {
+          // Poll logic...
+
           const [grievanceRes, appointmentRes] = await Promise.all([
             grievanceAPI.getAll({ page: 1, limit: 10 }),
             appointmentAPI.getAll({ page: 1, limit: 10 })
@@ -857,7 +889,8 @@ function DashboardContent() {
           setActiveTab(value);
         }} className="space-y-4 sm:space-y-6">
           <TabsList className="inline-flex h-auto sm:h-12 flex-wrap sm:flex-nowrap items-center justify-center rounded-2xl bg-white/80 backdrop-blur-sm p-1.5 shadow-lg border border-slate-200/50 gap-1">
-            {/* Hide Overview tab for operators - they should only see assigned items */}
+            {/* Conditional Tabs based on Enabled Modules */}
+            
             {!isOperator && (
               <TabsTrigger 
                 value="overview" 
@@ -866,8 +899,9 @@ function DashboardContent() {
                 Overview
               </TabsTrigger>
             )}
-            {/* Grievances tab for Company/Department Admin only (Operator & Analytics Viewer get it in their blocks below) */}
-            {user && hasPermission(user.role, Permission.READ_GRIEVANCE) && !isOperator && !isAnalyticsViewer && (
+
+            {/* Grievances tab */}
+            {hasModule(Module.GRIEVANCE) && hasPermission(user.role, Permission.READ_GRIEVANCE) && !isOperator && !isAnalyticsViewer && (
               <TabsTrigger 
                 value="grievances"
                 className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100"
@@ -875,8 +909,9 @@ function DashboardContent() {
                 Grievances
               </TabsTrigger>
             )}
-            {/* Appointments Tab - Only for Company Admin */}
-            {isCompanyAdmin && (
+
+            {/* Appointments Tab */}
+            {hasModule(Module.APPOINTMENT) && (isCompanyAdmin || isDepartmentAdmin) && (
               <TabsTrigger 
                 value="appointments"
                 className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100"
@@ -884,7 +919,18 @@ function DashboardContent() {
                 Appointments
               </TabsTrigger>
             )}
-            {/* Only show Departments tab for Company Admin, not for Department Admin */}
+
+            {/* Project Leads Tab */}
+            {hasModule(Module.LEAD_CAPTURE) && isCompanyAdmin && (
+              <TabsTrigger 
+                value="leads"
+                className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100"
+              >
+                Project Leads
+              </TabsTrigger>
+            )}
+
+            {/* Departments & Users - Administrative tabs */}
             {isCompanyAdmin && (
               <TabsTrigger 
                 value="departments"
@@ -893,6 +939,7 @@ function DashboardContent() {
                 Departments
               </TabsTrigger>
             )}
+
             {(isCompanyAdmin || isDepartmentAdmin) && (
               <TabsTrigger 
                 value="users"
@@ -901,6 +948,8 @@ function DashboardContent() {
                 Users
               </TabsTrigger>
             )}
+
+            {/* Other existing tabs... */}
             {!isOperator && !isAnalyticsViewer && (
               <TabsTrigger 
                 value="analytics"
@@ -909,22 +958,26 @@ function DashboardContent() {
                 Analytics
               </TabsTrigger>
             )}
+
+            {/* Role specific view for Operator & Analytics viewer */}
             {isOperator && (
               <>
                 <TabsTrigger 
-                  value="profile"
+                  value="profile" 
                   className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100"
                 >
                   Profile
                 </TabsTrigger>
+                {hasModule(Module.GRIEVANCE) && (
+                   <TabsTrigger 
+                    value="grievances" 
+                    className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100"
+                   >
+                     Grievances
+                   </TabsTrigger>
+                )}
                 <TabsTrigger 
-                  value="grievances"
-                  className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100"
-                >
-                  Grievances
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="my-analytics"
+                  value="my-analytics" 
                   className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100"
                 >
                   My Analytics
@@ -934,12 +987,14 @@ function DashboardContent() {
             {/* Analytics Viewer - Show Grievances and Analytics tabs */}
             {isAnalyticsViewer && (
               <>
-                <TabsTrigger 
-                  value="grievances"
-                  className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100"
-                >
-                  Grievances
-                </TabsTrigger>
+                {hasModule(Module.GRIEVANCE) && (
+                  <TabsTrigger 
+                    value="grievances"
+                    className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100"
+                  >
+                    Grievances
+                  </TabsTrigger>
+                )}
                 <TabsTrigger 
                   value="analytics"
                   className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100"
@@ -1014,77 +1069,115 @@ function DashboardContent() {
               ) : stats ? (
                 <>
                   {/* Total Grievances - Gradient Blue Card */}
-                  <Card 
-                    className="group relative overflow-hidden bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 border-0 shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 cursor-pointer rounded-2xl"
-                    onClick={() => {
-                      setActiveTab('grievances');
-                    }}
-                  >
-                    <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-30"></div>
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-bl-[100px]"></div>
-                    <CardHeader className="pb-2 relative">
-                      <CardTitle className="text-white/90 text-sm font-medium flex items-center justify-between">
-                        <span className="flex items-center gap-2">
-                          <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
-                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                          </div>
-                          Total Grievances
-                        </span>
-                        <svg className="w-5 h-5 text-white/60 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="relative">
-                      <p className="text-4xl font-bold text-white mb-2">{stats.grievances.total}</p>
-                      <p className="text-sm text-white/80 font-medium">
-                        <span className="inline-flex items-center gap-1 bg-white/20 px-2 py-0.5 rounded-full text-xs">
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
-                          {stats.grievances.pending} pending
-                        </span>
-                      </p>
-                    </CardContent>
-                  </Card>
+                  {/* Total Grievances - show if module active or SuperAdmin */}
+                  {user && (user.enabledModules?.includes(Module.GRIEVANCE) || !user.companyId) && (
+                    <Card 
+                      className="group relative overflow-hidden bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 border-0 shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 cursor-pointer rounded-2xl"
+                      onClick={() => {
+                        setActiveTab('grievances');
+                      }}
+                    >
+                      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-30"></div>
+                      <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-bl-[100px]"></div>
+                      <CardHeader className="pb-2 relative">
+                        <CardTitle className="text-white/90 text-sm font-medium flex items-center justify-between">
+                          <span className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
+                              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                            </div>
+                            Total Grievances
+                          </span>
+                          <svg className="w-5 h-5 text-white/60 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="relative">
+                        <p className="text-4xl font-bold text-white mb-2">{stats.grievances.total}</p>
+                        <p className="text-sm text-white/80 font-medium">
+                          <span className="inline-flex items-center gap-1 bg-white/20 px-2 py-0.5 rounded-full text-xs">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                            {stats.grievances.pending} pending
+                          </span>
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
 
                   {/* Resolved - Gradient Emerald Card */}
-                  <Card 
-                    className="group relative overflow-hidden bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700 border-0 shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 cursor-pointer rounded-2xl"
-                    onClick={() => {
-                      setPreviousTab(activeTab);
-                      setActiveTab('grievances');
-                      setGrievanceFilters(prev => ({ ...prev, status: 'RESOLVED' }));
-                    }}
-                  >
-                    <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-30"></div>
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-bl-[100px]"></div>
-                    <CardHeader className="pb-2 relative">
-                      <CardTitle className="text-white/90 text-sm font-medium flex items-center justify-between">
-                        <span className="flex items-center gap-2">
-                          <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
-                            <CheckCircle className="w-4 h-4 text-white" />
-                          </div>
-                          Resolved
-                        </span>
-                        <svg className="w-5 h-5 text-white/60 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="relative">
-                      <p className="text-4xl font-bold text-white mb-2">{stats.grievances.resolved}</p>
-                      <p className="text-sm text-white/80 font-medium">
-                        <span className="inline-flex items-center gap-1 bg-white/20 px-2 py-0.5 rounded-full text-xs">
-                          <span className="w-1.5 h-1.5 rounded-full bg-blue-300"></span>
-                          {stats.grievances.inProgress || stats.grievances.assigned || 0} in progress
-                        </span>
-                      </p>
-                    </CardContent>
-                  </Card>
+                  {/* Resolved - show if module active */}
+                  {hasModule(Module.GRIEVANCE) && (
+                    <Card 
+                      className="group relative overflow-hidden bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700 border-0 shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 cursor-pointer rounded-2xl"
+                      onClick={() => {
+                        setPreviousTab(activeTab);
+                        setActiveTab('grievances');
+                        setGrievanceFilters(prev => ({ ...prev, status: 'RESOLVED' }));
+                      }}
+                    >
+                      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-30"></div>
+                      <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-bl-[100px]"></div>
+                      <CardHeader className="pb-2 relative">
+                        <CardTitle className="text-white/90 text-sm font-medium flex items-center justify-between">
+                          <span className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
+                              <CheckCircle className="w-4 h-4 text-white" />
+                            </div>
+                            Resolved
+                          </span>
+                          <svg className="w-5 h-5 text-white/60 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="relative">
+                        <p className="text-4xl font-bold text-white mb-2">{stats.grievances.resolved}</p>
+                        <p className="text-sm text-white/80 font-medium">
+                          <span className="inline-flex items-center gap-1 bg-white/20 px-2 py-0.5 rounded-full text-xs">
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-300"></span>
+                            {stats.grievances.inProgress || stats.grievances.assigned || 0} in progress
+                          </span>
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
 
-                  {/* Appointments - Gradient Purple Card - Only for Company Admin */}
-                  {isCompanyAdmin && (
+                  {/* Project Leads Card - show if module active */}
+                  {hasModule(Module.LEAD_CAPTURE) && isCompanyAdmin && (
+                    <Card 
+                      className="group relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 border-0 shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 cursor-pointer rounded-2xl"
+                      onClick={() => {
+                        setActiveTab('leads');
+                      }}
+                    >
+                      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-30"></div>
+                      <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-bl-[100px]"></div>
+                      <CardHeader className="pb-2 relative">
+                        <CardTitle className="text-white/90 text-sm font-medium flex items-center justify-between">
+                          <span className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
+                              <UserPlus className="w-4 h-4 text-white" />
+                            </div>
+                            Total Leads
+                          </span>
+                          <svg className="w-5 h-5 text-white/60 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="relative">
+                        <p className="text-4xl font-bold text-white mb-2">{leads.length}</p>
+                        <p className="text-sm text-white/80 font-medium whitespace-nowrap">
+                          Active chatbot leads
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Appointments - show if module active */}
+                  {hasModule(Module.APPOINTMENT) && (isCompanyAdmin || isDepartmentAdmin) && (
                     <Card 
                       className="group relative overflow-hidden bg-gradient-to-br from-purple-500 via-purple-600 to-fuchsia-700 border-0 shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 cursor-pointer rounded-2xl"
                       onClick={() => {
@@ -1110,10 +1203,10 @@ function DashboardContent() {
                       </CardHeader>
                       <CardContent className="relative">
                         <p className="text-4xl font-bold text-white mb-2">{stats.appointments.total}</p>
-                        <p className="text-sm text-white/80 font-medium">
+                        <p className="text-sm text-white/80 font-medium whitespace-nowrap">
                           <span className="inline-flex items-center gap-1 bg-white/20 px-2 py-0.5 rounded-full text-xs">
-                            <span className="w-1.5 h-1.5 rounded-full bg-fuchsia-300"></span>
-                            {stats.appointments.confirmed || stats.appointments.pending || 0} scheduled
+                             <span className="w-1.5 h-1.5 rounded-full bg-fuchsia-300"></span>
+                             {stats.appointments.confirmed || stats.appointments.pending || 0} scheduled
                           </span>
                         </p>
                       </CardContent>
@@ -1747,7 +1840,114 @@ function DashboardContent() {
             </TabsContent>
           )}
 
-          {/* Users Tab */}
+          {/* Leads Tab Content */}
+          {hasModule(Module.LEAD_CAPTURE) && isCompanyAdmin && (
+            <TabsContent value="leads" className="space-y-6">
+              <Card className="rounded-2xl border-0 shadow-xl overflow-hidden bg-white/80 backdrop-blur-sm">
+                <CardHeader className="bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 text-white px-6 py-5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
+                        <UserPlus className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl font-bold text-white">Project Leads {leads.length > 0 && `(${leads.length})`}</CardTitle>
+                        <CardDescription className="text-blue-100">Potential leads captured from chatbot interactions</CardDescription>
+                      </div>
+                    </div>
+                    <button onClick={() => exportToCSV(leads, 'leads', [
+                      { key: 'leadId', label: 'Lead ID' },
+                      { key: 'name', label: 'Name' },
+                      { key: 'companyName', label: 'Company' },
+                      { key: 'contactInfo', label: 'Phone' },
+                      { key: 'projectType', label: 'Project Type' },
+                      { key: 'budgetRange', label: 'Budget' },
+                      { key: 'status', label: 'Status' }
+                    ])} className="flex items-center gap-2 px-4 py-2 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all border border-white/30">
+                      <Download className="w-4 h-4" />
+                      Export
+                    </button>
+                  </div>
+                </CardHeader>
+                
+                <CardContent className="p-0">
+                  {loadingLeads ? (
+                    <div className="p-8 text-center text-slate-500">Loading leads...</div>
+                  ) : leads.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-slate-500">
+                      <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                        <UserPlus className="w-8 h-8 text-slate-400" />
+                      </div>
+                      <p className="text-lg font-medium text-slate-700">No leads found</p>
+                      <p className="text-sm text-slate-500 mt-1">Leads captured from the chatbot will appear here.</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-slate-50 border-b border-slate-200">
+                          <tr>
+                            <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Lead ID</th>
+                            <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Contact Details</th>
+                            <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Project Info</th>
+                            <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                            <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Date</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {leads.map((lead) => (
+                            <tr key={lead._id} className="hover:bg-slate-50/50 transition-colors">
+                              <td className="px-6 py-4">
+                                <span className="font-mono text-xs font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded">
+                                  {lead.leadId}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="flex flex-col">
+                                  <span className="font-semibold text-slate-900">{lead.name}</span>
+                                  {lead.companyName && <span className="text-xs text-slate-500">{lead.companyName}</span>}
+                                  <div className="flex items-center gap-1 mt-1 text-xs text-slate-500">
+                                    <Phone className="w-3 h-3" />
+                                    {lead.contactInfo}
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="flex flex-col gap-1">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-50 text-indigo-700 w-fit">
+                                    {lead.projectType}
+                                  </span>
+                                  {lead.budgetRange && (
+                                    <span className="text-xs text-slate-500">Budget: {lead.budgetRange}</span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
+                                  ${lead.status === 'NEW' ? 'bg-blue-100 text-blue-800' : 
+                                    lead.status === 'CONTACTED' ? 'bg-yellow-100 text-yellow-800' :
+                                    lead.status === 'QUALIFIED' ? 'bg-green-100 text-green-800' : 
+                                    'bg-slate-100 text-slate-800'}`}>
+                                  {lead.status?.toLowerCase().replace('_', ' ')}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 text-sm text-slate-500">
+                                {new Date(lead.createdAt).toLocaleDateString()}
+                                <div className="text-xs text-slate-400">
+                                  {new Date(lead.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+
+          {/* Users Tab Content (existing) */}
           {(isCompanyAdmin || isDepartmentAdmin) && (
             <TabsContent value="users" className="space-y-6">
               <Card className="rounded-2xl border-0 shadow-xl overflow-hidden bg-white/80 backdrop-blur-sm">
@@ -2043,7 +2243,8 @@ function DashboardContent() {
           )}
 
           {/* Grievances Tab */}
-          <TabsContent value="grievances" className="space-y-6">
+          {user && (user.enabledModules?.includes(Module.GRIEVANCE) || !user.companyId) && (
+            <TabsContent value="grievances" className="space-y-6">
             {/* Back Button - Show when coming from overview (not for operators) */}
             {previousTab === 'overview' && !isOperator && (
               <Button
@@ -2535,11 +2736,12 @@ function DashboardContent() {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+            </TabsContent>
+          )}
 
-          {/* Appointments Tab - Only for Company Admin */}
-          {isCompanyAdmin && (
-            <TabsContent value="appointments" className="space-y-6">
+          {/* Appointments Tab - show if module active or SuperAdmin */}
+          {user && (user.enabledModules?.includes(Module.APPOINTMENT) || !user.companyId) && (isCompanyAdmin || isDepartmentAdmin) && (
+          <TabsContent value="appointments" className="space-y-6">
             <Card className="rounded-2xl border-0 shadow-xl overflow-hidden bg-white/80 backdrop-blur-sm">
               <CardHeader className="bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 text-white px-6 py-5">
                 <div className="flex items-center justify-between">
@@ -2923,6 +3125,114 @@ function DashboardContent() {
               </CardContent>
             </Card>
           </TabsContent>
+          )}
+
+          {/* Project Leads Tab - NEW for PugArch and others with LEAD_CAPTURE */}
+          {user && (user.enabledModules?.includes(Module.LEAD_CAPTURE) || !user.companyId) && (isCompanyAdmin) && (
+            <TabsContent value="leads" className="space-y-6">
+              <Card className="rounded-2xl border-0 shadow-xl overflow-hidden bg-white/80 backdrop-blur-sm">
+                <CardHeader className="bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 text-white px-6 py-5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                        <UserPlus className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl font-bold text-white">Project Leads</CardTitle>
+                        <CardDescription className="text-blue-100 mt-0.5">Manage and track potential business opportunities from chatbot</CardDescription>
+                      </div>
+                    </div>
+                    <Button 
+                      onClick={() => fetchLeads()} 
+                      variant="outline" 
+                      className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+                    >
+                      <RefreshCw className={`w-4 h-4 mr-2 ${loadingLeads ? 'animate-spin' : ''}`} />
+                      Refresh
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {loadingLeads ? (
+                    <div className="py-20">
+                      <LoadingSpinner size="lg" text="Fetching leads..." />
+                    </div>
+                  ) : leads.length === 0 ? (
+                    <div className="text-center py-20">
+                      <div className="w-20 h-20 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <UserPlus className="w-10 h-10 text-blue-500" />
+                      </div>
+                      <h3 className="text-lg font-bold text-slate-800">No leads found</h3>
+                      <p className="text-slate-500 mt-1 max-w-xs mx-auto">When customers interact with your lead generation flow, they will appear here.</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-slate-50/50 border-b border-slate-100">
+                          <tr>
+                            <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Lead Info</th>
+                            <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Project</th>
+                            <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Budget/Timeline</th>
+                            <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Contact</th>
+                            <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                            <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {leads.map((lead) => (
+                            <tr key={lead._id} className="hover:bg-slate-50/50 transition-colors group">
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="flex flex-col">
+                                  <span className="font-bold text-slate-900">{lead.name}</span>
+                                  <span className="text-xs text-slate-500">{lead.companyName || 'Individual'}</span>
+                                  <span className="text-[10px] text-blue-500 font-mono mt-1">{lead.leadId}</span>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="flex flex-col max-w-[200px]">
+                                  <span className="text-sm font-semibold text-slate-700">{lead.projectType}</span>
+                                  <span className="text-xs text-slate-500 truncate">{lead.projectDescription}</span>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="flex flex-col">
+                                  <span className="text-xs font-medium text-slate-700">Budget: {lead.budgetRange || 'N/A'}</span>
+                                  <span className="text-xs text-slate-500">Timeline: {lead.timeline || 'N/A'}</span>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="flex flex-col">
+                                  <span className="text-sm text-slate-700 flex items-center gap-1.5">
+                                    <Phone className="w-3.5 h-3.5 text-slate-400" />
+                                    {lead.contactInfo}
+                                  </span>
+                                  {lead.email && (
+                                    <span className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5">
+                                      <Mail className="w-3.5 h-3.5 text-slate-400" />
+                                      {lead.email}
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 uppercase">
+                                  {lead.status}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 text-right whitespace-nowrap">
+                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0 rounded-lg">
+                                  <Key className="w-4 h-4 text-slate-400" />
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
           )}
 
           {/* Analytics Tab */}

@@ -91,7 +91,7 @@ router.post('/sso/login', async (req: Request, res: Response) => {
     // STEP 4: Find user in database
     const user = await User.findOne({ 
       phone
-    });
+    }).populate('companyId');
 
     if (!user) {
       console.log('❌ User not found for phone:', phone);
@@ -155,8 +155,9 @@ router.post('/sso/login', async (req: Request, res: Response) => {
           email: user.email,
           phone: user.phone,
           role: user.role,
-          companyId: user.companyId,
+          companyId: user.companyId?._id || user.companyId,
           departmentId: user.departmentId,
+          enabledModules: (user.companyId as any)?.enabledModules || [],
           isActive: user.isActive,
           loginType: 'SSO'
         },
@@ -223,7 +224,7 @@ router.post('/login', async (req: Request, res: Response) => {
       query.phone = normalizedPhone;
     }
 
-    const user = await User.findOne(query).select('+password'); // IMPORTANT
+    const user = await User.findOne(query).select('+password').populate('companyId'); // IMPORTANT
 
     if (!user) {
       console.log('❌ User not found for:', phone || email);
@@ -295,8 +296,9 @@ router.post('/login', async (req: Request, res: Response) => {
           email: user.email,
           phone: user.phone,
           role: user.role,
-          companyId: user.companyId,
+          companyId: user.companyId?._id || user.companyId,
           departmentId: user.departmentId,
+          enabledModules: (user.companyId as any)?.enabledModules || [],
           isActive: user.isActive,
           loginType: 'PASSWORD'
         },
