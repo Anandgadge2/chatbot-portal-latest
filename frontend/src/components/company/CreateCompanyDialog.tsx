@@ -15,8 +15,6 @@ const AVAILABLE_MODULES = [
   { id: 'APPOINTMENT', name: 'Appointment Booking', description: 'Schedule and manage appointments' },
   { id: 'STATUS_TRACKING', name: 'Status Tracking', description: 'Track application and request status' },
   { id: 'LEAD_CAPTURE', name: 'Lead Capture', description: 'Capture and manage leads' },
-  { id: 'SURVEY', name: 'Survey & Feedback', description: 'Conduct surveys and collect feedback' },
-  { id: 'FEEDBACK', name: 'Feedback System', description: 'Collect and manage feedback' },
   { id: 'DOCUMENT_UPLOAD', name: 'Document Upload', description: 'Allow document uploads' },
   { id: 'GEO_LOCATION', name: 'Geo Location', description: 'Location-based services' },
   { id: 'MULTI_LANGUAGE', name: 'Multi Language', description: 'Support multiple languages' }
@@ -265,10 +263,6 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({ isOpen, onClo
                   required
                 >
                   <option value="GOVERNMENT">Government</option>
-                  <option value="GOV_GRIEVANCE">Government Grievance</option>
-                  <option value="SERVICE_BOOKING">Service Booking</option>
-                  <option value="SURVEY_FEEDBACK">Survey & Feedback</option>
-                  <option value="LEAD_COLLECTION">Lead Collection</option>
                   <option value="CUSTOM_ENTERPRISE">Custom Enterprise</option>
                 </select>
               </div>
