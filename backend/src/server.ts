@@ -147,14 +147,15 @@ if (process.env.NODE_ENV === 'development') {
 // ================================
 
 // On Vercel/serverless, ensure DB is connected before any /api route (avoids "users.findOne() buffering timed out")
-let dbReadyPromise: Promise<void> | null = null;
 const ensureDb = async (_req: Request, _res: Response, next: (err?: any) => void) => {
   try {
     if (isDatabaseConnected()) return next();
-    if (!dbReadyPromise) dbReadyPromise = connectDatabase();
-    await dbReadyPromise;
+    
+    logger.info(`⏳ Middleware ensuring DB connection for: ${_req.url}`);
+    await connectDatabase();
     next();
   } catch (e: any) {
+    logger.error('❌ Middleware DB connection failed:', e.message);
     next(e);
   }
 };
@@ -230,22 +231,22 @@ const init = async () => {
     logger.error('MongoDB connection failed:', error.message);
   }
 
-  // ✅ Production safety: ensure indexes match current schemas
-  // This prevents legacy unique indexes (e.g., counters.name_1, grievances.grievanceId_1)
-  // from breaking per-company ID generation.
-  try {
-    const Counter = (await import('./models/Counter')).default;
-    const Grievance = (await import('./models/Grievance')).default;
-    const Appointment = (await import('./models/Appointment')).default;
-    const ChatbotFlow = (await import('./models/ChatbotFlow')).default;
+  // ✅ Production safety: ensure indexes match current schemas (ONLY in development/CI, not on every Vercel request)
+  if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+    try {
+      const Counter = (await import('./models/Counter')).default;
+      const Grievance = (await import('./models/Grievance')).default;
+      const Appointment = (await import('./models/Appointment')).default;
+      const ChatbotFlow = (await import('./models/ChatbotFlow')).default;
 
-    await Counter.syncIndexes();
-    await Grievance.syncIndexes();
-    await Appointment.syncIndexes();
-    await ChatbotFlow.syncIndexes();
-    logger.info('✅ MongoDB indexes synced (Counter/Grievance/Appointment/ChatbotFlow)');
-  } catch (error: any) {
-    logger.warn('⚠️ Index sync failed (will continue):', error.message);
+      await Counter.syncIndexes();
+      await Grievance.syncIndexes();
+      await Appointment.syncIndexes();
+      await ChatbotFlow.syncIndexes();
+      logger.info('✅ MongoDB indexes synced');
+    } catch (error: any) {
+      logger.warn('⚠️ Index sync failed (will continue):', error.message);
+    }
   }
 
   // Connect to Redis (optional)

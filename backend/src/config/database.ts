@@ -1,56 +1,57 @@
 import mongoose from 'mongoose';
 import { logger } from './logger';
 
+let connectionPromise: Promise<void> | null = null;
+
 export const connectDatabase = async (): Promise<void> => {
   try {
     const mongoUri = process.env.MONGODB_URI;
 
     if (!mongoUri) {
-      const error = new Error('MONGODB_URI is not defined in environment variables');
+      const error = new Error('MONGODB_URI is not defined');
       logger.error('❌ ' + error.message);
-      logger.error('💡 Please create a .env file in the backend directory with:');
-      logger.error('   MONGODB_URI=mongodb://localhost:27017/dashboard');
-      logger.error('   or');
-      logger.error('   MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/database');
       throw error;
     }
 
-    // Check if already connected
+    // 1. If already connected, return immediately
     if (mongoose.connection.readyState === 1) {
       return;
     }
 
+    // 2. If connecting, wait for the existing promise
+    if (mongoose.connection.readyState === 2 && connectionPromise) {
+      logger.info('⏳ Database connection already in progress, waiting...');
+      return connectionPromise;
+    }
+
+    // 3. Start a new connection
     const options = {
       maxPoolSize: 10,
       serverSelectionTimeoutMS: 30000,
       socketTimeoutMS: 45000,
       connectTimeoutMS: 30000,
       family: 4,
+      autoIndex: process.env.NODE_ENV !== 'production', // Don't auto-index in prod to speed up cold starts
     };
 
-    await mongoose.connect(mongoUri, options);
+    logger.info('🔌 Connecting to MongoDB...');
+    
+    // Set global buffer timeout longer for serverless
+    mongoose.set('bufferTimeoutMS', 30000);
 
+    connectionPromise = mongoose.connect(mongoUri, options).then(() => {
+      logger.info('✅ MongoDB connected successfully');
+      connectionPromise = null;
+    });
 
+    await connectionPromise;
 
   } catch (error: any) {
+    connectionPromise = null;
     logger.error('❌ Failed to connect to MongoDB:', error.message);
     
-    // Provide helpful error messages
-    if (error.message.includes('MONGODB_URI')) {
-      // Already handled above
-    } else if (error.message.includes('ETIMEOUT') || error.message.includes('querySrv')) {
-      logger.error('💡 Network/DNS timeout. Check:');
-      logger.error('   1. Internet connection');
-      logger.error('   2. VPN/Firewall settings');
-      logger.error('   3. MongoDB Atlas cluster status');
-    } else if (error.message.includes('IP') || error.message.includes('whitelist')) {
-      logger.error('💡 IP Whitelist issue. Fix:');
-      logger.error('   1. Go to MongoDB Atlas → Network Access');
-      logger.error('   2. Add IP: 0.0.0.0/0 (allow all)');
-    } else if (error.message.includes('authentication failed')) {
-      logger.error('💡 Authentication failed. Check:');
-      logger.error('   1. Username and password in MONGODB_URI');
-      logger.error('   2. Database user exists in MongoDB Atlas');
+    if (error.message.includes('IP') || error.message.includes('whitelist')) {
+      logger.error('💡 IP Whitelist issue. Ensure 0.0.0.0/0 is added to MongoDB Atlas.');
     }
     
     throw error;
