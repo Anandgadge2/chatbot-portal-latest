@@ -61,5 +61,5 @@ export function validateTelephone(phone: string): boolean {
  */
 export function validatePassword(password: string): boolean {
   if (!password) return false;
-  return password.length >= 6;
+  return password.length >= 6 && password.length <= 8;
 }

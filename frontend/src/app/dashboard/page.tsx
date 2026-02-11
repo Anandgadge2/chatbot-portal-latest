@@ -1711,8 +1711,8 @@ function DashboardContent() {
                                         >
                                           {navigatingToDepartment === dept._id ? (
                                             <>
-                                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
-                                              <span>Loading...</span>
+                                              <LoadingSpinner size="sm" />
+                                              <span className="ml-2">Loading...</span>
                                             </>
                                           ) : (
                                             dept.name

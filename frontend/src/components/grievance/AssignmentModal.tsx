@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { X, Users, Check } from 'lucide-react';
 import { apiClient } from '@/lib/api/client';
 import toast from 'react-hot-toast';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 interface User {
   _id: string;
@@ -108,9 +109,8 @@ export default function AssignmentModal({
         {/* Content */}
         <div className="p-6">
           {loading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-              <p className="mt-4 text-gray-600">Loading available users...</p>
+            <div className="flex justify-center py-12">
+              <LoadingSpinner size="lg" text="Loading available users..." />
             </div>
           ) : users.length === 0 ? (
             <div className="text-center py-12">
@@ -187,7 +187,7 @@ export default function AssignmentModal({
           >
             {submitting ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                <LoadingSpinner size="sm" className="mr-2" />
                 Assigning...
               </>
             ) : (

@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { chatbotFlowApi } from '@/lib/api/chatbotFlow';
 import toast from 'react-hot-toast';
-import { Workflow } from 'lucide-react';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 export default function EditFlowPage() {
   const params = useParams();
@@ -53,10 +53,7 @@ export default function EditFlowPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
-      <div className="text-center">
-        <Workflow className="w-12 h-12 text-purple-600 mx-auto mb-4 animate-spin" />
-        <p className="text-gray-600 font-medium">Loading flow editor...</p>
-      </div>
+      <LoadingSpinner size="xl" text="Loading flow editor..." />
     </div>
   );
 }

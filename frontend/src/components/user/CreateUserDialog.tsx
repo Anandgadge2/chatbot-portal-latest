@@ -246,7 +246,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({ isOpen, onClose, on
 
     // Validate password if provided
     if (formData.password && !validatePassword(formData.password)) {
-      toast.error('Password must be at least 6 characters');
+      toast.error('Password must be between 6 and 8 characters');
       return;
     }
 
@@ -435,13 +435,14 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({ isOpen, onClose, on
                   name="password"
                   type="password"
                   minLength={6}
+                  maxLength={8}
                   value={formData.password}
                   onChange={handleChange}
                   required
-                  placeholder="Min 6 characters"
+                  placeholder="6-8 characters"
                 />
                 {formData.password && !validatePassword(formData.password) && (
-                  <p className="text-xs text-red-500 mt-1">Password must be at least 6 characters</p>
+                  <p className="text-xs text-red-500 mt-1">Password must be between 6 and 8 characters</p>
                 )}
               </div>
             </div>

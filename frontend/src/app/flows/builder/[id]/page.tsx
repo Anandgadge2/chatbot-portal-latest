@@ -1,6 +1,8 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import FlowCanvas from '@/components/flow-builder/FlowCanvas';
@@ -147,10 +149,7 @@ export default function FlowBuilderPage() {
   if (!loaded) {
     return (
       <div className="h-screen w-full flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading flow...</p>
-        </div>
+        <LoadingSpinner size="xl" text="Loading flow..." />
       </div>
     );
   }

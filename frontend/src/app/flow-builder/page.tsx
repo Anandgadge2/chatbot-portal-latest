@@ -3,6 +3,8 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
+
 export default function FlowBuilderRedirect() {
   const router = useRouter();
 
@@ -13,10 +15,7 @@ export default function FlowBuilderRedirect() {
 
   return (
     <div className="h-screen w-full flex items-center justify-center">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
-        <p className="text-gray-600">Redirecting to Flows...</p>
-      </div>
+      <LoadingSpinner size="lg" text="Redirecting to Flows..." />
     </div>
   );
 }

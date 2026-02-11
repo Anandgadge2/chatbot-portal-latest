@@ -25,6 +25,7 @@ import {
   Sparkles,
   AlertCircle
 } from 'lucide-react';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 interface AvailabilityCalendarProps {
   isOpen: boolean;
@@ -318,7 +319,7 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
         <div className="p-3 sm:p-6 overflow-y-auto max-h-[calc(100vh-180px)] sm:max-h-[calc(90vh-200px)] custom-scrollbar">
           {loading ? (
             <div className="flex items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-200 border-t-indigo-600"></div>
+              <LoadingSpinner size="lg" />
             </div>
           ) : (
             <>

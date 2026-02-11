@@ -10,6 +10,7 @@ import { FlowNode, FlowEdge, BackendFlow } from '@/types/flowTypes';
 import { Toaster, toast } from 'react-hot-toast';
 import { chatbotFlowApi } from '@/lib/api/chatbotFlow';
 import { transformToBackendFormat, transformFromBackendFormat } from '@/lib/flowTransform';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 export default function CreateFlowPage() {
   const params = useParams();
@@ -141,10 +142,7 @@ export default function CreateFlowPage() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <Workflow className="w-12 h-12 text-purple-600 mx-auto mb-4 animate-spin" />
-          <p className="text-gray-600 font-medium">Loading flow builder...</p>
-        </div>
+        <LoadingSpinner size="xl" text="Loading flow builder..." />
       </div>
     );
   }

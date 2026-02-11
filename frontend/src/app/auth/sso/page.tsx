@@ -4,7 +4,7 @@ import { Suspense, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 
-import { Loader2 } from 'lucide-react';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 function SSOContent() {
   const searchParams = useSearchParams();
@@ -23,7 +23,7 @@ function SSOContent() {
   return (
     <div className="relative flex flex-col items-center gap-6 p-8 bg-slate-900/50 border border-white/10 rounded-3xl backdrop-blur-xl shadow-2xl">
       <div className="p-4 bg-blue-500/10 rounded-2xl border border-blue-500/20">
-        <Loader2 className="w-12 h-12 text-blue-400 animate-spin" />
+        <LoadingSpinner size="lg" className="text-blue-400" />
       </div>
       
       <div className="text-center space-y-2">
@@ -53,7 +53,7 @@ export default function SSOPage() {
         <div className="absolute -inset-4 bg-blue-500/20 blur-2xl rounded-full animate-pulse" />
         <Suspense fallback={
           <div className="relative flex flex-col items-center gap-6 p-8 bg-slate-900/50 border border-white/10 rounded-3xl backdrop-blur-xl shadow-2xl">
-            <Loader2 className="w-12 h-12 text-blue-400 animate-spin" />
+            <LoadingSpinner size="lg" className="text-blue-400" />
           </div>
         }>
           <SSOContent />

@@ -317,10 +317,7 @@ export default function SuperAdminDashboard() {
   if (loading || !mounted) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
-        </div>
+        <LoadingSpinner size="xl" text="Loading Dashboard..." />
       </div>
     );
   }
@@ -634,9 +631,8 @@ export default function SuperAdminDashboard() {
               </CardHeader>
               <CardContent>
                 {companiesLoading ? (
-                  <div className="text-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Loading companies...</p>
+                  <div className="py-12 flex justify-center">
+                    <LoadingSpinner size="lg" text="Loading companies..." />
                   </div>
                 ) : companies.length === 0 ? (
                   <div className="text-center py-12">

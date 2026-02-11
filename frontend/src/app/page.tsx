@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import toast from 'react-hot-toast';
 import { validatePhoneNumber, validatePassword, normalizePhoneNumber } from '@/lib/utils/phoneUtils';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 export default function LoginPage() {
   const [phone, setPhone] = useState('');
@@ -60,9 +61,9 @@ export default function LoginPage() {
       return;
     }
 
-    // Validate password - must be at least 6 characters
+    // Validate password - must be between 6 and 8 characters
     if (!validatePassword(password.trim())) {
-      const msg = 'Password must be at least 6 characters';
+      const msg = 'Password must be between 6 and 8 characters';
       setError(msg);
       toast.error(msg);
       return;
@@ -87,12 +88,7 @@ export default function LoginPage() {
   if (authLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-hidden">
-        <div className="relative">
-          <div className="w-20 h-20 rounded-full border-4 border-transparent border-t-purple-400 border-r-cyan-400 animate-spin"></div>
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-cyan-500 rounded-full animate-pulse shadow-lg shadow-purple-500/50"></div>
-          </div>
-        </div>
+        <LoadingSpinner size="xl" />
       </div>
     );
   }
@@ -279,6 +275,7 @@ export default function LoginPage() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         minLength={6}
+                        maxLength={8}
                         required
                         disabled={loading}
                         className="pl-12 pr-12 h-12 border-slate-200 focus:border-purple-500 focus:ring-purple-500/20 bg-slate-50/50 rounded-lg text-slate-800 placeholder:text-slate-400 text-base"
@@ -305,7 +302,7 @@ export default function LoginPage() {
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        Must be at least 6 characters
+                        Must be between 6 and 8 characters
                       </p>
                     )}
                   </div>

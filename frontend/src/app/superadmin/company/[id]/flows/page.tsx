@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Plus, Workflow, Trash2, Edit, Copy, Search, Play, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { chatbotFlowApi, Flow } from '@/lib/api/chatbotFlow';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 export default function CompanyFlowsPage() {
   const router = useRouter();
@@ -125,10 +126,7 @@ export default function CompanyFlowsPage() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <Workflow className="w-12 h-12 text-purple-600 mx-auto mb-4 animate-spin" />
-          <p className="text-gray-600">Loading flows...</p>
-        </div>
+        <LoadingSpinner size="xl" text="Loading flows..." />
       </div>
     );
   }

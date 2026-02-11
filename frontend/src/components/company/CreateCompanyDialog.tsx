@@ -124,7 +124,7 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({ isOpen, onClo
 
     // Validate admin password if admin form is shown
     if (showAdminForm && formData.admin?.password && !validatePassword(formData.admin.password)) {
-      toast.error('Admin password must be at least 6 characters');
+      toast.error('Admin password must be between 6 and 8 characters');
       return;
     }
 
@@ -431,11 +431,12 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({ isOpen, onClo
                         value={formData.admin?.password || ''}
                         onChange={handleAdminChange}
                         minLength={6}
+                        maxLength={8}
                         required
-                        placeholder="Min 6 characters"
+                        placeholder="6-8 characters"
                       />
                       {formData.admin?.password && !validatePassword(formData.admin.password) && (
-                        <p className="text-xs text-red-500 mt-1">Password must be at least 6 characters</p>
+                        <p className="text-xs text-red-500 mt-1">Password must be between 6 and 8 characters</p>
                       )}
                     </div>
                   </div>

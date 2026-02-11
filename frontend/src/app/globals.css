@@ -129,3 +129,9 @@
 .react-flow__controls-button:hover svg {
   fill: #14b8a6 !important;
 }
+
+/* Hide browser default password reveal button */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
