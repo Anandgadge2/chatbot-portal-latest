@@ -17,7 +17,11 @@ interface Message {
   type: 'bot' | 'user';
   content: string;
   timestamp: Date;
-  buttons?: { text: string; id: string }[];
+  buttons?: { text: string; id: string; isList?: boolean }[];
+  listConfig?: {
+    buttonText: string;
+    sections: any[];
+  };
   isTyping?: boolean;
 }
 
@@ -26,6 +30,11 @@ export default function FlowSimulator({ nodes, edges, flowName, onClose }: FlowS
   const [currentNodeId, setCurrentNodeId] = useState<string | null>(null);
   const [isSimulating, setIsSimulating] = useState(false);
   const [userInput, setUserInput] = useState('');
+  const [activeList, setActiveList] = useState<{
+    nodeId: string;
+    buttonText: string;
+    sections: any[];
+  } | null>(null);
 
   // Start simulation
   const startSimulation = async () => {
@@ -92,52 +101,34 @@ export default function FlowSimulator({ nodes, edges, flowName, onClose }: FlowS
       case 'listMessage':
         const isDynamic = (node.data as any).isDynamic;
         const dynamicSource = (node.data as any).dynamicSource;
-        const listMsg = (node.data as any).messageText || 'Please select from the list:';
+        const listText = (node.data as any).messageText || 'Please select from the list:';
+        const buttonText = (node.data as any).buttonText || 'View Menu';
         
+        let sections = (node.data as any).sections || [];
+
         if (isDynamic && dynamicSource === 'departments') {
-          // Fetch departments from API
           try {
             const response = await fetch('/api/departments');
             if (response.ok) {
               const departments = await response.json();
-              const dynamicItems = departments.map((dept: any, idx: number) => ({
-                text: dept.name,
-                id: `list-0-${idx}`,
-              }));
-              addMessage('bot', listMsg, dynamicItems);
-            } else {
-              // Fallback to static data if API fails
-              const listItems = (node.data as any).sections?.[0]?.rows || [];
-              addMessage('bot', listMsg, listItems.map((item: any, idx: number) => ({
-                text: item.title,
-                id: `list-0-${idx}`,
-              })));
+              sections = [{
+                title: 'Departments',
+                rows: departments.map((dept: any) => ({
+                  id: dept._id,
+                  title: dept.name,
+                  description: dept.description
+                }))
+              }];
             }
           } catch (error) {
             console.error('Error fetching departments:', error);
-            // Fallback to static data
-            const listItems = (node.data as any).sections?.[0]?.rows || [];
-            addMessage('bot', listMsg, listItems.map((item: any, idx: number) => ({
-              text: item.title,
-              id: `list-0-${idx}`,
-            })));
           }
-        } else {
-          // Use static data from node - support multiple sections
-          const sections = (node.data as any).sections || [];
-          const listItems: { text: string; id: string }[] = [];
-          
-          sections.forEach((section: any, secIdx: number) => {
-            (section.rows || []).forEach((row: any, rowIdx: number) => {
-              listItems.push({
-                text: row.title,
-                id: `list-${secIdx}-${rowIdx}`,
-              });
-            });
-          });
-          
-          addMessage('bot', listMsg, listItems);
         }
+        
+        // Add single "View Menu" button message
+        addMessage('bot', listText, [
+          { text: buttonText, id: `list-open-${node.id}`, isList: true }
+        ], { buttonText, sections });
         break;
 
       case 'userInput':
@@ -175,17 +166,36 @@ export default function FlowSimulator({ nodes, edges, flowName, onClose }: FlowS
     }
   };
 
-  const addMessage = (type: 'bot' | 'user', content: string, buttons?: { text: string; id: string }[]) => {
+  const addMessage = (
+    type: 'bot' | 'user', 
+    content: string, 
+    buttons?: { text: string; id: string; isList?: boolean }[],
+    listConfig?: { buttonText: string; sections: any[] }
+  ) => {
     setMessages(prev => [...prev, {
       id: `msg-${Date.now()}`,
       type,
       content,
       timestamp: new Date(),
       buttons,
+      listConfig
     }]);
   };
 
   const handleButtonClick = async (buttonText: string, buttonId: string) => {
+    if (buttonId.startsWith('list-open-')) {
+      // Find the message that has the list config
+      const listMsg = messages.find(m => m.buttons?.some(b => b.id === buttonId));
+      if (listMsg?.listConfig) {
+        setActiveList({
+          nodeId: buttonId.replace('list-open-', ''),
+          buttonText: listMsg.listConfig.buttonText,
+          sections: listMsg.listConfig.sections
+        });
+      }
+      return;
+    }
+
     // Add user's button click as message
     addMessage('user', buttonText);
 
@@ -210,10 +220,10 @@ export default function FlowSimulator({ nodes, edges, flowName, onClose }: FlowS
       const edge = edges.find(e => e.source === currentNodeId && e.sourceHandle === handleId);
       
       if (edge) {
+        setIsSimulating(true);
         await new Promise(resolve => setTimeout(resolve, 500));
         await executeNode(edge.target);
       } else {
-        // Fallback to default edge if no specific row edge found
         await continueToNextNode(currentNodeId!);
       }
     } else {
@@ -299,15 +309,20 @@ export default function FlowSimulator({ nodes, edges, flowName, onClose }: FlowS
                   <>
                     <p className="text-sm text-gray-800 whitespace-pre-wrap">{msg.content}</p>
                     
-                    {/* Buttons */}
+                    {/* Buttons / List Trigger */}
                     {msg.buttons && msg.buttons.length > 0 && (
-                      <div className="mt-2 space-y-1">
+                      <div className="mt-2 space-y-2 pt-2 border-t border-gray-100">
                         {msg.buttons.map((btn) => (
                           <button
                             key={btn.id}
                             onClick={() => handleButtonClick(btn.text, btn.id)}
-                            className="w-full text-left px-3 py-2 bg-white border border-gray-300 rounded hover:bg-gray-50 text-sm text-[#075E54] font-medium"
+                            className={`w-full text-center py-2 px-4 rounded text-sm transition-colors ${
+                              btn.isList 
+                                ? 'text-[#128C7E] font-bold flex items-center justify-center gap-2 hover:bg-gray-50'
+                                : 'text-blue-600 font-medium hover:bg-blue-50'
+                            }`}
                           >
+                            {btn.isList && <MoreVertical className="w-4 h-4 rotate-90" />}
                             {btn.text}
                           </button>
                         ))}
@@ -360,6 +375,64 @@ export default function FlowSimulator({ nodes, edges, flowName, onClose }: FlowS
           </div>
         )}
       </div>
+
+      {/* WhatsApp List Popup */}
+      {activeList && (
+        <div className="fixed inset-0 z-[60] flex flex-col justify-end">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setActiveList(null)} />
+          <div className="relative bg-[#1f2c34] text-[#e9edef] w-full max-w-md mx-auto rounded-t-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-300">
+            {/* Popup Header */}
+            <div className="p-4 flex items-center gap-4 border-b border-[#2a3942]">
+              <button 
+                onClick={() => setActiveList(null)}
+                className="hover:bg-[#2a3942] rounded-full p-1"
+              >
+                <X className="w-5 h-5 text-[#8696a0]" />
+              </button>
+              <h3 className="text-lg font-medium">{activeList.buttonText}</h3>
+            </div>
+
+            {/* List Content */}
+            <div className="overflow-y-auto flex-1 pb-8">
+              {activeList.sections.map((section, secIdx) => (
+                <div key={secIdx} className="mt-4">
+                  {section.title && (
+                    <div className="px-5 py-2 text-[#8696a0] text-sm font-semibold uppercase tracking-wider">
+                      {section.title}
+                    </div>
+                  )}
+                  <div className="space-y-1">
+                    {section.rows?.map((row: any, rowIdx: number) => (
+                      <button
+                        key={row.id || `${secIdx}-${rowIdx}`}
+                        onClick={() => {
+                          handleButtonClick(row.title, `list-${secIdx}-${rowIdx}`);
+                          setActiveList(null);
+                        }}
+                        className="w-full px-5 py-3 flex items-start gap-4 hover:bg-[#2a3942] text-left transition-colors group"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="text-base font-medium text-[#e9edef] group-active:text-white leading-tight">
+                            {row.title}
+                          </div>
+                          {row.description && (
+                            <div className="text-sm text-[#8696a0] mt-0.5 leading-snug truncate">
+                              {row.description}
+                            </div>
+                          )}
+                        </div>
+                        <div className="w-5 h-5 rounded-full border-2 border-[#8696a0] flex-shrink-0 mt-0.5 flex items-center justify-center">
+                          <div className="w-2.5 h-2.5 rounded-full bg-transparent group-active:bg-[#00a884]" />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
