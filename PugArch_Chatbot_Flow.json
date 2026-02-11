@@ -1,0 +1,325 @@
+{
+  "flowName": "PugArch Technology Business Chatbot",
+  "flowDescription": "Production-ready chatbot flow for software development services, lead generation, and client support.",
+  "flowType": "custom",
+  "isActive": true,
+  "startStepId": "welcome_lang",
+  "supportedLanguages": ["en", "hi", "mr"],
+  "defaultLanguage": "en",
+  "steps": [
+    {
+      "stepId": "welcome_lang",
+      "stepType": "buttons",
+      "stepName": "Language Selection",
+      "messageText": "Hello! Welcome to *PugArch Technology Pvt Ltd* 👋\n\nPlease select your preferred language to continue:",
+      "buttons": [
+        { "id": "lang_en", "title": "English", "nextStepId": "menu_main" },
+        { "id": "lang_hi", "title": "Hindi (हिंदी)", "nextStepId": "menu_main" },
+        { "id": "lang_mr", "title": "Marathi (मराठी)", "nextStepId": "menu_main" }
+      ]
+    },
+    {
+      "stepId": "menu_main",
+      "stepType": "list",
+      "stepName": "Main Menu",
+      "messageText": "How can we help you today? Please select an option from the menu below:",
+      "listConfig": {
+        "buttonText": "View Menu",
+        "sections": [
+          {
+            "title": "Exploration",
+            "rows": [
+              { "id": "main_services", "title": "Our Services", "description": "View our tech capabilities", "nextStepId": "svc_list" },
+              { "id": "main_new_project", "title": "Start a Project", "description": "Share your requirements", "nextStepId": "lead_name" },
+              { "id": "main_pricing", "title": "Pricing & Estimate", "description": "Get a ballpark cost", "nextStepId": "pricing_start" }
+            ]
+          },
+          {
+            "title": "Engagement",
+            "rows": [
+              { "id": "main_consult", "title": "Book Consultation", "description": "Speak with our experts", "nextStepId": "consult_date" },
+              { "id": "main_support", "title": "Existing Client Support", "description": "Help with current projects", "nextStepId": "support_main" },
+              { "id": "main_careers", "title": "Careers / Internship", "description": "Join our growing team", "nextStepId": "careers_start" },
+              { "id": "main_human", "title": "Talk to Human", "description": "Direct agent assistance", "nextStepId": "human_connect" }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "stepId": "svc_list",
+      "stepType": "list",
+      "stepName": "Services List",
+      "messageText": "We provide end-to-end software solutions. Select a service to know more:",
+      "listConfig": {
+        "buttonText": "Select Service",
+        "sections": [
+          {
+            "title": "Development Services",
+            "rows": [
+              { "id": "svc_web", "title": "Website Development", "description": "Corporate & E-commerce sites", "nextStepId": "svc_web_detail" },
+              { "id": "svc_app", "title": "Mobile App Development", "description": "iOS & Android solutions", "nextStepId": "svc_app_detail" },
+              { "id": "svc_custom", "title": "Custom Web Apps", "description": "Tailored enterprise software", "nextStepId": "svc_custom_detail" },
+              { "id": "svc_staff", "title": "Resource Hiring", "description": "Dedicated developers for you", "nextStepId": "svc_staff_detail" }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "stepId": "svc_web_detail",
+      "stepType": "message",
+      "stepName": "Web Dev Detail",
+      "messageText": "*Website Development* 🌐\n\nWe build SEO-friendly, high-performance websites using React, Next.js, and modern tech stacks.\n\nServices include:\n• Corporate Websites\n• E-commerce Platforms\n• CMS Development\n• Landing Pages",
+      "buttons": [
+        { "id": "btn_quote_web", "title": "Get a Quote", "nextStepId": "lead_name" },
+        { "id": "btn_back_web", "title": "Back to Services", "nextStepId": "svc_list" }
+      ]
+    },
+    {
+      "stepId": "svc_app_detail",
+      "stepType": "message",
+      "stepName": "App Dev Detail",
+      "messageText": "*Mobile App Development* 📱\n\nNative and Hybrid mobile applications that provide seamless user experience.\n\nSpecializing in:\n• React Native / Flutter\n• iOS & Android Native\n• App UI/UX Design\n• API Integration",
+      "buttons": [
+        { "id": "btn_quote_app", "title": "Get a Quote", "nextStepId": "lead_name" },
+        { "id": "btn_back_app", "title": "Back to Services", "nextStepId": "svc_list" }
+      ]
+    },
+    {
+      "stepId": "svc_custom_detail",
+      "stepType": "message",
+      "stepName": "Custom App Detail",
+      "messageText": "*Custom Web Applications* ⚙️\n\nTailored business logic automation and enterprise-grade web platforms.\n\nExpertise in:\n• ERP & CRM Solutions\n• Management Systems\n• SaaS Product Dev\n• Cloud Infrastructure",
+      "buttons": [
+        { "id": "btn_quote_custom", "title": "Get a Quote", "nextStepId": "lead_name" },
+        { "id": "btn_back_custom", "title": "Back to Services", "nextStepId": "svc_list" }
+      ]
+    },
+    {
+      "stepId": "svc_staff_detail",
+      "stepType": "message",
+      "stepName": "Staffing Detail",
+      "messageText": "*Resource Hiring* 👥\n\nHire dedicated full-stack developers, mobile experts, or UI/UX designers on a monthly basis.\n\nWhy choose us:\n• Vetted Talent\n• Direct Communication\n• Scalable Teams\n• 24x7 Support",
+      "buttons": [
+        { "id": "btn_quote_staff", "title": "Discuss Hiring", "nextStepId": "lead_name" },
+        { "id": "btn_back_staff", "title": "Back to Services", "nextStepId": "svc_list" }
+      ]
+    },
+    {
+      "stepId": "lead_name",
+      "stepType": "input",
+      "stepName": "Collect Name",
+      "messageText": "Great! Let's start with your *Full Name*:",
+      "inputConfig": {
+        "inputType": "text",
+        "saveToField": "name",
+        "validation": { "required": true, "minLength": 2 },
+        "nextStepId": "lead_company"
+      }
+    },
+    {
+      "stepId": "lead_company",
+      "stepType": "input",
+      "stepName": "Collect Company",
+      "messageText": "And what is your *Company Name*? (Type 'Skip' to proceed without it)",
+      "inputConfig": {
+        "inputType": "text",
+        "saveToField": "companyName",
+        "nextStepId": "lead_type"
+      }
+    },
+    {
+      "stepId": "lead_type",
+      "stepType": "buttons",
+      "stepName": "Collect Project Type",
+      "messageText": "What type of project are you planning?",
+      "buttons": [
+        { "id": "pt_web", "title": "Website", "nextStepId": "lead_desc" },
+        { "id": "pt_app", "title": "Mobile App", "nextStepId": "lead_desc" },
+        { "id": "pt_soft", "title": "Custom Software", "nextStepId": "lead_desc" }
+      ],
+      "nextStepId": "lead_desc"
+    },
+    {
+      "stepId": "lead_desc",
+      "stepType": "input",
+      "stepName": "Collect Description",
+      "messageText": "Please provide a *brief description* of your project requirements:",
+      "inputConfig": {
+        "inputType": "text",
+        "saveToField": "projectDescription",
+        "validation": { "required": true, "minLength": 10 },
+        "nextStepId": "lead_budget"
+      }
+    },
+    {
+      "stepId": "lead_budget",
+      "stepType": "input",
+      "stepName": "Collect Budget",
+      "messageText": "What is your *estimated budget range*? (e.g. $5k - $10k)",
+      "inputConfig": {
+        "inputType": "text",
+        "saveToField": "budgetRange",
+        "nextStepId": "lead_timeline"
+      }
+    },
+    {
+      "stepId": "lead_timeline",
+      "stepType": "input",
+      "stepName": "Collect Timeline",
+      "messageText": "What is your *expected timeline* for this project? (e.g. 2 months)",
+      "inputConfig": {
+        "inputType": "text",
+        "saveToField": "timeline",
+        "nextStepId": "lead_contact"
+      }
+    },
+    {
+      "stepId": "lead_contact",
+      "stepType": "input",
+      "stepName": "Collect Contact",
+      "messageText": "Finally, please share your *Email or Phone Number* so our experts can reach out to you:",
+      "inputConfig": {
+        "inputType": "text",
+        "saveToField": "contactInfo",
+        "validation": { "required": true },
+        "nextStepId": "lead_submit"
+      }
+    },
+    {
+      "stepId": "lead_submit",
+      "stepType": "api_call",
+      "stepName": "Submit Lead",
+      "apiConfig": {
+        "method": "POST",
+        "endpoint": "/api/leads/chatbot",
+        "body": {
+          "companyId": "{companyId}",
+          "name": "{name}",
+          "companyName": "{companyName}",
+          "projectType": "{projectType}",
+          "projectDescription": "{projectDescription}",
+          "budgetRange": "{budgetRange}",
+          "timeline": "{timeline}",
+          "contactInfo": "{contactInfo}"
+        },
+        "nextStepId": "lead_success"
+      }
+    },
+    {
+      "stepId": "lead_success",
+      "stepType": "message",
+      "stepName": "Submission Success",
+      "messageText": "✅ *Thank you {name}!*\n\nYour project request has been successfully recorded. Our technology consultants will review your requirements and reach out within 24 hours.\n\nHave a great day! 👋"
+    },
+    {
+      "stepId": "pricing_start",
+      "stepType": "buttons",
+      "stepName": "Pricing Selection",
+      "messageText": "Pricing depends on complexity, features, and tech stack. Which category are you interested in?",
+      "buttons": [
+        { "id": "p_web", "title": "Web Projects", "nextStepId": "pricing_est" },
+        { "id": "p_app", "title": "App Projects", "nextStepId": "pricing_est" },
+        { "id": "p_hiring", "title": "Staff Hiring", "nextStepId": "pricing_est" }
+      ]
+    },
+    {
+      "stepId": "pricing_est",
+      "stepType": "message",
+      "stepName": "Price Range",
+      "messageText": "Typical price ranges:\n• Basic Website: $500 - $1,500\n• Enterprise Web App: $3,000+\n• Mobile App (MVP): $2,500 - $5,000\n• Dedicated Developer: $1,200 - $2,500/month\n\n_Note: These are estimates. Final pricing is provided after detailed consultation._",
+      "buttons": [
+        { "id": "btn_book_now", "title": "Book Consultation", "nextStepId": "consult_date" },
+        { "id": "btn_menu", "title": "Main Menu", "nextStepId": "menu_main" }
+      ]
+    },
+    {
+      "stepId": "consult_date",
+      "stepType": "input",
+      "stepName": "Consultation Date",
+      "messageText": "Please enter your *preferred date* for the consultation (DD/MM/YYYY):",
+      "inputConfig": {
+        "inputType": "date",
+        "saveToField": "consultDate",
+        "nextStepId": "consult_time"
+      }
+    },
+    {
+      "stepId": "consult_time",
+      "stepType": "input",
+      "stepName": "Consultation Time",
+      "messageText": "What *time slot* would you prefer? (e.g. 10:00 AM, 3:00 PM)",
+      "inputConfig": {
+        "inputType": "text",
+        "saveToField": "consultTime",
+        "nextStepId": "consult_success"
+      }
+    },
+    {
+      "stepId": "consult_success",
+      "stepType": "message",
+      "stepName": "Booking Success",
+      "messageText": "✅ *Consultation Booked!*\n\nDate: {consultDate}\nTime: {consultTime}\n\nOur team will confirm the availability and send you a calendar invite. We look forward to discussing your project! 🚀"
+    },
+    {
+      "stepId": "support_main",
+      "stepType": "list",
+      "stepName": "Support Options",
+      "messageText": "Hello! How can we assist you with your project today?",
+      "listConfig": {
+        "buttonText": "Select Issue",
+        "sections": [
+          {
+            "title": "Support Categories",
+            "rows": [
+              { "id": "sup_status", "title": "Project Status", "description": "Check current progress", "nextStepId": "human_connect" },
+              { "id": "sup_tech", "title": "Technical Issue", "description": "Report a bug or problem", "nextStepId": "human_connect" },
+              { "id": "sup_feat", "title": "Feature Request", "description": "Suggest new enhancement", "nextStepId": "human_connect" },
+              { "id": "sup_bill", "title": "Billing Query", "description": "Payment and invoice help", "nextStepId": "human_connect" }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "stepId": "careers_start",
+      "stepType": "input",
+      "stepName": "Careers Intake",
+      "messageText": "Excited to have you interested in joining PugArch! What is your *Full Name*?",
+      "inputConfig": {
+        "inputType": "text",
+        "saveToField": "candidateName",
+        "nextStepId": "careers_finish"
+      }
+    },
+    {
+      "stepId": "careers_finish",
+      "stepType": "message",
+      "stepName": "Careers Note",
+      "messageText": "Thank you {candidateName}. Please share your *LinkedIn profile or Resume link* and the *role* you are applying for. Our HR team will get back to if your profile matches.",
+      "nextStepId": "menu_main"
+    },
+    {
+      "stepId": "human_connect",
+      "stepType": "message",
+      "stepName": "Handoff Message",
+      "messageText": "Connecting you to a human operator at *PugArch Technology*... 🎧\n\nOne of our specialists will be with you shortly. Please stay online."
+    }
+  ],
+  "triggers": [
+    { "triggerType": "keyword", "triggerValue": "hi", "startStepId": "welcome_lang" },
+    { "triggerType": "keyword", "triggerValue": "hello", "startStepId": "welcome_lang" },
+    { "triggerType": "keyword", "triggerValue": "menu", "startStepId": "menu_main" },
+    { "triggerType": "keyword", "triggerValue": "start", "startStepId": "welcome_lang" },
+    { "triggerType": "keyword", "triggerValue": "human", "startStepId": "human_connect" },
+    { "triggerType": "keyword", "triggerValue": "agent", "startStepId": "human_connect" }
+  ],
+  "settings": {
+    "sessionTimeout": 30,
+    "enableTypingIndicator": true,
+    "enableReadReceipts": true,
+    "maxRetries": 3,
+    "errorFallbackMessage": "I'm sorry, I didn't quite catch that. Could you please select an option or type 'Hi' to restart?"
+  }
+}

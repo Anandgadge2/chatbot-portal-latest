@@ -1,0 +1,532 @@
+{
+  "metadata": {
+    "name": "Collectorate Jharsugda Odisha - Complete Tri-lingual",
+    "description": "Complete chatbot flow with Grievance, Appointment, and Track Status for English, Hindi, and Odia",
+    "companyId": "",
+    "version": 1,
+    "isActive": true
+  },
+  "nodes": [
+    {
+      "id": "start_node",
+      "type": "start",
+      "position": { "x": 100, "y": 1200 },
+      "data": {
+        "label": "Start Trigger",
+        "trigger": "hi",
+        "triggerType": "keyword"
+      }
+    },
+    {
+      "id": "language_selection",
+      "type": "buttonMessage",
+      "position": { "x": 400, "y": 1200 },
+      "data": {
+        "label": "Language Selection",
+        "messageText": "🇮🇳 *Welcome to Collectorate Jharsugda Odisha*\n\n📱 Official Digital Service Portal\n\nPlease select your preferred language:\nकृपया अपनी पसंदीदा भाषा चुनें:\nଦୟାକରି ଆପଣଙ୍କର ପସନ୍ଦର ଭାଷା ବାଛନ୍ତୁ:",
+        "buttons": [
+          { "id": "btn_en", "text": "🇬🇧 English", "type": "quick_reply" },
+          { "id": "btn_hi", "text": "🇮🇳 हिंदी", "type": "quick_reply" },
+          { "id": "btn_or", "text": "🇮🇳 ଓଡ଼ିଆ", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "main_menu_en",
+      "type": "buttonMessage",
+      "position": { "x": 750, "y": 200 },
+      "data": {
+        "label": "Main Menu (English)",
+        "messageText": "🏛️ *Collectorate Jharsugda Odisha*\n\n*Citizen Services Menu*\n\nPlease select a service:",
+        "buttons": [
+          { "id": "grv_en", "text": "📝 File Grievance", "type": "quick_reply" },
+          { "id": "apt_en", "text": "📅 Book Appointment", "type": "quick_reply" },
+          { "id": "track_en", "text": "🔍 Track Status", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "main_menu_hi",
+      "type": "buttonMessage",
+      "position": { "x": 750, "y": 1200 },
+      "data": {
+        "label": "Main Menu (Hindi)",
+        "messageText": "🏛️ *कलेक्टोरेट झारसुगड़ा ओडिशा*\n\n*नागरिक सेवाएं मेनू*\n\nकृपया एक सेवा चुनें:",
+        "buttons": [
+          { "id": "grv_hi", "text": "📝 शिकायत दर्ज करें", "type": "quick_reply" },
+          { "id": "apt_hi", "text": "📅 अपॉइंटमेंट बुक", "type": "quick_reply" },
+          { "id": "track_hi", "text": "🔍 स्थिति देखें", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "main_menu_or",
+      "type": "buttonMessage",
+      "position": { "x": 750, "y": 2200 },
+      "data": {
+        "label": "Main Menu (Odia)",
+        "messageText": "🏛️ *କଲେକ୍ଟରେଟ୍ ଝାରସୁଗଡା ଓଡିଶା*\n\n*ନାଗରିକ ସେବା ମେନୁ*\n\nଦୟାକରି ଏକ ସେବା ବାଛନ୍ତୁ:",
+        "buttons": [
+          { "id": "grv_or", "text": "📝 ଅଭିଯୋଗ ଦାଖଲ", "type": "quick_reply" },
+          { "id": "apt_or", "text": "📅 ନିଯୁକ୍ତି ବୁକ୍", "type": "quick_reply" },
+          { "id": "track_or", "text": "🔍 ସ୍ଥିତି ଦେଖନ୍ତୁ", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "grv_name_en",
+      "type": "userInput",
+      "position": { "x": 1100, "y": 50 },
+      "data": {
+        "label": "Enter Name (EN)",
+        "messageText": "📝 *File a Grievance*\n\nPlease enter your full name:",
+        "inputType": "text",
+        "saveToField": "citizenName",
+        "validation": { "required": true, "minLength": 2, "maxLength": 100 },
+        "placeholder": "Enter your full name"
+      }
+    },
+    {
+      "id": "grv_dept_en",
+      "type": "listMessage",
+      "position": { "x": 1450, "y": 50 },
+      "data": {
+        "label": "Select Department (EN)",
+        "messageText": "Please select the concerned department:",
+        "buttonText": "Select Department",
+        "isDynamic": true,
+        "dynamicSource": "departments",
+        "sections": [{
+          "title": "Government Departments",
+          "rows": [
+            { "id": "dept_health", "title": "Health Department", "description": "Healthcare services" },
+            { "id": "dept_education", "title": "Education Department", "description": "Schools" }
+          ]
+        }]
+      }
+    },
+    {
+      "id": "grv_desc_en",
+      "type": "userInput",
+      "position": { "x": 1800, "y": 50 },
+      "data": {
+        "label": "Enter Description (EN)",
+        "messageText": "Please describe your grievance in detail:\n\n• Include specific dates\n• Mention exact location\n• Provide relevant details",
+        "inputType": "text",
+        "saveToField": "description",
+        "validation": { "required": true, "minLength": 10, "maxLength": 1000 },
+        "placeholder": "Describe your grievance"
+      }
+    },
+    {
+      "id": "grv_success_en",
+      "type": "textMessage",
+      "position": { "x": 2150, "y": 50 },
+      "data": {
+        "label": "Grievance Success (EN)",
+        "messageText": "✅ *Grievance Registered Successfully!*\n\n🎫 *Reference Number:* {{grievanceId}}\n\nThank you for using Collectorate Jharsugda Odisha services!",
+        "variables": ["grievanceId"]
+      }
+    },
+    {
+      "id": "apt_name_en",
+      "type": "userInput",
+      "position": { "x": 1100, "y": 200 },
+      "data": {
+        "label": "Enter Name (EN)",
+        "messageText": "📅 *Book an Appointment*\n\nPlease enter your full name:",
+        "inputType": "text",
+        "saveToField": "citizenName",
+        "validation": { "required": true, "minLength": 2, "maxLength": 100 },
+        "placeholder": "Enter your full name"
+      }
+    },
+    {
+      "id": "apt_dept_en",
+      "type": "listMessage",
+      "position": { "x": 1450, "y": 200 },
+      "data": {
+        "label": "Select Department (EN)",
+        "messageText": "Please select the department for appointment:",
+        "buttonText": "Select Department",
+        "isDynamic": true,
+        "dynamicSource": "departments",
+        "sections": [{
+          "title": "Government Departments",
+          "rows": [
+            { "id": "dept_health", "title": "Health Department", "description": "Healthcare services" },
+            { "id": "dept_education", "title": "Education Department", "description": "Schools" }
+          ]
+        }]
+      }
+    },
+    {
+      "id": "apt_purpose_en",
+      "type": "userInput",
+      "position": { "x": 1800, "y": 200 },
+      "data": {
+        "label": "Enter Purpose (EN)",
+        "messageText": "Please describe the purpose of your appointment:",
+        "inputType": "text",
+        "saveToField": "purpose",
+        "validation": { "required": true, "minLength": 10, "maxLength": 500 },
+        "placeholder": "Purpose of appointment"
+      }
+    },
+    {
+      "id": "apt_success_en",
+      "type": "textMessage",
+      "position": { "x": 2150, "y": 200 },
+      "data": {
+        "label": "Appointment Success (EN)",
+        "messageText": "✅ *Appointment Booked Successfully!*\n\n🎫 *Reference Number:* {{appointmentId}}\n\nYou will receive confirmation shortly!",
+        "variables": ["appointmentId"]
+      }
+    },
+    {
+      "id": "track_ref_en",
+      "type": "userInput",
+      "position": { "x": 1100, "y": 350 },
+      "data": {
+        "label": "Enter Reference Number (EN)",
+        "messageText": "🔍 *Track Status*\n\nPlease enter your reference number:\n(e.g., GRV00000001 or APT00000001)",
+        "inputType": "text",
+        "saveToField": "referenceNumber",
+        "validation": { "required": true, "pattern": "^(GRV|APT)\\d{8}$" },
+        "placeholder": "Enter reference number"
+      }
+    },
+    {
+      "id": "track_status_en",
+      "type": "textMessage",
+      "position": { "x": 1450, "y": 350 },
+      "data": {
+        "label": "Show Status (EN)",
+        "messageText": "📄 *Status Information*\n\n🎫 *Ref No:* {{referenceNumber}}\n👤 *Name:* {{citizenName}}\n🏢 *Department:* {{departmentName}}\n📊 *Status:* {{status}}",
+        "variables": ["referenceNumber", "citizenName", "departmentName", "status"]
+      }
+    },
+    {
+      "id": "grv_name_hi",
+      "type": "userInput",
+      "position": { "x": 1100, "y": 1050 },
+      "data": {
+        "label": "नाम दर्ज करें (HI)",
+        "messageText": "📝 *शिकायत दर्ज करें*\n\nकृपया अपना पूरा नाम दर्ज करें:",
+        "inputType": "text",
+        "saveToField": "citizenName",
+        "validation": { "required": true, "minLength": 2, "maxLength": 100 },
+        "placeholder": "अपना पूरा नाम दर्ज करें"
+      }
+    },
+    {
+      "id": "grv_dept_hi",
+      "type": "listMessage",
+      "position": { "x": 1450, "y": 1050 },
+      "data": {
+        "label": "विभाग चुनें (HI)",
+        "messageText": "कृपया संबंधित विभाग चुनें:",
+        "buttonText": "विभाग चुनें",
+        "isDynamic": true,
+        "dynamicSource": "departments",
+        "sections": [{
+          "title": "सरकारी विभाग",
+          "rows": [
+            { "id": "dept_health", "title": "स्वास्थ्य विभाग", "description": "स्वास्थ्य सेवाएं" },
+            { "id": "dept_education", "title": "शिक्षा विभाग", "description": "स्कूल" }
+          ]
+        }]
+      }
+    },
+    {
+      "id": "grv_desc_hi",
+      "type": "userInput",
+      "position": { "x": 1800, "y": 1050 },
+      "data": {
+        "label": "विवरण दर्ज करें (HI)",
+        "messageText": "कृपया अपनी शिकायत का विस्तार से वर्णन करें:\n\n• विशिष्ट तिथियां शामिल करें\n• सटीक स्थान का उल्लेख करें\n• प्रासंगिक विवरण प्रदान करें",
+        "inputType": "text",
+        "saveToField": "description",
+        "validation": { "required": true, "minLength": 10, "maxLength": 1000 },
+        "placeholder": "अपनी शिकायत का वर्णन करें"
+      }
+    },
+    {
+      "id": "grv_success_hi",
+      "type": "textMessage",
+      "position": { "x": 2150, "y": 1050 },
+      "data": {
+        "label": "शिकायत सफलता (HI)",
+        "messageText": "✅ *शिकायत सफलतापूर्वक पंजीकृत!*\n\n🎫 *संदर्भ संख्या:* {{grievanceId}}\n\nकलेक्टोरेट झारसुगड़ा ओडिशा सेवाओं का उपयोग करने के लिए धन्यवाद!",
+        "variables": ["grievanceId"]
+      }
+    },
+    {
+      "id": "apt_name_hi",
+      "type": "userInput",
+      "position": { "x": 1100, "y": 1200 },
+      "data": {
+        "label": "नाम दर्ज करें (HI)",
+        "messageText": "📅 *अपॉइंटमेंट बुक करें*\n\nकृपया अपना पूरा नाम दर्ज करें:",
+        "inputType": "text",
+        "saveToField": "citizenName",
+        "validation": { "required": true, "minLength": 2, "maxLength": 100 },
+        "placeholder": "अपना पूरा नाम दर्ज करें"
+      }
+    },
+    {
+      "id": "apt_dept_hi",
+      "type": "listMessage",
+      "position": { "x": 1450, "y": 1200 },
+      "data": {
+        "label": "विभाग चुनें (HI)",
+        "messageText": "कृपया अपॉइंटमेंट के लिए विभाग चुनें:",
+        "buttonText": "विभाग चुनें",
+        "isDynamic": true,
+        "dynamicSource": "departments",
+        "sections": [{
+          "title": "सरकारी विभाग",
+          "rows": [
+            { "id": "dept_health", "title": "स्वास्थ्य विभाग", "description": "स्वास्थ्य सेवाएं" },
+            { "id": "dept_education", "title": "शिक्षा विभाग", "description": "स्कूल" }
+          ]
+        }]
+      }
+    },
+    {
+      "id": "apt_purpose_hi",
+      "type": "userInput",
+      "position": { "x": 1800, "y": 1200 },
+      "data": {
+        "label": "उद्देश्य दर्ज करें (HI)",
+        "messageText": "कृपया अपने अपॉइंटमेंट का उद्देश्य बताएं:",
+        "inputType": "text",
+        "saveToField": "purpose",
+        "validation": { "required": true, "minLength": 10, "maxLength": 500 },
+        "placeholder": "अपॉइंटमेंट का उद्देश्य"
+      }
+    },
+    {
+      "id": "apt_success_hi",
+      "type": "textMessage",
+      "position": { "x": 2150, "y": 1200 },
+      "data": {
+        "label": "अपॉइंटमेंट सफलता (HI)",
+        "messageText": "✅ *अपॉइंटमेंट सफलतापूर्वक बुक!*\n\n🎫 *संदर्भ संख्या:* {{appointmentId}}\n\nआपको शीघ्र ही पुष्टि प्राप्त होगी!",
+        "variables": ["appointmentId"]
+      }
+    },
+    {
+      "id": "track_ref_hi",
+      "type": "userInput",
+      "position": { "x": 1100, "y": 1350 },
+      "data": {
+        "label": "संदर्भ संख्या दर्ज करें (HI)",
+        "messageText": "🔍 *स्थिति ट्रैक करें*\n\nकृपया अपनी संदर्भ संख्या दर्ज करें:\n(उदा., GRV00000001 या APT00000001)",
+        "inputType": "text",
+        "saveToField": "referenceNumber",
+        "validation": { "required": true, "pattern": "^(GRV|APT)\\d{8}$" },
+        "placeholder": "संदर्भ संख्या दर्ज करें"
+      }
+    },
+    {
+      "id": "track_status_hi",
+      "type": "textMessage",
+      "position": { "x": 1450, "y": 1350 },
+      "data": {
+        "label": "स्थिति दिखाएं (HI)",
+        "messageText": "📄 *स्थिति जानकारी*\n\n🎫 *संदर्भ संख्या:* {{referenceNumber}}\n👤 *नाम:* {{citizenName}}\n🏢 *विभाग:* {{departmentName}}\n📊 *स्थिति:* {{status}}",
+        "variables": ["referenceNumber", "citizenName", "departmentName", "status"]
+      }
+    },
+    {
+      "id": "grv_name_or",
+      "type": "userInput",
+      "position": { "x": 1100, "y": 2050 },
+      "data": {
+        "label": "ନାମ ପ୍ରବେଶ କରନ୍ତୁ (OR)",
+        "messageText": "📝 *ଅଭିଯୋଗ ଦାଖଲ କରନ୍ତୁ*\n\nଦୟାକରି ଆପଣଙ୍କର ସମ୍ପୂର୍ଣ୍ଣ ନାମ ପ୍ରବେଶ କରନ୍ତୁ:",
+        "inputType": "text",
+        "saveToField": "citizenName",
+        "validation": { "required": true, "minLength": 2, "maxLength": 100 },
+        "placeholder": "ଆପଣଙ୍କର ସମ୍ପୂର୍ଣ୍ଣ ନାମ ପ୍ରବେଶ କରନ୍ତୁ"
+      }
+    },
+    {
+      "id": "grv_dept_or",
+      "type": "listMessage",
+      "position": { "x": 1450, "y": 2050 },
+      "data": {
+        "label": "ବିଭାଗ ବାଛନ୍ତୁ (OR)",
+        "messageText": "ଦୟାକରି ସମ୍ପୃକ୍ତ ବିଭାଗ ବାଛନ୍ତୁ:",
+        "buttonText": "ବିଭାଗ ବାଛନ୍ତୁ",
+        "isDynamic": true,
+        "dynamicSource": "departments",
+        "sections": [{
+          "title": "ସରକାରୀ ବିଭାଗଗୁଡିକ",
+          "rows": [
+            { "id": "dept_health", "title": "ସ୍ୱାସ୍ଥ୍ୟ ବିଭାଗ", "description": "ସ୍ୱାସ୍ଥ୍ୟସେବା" },
+            { "id": "dept_education", "title": "ଶିକ୍ଷା ବିଭାଗ", "description": "ବିଦ୍ୟାଳୟ" }
+          ]
+        }]
+      }
+    },
+    {
+      "id": "grv_desc_or",
+      "type": "userInput",
+      "position": { "x": 1800, "y": 2050 },
+      "data": {
+        "label": "ବିବରଣୀ ପ୍ରବେଶ କରନ୍ତୁ (OR)",
+        "messageText": "ଦୟାକରି ଆପଣଙ୍କର ଅଭିଯୋଗକୁ ବିସ୍ତୃତ ଭାବରେ ବର୍ଣ୍ଣନା କରନ୍ତୁ:\n\n• ନିର୍ଦ୍ଦିଷ୍ଟ ତାରିଖ ଅନ୍ତର୍ଭୁକ୍ତ କରନ୍ତୁ\n• ସଠିକ୍ ସ୍ଥାନ ଉଲ୍ଲେଖ କରନ୍ତୁ\n• ପ୍ରାସଙ୍ଗିକ ବିବରଣୀ ପ୍ରଦାନ କରନ୍ତୁ",
+        "inputType": "text",
+        "saveToField": "description",
+        "validation": { "required": true, "minLength": 10, "maxLength": 1000 },
+        "placeholder": "ଆପଣଙ୍କର ଅଭିଯୋଗ ବର୍ଣ୍ଣନା କରନ୍ତୁ"
+      }
+    },
+    {
+      "id": "grv_success_or",
+      "type": "textMessage",
+      "position": { "x": 2150, "y": 2050 },
+      "data": {
+        "label": "ଅଭିଯୋଗ ସଫଳତା (OR)",
+        "messageText": "✅ *ଅଭିଯୋଗ ସଫଳତାର ସହିତ ପଞ୍ଜୀକୃତ!*\n\n🎫 *ରେଫରେନ୍ସ ନମ୍ବର:* {{grievanceId}}\n\nକଲେକ୍ଟରେଟ୍ ଝାରସୁଗଡା ଓଡିଶା ସେବା ବ୍ୟବହାର କରିଥିବାରୁ ଧନ୍ୟବାଦ!",
+        "variables": ["grievanceId"]
+      }
+    },
+    {
+      "id": "apt_name_or",
+      "type": "userInput",
+      "position": { "x": 1100, "y": 2200 },
+      "data": {
+        "label": "ନାମ ପ୍ରବେଶ କରନ୍ତୁ (OR)",
+        "messageText": "📅 *ନିଯୁକ୍ତି ବୁକ୍ କରନ୍ତୁ*\n\nଦୟାକରି ଆପଣଙ୍କର ସମ୍ପୂର୍ଣ୍ଣ ନାମ ପ୍ରବେଶ କରନ୍ତୁ:",
+        "inputType": "text",
+        "saveToField": "citizenName",
+        "validation": { "required": true, "minLength": 2, "maxLength": 100 },
+        "placeholder": "ଆପଣଙ୍କର ସମ୍ପୂର୍ଣ୍ଣ ନାମ ପ୍ରବେଶ କରନ୍ତୁ"
+      }
+    },
+    {
+      "id": "apt_dept_or",
+      "type": "listMessage",
+      "position": { "x": 1450, "y": 2200 },
+      "data": {
+        "label": "ବିଭାଗ ବାଛନ୍ତୁ (OR)",
+        "messageText": "ଦୟାକରି ନିଯୁକ୍ତି ପାଇଁ ବିଭାଗ ବାଛନ୍ତୁ:",
+        "buttonText": "ବିଭାଗ ବାଛନ୍ତୁ",
+        "isDynamic": true,
+        "dynamicSource": "departments",
+        "sections": [{
+          "title": "ସରକାରୀ ବିଭାଗଗୁଡିକ",
+          "rows": [
+            { "id": "dept_health", "title": "ସ୍ୱାସ୍ଥ୍ୟ ବିଭାଗ", "description": "ସ୍ୱାସ୍ଥ୍ୟସେବା" },
+            { "id": "dept_education", "title": "ଶିକ୍ଷା ବିଭାଗ", "description": "ବିଦ୍ୟାଳୟ" }
+          ]
+        }]
+      }
+    },
+    {
+      "id": "apt_purpose_or",
+      "type": "userInput",
+      "position": { "x": 1800, "y": 2200 },
+      "data": {
+        "label": "ଉଦ୍ଦେଶ୍ୟ ପ୍ରବେଶ କରନ୍ତୁ (OR)",
+        "messageText": "ଦୟାକରି ଆପଣଙ୍କ ନିଯୁକ୍ତିର ଉଦ୍ଦେଶ୍ୟ ବର୍ଣ୍ଣନା କରନ୍ତୁ:",
+        "inputType": "text",
+        "saveToField": "purpose",
+        "validation": { "required": true, "minLength": 10, "maxLength": 500 },
+        "placeholder": "ନିଯୁକ୍ତିର ଉଦ୍ଦେଶ୍ୟ"
+      }
+    },
+    {
+      "id": "apt_success_or",
+      "type": "textMessage",
+      "position": { "x": 2150, "y": 2200 },
+      "data": {
+        "label": "ନିଯୁକ୍ତି ସଫଳତା (OR)",
+        "messageText": "✅ *ନିଯୁକ୍ତି ସଫଳତାର ସହିତ ବୁକ୍!*\n\n🎫 *ରେଫରେନ୍ସ ନମ୍ବର:* {{appointmentId}}\n\nଆପଣ ଶୀଘ୍ର ନିଶ୍ଚିତକରଣ ପାଇବେ!",
+        "variables": ["appointmentId"]
+      }
+    },
+    {
+      "id": "track_ref_or",
+      "type": "userInput",
+      "position": { "x": 1100, "y": 2350 },
+      "data": {
+        "label": "ରେଫରେନ୍ସ ନମ୍ବର ପ୍ରବେଶ କରନ୍ତୁ (OR)",
+        "messageText": "🔍 *ସ୍ଥିତି ଟ୍ରାକ୍ କରନ୍ତୁ*\n\nଦୟାକରି ଆପଣଙ୍କର ରେଫରେନ୍ସ ନମ୍ବର ପ୍ରବେଶ କରନ୍ତୁ:\n(ଉଦା., GRV00000001 କିମ୍ବା APT00000001)",
+        "inputType": "text",
+        "saveToField": "referenceNumber",
+        "validation": { "required": true, "pattern": "^(GRV|APT)\\d{8}$" },
+        "placeholder": "ରେଫରେନ୍ସ ନମ୍ବର ପ୍ରବେଶ କରନ୍ତୁ"
+      }
+    },
+    {
+      "id": "track_status_or",
+      "type": "textMessage",
+      "position": { "x": 1450, "y": 2350 },
+      "data": {
+        "label": "ସ୍ଥିତି ଦେଖାନ୍ତୁ (OR)",
+        "messageText": "📄 *ସ୍ଥିତି ସୂଚନା*\n\n🎫 *ରେଫ ନମ୍ବର:* {{referenceNumber}}\n👤 *ନାମ:* {{citizenName}}\n🏢 *ବିଭାଗ:* {{departmentName}}\n📊 *ସ୍ଥିତି:* {{status}}",
+        "variables": ["referenceNumber", "citizenName", "departmentName", "status"]
+      }
+    },
+    {
+      "id": "end_node",
+      "type": "end",
+      "position": { "x": 2500, "y": 1200 },
+      "data": {
+        "label": "End Flow",
+        "endMessage": "Thank you for using our services!",
+        "clearSession": true
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "start_node", "target": "language_selection", "animated": true },
+    { "id": "e2", "source": "language_selection", "target": "main_menu_en", "sourceHandle": "btn_en" },
+    { "id": "e3", "source": "language_selection", "target": "main_menu_hi", "sourceHandle": "btn_hi" },
+    { "id": "e4", "source": "language_selection", "target": "main_menu_or", "sourceHandle": "btn_or" },
+    { "id": "e5", "source": "main_menu_en", "target": "grv_name_en", "sourceHandle": "grv_en" },
+    { "id": "e6", "source": "grv_name_en", "target": "grv_dept_en" },
+    { "id": "e7", "source": "grv_dept_en", "target": "grv_desc_en" },
+    { "id": "e8", "source": "grv_desc_en", "target": "grv_success_en" },
+    { "id": "e9", "source": "grv_success_en", "target": "end_node" },
+    { "id": "e10", "source": "main_menu_en", "target": "apt_name_en", "sourceHandle": "apt_en" },
+    { "id": "e11", "source": "apt_name_en", "target": "apt_dept_en" },
+    { "id": "e12", "source": "apt_dept_en", "target": "apt_purpose_en" },
+    { "id": "e13", "source": "apt_purpose_en", "target": "apt_success_en" },
+    { "id": "e14", "source": "apt_success_en", "target": "end_node" },
+    { "id": "e15", "source": "main_menu_en", "target": "track_ref_en", "sourceHandle": "track_en" },
+    { "id": "e16", "source": "track_ref_en", "target": "track_status_en" },
+    { "id": "e17", "source": "track_status_en", "target": "end_node" },
+    { "id": "e18", "source": "main_menu_hi", "target": "grv_name_hi", "sourceHandle": "grv_hi" },
+    { "id": "e19", "source": "grv_name_hi", "target": "grv_dept_hi" },
+    { "id": "e20", "source": "grv_dept_hi", "target": "grv_desc_hi" },
+    { "id": "e21", "source": "grv_desc_hi", "target": "grv_success_hi" },
+    { "id": "e22", "source": "grv_success_hi", "target": "end_node" },
+    { "id": "e23", "source": "main_menu_hi", "target": "apt_name_hi", "sourceHandle": "apt_hi" },
+    { "id": "e24", "source": "apt_name_hi", "target": "apt_dept_hi" },
+    { "id": "e25", "source": "apt_dept_hi", "target": "apt_purpose_hi" },
+    { "id": "e26", "source": "apt_purpose_hi", "target": "apt_success_hi" },
+    { "id": "e27", "source": "apt_success_hi", "target": "end_node" },
+    { "id": "e28", "source": "main_menu_hi", "target": "track_ref_hi", "sourceHandle": "track_hi" },
+    { "id": "e29", "source": "track_ref_hi", "target": "track_status_hi" },
+    { "id": "e30", "source": "track_status_hi", "target": "end_node" },
+    { "id": "e31", "source": "main_menu_or", "target": "grv_name_or", "sourceHandle": "grv_or" },
+    { "id": "e32", "source": "grv_name_or", "target": "grv_dept_or" },
+    { "id": "e33", "source": "grv_dept_or", "target": "grv_desc_or" },
+    { "id": "e34", "source": "grv_desc_or", "target": "grv_success_or" },
+    { "id": "e35", "source": "grv_success_or", "target": "end_node" },
+    { "id": "e36", "source": "main_menu_or", "target": "apt_name_or", "sourceHandle": "apt_or" },
+    { "id": "e37", "source": "apt_name_or", "target": "apt_dept_or" },
+    { "id": "e38", "source": "apt_dept_or", "target": "apt_purpose_or" },
+    { "id": "e39", "source": "apt_purpose_or", "target": "apt_success_or" },
+    { "id": "e40", "source": "apt_success_or", "target": "end_node" },
+    { "id": "e41", "source": "main_menu_or", "target": "track_ref_or", "sourceHandle": "track_or" },
+    { "id": "e42", "source": "track_ref_or", "target": "track_status_or" },
+    { "id": "e43", "source": "track_status_or", "target": "end_node" }
+  ],
+  "viewport": { "x": 0, "y": 0, "zoom": 0.4 }
+}
