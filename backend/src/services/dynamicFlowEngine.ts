@@ -64,6 +64,12 @@ export class DynamicFlowEngine {
       return;
     }
 
+    // FIX: Force stepType for misconfigured nodes (e.g. start nodes saved as message by old builder versions)
+    if (step && step.stepId && (step.stepId.startsWith('start_') || step.stepId === 'start') && step.stepType !== 'start') {
+      console.log(`🔧 Forcing stepType "start" for node ${step.stepId} (was ${step.stepType})`);
+      step.stepType = 'start' as any;
+    }
+
     // Avoid re-sending the same interactive step only when we have already sent it (e.g. buttonMapping/listMapping set for this step)
     const currentStepId = this.session.data?.currentStepId;
     const isInteractive = ['buttons', 'list', 'input'].includes(step.stepType);
@@ -184,6 +190,16 @@ export class DynamicFlowEngine {
     }
 
     const message = this.replacePlaceholders(step.messageText || '');
+
+    // FIX: Avoid sending empty messages (would cause WhatsApp error #100)
+    if (!message || message.trim() === '') {
+      console.warn(`⚠️ Skipping empty message for step ${step.stepId}`);
+      this.session.data.currentStepId = step.stepId;
+      await updateSession(this.session);
+      await this.runNextStepIfDifferent(step.nextStepId, step.stepId);
+      return;
+    }
+
     const msgLower = (step.messageText || '').toLowerCase();
 
     // Photo/media upload prompt: wait for user to send photo or skip (do NOT auto-advance)
@@ -1316,8 +1332,17 @@ export async function loadFlowForTrigger(
       console.log(`  - Flow: ${f.flowName} (${f.flowId}), Active: ${f.isActive}, Assigned: ${isAssigned}, Triggers: ${JSON.stringify(f.triggers?.map((t: any) => t.triggerValue))}`);
     });
 
-    const flow = await ChatbotFlow.findOne(query).sort({ 'triggers.priority': -1 });
+    let flow = await ChatbotFlow.findOne(query).sort({ 'triggers.priority': -1 });
     
+    // 🔄 FALLBACK: If no flow found for specific trigger, but there are assigned flows and it's a greeting
+    if (!flow && assignedFlowIds.length > 0) {
+      const greetings = ['hi', 'hello', 'start', 'restart', 'menu', 'namaste', 'नमस्ते', 'test'];
+      if (greetings.includes(trigger.toLowerCase().trim())) {
+        console.log(`🔄 No specific flow found for trigger "${trigger}", but found ${assignedFlowIds.length} assigned flow(s). Using the first one as default.`);
+        flow = await ChatbotFlow.findById(assignedFlowIds[0]);
+      }
+    }
+
     if (flow) {
       const isAssigned = assignedFlowIds.some((id: any) => id && id.toString && id.toString() === flow._id.toString());
       console.log(`✅ Found flow: ${flow.flowName} (${flow.flowId}) for trigger: ${trigger}`);

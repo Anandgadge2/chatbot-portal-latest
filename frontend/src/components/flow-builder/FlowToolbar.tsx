@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { FlowNode, FlowEdge, Flow } from '@/types/flowTypes';
-import { transformToBackendFormat } from '@/lib/flowTransform';
+import { FlowNode, FlowEdge, Flow, BackendFlow } from '@/types/flowTypes';
+import { transformToBackendFormat, transformFromBackendFormat } from '@/lib/flowTransform';
 import { validateFlow } from '@/lib/flowValidation';
 import { Button } from '@/components/ui/button';
 import {
@@ -284,43 +284,97 @@ export default function FlowToolbar({
       const reader = new FileReader();
       reader.onload = (event) => {
         try {
-          const rawData = JSON.parse(event.target?.result as string);
+          const fileContent = event.target?.result as string;
+          let rawData = JSON.parse(fileContent);
           
-          // Basic normalization for different formats
-          const nodes = (rawData.nodes || []).map((node: any) => {
-            const data = { ...node.data };
+          console.log('📦 Importing flow data:', rawData);
+
+          // Support for nested 'data' property if it's a wrapper
+          if (!rawData.nodes && !rawData.steps && rawData.data) {
+            console.log('📁 Detected nested "data" property, unwrapping...');
+            rawData = rawData.data;
+          }
+
+          // Handle case where export is an array (common in DB exports)
+          if (Array.isArray(rawData)) {
+            console.log('📁 Detected array of flows, taking the first one');
+            rawData = rawData[0];
+          }
+
+          if (!rawData) {
+            toast.error('File is empty or invalid.');
+            return;
+          }
+
+          let importedNodes: FlowNode[] = [];
+          let importedEdges: FlowEdge[] = [];
+          let name = 'Imported Flow';
+
+          // Case 1: Standard frontend format ({ nodes: [], edges: [], metadata? })
+          if (rawData.nodes && Array.isArray(rawData.nodes)) {
+            console.log('✅ Found standard frontend format');
+            importedNodes = rawData.nodes.map((node: any) => {
+              const data = { ...node.data };
+              
+              // Map legacy/external fields
+              if (node.type === 'userInput' && node.data?.promptMessage) {
+                data.messageText = node.data.promptMessage;
+              }
+              if (node.type === 'end' && node.data?.message) {
+                data.endMessage = node.data.message;
+              }
+              if (node.type === 'textMessage' && node.data?.text) {
+                data.messageText = node.data.text;
+              }
+              if (node.type === 'buttonMessage' && node.data?.text) {
+                data.messageText = node.data.text;
+              }
+
+              return { ...node, data };
+            });
+            importedEdges = rawData.edges || [];
+            name = (rawData.metadata?.name || rawData.name || rawData.flowName || 'Imported Flow').toString();
+          } 
+          // Case 2: Backend format ({ steps: [], triggers: [], flowName: '' })
+          else if (rawData.steps && Array.isArray(rawData.steps)) {
+            console.log('✅ Found backend step format, transforming...');
             
-            // Map legacy/external fields
-            if (node.type === 'userInput' && node.data?.promptMessage) {
-              data.messageText = node.data.promptMessage;
-            }
-            if (node.type === 'end' && node.data?.message) {
-              data.endMessage = node.data.message;
-            }
-            if (node.type === 'textMessage' && node.data?.text) {
-              data.messageText = node.data.text;
-            }
-            if (node.type === 'buttonMessage' && node.data?.text) {
-              data.messageText = node.data.text;
-            }
+            // Handle MongoDB $oid objects if present
+            const sanitizedData = JSON.parse(JSON.stringify(rawData), (key, value) => {
+               if (value && typeof value === 'object' && value.$oid) return value.$oid;
+               return value;
+            });
 
-            return { ...node, data };
-          });
+            const transformed = transformFromBackendFormat(sanitizedData as BackendFlow);
+            importedNodes = transformed.nodes;
+            importedEdges = transformed.edges;
+            name = (transformed.metadata?.name || 'Imported Backend Flow').toString();
+          }
+          // Case 3: Invalid format
+          else {
+            console.error('❌ Unknown flow format. Keys found:', Object.keys(rawData));
+            toast.error('Unknown flow format. File must contain "nodes" or "steps".');
+            return;
+          }
 
-          const edges = rawData.edges || [];
-          
-          // Handle missing metadata
-          const name = rawData.metadata?.name || rawData.name || rawData.flowName || 'Imported Flow';
-          
+          console.log(`🔍 Transformation complete: ${importedNodes.length} nodes, ${importedEdges.length} edges`);
+
+          if (importedNodes.length === 0) {
+            toast.error('Imported flow has 0 nodes after transformation.');
+            return;
+          }
+
+          // Clear history and update state
           saveToHistory();
-          onNodesChange(nodes);
-          onEdgesChange(edges);
+          onNodesChange(importedNodes);
+          onEdgesChange(importedEdges);
           setFlowName(name);
           
-          toast.success('Flow imported successfully');
-        } catch (error) {
+          console.log(`✅ State update triggered with ${importedNodes.length} nodes`);
+          toast.success(`Flow "${name}" imported successfully`);
+        } catch (error: any) {
           console.error('Import error:', error);
-          toast.error('Invalid flow file');
+          toast.error(`Invalid flow file: ${error.message}`);
         }
       };
       reader.readAsText(file);

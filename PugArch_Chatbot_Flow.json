@@ -3,10 +3,16 @@
   "flowDescription": "Production-ready chatbot flow for software development services, lead generation, and client support.",
   "flowType": "custom",
   "isActive": true,
-  "startStepId": "welcome_lang",
+  "startStepId": "start_node",
   "supportedLanguages": ["en", "hi", "mr"],
   "defaultLanguage": "en",
   "steps": [
+    {
+      "stepId": "start_node",
+      "stepType": "start",
+      "stepName": "Start",
+      "nextStepId": "welcome_lang"
+    },
     {
       "stepId": "welcome_lang",
       "stepType": "buttons",
@@ -27,16 +33,11 @@
         "buttonText": "View Menu",
         "sections": [
           {
-            "title": "Exploration",
+            "title": "Choose an Option",
             "rows": [
               { "id": "main_services", "title": "Our Services", "description": "View our tech capabilities", "nextStepId": "svc_list" },
               { "id": "main_new_project", "title": "Start a Project", "description": "Share your requirements", "nextStepId": "lead_name" },
-              { "id": "main_pricing", "title": "Pricing & Estimate", "description": "Get a ballpark cost", "nextStepId": "pricing_start" }
-            ]
-          },
-          {
-            "title": "Engagement",
-            "rows": [
+              { "id": "main_pricing", "title": "Pricing & Estimate", "description": "Get a ballpark cost", "nextStepId": "pricing_start" },
               { "id": "main_consult", "title": "Book Consultation", "description": "Speak with our experts", "nextStepId": "consult_date" },
               { "id": "main_support", "title": "Existing Client Support", "description": "Help with current projects", "nextStepId": "support_main" },
               { "id": "main_careers", "title": "Careers / Internship", "description": "Join our growing team", "nextStepId": "careers_start" },
@@ -68,7 +69,7 @@
     },
     {
       "stepId": "svc_web_detail",
-      "stepType": "message",
+      "stepType": "buttons",
       "stepName": "Web Dev Detail",
       "messageText": "*Website Development* 🌐\n\nWe build SEO-friendly, high-performance websites using React, Next.js, and modern tech stacks.\n\nServices include:\n• Corporate Websites\n• E-commerce Platforms\n• CMS Development\n• Landing Pages",
       "buttons": [
@@ -78,7 +79,7 @@
     },
     {
       "stepId": "svc_app_detail",
-      "stepType": "message",
+      "stepType": "buttons",
       "stepName": "App Dev Detail",
       "messageText": "*Mobile App Development* 📱\n\nNative and Hybrid mobile applications that provide seamless user experience.\n\nSpecializing in:\n• React Native / Flutter\n• iOS & Android Native\n• App UI/UX Design\n• API Integration",
       "buttons": [
@@ -88,7 +89,7 @@
     },
     {
       "stepId": "svc_custom_detail",
-      "stepType": "message",
+      "stepType": "buttons",
       "stepName": "Custom App Detail",
       "messageText": "*Custom Web Applications* ⚙️\n\nTailored business logic automation and enterprise-grade web platforms.\n\nExpertise in:\n• ERP & CRM Solutions\n• Management Systems\n• SaaS Product Dev\n• Cloud Infrastructure",
       "buttons": [
@@ -98,7 +99,7 @@
     },
     {
       "stepId": "svc_staff_detail",
-      "stepType": "message",
+      "stepType": "buttons",
       "stepName": "Staffing Detail",
       "messageText": "*Resource Hiring* 👥\n\nHire dedicated full-stack developers, mobile experts, or UI/UX designers on a monthly basis.\n\nWhy choose us:\n• Vetted Talent\n• Direct Communication\n• Scalable Teams\n• 24x7 Support",
       "buttons": [
@@ -138,8 +139,7 @@
         { "id": "pt_web", "title": "Website", "nextStepId": "lead_desc" },
         { "id": "pt_app", "title": "Mobile App", "nextStepId": "lead_desc" },
         { "id": "pt_soft", "title": "Custom Software", "nextStepId": "lead_desc" }
-      ],
-      "nextStepId": "lead_desc"
+      ]
     },
     {
       "stepId": "lead_desc",
@@ -226,7 +226,7 @@
     },
     {
       "stepId": "pricing_est",
-      "stepType": "message",
+      "stepType": "buttons",
       "stepName": "Price Range",
       "messageText": "Typical price ranges:\n• Basic Website: $500 - $1,500\n• Enterprise Web App: $3,000+\n• Mobile App (MVP): $2,500 - $5,000\n• Dedicated Developer: $1,200 - $2,500/month\n\n_Note: These are estimates. Final pricing is provided after detailed consultation._",
       "buttons": [
@@ -295,10 +295,12 @@
     },
     {
       "stepId": "careers_finish",
-      "stepType": "message",
+      "stepType": "buttons",
       "stepName": "Careers Note",
       "messageText": "Thank you {candidateName}. Please share your *LinkedIn profile or Resume link* and the *role* you are applying for. Our HR team will get back to if your profile matches.",
-      "nextStepId": "menu_main"
+      "buttons": [
+        { "id": "btn_careers_menu", "title": "Main Menu", "nextStepId": "menu_main" }
+      ]
     },
     {
       "stepId": "human_connect",

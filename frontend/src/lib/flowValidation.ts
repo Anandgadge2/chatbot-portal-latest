@@ -475,11 +475,26 @@ function findDisconnectedNodes(nodes: FlowNode[], edges: FlowEdge[]): string[] {
 
 /**
  * Detect circular dependencies using DFS
+ * Only warns about "automatic" loops (those that don't require user interaction)
  */
 function detectCycles(nodes: FlowNode[], edges: FlowEdge[]): string[] {
   const visited = new Set<string>();
   const recursionStack = new Set<string>();
   const path: string[] = [];
+
+  function isManualEdge(edge: FlowEdge): boolean {
+    const sourceNode = nodes.find((n) => n.id === edge.source);
+    if (!sourceNode) return false;
+
+    // These handles imply a user must click/interact
+    if (edge.sourceHandle?.startsWith('button-')) return true;
+    if (edge.sourceHandle?.startsWith('row-')) return true;
+    
+    // UserInput node always waits for text input before following nextStepId
+    if (sourceNode.type === 'userInput') return true;
+    
+    return false;
+  }
 
   function dfs(nodeId: string): boolean {
     visited.add(nodeId);
@@ -488,11 +503,13 @@ function detectCycles(nodes: FlowNode[], edges: FlowEdge[]): string[] {
 
     const outgoingEdges = edges.filter((e) => e.source === nodeId);
     for (const edge of outgoingEdges) {
+      // If the loop contains a manual interaction, it's a navigational loop (SAFE)
+      // We only care about loops that are completely automatic
+      if (isManualEdge(edge)) continue;
+
       if (!visited.has(edge.target)) {
         if (dfs(edge.target)) return true;
       } else if (recursionStack.has(edge.target)) {
-        // Cycle detected
-        const cycleStart = path.indexOf(edge.target);
         return true;
       }
     }

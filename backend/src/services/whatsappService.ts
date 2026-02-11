@@ -90,6 +90,7 @@ export async function sendWhatsAppMessage(
       console.error('❌ WhatsApp API Error Details:', {
         status: error.response.status,
         statusText: error.response.statusText,
+        data: JSON.stringify(error.response.data, null, 2),
         errorCode: error.response.data?.error?.code,
         errorMessage: error.response.data?.error?.message,
         errorType: error.response.data?.error?.type,
@@ -97,6 +98,9 @@ export async function sendWhatsAppMessage(
         fbtraceId: error.response.data?.error?.fbtrace_id,
         ...errorDetails
       });
+      
+      // Specifically log the payload that was sent
+      console.error('📦 Payload sent that failed:', JSON.stringify(error.config?.data, null, 2));
       
       // Specific error code handling
       if (error.response.data?.error?.code === 190) {

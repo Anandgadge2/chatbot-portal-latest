@@ -4,6 +4,7 @@ import { processWhatsAppMessage } from '../services/chatbotEngine';
 import { getRedisClient, isRedisConnected } from '../config/redis';
 import Company from '../models/Company';
 import CompanyWhatsAppConfig from '../models/CompanyWhatsAppConfig';
+import { logger } from '../config/logger';
 
 const router = express.Router();
 
@@ -50,51 +51,56 @@ router.post('/', requireDatabaseConnection, async (req: Request, res: Response) 
   try {
     const body = req.body;
 
-    console.log(
-      '📥 Webhook POST received:',
-      JSON.stringify(body, null, 2).substring(0, 500)
-    );
+    logger.info(`📥 Webhook POST received`);
+    // logger.debug(`📦 Full Webhook Body: ${JSON.stringify(body, null, 2)}`); // Toggle this if needed
 
     if (body.object !== 'whatsapp_business_account') {
-      console.log(`⚠️ Unknown webhook object: ${body.object}`);
+      logger.warn(`⚠️ Unknown webhook object: ${body.object}`);
       return res.sendStatus(404);
     }
 
-    const entry = body.entry?.[0];
-    const changes = entry?.changes?.[0];
-    const value = changes?.value;
+    // Iterate through entries and changes to find messages
+    for (const entry of body.entry || []) {
+      for (const change of entry.changes || []) {
+        const value = change.value;
+        const metadata = value?.metadata;
 
-    console.log(
-      `📨 Processing webhook: entry=${!!entry}, changes=${!!changes}`
-    );
-
-    if (!value?.messages) {
-      console.log('ℹ️ No messages (status update or delivery receipt)');
-      return res.status(200).send('EVENT_RECEIVED');
-    }
-
-    for (const message of value.messages) {
-      try {
-        const messageId = message.id;
-        
-        // IDEMPOTENCY CHECK: Prevent duplicate processing
-        if (await isMessageProcessed(messageId)) {
-          console.log(`⏭️ Message ${messageId} already processed, skipping...`);
+        if (!value?.messages) {
+          logger.info('ℹ️ Webhook received, but no messages (likely status update/receipt)');
           continue;
         }
 
-        // Mark message as processed (TTL: 48 hours)
-        await markMessageAsProcessed(messageId);
-
-        if (message.type === 'interactive') {
-          console.log('🔘 Interactive message received');
-          await handleInteractiveMessage(message, value.metadata);
-        } else {
-          console.log(`📝 ${message.type} message received`);
-          await handleIncomingMessage(message, value.metadata);
+        // Resolve company early to see if we can even process this
+        const company = await getCompanyFromMetadata(metadata);
+        if (!company) {
+          logger.error(`❌ Could not resolve company for phoneNumberId: ${metadata?.phone_number_id}`);
+          continue;
         }
-      } catch (msgErr) {
-        console.error('❌ Error processing message:', msgErr);
+
+        for (const message of value.messages) {
+          try {
+            const messageId = message.id;
+            
+            // IDEMPOTENCY CHECK: Prevent duplicate processing
+            if (await isMessageProcessed(messageId)) {
+              logger.info(`⏭️ Message ${messageId} already processed, skipping...`);
+              continue;
+            }
+
+            // Mark message as processed (TTL: 48 hours)
+            await markMessageAsProcessed(messageId);
+
+            if (message.type === 'interactive') {
+              logger.info(`🔘 Interactive message received from ${message.from}`);
+              await handleInteractiveMessage(message, metadata, company);
+            } else {
+              logger.info(`📝 ${message.type} message received from ${message.from} (${message.type})`);
+              await handleIncomingMessage(message, metadata, company);
+            }
+          } catch (msgErr: any) {
+            logger.error(`❌ Error processing message loop: ${msgErr.message}`, { stack: msgErr.stack });
+          }
+        }
       }
     }
 
@@ -155,10 +161,10 @@ async function getCompanyFromMetadata(metadata: any): Promise<any | null> {
  * HANDLE NORMAL MESSAGES
  * ============================================================
  */
-async function handleIncomingMessage(message: any, metadata: any) {
+async function handleIncomingMessage(message: any, metadata: any, resolvedCompany?: any) {
   try {
-    // Dynamically resolve company from metadata
-    const company = await getCompanyFromMetadata(metadata);
+    // Use resolved company if provided, otherwise resolve from metadata
+    const company = resolvedCompany || await getCompanyFromMetadata(metadata);
     
     if (!company) {
       console.error('❌ Could not resolve company for message');
@@ -213,10 +219,10 @@ async function handleIncomingMessage(message: any, metadata: any) {
  * HANDLE INTERACTIVE MESSAGES
  * ============================================================
  */
-async function handleInteractiveMessage(message: any, metadata: any) {
+async function handleInteractiveMessage(message: any, metadata: any, resolvedCompany?: any) {
   try {
-    // Dynamically resolve company from metadata
-    const company = await getCompanyFromMetadata(metadata);
+    // Use resolved company if provided, otherwise resolve from metadata
+    const company = resolvedCompany || await getCompanyFromMetadata(metadata);
     
     if (!company) {
       console.error('❌ Could not resolve company for interactive message');

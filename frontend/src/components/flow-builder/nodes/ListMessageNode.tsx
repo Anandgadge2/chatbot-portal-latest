@@ -1,7 +1,7 @@
 'use client';
 
 import { memo } from 'react';
-import { NodeProps } from 'reactflow';
+import { NodeProps, Handle, Position } from 'reactflow';
 import { List, Plus, X } from 'lucide-react';
 import { BaseNodeWrapper, NodeField } from './BaseNodeWrapper';
 import { ListMessageNodeData } from '@/types/flowTypes';
@@ -218,7 +218,21 @@ export default memo(function ListMessageNode({ data, selected, id }: NodeProps) 
                 </div>
 
                 {section.rows?.map((row, rowIndex) => (
-                  <div key={row.id} className="p-1.5 bg-white rounded border border-gray-200 space-y-1">
+                  <div key={row.id} className="relative p-1.5 bg-white rounded border border-gray-200 space-y-1">
+                    {/* Connection Handle for each row */}
+                    <Handle
+                      type="source"
+                      position={Position.Right}
+                      id={`row-${sectionIndex}-${rowIndex}`}
+                      style={{
+                        top: '50%',
+                        right: -8,
+                        width: 10,
+                        height: 10,
+                        background: '#6366f1',
+                        border: '2px solid white',
+                      }}
+                    />
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-gray-500">Row {rowIndex + 1}</span>
                       <button

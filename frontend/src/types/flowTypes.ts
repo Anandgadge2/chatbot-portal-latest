@@ -235,7 +235,7 @@ export interface ValidationResult {
 
 export interface BackendFlowStep {
   stepId: string;
-  stepType: 'message' | 'buttons' | 'list' | 'input' | 'media' | 'condition' | 'api_call' | 'delay' | 'assign_department' | 'dynamic_response';
+  stepType: 'start' | 'message' | 'buttons' | 'list' | 'input' | 'media' | 'condition' | 'api_call' | 'delay' | 'assign_department' | 'dynamic_response';
   stepName: string;
   messageText?: string;
   buttons?: Array<{

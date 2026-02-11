@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Search, Edit, Copy, Trash2, MoreVertical } from 'lucide-react';
 import { toast, Toaster } from 'react-hot-toast';
+import axios from 'axios';
 import { FlowTemplates, FLOW_TEMPLATES, FlowTemplate } from '@/components/flow-builder/FlowTemplates';
 
 interface Flow {
@@ -36,17 +37,28 @@ export default function FlowsPage() {
     try {
       setLoading(true);
       
-      // Get flows from localStorage
+      const response = await axios.get('/api/chatbot-flows');
+      
+      if (response.data.success) {
+        // Backend returns flows with flowName, map to local name field if needed
+        const mappedFlows = response.data.data.map((f: any) => ({
+          ...f,
+          name: f.flowName || f.name || 'Untitled Flow'
+        }));
+        setFlows(mappedFlows);
+        // Also sync to local storage for quick access/fallback
+        localStorage.setItem('chatbot_flows', JSON.stringify(mappedFlows));
+      } else {
+        throw new Error('API returned failure');
+      }
+    } catch (error) {
+      console.warn('Failed to fetch from backend, trying localStorage:', error);
       const storedFlows = localStorage.getItem('chatbot_flows');
       if (storedFlows) {
         setFlows(JSON.parse(storedFlows));
       } else {
-        // Initialize with empty array
         setFlows([]);
       }
-    } catch (error) {
-      console.error('Failed to fetch flows:', error);
-      toast.error('Failed to load flows');
     } finally {
       setLoading(false);
     }

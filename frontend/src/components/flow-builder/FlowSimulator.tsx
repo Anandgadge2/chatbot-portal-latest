@@ -102,7 +102,7 @@ export default function FlowSimulator({ nodes, edges, flowName, onClose }: FlowS
               const departments = await response.json();
               const dynamicItems = departments.map((dept: any, idx: number) => ({
                 text: dept.name,
-                id: `list-${idx}`,
+                id: `list-0-${idx}`,
               }));
               addMessage('bot', listMsg, dynamicItems);
             } else {
@@ -110,7 +110,7 @@ export default function FlowSimulator({ nodes, edges, flowName, onClose }: FlowS
               const listItems = (node.data as any).sections?.[0]?.rows || [];
               addMessage('bot', listMsg, listItems.map((item: any, idx: number) => ({
                 text: item.title,
-                id: `list-${idx}`,
+                id: `list-0-${idx}`,
               })));
             }
           } catch (error) {
@@ -119,16 +119,24 @@ export default function FlowSimulator({ nodes, edges, flowName, onClose }: FlowS
             const listItems = (node.data as any).sections?.[0]?.rows || [];
             addMessage('bot', listMsg, listItems.map((item: any, idx: number) => ({
               text: item.title,
-              id: `list-${idx}`,
+              id: `list-0-${idx}`,
             })));
           }
         } else {
-          // Use static data from node
-          const listItems = (node.data as any).sections?.[0]?.rows || [];
-          addMessage('bot', listMsg, listItems.map((item: any, idx: number) => ({
-            text: item.title,
-            id: `list-${idx}`,
-          })));
+          // Use static data from node - support multiple sections
+          const sections = (node.data as any).sections || [];
+          const listItems: { text: string; id: string }[] = [];
+          
+          sections.forEach((section: any, secIdx: number) => {
+            (section.rows || []).forEach((row: any, rowIdx: number) => {
+              listItems.push({
+                text: row.title,
+                id: `list-${secIdx}-${rowIdx}`,
+              });
+            });
+          });
+          
+          addMessage('bot', listMsg, listItems);
         }
         break;
 
@@ -181,7 +189,7 @@ export default function FlowSimulator({ nodes, edges, flowName, onClose }: FlowS
     // Add user's button click as message
     addMessage('user', buttonText);
 
-    // Find the edge for this button
+    // Find the edge for this button or list selection
     const currentNode = nodes.find(n => n.id === currentNodeId);
     if (currentNode?.type === 'buttonMessage') {
       const buttonIndex = parseInt(buttonId.split('-')[1]);
@@ -190,6 +198,23 @@ export default function FlowSimulator({ nodes, edges, flowName, onClose }: FlowS
       if (edge) {
         await new Promise(resolve => setTimeout(resolve, 500));
         await executeNode(edge.target);
+      } else {
+        await continueToNextNode(currentNodeId!);
+      }
+    } else if (currentNode?.type === 'listMessage') {
+      const parts = buttonId.split('-');
+      const secIdx = parts[1];
+      const rowIdx = parts[2];
+      const handleId = `row-${secIdx}-${rowIdx}`;
+      
+      const edge = edges.find(e => e.source === currentNodeId && e.sourceHandle === handleId);
+      
+      if (edge) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        await executeNode(edge.target);
+      } else {
+        // Fallback to default edge if no specific row edge found
+        await continueToNextNode(currentNodeId!);
       }
     } else {
       await continueToNextNode(currentNodeId!);

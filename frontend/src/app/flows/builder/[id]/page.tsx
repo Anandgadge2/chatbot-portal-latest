@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
+import axios from 'axios';
 import FlowCanvas from '@/components/flow-builder/FlowCanvas';
 import { Toaster, toast } from 'react-hot-toast';
 import { ArrowLeft, Save } from 'lucide-react';
@@ -29,91 +30,96 @@ export default function FlowBuilderPage() {
 
   const loadFlow = async (id: string) => {
     try {
-      // Load flow from localStorage
-      const storedFlows = localStorage.getItem('chatbot_flows');
-      if (storedFlows) {
-        const flows = JSON.parse(storedFlows);
-        const flow = flows.find((f: any) => f._id === id);
-        
-        if (flow) {
-          setFlowName(flow.name || 'Untitled');
-          setInitialNodes(flow.nodes || []);
-          setInitialEdges(flow.edges || []);
-        } else {
-          toast.error('Flow not found');
-        }
+      setLoaded(false);
+      const response = await axios.get(`/api/chatbot-flows/${id}`);
+      
+      if (response.data.success) {
+        const flow = response.data.data;
+        setFlowName(flow.flowName || flow.name || 'Untitled');
+        setInitialNodes(flow.nodes || []);
+        setInitialEdges(flow.edges || []);
+      } else {
+        toast.error('Flow not found');
       }
       
       setLoaded(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load flow:', error);
-      toast.error('Failed to load flow');
+      // Fallback for demo/testing if API fails
+      if (error.response?.status === 404 || !id.match(/^[0-9a-fA-F]{24}$/)) {
+        const storedFlows = localStorage.getItem('chatbot_flows');
+        if (storedFlows) {
+          const flows = JSON.parse(storedFlows);
+          const flow = flows.find((f: any) => f._id === id || f.flowId === id);
+          if (flow) {
+            setFlowName(flow.name || flow.flowName || 'Untitled');
+            setInitialNodes(flow.nodes || []);
+            setInitialEdges(flow.edges || []);
+            setLoaded(true);
+            return;
+          }
+        }
+      }
+      toast.error('Failed to load flow from server');
       setLoaded(true);
     }
   };
 
-  const handleSave = useCallback((nodes: FlowNode[], edges: FlowEdge[]) => {
+  const handleSave = useCallback(async (nodes: FlowNode[], edges: FlowEdge[]) => {
     setSaving(true);
     
-    const flowData = {
-      name: flowName,
-      nodes,
-      edges,
-    };
+    try {
+      const flowData = {
+        name: flowName,
+        flowName: flowName,
+        nodes,
+        edges,
+        isPreTransformed: true, // We want to save the raw nodes/edges if possible or let backend handle it
+      };
 
-    // Save to localStorage
-    setTimeout(async () => {
-      try {
-        // Get existing flows from localStorage
-        const storedFlows = localStorage.getItem('chatbot_flows');
-        const flows = storedFlows ? JSON.parse(storedFlows) : [];
-
-        if (isNewFlow) {
-          // Create new flow
-          const newFlow = {
-            _id: `flow_${Date.now()}`,
-            name: flowName,
-            description: '',
-            createdBy: { _id: 'user1', name: 'mukund' },
-            isActive: false,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            nodes,
-            edges,
-          };
-          
-          flows.push(newFlow);
-          localStorage.setItem('chatbot_flows', JSON.stringify(flows));
-          
+      if (isNewFlow) {
+        const response = await axios.post('/api/chatbot-flows', {
+          ...flowData,
+          companyId: 'CMP000001', // Default or from context
+          isActive: true
+        });
+        
+        if (response.data.success) {
           toast.success('Flow created successfully');
-          
-          // Update URL to the new flow ID
-          router.replace(`/flows/builder/${newFlow._id}`);
-        } else {
-          // Update existing flow
-          const flowIndex = flows.findIndex((f: any) => f._id === flowId);
-          
-          if (flowIndex !== -1) {
-            flows[flowIndex] = {
-              ...flows[flowIndex],
-              name: flowName,
-              updatedAt: new Date().toISOString(),
-              nodes,
-              edges,
-            };
-            localStorage.setItem('chatbot_flows', JSON.stringify(flows));
-            toast.success('Flow saved successfully');
-          } else {
-            toast.error('Flow not found');
-          }
+          router.replace(`/flows/builder/${response.data.data._id}`);
         }
-      } catch (error) {
-        console.error('Failed to save flow:', error);
-        toast.error('Failed to save flow');
-      } finally {
-        setSaving(false);
+      } else {
+        const response = await axios.put(`/api/chatbot-flows/${flowId}`, flowData);
+        if (response.data.success) {
+          toast.success('Flow saved successfully to server');
+        }
       }
-    }, 500);
+    } catch (error: any) {
+      console.error('Failed to save flow:', error);
+      toast.error(`Failed to save: ${error.response?.data?.message || error.message}`);
+      
+      // Fallback to localStorage on error
+      const storedFlows = localStorage.getItem('chatbot_flows');
+      const flows = storedFlows ? JSON.parse(storedFlows) : [];
+      const localFlow = {
+        _id: isNewFlow ? `flow_${Date.now()}` : flowId,
+        name: flowName,
+        nodes,
+        edges,
+        updatedAt: new Date().toISOString()
+      };
+      
+      if (isNewFlow) flows.push(localFlow);
+      else {
+        const idx = flows.findIndex((f: any) => f._id === flowId);
+        if (idx !== -1) flows[idx] = localFlow;
+        else flows.push(localFlow);
+      }
+      localStorage.setItem('chatbot_flows', JSON.stringify(flows));
+      toast.success('Saved locally as fallback');
+    } finally {
+      setSaving(false);
+    }
   }, [flowName, flowId, isNewFlow, router]);
 
   const handleSaveClick = () => {

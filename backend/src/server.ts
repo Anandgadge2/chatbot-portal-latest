@@ -49,9 +49,14 @@ const PORT = process.env.PORT || 5001;
 // Trust proxy (required when behind Vercel/nginx; fixes express-rate-limit X-Forwarded-For validation)
 app.set('trust proxy', 1);
 
-// ================================
-// Middleware
-// ================================
+// Custom logging middleware to see ALL traffic
+app.use((req, res, next) => {
+  logger.info(`🌐 Incoming Request: ${req.method} ${req.url}`);
+  if (req.method === 'POST') {
+    logger.info(`📦 Headers: ${JSON.stringify(req.headers)}`);
+  }
+  next();
+});
 
 // Security - Configure helmet to allow WhatsApp webhook requests
 app.use(helmet({

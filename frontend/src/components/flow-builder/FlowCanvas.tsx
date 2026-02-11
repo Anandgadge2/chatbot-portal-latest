@@ -81,6 +81,15 @@ export default function FlowCanvas({
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [selectedNode, setSelectedNode] = useState<FlowNode | null>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
+
+  // Monitor nodes change
+  useEffect(() => {
+    console.log(`🎨 FlowCanvas nodes updated: ${nodes.length} nodes`);
+  }, [nodes]);
+
+  useEffect(() => {
+     console.log('🏗️ FlowCanvas mounted with initialNodes:', initialNodes.length);
+  }, [initialNodes]);
   
   // Undo/Redo state
   const [history, setHistory] = useState<HistoryState[]>([{ nodes: initialNodes, edges: initialEdges }]);

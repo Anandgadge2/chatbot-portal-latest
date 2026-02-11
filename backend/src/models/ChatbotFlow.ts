@@ -151,6 +151,10 @@ export interface IChatbotFlow extends Document {
   
   createdAt: Date;
   updatedAt: Date;
+
+  // React Flow UI state (Persisted canvas)
+  nodes?: any[];
+  edges?: any[];
 }
 
 const FlowStepSchema = new Schema({
@@ -346,6 +350,15 @@ const ChatbotFlowSchema: Schema = new Schema(
     updatedBy: {
       type: Schema.Types.ObjectId,
       ref: 'User'
+    },
+    // Persisted React Flow UI state
+    nodes: {
+      type: Schema.Types.Mixed,
+      default: []
+    },
+    edges: {
+      type: Schema.Types.Mixed,
+      default: []
     }
   },
   {

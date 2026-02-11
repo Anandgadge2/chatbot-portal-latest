@@ -256,6 +256,36 @@ export function transformFromBackendFormat(backendFlow: BackendFlow): Flow {
       });
     }
 
+    // Create edges for inputConfig
+    if (step.inputConfig?.nextStepId) {
+      edges.push({
+        id: `${step.stepId}-input-${step.inputConfig.nextStepId}`,
+        source: step.stepId,
+        target: step.inputConfig.nextStepId,
+        type: 'smoothstep',
+      });
+    }
+
+    // Create edges for apiConfig
+    if (step.apiConfig?.nextStepId) {
+      edges.push({
+        id: `${step.stepId}-api-${step.apiConfig.nextStepId}`,
+        source: step.stepId,
+        target: step.apiConfig.nextStepId,
+        type: 'smoothstep',
+      });
+    }
+
+    // Create edges for mediaConfig
+    if (step.mediaConfig?.nextStepId) {
+      edges.push({
+        id: `${step.stepId}-media-${step.mediaConfig.nextStepId}`,
+        source: step.stepId,
+        target: step.mediaConfig.nextStepId,
+        type: 'smoothstep',
+      });
+    }
+
     // Create edges for conditions
     if (step.conditionConfig) {
       if (step.conditionConfig.trueStepId) {
@@ -279,6 +309,23 @@ export function transformFromBackendFormat(backendFlow: BackendFlow): Flow {
           label: 'False',
         });
       }
+    }
+    // Create edges for list rows
+    if (step.listConfig?.sections) {
+      step.listConfig.sections.forEach((section, sectionIndex) => {
+        section.rows?.forEach((row, rowIndex) => {
+          if (row.nextStepId) {
+            edges.push({
+              id: `${step.stepId}-row-${sectionIndex}-${rowIndex}-${row.nextStepId}`,
+              source: step.stepId,
+              target: row.nextStepId,
+              sourceHandle: `row-${sectionIndex}-${rowIndex}`,
+              type: 'smoothstep',
+              label: row.title,
+            });
+          }
+        });
+      });
     }
   });
 
@@ -324,6 +371,21 @@ function transformStepToNode(step: BackendFlowStep, index: number): FlowNode {
   // Add type-specific data
   switch (step.stepType) {
     case 'message':
+      if (step.buttons && step.buttons.length > 0) {
+        return {
+          ...baseNode,
+          type: 'buttonMessage',
+          data: {
+            ...baseNode.data,
+            messageText: step.messageText || '',
+            buttons: step.buttons.map((btn) => ({
+              id: btn.id,
+              text: btn.title,
+              type: 'quick_reply' as const,
+            })),
+          },
+        };
+      }
       return {
         ...baseNode,
         data: {
@@ -385,6 +447,64 @@ function transformStepToNode(step: BackendFlowStep, index: number): FlowNode {
         },
       };
 
+    case 'media':
+      return {
+        ...baseNode,
+        type: 'mediaMessage',
+        data: {
+          ...baseNode.data,
+          mediaType: step.mediaConfig?.mediaType || 'image',
+          mediaUrl: step.mediaConfig?.mediaUrl || '',
+          caption: step.messageText || step.mediaConfig?.saveToField || '',
+        },
+      };
+
+    case 'delay':
+      return {
+        ...baseNode,
+        type: 'delay',
+        data: {
+          ...baseNode.data,
+          duration: step.delayConfig?.duration || 5,
+          unit: step.delayConfig?.unit || 'seconds',
+        },
+      };
+
+    case 'assign_department':
+      return {
+        ...baseNode,
+        type: 'assignDepartment',
+        data: {
+          ...baseNode.data,
+          departmentId: step.assignDepartmentConfig?.departmentId || '',
+          isDynamic: step.assignDepartmentConfig?.isDynamic || false,
+          conditionField: step.assignDepartmentConfig?.conditionField || '',
+        },
+      };
+
+    case 'start':
+      return {
+        ...baseNode,
+        type: 'start',
+        data: {
+          ...baseNode.data,
+          // Start node usually gets trigger from backendFlow.triggers, 
+          // but we can look for it if available or use defaults
+          trigger: 'hi',
+          triggerType: 'keyword',
+        },
+      };
+
+    case 'dynamic_response':
+      return {
+        ...baseNode,
+        type: 'dynamicResponse',
+        data: {
+          ...baseNode.data,
+          template: step.messageText || '',
+        },
+      };
+
     case 'api_call':
       return {
         ...baseNode,
@@ -419,9 +539,9 @@ function mapNodeTypeToStepType(nodeType: NodeType): BackendFlowStep['stepType'] 
     assignDepartment: 'assign_department',
     userInput: 'input',
     delay: 'delay',
+    start: 'start',
     end: 'message',
-    dynamicResponse: 'message',
-    start: 'message',
+    dynamicResponse: 'dynamic_response',
   };
   return mapping[nodeType] || 'message';
 }
@@ -441,6 +561,7 @@ function mapStepTypeToNodeType(stepType: BackendFlowStep['stepType']): NodeType 
     delay: 'delay',
     assign_department: 'assignDepartment',
     dynamic_response: 'dynamicResponse',
+    start: 'start',
   };
   return mapping[stepType] || 'textMessage';
 }

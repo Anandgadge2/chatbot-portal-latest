@@ -182,7 +182,9 @@ router.post('/', authenticate, requireSuperAdmin, async (req: Request, res: Resp
       steps, 
       version, 
       isActive,
-      isPreTransformed 
+      isPreTransformed,
+      nodes,
+      edges
     } = req.body;
     
     const finalName = name || flowName;
@@ -450,7 +452,9 @@ router.post('/', authenticate, requireSuperAdmin, async (req: Request, res: Resp
       triggers: transformedTriggers,
       version: version || 1,
       isActive: isActive || false,
-      createdBy: user._id
+      createdBy: user._id,
+      nodes: nodes || [],
+      edges: edges || []
     };
 
     logger.info('📝 Creating flow with data:', JSON.stringify({
@@ -518,7 +522,11 @@ router.post('/', authenticate, requireSuperAdmin, async (req: Request, res: Resp
 router.put('/:id', authenticate, requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
-    const { name, flowName, description, flowDescription, steps, version, isActive, triggers, trigger, isPreTransformed } = req.body;
+    const { 
+      name, flowName, description, flowDescription, steps, 
+      version, isActive, triggers, trigger, isPreTransformed,
+      nodes, edges
+    } = req.body;
     
     const finalName = name || flowName;
     const finalDescription = description || flowDescription;
@@ -740,6 +748,8 @@ router.put('/:id', authenticate, requireSuperAdmin, async (req: Request, res: Re
     }
     if (isActive !== undefined) flow.isActive = isActive;
     if (version !== undefined) flow.version = version;
+    if (nodes !== undefined) flow.nodes = nodes;
+    if (edges !== undefined) flow.edges = edges;
     
     flow.updatedBy = user._id;
     
