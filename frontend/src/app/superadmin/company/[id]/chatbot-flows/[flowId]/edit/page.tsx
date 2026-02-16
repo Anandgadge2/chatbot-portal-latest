@@ -53,7 +53,7 @@ export default function EditFlowPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
-      <LoadingSpinner size="xl" text="Loading flow editor..." />
+      <LoadingSpinner text="Loading flow editor..." />
     </div>
   );
 }

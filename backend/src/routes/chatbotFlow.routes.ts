@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'express';
+  import express, { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import ChatbotFlow from '../models/ChatbotFlow';
 import CompanyWhatsAppConfig from '../models/CompanyWhatsAppConfig';
@@ -244,11 +244,12 @@ router.post('/', authenticate, requireSuperAdmin, async (req: Request, res: Resp
       
       // Map frontend step types to backend step types
       let stepType = step.type.toString().trim();
-      if (stepType === 'interactive_buttons') stepType = 'buttons';
-      else if (stepType === 'interactive_list') stepType = 'list';
-      else if (stepType === 'collect_input') stepType = 'input';
-      else if (stepType === 'dynamic_availability') stepType = 'api_call'; // Use api_call for dynamic availability
-      // 'message' and 'media' stay as-is (they're valid in backend enum)
+      if (stepType === 'interactive_buttons' || stepType === 'buttonMessage') stepType = 'buttons';
+      else if (stepType === 'interactive_list' || stepType === 'listMessage') stepType = 'list';
+      else if (stepType === 'collect_input' || stepType === 'userInput') stepType = 'input';
+      else if (stepType === 'textMessage') stepType = 'message';
+      else if (stepType === 'apiCall') stepType = 'api_call';
+      else if (stepType === 'dynamic_availability') stepType = 'api_call'; 
       
       // Ensure stepName is always a valid non-empty string
       const stepName = cleanStepId || `Step_${index + 1}`;
@@ -566,9 +567,11 @@ router.put('/:id', authenticate, requireSuperAdmin, async (req: Request, res: Re
         
         // Map frontend step types to backend step types (SAME AS POST ROUTE)
         let stepType = step.type ? step.type.toString().trim() : 'message';
-        if (stepType === 'interactive_buttons') stepType = 'buttons';
-        else if (stepType === 'interactive_list') stepType = 'list';
-        else if (stepType === 'collect_input') stepType = 'input';
+        if (stepType === 'interactive_buttons' || stepType === 'buttonMessage') stepType = 'buttons';
+        else if (stepType === 'interactive_list' || stepType === 'listMessage') stepType = 'list';
+        else if (stepType === 'collect_input' || stepType === 'userInput') stepType = 'input';
+        else if (stepType === 'textMessage') stepType = 'message';
+        else if (stepType === 'apiCall') stepType = 'api_call';
         else if (stepType === 'dynamic_availability') stepType = 'api_call';
         // 'message' and 'media' stay as-is (they're valid in backend enum)
         

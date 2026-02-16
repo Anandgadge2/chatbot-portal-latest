@@ -15,7 +15,7 @@ export default function FlowBuilderRedirect() {
 
   return (
     <div className="h-screen w-full flex items-center justify-center">
-      <LoadingSpinner size="lg" text="Redirecting to Flows..." />
+      <LoadingSpinner text="Redirecting to Flows..." />
     </div>
   );
 }

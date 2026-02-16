@@ -126,7 +126,7 @@ export default function CompanyFlowsPage() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <LoadingSpinner size="xl" text="Loading flows..." />
+        <LoadingSpinner text="Loading flows..." />
       </div>
     );
   }

@@ -287,7 +287,7 @@ export default function GrievancesPage() {
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-200/50 shadow-xl overflow-hidden">
         {loading ? (
           <div className="p-16 text-center">
-            <LoadingSpinner size="lg" text="Loading grievances..." />
+            <LoadingSpinner text="Loading grievances..." />
           </div>
         ) : filteredGrievances.length === 0 ? (
           <div className="p-12 text-center">

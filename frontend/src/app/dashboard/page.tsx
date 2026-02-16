@@ -833,7 +833,7 @@ function DashboardContent() {
   if (loading || !mounted) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <LoadingSpinner size="xl" text="Loading dashboard..." />
+        <LoadingSpinner text="Loading dashboard..." />
       </div>
     );
   }
@@ -844,32 +844,32 @@ function DashboardContent() {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30">
+    <div className="min-h-screen bg-slate-50">
       {/* Header with Gradient */}
-      <header className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 sticky top-0 z-50 shadow-xl">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-30"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+      {/* Classic White Header */}
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm shadow-lg">
-                <Building className="w-6 h-6 text-white" />
+              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20 shadow-sm transition-colors">
+                <Building className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white tracking-tight">
+                <h1 className="text-xl font-bold text-slate-900 tracking-tight">
                   {isCompanyAdmin && 'Admin Dashboard'}
                   {isDepartmentAdmin && 'Department Admin Dashboard'}
                   {isOperator && 'Operator Dashboard'}
                   {isAnalyticsViewer && 'Analytics Dashboard'}
                 </h1>
-                <p className="text-sm text-white/80 mt-0.5">
-                  Welcome back, <span className="font-semibold text-white">{user.firstName} {user.lastName}</span>
+                <p className="text-sm text-slate-500 mt-0.5">
+                  Welcome back, <span className="font-semibold text-slate-900">{user.firstName} {user.lastName}</span>
                 </p>
               </div>
             </div>
             <Button
               onClick={logout}
               variant="outline"
-              className="border-white/30 bg-white/10 text-white hover:bg-white/20 hover:border-white/50 backdrop-blur-sm transition-all duration-200"
+              className="border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all duration-200 shadow-sm"
             >
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -888,13 +888,13 @@ function DashboardContent() {
           }
           setActiveTab(value);
         }} className="space-y-4 sm:space-y-6">
-          <TabsList className="inline-flex h-auto sm:h-12 flex-wrap sm:flex-nowrap items-center justify-center rounded-2xl bg-white/80 backdrop-blur-sm p-1.5 shadow-lg border border-slate-200/50 gap-1">
+          <TabsList className="inline-flex h-auto sm:h-12 flex-wrap sm:flex-nowrap items-center justify-center rounded-xl bg-slate-100 p-1 border border-slate-200 gap-1">
             {/* Conditional Tabs based on Enabled Modules */}
             
             {!isOperator && (
               <TabsTrigger 
                 value="overview" 
-                className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100"
+                className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200"
               >
                 Overview
               </TabsTrigger>
@@ -904,7 +904,7 @@ function DashboardContent() {
             {hasModule(Module.GRIEVANCE) && hasPermission(user.role, Permission.READ_GRIEVANCE) && !isOperator && !isAnalyticsViewer && (
               <TabsTrigger 
                 value="grievances"
-                className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100"
+                className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200"
               >
                 Grievances
               </TabsTrigger>
@@ -914,7 +914,7 @@ function DashboardContent() {
             {hasModule(Module.APPOINTMENT) && (isCompanyAdmin || isDepartmentAdmin) && (
               <TabsTrigger 
                 value="appointments"
-                className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100"
+                className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200"
               >
                 Appointments
               </TabsTrigger>
@@ -924,7 +924,7 @@ function DashboardContent() {
             {hasModule(Module.LEAD_CAPTURE) && isCompanyAdmin && (
               <TabsTrigger 
                 value="leads"
-                className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100"
+                className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200"
               >
                 Project Leads
               </TabsTrigger>
@@ -934,7 +934,7 @@ function DashboardContent() {
             {isCompanyAdmin && (
               <TabsTrigger 
                 value="departments"
-                className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100"
+                className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200"
               >
                 Departments
               </TabsTrigger>
@@ -943,7 +943,7 @@ function DashboardContent() {
             {(isCompanyAdmin || isDepartmentAdmin) && (
               <TabsTrigger 
                 value="users"
-                className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100"
+                className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200"
               >
                 Users
               </TabsTrigger>
@@ -953,7 +953,7 @@ function DashboardContent() {
             {!isOperator && !isAnalyticsViewer && (
               <TabsTrigger 
                 value="analytics"
-                className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100"
+                className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200"
               >
                 Analytics
               </TabsTrigger>
@@ -964,21 +964,21 @@ function DashboardContent() {
               <>
                 <TabsTrigger 
                   value="profile" 
-                  className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100"
+                  className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200"
                 >
                   Profile
                 </TabsTrigger>
                 {hasModule(Module.GRIEVANCE) && (
                    <TabsTrigger 
                     value="grievances" 
-                    className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100"
+                    className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200"
                    >
                      Grievances
                    </TabsTrigger>
                 )}
                 <TabsTrigger 
                   value="my-analytics" 
-                  className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100"
+                  className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200"
                 >
                   My Analytics
                 </TabsTrigger>
@@ -990,14 +990,14 @@ function DashboardContent() {
                 {hasModule(Module.GRIEVANCE) && (
                   <TabsTrigger 
                     value="grievances"
-                    className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100"
+                    className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200"
                   >
                     Grievances
                   </TabsTrigger>
                 )}
                 <TabsTrigger 
                   value="analytics"
-                  className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100"
+                  className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200"
                 >
                   Analytics
                 </TabsTrigger>
@@ -1012,7 +1012,7 @@ function DashboardContent() {
               {loadingStats ? (
                 <>
                   {/* Skeleton Loaders - Modern Design */}
-                  <Card className="bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 shadow-sm animate-pulse">
+                  <Card className="bg-slate-100 border border-slate-200 shadow-sm animate-pulse">
                     <CardHeader className="pb-3">
                       <CardTitle className="text-slate-400 text-sm font-medium flex items-center justify-between">
                         <div className="h-4 w-28 bg-slate-200 rounded"></div>
@@ -1025,7 +1025,7 @@ function DashboardContent() {
                     </CardContent>
                   </Card>
 
-                  <Card className="bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 shadow-sm animate-pulse">
+                  <Card className="bg-slate-100 border border-slate-200 shadow-sm animate-pulse">
                     <CardHeader className="pb-3">
                       <CardTitle className="text-slate-400 text-sm font-medium flex items-center justify-between">
                         <div className="h-4 w-20 bg-slate-200 rounded"></div>
@@ -1038,7 +1038,7 @@ function DashboardContent() {
                     </CardContent>
                   </Card>
 
-                  <Card className="bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 shadow-sm animate-pulse">
+                  <Card className="bg-slate-100 border border-slate-200 shadow-sm animate-pulse">
                     <CardHeader className="pb-3">
                       <CardTitle className="text-slate-400 text-sm font-medium flex items-center justify-between">
                         <div className="h-4 w-24 bg-slate-200 rounded"></div>
@@ -1052,7 +1052,7 @@ function DashboardContent() {
                   </Card>
 
                   {isCompanyAdmin && (
-                    <Card className="bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 shadow-sm animate-pulse">
+                    <Card className="bg-slate-100 border border-slate-200 shadow-sm animate-pulse">
                       <CardHeader className="pb-3">
                         <CardTitle className="text-slate-400 text-sm font-medium flex items-center justify-between">
                           <div className="h-4 w-24 bg-slate-200 rounded"></div>
@@ -1110,36 +1110,30 @@ function DashboardContent() {
                   {/* Resolved - show if module active */}
                   {hasModule(Module.GRIEVANCE) && (
                     <Card 
-                      className="group relative overflow-hidden bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700 border-0 shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 cursor-pointer rounded-2xl"
+                      className="group relative overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer rounded-xl"
                       onClick={() => {
                         setPreviousTab(activeTab);
                         setActiveTab('grievances');
                         setGrievanceFilters(prev => ({ ...prev, status: 'RESOLVED' }));
                       }}
                     >
-                      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-30"></div>
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-bl-[100px]"></div>
-                      <CardHeader className="pb-2 relative">
-                        <CardTitle className="text-white/90 text-sm font-medium flex items-center justify-between">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-slate-600 text-sm font-medium flex items-center justify-between">
                           <span className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
-                              <CheckCircle className="w-4 h-4 text-white" />
+                            <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
+                              <CheckCircle className="w-4 h-4 text-emerald-600" />
                             </div>
                             Resolved
                           </span>
-                          <svg className="w-5 h-5 text-white/60 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
                         </CardTitle>
                       </CardHeader>
-                      <CardContent className="relative">
-                        <p className="text-4xl font-bold text-white mb-2">{stats.grievances.resolved}</p>
-                        <p className="text-sm text-white/80 font-medium">
-                          <span className="inline-flex items-center gap-1 bg-white/20 px-2 py-0.5 rounded-full text-xs">
-                            <span className="w-1.5 h-1.5 rounded-full bg-blue-300"></span>
-                            {stats.grievances.inProgress || stats.grievances.assigned || 0} in progress
+                      <CardContent>
+                        <p className="text-3xl font-bold text-slate-900 mb-1">{stats.grievances.resolved}</p>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                            Successfully closed
                           </span>
-                        </p>
+                        </div>
                       </CardContent>
                     </Card>
                   )}
@@ -1147,31 +1141,24 @@ function DashboardContent() {
                   {/* Project Leads Card - show if module active */}
                   {hasModule(Module.LEAD_CAPTURE) && isCompanyAdmin && (
                     <Card 
-                      className="group relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 border-0 shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 cursor-pointer rounded-2xl"
+                      className="group relative overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer rounded-xl"
                       onClick={() => {
                         setActiveTab('leads');
                       }}
                     >
-                      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-30"></div>
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-bl-[100px]"></div>
-                      <CardHeader className="pb-2 relative">
-                        <CardTitle className="text-white/90 text-sm font-medium flex items-center justify-between">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-slate-600 text-sm font-medium flex items-center justify-between">
                           <span className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
-                              <UserPlus className="w-4 h-4 text-white" />
+                            <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                              <UserPlus className="w-4 h-4 text-blue-600" />
                             </div>
                             Total Leads
                           </span>
-                          <svg className="w-5 h-5 text-white/60 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
                         </CardTitle>
                       </CardHeader>
-                      <CardContent className="relative">
-                        <p className="text-4xl font-bold text-white mb-2">{leads.length}</p>
-                        <p className="text-sm text-white/80 font-medium whitespace-nowrap">
-                          Active chatbot leads
-                        </p>
+                      <CardContent>
+                        <p className="text-3xl font-bold text-slate-900 mb-1">{leads.length}</p>
+                        <p className="text-xs text-slate-500 font-medium">Active chatbot leads</p>
                       </CardContent>
                     </Card>
                   )}
@@ -1179,36 +1166,28 @@ function DashboardContent() {
                   {/* Appointments - show if module active */}
                   {hasModule(Module.APPOINTMENT) && (isCompanyAdmin || isDepartmentAdmin) && (
                     <Card 
-                      className="group relative overflow-hidden bg-gradient-to-br from-purple-500 via-purple-600 to-fuchsia-700 border-0 shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 cursor-pointer rounded-2xl"
+                      className="group relative overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer rounded-xl"
                       onClick={() => {
                         setActiveTab('appointments');
                       }}
                     >
-                      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-30"></div>
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-bl-[100px]"></div>
-                      <CardHeader className="pb-2 relative">
-                        <CardTitle className="text-white/90 text-sm font-medium flex items-center justify-between">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-slate-600 text-sm font-medium flex items-center justify-between">
                           <span className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
-                              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                              </svg>
+                            <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
+                              <CalendarClock className="w-4 h-4 text-purple-600" />
                             </div>
                             Appointments
                           </span>
-                          <svg className="w-5 h-5 text-white/60 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
                         </CardTitle>
                       </CardHeader>
-                      <CardContent className="relative">
-                        <p className="text-4xl font-bold text-white mb-2">{stats.appointments.total}</p>
-                        <p className="text-sm text-white/80 font-medium whitespace-nowrap">
-                          <span className="inline-flex items-center gap-1 bg-white/20 px-2 py-0.5 rounded-full text-xs">
-                             <span className="w-1.5 h-1.5 rounded-full bg-fuchsia-300"></span>
-                             {stats.appointments.confirmed || stats.appointments.pending || 0} scheduled
+                      <CardContent>
+                        <p className="text-3xl font-bold text-slate-900 mb-1">{stats.appointments.total}</p>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">
+                            {stats.appointments.confirmed || 0} scheduled
                           </span>
-                        </p>
+                        </div>
                       </CardContent>
                     </Card>
                   )}
@@ -1216,34 +1195,30 @@ function DashboardContent() {
                   {/* Users - Gradient Indigo Card - For Department Admin */}
                   {isDepartmentAdmin && (
                     <Card 
-                      className="group relative overflow-hidden bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-600 border-0 shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 cursor-pointer rounded-2xl"
+                      className="group relative overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer rounded-xl"
                       onClick={() => {
-                        setActiveTab('users');
+                        setPreviousTab(activeTab);
+                        setActiveTab('grievances');
+                        setGrievanceFilters(prev => ({ ...prev, status: 'PENDING' }));
                       }}
                     >
-                      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-30"></div>
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-bl-[100px]"></div>
-                      <CardHeader className="pb-2 relative">
-                        <CardTitle className="text-white/90 text-sm font-medium flex items-center justify-between">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-slate-600 text-sm font-medium flex items-center justify-between">
                           <span className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
-                              <Users className="w-4 h-4 text-white" />
+                            <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
+                              <Clock className="w-4 h-4 text-amber-600" />
                             </div>
-                            Users
+                            Pending
                           </span>
-                          <svg className="w-5 h-5 text-white/60 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
                         </CardTitle>
                       </CardHeader>
-                      <CardContent className="relative">
-                        <p className="text-4xl font-bold text-white mb-2">{stats.users}</p>
-                        <p className="text-sm text-white/80 font-medium">
-                          <span className="inline-flex items-center gap-1 bg-white/20 px-2 py-0.5 rounded-full text-xs">
-                            <span className="w-1.5 h-1.5 rounded-full bg-purple-300"></span>
-                            {stats.activeUsers} active
+                      <CardContent>
+                        <p className="text-3xl font-bold text-slate-900 mb-1">{stats.grievances.pending + (stats.grievances.assigned || 0)}</p>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                            Requires action
                           </span>
-                        </p>
+                        </div>
                       </CardContent>
                     </Card>
                   )}
@@ -1288,22 +1263,20 @@ function DashboardContent() {
 
             {/* Company Info (for Company Admin) - Beautified Modern Design */}
             {isCompanyAdmin && company && (
-              <Card className="overflow-hidden border-0 shadow-xl bg-white/80 backdrop-blur-sm rounded-2xl">
-                <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 px-6 py-6 relative overflow-hidden">
-                  <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA4KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-30"></div>
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-bl-[150px]"></div>
+              <Card className="overflow-hidden border border-slate-200 shadow-sm bg-white rounded-xl">
+                <div className="bg-slate-50 px-6 py-6 border-b border-slate-200">
                   <div className="relative flex items-center justify-between">
                     <div className="flex items-center space-x-4">
-                      <div className="h-16 w-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm shadow-lg">
-                        <Building className="text-white w-8 h-8" />
+                      <div className="h-16 w-16 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20 shadow-sm">
+                        <Building className="text-primary w-8 h-8" />
                       </div>
                       <div>
-                        <h3 className="text-2xl font-bold text-white leading-tight">{company.name}</h3>
-                        <p className="text-white/80 text-sm font-medium mt-1">Company Profile & Statistics</p>
+                        <h3 className="text-xl font-bold text-slate-900 leading-tight">{company.name}</h3>
+                        <p className="text-slate-500 text-sm font-medium mt-1">Company Profile & Statistics</p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <span className="px-4 py-2 rounded-xl bg-white/20 backdrop-blur-sm border border-white/30 text-white text-sm font-semibold">
+                      <span className="px-4 py-2 rounded-lg bg-slate-200 text-slate-700 text-sm font-semibold">
                         {company.companyType}
                       </span>
                     </div>
@@ -1311,50 +1284,50 @@ function DashboardContent() {
                 </div>
                 <CardContent className="p-0">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-200/50">
-                    <div className="p-6 hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50/30 transition-all duration-200 group">
+                    <div className="p-6 hover:bg-slate-50 transition-all duration-200 group">
                       <div className="flex items-center text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
-                        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center mr-2 group-hover:scale-110 transition-transform">
-                          <UserIcon className="w-4 h-4 text-white" />
+                        <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center mr-2 shadow-sm">
+                          <UserIcon className="w-4 h-4 text-blue-600" />
                         </div>
                         Total Users
                       </div>
                       <div className="flex items-baseline space-x-2">
                         <span className="text-3xl font-bold text-slate-900">{users.length}</span>
-                        <span className="text-xs text-emerald-600 font-semibold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">Active</span>
+                        <span className="text-xs text-emerald-600 font-semibold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">Active</span>
                       </div>
                     </div>
-                    <div className="p-6 hover:bg-gradient-to-br hover:from-purple-50 hover:to-pink-50/30 transition-all duration-200 group">
+                    <div className="p-6 hover:bg-slate-50 transition-all duration-200 group">
                       <div className="flex items-center text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
-                        <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center mr-2 group-hover:scale-110 transition-transform">
-                          <Building className="w-4 h-4 text-white" />
+                        <div className="w-8 h-8 bg-indigo-100 rounded flex items-center justify-center mr-2 shadow-sm">
+                          <Building className="w-4 h-4 text-indigo-600" />
                         </div>
                         Departments
                       </div>
                       <div className="flex items-baseline space-x-2">
                         <span className="text-3xl font-bold text-slate-900">{departments.length}</span>
-                        <span className="text-xs text-blue-600 font-semibold bg-blue-50 px-2.5 py-1 rounded-full border border-blue-200">Managed</span>
+                        <span className="text-xs text-blue-600 font-semibold bg-blue-50 px-2.5 py-1 rounded-full border border-blue-100">Managed</span>
                       </div>
                     </div>
-                    <div className="p-6 hover:bg-gradient-to-br hover:from-cyan-50 hover:to-teal-50/30 transition-all duration-200 group">
+                    <div className="p-6 hover:bg-slate-50 transition-all duration-200 group">
                       <div className="flex items-center text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
-                        <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-teal-500 rounded-lg flex items-center justify-center mr-2 group-hover:scale-110 transition-transform">
-                          <Mail className="w-4 h-4 text-white" />
+                        <div className="w-8 h-8 bg-cyan-100 rounded flex items-center justify-center mr-2 shadow-sm">
+                          <Mail className="w-4 h-4 text-cyan-600" />
                         </div>
                         Contact Email
                       </div>
                       <div className="text-sm font-semibold text-slate-900 truncate">{company.contactEmail}</div>
                     </div>
-                    <div className="p-6 hover:bg-gradient-to-br hover:from-emerald-50 hover:to-green-50/30 transition-all duration-200 group">
+                    <div className="p-6 hover:bg-slate-50 transition-all duration-200 group">
                       <div className="flex items-center text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
-                        <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-green-500 rounded-lg flex items-center justify-center mr-2 group-hover:scale-110 transition-transform">
-                          <Phone className="w-4 h-4 text-white" />
+                        <div className="w-8 h-8 bg-emerald-100 rounded flex items-center justify-center mr-2 shadow-sm">
+                          <Phone className="w-4 h-4 text-emerald-600" />
                         </div>
                         Contact Phone
                       </div>
                       <div className="text-sm font-semibold text-slate-900">{company.contactPhone}</div>
                     </div>
                   </div>
-                  <div className="bg-gradient-to-r from-slate-50 via-blue-50/30 to-purple-50/30 p-6 border-t border-slate-200/50">
+                  <div className="bg-slate-50 p-6 border-t border-slate-200">
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
                       <div className="flex items-center space-x-8">
                         <div className="flex flex-col bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-slate-200/50 shadow-sm">
@@ -1386,15 +1359,15 @@ function DashboardContent() {
             {isDepartmentAdmin && (
               <div className="space-y-6">
                 {/* Department Admin Profile Card */}
-                <Card className="rounded-2xl border-0 shadow-xl overflow-hidden bg-white/80 backdrop-blur-sm">
-                  <CardHeader className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white px-6 py-5">
+                <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
+                  <CardHeader className="bg-slate-50 border-b border-slate-200 px-6 py-5">
                     <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm shadow-lg">
-                        <UserIcon className="w-7 h-7 text-white" />
+                      <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">
+                        <UserIcon className="w-6 h-6 text-primary" />
                       </div>
                       <div>
-                        <CardTitle className="text-xl font-bold text-white">My Profile</CardTitle>
-                        <CardDescription className="text-white/80 mt-0.5">Your personal information</CardDescription>
+                        <CardTitle className="text-lg font-bold text-slate-900">My Profile</CardTitle>
+                        <CardDescription className="text-slate-500 mt-0.5">Your personal information</CardDescription>
                       </div>
                     </div>
                   </CardHeader>
@@ -1408,32 +1381,32 @@ function DashboardContent() {
                       </div>
                       {/* Profile Details */}
                       <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <div className="bg-gradient-to-br from-slate-50 to-indigo-50/30 rounded-xl p-4 border border-slate-200">
-                          <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-1">Full Name</p>
+                        <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Full Name</p>
                           <p className="text-lg font-bold text-slate-800">{user?.firstName} {user?.lastName}</p>
                         </div>
-                        <div className="bg-gradient-to-br from-slate-50 to-purple-50/30 rounded-xl p-4 border border-slate-200">
-                          <p className="text-xs font-semibold text-purple-600 uppercase tracking-wide mb-1">Email Address</p>
+                        <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Email Address</p>
                           <p className="text-sm font-medium text-slate-700 truncate">{user?.email}</p>
                         </div>
-                        <div className="bg-gradient-to-br from-slate-50 to-pink-50/30 rounded-xl p-4 border border-slate-200">
-                          <p className="text-xs font-semibold text-pink-600 uppercase tracking-wide mb-1">Phone Number</p>
+                        <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Phone Number</p>
                           <p className="text-lg font-bold text-slate-800">{user?.phone}</p>
                         </div>
-                        <div className="bg-gradient-to-br from-slate-50 to-emerald-50/30 rounded-xl p-4 border border-slate-200">
-                          <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wide mb-1">Role</p>
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xs font-bold rounded-full shadow-sm">
+                        <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Role</p>
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary text-white text-xs font-bold rounded-full">
                             <Shield className="w-3.5 h-3.5" />
                             Department Admin
                           </span>
                         </div>
-                        <div className="bg-gradient-to-br from-slate-50 to-amber-50/30 rounded-xl p-4 border border-slate-200">
-                          <p className="text-xs font-semibold text-amber-600 uppercase tracking-wide mb-1">User ID</p>
-                          <p className="text-sm font-mono bg-white px-2 py-1 rounded border border-amber-200 inline-block">{user?.userId}</p>
+                        <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">User ID</p>
+                          <p className="text-sm font-mono bg-white px-2 py-1 rounded border border-slate-200 inline-block">{user?.userId}</p>
                         </div>
-                        <div className="bg-gradient-to-br from-slate-50 to-blue-50/30 rounded-xl p-4 border border-slate-200">
-                          <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-1">Status</p>
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-bold rounded-full shadow-sm">
+                        <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Status</p>
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-600 text-white text-xs font-bold rounded-full">
                             <CheckCircle2 className="w-3.5 h-3.5" />
                             Active
                           </span>
@@ -1444,14 +1417,14 @@ function DashboardContent() {
                 </Card>
 
                 {/* My Department Card - with Department Name in Header */}
-                <Card className="rounded-2xl border-0 shadow-xl overflow-hidden bg-white/80 backdrop-blur-sm">
-                  <CardHeader className="bg-gradient-to-r from-cyan-600 via-teal-600 to-emerald-600 text-white px-6 py-5">
+                <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white mt-6">
+                  <CardHeader className="bg-slate-50 border-b border-slate-200 px-6 py-5">
                     <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm shadow-lg">
-                        <Building className="w-7 h-7 text-white" />
+                      <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">
+                        <Building className="w-6 h-6 text-primary" />
                       </div>
                       <div>
-                        <CardTitle className="text-xl font-bold text-white">
+                        <CardTitle className="text-lg font-bold text-slate-900">
                           {(() => {
                             // Try to get department from user object first (if populated)
                             if (user?.departmentId && typeof user.departmentId === 'object' && (user.departmentId as any).name) {
@@ -1479,8 +1452,8 @@ function DashboardContent() {
                           {/* Department Header */}
                           <div className="flex items-start gap-6">
                             <div className="flex-shrink-0">
-                              <div className="w-20 h-20 bg-gradient-to-br from-cyan-500 via-teal-500 to-emerald-500 text-white rounded-2xl flex items-center justify-center shadow-xl">
-                                <Building className="w-10 h-10" />
+                              <div className="w-16 h-16 bg-slate-100/50 rounded-xl flex items-center justify-center border border-slate-200">
+                                <Building className="w-8 h-8 text-slate-400" />
                               </div>
                             </div>
                             <div className="flex-1">
@@ -1491,27 +1464,27 @@ function DashboardContent() {
 
                           {/* Department Details Grid */}
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <div className="bg-gradient-to-br from-cyan-50 to-teal-50 rounded-xl p-4 border border-cyan-200">
-                              <p className="text-xs font-semibold text-cyan-700 uppercase tracking-wide mb-1">Department ID</p>
-                              <p className="text-sm font-mono bg-white px-2 py-1 rounded border border-cyan-200 inline-block">
+                            <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Department ID</p>
+                              <p className="text-sm font-mono bg-white px-2 py-1 rounded border border-slate-200 inline-block">
                                 {currentDepartment.departmentId}
                               </p>
                             </div>
-                            <div className="bg-gradient-to-br from-teal-50 to-emerald-50 rounded-xl p-4 border border-teal-200">
-                              <p className="text-xs font-semibold text-teal-700 uppercase tracking-wide mb-1">Status</p>
-                              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-emerald-500 to-green-500 text-white text-xs font-bold rounded-full shadow-sm">
+                            <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Status</p>
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-600 text-white text-xs font-bold rounded-full">
                                 <CheckCircle2 className="w-3.5 h-3.5" />
                                 Active
                               </span>
                             </div>
-                            <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl p-4 border border-emerald-200">
-                              <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wide mb-1">Contact Person</p>
+                            <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Contact Person</p>
                               <p className="text-sm font-medium text-slate-700">
                                 {currentDepartment.contactPerson || user?.firstName + ' ' + user?.lastName}
                               </p>
                             </div>
-                            <div className="bg-gradient-to-br from-green-50 to-lime-50 rounded-xl p-4 border border-green-200">
-                              <p className="text-xs font-semibold text-green-700 uppercase tracking-wide mb-1">Contact Email</p>
+                            <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Contact Email</p>
                               <p className="text-sm font-medium text-slate-700 truncate">
                                 {currentDepartment.contactEmail || user?.email}
                               </p>
@@ -1520,40 +1493,40 @@ function DashboardContent() {
 
                           {/* Department Stats */}
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                            <div className="bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 rounded-2xl p-5 text-white shadow-lg">
+                            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
                               <div className="flex items-center justify-between">
                                 <div>
-                                  <p className="text-white/80 text-sm font-medium">Total Grievances</p>
-                                  <p className="text-3xl font-bold mt-1">{grievances.length}</p>
+                                  <p className="text-slate-500 text-sm font-medium">Total Grievances</p>
+                                  <p className="text-3xl font-bold mt-1 text-slate-900">{grievances.length}</p>
                                 </div>
-                                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                                  <FileText className="w-6 h-6 text-white" />
+                                <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-100">
+                                  <FileText className="w-6 h-6 text-blue-600" />
                                 </div>
                               </div>
                             </div>
-                            <div className="bg-gradient-to-br from-purple-500 via-purple-600 to-fuchsia-600 rounded-2xl p-5 text-white shadow-lg">
+                            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
                               <div className="flex items-center justify-between">
                                 <div>
-                                  <p className="text-white/80 text-sm font-medium">Total Appointments</p>
-                                  <p className="text-3xl font-bold mt-1">{appointments.length}</p>
+                                  <p className="text-slate-500 text-sm font-medium">Total Appointments</p>
+                                  <p className="text-3xl font-bold mt-1 text-slate-900">{appointments.length}</p>
                                 </div>
-                                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                                  <CalendarClock className="w-6 h-6 text-white" />
+                                <div className="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center border border-purple-100">
+                                  <CalendarClock className="w-6 h-6 text-purple-600" />
                                 </div>
                               </div>
                             </div>
-                            <div className="bg-gradient-to-br from-amber-500 via-orange-500 to-red-500 rounded-2xl p-5 text-white shadow-lg">
+                            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
                               <div className="flex items-center justify-between">
                                 <div>
-                                  <p className="text-white/80 text-sm font-medium">Team Members</p>
-                                  <p className="text-3xl font-bold mt-1">{users.filter(u => {
+                                  <p className="text-slate-500 text-sm font-medium">Team Members</p>
+                                  <p className="text-3xl font-bold mt-1 text-slate-900">{users.filter(u => {
                                     const uDeptId = typeof u.departmentId === 'object' ? (u.departmentId as any)?._id : u.departmentId;
                                     const currentDeptId = typeof currentDepartment._id === 'object' ? (currentDepartment._id as any)?._id : currentDepartment._id;
                                     return uDeptId?.toString() === currentDeptId?.toString();
                                   }).length}</p>
                                 </div>
-                                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                                  <Users className="w-6 h-6 text-white" />
+                                <div className="w-12 h-12 bg-amber-50 rounded-lg flex items-center justify-center border border-amber-100">
+                                  <Users className="w-6 h-6 text-amber-600" />
                                 </div>
                               </div>
                             </div>
@@ -1711,7 +1684,7 @@ function DashboardContent() {
                                         >
                                           {navigatingToDepartment === dept._id ? (
                                             <>
-                                              <LoadingSpinner size="sm" />
+                                              <LoadingSpinner />
                                               <span className="ml-2">Loading...</span>
                                             </>
                                           ) : (
@@ -1950,40 +1923,40 @@ function DashboardContent() {
           {/* Users Tab Content (existing) */}
           {(isCompanyAdmin || isDepartmentAdmin) && (
             <TabsContent value="users" className="space-y-6">
-              <Card className="rounded-2xl border-0 shadow-xl overflow-hidden bg-white/80 backdrop-blur-sm">
-                <CardHeader className="bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 text-white px-6 py-5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm shadow-lg">
-                        <Users className="w-6 h-6 text-white" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-xl font-bold text-white">User Management</CardTitle>
-                        <CardDescription className="text-emerald-100 mt-0.5">
-                          {isCompanyAdmin ? 'Manage users in your company' : 'Manage users in your department'}
-                        </CardDescription>
-                      </div>
+            <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
+              <CardHeader className="bg-slate-50 border-b border-slate-200 text-slate-900 px-6 py-5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">
+                      <Users className="w-6 h-6 text-primary" />
                     </div>
-                    {hasPermission(user?.role || '', Permission.CREATE_USER) && (
-                      <Button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setShowUserDialog(true);
-                        }}
-                        className="bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm transition-all duration-200 rounded-xl px-5"
-                      >
-                        <UserPlus className="w-4 h-4 mr-2" />
-                        Add User
-                      </Button>
-                    )}
+                    <div>
+                      <CardTitle className="text-lg font-bold text-slate-900">User Management</CardTitle>
+                      <CardDescription className="text-slate-500 mt-0.5">
+                        {isCompanyAdmin ? 'Manage users in your company' : 'Manage users in your department'}
+                      </CardDescription>
+                    </div>
                   </div>
-                </CardHeader>
+                  {hasPermission(user?.role || '', Permission.CREATE_USER) && (
+                    <Button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setShowUserDialog(true);
+                      }}
+                      className="bg-primary text-white hover:bg-primary/90 rounded-lg px-5 shadow-sm"
+                    >
+                      <UserPlus className="w-4 h-4 mr-2" />
+                      Add User
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
                 <CardContent className="p-0">
                   {loadingUsers ? (
                     <div className="text-center py-16">
-                      <LoadingSpinner size="lg" text="Loading users..." />
+                      <LoadingSpinner text="Loading users..." />
                     </div>
                   ) : users.length === 0 ? (
                     <div className="text-center py-16">
@@ -1997,7 +1970,7 @@ function DashboardContent() {
                     <div className="overflow-hidden">
                       <div className="overflow-x-auto custom-scrollbar">
                         <table className="w-full relative border-collapse min-w-[1200px]">
-                            <thead className="sticky top-0 z-20 bg-gradient-to-r from-emerald-50 via-green-50 to-teal-50 border-b border-emerald-100">
+                            <thead className="bg-slate-50 border-b border-slate-200">
                               <tr>
                                 <th className="px-3 py-4 text-center text-xs font-bold text-emerald-700 uppercase tracking-wide">Sr. No.</th>
                                 <th className="px-6 py-4 text-left min-w-[200px]">
@@ -2260,36 +2233,36 @@ function DashboardContent() {
                 Back to Overview
               </Button>
             )}
-            <Card className="rounded-2xl border-0 shadow-xl overflow-hidden bg-white/80 backdrop-blur-sm">
-              <CardHeader className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white px-6 py-5">
+            <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
+              <CardHeader className="bg-slate-50 border-b border-slate-200 text-slate-900 px-6 py-5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
-                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">
+                      <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
                     </div>
                     <div>
-                      <CardTitle className="text-xl font-bold text-white">
+                      <CardTitle className="text-lg font-bold text-slate-900">
                         {grievanceFilters.status === 'RESOLVED' ? 'Resolved Grievances' : grievanceFilters.status === 'REJECTED' ? 'Rejected Grievances' : grievanceFilters.status === 'CLOSED' ? 'Closed Grievances' : 'Active Grievances'}
                       </CardTitle>
-                      <CardDescription className="text-white/80 mt-0.5">
-                        {grievanceFilters.status === 'RESOLVED' ? 'View all resolved grievances' : grievanceFilters.status === 'REJECTED' ? 'View all rejected grievances' : grievanceFilters.status === 'CLOSED' ? 'View all closed grievances' : 'View and manage pending and in-progress grievances'}
+                      <CardDescription className="text-slate-500 mt-0.5">
+                        {grievanceFilters.status === 'RESOLVED' ? 'View all resolved grievances' : grievanceFilters.status === 'REJECTED' ? 'View all rejected grievances' : grievanceFilters.status === 'CLOSED' ? 'View all closed grievances' : 'View and manage grievances'}
                       </CardDescription>
                     </div>
                   </div>
                   <Link 
                     href="/resolved-grievances"
-                    className="flex items-center gap-2 px-5 py-2.5 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all duration-200 backdrop-blur-sm text-sm font-medium border border-white/30"
+                    className="flex items-center gap-2 px-5 py-2.5 bg-white text-slate-700 rounded-lg hover:bg-slate-50 transition-all duration-200 text-sm font-semibold border border-slate-200 shadow-sm"
                   >
-                    <CheckCircle className="w-4 h-4" />
+                    <CheckCircle className="w-4 h-4 text-emerald-500" />
                     View Resolved
                   </Link>
                 </div>
               </CardHeader>
               
               {/* Grievance Filters */}
-              <div className="px-6 py-4 bg-gradient-to-r from-slate-50 to-indigo-50/30 border-b border-slate-200">
+              <div className="px-6 py-4 bg-slate-50/50 border-b border-slate-200">
                 {/* Search and Actions Bar */}
                 <div className="flex items-center justify-between gap-4 mb-3">
                   <div className="relative flex-1 max-w-md">
@@ -2449,7 +2422,7 @@ function DashboardContent() {
               <CardContent>
                 {loadingGrievances ? (
                   <div className="text-center py-16">
-                    <LoadingSpinner size="lg" text="Loading grievances..." />
+                    <LoadingSpinner text="Loading grievances..." />
                   </div>
                 ) : grievances.length === 0 ? (
                   <div className="text-center py-16 bg-gradient-to-b from-slate-50 to-white rounded-2xl border border-slate-200">
@@ -2465,7 +2438,7 @@ function DashboardContent() {
                   <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-lg bg-white">
                     <div className="max-h-[600px] overflow-y-auto custom-scrollbar">
                       <table className="w-full relative border-collapse">
-                        <thead className="sticky top-0 z-20 bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 backdrop-blur-sm shadow-sm border-b border-slate-200">
+                        <thead className="sticky top-0 z-20 bg-slate-50 border-b border-slate-200">
                           <tr className="whitespace-nowrap">
                             {user?.role === 'SUPER_ADMIN' && (
                               <th className="px-3 py-4 text-center text-[11px] font-bold text-indigo-600 uppercase tracking-wider">
@@ -2906,7 +2879,7 @@ function DashboardContent() {
               <CardContent>
                 {loadingAppointments ? (
                   <div className="text-center py-16">
-                    <LoadingSpinner size="lg" text="Loading appointments..." />
+                    <LoadingSpinner text="Loading appointments..." />
                   </div>
                 ) : appointments.length === 0 ? (
                   <div className="text-center py-16 bg-gradient-to-b from-slate-50 to-white rounded-2xl border border-slate-200">
@@ -3155,7 +3128,7 @@ function DashboardContent() {
                 <CardContent className="p-0">
                   {loadingLeads ? (
                     <div className="py-20">
-                      <LoadingSpinner size="lg" text="Fetching leads..." />
+                      <LoadingSpinner text="Loading leads..." />
                     </div>
                   ) : leads.length === 0 ? (
                     <div className="text-center py-20">
@@ -3252,7 +3225,7 @@ function DashboardContent() {
               <CardContent className="p-6">
                 {loadingStats ? (
                   <div className="py-20">
-                    <LoadingSpinner size="lg" text="Loading analytics..." />
+                    <LoadingSpinner text="Loading feedback..." />
                   </div>
                 ) : stats ? (
                   <div className="space-y-8 animate-in fade-in-0 slide-in-from-bottom-4 duration-500">

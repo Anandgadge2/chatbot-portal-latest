@@ -258,7 +258,7 @@ export default function AssignmentDialog({
               </div>
             ) : loading ? (
               <div className="p-10 text-center">
-                <LoadingSpinner size="md" text="Loading users..." />
+                <LoadingSpinner text="Loading users..." />
               </div>
             ) : filteredUsers.length === 0 ? (
               <div className="p-10 text-center">

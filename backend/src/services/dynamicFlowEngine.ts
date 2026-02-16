@@ -62,7 +62,7 @@ export class DynamicFlowEngine {
       console.error(`   Available steps: ${this.flow.steps.map(s => s.stepId).join(', ')}`);
       await this.sendErrorMessage();
       return;
-    }
+    } 
 
     // FIX: Force stepType for misconfigured nodes (e.g. start nodes saved as message by old builder versions)
     if (step && step.stepId && (step.stepId.startsWith('start_') || step.stepId === 'start') && step.stepType !== 'start') {
@@ -236,10 +236,19 @@ export class DynamicFlowEngine {
       console.log(`🏬 Loading departments for company: ${this.company._id}`);
       
       // Get all departments for this company
-      const departments = await Department.find({ 
+      let departments = await Department.find({ 
         companyId: this.company._id, 
         isActive: true 
       });
+
+      // Fallback: search by string ID if zero found (helps with type mismatches in DB)
+      if (departments.length === 0) {
+        console.warn(`⚠️ No departments found for ObjectId companyId: ${this.company._id}. Trying string comparison...`);
+        departments = await Department.find({
+          companyId: this.company._id.toString(),
+          isActive: true
+        });
+      }
       
       console.log(`📊 Found ${departments.length} department(s) for company ${this.company._id}`);
       departments.forEach((dept: any) => {
@@ -323,7 +332,7 @@ export class DynamicFlowEngine {
       
       // Handle "Load More" button mapping
       if (showLoadMore) {
-        this.session.data.listMapping['grv_load_more'] = 'grievance_category'; // Stay on same step
+        this.session.data.listMapping['grv_load_more'] = step.stepId; // Stay on same step
       }
       
       await updateSession(this.session);
@@ -417,7 +426,13 @@ export class DynamicFlowEngine {
       return;
     }
 
-    if (step.listConfig.listSource === 'departments') {
+    // Check if we should load departments dynamically
+    const isDynamicDepartments = 
+      step.listConfig.listSource === 'departments' || 
+      (step.listConfig as any).dynamicSource === 'departments' ||
+      (step.listConfig as any).isDynamic === true;
+
+    if (isDynamicDepartments) {
       await this.loadDepartmentsForListStep(step);
       return;
     }
@@ -451,10 +466,18 @@ export class DynamicFlowEngine {
       const Department = (await import('../models/Department')).default;
       const { getTranslation } = await import('./chatbotEngine');
 
-      const departments = await Department.find({
+      let departments = await Department.find({
         companyId: this.company._id,
         isActive: true
       });
+
+      if (departments.length === 0) {
+        console.warn(`⚠️ No departments found for ObjectId companyId: ${this.company._id}. Trying string comparison...`);
+        departments = await Department.find({
+          companyId: this.company._id.toString(),
+          isActive: true
+        });
+      }
 
       if (departments.length === 0) {
         const errorMessage = getTranslation('msg_no_dept_grv', this.session.language);
@@ -464,7 +487,9 @@ export class DynamicFlowEngine {
       }
 
       const lang = this.session.language || 'en';
-      const deptRows = departments.slice(0, 10).map((dept: any) => {
+      const offset = this.session.data.deptOffset || 0;
+      
+      const deptRows = departments.slice(offset, offset + 9).map((dept: any) => {
         let displayName: string;
         if (lang === 'hi' && dept.nameHi && dept.nameHi.trim()) {
           displayName = dept.nameHi.trim();
@@ -482,8 +507,18 @@ export class DynamicFlowEngine {
           title: displayName.length > 24 ? displayName.substring(0, 21) + '...' : displayName,
           description: desc,
           nextStepId: step.nextStepId
-        };
+        }; 
       });
+
+      // Add "Load More" if there are more departments
+      if (departments.length > offset + 9) {
+        deptRows.push({
+          id: 'grv_load_more',
+          title: getTranslation('btn_load_more', lang),
+          description: 'Show more departments...',
+          nextStepId: step.stepId
+        });
+      }
 
       const listConfig = step.listConfig!;
       const sections = [{
@@ -497,7 +532,7 @@ export class DynamicFlowEngine {
       this.session.data.currentStepId = step.stepId;
       this.session.data.listMapping = {};
       deptRows.forEach((row: any) => {
-        this.session.data.listMapping[row.id] = step.nextStepId || row.nextStepId;
+        this.session.data.listMapping[row.id] = row.nextStepId || step.nextStepId;
       });
       await updateSession(this.session);
     } catch (error: any) {
@@ -1283,9 +1318,14 @@ export class DynamicFlowEngine {
       this.session.data.deptOffset = (this.session.data.deptOffset || 0) + 9;
       await updateSession(this.session);
       const currentStep = this.flow.steps.find(s => s.stepId === this.session.data.currentStepId);
-      if (currentStep?.listConfig?.listSource === 'departments') {
-        await this.loadDepartmentsForListStep(currentStep);
-      } else if (currentStep) {
+      const isDynamic = 
+      currentStep?.listConfig?.listSource === 'departments' || 
+      (currentStep?.listConfig as any)?.dynamicSource === 'departments' ||
+      (currentStep?.listConfig as any)?.isDynamic === true;
+
+    if (isDynamic && currentStep) {
+      await this.loadDepartmentsForListStep(currentStep);
+    } else if (currentStep) {
         await this.loadDepartmentsForGrievance(currentStep);
       }
       return;

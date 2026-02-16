@@ -175,6 +175,9 @@ const FlowStepSchema = new Schema({
     action: { type: String, enum: ['next', 'end', 'restart', 'goto'] }
   }],
   listConfig: {
+    listSource: { type: String, enum: ['manual', 'departments'], default: 'manual' },
+    isDynamic: Boolean,
+    dynamicSource: String,
     buttonText: String,
     sections: [{
       title: String,

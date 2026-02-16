@@ -142,7 +142,7 @@ export default function CreateFlowPage() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <LoadingSpinner size="xl" text="Loading flow builder..." />
+        <LoadingSpinner text="Loading flow builder..." />
       </div>
     );
   }

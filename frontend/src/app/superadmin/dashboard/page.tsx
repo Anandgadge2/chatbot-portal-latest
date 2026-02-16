@@ -317,7 +317,7 @@ export default function SuperAdminDashboard() {
   if (loading || !mounted) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <LoadingSpinner size="xl" text="Loading Dashboard..." />
+        <LoadingSpinner text="Loading Dashboard..." />
       </div>
     );
   }
@@ -327,27 +327,27 @@ export default function SuperAdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-amber-50/30">
+    <div className="min-h-screen bg-slate-50">
       {/* Header with Gradient */}
-      <header className="bg-gradient-to-r from-amber-600 via-orange-500 to-red-500 sticky top-0 z-50 shadow-xl">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-30"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+      {/* Classic White Header */}
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm shadow-lg">
-                <Shield className="w-6 h-6 text-white" />
+              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20 shadow-sm">
+                <Shield className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white tracking-tight">SuperAdmin Dashboard</h1>
-                <p className="text-sm text-white/80 mt-0.5">
-                  Welcome back, <span className="font-semibold text-white">{user.firstName} {user.lastName}</span>
+                <h1 className="text-xl font-bold text-slate-900 tracking-tight">SuperAdmin Dashboard</h1>
+                <p className="text-sm text-slate-500 mt-0.5">
+                  Welcome back, <span className="font-semibold text-slate-900">{user.firstName} {user.lastName}</span>
                 </p>
               </div>
             </div>
             <Button
               onClick={logout}
               variant="outline"
-              className="border-white/30 bg-white/10 text-white hover:bg-white/20 hover:border-white/50 backdrop-blur-sm transition-all duration-200"
+              className="border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all duration-200 shadow-sm"
             >
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -361,14 +361,14 @@ export default function SuperAdminDashboard() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="inline-flex h-12 items-center justify-center rounded-2xl bg-white/80 backdrop-blur-sm p-1.5 shadow-lg border border-slate-200/50 gap-1">
-            <TabsTrigger value="overview" className="px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100">Overview</TabsTrigger>
-            <TabsTrigger value="companies" className="px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100">Companies</TabsTrigger>
-            <TabsTrigger value="departments" className="px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100">Departments</TabsTrigger>
-            <TabsTrigger value="users" className="px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100">Users</TabsTrigger>
-            <TabsTrigger value="analytics" className="px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100">Analytics</TabsTrigger>
-            <TabsTrigger value="audit" className="px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100">Audit Logs</TabsTrigger>
-            <TabsTrigger value="settings" className="px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100">Settings</TabsTrigger>
+          <TabsList className="inline-flex h-auto sm:h-12 flex-wrap sm:flex-nowrap items-center justify-center rounded-xl bg-slate-100 p-1 border border-slate-200 gap-1">
+            <TabsTrigger value="overview" className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200">Overview</TabsTrigger>
+            <TabsTrigger value="companies" className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200">Companies</TabsTrigger>
+            <TabsTrigger value="departments" className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200">Departments</TabsTrigger>
+            <TabsTrigger value="users" className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200">Users</TabsTrigger>
+            <TabsTrigger value="analytics" className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200">Analytics</TabsTrigger>
+            <TabsTrigger value="audit" className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200">Audit Logs</TabsTrigger>
+            <TabsTrigger value="settings" className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200">Settings</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
@@ -377,118 +377,105 @@ export default function SuperAdminDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {/* Total Companies - Gradient Blue Card */}
               <Card 
-                className="group relative overflow-hidden bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 border-0 shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 cursor-pointer rounded-2xl"
+                className="group relative overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer rounded-xl"
                 onClick={() => setActiveTab('companies')}
               >
-                <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-30"></div>
-                <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-bl-[100px]"></div>
-                <CardHeader className="pb-2 relative">
-                  <CardTitle className="text-white/90 text-sm font-medium flex items-center justify-between">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-slate-600 text-sm font-medium flex items-center justify-between">
                     <span className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
-                        <Building className="w-4 h-4 text-white" />
+                      <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                        <Building className="w-4 h-4 text-blue-600" />
                       </div>
                       Total Companies
                     </span>
-                    <svg className="w-5 h-5 text-white/60 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-slate-400 group-hover:text-primary group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="relative">
-                  <p className="text-4xl font-bold text-white mb-2">{stats.companies}</p>
-                  <p className="text-sm text-white/80 font-medium">
-                    <span className="inline-flex items-center gap-1 bg-white/20 px-2 py-0.5 rounded-full text-xs">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <CardContent>
+                  <p className="text-3xl font-bold text-slate-900 mb-1">{stats.companies}</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
                       {stats.activeCompanies} active
                     </span>
-                  </p>
+                  </div>
                 </CardContent>
               </Card>
 
               {/* Total Users - Gradient Emerald Card */}
               <Card 
-                className="group relative overflow-hidden bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700 border-0 shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 cursor-pointer rounded-2xl"
+                className="group relative overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer rounded-xl"
                 onClick={() => setActiveTab('users')}
               >
-                <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-30"></div>
-                <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-bl-[100px]"></div>
-                <CardHeader className="pb-2 relative">
-                  <CardTitle className="text-white/90 text-sm font-medium flex items-center justify-between">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-slate-600 text-sm font-medium flex items-center justify-between">
                     <span className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
-                        <Users className="w-4 h-4 text-white" />
+                      <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
+                        <Users className="w-4 h-4 text-emerald-600" />
                       </div>
                       Total Users
                     </span>
-                    <svg className="w-5 h-5 text-white/60 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-slate-400 group-hover:text-primary group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="relative">
-                  <p className="text-4xl font-bold text-white mb-2">{stats.users}</p>
-                  <p className="text-sm text-white/80 font-medium">
-                    <span className="inline-flex items-center gap-1 bg-white/20 px-2 py-0.5 rounded-full text-xs">
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-300 animate-pulse"></span>
+                <CardContent>
+                  <p className="text-3xl font-bold text-slate-900 mb-1">{stats.users}</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
                       {stats.activeUsers} active
                     </span>
-                  </p>
+                  </div>
                 </CardContent>
               </Card>
 
               {/* Departments - Gradient Purple Card */}
               <Card 
-                className="group relative overflow-hidden bg-gradient-to-br from-purple-500 via-purple-600 to-fuchsia-700 border-0 shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 cursor-pointer rounded-2xl"
+                className="group relative overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer rounded-xl"
                 onClick={() => setActiveTab('departments')}
               >
-                <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-30"></div>
-                <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-bl-[100px]"></div>
-                <CardHeader className="pb-2 relative">
-                  <CardTitle className="text-white/90 text-sm font-medium flex items-center justify-between">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-slate-600 text-sm font-medium flex items-center justify-between">
                     <span className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
-                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                        </svg>
+                      <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
+                        <Building className="w-4 h-4 text-purple-600" />
                       </div>
                       Departments
                     </span>
-                    <svg className="w-5 h-5 text-white/60 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-slate-400 group-hover:text-primary group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="relative">
-                  <p className="text-4xl font-bold text-white mb-2">{stats.departments}</p>
-                  <p className="text-sm text-white/80 font-medium">
-                    <span className="inline-flex items-center gap-1 bg-white/20 px-2 py-0.5 rounded-full text-xs">
+                <CardContent>
+                  <p className="text-3xl font-bold text-slate-900 mb-1">{stats.departments}</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">
                       Total departments
                     </span>
-                  </p>
+                  </div>
                 </CardContent>
               </Card>
 
               {/* System Status - Gradient Amber Card */}
-              <Card className="group relative overflow-hidden bg-gradient-to-br from-amber-500 via-orange-500 to-red-500 border-0 shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 rounded-2xl">
-                <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-30"></div>
-                <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-bl-[100px]"></div>
-                <CardHeader className="pb-2 relative">
-                  <CardTitle className="text-white/90 text-sm font-medium flex items-center gap-2">
-                    <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
-                      <Settings className="w-4 h-4 text-white" />
+              <Card className="group relative overflow-hidden bg-white border border-slate-200 shadow-sm rounded-xl">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-slate-600 text-sm font-medium flex items-center gap-2">
+                    <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
+                      <Settings className="w-4 h-4 text-emerald-600" />
                     </div>
                     System Status
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="relative">
-                  <p className="text-2xl font-bold text-white mb-2">✓ Operational</p>
-                  <p className="text-sm text-white/80 font-medium">
-                    <span className="inline-flex items-center gap-1 bg-white/20 px-2 py-0.5 rounded-full text-xs">
-                      <span className="w-1.5 h-1.5 rounded-full bg-green-300 animate-pulse"></span>
+                <CardContent>
+                  <p className="text-xl font-bold text-slate-900 mb-1">Operational</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
                       All systems running
                     </span>
-                  </p>
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -606,20 +593,20 @@ export default function SuperAdminDashboard() {
 
           {/* Companies Tab */}
           <TabsContent value="companies" className="space-y-6">
-            <Card className="rounded-2xl border-0 shadow-xl overflow-hidden bg-white/80 backdrop-blur-sm">
-              <CardHeader className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white px-6 py-5">
+            <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
+              <CardHeader className="bg-slate-50 border-b border-slate-200 px-6 py-5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
-                      <Building className="w-6 h-6 text-white" />
+                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">
+                      <Building className="w-6 h-6 text-primary" />
                     </div>
                     <div>
-                      <CardTitle className="text-xl font-bold text-white">Company Management</CardTitle>
-                      <CardDescription className="text-white/80 mt-0.5">Manage all companies in the platform</CardDescription>
+                      <CardTitle className="text-lg font-bold text-slate-900">Company Management</CardTitle>
+                      <CardDescription className="text-slate-500 mt-0.5">Manage all companies in the platform</CardDescription>
                     </div>
                   </div>
                   <Button 
-                    className="bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm transition-all duration-200 rounded-xl px-5"
+                    className="bg-primary text-white hover:bg-primary/90 rounded-lg px-5 shadow-sm"
                     onClick={() => setShowCreateDialog(true)}
                   >
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -632,7 +619,7 @@ export default function SuperAdminDashboard() {
               <CardContent>
                 {companiesLoading ? (
                   <div className="py-12 flex justify-center">
-                    <LoadingSpinner size="lg" text="Loading companies..." />
+                    <LoadingSpinner text="Loading companies..." />
                   </div>
                 ) : companies.length === 0 ? (
                   <div className="text-center py-12">
@@ -699,22 +686,20 @@ export default function SuperAdminDashboard() {
 
           {/* Departments Tab */}
           <TabsContent value="departments" className="space-y-6">
-            <Card className="rounded-2xl border-0 shadow-xl overflow-hidden bg-white/80 backdrop-blur-sm">
-              <CardHeader className="bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 text-white px-6 py-5">
+            <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
+              <CardHeader className="bg-slate-50 border-b border-slate-200 px-6 py-5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
-                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                      </svg>
+                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">
+                      <Building className="w-6 h-6 text-primary" />
                     </div>
                     <div>
-                      <CardTitle className="text-xl font-bold text-white">Department Management</CardTitle>
-                      <CardDescription className="text-white/80 mt-0.5">Manage all departments across companies</CardDescription>
+                      <CardTitle className="text-lg font-bold text-slate-900">Department Management</CardTitle>
+                      <CardDescription className="text-slate-500 mt-0.5">Manage all departments across companies</CardDescription>
                     </div>
                   </div>
                   <Button 
-                    className="bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm transition-all duration-200 rounded-xl px-5"
+                    className="bg-primary text-white hover:bg-primary/90 rounded-lg px-5 shadow-sm"
                     onClick={() => setShowDepartmentDialog(true)}
                   >
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -727,14 +712,14 @@ export default function SuperAdminDashboard() {
               <CardContent className="p-0">
                 <div className="overflow-hidden">
                   <table className="w-full">
-                    <thead className="bg-gradient-to-r from-purple-50 via-fuchsia-50 to-pink-50 border-b border-purple-100">
+                    <thead className="bg-slate-50 border-b border-slate-200">
                       <tr>
-                        <th className="px-3 py-4 text-center text-xs font-bold text-purple-700 uppercase tracking-wider">Sr. No.</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">Department</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">Company</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">Contact</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">Status</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">Actions</th>
+                        <th className="px-3 py-4 text-center text-xs font-bold text-slate-600 uppercase tracking-wider">Sr. No.</th>
+                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Department</th>
+                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Company</th>
+                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Contact</th>
+                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-slate-100">
@@ -948,7 +933,7 @@ export default function SuperAdminDashboard() {
           <TabsContent value="analytics" className="space-y-6">
             {loadingAnalytics ? (
               <div className="text-center py-16">
-                <LoadingSpinner size="lg" text="Loading analytics..." />
+                <LoadingSpinner text="Loading analytics..." />
               </div>
             ) : analyticsData ? (
               <div className="space-y-8 animate-in fade-in-0 slide-in-from-bottom-4 duration-500">

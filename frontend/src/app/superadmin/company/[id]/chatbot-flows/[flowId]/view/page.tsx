@@ -17,7 +17,7 @@ export default function ViewFlowPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
-      <LoadingSpinner size="xl" text="Redirecting to flow builder..." />
+      <LoadingSpinner text="Redirecting to flow builder..." />
     </div>
   );
 }

@@ -45,13 +45,13 @@ export default function SuperAdminLoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800 p-4">
-      <Card className="w-full max-w-md border-gray-700 bg-gray-900 text-white">
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
+      <Card className="w-full max-w-md border-slate-200 bg-white shadow-xl rounded-xl">
         <CardHeader className="space-y-1">
-          <div className="flex items-center justify-center mb-4">
-            <div className="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center">
+          <div className="flex items-center justify-center mb-6">
+            <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20 shadow-sm transition-transform hover:scale-105 duration-300">
               <svg
-                className="w-6 h-6 text-gray-900"
+                className="w-8 h-8 text-primary"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -65,17 +65,17 @@ export default function SuperAdminLoginPage() {
               </svg>
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold text-center text-white">
+          <CardTitle className="text-2xl font-bold text-center text-slate-900">
             SuperAdmin Login
           </CardTitle>
-          <CardDescription className="text-center text-gray-400">
+          <CardDescription className="text-center text-slate-500">
             Restricted access for system administrators only
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-gray-300">Email</Label>
+              <Label htmlFor="email" className="text-slate-700 font-medium">Email Address</Label>
               <Input
                 id="email"
                 type="email"
@@ -84,11 +84,11 @@ export default function SuperAdminLoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={loading}
-                className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+                className="bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus:ring-primary/20 focus:border-primary transition-all duration-200"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-gray-300">Password</Label>
+              <Label htmlFor="password" className="text-slate-700 font-medium">Password</Label>
               <Input
                 id="password"
                 type="password"
@@ -97,19 +97,27 @@ export default function SuperAdminLoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={loading}
-                className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+                className="bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus:ring-primary/20 focus:border-primary transition-all duration-200"
               />
             </div>
             <Button
               type="submit"
-              className="w-full bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-semibold"
+              className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-6 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg mt-2"
               disabled={loading}
             >
-              {loading ? 'Authenticating...' : 'Login as SuperAdmin'}
+              {loading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  Authenticating...
+                </div>
+              ) : 'Login as SuperAdmin'}
             </Button>
           </form>
-          <div className="mt-4 text-center text-sm text-gray-400">
-            <a href="/" className="text-yellow-500 hover:underline">
+          <div className="mt-6 text-center text-sm text-slate-500">
+            <a href="/" className="text-primary hover:text-primary/80 font-medium hover:underline transition-colors duration-200 flex items-center justify-center gap-1">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
               Back to Home
             </a>
           </div>

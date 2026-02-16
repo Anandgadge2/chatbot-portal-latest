@@ -27,7 +27,7 @@
     "extract:zpflow": "ts-node src/scripts/extractZPAmaravatiFlow.ts",
     "seed:zpwhatsapp": "ts-node src/scripts/seedZPWhatsAppConfig.ts",
     "duplicate:jharsuguda": "ts-node src/scripts/duplicateFlowForJharsuguda.ts",
-    "create:jharsuguda-flow": "ts-node src/scripts/createJharsugudaFlow.ts",
+    "seed:jharsuguda:final": "ts-node src/scripts/seedJharsugudaFinal.ts",
     "migrate:user-uniqueness": "ts-node src/scripts/migrateUserUniqueness.ts",
     "migrate:per-company-counters": "ts-node src/scripts/migratePerCompanyCounters.ts",
     "fix:zpwhatsapp": "ts-node src/scripts/fixZPWhatsAppConfig.ts",

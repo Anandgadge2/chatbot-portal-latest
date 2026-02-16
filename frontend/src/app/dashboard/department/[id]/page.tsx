@@ -209,7 +209,7 @@ export default function DepartmentDetail() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <LoadingSpinner size="xl" text="Loading department details..." />
+        <LoadingSpinner text="Loading department details..." />
       </div>
     );
   }

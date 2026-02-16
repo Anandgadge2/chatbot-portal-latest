@@ -1,0 +1,576 @@
+{
+  "metadata": {
+    "name": "Collectorate Jharsuguda – Full Trilingual Flow",
+    "description": "A complete, strictly trilingual flow (English, Hindi, Odia) for Grievance, Appointment, and Tracking services.",
+    "companyId": "",
+    "version": 1,
+    "isActive": true
+  },
+  "nodes": [
+    {
+      "id": "start_node",
+      "type": "start",
+      "position": { "x": 0, "y": 600 },
+      "data": { "label": "Start Trigger", "trigger": "hi", "triggerType": "keyword" }
+    },
+    {
+      "id": "language_selection",
+      "type": "buttonMessage",
+      "position": { "x": 300, "y": 600 },
+      "data": {
+        "label": "Language Selection",
+        "messageText": "🇮🇳 *Collectorate Jharsuguda - Official Digital Portal*\n\nNamaskar! Welcome to the official WhatsApp service of Collectorate Jharsuguda.\n\nWe are dedicated to providing transparent and efficient services to all citizens.\n\n👇 *Please select your preferred language:*",
+        "buttons": [
+          { "id": "lang_en", "text": "🇬🇧 English", "type": "quick_reply" },
+          { "id": "lang_hi", "text": "🇮🇳 हिंदी", "type": "quick_reply" },
+          { "id": "lang_or", "text": "🇮🇳 ଓଡ଼ିଆ", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "main_menu_en",
+      "type": "buttonMessage",
+      "position": { "x": 600, "y": 200 },
+      "data": {
+        "label": "Main Menu (EN)",
+        "messageText": "🏛️ *Citizen Services Menu*\n\nWelcome to the Collectorate Jharsuguda Digital Helpdesk.\n\n👇 *Please select a service:*",
+        "buttons": [
+          { "id": "grv_en", "text": "📝 File Grievance", "type": "quick_reply" },
+          { "id": "apt_en", "text": "📅 Book Appointment", "type": "quick_reply" },
+          { "id": "trk_en", "text": "🔍 Track Status", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "main_menu_hi",
+      "type": "buttonMessage",
+      "position": { "x": 600, "y": 600 },
+      "data": {
+        "label": "Main Menu (HI)",
+        "messageText": "🏛️ *नागरिक सेवा मेनू*\n\nझारसुगुडा डिजिटल हेल्पडेस्क में आपका स्वागत है।\n\n👇 *कृपया एक सेवा चुनें:*",
+        "buttons": [
+          { "id": "grv_hi", "text": "📝 शिकायत दर्ज करें", "type": "quick_reply" },
+          { "id": "apt_hi", "text": "📅 अपॉइंटमेंट बुक", "type": "quick_reply" },
+          { "id": "trk_hi", "text": "🔍 स्थिति ट्रैक करें", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "main_menu_or",
+      "type": "buttonMessage",
+      "position": { "x": 600, "y": 1000 },
+      "data": {
+        "label": "Main Menu (OR)",
+        "messageText": "🏛️ *ନାଗରିକ ସେବା ମେନୁ*\n\nଝାରସୁଗୁଡା ଡିଜିଟାଲ୍ ହେଲ୍ପଡେସ୍କରେ ଆପଣଙ୍କୁ ସ୍ବାଗତ କରୁଛି।\n\n👇 *ଦୟାକରି ଏକ ସେବା ଚୟନ କରନ୍ତୁ:*",
+        "buttons": [
+          { "id": "grv_or", "text": "📝 ଫାଇଲ୍ ଅଭିଯୋଗ", "type": "quick_reply" },
+          { "id": "apt_or", "text": "📅 ଆପଏଣ୍ଟମେଣ୍ଟ ବୁକ୍", "type": "quick_reply" },
+          { "id": "trk_or", "text": "🔍 ଟ୍ରାକ୍ ସ୍ଥିତି", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "grv_id_en",
+      "type": "userInput",
+      "position": { "x": 900, "y": 50 },
+      "data": {
+        "label": "Grievance ID (EN)",
+        "messageText": "👤 *Citizen Identification*\n\nPlease enter your Full Name:",
+        "inputType": "text",
+        "saveToField": "citizenName",
+        "validation": { "required": true }
+      }
+    },
+    {
+      "id": "grv_dept_en",
+      "type": "listMessage",
+      "position": { "x": 1200, "y": 50 },
+      "data": {
+        "label": "Select Dept (EN)",
+        "messageText": "🏢 *Department Selection*\n\nPlease select the department:",
+        "buttonText": "View Departments",
+        "isDynamic": true,
+        "dynamicSource": "departments"
+      }
+    },
+    {
+      "id": "grv_desc_en",
+      "type": "userInput",
+      "position": { "x": 1500, "y": 50 },
+      "data": {
+        "label": "Grievance Details (EN)",
+        "messageText": "✍️ *Grievance Details*\n\nPlease describe your issue:",
+        "inputType": "text",
+        "saveToField": "description",
+        "validation": { "required": true, "minLength": 10 }
+      }
+    },
+    {
+      "id": "grv_conf_en",
+      "type": "buttonMessage",
+      "position": { "x": 1800, "y": 50 },
+      "data": {
+        "label": "Confirm (EN)",
+        "messageText": "📋 *Confirm Submission*\n\n👤 Name: {citizenName}\n🏢 Dept: {departmentName}\n📝 Issue: {description}\n\nIs this correct?",
+        "buttons": [
+          { "id": "confirm_yes", "text": "✅ Yes, Submit", "type": "quick_reply" },
+          { "id": "confirm_no", "text": "❌ Cancel", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "grv_success_en",
+      "type": "textMessage",
+      "position": { "x": 2100, "y": 50 },
+      "data": {
+        "label": "Success (EN)",
+        "messageText": "✅ *Grievance Registered Successfully*\n\nRef No: `{id}`\n\nYou will receive updates via WhatsApp."
+      }
+    },
+    {
+      "id": "grv_id_hi",
+      "type": "userInput",
+      "position": { "x": 900, "y": 450 },
+      "data": {
+        "label": "Grievance ID (HI)",
+        "messageText": "👤 *नागरिक पहचान*\n\nकृपया अपना पूरा नाम दर्ज करें:",
+        "inputType": "text",
+        "saveToField": "citizenName",
+        "validation": { "required": true }
+      }
+    },
+    {
+      "id": "grv_dept_hi",
+      "type": "listMessage",
+      "position": { "x": 1200, "y": 450 },
+      "data": {
+        "label": "Select Dept (HI)",
+        "messageText": "🏢 *विभाग चयन*\n\nकृपया विभाग चुनें:",
+        "buttonText": "विभाग देखें",
+        "isDynamic": true,
+        "dynamicSource": "departments"
+      }
+    },
+    {
+      "id": "grv_desc_hi",
+      "type": "userInput",
+      "position": { "x": 1500, "y": 450 },
+      "data": {
+        "label": "Grievance Details (HI)",
+        "messageText": "✍️ *शिकायत विवरण*\n\nकृपया अपनी समस्या का वर्णन करें:",
+        "inputType": "text",
+        "saveToField": "description",
+        "validation": { "required": true, "minLength": 10 }
+      }
+    },
+    {
+      "id": "grv_conf_hi",
+      "type": "buttonMessage",
+      "position": { "x": 1800, "y": 450 },
+      "data": {
+        "label": "Confirm (HI)",
+        "messageText": "📋 *सबमिशन की पुष्टि करें*\n\n👤 नाम: {citizenName}\n🏢 विभाग: {departmentName}\n📝 मुद्दा: {description}\n\nक्या यह सही है?",
+        "buttons": [
+          { "id": "confirm_yes", "text": "✅ हाँ, जमा करें", "type": "quick_reply" },
+          { "id": "confirm_no", "text": "❌ रद्द करें", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "grv_success_hi",
+      "type": "textMessage",
+      "position": { "x": 2100, "y": 450 },
+      "data": {
+        "label": "Success (HI)",
+        "messageText": "✅ *शिकायत सफलतापूर्वक दर्ज की गई*\n\nसंदर्भ संख्या: `{id}`\n\nआपको व्हाट्सएप के माध्यम से अपडेट प्राप्त होंगे।"
+      }
+    },
+    {
+      "id": "grv_id_or",
+      "type": "userInput",
+      "position": { "x": 900, "y": 850 },
+      "data": {
+        "label": "Grievance ID (OR)",
+        "messageText": "👤 *ନାଗରିକ ପରିଚୟ*\n\nଦୟାକରି ଆପଣଙ୍କର ସମ୍ପୂର୍ଣ୍ଣ ନାମ ପ୍ରବେଶ କରନ୍ତୁ:",
+        "inputType": "text",
+        "saveToField": "citizenName",
+        "validation": { "required": true }
+      }
+    },
+    {
+      "id": "grv_dept_or",
+      "type": "listMessage",
+      "position": { "x": 1200, "y": 850 },
+      "data": {
+        "label": "Select Dept (OR)",
+        "messageText": "🏢 *ବିଭାଗ ଚୟନ*\n\nଦୟାକରି ବିଭାଗ ବାଛନ୍ତୁ:",
+        "buttonText": "ବିଭାଗ ଦେଖନ୍ତୁ",
+        "isDynamic": true,
+        "dynamicSource": "departments"
+      }
+    },
+    {
+      "id": "grv_desc_or",
+      "type": "userInput",
+      "position": { "x": 1500, "y": 850 },
+      "data": {
+        "label": "Grievance Details (OR)",
+        "messageText": "✍️ *ଅଭିଯୋଗ ବିବରଣୀ*\n\nଦୟାକରି ଆପଣଙ୍କର ସମସ୍ୟା ବର୍ଣ୍ଣନା କରନ୍ତୁ:",
+        "inputType": "text",
+        "saveToField": "description",
+        "validation": { "required": true, "minLength": 10 }
+      }
+    },
+    {
+      "id": "grv_conf_or",
+      "type": "buttonMessage",
+      "position": { "x": 1800, "y": 850 },
+      "data": {
+        "label": "Confirm (OR)",
+        "messageText": "📋 *ଦାଖଲ ନିଶ୍ଚିତ କରନ୍ତୁ*\n\n👤 ନାମ: {citizenName}\n🏢 ବିଭାଗ: {departmentName}\n📝 ସମସ୍ୟା: {description}\n\nଏହା ସଠିକ୍ କି?",
+        "buttons": [
+          { "id": "confirm_yes", "text": "✅ ହଁ, ଦାଖଲ କରନ୍ତୁ", "type": "quick_reply" },
+          { "id": "confirm_no", "text": "❌ ବାତିଲ୍ କରନ୍ତୁ", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "grv_success_or",
+      "type": "textMessage",
+      "position": { "x": 2100, "y": 850 },
+      "data": {
+        "label": "Success (OR)",
+        "messageText": "✅ *ଅଭିଯୋଗ ସଫଳତାପୂର୍ବକ ପଞ୍ଜିକୃତ ହେଲା*\n\nରେଫରେନ୍ସ ନମ୍ବର: `{id}`\n\nଆପଣଙ୍କୁ ହ୍ବାଟସ୍ଆପ୍ ମାଧ୍ୟମରେ ଅପଡେଟ୍ ମିଳିବ।"
+      }
+    },
+    {
+      "id": "apt_id_en",
+      "type": "userInput",
+      "position": { "x": 900, "y": 250 },
+      "data": {
+        "label": "Apt ID (EN)",
+        "messageText": "👤 *Your Name*\n\nPlease enter your Full Name:",
+        "inputType": "text",
+        "saveToField": "citizenName",
+        "validation": { "required": true }
+      }
+    },
+    {
+      "id": "apt_dept_en",
+      "type": "listMessage",
+      "position": { "x": 1200, "y": 250 },
+      "data": {
+        "label": "Apt Dept (EN)",
+        "messageText": "📂 *Select Department*\n\nWhich department would you like to visit?",
+        "buttonText": "Select Department",
+        "isDynamic": true,
+        "dynamicSource": "departments"
+      }
+    },
+    {
+      "id": "apt_date_en",
+      "type": "apiCall",
+      "position": { "x": 1500, "y": 250 },
+      "data": {
+        "label": "Apt Date (EN)",
+        "messageText": "📅 *Select Date*\n\nChoose an available date for {departmentName}:",
+        "method": "GET",
+        "endpoint": "/api/availability/chatbot/{companyId}?departmentId={departmentId}",
+        "saveResponseTo": "availableDates"
+      }
+    },
+    {
+      "id": "apt_time_en",
+      "type": "apiCall",
+      "position": { "x": 1800, "y": 250 },
+      "data": {
+        "label": "Apt Time (EN)",
+        "messageText": "⏰ *Select Time Slot*\n\nChoose a time for {appointmentDate}:",
+        "method": "GET",
+        "endpoint": "/api/availability/chatbot/{companyId}?selectedDate={appointmentDate}&departmentId={departmentId}",
+        "saveResponseTo": "availableTimes"
+      }
+    },
+    {
+      "id": "apt_conf_en",
+      "type": "buttonMessage",
+      "position": { "x": 2100, "y": 250 },
+      "data": {
+        "label": "Apt Confirm (EN)",
+        "messageText": "📋 *Confirm Appointment*\n\n👤 Name: {citizenName}\n🏢 Dept: {departmentName}\n📅 Date: {appointmentDate}\n⏰ Time: {appointmentTime}\n\nProceed with booking?",
+        "buttons": [
+          { "id": "appt_confirm_yes", "text": "✅ Yes, Book", "type": "quick_reply" },
+          { "id": "appt_confirm_no", "text": "❌ Cancel", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "apt_success_en",
+      "type": "textMessage",
+      "position": { "x": 2400, "y": 250 },
+      "data": {
+        "label": "Apt Success (EN)",
+        "messageText": "✅ *Appointment Request Submitted*\n\nRef No: `{id}`\n\nYou will receive a confirmation once scheduled."
+      }
+    },
+    {
+      "id": "apt_id_hi",
+      "type": "userInput",
+      "position": { "x": 900, "y": 650 },
+      "data": {
+        "label": "Apt ID (HI)",
+        "messageText": "👤 *आपका नाम*\n\nकृपया अपना पूरा नाम दर्ज करें:",
+        "inputType": "text",
+        "saveToField": "citizenName",
+        "validation": { "required": true }
+      }
+    },
+    {
+      "id": "apt_dept_hi",
+      "type": "listMessage",
+      "position": { "x": 1200, "y": 650 },
+      "data": {
+        "label": "Apt Dept (HI)",
+        "messageText": "📂 *विभाग चुनें*\n\nआप किस विभाग में जाना चाहेंगे?",
+        "buttonText": "विभाग चुनें",
+        "isDynamic": true,
+        "dynamicSource": "departments"
+      }
+    },
+    {
+      "id": "apt_date_hi",
+      "type": "apiCall",
+      "position": { "x": 1500, "y": 650 },
+      "data": {
+        "label": "Apt Date (HI)",
+        "messageText": "📅 *दिनांक चुनें*\n\nएक उपलब्ध दिनांक चुनें:",
+        "method": "GET",
+        "endpoint": "/api/availability/chatbot/{companyId}?departmentId={departmentId}",
+        "saveResponseTo": "availableDates"
+      }
+    },
+    {
+      "id": "apt_time_hi",
+      "type": "apiCall",
+      "position": { "x": 1800, "y": 650 },
+      "data": {
+        "label": "Apt Time (HI)",
+        "messageText": "⏰ *समय चुनें*\n\nअपनी यात्रा के लिए एक समय चुनें:",
+        "method": "GET",
+        "endpoint": "/api/availability/chatbot/{companyId}?selectedDate={appointmentDate}&departmentId={departmentId}",
+        "saveResponseTo": "availableTimes"
+      }
+    },
+    {
+      "id": "apt_conf_hi",
+      "type": "buttonMessage",
+      "position": { "x": 2100, "y": 650 },
+      "data": {
+        "label": "Apt Confirm (HI)",
+        "messageText": "📋 *नियुक्ति की पुष्टि करें*\n\n👤 नाम: {citizenName}\n🏢 विभाग: {departmentName}\n📅 दिनांक: {appointmentDate}\n⏰ समय: {appointmentTime}\n\nक्या आप बुकिंग के साथ आगे बढ़ना चाहते हैं?",
+        "buttons": [
+          { "id": "appt_confirm_yes", "text": "✅ हाँ, बुक करें", "type": "quick_reply" },
+          { "id": "appt_confirm_no", "text": "❌ रद्द करें", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "apt_success_hi",
+      "type": "textMessage",
+      "position": { "x": 2400, "y": 650 },
+      "data": {
+        "label": "Apt Success (HI)",
+        "messageText": "✅ *नियुक्ति अनुरोध जमा किया गया*\n\nसंदर्भ संख्या: `{id}`\n\nनियुक्ति निर्धारित होने पर आपको सूचित किया जाएगा।"
+      }
+    },
+    {
+      "id": "apt_id_or",
+      "type": "userInput",
+      "position": { "x": 900, "y": 1050 },
+      "data": {
+        "label": "Apt ID (OR)",
+        "messageText": "👤 *ଆପଣଙ୍କ ନାମ*\n\nଦୟାକରି ଆପଣଙ୍କର ସମ୍ପୂର୍ଣ୍ଣ ନାମ ପ୍ରବେଶ କରନ୍ତୁ:",
+        "inputType": "text",
+        "saveToField": "citizenName",
+        "validation": { "required": true }
+      }
+    },
+    {
+      "id": "apt_dept_or",
+      "type": "listMessage",
+      "position": { "x": 1200, "y": 1050 },
+      "data": {
+        "label": "Apt Dept (OR)",
+        "messageText": "📂 *ବିଭାଗ ବାଛନ୍ତୁ*\n\nଆପଣ କେଉଁ ବିଭାଗ ପରିଦର୍ଶନ କରିବାକୁ ଚାହାଁନ୍ତି?",
+        "buttonText": "ବିଭାଗ ବାଛନ୍ତୁ",
+        "isDynamic": true,
+        "dynamicSource": "departments"
+      }
+    },
+    {
+      "id": "apt_date_or",
+      "type": "apiCall",
+      "position": { "x": 1500, "y": 1050 },
+      "data": {
+        "label": "Apt Date (OR)",
+        "messageText": "📅 *ତାରିଖ ବାଛନ୍ତୁ*\n\nଏକ ଉପଲବ୍ଧ ତାରିଖ ବାଛନ୍ତୁ:",
+        "method": "GET",
+        "endpoint": "/api/availability/chatbot/{companyId}?departmentId={departmentId}",
+        "saveResponseTo": "availableDates"
+      }
+    },
+    {
+      "id": "apt_time_or",
+      "type": "apiCall",
+      "position": { "x": 1800, "y": 1050 },
+      "data": {
+        "label": "Apt Time (OR)",
+        "messageText": "⏰ *ସମୟ ବାଛନ୍ତୁ*\n\nଆପଣଙ୍କର ଭ୍ରମଣ ପାଇଁ ଏକ ସମୟ ବାଛନ୍ତୁ:",
+        "method": "GET",
+        "endpoint": "/api/availability/chatbot/{companyId}?selectedDate={appointmentDate}&departmentId={departmentId}",
+        "saveResponseTo": "availableTimes"
+      }
+    },
+    {
+      "id": "apt_conf_or",
+      "type": "buttonMessage",
+      "position": { "x": 2100, "y": 1050 },
+      "data": {
+        "label": "Apt Confirm (OR)",
+        "messageText": "📋 *ନିଯୁକ୍ତି ନିଶ୍ଚିତ କରନ୍ତୁ*\n\n👤 ନାମ: {citizenName}\n🏢 ବିଭାଗ: {departmentName}\n📅 ତାରିଖ: {appointmentDate}\n⏰ ସମୟ: {appointmentTime}\n\nଆପଣ ବୁକିଂ ସହିତ ଆଗକୁ ବଢିବାକୁ ଚାହାଁନ୍ତି କି?",
+        "buttons": [
+          { "id": "appt_confirm_yes", "text": "✅ ହଁ, ବୁକ୍ କରନ୍ତୁ", "type": "quick_reply" },
+          { "id": "appt_confirm_no", "text": "❌ ବାତିଲ୍ କରନ୍ତୁ", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "apt_success_or",
+      "type": "textMessage",
+      "position": { "x": 2400, "y": 1050 },
+      "data": {
+        "label": "Apt Success (OR)",
+        "messageText": "✅ *ନିଯୁକ୍ତି ଅନୁରୋଧ ଦାଖଲ ହୋଇଛି*\n\nରେଫରେନ୍ସ ନମ୍ବର: `{id}`\n\nନିଯୁକ୍ତି ନିର୍ଦ୍ଧାରିତ ହେଲେ ଆପଣଙ୍କୁ ସୂଚନା ଦିଆଯିବ।"
+      }
+    },
+    {
+      "id": "trk_id_en",
+      "type": "userInput",
+      "position": { "x": 900, "y": 0 },
+      "data": {
+        "label": "Track ID (EN)",
+        "messageText": "🔍 *Track Status*\n\nPlease enter your Reference Number:",
+        "inputType": "text",
+        "saveToField": "refNumber",
+        "validation": { "required": true }
+      }
+    },
+    {
+      "id": "trk_result_en",
+      "type": "textMessage",
+      "position": { "x": 1200, "y": 0 },
+      "data": {
+        "label": "Track Result (EN)",
+        "messageText": "📄 *Status for {refNumber}*\n\nStatus: {status}\nRemarks: {remarks}"
+      }
+    },
+    {
+      "id": "trk_id_hi",
+      "type": "userInput",
+      "position": { "x": 900, "y": 1000 },
+      "data": {
+        "label": "Track ID (HI)",
+        "messageText": "🔍 *स्थिति ट्रैक करें*\n\nकृपया अपनी संदर्भ संख्या दर्ज करें:",
+        "inputType": "text",
+        "saveToField": "refNumber",
+        "validation": { "required": true }
+      }
+    },
+    {
+      "id": "trk_result_hi",
+      "type": "textMessage",
+      "position": { "x": 1200, "y": 1000 },
+      "data": {
+        "label": "Track Result (HI)",
+        "messageText": "📄 *संदर्भ: {refNumber} की स्थिति*\n\nस्थिति: {status}\nटिप्पणी: {remarks}"
+      }
+    },
+    {
+      "id": "trk_id_or",
+      "type": "userInput",
+      "position": { "x": 900, "y": 1400 },
+      "data": {
+        "label": "Track ID (OR)",
+        "messageText": "🔍 *ଟ୍ରାକ୍ ସ୍ଥିତି*\n\nଦୟାକରି ଆପଣଙ୍କର ରେଫରେନ୍ସ ନମ୍ବର ପ୍ରବେଶ କରନ୍ତୁ:",
+        "inputType": "text",
+        "saveToField": "refNumber",
+        "validation": { "required": true }
+      }
+    },
+    {
+      "id": "trk_result_or",
+      "type": "textMessage",
+      "position": { "x": 1200, "y": 1400 },
+      "data": {
+        "label": "Track Result (OR)",
+        "messageText": "📄 *ରେଫ୍: {refNumber} ପାଇଁ ସ୍ଥିତି*\n\nସ୍ଥିତି: {status}\nମନ୍ତବ୍ୟ: {remarks}"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e_start", "source": "start_node", "target": "language_selection", "type": "smoothstep", "animated": true },
+    { "id": "e_lang_en", "source": "language_selection", "target": "main_menu_en", "sourceHandle": "button-0", "type": "smoothstep" },
+    { "id": "e_lang_hi", "source": "language_selection", "target": "main_menu_hi", "sourceHandle": "button-1", "type": "smoothstep" },
+    { "id": "e_lang_or", "source": "language_selection", "target": "main_menu_or", "sourceHandle": "button-2", "type": "smoothstep" },
+    
+    { "id": "e_grv_en", "source": "main_menu_en", "target": "grv_id_en", "sourceHandle": "button-0", "type": "smoothstep" },
+    { "id": "e_apt_en", "source": "main_menu_en", "target": "apt_id_en", "sourceHandle": "button-1", "type": "smoothstep" },
+    { "id": "e_trk_en", "source": "main_menu_en", "target": "trk_id_en", "sourceHandle": "button-2", "type": "smoothstep" },
+    
+    { "id": "e_grv_hi", "source": "main_menu_hi", "target": "grv_id_hi", "sourceHandle": "button-0", "type": "smoothstep" },
+    { "id": "e_apt_hi", "source": "main_menu_hi", "target": "apt_id_hi", "sourceHandle": "button-1", "type": "smoothstep" },
+    { "id": "e_trk_hi", "source": "main_menu_hi", "target": "trk_id_hi", "sourceHandle": "button-2", "type": "smoothstep" },
+    
+    { "id": "e_grv_or", "source": "main_menu_or", "target": "grv_id_or", "sourceHandle": "button-0", "type": "smoothstep" },
+    { "id": "e_apt_or", "source": "main_menu_or", "target": "apt_id_or", "sourceHandle": "button-1", "type": "smoothstep" },
+    { "id": "e_trk_or", "source": "main_menu_or", "target": "trk_id_or", "sourceHandle": "button-2", "type": "smoothstep" },
+    
+    { "id": "e_grvid_en", "source": "grv_id_en", "target": "grv_dept_en", "type": "smoothstep" },
+    { "id": "e_grvdp_en", "source": "grv_dept_en", "target": "grv_desc_en", "type": "smoothstep" },
+    { "id": "e_grvds_en", "source": "grv_desc_en", "target": "grv_conf_en", "type": "smoothstep" },
+    { "id": "e_grvcf_en_y", "source": "grv_conf_en", "target": "grv_success_en", "sourceHandle": "button-0", "type": "smoothstep" },
+    { "id": "e_grvcf_en_n", "source": "grv_conf_en", "target": "main_menu_en", "sourceHandle": "button-1", "type": "smoothstep" },
+    
+    { "id": "e_grvid_hi", "source": "grv_id_hi", "target": "grv_dept_hi", "type": "smoothstep" },
+    { "id": "e_grvdp_hi", "source": "grv_dept_hi", "target": "grv_desc_hi", "type": "smoothstep" },
+    { "id": "e_grvds_hi", "source": "grv_desc_hi", "target": "grv_conf_hi", "type": "smoothstep" },
+    { "id": "e_grvcf_hi_y", "source": "grv_conf_hi", "target": "grv_success_hi", "sourceHandle": "button-0", "type": "smoothstep" },
+    
+    { "id": "e_grvid_or", "source": "grv_id_or", "target": "grv_dept_or", "type": "smoothstep" },
+    { "id": "e_grvdp_or", "source": "grv_dept_or", "target": "grv_desc_or", "type": "smoothstep" },
+    { "id": "e_grvds_or", "source": "grv_desc_or", "target": "grv_conf_or", "type": "smoothstep" },
+    { "id": "e_grvcf_or_y", "source": "grv_conf_or", "target": "grv_success_or", "sourceHandle": "button-0", "type": "smoothstep" },
+    
+    { "id": "e_aptid_en", "source": "apt_id_en", "target": "apt_dept_en", "type": "smoothstep" },
+    { "id": "e_aptdp_en", "source": "apt_dept_en", "target": "apt_date_en", "type": "smoothstep" },
+    { "id": "e_aptdt_en", "source": "apt_date_en", "target": "apt_time_en", "type": "smoothstep" },
+    { "id": "e_apttm_en", "source": "apt_time_en", "target": "apt_conf_en", "type": "smoothstep" },
+    { "id": "e_aptcf_en_y", "source": "apt_conf_en", "target": "apt_success_en", "sourceHandle": "button-0", "type": "smoothstep" },
+    
+    { "id": "e_aptid_hi", "source": "apt_id_hi", "target": "apt_dept_hi", "type": "smoothstep" },
+    { "id": "e_aptdp_hi", "source": "apt_dept_hi", "target": "apt_date_hi", "type": "smoothstep" },
+    { "id": "e_aptdt_hi", "source": "apt_date_hi", "target": "apt_time_hi", "type": "smoothstep" },
+    { "id": "e_apttm_hi", "source": "apt_time_hi", "target": "apt_conf_hi", "type": "smoothstep" },
+    { "id": "e_aptcf_hi_y", "source": "apt_conf_hi", "target": "apt_success_hi", "sourceHandle": "button-0", "type": "smoothstep" },
+    
+    { "id": "e_aptid_or", "source": "apt_id_or", "target": "apt_dept_or", "type": "smoothstep" },
+    { "id": "e_aptdp_or", "source": "apt_dept_or", "target": "apt_date_or", "type": "smoothstep" },
+    { "id": "e_aptdt_or", "source": "apt_date_or", "target": "apt_time_or", "type": "smoothstep" },
+    { "id": "e_apttm_or", "source": "apt_time_or", "target": "apt_conf_or", "type": "smoothstep" },
+    { "id": "e_aptcf_or_y", "source": "apt_conf_or", "target": "apt_success_or", "sourceHandle": "button-0", "type": "smoothstep" },
+    
+    { "id": "e_trkid_en", "source": "trk_id_en", "target": "trk_result_en", "type": "smoothstep" },
+    { "id": "e_trkid_hi", "source": "trk_id_hi", "target": "trk_result_hi", "type": "smoothstep" },
+    { "id": "e_trkid_or", "source": "trk_id_or", "target": "trk_result_or", "type": "smoothstep" }
+  ]
+}

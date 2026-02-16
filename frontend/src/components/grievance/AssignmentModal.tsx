@@ -110,7 +110,7 @@ export default function AssignmentModal({
         <div className="p-6">
           {loading ? (
             <div className="flex justify-center py-12">
-              <LoadingSpinner size="lg" text="Loading available users..." />
+              <LoadingSpinner text="Loading available users..." />
             </div>
           ) : users.length === 0 ? (
             <div className="text-center py-12">
@@ -187,7 +187,7 @@ export default function AssignmentModal({
           >
             {submitting ? (
               <>
-                <LoadingSpinner size="sm" className="mr-2" />
+                <LoadingSpinner className="mr-2" />
                 Assigning...
               </>
             ) : (

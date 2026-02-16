@@ -1202,10 +1202,18 @@ async function continueGrievanceFlow(
       session.data.citizenName = userInput;
       
       // Get all departments directly instead of categories
-      const departments = await Department.find({ 
+      let departments = await Department.find({ 
         companyId: company._id, 
         isActive: true 
       });
+
+      if (departments.length === 0) {
+        console.warn(`⚠️ No departments found for ObjectId companyId: ${company._id}. Trying string comparison...`);
+        departments = await Department.find({
+          companyId: company._id.toString(),
+          isActive: true
+        });
+      }
       
       console.log('🏬 All departments:', departments.map(d => ({ name: d.name, id: d._id })));
       

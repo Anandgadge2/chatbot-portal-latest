@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import toast from 'react-hot-toast';
 import { validatePhoneNumber, validatePassword, normalizePhoneNumber } from '@/lib/utils/phoneUtils';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { Shield, TrendingUp } from 'lucide-react';
 
 export default function LoginPage() {
   const [phone, setPhone] = useState('');
@@ -87,106 +88,58 @@ export default function LoginPage() {
 
   if (authLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-hidden">
-        <LoadingSpinner size="xl" />
+      <div className="flex h-screen items-center justify-center bg-background">
+        <LoadingSpinner />
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen relative overflow-hidden">
-      {/* Animated Gradient Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-        {/* Animated Mesh Gradient */}
-        <div className="absolute inset-0 opacity-30">
-          <div className="absolute top-0 -left-4 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob"></div>
-          <div className="absolute top-0 -right-4 w-72 h-72 bg-cyan-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000"></div>
-          <div className="absolute -bottom-8 left-20 w-72 h-72 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-4000"></div>
-        </div>
-        
-        {/* Grid Pattern Overlay */}
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSA2MCAwIEwgMCAwIDAgNjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsMjU1LDI1NSwwLjAzKSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-40"></div>
-      </div>
+    <div className="flex h-screen bg-background">
+      {/* Subtle Background Pattern */}
+      <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
 
       {/* Left Panel - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 relative z-10 flex-col justify-center items-center p-8">
-        <div className="max-w-md text-center">
-          {/* Floating Logo */}
-          <div className="relative mb-6 inline-block">
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-2xl blur-xl opacity-60 animate-pulse"></div>
-            <div className="relative inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-500 via-fuchsia-500 to-cyan-500 rounded-2xl shadow-2xl">
-              <svg className="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="hidden lg:flex lg:w-[45%] flex-col justify-center items-center p-12 bg-slate-900 text-white relative overflow-hidden">
+        <div className="absolute inset-0 bg-blue-600/10 mixer-blend-overlay"></div>
+        <div className="relative z-10 max-w-md">
+          {/* Logo */}
+          <div className="mb-8 flex items-center gap-3">
+            <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center border border-white/10 shadow-lg">
+              <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
             </div>
+            <span className="text-2xl font-bold tracking-tight">CitizenCare</span>
           </div>
           
-          <h1 className="text-4xl font-bold mb-3 leading-tight text-white">
-            Citizen Grievance
-            <span className="block mt-1 bg-gradient-to-r from-purple-400 via-fuchsia-400 to-cyan-400 bg-clip-text text-transparent">
-              Management Portal
-            </span>
+          <h1 className="text-5xl font-extrabold mb-6 leading-tight">
+            Standardizing
+            <span className="text-primary block">Citizen Engagement</span>
           </h1>
           
-          <p className="text-base text-slate-300 mb-6 leading-relaxed">
-            Streamlined grievance handling with real-time tracking and intelligent routing.
+          <p className="text-lg text-slate-400 mb-8 leading-relaxed">
+            A professional platform for managing grievances, appointments, and multi-channel communications with efficiency and transparency.
           </p>
 
-          {/* Feature Cards - Compact */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-3 hover:bg-white/10 transition-all duration-300">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-gradient-to-br from-purple-500 to-fuchsia-500 rounded-lg flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform flex-shrink-0">
-                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                  </svg>
-                </div>
-                <div className="text-left">
-                  <h3 className="font-semibold text-white text-sm">Secure Access</h3>
-                  <p className="text-xs text-slate-400">Enterprise-grade</p>
-                </div>
+          {/* Stats/Features */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/10">
+              <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                <Shield className="w-5 h-5 text-blue-400" />
+              </div>
+              <div>
+                <h4 className="font-semibold">Secure Data</h4>
+                <p className="text-sm text-slate-500">End-to-end encryption</p>
               </div>
             </div>
-
-            <div className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-3 hover:bg-white/10 transition-all duration-300">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform flex-shrink-0">
-                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                </div>
-                <div className="text-left">
-                  <h3 className="font-semibold text-white text-sm">Real-time</h3>
-                  <p className="text-xs text-slate-400">Instant updates</p>
-                </div>
+            <div className="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/10">
+              <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-emerald-400" />
               </div>
-            </div>
-
-            <div className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-3 hover:bg-white/10 transition-all duration-300">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform flex-shrink-0">
-                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                </div>
-                <div className="text-left">
-                  <h3 className="font-semibold text-white text-sm">Analytics</h3>
-                  <p className="text-xs text-slate-400">Detailed insights</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-3 hover:bg-white/10 transition-all duration-300">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-gradient-to-br from-amber-500 to-orange-500 rounded-lg flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform flex-shrink-0">
-                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <div className="text-left">
-                  <h3 className="font-semibold text-white text-sm">Appointments</h3>
-                  <p className="text-xs text-slate-400">Easy scheduling</p>
-                </div>
+              <div>
+                <h4 className="font-semibold">Real-time Analytics</h4>
+                <p className="text-sm text-slate-500">Live monitoring dashboard</p>
               </div>
             </div>
           </div>
@@ -194,36 +147,18 @@ export default function LoginPage() {
       </div>
 
       {/* Right Panel - Login Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-6 relative z-10">
-        <div className="w-full max-w-md">
-          {/* Mobile Logo */}
-          <div className="lg:hidden text-center mb-6">
-            <div className="relative mb-3 inline-block">
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-xl blur-lg opacity-60"></div>
-              <div className="relative inline-flex items-center justify-center w-12 h-12 bg-gradient-to-br from-purple-500 via-fuchsia-500 to-cyan-500 rounded-xl shadow-xl">
-                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-              </div>
-            </div>
-            <h2 className="text-xl font-bold text-white mb-0.5">Grievance Portal</h2>
-            <p className="text-xs text-slate-400">Dashboard Access</p>
+      <div className="w-full lg:w-[55%] flex items-center justify-center p-8">
+        <div className="w-full max-w-md space-y-8">
+          <div className="text-center lg:text-left">
+            <h2 className="text-3xl font-bold text-slate-900">Sign In</h2>
+            <p className="text-slate-500 mt-2">Enter your credentials to access the admin portal</p>
           </div>
 
-          {/* Login Card */}
           <div className="relative">
-            {/* Card Glow Effect */}
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 via-fuchsia-600/20 to-cyan-600/20 rounded-2xl blur-xl"></div>
-            
-            <Card className="relative shadow-2xl border-0 bg-white/95 backdrop-blur-xl rounded-2xl overflow-hidden">
-              {/* Gradient Border Top */}
-              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 via-fuchsia-500 to-cyan-500"></div>
+            <Card className="shadow-xl border border-slate-200 bg-white rounded-xl overflow-hidden">
               
-              <CardHeader className="space-y-1 pb-5 pt-6 px-8">
-                <CardTitle className="text-2xl font-bold text-slate-800">Welcome Back</CardTitle>
-                <CardDescription className="text-slate-500 text-base">
-                  Sign in to access your dashboard
-                </CardDescription>
+              <CardHeader className="space-y-1 pb-4 pt-6 px-8 border-b border-slate-100">
+                <CardTitle className="text-xl font-semibold text-slate-800">Administrator Access</CardTitle>
               </CardHeader>
               <CardContent className="px-8 pb-6">
                 <form onSubmit={handleSubmit} className="space-y-5">
@@ -321,28 +256,17 @@ export default function LoginPage() {
 
                   <Button
                     type="submit"
-                    className="w-full h-12 bg-gradient-to-r from-purple-600 via-fuchsia-600 to-cyan-600 hover:from-purple-700 hover:via-fuchsia-700 hover:to-cyan-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg relative overflow-hidden group text-base"
+                    className="w-full h-11 bg-primary hover:bg-primary/90 text-white font-medium shadow-sm transition-all rounded-lg text-base"
                     disabled={loading}
                   >
-                    <span className="relative z-10 flex items-center justify-center gap-2">
-                      {loading ? (
-                        <>
-                          <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          Signing in...
-                        </>
-                      ) : (
-                        <>
-                          Sign In
-                          <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                          </svg>
-                        </>
-                      )}
-                    </span>
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                    {loading ? (
+                      <span className="flex items-center gap-2">
+                        <LoadingSpinner className="!w-4 !h-4" />
+                        Verifying...
+                      </span>
+                    ) : (
+                      'Sign In to Dashboard'
+                    )}
                   </Button>
                 </form>
 
@@ -381,17 +305,6 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <style jsx global>{`
-        @keyframes blob {
-          0% { transform: translate(0px, 0px) scale(1); }
-          33% { transform: translate(30px, -50px) scale(1.1); }
-          66% { transform: translate(-20px, 20px) scale(0.9); }
-          100% { transform: translate(0px, 0px) scale(1); }
-        }
-        .animate-blob { animation: blob 8s infinite; }
-        .animation-delay-2000 { animation-delay: 2s; }
-        .animation-delay-4000 { animation-delay: 4s; }
-      `}</style>
     </div>
   );
 }

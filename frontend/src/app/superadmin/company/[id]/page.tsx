@@ -340,7 +340,7 @@ export default function CompanyDrillDown() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <LoadingSpinner size="xl" text="Loading company details..." />
+        <LoadingSpinner text="Loading company details..." />
       </div>
     );
   }
@@ -1326,7 +1326,7 @@ export default function CompanyDrillDown() {
                 <CardContent className="p-0">
                   {loadingLeads ? (
                     <div className="p-12 flex justify-center items-center">
-                      <LoadingSpinner size="lg" />
+                      <LoadingSpinner />
                     </div>
                   ) : leads.length === 0 ? (
                     <div className="text-center py-20 px-6">

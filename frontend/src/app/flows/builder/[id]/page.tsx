@@ -149,7 +149,7 @@ export default function FlowBuilderPage() {
   if (!loaded) {
     return (
       <div className="h-screen w-full flex items-center justify-center">
-        <LoadingSpinner size="xl" text="Loading flow..." />
+        <LoadingSpinner text="Loading flow..." />
       </div>
     );
   }

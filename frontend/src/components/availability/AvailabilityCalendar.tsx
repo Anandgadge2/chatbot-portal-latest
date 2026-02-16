@@ -319,7 +319,7 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
         <div className="p-3 sm:p-6 overflow-y-auto max-h-[calc(100vh-180px)] sm:max-h-[calc(90vh-200px)] custom-scrollbar">
           {loading ? (
             <div className="flex items-center justify-center py-20">
-              <LoadingSpinner size="lg" />
+              <LoadingSpinner />
             </div>
           ) : (
             <>

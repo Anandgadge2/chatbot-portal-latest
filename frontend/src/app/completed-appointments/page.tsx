@@ -159,7 +159,7 @@ export default function CompletedAppointmentsPage() {
   if (authLoading || loading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <LoadingSpinner size="lg" text="Loading..." />
+        <LoadingSpinner text="Loading..." />
       </div>
     );
   }
@@ -276,7 +276,7 @@ export default function CompletedAppointmentsPage() {
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-200/50 shadow-xl overflow-hidden">
           {loading ? (
             <div className="p-16 text-center">
-              <LoadingSpinner size="lg" text="Loading completed appointments..." />
+              <LoadingSpinner text="Loading completed appointments..." />
             </div>
           ) : filteredAppointments.length === 0 ? (
             <div className="p-12 text-center">
