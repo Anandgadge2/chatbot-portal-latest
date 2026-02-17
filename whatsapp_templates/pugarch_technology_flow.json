@@ -1,0 +1,447 @@
+{
+  "metadata": {
+    "name": "Pugarch Technology - Complete Business Flow",
+    "description": "Full chatbot flow for Pugarch Technology with Lead Capture, Customer Support, Reports, Company Info, and Email Notifications",
+    "companyId": "6993e5450e51a840abbe7acc3",
+    "version": 1,
+    "isActive": true
+  },
+  "nodes": [
+    {
+      "id": "start_node",
+      "type": "start",
+      "position": { "x": 0, "y": 400 },
+      "data": { "label": "Start Trigger", "trigger": "hi", "triggerType": "keyword" }
+    },
+    {
+      "id": "welcome",
+      "type": "buttonMessage",
+      "position": { "x": 300, "y": 400 },
+      "data": {
+        "label": "Welcome Message",
+        "messageText": "🚀 *Welcome to Pugarch Technology!*\n\nWe're a leading technology solutions provider based in Khamla, Nagpur.\n\nHow can we assist you today?",
+        "buttons": [
+          { "id": "company_info", "text": "ℹ️ Company Info", "type": "quick_reply" },
+          { "id": "quote", "text": "� Request Quote", "type": "quick_reply" },
+          { "id": "more_options", "text": "➡️ More Options", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "more_options",
+      "type": "buttonMessage",
+      "position": { "x": 300, "y": 600 },
+      "data": {
+        "label": "More Options",
+        "messageText": "*More Services*\n\nSelect an option:",
+        "buttons": [
+          { "id": "services", "text": "💼 Services", "type": "quick_reply" },
+          { "id": "reports", "text": "� Reports", "type": "quick_reply" },
+          { "id": "support_menu", "text": "� Support", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "company_info",
+      "type": "buttonMessage",
+      "position": { "x": 600, "y": 100 },
+      "data": {
+        "label": "Company Information",
+        "messageText": "ℹ️ *About Pugarch Technology*\n\n📍 *Location:* Khamla, Nagpur\n\n🎯 *Our Mission:*\nDelivering cutting-edge technology solutions to empower businesses.\n\n💼 *What We Do:*\n• Custom Software Development\n• Web & Mobile Applications\n• Cloud Solutions\n• IT Consulting\n• Digital Transformation\n• Enterprise Solutions",
+        "buttons": [
+          { "id": "view_services", "text": "View Services", "type": "quick_reply" },
+          { "id": "request_quote", "text": "Request Quote", "type": "quick_reply" },
+          { "id": "main_menu", "text": "🏠 Main Menu", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "services_menu",
+      "type": "buttonMessage",
+      "position": { "x": 600, "y": 300 },
+      "data": {
+        "label": "Services Menu",
+        "messageText": "💼 *Pugarch Technology Services*\n\nWe offer:\n• Software Development\n• Web Development\n• Mobile App Development\n• Cloud Solutions\n• IT Consulting\n• Digital Transformation\n• Enterprise Solutions",
+        "buttons": [
+          { "id": "request_quote", "text": "Request Quote", "type": "quick_reply" },
+          { "id": "contact", "text": "📞 Contact", "type": "quick_reply" },
+          { "id": "main_menu", "text": "🏠 Main Menu", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "lead_name",
+      "type": "userInput",
+      "position": { "x": 900, "y": 200 },
+      "data": {
+        "label": "Lead - Name",
+        "messageText": "📋 *Request a Quote*\n\nGreat! Let's get started.\n\n*Step 1 of 6*\n\nPlease provide your *full name*:",
+        "inputType": "text",
+        "saveToField": "leadName",
+        "validation": { "required": true }
+      }
+    },
+    {
+      "id": "lead_company",
+      "type": "userInput",
+      "position": { "x": 1200, "y": 200 },
+      "data": {
+        "label": "Lead - Company",
+        "messageText": "*Step 2 of 6*\n\nYour *company name*:\n\n(Type 'Individual' if not a company)",
+        "inputType": "text",
+        "saveToField": "leadCompany",
+        "validation": { "required": true }
+      }
+    },
+    {
+      "id": "lead_email",
+      "type": "userInput",
+      "position": { "x": 1500, "y": 200 },
+      "data": {
+        "label": "Lead - Email",
+        "messageText": "*Step 3 of 6*\n\nYour *email address*:",
+        "inputType": "email",
+        "saveToField": "leadEmail",
+        "validation": { "required": true, "type": "email" }
+      }
+    },
+    {
+      "id": "lead_project_type",
+      "type": "buttonMessage",
+      "position": { "x": 1800, "y": 200 },
+      "data": {
+        "label": "Lead - Project Type",
+        "messageText": "*Step 4 of 6*\n\nProject type?",
+        "buttons": [
+          { "id": "web", "text": "Web Development", "type": "quick_reply" },
+          { "id": "mobile", "text": "Mobile App", "type": "quick_reply" },
+          { "id": "more_types", "text": "➡️ More Types", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "lead_project_type_more",
+      "type": "buttonMessage",
+      "position": { "x": 1800, "y": 400 },
+      "data": {
+        "label": "Lead - More Types",
+        "messageText": "*Step 4 of 6*\n\nMore project types:",
+        "buttons": [
+          { "id": "software", "text": "Custom Software", "type": "quick_reply" },
+          { "id": "cloud", "text": "Cloud Solutions", "type": "quick_reply" },
+          { "id": "other", "text": "Other", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "lead_description",
+      "type": "userInput",
+      "position": { "x": 2100, "y": 200 },
+      "data": {
+        "label": "Lead - Description",
+        "messageText": "*Step 5 of 6*\n\nBrief project description:",
+        "inputType": "text",
+        "saveToField": "leadDescription",
+        "validation": { "required": true, "minLength": 10 }
+      }
+    },
+    {
+      "id": "lead_budget",
+      "type": "buttonMessage",
+      "position": { "x": 2400, "y": 200 },
+      "data": {
+        "label": "Lead - Budget",
+        "messageText": "*Step 6 of 6*\n\nBudget range?\n\n*Timeline:*\nA=Urgent, B=Normal, C=Flexible\n(Reply with number+letter)",
+        "buttons": [
+          { "id": "budget1", "text": "Under ₹5L", "type": "quick_reply" },
+          { "id": "budget2", "text": "₹5-10L", "type": "quick_reply" },
+          { "id": "more_budget", "text": "➡️ More Options", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "lead_budget_more",
+      "type": "buttonMessage",
+      "position": { "x": 2400, "y": 400 },
+      "data": {
+        "label": "Lead - More Budget",
+        "messageText": "*Step 6 of 6*\n\nMore budget options:",
+        "buttons": [
+          { "id": "budget3", "text": "₹10-25L", "type": "quick_reply" },
+          { "id": "budget4", "text": "₹25-50L", "type": "quick_reply" },
+          { "id": "budget5", "text": "Above ₹50L", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "lead_confirmation",
+      "type": "buttonMessage",
+      "position": { "x": 2700, "y": 200 },
+      "data": {
+        "label": "Lead Submitted",
+        "messageText": "✅ *Quote Request Submitted!*\n\nThank you, {leadName}! 🎉\n\n*Summary:*\n🏢 {leadCompany}\n📧 {leadEmail}\n💼 {projectType}\n {budget}\n\nOur team will contact you within 24-48 hours!",
+        "buttons": [
+          { "id": "new_request", "text": "New Request", "type": "quick_reply" },
+          { "id": "support", "text": "💬 Support", "type": "quick_reply" },
+          { "id": "main_menu", "text": "🏠 Main Menu", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "support_menu",
+      "type": "buttonMessage",
+      "position": { "x": 600, "y": 600 },
+      "data": {
+        "label": "Support Menu",
+        "messageText": "💬 *Customer Support*\n\nHow can we help?",
+        "buttons": [
+          { "id": "create_ticket", "text": "Create Ticket", "type": "quick_reply" },
+          { "id": "faq", "text": "❓ FAQs", "type": "quick_reply" },
+          { "id": "contact", "text": "📞 Contact", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "ticket_category",
+      "type": "buttonMessage",
+      "position": { "x": 900, "y": 500 },
+      "data": {
+        "label": "Ticket - Category",
+        "messageText": "🎫 *Create Support Ticket*\n\n*Step 1 of 4*\n\nSelect category:",
+        "buttons": [
+          { "id": "technical", "text": "Technical Issue", "type": "quick_reply" },
+          { "id": "billing", "text": "Billing Query", "type": "quick_reply" },
+          { "id": "more_cat", "text": "➡️ More", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "ticket_category_more",
+      "type": "buttonMessage",
+      "position": { "x": 900, "y": 700 },
+      "data": {
+        "label": "Ticket - More Cat",
+        "messageText": "*Step 1 of 4*\n\nMore categories:",
+        "buttons": [
+          { "id": "feature", "text": "Feature Request", "type": "quick_reply" },
+          { "id": "bug", "text": "Bug Report", "type": "quick_reply" },
+          { "id": "general", "text": "General", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "ticket_priority",
+      "type": "buttonMessage",
+      "position": { "x": 1200, "y": 500 },
+      "data": {
+        "label": "Ticket - Priority",
+        "messageText": "*Step 2 of 4*\n\nPriority level?",
+        "buttons": [
+          { "id": "urgent", "text": "🔴 Urgent", "type": "quick_reply" },
+          { "id": "high", "text": "🟠 High", "type": "quick_reply" },
+          { "id": "medium_low", "text": "🟡 Medium/Low", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "ticket_description",
+      "type": "userInput",
+      "position": { "x": 1500, "y": 500 },
+      "data": {
+        "label": "Ticket - Description",
+        "messageText": "*Step 3 of 4*\n\nDescribe your issue:",
+        "inputType": "text",
+        "saveToField": "ticketDescription",
+        "validation": { "required": true, "minLength": 10 }
+      }
+    },
+    {
+      "id": "ticket_email",
+      "type": "userInput",
+      "position": { "x": 1800, "y": 500 },
+      "data": {
+        "label": "Ticket - Email",
+        "messageText": "*Step 4 of 4*\n\nYour email for updates:",
+        "inputType": "email",
+        "saveToField": "ticketEmail",
+        "validation": { "required": true, "type": "email" }
+      }
+    },
+    {
+      "id": "ticket_confirmation",
+      "type": "buttonMessage",
+      "position": { "x": 2100, "y": 500 },
+      "data": {
+        "label": "Ticket Created",
+        "messageText": "✅ *Support Ticket Created*\n\n*Details:*\n📂 {ticketCategory}\n⚡ {ticketPriority}\n📧 {ticketEmail}\n\n*Status:* OPEN\n\nOur team will respond soon!",
+        "buttons": [
+          { "id": "new_ticket", "text": "New Ticket", "type": "quick_reply" },
+          { "id": "faq", "text": "❓ FAQs", "type": "quick_reply" },
+          { "id": "main_menu", "text": "🏠 Main Menu", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "faq_menu",
+      "type": "buttonMessage",
+      "position": { "x": 900, "y": 900 },
+      "data": {
+        "label": "FAQ Menu",
+        "messageText": "❓ *FAQs*\n\nSelect a category:",
+        "buttons": [
+          { "id": "general", "text": "General", "type": "quick_reply" },
+          { "id": "pricing", "text": "Pricing", "type": "quick_reply" },
+          { "id": "back_support", "text": "⬅️ Back", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "reports_menu",
+      "type": "buttonMessage",
+      "position": { "x": 600, "y": 800 },
+      "data": {
+        "label": "Reports Menu",
+        "messageText": "📊 *Download Reports*\n\nSelect report type:",
+        "buttons": [
+          { "id": "project", "text": "Project Status", "type": "quick_reply" },
+          { "id": "invoice", "text": "Invoice", "type": "quick_reply" },
+          { "id": "more_reports", "text": "➡️ More", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "reports_menu_more",
+      "type": "buttonMessage",
+      "position": { "x": 600, "y": 1000 },
+      "data": {
+        "label": "More Reports",
+        "messageText": "📊 *More Reports*\n\nSelect:",
+        "buttons": [
+          { "id": "analytics", "text": "Analytics", "type": "quick_reply" },
+          { "id": "monthly", "text": "Monthly Summary", "type": "quick_reply" },
+          { "id": "main_menu", "text": "🏠 Main Menu", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "report_date_range",
+      "type": "buttonMessage",
+      "position": { "x": 900, "y": 800 },
+      "data": {
+        "label": "Report Date Range",
+        "messageText": "Select date range:",
+        "buttons": [
+          { "id": "7d", "text": "Last 7 Days", "type": "quick_reply" },
+          { "id": "30d", "text": "Last 30 Days", "type": "quick_reply" },
+          { "id": "more_dates", "text": "➡️ More", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "report_date_more",
+      "type": "buttonMessage",
+      "position": { "x": 900, "y": 1000 },
+      "data": {
+        "label": "More Date Ranges",
+        "messageText": "More date options:",
+        "buttons": [
+          { "id": "3m", "text": "Last 3 Months", "type": "quick_reply" },
+          { "id": "6m", "text": "Last 6 Months", "type": "quick_reply" },
+          { "id": "1y", "text": "This Year", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "report_generated",
+      "type": "buttonMessage",
+      "position": { "x": 1200, "y": 800 },
+      "data": {
+        "label": "Report Ready",
+        "messageText": "✅ *Report Ready!*\n\n*Details:*\n📊 {reportType}\n📅 {dateRange}\n📄 PDF Format\n\n✓ Sent to your email\n✓ Download link valid 7 days",
+        "buttons": [
+          { "id": "new_report", "text": "New Report", "type": "quick_reply" },
+          { "id": "main_menu", "text": "🏠 Main Menu", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "contact_us",
+      "type": "buttonMessage",
+      "position": { "x": 600, "y": 1200 },
+      "data": {
+        "label": "Contact Info",
+        "messageText": "📞 *Contact Us*\n\n*Pugarch Technology*\n\n📍 Khamla, Nagpur\n📧 info@pugarchtech.com\n📱 +91 XXXXX XXXXX\n\n🕐 Mon-Fri: 9 AM - 6 PM\n🕐 Sat: 10 AM - 4 PM",
+        "buttons": [
+          { "id": "callback", "text": "Request Callback", "type": "quick_reply" },
+          { "id": "meeting", "text": "Schedule Meeting", "type": "quick_reply" },
+          { "id": "main_menu", "text": "🏠 Main Menu", "type": "quick_reply" }
+        ]
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e_start", "source": "start_node", "target": "welcome", "type": "smoothstep", "animated": true },
+    
+    { "id": "e_welcome_info", "source": "welcome", "target": "company_info", "sourceHandle": "button-0", "type": "smoothstep" },
+    { "id": "e_welcome_quote", "source": "welcome", "target": "lead_name", "sourceHandle": "button-1", "type": "smoothstep" },
+    { "id": "e_welcome_more", "source": "welcome", "target": "more_options", "sourceHandle": "button-2", "type": "smoothstep" },
+    
+    { "id": "e_more_services", "source": "more_options", "target": "services_menu", "sourceHandle": "button-0", "type": "smoothstep" },
+    { "id": "e_more_reports", "source": "more_options", "target": "reports_menu", "sourceHandle": "button-1", "type": "smoothstep" },
+    { "id": "e_more_support", "source": "more_options", "target": "support_menu", "sourceHandle": "button-2", "type": "smoothstep" },
+    
+    { "id": "e_info_services", "source": "company_info", "target": "services_menu", "sourceHandle": "button-0", "type": "smoothstep" },
+    { "id": "e_info_quote", "source": "company_info", "target": "lead_name", "sourceHandle": "button-1", "type": "smoothstep" },
+    { "id": "e_info_menu", "source": "company_info", "target": "welcome", "sourceHandle": "button-2", "type": "smoothstep" },
+    
+    { "id": "e_services_quote", "source": "services_menu", "target": "lead_name", "sourceHandle": "button-0", "type": "smoothstep" },
+    { "id": "e_services_contact", "source": "services_menu", "target": "contact_us", "sourceHandle": "button-1", "type": "smoothstep" },
+    { "id": "e_services_menu", "source": "services_menu", "target": "welcome", "sourceHandle": "button-2", "type": "smoothstep" },
+    
+    { "id": "e_lead1", "source": "lead_name", "target": "lead_company", "type": "smoothstep" },
+    { "id": "e_lead2", "source": "lead_company", "target": "lead_email", "type": "smoothstep" },
+    { "id": "e_lead3", "source": "lead_email", "target": "lead_project_type", "type": "smoothstep" },
+    { "id": "e_lead_type_more", "source": "lead_project_type", "target": "lead_project_type_more", "sourceHandle": "button-2", "type": "smoothstep" },
+    { "id": "e_lead_type1", "source": "lead_project_type", "target": "lead_description", "sourceHandle": "button-0", "type": "smoothstep" },
+    { "id": "e_lead_type2", "source": "lead_project_type", "target": "lead_description", "sourceHandle": "button-1", "type": "smoothstep" },
+    { "id": "e_lead_type_more1", "source": "lead_project_type_more", "target": "lead_description", "type": "smoothstep" },
+    { "id": "e_lead4", "source": "lead_description", "target": "lead_budget", "type": "smoothstep" },
+    { "id": "e_lead_budget_more", "source": "lead_budget", "target": "lead_budget_more", "sourceHandle": "button-2", "type": "smoothstep" },
+    { "id": "e_lead5", "source": "lead_budget", "target": "lead_confirmation", "type": "smoothstep" },
+    { "id": "e_lead_budget_more1", "source": "lead_budget_more", "target": "lead_confirmation", "type": "smoothstep" },
+    { "id": "e_lead_new", "source": "lead_confirmation", "target": "lead_name", "sourceHandle": "button-0", "type": "smoothstep" },
+    { "id": "e_lead_support", "source": "lead_confirmation", "target": "support_menu", "sourceHandle": "button-1", "type": "smoothstep" },
+    { "id": "e_lead_menu", "source": "lead_confirmation", "target": "welcome", "sourceHandle": "button-2", "type": "smoothstep" },
+    
+    { "id": "e_support_create", "source": "support_menu", "target": "ticket_category", "sourceHandle": "button-0", "type": "smoothstep" },
+    { "id": "e_support_faq", "source": "support_menu", "target": "faq_menu", "sourceHandle": "button-1", "type": "smoothstep" },
+    { "id": "e_support_contact", "source": "support_menu", "target": "contact_us", "sourceHandle": "button-2", "type": "smoothstep" },
+    
+    { "id": "e_ticket_cat_more", "source": "ticket_category", "target": "ticket_category_more", "sourceHandle": "button-2", "type": "smoothstep" },
+    { "id": "e_ticket1", "source": "ticket_category", "target": "ticket_priority", "type": "smoothstep" },
+    { "id": "e_ticket_cat_more1", "source": "ticket_category_more", "target": "ticket_priority", "type": "smoothstep" },
+    { "id": "e_ticket2", "source": "ticket_priority", "target": "ticket_description", "type": "smoothstep" },
+    { "id": "e_ticket3", "source": "ticket_description", "target": "ticket_email", "type": "smoothstep" },
+    { "id": "e_ticket4", "source": "ticket_email", "target": "ticket_confirmation", "type": "smoothstep" },
+    { "id": "e_ticket_new", "source": "ticket_confirmation", "target": "ticket_category", "sourceHandle": "button-0", "type": "smoothstep" },
+    { "id": "e_ticket_faq", "source": "ticket_confirmation", "target": "faq_menu", "sourceHandle": "button-1", "type": "smoothstep" },
+    { "id": "e_ticket_menu", "source": "ticket_confirmation", "target": "welcome", "sourceHandle": "button-2", "type": "smoothstep" },
+    
+    { "id": "e_faq_back", "source": "faq_menu", "target": "support_menu", "sourceHandle": "button-2", "type": "smoothstep" },
+    
+    { "id": "e_reports_more", "source": "reports_menu", "target": "reports_menu_more", "sourceHandle": "button-2", "type": "smoothstep" },
+    { "id": "e_reports1", "source": "reports_menu", "target": "report_date_range", "type": "smoothstep" },
+    { "id": "e_reports_more1", "source": "reports_menu_more", "target": "report_date_range", "type": "smoothstep" },
+    { "id": "e_reports_more_menu", "source": "reports_menu_more", "target": "welcome", "sourceHandle": "button-2", "type": "smoothstep" },
+    
+    { "id": "e_date_more", "source": "report_date_range", "target": "report_date_more", "sourceHandle": "button-2", "type": "smoothstep" },
+    { "id": "e_report_gen", "source": "report_date_range", "target": "report_generated", "type": "smoothstep" },
+    { "id": "e_date_more1", "source": "report_date_more", "target": "report_generated", "type": "smoothstep" },
+    { "id": "e_report_new", "source": "report_generated", "target": "reports_menu", "sourceHandle": "button-0", "type": "smoothstep" },
+    { "id": "e_report_menu", "source": "report_generated", "target": "welcome", "sourceHandle": "button-1", "type": "smoothstep" },
+    
+    { "id": "e_contact_callback", "source": "contact_us", "target": "lead_name", "sourceHandle": "button-0", "type": "smoothstep" },
+    { "id": "e_contact_meeting", "source": "contact_us", "target": "lead_name", "sourceHandle": "button-1", "type": "smoothstep" },
+    { "id": "e_contact_menu", "source": "contact_us", "target": "welcome", "sourceHandle": "button-2", "type": "smoothstep" }
+  ]
+}

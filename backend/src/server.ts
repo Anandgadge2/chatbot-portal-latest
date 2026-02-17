@@ -187,6 +187,8 @@ app.get('/', (_req: Request, res: Response) => {
 // These routes should NOT have authentication or other middleware that might block WhatsApp
 app.use('/webhook', whatsappRoutes);
 app.use('/api/webhook/whatsapp', whatsappRoutes);
+app.use('/api/whatsapp', whatsappRoutes); // Meta WhatsApp webhook endpoint
+
 
 // API routes
 app.use('/api/health', healthRoutes);

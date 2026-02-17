@@ -930,6 +930,46 @@ function DashboardContent() {
               </TabsTrigger>
             )}
 
+            {/* Wildlife Incidents Tab */}
+            {hasModule(Module.INCIDENT_WILDLIFE) && (isCompanyAdmin || isDepartmentAdmin) && (
+              <TabsTrigger 
+                value="incidents"
+                className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200"
+              >
+                🦁 Incidents
+              </TabsTrigger>
+            )}
+
+            {/* Reports Tab */}
+            {hasModule(Module.REPORT_DOWNLOAD) && (isCompanyAdmin || isDepartmentAdmin) && (
+              <TabsTrigger 
+                value="reports"
+                className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200"
+              >
+                📊 Reports
+              </TabsTrigger>
+            )}
+
+            {/* Customer Support Tab */}
+            {hasModule(Module.CUSTOMER_SUPPORT) && (isCompanyAdmin || isDepartmentAdmin) && (
+              <TabsTrigger 
+                value="support"
+                className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200"
+              >
+                💬 Support
+              </TabsTrigger>
+            )}
+
+            {/* Company Info Tab */}
+            {hasModule(Module.COMPANY_INFO) && !isOperator && (
+              <TabsTrigger 
+                value="company-info"
+                className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200"
+              >
+                ℹ️ Company Info
+              </TabsTrigger>
+            )}
+
             {/* Departments & Users - Administrative tabs */}
             {isCompanyAdmin && (
               <TabsTrigger 

@@ -12,6 +12,8 @@ import { apiClient } from '@/lib/api/client';
 import toast from 'react-hot-toast';
 import { ArrowLeft, Save, Phone, Shield, MessageSquare, Clock, Globe, FileText } from 'lucide-react';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { formatPhoneNumber, normalizePhoneNumber, getPhoneNumberFormats, isValidPhoneNumber } from '@/lib/utils/phoneNumber';
+
 
 const WHATSAPP_TEMPLATE_KEYS = [
   { key: 'grievance_created', label: 'Grievance Created (to dept admin)' },
@@ -194,29 +196,60 @@ export default function WhatsAppConfigPage() {
         setIsEditing(false);
         fetchData();
       } else {
-        toast.error(res?.message || 'Failed to save configuration');
+        // Handle error response from backend
+        const errorMessage = res?.message || 'Failed to save configuration';
+        toast.error(errorMessage);
       }
     } catch (error: any) {
+      console.error('❌ Save error:', error);
       
-      // Handle "already exists" error - try to update instead
-      if (error.response?.status === 400 && 
-          error.response?.data?.message?.includes('already exists')) {
-        try {
-          const existingRes = await apiClient.get(`/whatsapp-config/company/${companyId}`);
-          const existingConfig = existingRes.success ? existingRes.data : existingRes.data;
-          
-          if (existingConfig?._id) {
-            const updateRes = await apiClient.put(`/whatsapp-config/${existingConfig._id}`, config);
-            if (updateRes?.success) {
-              toast.success('WhatsApp configuration updated successfully');
-              setIsEditing(false);
-              fetchData();
-              return;
-            }
-          }
-        } catch (_) {}
+      // Extract error message from various possible locations
+      let errorMessage = 'Failed to save configuration';
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
       }
-      toast.error(error.response?.data?.message || 'Failed to save configuration');
+      
+      // Handle specific error cases
+      if (error.response?.status === 400) {
+        // Bad Request - validation errors
+        if (errorMessage.includes('already used by another company')) {
+          toast.error(`❌ ${errorMessage}\n\nPlease use a different Phone Number ID or deactivate the other configuration.`);
+        } else if (errorMessage.includes('already exists')) {
+          // Try to update instead
+          try {
+            const existingRes = await apiClient.get(`/whatsapp-config/company/${companyId}`);
+            const existingConfig = existingRes.success ? existingRes.data : existingRes.data;
+            
+            if (existingConfig?._id) {
+              const updateRes = await apiClient.put(`/whatsapp-config/${existingConfig._id}`, config);
+              if (updateRes?.success) {
+                toast.success('WhatsApp configuration updated successfully');
+                setIsEditing(false);
+                fetchData();
+                return;
+              } else {
+                toast.error(updateRes?.message || 'Failed to update configuration');
+              }
+            }
+          } catch (retryError: any) {
+            toast.error(retryError.response?.data?.message || 'Failed to update configuration');
+          }
+        } else {
+          toast.error(errorMessage);
+        }
+      } else if (error.response?.status === 409) {
+        // Conflict
+        toast.error(`❌ Conflict: ${errorMessage}`);
+      } else if (error.response?.status === 500) {
+        // Server error
+        toast.error('❌ Server error. Please try again or contact support.');
+      } else {
+        // Generic error
+        toast.error(errorMessage);
+      }
     } finally {
       setSaving(false);
     }
@@ -319,40 +352,64 @@ export default function WhatsAppConfigPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="phoneNumber" className="text-sm font-semibold">Phone Number</Label>
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="phoneNumber" className="text-sm font-semibold">
+                    WhatsApp Business Phone Number
+                  </Label>
                   <Input 
                     id="phoneNumber"
-                    placeholder="e.g., 9821550841"
-                    value={config?.phoneNumber || ''} 
-                    onChange={(e) => updateConfig('phoneNumber', e.target.value)}
-                    disabled={!isEditing}
-                    className="rounded-xl border-gray-200 focus:ring-2 focus:ring-green-500"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="displayPhoneNumber" className="text-sm font-semibold">Display Phone Number</Label>
-                  <Input 
-                    id="displayPhoneNumber"
-                    placeholder="e.g., +91 98215 50841"
+                    placeholder="e.g., +91 95038 50561 or +1 555 194 4395"
                     value={config?.displayPhoneNumber || ''} 
-                    onChange={(e) => updateConfig('displayPhoneNumber', e.target.value)}
+                    onChange={(e) => {
+                      const input = e.target.value;
+                      const formats = getPhoneNumberFormats(input);
+                      
+                      // Update display and API format automatically
+                      updateConfig('displayPhoneNumber', formats.displayFormat);
+                      updateConfig('phoneNumber', formats.apiFormat);
+                    }}
+                    onBlur={(e) => {
+                      // Validate on blur
+                      const input = e.target.value;
+                      if (input && !isValidPhoneNumber(input)) {
+                        toast.error('Please enter a valid phone number with country code');
+                      }
+                    }}
                     disabled={!isEditing}
-                    className="rounded-xl border-gray-200 focus:ring-2 focus:ring-green-500"
+                    className="rounded-xl border-gray-200 focus:ring-2 focus:ring-green-500 text-lg font-mono"
                   />
+                  <div className="flex items-start gap-2 mt-2">
+                    <div className="flex-1 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-xs font-semibold text-blue-700 mb-1">📱 Display Format</p>
+                      <p className="text-sm font-mono text-blue-900">{config?.displayPhoneNumber || 'Not set'}</p>
+                      <p className="text-xs text-blue-600 mt-1">What customers see in WhatsApp</p>
+                    </div>
+                    <div className="flex-1 p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <p className="text-xs font-semibold text-green-700 mb-1">🔧 API Format</p>
+                      <p className="text-sm font-mono text-green-900">{config?.phoneNumber || 'Not set'}</p>
+                      <p className="text-xs text-green-600 mt-1">Used for Meta API calls</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    💡 <strong>Tip:</strong> Enter your WhatsApp number with country code. 
+                    For India: <code className="bg-gray-100 px-1 rounded">+91 XXXXX XXXXX</code>, 
+                    For US (test): <code className="bg-gray-100 px-1 rounded">+1 555 XXX XXXX</code>
+                  </p>
                 </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="phoneNumberId" className="text-sm font-semibold">Phone Number ID</Label>
                   <Input 
                     id="phoneNumberId"
-                    placeholder="From Meta Business Manager"
+                    placeholder="From Meta Business Manager (e.g., 957847664885159)"
                     value={config?.phoneNumberId || ''} 
                     onChange={(e) => updateConfig('phoneNumberId', e.target.value)}
                     disabled={!isEditing}
                     className="rounded-xl border-gray-200 focus:ring-2 focus:ring-green-500 font-mono text-sm"
                   />
+                  <p className="text-xs text-gray-500">
+                    This is the unique Phone Number ID from Meta Business Manager, different from the phone number itself.
+                  </p>
                 </div>
                 
                 <div className="space-y-2">
