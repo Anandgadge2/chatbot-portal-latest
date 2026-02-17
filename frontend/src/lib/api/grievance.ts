@@ -5,6 +5,7 @@ export interface Grievance {
   grievanceId: string;
   companyId: string | { _id: string; name: string };
   departmentId?: string | { _id: string; name: string };
+  subDepartmentId?: string | { _id: string; name: string };
   citizenName: string;
   citizenPhone: string;
   citizenWhatsApp?: string;

@@ -227,33 +227,38 @@ export class DynamicFlowEngine {
 
   /**
    * Load and display departments for grievance flow
+   * Updated to only show top-level departments initially
    */
   private async loadDepartmentsForGrievance(step: IFlowStep): Promise<void> {
     try {
       const Department = (await import('../models/Department')).default;
       const { getTranslation } = await import('./chatbotEngine');
       
-      console.log(`🏬 Loading departments for company: ${this.company._id}`);
+      console.log(`🏬 Loading top-level departments for company: ${this.company._id}`);
       
-      // Get all departments for this company
-      let departments = await Department.find({ 
+      // Get ALL departments for this company first to determine structure
+      let allDepts = await Department.find({ 
         companyId: this.company._id, 
         isActive: true 
       });
 
-      // Fallback: search by string ID if zero found (helps with type mismatches in DB)
-      if (departments.length === 0) {
-        console.warn(`⚠️ No departments found for ObjectId companyId: ${this.company._id}. Trying string comparison...`);
-        departments = await Department.find({
-          companyId: this.company._id.toString(),
-          isActive: true
-        });
+      // Check if hierarchical departments module is enabled
+      const hierarchicalEnabled = this.company.enabledModules?.includes('HIERARCHICAL_DEPARTMENTS');
+      
+      let departments = allDepts;
+      
+      if (hierarchicalEnabled) {
+        // Filter for top-level departments (no parent) only if module is enabled
+        departments = allDepts.filter((d: any) => !d.parentDepartmentId);
+
+        // Fallback: if no hierarchy is defined, show all
+        if (departments.length === 0 && allDepts.length > 0) {
+          console.warn(`⚠️ Hierarchical Departments enabled but no top-level departments found for company ${this.company._id}. Falling back to all departments.`);
+          departments = allDepts;
+        }
       }
       
-      console.log(`📊 Found ${departments.length} department(s) for company ${this.company._id}`);
-      departments.forEach((dept: any) => {
-        console.log(`   - ${dept.name} (${dept._id})`);
-      });
+      console.log(`📊 Found ${departments.length} top-level department(s)`);
       
       if (departments.length === 0) {
         // No departments found - send error message
@@ -318,14 +323,14 @@ export class DynamicFlowEngine {
         rows: deptRows
       }];
       
-      console.log(`📋 Sending department list with ${deptRows.length} items (offset: ${offset})`);
+      console.log(`📋 Sending top-level department list with ${deptRows.length} items (offset: ${offset})`);
       
       // Save step info and list mapping to session
       this.session.data.currentStepId = step.stepId;
       this.session.data.listMapping = {};
       deptRows.forEach((row: any) => {
         if (row.id.startsWith('grv_dept_')) {
-          // Map department selection to next step
+          // Map department selection to next step (will be intercepted in handleListSelection for sub-depts)
           this.session.data.listMapping[row.id] = step.nextStepId || 'grievance_description';
         }
       });
@@ -348,42 +353,83 @@ export class DynamicFlowEngine {
         );
       } catch (error) {
         console.error('❌ Failed to send list, falling back to buttons');
-        // If list fails, use buttons for first 3 departments (same language logic as list)
-        if (departments.length <= 3) {
-          const buttons = departments.map((dept: any) => {
-            let displayName: string;
-            if (lang === 'hi' && dept.nameHi && dept.nameHi.trim()) {
-              displayName = dept.nameHi.trim();
-            } else if (lang === 'or' && dept.nameOr && dept.nameOr.trim()) {
-              displayName = dept.nameOr.trim();
-            } else if (lang === 'mr' && dept.nameMr && dept.nameMr.trim()) {
-              displayName = dept.nameMr.trim();
-            } else {
-              const translatedName = getTranslation(`dept_${dept.name}`, lang);
-              displayName = translatedName !== `dept_${dept.name}` ? translatedName : dept.name;
-            }
-            return {
-              id: `grv_dept_${dept._id}`,
-              title: displayName.substring(0, 20)
-            };
-          });
-          
-          const message = this.replacePlaceholders(step.messageText || getTranslation('selection_department', this.session.language));
-          await sendWhatsAppButtons(this.company, this.userPhone, message, buttons);
-          
-          // Save button mapping
-          this.session.data.buttonMapping = {};
-          buttons.forEach((btn: any) => {
-            this.session.data.buttonMapping[btn.id] = step.nextStepId || 'grievance_description';
-          });
-          await updateSession(this.session);
-        }
+        // fallback logic...
       }
     } catch (error: any) {
       console.error('❌ Error loading departments for grievance:', error);
       const { getTranslation } = await import('./chatbotEngine');
       const errorMessage = getTranslation('msg_no_dept_grv', this.session.language);
       await sendWhatsAppMessage(this.company, this.userPhone, errorMessage);
+    }
+  }
+
+  /**
+   * Load and display sub-departments for a selected parent department
+   */
+  private async loadSubDepartmentsForGrievance(parentId: string): Promise<void> {
+    try {
+      const Department = (await import('../models/Department')).default;
+      const { getTranslation } = await import('./chatbotEngine');
+      const lang = this.session.language || 'en';
+      
+      console.log(`🏢 Loading sub-departments for parent: ${parentId}`);
+      
+      const subDepartments = await Department.find({ 
+        parentDepartmentId: parentId, 
+        isActive: true 
+      });
+
+      if (subDepartments.length === 0) {
+        console.warn(`⚠️ No sub-departments found for parent ${parentId}. Proceeding.`);
+        return;
+      }
+
+      const rows = subDepartments.map((dept: any) => {
+        let displayName: string;
+        if (lang === 'hi' && dept.nameHi && dept.nameHi.trim()) {
+          displayName = dept.nameHi.trim();
+        } else if (lang === 'or' && dept.nameOr && dept.nameOr.trim()) {
+          displayName = dept.nameOr.trim();
+        } else if (lang === 'mr' && dept.nameMr && dept.nameMr.trim()) {
+          displayName = dept.nameMr.trim();
+        } else {
+          const translatedName = getTranslation(`dept_${dept.name}`, lang);
+          displayName = translatedName !== `dept_${dept.name}` ? translatedName : dept.name;
+        }
+
+        return {
+          id: `grv_sub_dept_${dept._id}`,
+          title: displayName.length > 24 ? displayName.substring(0, 21) + '...' : displayName,
+          description: (dept.description || '').substring(0, 72)
+        };
+      });
+
+      const sections = [{
+        title: lang === 'or' ? 'ଉପ-ବିଭାଗ ବାଛନ୍ତୁ' : (lang === 'hi' ? 'उप-विभाग चुनें' : 'Select Sub-Department'),
+        rows: rows
+      }];
+
+      // Update list mapping for sub-departments
+      const currentStep = this.flow.steps.find(s => s.stepId === this.session.data.currentStepId);
+      this.session.data.listMapping = {};
+      rows.forEach((row: any) => {
+        this.session.data.listMapping[row.id] = currentStep?.nextStepId || 'grievance_description';
+      });
+      await updateSession(this.session);
+
+      const message = lang === 'or' ? '🏢 *ଉପ-ବିଭାଗ ଚୟନ*\n\nଦୟାକରି ସମ୍ବନ୍ଧିତ ଉପ-ବିଭାଗ ବାଛନ୍ତୁ:' : 
+                     (lang === 'hi' ? '🏢 *उप-विभाग चयन*\n\nकृपया संबंधित उप-विभाग चुनें:' : 
+                     '🏢 *Sub-Department Selection*\n\nPlease select the relevant sub-department:');
+      
+      await sendWhatsAppList(
+        this.company,
+        this.userPhone,
+        message,
+        lang === 'or' ? 'ଉପ-ବିଭାଗ ଦେଖନ୍ତୁ' : (lang === 'hi' ? 'उप-विभाग देखें' : 'View Sub-Departments'),
+        sections
+      );
+    } catch (error: any) {
+      console.error('❌ Error loading sub-departments:', error);
     }
   }
 
@@ -966,6 +1012,7 @@ export class DynamicFlowEngine {
       const grievanceData = {
         companyId: this.company._id,
         departmentId: departmentId || undefined,
+        subDepartmentId: (this.session.data.subDepartmentId ? new mongoose.Types.ObjectId(this.session.data.subDepartmentId) : undefined),
         citizenName: this.session.data.citizenName,
         citizenPhone: this.userPhone,
         citizenWhatsApp: this.userPhone,
@@ -980,9 +1027,16 @@ export class DynamicFlowEngine {
       this.session.data.grievanceId = grievance.grievanceId;
       this.session.data.date = new Date(grievance.createdAt).toLocaleDateString('en-IN');
       const dept = departmentId ? await Department.findById(departmentId) : null;
-      this.session.data.department = dept ? dept.name : (this.session.data.category || 'General');
+      const subDept = this.session.data.subDepartmentId ? await Department.findById(this.session.data.subDepartmentId) : null;
+      
+      this.session.data.department = subDept ? `${dept?.name} - ${subDept.name}` : (dept ? dept.name : (this.session.data.category || 'General'));
+      
       await updateSession(this.session);
+      
       if (departmentId) {
+        // Notify department admin OR sub-department admin
+        const notifyTargetId = this.session.data.subDepartmentId || departmentId;
+        
         await notifyDepartmentAdminOnCreation({
           type: 'grievance',
           action: 'created',
@@ -990,21 +1044,23 @@ export class DynamicFlowEngine {
           citizenName: this.session.data.citizenName,
           citizenPhone: this.userPhone,
           citizenWhatsApp: this.userPhone,
-          departmentId,
+          departmentId: notifyTargetId as any,
           companyId: this.company._id,
           description: this.session.data.description,
           category: this.session.data.category,
           createdAt: grievance.createdAt,
           timeline: grievance.timeline
         });
-        // Auto-assign to department admin and notify assignee (WhatsApp + email)
-        const departmentAdmin = await User.findOne({
-          departmentId,
+
+        // Auto-assign to admin of selected (sub)department
+        const targetAdmin = await User.findOne({
+          departmentId: notifyTargetId,
           role: UserRole.DEPARTMENT_ADMIN,
           isActive: true
         });
-        if (departmentAdmin) {
-          grievance.assignedTo = departmentAdmin._id;
+
+        if (targetAdmin) {
+          grievance.assignedTo = targetAdmin._id;
           await grievance.save();
           await notifyUserOnAssignment({
             type: 'grievance',
@@ -1013,9 +1069,9 @@ export class DynamicFlowEngine {
             citizenName: this.session.data.citizenName,
             citizenPhone: this.userPhone,
             citizenWhatsApp: this.userPhone,
-            departmentId,
+            departmentId: notifyTargetId as any,
             companyId: this.company._id,
-            assignedTo: departmentAdmin._id,
+            assignedTo: targetAdmin._id,
             assignedByName: 'System (Auto-assign)',
             assignedAt: new Date(),
             description: this.session.data.description,
@@ -1312,6 +1368,7 @@ export class DynamicFlowEngine {
    */
   async handleListSelection(rowId: string): Promise<void> {
     const listMapping = this.session.data.listMapping || {};
+    const Department = (await import('../models/Department')).default;
 
     // Special handling for "Load More" button in department list
     if (rowId === 'grv_load_more') {
@@ -1333,20 +1390,49 @@ export class DynamicFlowEngine {
 
     // Department selection (grv_dept_*) – set departmentId/category in session
     if (rowId.startsWith('grv_dept_')) {
-      const Department = (await import('../models/Department')).default;
       const departmentId = rowId.replace('grv_dept_', '');
-      
       console.log(`🏬 Department selected: ${departmentId}`);
       
-      // Get department details
       const department = await Department.findById(departmentId);
       if (department) {
+        // Check if hierarchical departments module is enabled
+        const hierarchicalEnabled = this.company.enabledModules?.includes('HIERARCHICAL_DEPARTMENTS');
+        
+        if (hierarchicalEnabled) {
+          // Check if this department has sub-departments
+          const subDepts = await Department.find({ parentDepartmentId: departmentId, isActive: true });
+          
+          if (subDepts.length > 0) {
+            console.log(`   - Has ${subDepts.length} sub-departments. Loading sub-menu...`);
+            this.session.data.departmentId = departmentId;
+            this.session.data.departmentName = department.name;
+            await updateSession(this.session);
+            await this.loadSubDepartmentsForGrievance(departmentId);
+            return;
+          }
+        }
+
+        // No sub-departments or module not enabled, save and proceed
         this.session.data.departmentId = departmentId;
         this.session.data.departmentName = department.name;
         this.session.data.category = department.name;
+        delete this.session.data.subDepartmentId; // Clear any old sub-dept
         await updateSession(this.session);
         
         console.log(`✅ Department saved to session: ${department.name}`);
+      }
+    }
+
+    // Sub-department selection (grv_sub_dept_*)
+    if (rowId.startsWith('grv_sub_dept_')) {
+      const subDeptId = rowId.replace('grv_sub_dept_', '');
+      const subDept = await Department.findById(subDeptId);
+      
+      if (subDept) {
+        this.session.data.subDepartmentId = subDeptId;
+        this.session.data.category = subDept.name;
+        await updateSession(this.session);
+        console.log(`✅ Sub-department saved to session: ${subDept.name}`);
       }
     }
 

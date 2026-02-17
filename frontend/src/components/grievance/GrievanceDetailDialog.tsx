@@ -223,6 +223,45 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({ isOpen, g
             </div>
           </div>
 
+          {/* Department Information */}
+          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+            <div className="bg-gradient-to-r from-slate-50 to-indigo-50 px-5 py-4 border-b border-slate-100">
+              <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                <Building className="w-5 h-5 text-indigo-600" />
+                Department Information
+              </h3>
+            </div>
+            <div className="p-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl shadow-sm border border-slate-100">
+                  <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Building className="w-5 h-5 text-indigo-600" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Main Department</p>
+                    <p className="text-sm font-bold text-slate-800 truncate" title={typeof grievance.departmentId === 'object' && grievance.departmentId ? (grievance.departmentId as any).name : 'General'}>
+                      {typeof grievance.departmentId === 'object' && grievance.departmentId ? (grievance.departmentId as any).name : 'General'}
+                    </p>
+                  </div>
+                </div>
+
+                {grievance.subDepartmentId && (
+                  <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl shadow-sm border border-slate-100">
+                    <div className="w-10 h-10 bg-violet-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <ArrowRight className="w-5 h-5 text-violet-600" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Sub-Department</p>
+                      <p className="text-sm font-bold text-slate-800 truncate" title={typeof grievance.subDepartmentId === 'object' && grievance.subDepartmentId ? (grievance.subDepartmentId as any).name : ''}>
+                        {typeof grievance.subDepartmentId === 'object' && grievance.subDepartmentId ? (grievance.subDepartmentId as any).name : 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Citizen Information */}
           <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
             <div className="bg-gradient-to-r from-slate-50 to-blue-50 px-5 py-4 border-b border-slate-100">

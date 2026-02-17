@@ -151,6 +151,21 @@ export default function CompanyDrillDown() {
     }
   };
 
+  const fetchLeads = async (companyId: string) => {
+    setLoadingLeads(true);
+    try {
+      const response = await apiClient.get(`/leads/company/${companyId}`);
+      if (response.success) {
+        setLeads(response.data || []);
+      }
+    } catch (error: any) {
+      console.error('Failed to fetch leads:', error);
+      // Don't show error toast - leads might not exist for this company
+    } finally {
+      setLoadingLeads(false);
+    }
+  };
+
   // Sort handler
   const handleSort = (key: string) => {
     let direction: 'asc' | 'desc' | null = 'asc';
@@ -1335,7 +1350,7 @@ export default function CompanyDrillDown() {
                       </div>
                       <h3 className="text-xl font-bold text-slate-800 mb-2">No Leads Found</h3>
                       <p className="text-slate-500 max-w-xs mx-auto">
-                        This company hasn't captured any leads through the chatbot yet.
+                        This company hasn&apos;t captured any leads through the chatbot yet.
                       </p>
                     </div>
                   ) : (

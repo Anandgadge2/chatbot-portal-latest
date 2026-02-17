@@ -171,11 +171,27 @@ async function safeSendWhatsApp(
 
 async function getDepartmentAdmin(departmentId: any): Promise<any | null> {
   try {
-    return await User.findOne({
+    // Try to find admin for the specific department (could be a sub-department)
+    let admin = await User.findOne({
       departmentId,
       role: UserRole.DEPARTMENT_ADMIN,
       isActive: true
     });
+
+    // 🏢 Fallback: If no admin found for sub-department, try finding admin for parent department
+    if (!admin) {
+      const dept = await Department.findById(departmentId);
+      if (dept && dept.parentDepartmentId) {
+        logger.info(`🔍 No admin found for sub-department ${dept.name} (${departmentId}), falling back to parent department.`);
+        admin = await User.findOne({
+          departmentId: dept.parentDepartmentId,
+          role: UserRole.DEPARTMENT_ADMIN,
+          isActive: true
+        });
+      }
+    }
+
+    return admin;
   } catch (error) {
     logger.error('Error getting department admin:', error);
     return null;
@@ -192,6 +208,12 @@ export async function notifyDepartmentAdminOnCreation(
   try {
     const company = await getCompanyWithWhatsAppConfig(data.companyId);
     if (!company) return;
+
+    // ✅ Check if AUTO_NOTIFICATION module is enabled
+    if (!company.enabledModules?.includes('AUTO_NOTIFICATION')) {
+      logger.info('⏭️ AUTO_NOTIFICATION module disabled for this company. Skipping notification.');
+      return;
+    }
 
     // For CEO appointments, departmentId is null - notify Company Admin instead
     if (data.type === 'appointment' && !data.departmentId) {

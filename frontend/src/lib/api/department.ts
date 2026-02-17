@@ -18,6 +18,7 @@ export interface Department {
   contactEmail?: string;
   contactPhone?: string;
   companyId: string | { _id: string; name: string; companyId: string };
+  parentDepartmentId?: string | { _id: string; name: string }; // 🏢 Added for hierarchical departments
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -36,6 +37,7 @@ export interface CreateDepartmentData {
   contactEmail?: string;
   contactPhone?: string;
   companyId: string;
+  parentDepartmentId?: string; // 🏢 Added for hierarchical departments
 }
 
 export interface UpdateDepartmentData {
@@ -50,6 +52,7 @@ export interface UpdateDepartmentData {
   contactPerson?: string;
   contactEmail?: string;
   contactPhone?: string;
+  parentDepartmentId?: string; // 🏢 Added for hierarchical departments
   isActive?: boolean;
 }
 

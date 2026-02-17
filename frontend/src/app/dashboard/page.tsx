@@ -635,7 +635,7 @@ function DashboardContent() {
 
       return () => clearInterval(pollInterval);
     }
-  }, [mounted, user, grievancePage, appointmentPage, departmentPage, userPage, fetchDashboardData, fetchDepartments, fetchUsers, fetchCompany, fetchGrievances, fetchAppointments, prevGrievanceCount, prevAppointmentCount]);
+  }, [mounted, user, grievancePage, appointmentPage, departmentPage, userPage, fetchDashboardData, fetchDepartments, fetchUsers, fetchCompany, fetchGrievances, fetchAppointments, fetchLeads, hasModule, prevGrievanceCount, prevAppointmentCount]);
  
   useEffect(() => {
     if (mounted && user && activeTab === 'analytics') {
@@ -2569,7 +2569,11 @@ function DashboardContent() {
                             <td className="px-4 py-4">
                               <div className="flex flex-col">
                                 <span className="text-xs font-semibold text-gray-700">
-                                  {typeof grievance.departmentId === 'object' && grievance.departmentId ? (grievance.departmentId as any).name : 'General'}
+                                  {typeof grievance.departmentId === 'object' && grievance.departmentId 
+                                    ? (grievance.subDepartmentId && typeof grievance.subDepartmentId === 'object'
+                                      ? `${(grievance.departmentId as any).name} - ${(grievance.subDepartmentId as any).name}`
+                                      : (grievance.departmentId as any).name)
+                                    : 'General'}
                                 </span>
                                 <span className="text-[10px] text-orange-400 uppercase">{grievance.category}</span>
                               </div>

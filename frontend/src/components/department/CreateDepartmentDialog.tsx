@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,6 +22,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({ isOpen,
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [allDepartments, setAllDepartments] = useState<Department[]>([]);
   const [formData, setFormData] = useState({
     name: '',
     nameHi: '',
@@ -34,7 +35,8 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({ isOpen,
     contactPerson: '',
     contactEmail: '',
     contactPhone: '',
-    companyId: ''
+    companyId: '',
+    parentDepartmentId: ''
   });
 
   useEffect(() => {
@@ -55,10 +57,12 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({ isOpen,
           contactPhone: editingDepartment.contactPhone || '',
           companyId: typeof editingDepartment.companyId === 'object' 
             ? editingDepartment.companyId._id 
-            : editingDepartment.companyId || ''
+            : editingDepartment.companyId || '',
+          parentDepartmentId: typeof editingDepartment.parentDepartmentId === 'object'
+            ? editingDepartment.parentDepartmentId._id
+            : editingDepartment.parentDepartmentId || ''
         });
       } else {
-        // Auto-select company for company admins when creating new department
         const userCompanyId = user?.companyId 
           ? (typeof user.companyId === 'object' ? user.companyId._id : user.companyId)
           : '';
@@ -75,11 +79,26 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({ isOpen,
           contactPerson: '',
           contactEmail: '',
           contactPhone: '',
-          companyId: userCompanyId
+          companyId: userCompanyId,
+          parentDepartmentId: ''
         });
       }
     }
   }, [isOpen, editingDepartment, user]);
+
+  const fetchDepartments = useCallback(async () => {
+    try {
+      const response = await departmentAPI.getAll({ 
+        companyId: formData.companyId,
+        limit: 100 
+      });
+      if (response.success) {
+        setAllDepartments(response.data.departments);
+      }
+    } catch (error) {
+      console.error('Failed to fetch departments:', error);
+    }
+  }, [formData.companyId]);
 
   const fetchCompanies = async () => {
     try {
@@ -91,6 +110,12 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({ isOpen,
       console.error('Failed to fetch companies:', error);
     }
   };
+
+  useEffect(() => {
+    if (isOpen && formData.companyId) {
+      fetchDepartments();
+    }
+  }, [isOpen, formData.companyId, fetchDepartments]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,7 +129,6 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({ isOpen,
       return;
     }
 
-    // Validate contact phone (telephone) if provided
     if (formData.contactPhone && !validateTelephone(formData.contactPhone)) {
       toast.error('Contact phone must be 6–15 digits (e.g. 0721-2662926 or 9356150561)');
       return;
@@ -112,17 +136,21 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({ isOpen,
 
     setLoading(true);
     try {
-      // Send phone number as-is (10 digits) - backend will normalize it
       let response;
+      const dataToSubmit = {
+        ...formData,
+        parentDepartmentId: formData.parentDepartmentId || undefined
+      };
+
       if (editingDepartment) {
-        response = await departmentAPI.update(editingDepartment._id, formData);
+        response = await departmentAPI.update(editingDepartment._id, dataToSubmit);
         if (response.success) {
           toast.success('Department updated successfully!');
         } else {
           toast.error('Failed to update department');
         }
       } else {
-        response = await departmentAPI.create(formData);
+        response = await departmentAPI.create(dataToSubmit);
         if (response.success) {
           toast.success('Department created successfully!');
         } else {
@@ -143,7 +171,8 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({ isOpen,
           contactPerson: '',
           contactEmail: '',
           contactPhone: '',
-          companyId: ''
+          companyId: '',
+          parentDepartmentId: ''
         });
         onClose();
         onDepartmentCreated();
@@ -151,14 +180,13 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({ isOpen,
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 
         (editingDepartment ? 'Failed to update department' : 'Failed to create department');
-      console.error('Department error:', error.response?.data);
       toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -255,7 +283,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({ isOpen,
                   id="companyId"
                   name="companyId"
                   value={formData.companyId}
-                  onChange={(e) => setFormData(prev => ({ ...prev, companyId: e.target.value }))}
+                  onChange={(e) => setFormData(prev => ({ ...prev, companyId: e.target.value, parentDepartmentId: '' }))}
                   className="w-full p-2 border rounded-md"
                   required
                 >
@@ -268,6 +296,36 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({ isOpen,
                 </select>
               )}
             </div>
+
+            {formData.companyId && (() => {
+              // Find the selected company to check if hierarchical departments module is enabled
+              const selectedCompany = companies.find(c => c._id === formData.companyId);
+              const hierarchicalEnabled = selectedCompany?.enabledModules?.includes('HIERARCHICAL_DEPARTMENTS');
+              
+              return hierarchicalEnabled ? (
+                <div>
+                  <Label htmlFor="parentDepartmentId">Parent Department (optional)</Label>
+                  <select
+                    id="parentDepartmentId"
+                    name="parentDepartmentId"
+                    value={formData.parentDepartmentId}
+                    onChange={handleChange}
+                    className="w-full p-2 border rounded-md"
+                  >
+                    <option value="">None (Top-level Department)</option>
+                    {allDepartments
+                      .filter(d => !editingDepartment || d._id !== editingDepartment._id)
+                      .filter(d => !d.parentDepartmentId) // Only allow top-level departments as parents for now
+                      .map((dept) => (
+                        <option key={dept._id} value={dept._id}>
+                          {dept.name}
+                        </option>
+                      ))}
+                  </select>
+                  <p className="text-[10px] text-slate-500 mt-0.5">If selected, this will become a sub-department</p>
+                </div>
+              ) : null;
+            })()}
 
             <div>
               <Label htmlFor="description">Description (English)</Label>

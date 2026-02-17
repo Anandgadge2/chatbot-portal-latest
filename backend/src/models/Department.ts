@@ -3,6 +3,7 @@ import mongoose, { Schema, Document, Model } from 'mongoose';
 export interface IDepartment extends Document {
   departmentId: string;
   companyId: mongoose.Types.ObjectId;
+  parentDepartmentId?: mongoose.Types.ObjectId; // 🏢 Added for hierarchical departments
   name: string;
   /** Display name in Hindi (for chatbot list when user selects Hindi) */
   nameHi?: string;
@@ -38,6 +39,12 @@ const DepartmentSchema: Schema = new Schema(
       ref: 'Company',
       required: true,
       index: true
+    },
+    parentDepartmentId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Department',
+      index: true,
+      default: null
     },
     name: {
       type: String,

@@ -47,6 +47,7 @@ router.get('/', requirePermission(Permission.READ_GRIEVANCE), async (req: Reques
     const grievances = await Grievance.find(query)
       .populate('companyId', 'name companyId')
       .populate('departmentId', 'name departmentId')
+      .populate('subDepartmentId', 'name departmentId')
       .populate('assignedTo', 'firstName lastName email')
       .limit(Number(limit))
       .skip((Number(page) - 1) * Number(limit))
@@ -139,6 +140,7 @@ router.get('/:id', requirePermission(Permission.READ_GRIEVANCE), async (req: Req
     const grievance = await Grievance.findById(req.params.id)
       .populate('companyId', 'name companyId')
       .populate('departmentId', 'name departmentId')
+      .populate('subDepartmentId', 'name departmentId')
       .populate('assignedTo', 'firstName lastName email')
       .populate('statusHistory.changedBy', 'firstName lastName')
       .populate('timeline.performedBy', 'firstName lastName role');

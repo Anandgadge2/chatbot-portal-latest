@@ -24,13 +24,30 @@ export enum CompanyType {
 // ================================
 
 export enum Module {
-  GRIEVANCE = 'GRIEVANCE',
-  APPOINTMENT = 'APPOINTMENT',
-  STATUS_TRACKING = 'STATUS_TRACKING',
-  LEAD_CAPTURE = 'LEAD_CAPTURE',
-  DOCUMENT_UPLOAD = 'DOCUMENT_UPLOAD',
-  GEO_LOCATION = 'GEO_LOCATION',
-  MULTI_LANGUAGE = 'MULTI_LANGUAGE'
+  // Core Service Modules
+  GRIEVANCE = 'GRIEVANCE',                                    // Government grievance management (consolidated)
+  APPOINTMENT = 'APPOINTMENT',                                // CEO/Official appointment booking (consolidated)
+  DOCUMENT_UPLOAD = 'DOCUMENT_UPLOAD',                        // Document upload support
+  GEO_LOCATION = 'GEO_LOCATION',                             // Geolocation tracking
+  INCIDENT_WILDLIFE = 'INCIDENT_WILDLIFE',                    // Wildlife/Forest incident reporting
+  
+  // Notification & Communication Modules
+  AUTO_NOTIFICATION = 'AUTO_NOTIFICATION',                    // Auto-notify department heads on creation
+  EMAIL_NOTIFICATION = 'EMAIL_NOTIFICATION',                  // Email notifications for status/assignment updates
+  
+  // Advanced Features
+  REPORT_DOWNLOAD = 'REPORT_DOWNLOAD',                        // Download reports from external PHP APIs
+  CUSTOMER_SUPPORT = 'CUSTOMER_SUPPORT',                      // Customer support module
+  ASSIGNMENT_WHATSAPP = 'ASSIGNMENT_WHATSAPP',               // WhatsApp-based assignment management
+  STATUS_UPDATE_WHATSAPP = 'STATUS_UPDATE_WHATSAPP',         // Status update with remarks & documents via WhatsApp
+  COMPANY_INFO = 'COMPANY_INFO',                             // Company information and FAQs
+  
+  // Utility Modules
+  STATUS_TRACKING = 'STATUS_TRACKING',                        // Status tracking by reference number
+  LEAD_CAPTURE = 'LEAD_CAPTURE',                             // Lead capture for enterprises
+  HIERARCHICAL_DEPARTMENTS = 'HIERARCHICAL_DEPARTMENTS'       // Hierarchical department structure
+  
+  // Note: MULTI_LANGUAGE is always enabled by default and not a selectable module
 }
 
 // ================================

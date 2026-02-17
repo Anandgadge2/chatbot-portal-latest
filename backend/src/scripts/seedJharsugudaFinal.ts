@@ -42,8 +42,8 @@ async function seedData() {
           enabledModules: [
             Module.GRIEVANCE, 
             Module.APPOINTMENT, 
-            Module.STATUS_TRACKING, 
-            Module.MULTI_LANGUAGE
+            Module.STATUS_TRACKING
+            // Note: MULTI_LANGUAGE is always enabled by default
           ],
           isActive: true,
           theme: {
