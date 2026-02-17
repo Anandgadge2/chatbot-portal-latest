@@ -52,11 +52,12 @@ router.post('/', requireDatabaseConnection, async (req: Request, res: Response) 
     const body = req.body;
 
     logger.info(`📥 Webhook POST received`);
-    // logger.debug(`📦 Full Webhook Body: ${JSON.stringify(body, null, 2)}`); // Toggle this if needed
+    logger.info(`📦 Headers: ${JSON.stringify(req.headers)}`);
+    logger.info(`📦 Body: ${JSON.stringify(body, null, 2)}`);
 
     if (body.object !== 'whatsapp_business_account') {
       logger.warn(`⚠️ Unknown webhook object: ${body.object}`);
-      return res.sendStatus(404);
+      return res.status(404).json({ error: 'Unknown business account object' });
     }
 
     // Iterate through entries and changes to find messages
@@ -66,14 +67,14 @@ router.post('/', requireDatabaseConnection, async (req: Request, res: Response) 
         const metadata = value?.metadata;
 
         if (!value?.messages) {
-          logger.info('ℹ️ Webhook received, but no messages (likely status update/receipt)');
+          logger.info(`ℹ️ Webhook received field: ${change.field}, but no 'messages' content found.`);
           continue;
         }
 
         // Resolve company early to see if we can even process this
         const company = await getCompanyFromMetadata(metadata);
         if (!company) {
-          logger.error(`❌ Could not resolve company for phoneNumberId: ${metadata?.phone_number_id}`);
+          logger.error(`❌ Could not resolve company for phoneNumberId: ${metadata?.phone_number_id}. Webhook body: ${JSON.stringify(body)}`);
           continue;
         }
 
