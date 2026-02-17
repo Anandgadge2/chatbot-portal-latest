@@ -140,23 +140,19 @@ router.post('/', authenticate, requireSuperAdmin, async (req: Request, res: Resp
     }
     
     // Check if config already exists for this company
-    const existing = await CompanyWhatsAppConfig.findOne({ companyId });
+    let existing = await CompanyWhatsAppConfig.findOne({ companyId });
+    
+    // If not found by companyId, check if another record HAS this phoneNumberId
+    if (!existing && phoneNumberId) {
+      existing = await CompanyWhatsAppConfig.findOne({ phoneNumberId });
+      if (existing) {
+        console.log(`ℹ️ Found existing config by phoneNumberId: ${phoneNumberId}. Reassigning to company: ${companyId}`);
+        existing.companyId = companyId; // Reassign if it was orphaned or under wrong company
+      }
+    }
     
     if (existing) {
-      // Check if phoneNumberId or phoneNumber conflicts with another company's config
-      if (phoneNumberId && phoneNumberId !== existing.phoneNumberId) {
-        const conflictByPhoneId = await CompanyWhatsAppConfig.findOne({ 
-          phoneNumberId, 
-          _id: { $ne: existing._id } 
-        });
-        if (conflictByPhoneId) {
-          return res.status(400).json({
-            success: false,
-            message: `Phone Number ID ${phoneNumberId} is already used by another company (${conflictByPhoneId.companyId})`
-          });
-        }
-      }
-      
+      // Check if phoneNumber conflicts with another company's config (excluding the one we found)
       if (phoneNumber && phoneNumber !== existing.phoneNumber) {
         const conflictByPhone = await CompanyWhatsAppConfig.findOne({ 
           phoneNumber, 
@@ -169,6 +165,7 @@ router.post('/', authenticate, requireSuperAdmin, async (req: Request, res: Resp
           });
         }
       }
+
       
       // Sanitized update
       const updateData = { ...req.body };
