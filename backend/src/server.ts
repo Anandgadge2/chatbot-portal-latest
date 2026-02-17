@@ -184,9 +184,9 @@ app.get('/', (_req: Request, res: Response) => {
 });
 
 // Webhook routes (must be before /api routes to avoid middleware blocking)
-// These routes should NOT have authentication or other middleware that might block WhatsApp
 app.use('/webhook', whatsappRoutes);
-app.use('/api/whatsapp', whatsappRoutes); // Meta WhatsApp standard endpoint
+app.use('/api/webhook', whatsappRoutes); // Added this to match your Meta config
+app.use('/api/whatsapp', whatsappRoutes); // Standard Meta alias
 
 
 // API routes
