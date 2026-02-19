@@ -617,7 +617,7 @@ export default function SuperAdminDashboard() {
                   <div className="mt-4 flex flex-col gap-1">
                      <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Global Runtime</div>
                      <div className="text-[10px] font-bold text-emerald-400 flex items-center gap-1.5">
-                        <RefreshCw className="w-3 h-3 animate-spin duration-[4s]" />
+                        <RefreshCw className="w-3 h-3 animate-spin [animation-duration:4s]" />
                         All clusters responding
                      </div>
                   </div>

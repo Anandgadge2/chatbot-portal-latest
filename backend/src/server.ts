@@ -119,7 +119,7 @@ app.options('*', cors(corsOptions));
 // Rate limiting - protect against brute force and abuse
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 500, // per IP
+  max: 2000, // Increased to 2000 for dashboard polling
   message: { success: false, message: 'Too many requests. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false
@@ -128,7 +128,7 @@ app.use('/api/', apiLimiter);
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20, // stricter for auth
+  max: 50, // Increased to 50 for auth
   message: { success: false, message: 'Too many login attempts. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false

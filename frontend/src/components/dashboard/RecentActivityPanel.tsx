@@ -32,19 +32,20 @@ interface AuditLog {
   createdAt: string;
 }
 
-export default function RecentActivityPanel() {
+export default function RecentActivityPanel({ companyId }: { companyId?: string }) {
   const [activities, setActivities] = useState<AuditLog[]>([]);
   const [loadingActivities, setLoadingActivities] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     fetchRecentActivities();
-  }, []);
+  }, [companyId]);
 
   const fetchRecentActivities = async () => {
     try {
       if (!loadingActivities) setRefreshing(true);
-      const response = await apiClient.get('/audit?limit=20');
+      const url = companyId ? `/audit?limit=20&companyId=${companyId}` : '/audit?limit=20';
+      const response = await apiClient.get(url);
       if (response.success) {
         const logs = response.data.logs.map((log: any) => ({
           ...log,

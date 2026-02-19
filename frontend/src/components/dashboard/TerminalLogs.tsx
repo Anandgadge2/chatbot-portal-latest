@@ -12,7 +12,7 @@ interface LogEntry {
   source: string;
 }
 
-export default function TerminalLogs() {
+export default function TerminalLogs({ companyId }: { companyId?: string }) {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [filter, setFilter] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -36,7 +36,8 @@ export default function TerminalLogs() {
     // 2. Poll for Backend Audit Logs (Webhooks, System Changes)
     const pollAudit = async () => {
       try {
-        const response = await apiClient.get('/audit?limit=10');
+        const url = companyId ? `/audit?limit=10&companyId=${companyId}` : '/audit?limit=10';
+        const response = await apiClient.get(url);
         if (response.success && response.data.logs) {
           const newEntries: LogEntry[] = [];
           
@@ -80,7 +81,7 @@ export default function TerminalLogs() {
       }
     };
 
-    const interval = setInterval(pollAudit, 3000);
+    const interval = setInterval(pollAudit, 10000);
     pollAudit(); // Initial check
 
     // Initial System Message
@@ -96,7 +97,7 @@ export default function TerminalLogs() {
       unsubscribe();
       clearInterval(interval);
     };
-  }, []);
+  }, [companyId]);
 
   useEffect(() => {
     if (scrollRef.current) {
