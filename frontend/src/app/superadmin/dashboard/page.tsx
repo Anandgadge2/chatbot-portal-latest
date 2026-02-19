@@ -58,6 +58,10 @@ export default function SuperAdminDashboard() {
   const [showDepartmentDialog, setShowDepartmentDialog] = useState(false);
   const [showUserDialog, setShowUserDialog] = useState(false);
   const [userRoleFilter, setUserRoleFilter] = useState<string>('');
+  const [userSearchTerm, setUserSearchTerm] = useState<string>('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>('');
+  const [userCompanyFilter, setUserCompanyFilter] = useState<string>('');
+  const [allCompanies, setAllCompanies] = useState<Company[]>([]);
   
   // Pagination State
   const [companyPage, setCompanyPage] = useState(1);
@@ -132,7 +136,13 @@ export default function SuperAdminDashboard() {
 
   const fetchUsers = useCallback(async (page = userPage) => {
     try {
-      const response = await userAPI.getAll({ page, limit: userPagination.limit, role: userRoleFilter });
+      const response = await userAPI.getAll({ 
+        page, 
+        limit: userPagination.limit, 
+        role: userRoleFilter,
+        search: debouncedSearchTerm,
+        companyId: userCompanyFilter
+      });
       if (response.success) {
         setUsers(response.data.users);
         setUserPagination(prev => ({
@@ -144,7 +154,7 @@ export default function SuperAdminDashboard() {
     } catch (error: any) {
       toast.error('Failed to fetch users');
     }
-  }, [userPage, userPagination.limit, userRoleFilter]);
+  }, [userPage, userPagination.limit, userRoleFilter, debouncedSearchTerm, userCompanyFilter]);
 
   const fetchStats = async () => {
     // Fetch each stat independently so one 403/failure doesn't block others (e.g. Users tab still loads)
@@ -153,7 +163,10 @@ export default function SuperAdminDashboard() {
     let departmentsList: Department[] = [];
     try {
       const companiesResponse = await companyAPI.getAll({ limit: 1000 });
-      if (companiesResponse.success) companies = companiesResponse.data.companies;
+      if (companiesResponse.success) {
+        companies = companiesResponse.data.companies;
+        setAllCompanies(companies);
+      }
     } catch (e) {
       console.warn('Stats: companies fetch failed', e);
     }
@@ -296,10 +309,17 @@ export default function SuperAdminDashboard() {
   }, [mounted, user, departmentPage, fetchDepartments]);
 
   useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchTerm(userSearchTerm);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [userSearchTerm]);
+
+  useEffect(() => {
     if (mounted && user) {
       fetchUsers(userPage);
     }
-  }, [mounted, user, userPage, userRoleFilter, fetchUsers]);
+  }, [mounted, user, userPage, userRoleFilter, debouncedSearchTerm, userCompanyFilter, fetchUsers]);
 
   useEffect(() => {
     if (mounted && user) {
@@ -818,23 +838,79 @@ export default function SuperAdminDashboard() {
                 </div>
               </CardHeader>
               <CardContent className="p-0">
-                <div className="p-4 border-b border-emerald-100 flex items-center gap-4">
-                  <label className="text-sm font-medium text-emerald-800">Filter by role:</label>
-                  <select
-                    value={userRoleFilter}
-                    onChange={(e) => setUserRoleFilter(e.target.value)}
-                    className="rounded-lg border border-emerald-200 px-3 py-2 text-sm bg-white"
-                  >
-                    <option value="">All users</option>
-                    <option value="COMPANY_ADMIN">Company Admin only</option>
-                    <option value="SUPER_ADMIN">Super Admin only</option>
-                    <option value="DEPARTMENT_ADMIN">Department Admin only</option>
-                    <option value="OPERATOR">Operator only</option>
-                  </select>
+                <div className="p-4 border-b border-emerald-100 bg-emerald-50/30 flex flex-wrap items-center gap-4">
+                  {/* Search Bar */}
+                  <div className="relative flex-1 min-w-[300px]">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-600" />
+                    <input
+                      type="text"
+                      placeholder="Search by Name or User ID..."
+                      value={userSearchTerm}
+                      onChange={(e) => {
+                        setUserSearchTerm(e.target.value);
+                        setUserPage(1); // Reset to first page on search
+                      }}
+                      className="w-full pl-10 pr-4 py-2 bg-white border border-emerald-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-sm"
+                    />
+                  </div>
+
+                  {/* Company Filter */}
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs font-semibold text-emerald-800 uppercase tracking-wider">Company:</label>
+                    <select
+                      value={userCompanyFilter}
+                      onChange={(e) => {
+                        setUserCompanyFilter(e.target.value);
+                        setUserPage(1); // Reset to first page on filter
+                      }}
+                      className="rounded-xl border border-emerald-200 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-sm min-w-[150px]"
+                    >
+                      <option value="">All Companies</option>
+                      {allCompanies.map(c => (
+                        <option key={c._id} value={c._id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Role Filter */}
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs font-semibold text-emerald-800 uppercase tracking-wider">Role:</label>
+                    <select
+                      value={userRoleFilter}
+                      onChange={(e) => {
+                        setUserRoleFilter(e.target.value);
+                        setUserPage(1); // Reset to first page on filter
+                      }}
+                      className="rounded-xl border border-emerald-200 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-sm min-w-[150px]"
+                    >
+                      <option value="">All Roles</option>
+                      <option value="SUPER_ADMIN">Super Admin</option>
+                      <option value="COMPANY_ADMIN">Company Admin</option>
+                      <option value="DEPARTMENT_ADMIN">Department Admin</option>
+                      <option value="OPERATOR">Operator</option>
+                    </select>
+                  </div>
+
+                  {/* Clear Filters */}
+                  {(userSearchTerm || userCompanyFilter || userRoleFilter) && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => {
+                        setUserSearchTerm('');
+                        setUserCompanyFilter('');
+                        setUserRoleFilter('');
+                        setUserPage(1);
+                      }}
+                      className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-100 rounded-lg text-xs"
+                    >
+                      Clear All
+                    </Button>
+                  )}
                 </div>
                 <div className="overflow-hidden">
                   {(() => {
-                    const filtered = userRoleFilter ? users.filter(u => u.role === userRoleFilter) : users;
+                    const filtered = users; // Filtering is now done on the backend
                     return filtered.length === 0 ? (
                     <div className="p-8 text-center text-gray-500">
                       <Users className="w-12 h-12 mx-auto mb-3 text-gray-300" />
