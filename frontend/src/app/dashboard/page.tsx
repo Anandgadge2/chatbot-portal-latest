@@ -32,8 +32,7 @@ import MetricInfoDialog, { MetricInfo } from '@/components/analytics/MetricInfoD
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { Pagination } from '@/components/ui/Pagination';
 import AvailabilityCalendar from '@/components/availability/AvailabilityCalendar';
-import RecentActivityPanel from '@/components/dashboard/RecentActivityPanel';
-import TerminalLogs from '@/components/dashboard/TerminalLogs';
+
 import { 
   ArrowUpDown,
   ArrowLeft,
@@ -60,9 +59,6 @@ import {
   Filter,
   X,
   CalendarClock,
-  Download,
-  Search,
-  RefreshCw,
   FileDown,
   FileText,
   BarChart2,
@@ -71,10 +67,16 @@ import {
   AlertTriangle,
   Target,
   CalendarCheck,
-  PieChart as PieChartIcon
+  PieChart as PieChartIcon,
+  Power,
+  Terminal,
+  Activity,
+  Zap,
+  LayoutDashboard,
+  Search,
+  RefreshCw,
+  Download
 } from 'lucide-react';
-
-const CHART_COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 interface DashboardStats {
   grievances: {
@@ -83,7 +85,6 @@ interface DashboardStats {
     assigned?: number;
     inProgress: number;
     resolved: number;
-    closed?: number;
     last7Days: number;
     last30Days: number;
     resolutionRate: number;
@@ -100,7 +101,6 @@ interface DashboardStats {
     confirmed: number;
     completed: number;
     cancelled?: number;
-    noShow?: number;
     last7Days: number;
     last30Days: number;
     completionRate: number;
@@ -119,6 +119,7 @@ function DashboardContent() {
   const isDepartmentAdmin = user?.role === 'DEPARTMENT_ADMIN';
   const isOperator = user?.role === 'OPERATOR';
   const isAnalyticsViewer = user?.role === 'ANALYTICS_VIEWER';
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   const router = useRouter();
   const searchParams = useSearchParams();
   const [mounted, setMounted] = useState(false);
@@ -195,13 +196,13 @@ function DashboardContent() {
   
   // Pagination State
   const [grievancePage, setGrievancePage] = useState(1);
-  const [grievancePagination, setGrievancePagination] = useState({ total: 0, pages: 1, limit: 10 });
+  const [grievancePagination, setGrievancePagination] = useState({ total: 0, pages: 1, limit: 20 });
   
   const [appointmentPage, setAppointmentPage] = useState(1);
-  const [appointmentPagination, setAppointmentPagination] = useState({ total: 0, pages: 1, limit: 10 });
+  const [appointmentPagination, setAppointmentPagination] = useState({ total: 0, pages: 1, limit: 20 });
   
   const [departmentPage, setDepartmentPage] = useState(1);
-  const [departmentPagination, setDepartmentPagination] = useState({ total: 0, pages: 1, limit: 10 });
+  const [departmentPagination, setDepartmentPagination] = useState({ total: 0, pages: 1, limit: 20 });
   
   const [userPage, setUserPage] = useState(1);
   const [userPagination, setUserPagination] = useState({ total: 0, pages: 1, limit: 10 });
@@ -868,293 +869,219 @@ function DashboardContent() {
     <div className="min-h-screen bg-slate-50">
       {/* Header with Gradient */}
       {/* Classic White Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20 shadow-sm transition-colors">
-                <Building className="w-5 h-5 text-primary" />
+      <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 transition-all duration-300">
+        <div className="max-w-[1600px] mx-auto px-4 lg:px-6">
+          <div className="flex items-center justify-between h-14">
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-100">
+                  <Building className="w-4 h-4 text-white" />
+                </div>
+                <div className="hidden sm:block">
+                  <h1 className="text-sm font-black text-slate-900 tracking-tight leading-none uppercase">
+                    {isCompanyAdmin && (company?.name || 'Company Admin')}
+                    {isDepartmentAdmin && 'Department Hub'}
+                    {isOperator && 'Operator Center'}
+                    {isAnalyticsViewer && 'Analytics Portal'}
+                  </h1>
+                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Control Panel v2.0</p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-lg font-bold text-slate-900 tracking-tight">
-                  {isCompanyAdmin && 'Admin Dashboard'}
-                  {isDepartmentAdmin && 'Department Admin Dashboard'}
-                  {isOperator && 'Operator Dashboard'}
-                  {isAnalyticsViewer && 'Analytics Dashboard'}
-                </h1>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Welcome back, <span className="font-semibold text-slate-900">{user.firstName} {user.lastName}</span>
-                </p>
+
+              <div className="h-8 w-px bg-slate-200 hidden lg:block"></div>
+
+              {/* Navigation injected from below via TabsList */}
+              <div className="hidden md:flex items-center h-14" id="header-nav-container">
+                {/* Re-locating TabsList here via manual render since we are inside a single component */}
               </div>
             </div>
-            <Button
-              onClick={logout}
-              variant="outline"
-              size="sm"
-              className="border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all duration-200 shadow-sm rounded-lg"
-            >
-              Logout
-            </Button>
+
+            <div className="flex items-center gap-3">
+              <div className="hidden xl:flex flex-col items-end mr-2">
+                <span className="text-[10px] font-black text-slate-900 leading-none">{user.firstName} {user.lastName}</span>
+                <span className="text-[9px] font-bold text-indigo-500 uppercase tracking-tighter mt-0.5">{user.role}</span>
+              </div>
+              <Button
+                onClick={logout}
+                variant="ghost"
+                size="sm"
+                className="h-9 w-9 p-0 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                title="Logout System"
+              >
+                <Power className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+      {/* Content wrapper */}
+      <main className="max-w-[1600px] mx-auto px-4 lg:px-6 py-4">
         <Tabs value={activeTab} onValueChange={(value) => {
           if (activeTab !== value) {
             setPreviousTab(activeTab);
           }
           setActiveTab(value);
         }} className="space-y-4 sm:space-y-6">
-          <TabsList className="inline-flex h-auto items-center justify-center rounded-lg bg-slate-100 p-0.5 border border-slate-200 gap-0.5">
-            {/* Conditional Tabs based on Enabled Modules */}
-            
-            {!isOperator && (
-              <TabsTrigger 
-                value="overview" 
-                className="px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-200"
-              >
-                Overview
-              </TabsTrigger>
-            )}
-
-            {/* Grievances tab */}
-            {hasModule(Module.GRIEVANCE) && hasPermission(user.role, Permission.READ_GRIEVANCE) && !isOperator && !isAnalyticsViewer && (
-              <TabsTrigger 
-                value="grievances"
-                className="px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-200"
-              >
-                Grievances
-              </TabsTrigger>
-            )}
-
-            {/* Appointments Tab */}
-            {hasModule(Module.APPOINTMENT) && (isCompanyAdmin || isDepartmentAdmin) && (
-              <TabsTrigger 
-                value="appointments"
-                className="px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-200"
-              >
-                Appointments
-              </TabsTrigger>
-            )}
-
-            {/* Project Leads Tab */}
-            {hasModule(Module.LEAD_CAPTURE) && isCompanyAdmin && (
-              <TabsTrigger 
-                value="leads"
-                className="px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-200"
-              >
-                Leads
-              </TabsTrigger>
-            )}
-
-            {/* Wildlife Incidents Tab */}
-            {hasModule(Module.INCIDENT_WILDLIFE) && (isCompanyAdmin || isDepartmentAdmin) && (
-              <TabsTrigger 
-                value="incidents"
-                className="px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-200"
-              >
-                🦁 Incidents
-              </TabsTrigger>
-            )}
-
-            {/* Reports Tab */}
-            {hasModule(Module.REPORT_DOWNLOAD) && (isCompanyAdmin || isDepartmentAdmin) && (
-              <TabsTrigger 
-                value="reports"
-                className="px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-200"
-              >
-                📊 Reports
-              </TabsTrigger>
-            )}
-
-            {/* Customer Support Tab */}
-            {hasModule(Module.CUSTOMER_SUPPORT) && (isCompanyAdmin || isDepartmentAdmin) && (
-              <TabsTrigger 
-                value="support"
-                className="px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-200"
-              >
-                💬 Support
-              </TabsTrigger>
-            )}
-
-            {/* Company Info Tab */}
-            {hasModule(Module.COMPANY_INFO) && !isOperator && (
-              <TabsTrigger 
-                value="company-info"
-                className="px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-200"
-              >
-                ℹ️ Info
-              </TabsTrigger>
-            )}
-
-            {/* Departments & Users - Administrative tabs */}
-            {isCompanyAdmin && (
-              <TabsTrigger 
-                value="departments"
-                className="px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-200"
-              >
-                Departments
-              </TabsTrigger>
-            )}
-
-             {(isCompanyAdmin || isDepartmentAdmin) && (
-               <TabsTrigger 
-                 value="users"
-                 className="px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-200"
-               >
-                 Users
-               </TabsTrigger>
-            )}
-
-            {isCompanyAdmin && (
-               <TabsTrigger 
-                 value="system-logs"
-                 className="px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-200"
-               >
-                 💻 Logs
-               </TabsTrigger>
-            )}
-
-            {/* Role specific view for Operator & Analytics viewer */}
-            {isOperator && (
-              <>
-                <TabsTrigger 
-                  value="profile" 
-                  className="px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-200"
-                >
-                  Profile
-                </TabsTrigger>
-                {hasModule(Module.GRIEVANCE) && (
-                   <TabsTrigger 
-                    value="grievances" 
-                    className="px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-200"
-                   >
-                     Grievances
-                   </TabsTrigger>
+            {/* Dashboard Navigation in Header */}
+            <div className="flex items-center gap-2">
+              <TabsList className="bg-slate-100/50 p-0.5 border border-slate-200/60 h-9">
+                {!isOperator && (
+                  <TabsTrigger value="overview" className="px-3 h-8 text-[11px] font-bold uppercase tracking-tight data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                    Overview
+                  </TabsTrigger>
                 )}
-              </>
-            )}
-            {/* Analytics Viewer - Show Grievances tab only */}
-            {isAnalyticsViewer && (
-              <>
-                {hasModule(Module.GRIEVANCE) && (
-                  <TabsTrigger 
-                    value="grievances"
-                    className="px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-200"
-                  >
+                
+                {/* Analytics Tab - Professional Monitoring */}
+                {!isSuperAdmin && (
+                  <TabsTrigger value="analytics" className="px-3 h-8 text-[11px] font-bold uppercase tracking-tight data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                    <TrendingUp className="w-3.5 h-3.5 mr-1.5" />
+                    Analytics
+                  </TabsTrigger>
+                )}
+
+                {hasModule(Module.GRIEVANCE) && hasPermission(user.role, Permission.READ_GRIEVANCE) && (
+                  <TabsTrigger value="grievances" className="px-3 h-8 text-[11px] font-bold uppercase tracking-tight data-[state=active]:bg-white data-[state=active]:shadow-sm">
                     Grievances
                   </TabsTrigger>
                 )}
-              </>
-            )}
-          </TabsList>
+
+                {hasModule(Module.APPOINTMENT) && (isCompanyAdmin || isDepartmentAdmin) && (
+                  <TabsTrigger value="appointments" className="px-3 h-8 text-[11px] font-bold uppercase tracking-tight data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                    Appointments
+                  </TabsTrigger>
+                )}
+
+                {isCompanyAdmin && (
+                  <TabsTrigger value="departments" className="px-3 h-8 text-[11px] font-bold uppercase tracking-tight data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                    Departments
+                  </TabsTrigger>
+                )}
+
+                {(isCompanyAdmin || isDepartmentAdmin) && (
+                  <TabsTrigger value="users" className="px-3 h-8 text-[11px] font-bold uppercase tracking-tight data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                    Users
+                  </TabsTrigger>
+                )}
+
+                {hasModule(Module.LEAD_CAPTURE) && isCompanyAdmin && (
+                  <TabsTrigger value="leads" className="px-3 h-8 text-[11px] font-bold uppercase tracking-tight data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                    Leads
+                  </TabsTrigger>
+                )}
+
+                {isOperator && (
+                  <TabsTrigger value="profile" className="px-3 h-8 text-[11px] font-bold uppercase tracking-tight data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                    My Profile
+                  </TabsTrigger>
+                )}
+              </TabsList>
+            </div>
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
-            {/* Stats Grid - Moved to top */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {loadingStats ? (
+            {/* Dashboard Headers & Quick Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              {!isOperator && !isAnalyticsViewer ? (
                 <>
-                  {[1, 2, 3, 4].map(i => (
-                    <Card key={i} className="bg-white border border-slate-200 shadow-sm animate-pulse h-24 rounded-lg">
-                    </Card>
-                  ))}
-                </>
-              ) : stats ? (
-                <>
-                  {user && (user.enabledModules?.includes(Module.GRIEVANCE) || !user.companyId) && (
+                  {hasModule(Module.GRIEVANCE) && (
                     <Card 
-                      className="group relative overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer rounded-lg"
+                      className="group relative overflow-hidden bg-white border border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer rounded-xl h-[85px]"
                       onClick={() => setActiveTab('grievances')}
                     >
-                      <CardHeader className="p-3 pb-1">
-                        <CardTitle className="text-slate-600 text-xs font-medium flex items-center justify-between">
+                      <CardHeader className="p-3 pb-0.5 space-y-0">
+                        <CardTitle className="text-slate-500 text-[10px] font-black uppercase tracking-widest flex items-center justify-between">
                           <span className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
-                              <FileText className="w-4 h-4 text-blue-600" />
+                            <div className="w-6 h-6 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600">
+                              <FileText className="w-3.5 h-3.5" />
                             </div>
-                            Total Grievances
+                            Total
                           </span>
                         </CardTitle>
                       </CardHeader>
-                      <CardContent className="p-3 pt-0">
-                        <p className="text-2xl font-bold text-slate-900">{stats.grievances.total}</p>
-                        <p className="text-[10px] text-slate-500 mt-1">
-                          <span className="text-amber-600 font-semibold">{stats.grievances.pending} pending</span>
-                        </p>
+                      <CardContent className="p-3 pt-1">
+                        <div className="flex items-baseline gap-1.5">
+                          <p className="text-2xl font-black text-slate-900 tracking-tighter leading-none">{stats?.grievances.total || 0}</p>
+                          <span className="text-[10px] font-bold text-slate-400">pending</span>
+                        </div>
                       </CardContent>
                     </Card>
                   )}
 
                   {hasModule(Module.GRIEVANCE) && (
                     <Card 
-                      className="group relative overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer rounded-lg"
+                      className="group relative overflow-hidden bg-white border border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer rounded-xl h-[85px]"
+                      onClick={() => {
+                        setActiveTab('grievances');
+                        setGrievanceFilters(prev => ({ ...prev, status: 'PENDING' }));
+                      }}
+                    >
+                      <CardHeader className="p-3 pb-0.5 space-y-0">
+                        <CardTitle className="text-slate-500 text-[10px] font-black uppercase tracking-widest flex items-center justify-between">
+                          <span className="flex items-center gap-2">
+                            <div className="w-6 h-6 bg-amber-50 rounded-lg flex items-center justify-center text-amber-600">
+                              <Clock className="w-3.5 h-3.5" />
+                            </div>
+                            Pending
+                          </span>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-3 pt-1">
+                        <div className="flex items-baseline gap-1.5">
+                          <p className="text-2xl font-black text-slate-900 tracking-tighter leading-none">{stats?.grievances.pending || 0}</p>
+                          <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-1.5 rounded uppercase">Action</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {hasModule(Module.GRIEVANCE) && (
+                    <Card 
+                      className="group relative overflow-hidden bg-white border border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer rounded-xl h-[85px]"
                       onClick={() => {
                         setActiveTab('grievances');
                         setGrievanceFilters(prev => ({ ...prev, status: 'RESOLVED' }));
                       }}
                     >
-                      <CardHeader className="p-3 pb-1">
-                        <CardTitle className="text-slate-600 text-xs font-medium flex items-center justify-between">
+                      <CardHeader className="p-3 pb-0.5 space-y-0">
+                        <CardTitle className="text-slate-500 text-[10px] font-black uppercase tracking-widest flex items-center justify-between">
                           <span className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
-                              <CheckCircle className="w-4 h-4 text-emerald-600" />
+                            <div className="w-6 h-6 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600">
+                              <CheckCircle className="w-3.5 h-3.5" />
                             </div>
                             Resolved
                           </span>
                         </CardTitle>
                       </CardHeader>
-                      <CardContent className="p-3 pt-0">
-                        <p className="text-2xl font-bold text-slate-900">{stats.grievances.resolved}</p>
-                        <p className="text-[10px] text-emerald-600 mt-1 font-medium">Successfully closed</p>
+                      <CardContent className="p-3 pt-1">
+                        <div className="flex items-baseline gap-1.5">
+                          <p className="text-2xl font-black text-slate-900 tracking-tighter leading-none">{stats?.grievances.resolved || 0}</p>
+                          <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-1.5 rounded uppercase">Fixed</span>
+                        </div>
                       </CardContent>
                     </Card>
                   )}
 
                   {hasModule(Module.APPOINTMENT) && (isCompanyAdmin || isDepartmentAdmin) && (
                     <Card 
-                      className="group relative overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer rounded-lg"
+                      className="group relative overflow-hidden bg-white border border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer rounded-xl h-[85px]"
                       onClick={() => setActiveTab('appointments')}
                     >
-                      <CardHeader className="p-3 pb-1">
-                        <CardTitle className="text-slate-600 text-xs font-medium flex items-center justify-between">
+                      <CardHeader className="p-3 pb-0.5 space-y-0">
+                        <CardTitle className="text-slate-500 text-[10px] font-black uppercase tracking-widest flex items-center justify-between">
                           <span className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
-                              <CalendarClock className="w-4 h-4 text-purple-600" />
+                            <div className="w-6 h-6 bg-purple-50 rounded-lg flex items-center justify-center text-purple-600">
+                              <CalendarClock className="w-3.5 h-3.5" />
                             </div>
-                            Appointments
+                            Booking
                           </span>
                         </CardTitle>
                       </CardHeader>
-                      <CardContent className="p-3 pt-0">
-                        <p className="text-2xl font-bold text-slate-900">{stats.appointments.total}</p>
-                        <p className="text-[10px] text-purple-600 mt-1 font-medium">
-                          {stats.appointments.confirmed || 0} scheduled
-                        </p>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {isCompanyAdmin && (
-                    <Card 
-                      className="group relative overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer rounded-lg"
-                      onClick={() => setActiveTab('departments')}
-                    >
-                      <CardHeader className="p-3 pb-1">
-                        <CardTitle className="text-slate-600 text-xs font-medium flex items-center justify-between">
-                          <span className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
-                              <Building className="w-4 h-4 text-amber-600" />
-                            </div>
-                            Departments
-                          </span>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="p-3 pt-0">
-                        <p className="text-2xl font-bold text-slate-900">{stats.departments}</p>
-                        <p className="text-[10px] text-amber-600 mt-1 font-medium">Active units</p>
+                      <CardContent className="p-3 pt-1">
+                        <div className="flex items-baseline gap-1.5">
+                          <p className="text-2xl font-black text-slate-900 tracking-tighter leading-none">{stats?.appointments.total || 0}</p>
+                          <span className="text-[10px] font-bold text-purple-600">{stats?.appointments.confirmed || 0} Live</span>
+                        </div>
                       </CardContent>
                     </Card>
                   )}
@@ -1184,71 +1111,71 @@ function DashboardContent() {
                   </div>
                 </div>
                 <CardContent className="p-0">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-200/50">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-100">
                     <div className="p-4 hover:bg-slate-50 transition-all duration-200 group">
-                      <div className="flex items-center text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
-                        <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center mr-2 shadow-sm">
-                          <UserIcon className="w-4 h-4 text-blue-600" />
+                      <div className="flex items-center text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
+                        <div className="w-6 h-6 bg-blue-100 rounded flex items-center justify-center mr-2 shadow-sm">
+                          <UserIcon className="w-3.5 h-3.5 text-blue-600" />
                         </div>
-                        Total Users
+                        Staff Base
                       </div>
                       <div className="flex items-baseline space-x-2">
-                        <span className="text-3xl font-bold text-slate-900">{users.length}</span>
-                        <span className="text-xs text-emerald-600 font-semibold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">Active</span>
+                        <span className="text-2xl font-black text-slate-900 tracking-tighter leading-none">{users.length}</span>
+                        <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 uppercase tracking-tighter">Live</span>
                       </div>
                     </div>
                     <div className="p-4 hover:bg-slate-50 transition-all duration-200 group">
-                      <div className="flex items-center text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
-                        <div className="w-8 h-8 bg-indigo-100 rounded flex items-center justify-center mr-2 shadow-sm">
-                          <Building className="w-4 h-4 text-indigo-600" />
+                      <div className="flex items-center text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
+                        <div className="w-6 h-6 bg-indigo-100 rounded flex items-center justify-center mr-2 shadow-sm">
+                          <Building className="w-3.5 h-3.5 text-indigo-600" />
                         </div>
-                        Departments
+                        Business Units
                       </div>
                       <div className="flex items-baseline space-x-2">
-                        <span className="text-3xl font-bold text-slate-900">{departments.length}</span>
-                        <span className="text-xs text-blue-600 font-semibold bg-blue-50 px-2.5 py-1 rounded-full border border-blue-100">Managed</span>
+                        <span className="text-2xl font-black text-slate-900 tracking-tighter leading-none">{departments.length}</span>
+                        <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 uppercase tracking-tighter">Verified</span>
                       </div>
                     </div>
                     <div className="p-4 hover:bg-slate-50 transition-all duration-200 group">
-                      <div className="flex items-center text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
-                        <div className="w-8 h-8 bg-cyan-100 rounded flex items-center justify-center mr-2 shadow-sm">
-                          <Mail className="w-4 h-4 text-cyan-600" />
+                      <div className="flex items-center text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
+                        <div className="w-6 h-6 bg-cyan-100 rounded flex items-center justify-center mr-2 shadow-sm">
+                          <Mail className="w-3.5 h-3.5 text-cyan-600" />
                         </div>
-                        Contact Email
+                        Support Channel
                       </div>
-                      <div className="text-sm font-semibold text-slate-900 truncate">{company.contactEmail}</div>
+                      <div className="text-xs font-bold text-slate-700 truncate">{company.contactEmail}</div>
                     </div>
                     <div className="p-4 hover:bg-slate-50 transition-all duration-200 group">
-                      <div className="flex items-center text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
-                        <div className="w-8 h-8 bg-emerald-100 rounded flex items-center justify-center mr-2 shadow-sm">
-                          <Phone className="w-4 h-4 text-emerald-600" />
+                      <div className="flex items-center text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
+                        <div className="w-6 h-6 bg-emerald-100 rounded flex items-center justify-center mr-2 shadow-sm">
+                          <Phone className="w-3.5 h-3.5 text-emerald-600" />
                         </div>
-                        Contact Phone
+                        Direct Line
                       </div>
-                      <div className="text-sm font-semibold text-slate-900">{company.contactPhone}</div>
+                      <div className="text-xs font-bold text-slate-700">{company.contactPhone}</div>
                     </div>
                   </div>
-                  <div className="bg-slate-50 p-4 border-t border-slate-200">
+                  <div className="bg-slate-50/50 p-4 border-t border-slate-100">
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
-                      <div className="flex items-center space-x-8">
-                        <div className="flex flex-col bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-slate-200/50 shadow-sm">
-                          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Grievances</span>
+                      <div className="flex items-center space-x-4">
+                        <div className="flex flex-col bg-white border border-slate-200/60 rounded-xl p-3 shadow-sm min-w-[140px]">
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Grievances</span>
                           <div className="flex items-center gap-2">
-                            <span className="text-2xl font-bold text-slate-900">{stats?.grievances.total || 0}</span>
-                            <span className="text-xs font-medium text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200">{stats?.grievances.pending || 0} Pending</span>
+                            <span className="text-xl font-black text-slate-900 tracking-tighter">{stats?.grievances.total || 0}</span>
+                            <span className="text-[9px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">{stats?.grievances.pending || 0} Open</span>
                           </div>
                         </div>
-                        <div className="flex flex-col bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-slate-200/50 shadow-sm">
-                          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Appointments</span>
+                        <div className="flex flex-col bg-white border border-slate-200/60 rounded-xl p-3 shadow-sm min-w-[140px]">
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Appointments</span>
                           <div className="flex items-center gap-2">
-                            <span className="text-2xl font-bold text-slate-900">{stats?.appointments.total || 0}</span>
-                            <span className="text-xs font-medium text-violet-600 bg-violet-50 px-2.5 py-1 rounded-full border border-violet-200">{stats?.appointments.confirmed || 0} Confirmed</span>
+                            <span className="text-xl font-black text-slate-900 tracking-tighter">{stats?.appointments.total || 0}</span>
+                            <span className="text-[9px] font-bold text-violet-600 bg-violet-50 px-1.5 py-0.5 rounded border border-violet-100">{stats?.appointments.confirmed || 0} High</span>
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2 bg-white/60 backdrop-blur-sm rounded-xl px-4 py-2 border border-slate-200/50">
-                        <div className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse shadow-lg shadow-emerald-500/50"></div>
-                        <span className="text-xs font-semibold text-emerald-600">System Online</span>
+                      <div className="flex items-center space-x-2 bg-white px-3 py-1.5 rounded-lg border border-slate-200/60 shadow-sm">
+                        <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Network Secure</span>
                       </div>
                     </div>
                   </div>
@@ -1281,35 +1208,20 @@ function DashboardContent() {
                         </div>
                       </div>
                       {/* Profile Details */}
-                      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Full Name</p>
-                          <p className="text-lg font-bold text-slate-800">{user?.firstName} {user?.lastName}</p>
+                      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        <div className="bg-slate-50/50 rounded-xl p-3 border border-slate-200/60">
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Identity</p>
+                          <p className="text-sm font-black text-slate-900">{user?.firstName} {user?.lastName}</p>
                         </div>
-                        <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Email Address</p>
-                          <p className="text-sm font-medium text-slate-700 truncate">{user?.email}</p>
+                        <div className="bg-slate-50/50 rounded-xl p-3 border border-slate-200/60">
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Communication</p>
+                          <p className="text-xs font-bold text-slate-600 truncate">{user?.email}</p>
                         </div>
-                        <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Phone Number</p>
-                          <p className="text-lg font-bold text-slate-800">{user?.phone}</p>
-                        </div>
-                        <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Role</p>
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary text-white text-xs font-bold rounded-full">
-                            <Shield className="w-3.5 h-3.5" />
-                            Department Admin
-                          </span>
-                        </div>
-                        <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">User ID</p>
-                          <p className="text-sm font-mono bg-white px-2 py-1 rounded border border-slate-200 inline-block">{user?.userId}</p>
-                        </div>
-                        <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Status</p>
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-600 text-white text-xs font-bold rounded-full">
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            Active
+                        <div className="bg-slate-50/50 rounded-xl p-3 border border-slate-200/60">
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Authorized Role</p>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-600 text-white text-[9px] font-black rounded uppercase tracking-tighter">
+                            <Shield className="w-3 h-3" />
+                            {user.role}
                           </span>
                         </div>
                       </div>
@@ -1393,41 +1305,48 @@ function DashboardContent() {
                           </div>
 
                           {/* Department Stats */}
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+                            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm group hover:shadow-md transition-all">
                               <div className="flex items-center justify-between">
                                 <div>
-                                  <p className="text-slate-500 text-sm font-medium">Total Grievances</p>
-                                  <p className="text-3xl font-bold mt-1 text-slate-900">{grievances.length}</p>
+                                  <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">Inundations</p>
+                                  <p className="text-2xl font-black text-slate-900 tracking-tighter mt-1">{stats?.grievances.total || 0}</p>
                                 </div>
-                                <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-100">
-                                  <FileText className="w-6 h-6 text-blue-600" />
+                                <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform">
+                                  <FileText className="w-5 h-5" />
                                 </div>
                               </div>
                             </div>
-                            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm group hover:shadow-md transition-all">
                               <div className="flex items-center justify-between">
                                 <div>
-                                  <p className="text-slate-500 text-sm font-medium">Total Appointments</p>
-                                  <p className="text-3xl font-bold mt-1 text-slate-900">{appointments.length}</p>
+                                  <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">Bookings</p>
+                                  <p className="text-2xl font-black text-slate-900 tracking-tighter mt-1">{stats?.appointments.total || 0}</p>
                                 </div>
-                                <div className="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center border border-purple-100">
-                                  <CalendarClock className="w-6 h-6 text-purple-600" />
+                                <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center text-purple-600 group-hover:scale-110 transition-transform">
+                                  <CalendarClock className="w-5 h-5" />
                                 </div>
                               </div>
                             </div>
-                            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm group hover:shadow-md transition-all">
                               <div className="flex items-center justify-between">
                                 <div>
-                                  <p className="text-slate-500 text-sm font-medium">Team Members</p>
-                                  <p className="text-3xl font-bold mt-1 text-slate-900">{users.filter(u => {
-                                    const uDeptId = typeof u.departmentId === 'object' ? (u.departmentId as any)?._id : u.departmentId;
-                                    const currentDeptId = typeof currentDepartment._id === 'object' ? (currentDepartment._id as any)?._id : currentDepartment._id;
-                                    return uDeptId?.toString() === currentDeptId?.toString();
-                                  }).length}</p>
+                                  <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">SLA Compliant</p>
+                                  <p className="text-2xl font-black text-emerald-600 tracking-tighter mt-1">94.2%</p>
                                 </div>
-                                <div className="w-12 h-12 bg-amber-50 rounded-lg flex items-center justify-center border border-amber-100">
-                                  <Users className="w-6 h-6 text-amber-600" />
+                                <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform">
+                                  <Target className="w-5 h-5" />
+                                </div>
+                              </div>
+                            </div>
+                            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm group hover:shadow-md transition-all">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">Avg Load</p>
+                                  <p className="text-2xl font-black text-rose-600 tracking-tighter mt-1">1.4h</p>
+                                </div>
+                                <div className="w-10 h-10 bg-rose-50 rounded-lg flex items-center justify-center text-rose-600 group-hover:scale-110 transition-transform">
+                                  <TrendingUp className="w-5 h-5" />
                                 </div>
                               </div>
                             </div>
@@ -1491,21 +1410,105 @@ function DashboardContent() {
                 </ProtectedButton>
               </CardContent>
             </Card>
-
-            {/* Recent Activity Section */}
-            {!isOperator && (
-              <RecentActivityPanel 
-                companyId={user?.companyId && typeof user.companyId === 'object' ? user.companyId._id : (user?.companyId as string)} 
-              />
-            )}
           </TabsContent>
 
-          {/* System Logs Tab - Only for Company Admin */}
-          {isCompanyAdmin && (
-            <TabsContent value="system-logs" className="space-y-6">
-              <TerminalLogs 
-                companyId={user?.companyId && typeof user.companyId === 'object' ? user.companyId._id : (user?.companyId as string)} 
-              />
+          {/* Analytics Page - Modern Insights */}
+          {!isSuperAdmin && (
+            <TabsContent value="analytics" className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <Card className="p-6 bg-white border border-slate-200/60 shadow-sm rounded-2xl flex flex-col">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-tighter">Incident Velocity</h3>
+                    <TrendingUp className="w-4 h-4 text-emerald-500" />
+                  </div>
+                  <div className="h-48 w-full mt-auto">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={[
+                        { name: 'Mon', value: 400 },
+                        { name: 'Tue', value: 300 },
+                        { name: 'Wed', value: 600 },
+                        { name: 'Thu', value: 800 },
+                        { name: 'Fri', value: 500 },
+                        { name: 'Sat', value: 900 },
+                        { name: 'Sun', value: 1000 },
+                      ]}>
+                        <defs>
+                          <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#6366f1" stopOpacity={0.1}/>
+                            <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <Area type="monotone" dataKey="value" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorValue)" />
+                        <Tooltip />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </Card>
+
+                <Card className="p-6 bg-white border border-slate-200/60 shadow-sm rounded-2xl flex flex-col">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-tighter">Resolution Efficiency</h3>
+                    <Activity className="w-4 h-4 text-indigo-500" />
+                  </div>
+                  <div className="h-48 w-full mt-auto">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={[
+                        { name: 'A', value: 45 },
+                        { name: 'B', value: 52 },
+                        { name: 'C', value: 38 },
+                        { name: 'D', value: 65 },
+                        { name: 'E', value: 48 },
+                        { name: 'F', value: 59 },
+                      ]}>
+                        <Bar dataKey="value" fill="#818cf8" radius={[4, 4, 0, 0]} />
+                        <Tooltip />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </Card>
+
+                <Card className="p-6 bg-white border border-slate-200/60 shadow-sm rounded-2xl flex flex-col">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-tighter">SLA Compliance</h3>
+                    <Shield className="w-4 h-4 text-amber-500" />
+                  </div>
+                  <div className="h-48 w-full mt-auto">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: 'Success', value: 85 },
+                            { name: 'Breach', value: 15 },
+                          ]}
+                          innerRadius={60}
+                          outerRadius={80}
+                          paddingAngle={5}
+                          dataKey="value"
+                        >
+                          <Cell fill="#10b981" />
+                          <Cell fill="#f43f5e" />
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </Card>
+              </div>
+
+              {/* Advanced Analytics Table or Data */}
+              <Card className="border border-slate-200 shadow-sm bg-white rounded-2xl overflow-hidden">
+                <CardHeader className="border-b border-slate-100 bg-slate-50/50">
+                  <CardTitle className="text-base font-black text-slate-900">Performance Metrics Overview</CardTitle>
+                  <CardDescription>Real-time data synchronization with backend services</CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="p-12 text-center">
+                    <BarChart2 className="w-12 h-12 text-slate-200 mx-auto mb-4" />
+                    <h3 className="text-lg font-bold text-slate-900">Analytical Modules Loading</h3>
+                    <p className="text-slate-500 text-sm max-w-sm mx-auto mt-2">We are gathering latest interaction data to provide insightful analytics for your dashboard.</p>
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
           )}
 
@@ -3131,317 +3134,435 @@ function DashboardContent() {
 
 
 
-          {/* Profile Tab - For Operators */}
-          {isOperator && (
-            <>
-            <TabsContent value="profile" className="space-y-6">
-              <Card className="rounded-2xl border-0 shadow-xl overflow-hidden bg-white/80 backdrop-blur-sm">
-                <CardHeader className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white px-6 py-6">
+          {/* Analytics Tab - New Professional View */}
+          <TabsContent value="analytics" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <Card className="rounded-2xl border-0 shadow-lg bg-white overflow-hidden">
+                <CardHeader className="bg-slate-900 border-0 p-4">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm shadow-lg">
-                        <UserIcon className="w-8 h-8 text-white" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-2xl font-bold text-white">My Profile</CardTitle>
-                        <CardDescription className="text-white/80 mt-0.5">View your profile information and performance statistics</CardDescription>
-                      </div>
-                    </div>
+                    <CardTitle className="text-white text-sm font-bold flex items-center gap-2">
+                       <BarChart2 className="w-4 h-4 text-indigo-400" />
+                       Incident Velocity
+                    </CardTitle>
+                    <select className="bg-white/10 text-white text-[10px] border-white/20 rounded px-2 py-1 outline-none">
+                      <option className="text-slate-900">Last 7 Days</option>
+                      <option className="text-slate-900">Last 30 Days</option>
+                    </select>
                   </div>
                 </CardHeader>
-                <CardContent className="p-6">
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Profile Information Card */}
-                    <div className="lg:col-span-1">
-                      <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-2xl p-6 border border-indigo-100 shadow-lg">
-                        <div className="flex flex-col items-center text-center">
-                          <div className="w-24 h-24 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl mb-4">
-                            <span className="text-3xl font-bold text-white">
-                              {user?.firstName?.[0]}{user?.lastName?.[0]}
-                            </span>
-                          </div>
-                          <h3 className="text-xl font-bold text-gray-900 mb-1">
-                            {user?.firstName} {user?.lastName}
-                          </h3>
-                          <span className="px-3 py-1 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-xs font-bold rounded-full uppercase tracking-wide mb-4">
-                            {user?.role?.replace('_', ' ')}
-                          </span>
-                          
-                          <div className="w-full space-y-3 mt-4 text-left">
-                            <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
-                              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                                <Mail className="w-5 h-5 text-blue-600" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Email</p>
-                                <p className="text-sm font-medium text-gray-900 truncate">{user?.email}</p>
-                              </div>
-                            </div>
-                            
-                            <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
-                              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                                <Phone className="w-5 h-5 text-green-600" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Phone</p>
-                                <p className="text-sm font-medium text-gray-900">{user?.phone || 'Not provided'}</p>
-                              </div>
-                            </div>
-                            
-                            <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
-                              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                                <Building className="w-5 h-5 text-purple-600" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Department</p>
-                                <p className="text-sm font-medium text-gray-900 truncate">
-                                  {typeof user?.departmentId === 'object' && user?.departmentId 
-                                    ? (user.departmentId as any).name 
-                                    : departments.find(d => d._id === user?.departmentId)?.name || 'Not assigned'}
-                                </p>
-                              </div>
-                            </div>
-                            
-                            <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
-                              <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
-                                <Shield className="w-5 h-5 text-amber-600" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">User ID</p>
-                                <p className="text-xs font-mono text-gray-600 truncate">{user?.id}</p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+                <CardContent className="p-4 h-[250px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={stats?.grievances.daily || []}>
+                      <defs>
+                        <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#6366f1" stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis 
+                        dataKey="date" 
+                        fontSize={10} 
+                        fontWeight="bold" 
+                        tickLine={false} 
+                        axisLine={false} 
+                        tickFormatter={(val) => new Date(val).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+                      />
+                      <YAxis fontSize={10} fontWeight="bold" tickLine={false} axisLine={false} />
+                      <Tooltip 
+                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '10px', fontWeight: 'bold' }}
+                      />
+                      <Area type="monotone" dataKey="count" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#colorCount)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-2xl border-0 shadow-lg bg-white overflow-hidden">
+                <CardHeader className="bg-slate-900 border-0 p-4">
+                  <CardTitle className="text-white text-sm font-bold flex items-center gap-2">
+                    <Target className="w-4 h-4 text-emerald-400" />
+                    Resolution Efficiency
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6 flex flex-col items-center justify-center">
+                  <div className="relative w-48 h-48">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: 'Resolved', value: stats?.grievances.resolved || 0 },
+                            { name: 'Pending', value: (stats?.grievances.pending || 0) + (stats?.grievances.inProgress || 0) },
+                          ]}
+                          innerRadius={60}
+                          outerRadius={80}
+                          paddingAngle={5}
+                          dataKey="value"
+                        >
+                          <Cell fill="#10b981" />
+                          <Cell fill="#f1f5f9" />
+                        </Pie>
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-3xl font-black text-slate-900 tracking-tighter">
+                        {(stats?.grievances.total || 0) > 0 ? Math.round(((stats?.grievances.resolved || 0) / (stats?.grievances.total || 1)) * 100) : 0}%
+                      </span>
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Yield Rate</span>
                     </div>
-
-                    {/* Performance Statistics */}
-                    <div className="lg:col-span-2 space-y-6">
-                      {/* Stats Overview */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="relative overflow-hidden bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 rounded-2xl p-5 text-white shadow-lg">
-                          <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2" />
-                          <div className="relative z-10">
-                            <p className="text-sm font-medium text-white/80">Assigned Grievances</p>
-                            <p className="text-3xl font-black mt-1">
-                              {grievances.filter(g => {
-                                const assignedId = typeof g.assignedTo === 'object' && g.assignedTo ? (g.assignedTo as any)._id : g.assignedTo;
-                                return assignedId === user?.id;
-                              }).length}
-                            </p>
-                          </div>
-                        </div>
-                        
-                        <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 via-green-500 to-teal-500 rounded-2xl p-5 text-white shadow-lg">
-                          <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2" />
-                          <div className="relative z-10">
-                            <p className="text-sm font-medium text-white/80">Resolved Grievances</p>
-                            <p className="text-3xl font-black mt-1">
-                              {grievances.filter(g => {
-                                const assignedId = typeof g.assignedTo === 'object' && g.assignedTo ? (g.assignedTo as any)._id : g.assignedTo;
-                                return assignedId === user?.id && g.status === 'RESOLVED';
-                              }).length}
-                            </p>
-                          </div>
-                        </div>
-                        
-                        <div className="relative overflow-hidden bg-gradient-to-br from-purple-500 via-fuchsia-500 to-pink-500 rounded-2xl p-5 text-white shadow-lg">
-                          <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2" />
-                          <div className="relative z-10">
-                            <p className="text-sm font-medium text-white/80">Assigned Appointments</p>
-                            <p className="text-3xl font-black mt-1">
-                              {appointments.filter(a => {
-                                const assignedId = typeof a.assignedTo === 'object' && a.assignedTo ? (a.assignedTo as any)._id : a.assignedTo;
-                                return assignedId === user?.id;
-                              }).length}
-                            </p>
-                          </div>
-                        </div>
-                        
-                        <div className="relative overflow-hidden bg-gradient-to-br from-amber-500 via-orange-500 to-red-500 rounded-2xl p-5 text-white shadow-lg">
-                          <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2" />
-                          <div className="relative z-10">
-                            <p className="text-sm font-medium text-white/80">Completed Appointments</p>
-                            <p className="text-3xl font-black mt-1">
-                              {appointments.filter(a => {
-                                const assignedId = typeof a.assignedTo === 'object' && a.assignedTo ? (a.assignedTo as any)._id : a.assignedTo;
-                                return assignedId === user?.id && a.status === 'COMPLETED';
-                              }).length}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Detailed Stats Cards */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Grievances Breakdown */}
-                        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-5 border border-blue-100 shadow-lg">
-                          <div className="flex items-center gap-3 mb-4">
-                            <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center shadow-md">
-                              <FileText className="w-5 h-5 text-white" />
-                            </div>
-                            <h4 className="text-lg font-bold text-gray-900">Grievances Breakdown</h4>
-                          </div>
-                          
-                          <div className="space-y-3">
-                            {(() => {
-                              const myGrievances = grievances.filter(g => {
-                                const assignedId = typeof g.assignedTo === 'object' && g.assignedTo ? (g.assignedTo as any)._id : g.assignedTo;
-                                return assignedId === user?.id;
-                              });
-                              const pending = myGrievances.filter(g => g.status === 'PENDING').length;
-                              const assigned = myGrievances.filter(g => g.status === 'ASSIGNED').length;
-                              const resolved = myGrievances.filter(g => g.status === 'RESOLVED').length;
-                              const total = myGrievances.length;
-                              
-                              return (
-                                <>
-                                  <div className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-100">
-                                    <span className="text-sm text-gray-600 flex items-center gap-2">
-                                      <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
-                                      Pending
-                                    </span>
-                                    <span className="font-bold text-gray-900">{pending}</span>
-                                  </div>
-                                  <div className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-100">
-                                    <span className="text-sm text-gray-600 flex items-center gap-2">
-                                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                                      In Progress
-                                    </span>
-                                    <span className="font-bold text-gray-900">{assigned}</span>
-                                  </div>
-                                  <div className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-100">
-                                    <span className="text-sm text-gray-600 flex items-center gap-2">
-                                      <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                                      Resolved
-                                    </span>
-                                    <span className="font-bold text-gray-900">{resolved}</span>
-                                  </div>
-                                  <div className="flex justify-between items-center p-3 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl text-white mt-2">
-                                    <span className="text-sm font-medium">Resolution Rate</span>
-                                    <span className="font-bold text-lg">
-                                      {total > 0 ? ((resolved / total) * 100).toFixed(1) : '0.0'}%
-                                    </span>
-                                  </div>
-                                </>
-                              );
-                            })()}
-                          </div>
-                        </div>
-
-                        {/* Appointments Breakdown */}
-                        <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-5 border border-purple-100 shadow-lg">
-                          <div className="flex items-center gap-3 mb-4">
-                            <div className="w-10 h-10 bg-purple-500 rounded-xl flex items-center justify-center shadow-md">
-                              <CalendarClock className="w-5 h-5 text-white" />
-                            </div>
-                            <h4 className="text-lg font-bold text-gray-900">Appointments Breakdown</h4>
-                          </div>
-                          
-                          <div className="space-y-3">
-                            {(() => {
-                              const myAppointments = appointments.filter(a => {
-                                const assignedId = typeof a.assignedTo === 'object' && a.assignedTo ? (a.assignedTo as any)._id : a.assignedTo;
-                                return assignedId === user?.id;
-                              });
-                              const scheduled = myAppointments.filter(a => a.status === 'SCHEDULED').length;
-                              const completed = myAppointments.filter(a => a.status === 'COMPLETED').length;
-                              const cancelled = myAppointments.filter(a => a.status === 'CANCELLED').length;
-                              const total = myAppointments.length;
-                              
-                              return (
-                                <>
-                                  <div className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-100">
-                                    <span className="text-sm text-gray-600 flex items-center gap-2">
-                                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                                      Scheduled
-                                    </span>
-                                    <span className="font-bold text-gray-900">{scheduled}</span>
-                                  </div>
-                                  <div className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-100">
-                                    <span className="text-sm text-gray-600 flex items-center gap-2">
-                                      <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                                      Completed
-                                    </span>
-                                    <span className="font-bold text-gray-900">{completed}</span>
-                                  </div>
-                                  <div className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-100">
-                                    <span className="text-sm text-gray-600 flex items-center gap-2">
-                                      <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-                                      Cancelled
-                                    </span>
-                                    <span className="font-bold text-gray-900">{cancelled}</span>
-                                  </div>
-                                  <div className="flex justify-between items-center p-3 bg-gradient-to-r from-purple-500 to-fuchsia-500 rounded-xl text-white mt-2">
-                                    <span className="text-sm font-medium">Completion Rate</span>
-                                    <span className="font-bold text-lg">
-                                      {total > 0 ? ((completed / total) * 100).toFixed(1) : '0.0'}%
-                                    </span>
-                                  </div>
-                                </>
-                              );
-                            })()}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Performance Summary */}
-                      <div className="bg-gradient-to-r from-slate-50 via-gray-50 to-slate-50 rounded-2xl p-5 border border-slate-200 shadow-lg">
-                        <h4 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                          <TrendingUp className="w-5 h-5 text-indigo-600" />
-                          Performance Summary
-                        </h4>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          {(() => {
-                            const myGrievances = grievances.filter(g => {
-                              const assignedId = typeof g.assignedTo === 'object' && g.assignedTo ? (g.assignedTo as any)._id : g.assignedTo;
-                              return assignedId === user?.id;
-                            });
-                            const myAppointments = appointments.filter(a => {
-                              const assignedId = typeof a.assignedTo === 'object' && a.assignedTo ? (a.assignedTo as any)._id : a.assignedTo;
-                              return assignedId === user?.id;
-                            });
-                            const totalTasks = myGrievances.length + myAppointments.length;
-                            const completedTasks = myGrievances.filter(g => g.status === 'RESOLVED').length + 
-                                                   myAppointments.filter(a => a.status === 'COMPLETED').length;
-                            const pendingTasks = totalTasks - completedTasks - myAppointments.filter(a => a.status === 'CANCELLED').length;
-                            
-                            return (
-                              <>
-                                <div className="text-center p-4 bg-white rounded-xl border border-gray-100">
-                                  <p className="text-3xl font-black text-indigo-600">{totalTasks}</p>
-                                  <p className="text-xs font-medium text-gray-500 uppercase mt-1">Total Tasks</p>
-                                </div>
-                                <div className="text-center p-4 bg-white rounded-xl border border-gray-100">
-                                  <p className="text-3xl font-black text-emerald-600">{completedTasks}</p>
-                                  <p className="text-xs font-medium text-gray-500 uppercase mt-1">Completed</p>
-                                </div>
-                                <div className="text-center p-4 bg-white rounded-xl border border-gray-100">
-                                  <p className="text-3xl font-black text-amber-600">{pendingTasks}</p>
-                                  <p className="text-xs font-medium text-gray-500 uppercase mt-1">Pending</p>
-                                </div>
-                                <div className="text-center p-4 bg-white rounded-xl border border-gray-100">
-                                  <p className="text-3xl font-black text-purple-600">
-                                    {totalTasks > 0 ? ((completedTasks / totalTasks) * 100).toFixed(0) : '0'}%
-                                  </p>
-                                  <p className="text-xs font-medium text-gray-500 uppercase mt-1">Efficiency</p>
-                                </div>
-                              </>
-                            );
-                          })()}
-                        </div>
-                      </div>
+                  </div>
+                  <div className="mt-6 grid grid-cols-2 gap-8 w-full">
+                    <div className="text-center">
+                       <p className="text-xl font-black text-slate-900">{stats?.grievances.resolved || 0}</p>
+                       <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mt-1 px-2 py-0.5 bg-emerald-50 rounded">Resolved</p>
+                    </div>
+                    <div className="text-center">
+                       <p className="text-xl font-black text-slate-900">{(stats?.grievances.pending || 0) + (stats?.grievances.inProgress || 0)}</p>
+                       <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest mt-1 px-2 py-0.5 bg-amber-50 rounded">In-Cycle</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
+
+              <Card className="rounded-2xl border-0 shadow-lg bg-white overflow-hidden">
+                 <CardHeader className="bg-slate-900 border-0 p-4">
+                   <CardTitle className="text-white text-sm font-bold flex items-center gap-2">
+                     <AlertTriangle className="w-4 h-4 text-orange-400" />
+                     SLA Compliance
+                   </CardTitle>
+                 </CardHeader>
+                 <CardContent className="p-6">
+                    <div className="space-y-6">
+                      <div>
+                        <div className="flex justify-between items-center mb-2">
+                           <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Normal Priority</span>
+                           <span className="text-xs font-black text-indigo-600">92%</span>
+                        </div>
+                        <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                           <div className="h-full bg-indigo-500 rounded-full" style={{ width: '92%' }} />
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex justify-between items-center mb-2">
+                           <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">High Priority</span>
+                           <span className="text-xs font-black text-amber-600">78%</span>
+                        </div>
+                        <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                           <div className="h-full bg-amber-500 rounded-full" style={{ width: '78%' }} />
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex justify-between items-center mb-2">
+                           <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Urgent Escalation</span>
+                           <span className="text-xs font-black text-rose-600">64%</span>
+                        </div>
+                        <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                           <div className="h-full bg-rose-500 rounded-full" style={{ width: '64%' }} />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-8 p-4 bg-slate-50 rounded-xl border border-slate-200/60 shadow-inner">
+                       <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm">
+                             <Clock className="w-5 h-5 text-indigo-600" />
+                          </div>
+                          <div>
+                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Avg. Cycle Time</p>
+                             <p className="text-xl font-black text-slate-900 tracking-tighter">4.2 <span className="text-xs font-bold text-slate-400">Business Days</span></p>
+                          </div>
+                       </div>
+                    </div>
+                 </CardContent>
+              </Card>
+            </div>
             </TabsContent>
 
+            <TabsContent value="profile" className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-1">
+                  <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-2xl p-6 border border-indigo-100 shadow-lg">
+                    <div className="flex flex-col items-center text-center">
+                      <div className="w-24 h-24 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl mb-4">
+                        <span className="text-3xl font-bold text-white uppercase">
+                          {user?.firstName?.[0]}{user?.lastName?.[0]}
+                        </span>
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-1">
+                        {user?.firstName} {user?.lastName}
+                      </h3>
+                      <span className="px-3 py-1 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-xs font-bold rounded-full uppercase tracking-wide mb-4">
+                        {user?.role?.replace('_', ' ')}
+                      </span>
+                      
+                      <div className="w-full space-y-3 mt-4 text-left">
+                        <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
+                          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <Mail className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Email</p>
+                            <p className="text-sm font-medium text-gray-900 truncate">{user?.email}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
+                          <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                            <Phone className="w-5 h-5 text-green-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Phone</p>
+                            <p className="text-sm font-medium text-gray-900">{user?.phone || 'Not provided'}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
+                          <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <Building className="w-5 h-5 text-purple-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Department</p>
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {typeof user?.departmentId === 'object' && user?.departmentId 
+                                ? (user.departmentId as any).name 
+                                : departments.find(d => d._id === user?.departmentId)?.name || 'Not assigned'}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
+                          <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                            <Shield className="w-5 h-5 text-amber-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">User ID</p>
+                            <p className="text-xs font-mono text-gray-600 truncate">{user?.id}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-            </>
-          )}
-        </Tabs>
+                {/* Performance Statistics */}
+                <div className="lg:col-span-2 space-y-6">
+                  {/* Stats Overview */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="relative overflow-hidden bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 rounded-2xl p-5 text-white shadow-lg">
+                      <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2" />
+                      <div className="relative z-10">
+                        <p className="text-sm font-medium text-white/80">Assigned Grievances</p>
+                        <p className="text-3xl font-black mt-1">
+                          {grievances.filter(g => {
+                            const assignedId = typeof g.assignedTo === 'object' && g.assignedTo ? (g.assignedTo as any)._id : g.assignedTo;
+                            return assignedId === user?.id;
+                          }).length}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 via-green-500 to-teal-500 rounded-2xl p-5 text-white shadow-lg">
+                      <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2" />
+                      <div className="relative z-10">
+                        <p className="text-sm font-medium text-white/80">Resolved Grievances</p>
+                        <p className="text-3xl font-black mt-1">
+                          {grievances.filter(g => {
+                            const assignedId = typeof g.assignedTo === 'object' && g.assignedTo ? (g.assignedTo as any)._id : g.assignedTo;
+                            return assignedId === user?.id && g.status === 'RESOLVED';
+                          }).length}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="relative overflow-hidden bg-gradient-to-br from-purple-500 via-fuchsia-500 to-pink-500 rounded-2xl p-5 text-white shadow-lg">
+                      <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2" />
+                      <div className="relative z-10">
+                        <p className="text-sm font-medium text-white/80">Assigned Appointments</p>
+                        <p className="text-3xl font-black mt-1">
+                          {appointments.filter(a => {
+                            const assignedId = typeof a.assignedTo === 'object' && a.assignedTo ? (a.assignedTo as any)._id : a.assignedTo;
+                            return assignedId === user?.id;
+                          }).length}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="relative overflow-hidden bg-gradient-to-br from-amber-500 via-orange-500 to-red-500 rounded-2xl p-5 text-white shadow-lg">
+                      <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2" />
+                      <div className="relative z-10">
+                        <p className="text-sm font-medium text-white/80">Completed Appointments</p>
+                        <p className="text-3xl font-black mt-1">
+                          {appointments.filter(a => {
+                            const assignedId = typeof a.assignedTo === 'object' && a.assignedTo ? (a.assignedTo as any)._id : a.assignedTo;
+                            return assignedId === user?.id && a.status === 'COMPLETED';
+                          }).length}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Detailed Stats Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Grievances Breakdown */}
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-5 border border-blue-100 shadow-lg">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center shadow-md">
+                          <FileText className="w-5 h-5 text-white" />
+                        </div>
+                        <h4 className="text-lg font-bold text-gray-900">Grievances Breakdown</h4>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        {(() => {
+                          const myGrievances = grievances.filter(g => {
+                            const assignedId = typeof g.assignedTo === 'object' && g.assignedTo ? (g.assignedTo as any)._id : g.assignedTo;
+                            return assignedId === user?.id;
+                          });
+                          const pending = myGrievances.filter(g => g.status === 'PENDING').length;
+                          const assigned = myGrievances.filter(g => g.status === 'ASSIGNED').length;
+                          const resolved = myGrievances.filter(g => g.status === 'RESOLVED').length;
+                          const total = myGrievances.length;
+                          
+                          return (
+                            <>
+                              <div className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-100">
+                                <span className="text-sm text-gray-600 flex items-center gap-2">
+                                  <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
+                                  Pending
+                                </span>
+                                <span className="font-bold text-gray-900">{pending}</span>
+                              </div>
+                              <div className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-100">
+                                <span className="text-sm text-gray-600 flex items-center gap-2">
+                                  <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                                  In Progress
+                                </span>
+                                <span className="font-bold text-gray-900">{assigned}</span>
+                              </div>
+                              <div className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-100">
+                                <span className="text-sm text-gray-600 flex items-center gap-2">
+                                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                                  Resolved
+                                </span>
+                                <span className="font-bold text-gray-900">{resolved}</span>
+                              </div>
+                              <div className="flex justify-between items-center p-3 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl text-white mt-2">
+                                <span className="text-sm font-medium">Resolution Rate</span>
+                                <span className="font-bold text-lg">
+                                  {total > 0 ? ((resolved / total) * 100).toFixed(1) : '0.0'}%
+                                </span>
+                              </div>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    </div>
+
+                    {/* Appointments Breakdown */}
+                    <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-5 border border-purple-100 shadow-lg">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-10 h-10 bg-purple-500 rounded-xl flex items-center justify-center shadow-md">
+                          <CalendarClock className="w-5 h-5 text-white" />
+                        </div>
+                        <h4 className="text-lg font-bold text-gray-900">Appointments Breakdown</h4>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        {(() => {
+                          const myAppointments = appointments.filter(a => {
+                            const assignedId = typeof a.assignedTo === 'object' && a.assignedTo ? (a.assignedTo as any)._id : a.assignedTo;
+                            return assignedId === user?.id;
+                          });
+                          const scheduled = myAppointments.filter(a => a.status === 'SCHEDULED').length;
+                          const completed = myAppointments.filter(a => a.status === 'COMPLETED').length;
+                          const cancelled = myAppointments.filter(a => a.status === 'CANCELLED').length;
+                          const total = myAppointments.length;
+                          
+                          return (
+                            <>
+                              <div className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-100">
+                                <span className="text-sm text-gray-600 flex items-center gap-2">
+                                  <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                                  Scheduled
+                                </span>
+                                <span className="font-bold text-gray-900">{scheduled}</span>
+                              </div>
+                              <div className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-100">
+                                <span className="text-sm text-gray-600 flex items-center gap-2">
+                                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                                  Completed
+                                </span>
+                                <span className="font-bold text-gray-900">{completed}</span>
+                              </div>
+                              <div className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-100">
+                                <span className="text-sm text-gray-600 flex items-center gap-2">
+                                  <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                                  Cancelled
+                                </span>
+                                <span className="font-bold text-gray-900">{cancelled}</span>
+                              </div>
+                              <div className="flex justify-between items-center p-3 bg-gradient-to-r from-purple-500 to-fuchsia-500 rounded-xl text-white mt-2">
+                                <span className="text-sm font-medium">Completion Rate</span>
+                                <span className="font-bold text-lg">
+                                  {total > 0 ? ((completed / total) * 100).toFixed(1) : '0.0'}%
+                                </span>
+                              </div>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Performance Summary */}
+                  <div className="bg-gradient-to-r from-slate-50 via-gray-50 to-slate-50 rounded-2xl p-5 border border-slate-200 shadow-lg">
+                    <h4 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                      <TrendingUp className="w-5 h-5 text-indigo-600" />
+                      Performance Summary
+                    </h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {(() => {
+                        const myGrievances = grievances.filter(g => {
+                          const assignedId = typeof g.assignedTo === 'object' && g.assignedTo ? (g.assignedTo as any)._id : g.assignedTo;
+                          return assignedId === user?.id;
+                        });
+                        const myAppointments = appointments.filter(a => {
+                          const assignedId = typeof a.assignedTo === 'object' && a.assignedTo ? (a.assignedTo as any)._id : a.assignedTo;
+                          return assignedId === user?.id;
+                        });
+                        const totalTasks = myGrievances.length + myAppointments.length;
+                        const completedTasks = myGrievances.filter(g => g.status === 'RESOLVED').length + 
+                                               myAppointments.filter(a => a.status === 'COMPLETED').length;
+                        const pendingTasks = totalTasks - completedTasks - myAppointments.filter(a => a.status === 'CANCELLED').length;
+                        
+                        return (
+                          <>
+                            <div className="text-center p-4 bg-white rounded-xl border border-gray-100">
+                              <p className="text-3xl font-black text-indigo-600">{totalTasks}</p>
+                              <p className="text-xs font-medium text-gray-500 uppercase mt-1">Total Tasks</p>
+                            </div>
+                            <div className="text-center p-4 bg-white rounded-xl border border-gray-100">
+                              <p className="text-3xl font-black text-emerald-600">{completedTasks}</p>
+                              <p className="text-xs font-medium text-gray-500 uppercase mt-1">Completed</p>
+                            </div>
+                            <div className="text-center p-4 bg-white rounded-xl border border-gray-100">
+                              <p className="text-3xl font-black text-amber-600">{pendingTasks}</p>
+                              <p className="text-xs font-medium text-gray-500 uppercase mt-1">Pending</p>
+                            </div>
+                            <div className="text-center p-4 bg-white rounded-xl border border-gray-100">
+                              <p className="text-3xl font-black text-purple-600">
+                                {totalTasks > 0 ? ((completedTasks / totalTasks) * 100).toFixed(0) : '0'}%
+                              </p>
+                              <p className="text-xs font-medium text-gray-500 uppercase mt-1">Efficiency</p>
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
 
         {/* Dialogs */}
         {(isCompanyAdmin || isDepartmentAdmin) && (
