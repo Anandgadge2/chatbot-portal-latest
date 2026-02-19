@@ -3,6 +3,8 @@ import {
   WHATSAPP_LIMITS_BUTTONS,
   WHATSAPP_LIMITS_LIST
 } from '../config/whatsappLimits';
+import { createAuditLog } from '../utils/auditLogger';
+import { AuditAction } from '../config/constants';
 
 /**
  * WhatsApp Business API limits are enforced here and in flow builder.
@@ -26,6 +28,25 @@ function getWhatsAppConfig(company: any) {
       'Content-Type': 'application/json'
     }
   };
+}
+
+async function logOutgoingMessage(company: any, to: string, message: string, type: string) {
+  try {
+    await createAuditLog({
+      action: AuditAction.WHATSAPP_MSG,
+      resource: 'OUTGOING',
+      resourceId: to,
+      companyId: company._id?.toString(),
+      details: {
+        to,
+        message: message.substring(0, 1000), // Cap length
+        type,
+        description: `Bot replied to ${to} (${type}): ${message.substring(0, 50)}...`
+      }
+    });
+  } catch (err) {
+    console.error('Failed to log outgoing WhatsApp message to audit:', err);
+  }
 }
 
 function safeText(text: string, limit = 4000): string {
@@ -70,6 +91,10 @@ export async function sendWhatsAppMessage(
 
     console.log(`✅ WhatsApp text sent → ${to}`);
     console.log(`   Message ID: ${response.data.messages?.[0]?.id || 'N/A'}`);
+    
+    // Log to audit for SuperAdmin terminal
+    await logOutgoingMessage(company, to, message, 'text');
+    
     return {
       success: true,
       messageId: response.data.messages?.[0]?.id
@@ -165,6 +190,10 @@ export async function sendWhatsAppTemplate(
     const response = await axios.post(url, payload, { headers });
 
     console.log(`✅ WhatsApp template sent → ${to}`);
+    
+    // Log to audit for SuperAdmin terminal
+    await logOutgoingMessage(company, to, `Template: ${templateName}`, 'template');
+
     return {
       success: true,
       messageId: response.data.messages?.[0]?.id
@@ -225,6 +254,10 @@ export async function sendWhatsAppButtons(
     const response = await axios.post(url, payload, { headers });
 
     console.log(`✅ WhatsApp buttons sent → ${to}`);
+
+    // Log to audit for SuperAdmin terminal
+    await logOutgoingMessage(company, to, message, 'buttons');
+
     return {
       success: true,
       messageId: response.data.messages?.[0]?.id
@@ -306,6 +339,10 @@ export async function sendWhatsAppList(
     const response = await axios.post(url, payload, { headers });
 
     console.log(`✅ WhatsApp list sent → ${to}`);
+
+    // Log to audit for SuperAdmin terminal
+    await logOutgoingMessage(company, to, message, 'list');
+
     return {
       success: true,
       messageId: response.data.messages?.[0]?.id

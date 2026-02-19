@@ -15,6 +15,8 @@ import { uploadWhatsAppMediaToCloudinary } from './mediaService';
 import { getSession, getSessionFromMongo, updateSession, clearSession, UserSession } from './sessionService';
 import { loadFlowForTrigger, DynamicFlowEngine, getStartStepForTrigger } from './dynamicFlowEngine';
 import CompanyWhatsAppConfig from '../models/CompanyWhatsAppConfig';
+import { createAuditLog } from '../utils/auditLogger';
+import { AuditAction } from '../config/constants';
 // Note: ID generation is handled by pre-save hooks in Grievance and Appointment models
 
 export interface ChatbotMessage {
@@ -512,6 +514,21 @@ export async function processWhatsAppMessage(message: ChatbotMessage): Promise<a
     console.error('❌ Company not found:', companyId);
     return;
   }
+
+  // ✅ LOG INCOMING WHATSAPP MESSAGE (for SuperAdmin Terminal)
+  await createAuditLog({
+    action: AuditAction.WHATSAPP_MSG,
+    resource: 'INCOMING',
+    resourceId: from,
+    companyId: company._id.toString(),
+    details: {
+      from,
+      messageText,
+      messageType,
+      buttonId,
+      description: `Citizen from ${from} sent: ${buttonId || messageText || 'Media message'}`
+    }
+  });
 
   // Fetch WhatsApp configuration from separate model (SOURCE OF TRUTH: Database)
   let whatsappConfig = await CompanyWhatsAppConfig.findOne({ 

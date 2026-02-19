@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { Terminal, Copy, Trash2, Maximize2, Play, Circle, Search, ChevronRight } from 'lucide-react';
+import { Terminal, Copy, Trash2, Play, Circle, Search, ChevronRight } from 'lucide-react';
+import { apiClient } from '@/lib/api/client';
 
 interface LogEntry {
   id: string;
@@ -15,40 +16,86 @@ export default function TerminalLogs() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [filter, setFilter] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
+  const lastAuditRef = useRef<string | null>(null);
 
-  // Mock real-time logs for demo
   useEffect(() => {
-    const initialLogs: LogEntry[] = [
-      { id: '1', timestamp: new Date().toISOString(), type: 'info', message: 'System initialization started...', source: 'KERNEL' },
-      { id: '2', timestamp: new Date().toISOString(), type: 'success', message: 'Database connection established.', source: 'POSTGRES' },
-      { id: '3', timestamp: new Date().toISOString(), type: 'info', message: 'Starting Next.js compilation...', source: 'BUILD' },
-    ];
-    setLogs(initialLogs);
+    // 1. Subscribe to Live Frontend API Calls
+    const unsubscribe = (apiClient as any).subscribe((log: any) => {
+      // 🕵️ Filter out the noise: Don't log the terminal's own polling requests
+      if (log.message && (log.message.includes('/audit') || log.message.includes('socket.io'))) {
+        return;
+      }
 
-    const interval = setInterval(() => {
-      const types: ('info' | 'error' | 'success' | 'warn')[] = ['info', 'success', 'warn'];
-      const messages = [
-        'GET /api/v1/user/stats 200 OK',
-        'Cache hit for organization registry',
-        'Webhook delivery successful to Meta API',
-        'Processing background jobs...',
-        'Compiling assets for production...',
-        'Session cleared for user USER000302'
-      ];
-      const sources = ['API', 'CACHE', 'WEBHOOK', 'WORKER', 'BUILD', 'AUTH'];
-      
       const newLog: LogEntry = {
         id: Math.random().toString(36).substr(2, 9),
-        timestamp: new Date().toISOString(),
-        type: types[Math.floor(Math.random() * types.length)],
-        message: messages[Math.floor(Math.random() * messages.length)],
-        source: sources[Math.floor(Math.random() * sources.length)]
+        ...log
       };
-      
-      setLogs(prev => [...prev.slice(-100), newLog]);
-    }, 3000);
+      setLogs((prev: LogEntry[]) => [...prev.slice(-100), newLog]);
+    });
 
-    return () => clearInterval(interval);
+    // 2. Poll for Backend Audit Logs (Webhooks, System Changes)
+    const pollAudit = async () => {
+      try {
+        const response = await apiClient.get('/audit?limit=10');
+        if (response.success && response.data.logs) {
+          const newEntries: LogEntry[] = [];
+          
+          response.data.logs.forEach((log: any) => {
+            // Avoid duplicates by checking timestamp
+            if (!lastAuditRef.current || log.timestamp > lastAuditRef.current) {
+              let type: LogEntry['type'] = 'success';
+              let source = 'MONGODB';
+              let message = `${log.action} ${log.resource}: ${log.details?.description || 'N/A'}`;
+
+              if (log.action === 'WHATSAPP_MSG') {
+                source = log.resource === 'INCOMING' ? 'WABA_IN' : 'WABA_OUT';
+                type = log.resource === 'INCOMING' ? 'info' : 'success';
+                message = log.details?.description || message;
+              } else if (log.action === 'DELETE') {
+                type = 'error';
+              } else if (log.action === 'UPDATE') {
+                type = 'warn';
+              }
+
+              newEntries.push({
+                id: log._id,
+                timestamp: log.timestamp,
+                type,
+                message,
+                source
+              });
+            }
+          });
+
+          if (newEntries.length > 0) {
+            lastAuditRef.current = response.data.logs[0].timestamp;
+            setLogs((prev: LogEntry[]) => {
+              const combined = [...prev, ...newEntries.reverse()];
+              return combined.slice(-100);
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Audit poll failed', err);
+      }
+    };
+
+    const interval = setInterval(pollAudit, 3000);
+    pollAudit(); // Initial check
+
+    // Initial System Message
+    setLogs([{
+      id: 'init',
+      timestamp: new Date().toISOString(),
+      type: 'info',
+      message: 'System Console linked to Master Runtime. Monitoring MONGODB & API clusters...',
+      source: 'KERNEL'
+    }]);
+
+    return () => {
+      unsubscribe();
+      clearInterval(interval);
+    };
   }, []);
 
   useEffect(() => {

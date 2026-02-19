@@ -239,7 +239,8 @@ export enum AuditAction {
   RECOVER = 'RECOVER',
   ASSIGN = 'ASSIGN',
   STATUS_CHANGE = 'STATUS_CHANGE',
-  CONFIG_CHANGE = 'CONFIG_CHANGE'
+  CONFIG_CHANGE = 'CONFIG_CHANGE',
+  WHATSAPP_MSG = 'WHATSAPP_MSG'
 }
 
 // ================================

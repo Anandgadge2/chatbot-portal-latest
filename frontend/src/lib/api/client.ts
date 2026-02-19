@@ -5,6 +5,8 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 class APIClient {
   private client: AxiosInstance;
 
+  private listeners: ((event: any) => void)[] = [];
+
   constructor() {
     this.client = axios.create({
       baseURL: API_URL,
@@ -13,34 +15,64 @@ class APIClient {
       },
     });
 
-    // Request interceptor to add auth token
+    // Request interceptor
     this.client.interceptors.request.use(
       (config) => {
         const token = this.getToken();
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
+        
+        // Emit request log
+        this.emitLog({
+          type: 'info',
+          source: 'API_REQ',
+          message: `${config.method?.toUpperCase()} ${config.url}`,
+          timestamp: new Date().toISOString()
+        });
+
         return config;
       },
       (error) => {
+        this.emitLog({
+          type: 'error',
+          source: 'API_ERR',
+          message: `Request failed: ${error.message}`,
+          timestamp: new Date().toISOString()
+        });
         return Promise.reject(error);
       }
     );
 
-    // Response interceptor for error handling
+    // Response interceptor
     this.client.interceptors.response.use(
-      (response) => response,
+      (response) => {
+        // Emit success log
+        this.emitLog({
+          type: 'success',
+          source: 'API_RES',
+          message: `${response.config.method?.toUpperCase()} ${response.config.url} ${response.status} OK`,
+          timestamp: new Date().toISOString()
+        });
+        return response;
+      },
       (error) => {
-        // Only redirect on 401 if user is already logged in (has a token)
-        // Don't redirect during login attempts
+        const status = error.response?.status || 'ERR';
+        const method = error.config?.method?.toUpperCase() || '???';
+        const url = error.config?.url || '???';
+
+        this.emitLog({
+          type: 'error',
+          source: 'API_RES',
+          message: `${method} ${url} ${status} - ${error.response?.data?.message || error.message}`,
+          timestamp: new Date().toISOString()
+        });
+
         if (error.response?.status === 401) {
           const currentToken = this.getToken();
           const isLoginRequest = error.config?.url?.includes('/auth/login') || 
                                  error.config?.url?.includes('/auth/sso');
           
-          // Only clear tokens and redirect if:
-          // 1. User has a token (was logged in)
-          // 2. This is NOT a login request
           if (currentToken && !isLoginRequest) {
             this.removeToken();
             if (typeof window !== 'undefined') {
@@ -51,6 +83,18 @@ class APIClient {
         return Promise.reject(error);
       }
     );
+  }
+
+  // Log Subscription System
+  private emitLog(log: any) {
+    this.listeners.forEach(cb => cb(log));
+  }
+
+  public subscribe(callback: (event: any) => void) {
+    this.listeners.push(callback);
+    return () => {
+      this.listeners = this.listeners.filter(cb => cb !== callback);
+    };
   }
 
   private getToken(): string | null {
