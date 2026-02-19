@@ -72,7 +72,7 @@ export default function DepartmentDrillDown() {
       if (deptRes.success) {
         setDepartment(deptRes.data.department);
         const deptCompanyId = typeof deptRes.data.department.companyId === 'object' 
-          ? deptRes.data.department.companyId._id 
+          ? deptRes.data.department.companyId?._id 
           : deptRes.data.department.companyId;
         
         // Fetch company

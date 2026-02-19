@@ -127,7 +127,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({ isOpen, onClose, on
             : '';
           if (userCompanyId) {
             filteredDepartments = response.data.departments.filter((dept: Department) => {
-              const deptCompanyId = typeof dept.companyId === 'object' ? dept.companyId._id : dept.companyId;
+              const deptCompanyId = typeof dept.companyId === 'object' ? dept.companyId?._id : dept.companyId;
               return deptCompanyId === userCompanyId;
             });
           }
@@ -558,7 +558,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({ isOpen, onClose, on
                       {departments
                         .filter(dept => {
                           if (!formData.companyId) return false;
-                          const deptCompanyId = typeof dept.companyId === 'object' ? dept.companyId._id : dept.companyId;
+                          const deptCompanyId = typeof dept.companyId === 'object' ? dept.companyId?._id : dept.companyId;
                           return deptCompanyId === formData.companyId;
                         })
                         .map((department) => (

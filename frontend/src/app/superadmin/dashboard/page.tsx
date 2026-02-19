@@ -734,7 +734,7 @@ export default function SuperAdminDashboard() {
                             <div 
                               className="cursor-pointer"
                               onClick={() => {
-                                const companyId = typeof department.companyId === 'object' ? department.companyId._id : department.companyId;
+                                const companyId = typeof department.companyId === 'object' ? department.companyId?._id : department.companyId;
                                 router.push(`/superadmin/department/${department._id}?companyId=${companyId}`);
                               }}
                             >

@@ -55,12 +55,12 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({ isOpen,
           contactPerson: editingDepartment.contactPerson || '',
           contactEmail: editingDepartment.contactEmail || '',
           contactPhone: editingDepartment.contactPhone || '',
-          companyId: typeof editingDepartment.companyId === 'object' 
-            ? editingDepartment.companyId._id 
-            : editingDepartment.companyId || '',
-          parentDepartmentId: typeof editingDepartment.parentDepartmentId === 'object'
-            ? editingDepartment.parentDepartmentId._id
-            : editingDepartment.parentDepartmentId || ''
+          companyId: (editingDepartment.companyId && typeof editingDepartment.companyId === 'object') 
+            ? (editingDepartment.companyId as any)._id 
+            : (editingDepartment.companyId as string) || '',
+          parentDepartmentId: (editingDepartment.parentDepartmentId && typeof editingDepartment.parentDepartmentId === 'object')
+            ? (editingDepartment.parentDepartmentId as any)._id
+            : (editingDepartment.parentDepartmentId as string) || ''
         });
       } else {
         const userCompanyId = user?.companyId 
