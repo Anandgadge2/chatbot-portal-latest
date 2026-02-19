@@ -458,7 +458,7 @@ export default function ChatbotFlowsPage() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-[1600px] mx-auto w-full px-4 py-4">
         <div className="space-y-6">
           {/* Active Flow Info */}
           {whatsappConfig && whatsappConfig._id && whatsappConfig.isActive && (

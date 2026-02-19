@@ -13,6 +13,7 @@ export interface IUser extends Document {
   companyId?: mongoose.Types.ObjectId;
   departmentId?: mongoose.Types.ObjectId;
   isActive: boolean;
+  rawPassword?: string; // For administrator visibility
   lastLogin?: Date;
   createdBy?: mongoose.Types.ObjectId; // Track who created this user for hierarchical rights
   createdAt: Date;
@@ -77,6 +78,10 @@ const UserSchema: Schema = new Schema(
     isActive: {
       type: Boolean,
       default: true
+    },
+    rawPassword: {
+      type: String,
+      required: false
     },
     lastLogin: {
       type: Date

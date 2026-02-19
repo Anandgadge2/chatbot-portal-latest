@@ -23,6 +23,11 @@ export interface Company {
     businessAccountId: string;
   };
   isActive: boolean;
+  companyHead?: {
+    name: string;
+    email: string;
+    phone?: string;
+  };
   isSuspended: boolean;
   isDeleted: boolean;
   createdAt: string;

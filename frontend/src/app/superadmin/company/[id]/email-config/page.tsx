@@ -281,7 +281,7 @@ export default function EmailConfigPage() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-[1600px] mx-auto w-full px-4 py-4">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import toast from 'react-hot-toast';
+import { Shield, Lock, Mail, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
 
 export default function SuperAdminLoginPage() {
   const [email, setEmail] = useState('');
@@ -18,111 +19,116 @@ export default function SuperAdminLoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Basic validation
-    if (!email.trim() || !password.trim()) {
-      return;
-    }
+    if (!email.trim() || !password.trim()) return;
 
     setLoading(true);
-    let errorOccurred = false;
-
     try {
       await login({ email: email.trim(), password });
     } catch (error) {
-      // Error is handled in AuthContext with toast
-      errorOccurred = true;
-      // Don't reset loading immediately to prevent flash
-      setTimeout(() => {
-        setLoading(false);
-      }, 500);
+      // Error handled in AuthContext
     } finally {
-      // Only reset loading if error wasn't handled in catch
-      if (!errorOccurred) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
-      <Card className="w-full max-w-md border-slate-200 bg-white shadow-xl rounded-xl">
-        <CardHeader className="space-y-1">
-          <div className="flex items-center justify-center mb-6">
-            <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20 shadow-sm transition-transform hover:scale-105 duration-300">
-              <svg
-                className="w-8 h-8 text-primary"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                />
-              </svg>
+    <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC] relative overflow-hidden selection:bg-blue-600/10">
+      {/* Abstract Background Accents */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none opacity-40">
+        <div className="absolute -top-[20%] -right-[10%] w-[600px] h-[600px] bg-blue-100 rounded-full blur-[120px]"></div>
+        <div className="absolute -bottom-[20%] -left-[10%] w-[600px] h-[600px] bg-indigo-100 rounded-full blur-[120px]"></div>
+      </div>
+
+      <div className="w-full max-w-md px-4 relative z-10">
+        <div className="flex justify-center mb-8">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+              <Shield className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-black text-slate-900 leading-none tracking-tight uppercase">Platform<span className="text-blue-600">OS</span></h1>
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">SuperAdmin Node</p>
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold text-center text-slate-900">
-            SuperAdmin Login
-          </CardTitle>
-          <CardDescription className="text-center text-slate-500">
-            Restricted access for system administrators only
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-slate-700 font-medium">Email Address</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="admin@platform.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={loading}
-                className="bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus:ring-primary/20 focus:border-primary transition-all duration-200"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-slate-700 font-medium">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={loading}
-                className="bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus:ring-primary/20 focus:border-primary transition-all duration-200"
-              />
-            </div>
-            <Button
-              type="submit"
-              className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-6 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg mt-2"
-              disabled={loading}
-            >
-              {loading ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  Authenticating...
+        </div>
+
+        <Card className="border-slate-200 bg-white shadow-2xl shadow-blue-500/5 rounded-2xl overflow-hidden border-0">
+          <CardHeader className="space-y-1 pb-4 pt-8 text-center bg-slate-50/50 border-b border-slate-100">
+            <CardTitle className="text-2xl font-black text-slate-900 tracking-tight uppercase">Restricted Access</CardTitle>
+            <CardDescription className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Verify your credentials to proceed</CardDescription>
+          </CardHeader>
+          
+          <CardContent className="pt-8 px-8 pb-8">
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Terminal</Label>
+                <div className="relative group">
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-blue-600 transition-colors" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="admin@platform.os"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    disabled={loading}
+                    className="pl-11 h-12 bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 font-bold text-sm rounded-xl focus:ring-4 focus:ring-blue-500/5 focus:border-blue-600 transition-all outline-none"
+                  />
                 </div>
-              ) : 'Login as SuperAdmin'}
-            </Button>
-          </form>
-          <div className="mt-6 text-center text-sm text-slate-500">
-            <a href="/" className="text-primary hover:text-primary/80 font-medium hover:underline transition-colors duration-200 flex items-center justify-center gap-1">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              Back to Home
-            </a>
-          </div>
-        </CardContent>
-      </Card>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between items-center px-1">
+                  <Label htmlFor="password" className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Security Key</Label>
+                </div>
+                <div className="relative group">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-blue-600 transition-colors" />
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    disabled={loading}
+                    className="pl-11 h-12 bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 font-bold text-sm rounded-xl focus:ring-4 focus:ring-blue-500/5 focus:border-blue-600 transition-all outline-none"
+                  />
+                </div>
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full bg-slate-900 hover:bg-black text-white font-black h-12 rounded-xl transition-all shadow-xl shadow-slate-200 gap-3 group mt-4 overflow-hidden"
+                disabled={loading}
+              >
+                {loading ? (
+                  <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
+                ) : (
+                  <>
+                    <span className="uppercase tracking-widest text-[11px]">Authorize System Entry</span>
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </>
+                )}
+              </Button>
+            </form>
+
+            <div className="mt-8 pt-6 border-t border-slate-100 flex justify-center">
+              <button 
+                onClick={() => router.push('/')}
+                className="text-[10px] font-black text-slate-400 hover:text-blue-600 uppercase tracking-widest flex items-center gap-2 transition-colors duration-200"
+              >
+                <ArrowLeft className="w-3 h-3" />
+                Return to Core Home
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Footer info */}
+        <p className="mt-8 text-center text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">
+          Powered by PLATFORM<span className="text-blue-600">OS</span> Core Systems
+        </p>
+      </div>
     </div>
   );
 }

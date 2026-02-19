@@ -31,6 +31,21 @@ export function normalizePhoneNumber(phone: string): string {
 }
 
 /**
+ * Denormalizes phone number by removing country code prefix (91 for India)
+ * If phone starts with 91 and is 12 digits, returns the last 10 digits
+ * @param phone - Phone number string with country code
+ * @returns 10 digit phone number
+ */
+export function denormalizePhoneNumber(phone: string): string {
+  if (!phone) return phone;
+  const digitsOnly = phone.replace(/\D/g, '');
+  if (digitsOnly.length === 12 && digitsOnly.startsWith('91')) {
+    return digitsOnly.substring(2);
+  }
+  return digitsOnly;
+}
+
+/**
  * Validates phone number - must be exactly 10 digits
  * @param phone - Phone number string
  * @returns true if valid, false otherwise

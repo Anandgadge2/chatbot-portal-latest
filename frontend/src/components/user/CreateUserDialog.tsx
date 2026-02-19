@@ -11,7 +11,7 @@ import { departmentAPI, Department } from '@/lib/api/department';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserRole } from '@/lib/permissions';
 import toast from 'react-hot-toast';
-import { validatePhoneNumber, validatePassword, normalizePhoneNumber } from '@/lib/utils/phoneUtils';
+import { validatePhoneNumber, validatePassword, normalizePhoneNumber, denormalizePhoneNumber } from '@/lib/utils/phoneUtils';
 import { Building } from 'lucide-react';
 
 interface CreateUserDialogProps {
@@ -161,7 +161,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({ isOpen, onClose, on
           lastName: editingUser.lastName || '',
           email: editingUser.email || '',
           password: '', // Don't show password
-          phone: editingUser.phone || '',
+          phone: editingUser.phone ? denormalizePhoneNumber(editingUser.phone) : '',
           role: editingUser.role || 'OPERATOR',
           companyId: typeof editingUser.companyId === 'object' ? editingUser.companyId?._id : (editingUser.companyId || ''),
           departmentId: typeof editingUser.departmentId === 'object' ? editingUser.departmentId?._id : (editingUser.departmentId || '')

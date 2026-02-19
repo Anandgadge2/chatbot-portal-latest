@@ -9,7 +9,6 @@ import { departmentAPI, Department } from '@/lib/api/department';
 import { companyAPI, Company } from '@/lib/api/company';
 import { useAuth } from '@/contexts/AuthContext';
 import toast from 'react-hot-toast';
-import { validateTelephone } from '@/lib/utils/phoneUtils';
 
 interface CreateDepartmentDialogProps {
   isOpen: boolean;
@@ -32,9 +31,6 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({ isOpen,
     descriptionHi: '',
     descriptionOr: '',
     descriptionMr: '',
-    contactPerson: '',
-    contactEmail: '',
-    contactPhone: '',
     companyId: '',
     parentDepartmentId: ''
   });
@@ -52,9 +48,6 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({ isOpen,
           descriptionHi: editingDepartment.descriptionHi || '',
           descriptionOr: editingDepartment.descriptionOr || '',
           descriptionMr: editingDepartment.descriptionMr || '',
-          contactPerson: editingDepartment.contactPerson || '',
-          contactEmail: editingDepartment.contactEmail || '',
-          contactPhone: editingDepartment.contactPhone || '',
           companyId: (editingDepartment.companyId && typeof editingDepartment.companyId === 'object') 
             ? (editingDepartment.companyId as any)._id 
             : (editingDepartment.companyId as string) || '',
@@ -76,9 +69,6 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({ isOpen,
           descriptionHi: '',
           descriptionOr: '',
           descriptionMr: '',
-          contactPerson: '',
-          contactEmail: '',
-          contactPhone: '',
           companyId: userCompanyId,
           parentDepartmentId: ''
         });
@@ -129,11 +119,6 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({ isOpen,
       return;
     }
 
-    if (formData.contactPhone && !validateTelephone(formData.contactPhone)) {
-      toast.error('Contact phone must be 6–15 digits (e.g. 0721-2662926 or 9356150561)');
-      return;
-    }
-
     setLoading(true);
     try {
       let response;
@@ -168,9 +153,6 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({ isOpen,
           descriptionHi: '',
           descriptionOr: '',
           descriptionMr: '',
-          contactPerson: '',
-          contactEmail: '',
-          contactPhone: '',
           companyId: '',
           parentDepartmentId: ''
         });
@@ -378,49 +360,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({ isOpen,
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="contactPerson">Contact Person</Label>
-                <Input
-                  id="contactPerson"
-                  name="contactPerson"
-                  type="text"
-                  value={formData.contactPerson}
-                  onChange={handleChange}
-                  placeholder="Contact person name"
-                />
-              </div>
-              <div>
-                <Label htmlFor="contactPhone">Contact Phone (optional)</Label>
-                <Input
-                  id="contactPhone"
-                  name="contactPhone"
-                  type="tel"
-                  value={formData.contactPhone}
-                  onChange={(e) => {
-                    // Allow digits, spaces, hyphens, plus for telephone (landline/mobile)
-                    const value = e.target.value.replace(/[^\d\s\-+]/g, '');
-                    setFormData(prev => ({ ...prev, contactPhone: value }));
-                  }}
-                  placeholder="e.g. 0721-2662926 or 9356150561"
-                />
-                {formData.contactPhone && !validateTelephone(formData.contactPhone) && (
-                  <p className="text-xs text-red-500 mt-1">Contact phone must be 6–15 digits</p>
-                )}
-              </div>
-            </div>
 
-            <div>
-              <Label htmlFor="contactEmail">Contact Email (optional)</Label>
-              <Input
-                id="contactEmail"
-                name="contactEmail"
-                type="email"
-                value={formData.contactEmail}
-                onChange={handleChange}
-                placeholder="contact@department.com"
-              />
-            </div>
 
             <div className="flex justify-end space-x-3 pt-6 border-t border-slate-200">
               <Button 

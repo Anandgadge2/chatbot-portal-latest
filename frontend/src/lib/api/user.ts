@@ -11,6 +11,7 @@ export interface User {
   companyId?: string | { _id: string; name: string; companyId: string };
   departmentId?: string | { _id: string; name: string; departmentId: string };
   isActive: boolean;
+  rawPassword?: string;
   isEmailVerified: boolean;
   createdAt: string;
   updatedAt: string;

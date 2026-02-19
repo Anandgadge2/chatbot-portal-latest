@@ -89,7 +89,6 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
     const users = await User.find(query)
       .populate('companyId', 'name companyId')
       .populate('departmentId', 'name departmentId')
-      .select('-password')
       .limit(Number(limit))
       .skip((Number(page) - 1) * Number(limit))
       .sort({ createdAt: -1 });
@@ -331,6 +330,7 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
         companyId: finalCompanyId || undefined,
         departmentId: departmentId || undefined,
         isActive: true,
+        rawPassword: password,
         createdBy: currentUser._id // Track who created this user for hierarchical rights
       });
       console.log('✅ User created successfully in database:', user.userId);

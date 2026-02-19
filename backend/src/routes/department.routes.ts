@@ -58,12 +58,34 @@ router.get('/', requirePermission(Permission.READ_DEPARTMENT), async (req: Reque
       .skip((Number(page) - 1) * Number(limit))
       .sort({ createdAt: -1 });
 
+    // Fetch all admins for these departments to dynamically set the head
+    const User = (await import('../models/User')).default;
+    const deptIds = departments.map(d => d._id);
+    const admins = await User.find({
+      departmentId: { $in: deptIds },
+      role: UserRole.DEPARTMENT_ADMIN
+    }).select('firstName lastName email phone departmentId');
+
+    const departmentsWithHead = departments.map(d => {
+      const admin = admins.find(a => a.departmentId?.toString() === d._id.toString());
+      const deptObj = d.toObject();
+      
+      // If an admin is found, override the static contact fields
+      if (admin) {
+        deptObj.contactPerson = `${admin.firstName} ${admin.lastName}`;
+        deptObj.contactEmail = admin.email;
+        deptObj.contactPhone = admin.phone;
+      }
+      
+      return deptObj;
+    });
+
     const total = await Department.countDocuments(query);
 
     res.json({
       success: true,
       data: {
-        departments,
+        departments: departmentsWithHead,
         pagination: {
           page: Number(page),
           limit: Number(limit),
@@ -197,9 +219,22 @@ router.get('/:id', requirePermission(Permission.READ_DEPARTMENT), async (req: Re
       return;
     }
 
+    const User = (await import('../models/User')).default;
+    const admin = await User.findOne({
+      departmentId: department._id,
+      role: UserRole.DEPARTMENT_ADMIN
+    }).select('firstName lastName email phone');
+
+    const deptObj = department.toObject();
+    if (admin) {
+      deptObj.contactPerson = `${admin.firstName} ${admin.lastName}`;
+      deptObj.contactEmail = admin.email;
+      deptObj.contactPhone = admin.phone;
+    }
+
     res.json({
       success: true,
-      data: { department }
+      data: { department: deptObj }
     });
   } catch (error: any) {
     res.status(500).json({

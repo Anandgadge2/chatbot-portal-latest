@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import toast from 'react-hot-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -14,11 +15,11 @@ import CreateCompanyDialog from '@/components/company/CreateCompanyDialog';
 import CreateDepartmentDialog from '@/components/department/CreateDepartmentDialog';
 import CreateUserDialog from '@/components/user/CreateUserDialog';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
-import toast from 'react-hot-toast';
-import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, AreaChart, Area } from 'recharts';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
-import { Building, Users, Shield, Settings, FileText, BarChart2, RefreshCw, Search, Download } from 'lucide-react';
+import { Building, Users, Shield, Settings, FileText, BarChart2, RefreshCw, Search, Download, Trash2, Edit2, Plus, History, Terminal, ChevronRight, User as UserIcon } from 'lucide-react';
 import { Pagination } from '@/components/ui/Pagination';
+import RecentActivityPanel from '@/components/dashboard/RecentActivityPanel';
+import TerminalLogs from '@/components/dashboard/TerminalLogs';
 
 const CHART_COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
@@ -49,8 +50,6 @@ export default function SuperAdminDashboard() {
     totalSessions: 0,
     systemStatus: 'operational'
   });
-  const [analyticsData, setAnalyticsData] = useState<any>(null);
-  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   const [editingDepartment, setEditingDepartment] = useState<Department | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -61,7 +60,14 @@ export default function SuperAdminDashboard() {
   const [userSearchTerm, setUserSearchTerm] = useState<string>('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>('');
   const [userCompanyFilter, setUserCompanyFilter] = useState<string>('');
+  const [deptSearchTerm, setDeptSearchTerm] = useState<string>('');
+  const [deptDebouncedSearchTerm, setDeptDebouncedSearchTerm] = useState<string>('');
+  const [deptCompanyFilter, setDeptCompanyFilter] = useState<string>('');
   const [allCompanies, setAllCompanies] = useState<Company[]>([]);
+  const [companySearchTerm, setCompanySearchTerm] = useState<string>('');
+  const [companyDebouncedSearchTerm, setCompanyDebouncedSearchTerm] = useState<string>('');
+  const [companyStatusFilter, setCompanyStatusFilter] = useState<string>('');
+  const [companyTypeFilter, setCompanyTypeFilter] = useState<string>('');
   
   // Pagination State
   const [companyPage, setCompanyPage] = useState(1);
@@ -72,6 +78,15 @@ export default function SuperAdminDashboard() {
   
   const [userPage, setUserPage] = useState(1);
   const [userPagination, setUserPagination] = useState({ total: 0, pages: 1, limit: 10 });
+  const [visiblePasswords, setVisiblePasswords] = useState<string[]>([]);
+
+  const togglePasswordVisibility = (userId: string) => {
+    setVisiblePasswords(prev => 
+      prev.includes(userId) 
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId]
+    );
+  };
 
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
@@ -102,7 +117,13 @@ export default function SuperAdminDashboard() {
   const fetchCompanies = useCallback(async (page = companyPage) => {
     setCompaniesLoading(true);
     try {
-      const response = await companyAPI.getAll({ page, limit: companyPagination.limit });
+      const response = await companyAPI.getAll({ 
+        page, 
+        limit: companyPagination.limit,
+        search: companyDebouncedSearchTerm,
+        isActive: companyStatusFilter === '' ? undefined : companyStatusFilter === 'active',
+        companyType: companyTypeFilter || undefined
+      });
       if (response.success) {
         setCompanies(response.data.companies);
         setCompanyPagination(prev => ({
@@ -116,11 +137,16 @@ export default function SuperAdminDashboard() {
     } finally {
       setCompaniesLoading(false);
     }
-  }, [companyPage, companyPagination.limit]);
+  }, [companyPage, companyPagination.limit, companyDebouncedSearchTerm, companyStatusFilter, companyTypeFilter]);
 
   const fetchDepartments = useCallback(async (page = departmentPage) => {
     try {
-      const response = await departmentAPI.getAll({ page, limit: departmentPagination.limit });
+      const response = await departmentAPI.getAll({ 
+        page, 
+        limit: departmentPagination.limit,
+        search: deptDebouncedSearchTerm,
+        companyId: deptCompanyFilter
+      });
       if (response.success) {
         setDepartments(response.data.departments);
         setDepartmentPagination(prev => ({
@@ -132,7 +158,7 @@ export default function SuperAdminDashboard() {
     } catch (error: any) {
       toast.error('Failed to fetch departments');
     }
-  }, [departmentPage, departmentPagination.limit]);
+  }, [departmentPage, departmentPagination.limit, deptDebouncedSearchTerm, deptCompanyFilter]);
 
   const fetchUsers = useCallback(async (page = userPage) => {
     try {
@@ -197,20 +223,7 @@ export default function SuperAdminDashboard() {
     });
   };
 
-  const fetchAnalytics = async () => {
-    setLoadingAnalytics(true);
-    try {
-      const response = await apiClient.get('/analytics/dashboard');
-      if (response.success) {
-        setAnalyticsData(response.data);
-      }
-    } catch (error: any) {
-      console.error('Failed to fetch analytics:', error);
-      toast.error('Failed to load analytics');
-    } finally {
-      setLoadingAnalytics(false);
-    }
-  };
+
 
   const handleDeleteCompany = (company: Company) => {
     setConfirmDialog({
@@ -273,6 +286,51 @@ export default function SuperAdminDashboard() {
     setShowUserDialog(true);
   };
 
+  const toggleCompanyStatus = async (company: Company) => {
+    try {
+      const response = await companyAPI.update(company._id, {
+        isActive: !company.isActive
+      } as any);
+      if (response.success) {
+        toast.success(`Company ${!company.isActive ? 'activated' : 'suspended'} successfully`);
+        fetchCompanies();
+        fetchStats();
+      }
+    } catch (error: any) {
+      toast.error('Failed to update company status');
+    }
+  };
+
+  const toggleDepartmentStatus = async (dept: Department) => {
+    try {
+      const response = await departmentAPI.update(dept._id, {
+        isActive: !dept.isActive
+      });
+      if (response.success) {
+        toast.success(`Department ${!dept.isActive ? 'activated' : 'deactivated'} successfully`);
+        fetchDepartments();
+        fetchStats();
+      }
+    } catch (error: any) {
+      toast.error('Failed to update department status');
+    }
+  };
+
+  const toggleUserStatus = async (u: User) => {
+    try {
+      const response = await userAPI.update(u._id, {
+        isActive: !u.isActive
+      } as any);
+      if (response.success) {
+        toast.success(`User ${!u.isActive ? 'activated' : 'deactivated'} successfully`);
+        fetchUsers();
+        fetchStats();
+      }
+    } catch (error: any) {
+      toast.error('Failed to update user status');
+    }
+  };
+
   const handleDeleteUser = (u: User) => {
     setConfirmDialog({
       isOpen: true,
@@ -297,16 +355,30 @@ export default function SuperAdminDashboard() {
   };
 
   useEffect(() => {
+    const handler = setTimeout(() => {
+      setCompanyDebouncedSearchTerm(companySearchTerm);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [companySearchTerm]);
+
+  useEffect(() => {
     if (mounted && user) {
       fetchCompanies(companyPage);
     }
-  }, [mounted, user, companyPage, fetchCompanies]);
+  }, [mounted, user, companyPage, fetchCompanies, companyDebouncedSearchTerm, companyStatusFilter, companyTypeFilter]);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDeptDebouncedSearchTerm(deptSearchTerm);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [deptSearchTerm]);
 
   useEffect(() => {
     if (mounted && user) {
       fetchDepartments(departmentPage);
     }
-  }, [mounted, user, departmentPage, fetchDepartments]);
+  }, [mounted, user, departmentPage, deptDebouncedSearchTerm, deptCompanyFilter, fetchDepartments]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -324,19 +396,12 @@ export default function SuperAdminDashboard() {
   useEffect(() => {
     if (mounted && user) {
       fetchStats();
-      fetchAnalytics();
     }
   }, [mounted, user]);
 
-  useEffect(() => {
-    if (activeTab === 'analytics' && mounted && user) {
-      fetchAnalytics();
-    }
-  }, [activeTab, mounted, user]);
-
   if (loading || !mounted) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
         <LoadingSpinner text="Loading Dashboard..." />
       </div>
     );
@@ -347,523 +412,706 @@ export default function SuperAdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-[#f8fafc]">
       {/* Header with Gradient */}
       {/* Classic White Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20 shadow-sm">
-                <Shield className="w-6 h-6 text-primary" />
+      <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50">
+        <div className="max-w-[1600px] mx-auto px-4 lg:px-6">
+          <div className="flex items-center justify-between h-14">
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-200">
+                  <Shield className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-base font-bold text-slate-900 tracking-tight leading-none">Master Admin</h1>
+                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Control Center</p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-slate-900 tracking-tight">SuperAdmin Dashboard</h1>
-                <p className="text-sm text-slate-500 mt-0.5">
-                  Welcome back, <span className="font-semibold text-slate-900">{user.firstName} {user.lastName}</span>
-                </p>
-              </div>
+
+              <div className="h-8 w-px bg-slate-200 hidden md:block"></div>
+
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full hidden md:block">
+                <TabsList className="bg-transparent border-0 h-14 gap-0.5 p-0">
+                  {[
+                    { val: 'overview', label: 'Overview', icon: BarChart2 },
+                    { val: 'companies', label: 'Companies', icon: Building },
+                    { val: 'departments', label: 'Departments', icon: Settings },
+                    { val: 'users', label: 'Users', icon: Users },
+                    { val: 'terminal', label: 'System Logs', icon: Terminal },
+                  ].map((t) => (
+                    <TabsTrigger
+                      key={t.val}
+                      value={t.val}
+                      className="px-4 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-600 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-indigo-600 text-slate-500 font-bold text-[11px] transition-all hover:text-slate-900"
+                    >
+                      <t.icon className="w-3.5 h-3.5 mr-2" />
+                      {t.label}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
             </div>
-            <Button
-              onClick={logout}
-              variant="outline"
-              className="border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all duration-200 shadow-sm"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-              Logout
-            </Button>
+
+            <div className="flex items-center gap-4">
+              <div className="hidden md:flex flex-col items-end">
+                <span className="text-xs font-bold text-slate-900">{user.firstName} {user.lastName}</span>
+                <span className="text-[10px] text-slate-500 font-medium">Platform Superadmin</span>
+              </div>
+              <Button
+                onClick={logout}
+                variant="outline"
+                size="sm"
+                className="border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all duration-200 shadow-sm rounded-lg font-bold text-[11px] uppercase tracking-wider"
+              >
+                Logout
+              </Button>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="inline-flex h-auto sm:h-12 flex-wrap sm:flex-nowrap items-center justify-center rounded-xl bg-slate-100 p-1 border border-slate-200 gap-1">
-            <TabsTrigger value="overview" className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200">Overview</TabsTrigger>
-            <TabsTrigger value="companies" className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200">Companies</TabsTrigger>
-            <TabsTrigger value="departments" className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200">Departments</TabsTrigger>
-            <TabsTrigger value="users" className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200">Users</TabsTrigger>
-            <TabsTrigger value="analytics" className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200">Analytics</TabsTrigger>
-            <TabsTrigger value="audit" className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200">Audit Logs</TabsTrigger>
-            <TabsTrigger value="settings" className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200">Settings</TabsTrigger>
-          </TabsList>
+      <main className="max-w-[1600px] mx-auto px-4 lg:px-6 py-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          {/* Main Content Areas */}
 
-          {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-6">
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {/* Total Companies - Gradient Blue Card */}
+          <TabsContent value="overview" className="space-y-6 outline-none">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-black text-slate-900 tracking-tighter">System Intelligence</h2>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">Real-time Metrics • Active Nodes</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                 <div className="bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-sm flex items-center gap-3">
+                    <div className="text-[9px] font-black text-slate-400 uppercase leading-none">Security<br/>Status</div>
+                    <div className="h-6 w-px bg-slate-100"></div>
+                    <div className="flex items-center gap-1.5">
+                       <Shield className="w-3.5 h-3.5 text-indigo-600" />
+                       <span className="text-[10px] font-black text-slate-800 uppercase tracking-wider">Protected</span>
+                    </div>
+                 </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Total Companies */}
               <Card 
-                className="group relative overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer rounded-xl"
+                className="group relative overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer rounded-2xl"
                 onClick={() => setActiveTab('companies')}
               >
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-slate-600 text-sm font-medium flex items-center justify-between">
+                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                   <Building className="w-24 h-24 text-blue-600 -mr-8 -mt-8 rotate-12" />
+                </div>
+                <CardHeader className="p-4 pb-2">
+                  <CardTitle className="text-slate-500 text-[10px] font-black uppercase tracking-widest flex items-center justify-between">
                     <span className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
-                        <Building className="w-4 h-4 text-blue-600" />
+                      <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center text-blue-600">
+                        <Building className="w-4 h-4" />
                       </div>
-                      Total Companies
+                      Organizations
                     </span>
-                    <svg className="w-4 h-4 text-slate-400 group-hover:text-primary group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
+                    <ChevronRight className="w-3 h-3 text-slate-300 group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold text-slate-900 mb-1">{stats.companies}</p>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
-                      {stats.activeCompanies} active
+                <CardContent className="p-4 pt-0">
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-3xl font-black text-slate-900 tracking-tighter">{stats.companies}</p>
+                    <span className="text-[10px] font-bold text-slate-400">Entities</span>
+                  </div>
+                  <div className="mt-3 flex items-center gap-2">
+                    <div className="flex-1 h-1 bg-slate-100 rounded-full overflow-hidden">
+                       <div className="h-full bg-blue-500 rounded-full" style={{ width: `${(stats.activeCompanies / stats.companies) * 100}%` }} />
+                    </div>
+                    <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100 uppercase">
+                      {stats.activeCompanies} Active
                     </span>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Total Users - Gradient Emerald Card */}
+              {/* Total Users */}
               <Card 
-                className="group relative overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer rounded-xl"
+                className="group relative overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer rounded-2xl"
                 onClick={() => setActiveTab('users')}
               >
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-slate-600 text-sm font-medium flex items-center justify-between">
+                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                   <Users className="w-24 h-24 text-emerald-600 -mr-8 -mt-8 -rotate-12" />
+                </div>
+                <CardHeader className="p-4 pb-2">
+                  <CardTitle className="text-slate-500 text-[10px] font-black uppercase tracking-widest flex items-center justify-between">
                     <span className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
-                        <Users className="w-4 h-4 text-emerald-600" />
+                      <div className="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center text-emerald-600">
+                        <Users className="w-4 h-4" />
                       </div>
                       Total Users
                     </span>
-                    <svg className="w-4 h-4 text-slate-400 group-hover:text-primary group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
+                    <ChevronRight className="w-3 h-3 text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" />
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold text-slate-900 mb-1">{stats.users}</p>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
-                      {stats.activeUsers} active
+                <CardContent className="p-4 pt-0">
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-3xl font-black text-slate-900 tracking-tighter">{stats.users}</p>
+                    <span className="text-[10px] font-bold text-slate-400">Total</span>
+                  </div>
+                  <div className="mt-3 flex items-center gap-2">
+                    <div className="flex-1 h-1 bg-slate-100 rounded-full overflow-hidden">
+                       <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(stats.activeUsers / stats.users) * 100}%` }} />
+                    </div>
+                    <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100 uppercase">
+                      {stats.activeUsers} Live
                     </span>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Departments - Gradient Purple Card */}
+              {/* Departments */}
               <Card 
-                className="group relative overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer rounded-xl"
+                className="group relative overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer rounded-2xl"
                 onClick={() => setActiveTab('departments')}
               >
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-slate-600 text-sm font-medium flex items-center justify-between">
-                    <span className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
-                        <Building className="w-4 h-4 text-purple-600" />
-                      </div>
-                      Departments
-                    </span>
-                    <svg className="w-4 h-4 text-slate-400 group-hover:text-primary group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold text-slate-900 mb-1">{stats.departments}</p>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">
-                      Total departments
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* System Status - Gradient Amber Card */}
-              <Card className="group relative overflow-hidden bg-white border border-slate-200 shadow-sm rounded-xl">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-slate-600 text-sm font-medium flex items-center gap-2">
-                    <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
-                      <Settings className="w-4 h-4 text-emerald-600" />
-                    </div>
-                    System Status
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xl font-bold text-slate-900 mb-1">Operational</p>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
-                      All systems running
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Quick Actions and Activity */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="border border-slate-200 shadow-sm">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-slate-900 text-lg font-semibold">Quick Actions</CardTitle>
-                  <CardDescription className="text-slate-500">Manage your platform</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Button 
-                    className="w-full justify-start" 
-                    variant="outline"
-                    onClick={() => setActiveTab('companies')}
-                  >
-                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                    </svg>
-                    Manage Companies
-                  </Button>
-                  <Button 
-                    className="w-full justify-start" 
-                    variant="outline"
-                    onClick={() => setActiveTab('users')}
-                  >
-                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                    </svg>
-                    Manage Users
-                  </Button>
-                  <Button 
-                    className="w-full justify-start" 
-                    variant="outline"
-                    onClick={() => setActiveTab('settings')}
-                  >
-                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    System Settings
-                  </Button>
-                  <Button 
-                    className="w-full justify-start" 
-                    variant="outline"
-                    onClick={() => setActiveTab('audit')}
-                  >
-                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    View Audit Logs
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recent Activity</CardTitle>
-                  <CardDescription>Latest platform events</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                      <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">SuperAdmin account created</p>
-                        <p className="text-xs text-gray-500">Just now</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">System initialized</p>
-                        <p className="text-xs text-gray-500">Today</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* User Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Your Account Information</CardTitle>
-                <CardDescription>SuperAdmin account details</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">User ID</p>
-                    <p className="text-lg font-semibold">{user.userId}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Email</p>
-                    <p className="text-lg font-semibold">{user.email}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Full Name</p>
-                    <p className="text-lg font-semibold">{user.firstName} {user.lastName}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Role</p>
-                    <p className="text-lg font-semibold">
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
-                        {user.role}
-                      </span>
-                    </p>
-                  </div>
+                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                   <Settings className="w-24 h-24 text-purple-600 -mr-8 -mt-8 rotate-45" />
                 </div>
-              </CardContent>
-            </Card>
+                <CardHeader className="p-4 pb-2">
+                  <CardTitle className="text-slate-500 text-[10px] font-black uppercase tracking-widest flex items-center justify-between">
+                    <span className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-purple-500/10 rounded-lg flex items-center justify-center text-purple-600">
+                        <Settings className="w-4 h-4" />
+                      </div>
+                      Departments   
+                    </span>
+                    <ChevronRight className="w-3 h-3 text-slate-300 group-hover:text-purple-500 group-hover:translate-x-1 transition-all" />
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-3xl font-black text-slate-900 tracking-tighter">{stats.departments}</p>
+                    <span className="text-[10px] font-bold text-slate-400">Nodes</span>
+                  </div>
+                  <div className="mt-3">
+                    <span className="text-[9px] font-black text-purple-600 bg-purple-50 px-2 py-1 rounded-md border border-purple-100 uppercase tracking-widest">
+                       Multi-Company Coverage
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* System Status */}
+              <Card className="group relative overflow-hidden bg-slate-900 border-0 shadow-lg rounded-2xl">
+                <div className="absolute top-0 right-0 p-4 opacity-10">
+                   <Shield className="w-24 h-24 text-emerald-500 -mr-8 -mt-8" />
+                </div>
+                <CardHeader className="p-4 pb-2 relative z-10">
+                  <CardTitle className="text-slate-400 text-[10px] font-black uppercase tracking-widest">
+                    <span className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+                      Infrastructure
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 pt-0 relative z-10">
+                  <p className="text-2xl font-black text-white tracking-tight uppercase italic">{stats.systemStatus}</p>
+                  <div className="mt-4 flex flex-col gap-1">
+                     <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Global Runtime</div>
+                     <div className="text-[10px] font-bold text-emerald-400 flex items-center gap-1.5">
+                        <RefreshCw className="w-3 h-3 animate-spin duration-[4s]" />
+                        All clusters responding
+                     </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Main Stats Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Left Column: Recent Activity (Taking more space) */}
+              <div className="lg:col-span-2">
+                <RecentActivityPanel />
+              </div>
+
+              {/* Right Column: Account Info and Stats Summary */}
+              <div className="space-y-6">
+                <Card className="border border-slate-200 shadow-sm overflow-hidden bg-white">
+                  <CardHeader className="bg-slate-50/50 border-b border-slate-100 p-4">
+                    <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                      <UserIcon className="w-4 h-4 text-blue-600" />
+                      Session Profile
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-5">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-gradient-to-br from-primary to-blue-600 rounded-full flex items-center justify-center text-white font-black text-lg shadow-md">
+                          {user.firstName[0]}{user.lastName[0]}
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-slate-900 leading-none">{user.firstName} {user.lastName}</p>
+                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">{user.role}</p>
+                        </div>
+                      </div>
+                      <div className="pt-4 border-t border-slate-100 space-y-3">
+                        <div className="flex justify-between items-center text-[11px]">
+                          <span className="font-bold text-slate-500 uppercase">User ID</span>
+                          <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">{user.userId}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-[11px]">
+                          <span className="font-bold text-slate-500 uppercase">Email</span>
+                          <span className="text-slate-700 font-medium">{user.email}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-[11px]">
+                          <span className="font-bold text-slate-500 uppercase">Access Level</span>
+                          <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full font-bold">Unrestricted</span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border border-slate-200 shadow-sm overflow-hidden bg-white">
+                   <CardHeader className="bg-slate-50/50 border-b border-slate-100 p-4">
+                    <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                      <RefreshCw className="w-4 h-4 text-emerald-600" />
+                      System Health
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-5">
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-xs font-bold text-slate-500 uppercase">API Status</span>
+                      <span className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-bold">
+                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+                        Healthy
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-100 rounded-full h-1.5 mb-1">
+                      <div className="bg-indigo-600 h-1.5 rounded-full w-[98%] shadow-[0_0_8px_rgba(79,70,229,0.3)]" />
+                    </div>
+                    <div className="flex justify-between items-center mt-2">
+                      <span className="text-[10px] font-bold text-slate-400">UPTIME</span>
+                      <span className="text-[10px] font-bold text-slate-900 uppercase">99.9%</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           </TabsContent>
 
           {/* Companies Tab */}
-          <TabsContent value="companies" className="space-y-6">
+          <TabsContent value="companies" className="space-y-4">
             <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
-              <CardHeader className="bg-slate-50 border-b border-slate-200 px-6 py-5">
+              <CardHeader className="bg-slate-900 border-0 px-5 py-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">
-                      <Building className="w-6 h-6 text-primary" />
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center backdrop-blur-md border border-white/20">
+                      <Building className="w-4.5 h-4.5 text-white" />
                     </div>
                     <div>
-                      <CardTitle className="text-lg font-bold text-slate-900">Company Management</CardTitle>
-                      <CardDescription className="text-slate-500 mt-0.5">Manage all companies in the platform</CardDescription>
+                      <CardTitle className="text-sm font-bold text-white">Organization Registry</CardTitle>
+                      <CardDescription className="text-slate-400 text-[10px] font-medium leading-none mt-1">Manage global corporate entities</CardDescription>
                     </div>
                   </div>
                   <Button 
-                    className="bg-primary text-white hover:bg-primary/90 rounded-lg px-5 shadow-sm"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg h-8 shadow-md shadow-indigo-900/20 font-bold text-[10px] uppercase tracking-wider px-4 border-0 transition-all"
                     onClick={() => setShowCreateDialog(true)}
                   >
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    Add Company
+                    <Plus className="w-3 h-3 mr-1.5" />
+                    Add Organization
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent>
-                {companiesLoading ? (
-                  <div className="py-12 flex justify-center">
-                    <LoadingSpinner text="Loading companies..." />
-                  </div>
-                ) : companies.length === 0 ? (
-                  <div className="text-center py-12">
-                    <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                    </svg>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No companies yet</h3>
-                    <p className="text-gray-500 mb-4">Get started by creating your first company</p>
-                    <Button variant="outline" onClick={() => setShowCreateDialog(true)}>Create Company</Button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {companies.map((company) => (
-                      <div key={company._id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1 cursor-pointer" onClick={() => router.push(`/superadmin/company/${company._id}`)}>
-                            <h4 className="font-semibold text-lg text-blue-600 hover:text-blue-800 hover:underline">{company.name}</h4>
-                            <p className="text-sm text-gray-500">ID: {company.companyId}</p>
-                            <p className="text-sm text-gray-500">{company.contactEmail} • {company.contactPhone}</p>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              company.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                            }`}>
-                              {company.isActive ? 'Active' : 'Inactive'}
-                            </span>
-                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                              {company.companyType}
-                            </span>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="text-blue-600 hover:text-blue-900"
-                              onClick={() => handleEditCompany(company)}
-                            >
-                              Edit
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="text-red-600 hover:text-red-900"
-                              onClick={() => handleDeleteCompany(company)}
-                            >
-                              Delete
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    
-                    <Pagination
-                      currentPage={companyPage}
-                      totalPages={companyPagination.pages}
-                      totalItems={companyPagination.total}
-                      itemsPerPage={companyPagination.limit}
-                      onPageChange={setCompanyPage}
-                      className="mt-6 shadow-none border-t border-slate-100 rounded-none bg-slate-50/30"
+              <CardContent className="p-0">
+                <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/30 flex flex-wrap items-center gap-3">
+                  <div className="relative flex-1 min-w-[280px]">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Find by name or ID..."
+                      value={companySearchTerm}
+                      onChange={(e) => {
+                        setCompanySearchTerm(e.target.value);
+                        setCompanyPage(1);
+                      }}
+                      className="w-full pl-9 pr-4 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
                     />
                   </div>
-                )}
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Status</span>
+                    <select
+                      value={companyStatusFilter}
+                      onChange={(e) => {
+                        setCompanyStatusFilter(e.target.value);
+                        setCompanyPage(1);
+                      }}
+                      className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-600 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all cursor-pointer"
+                    >
+                      <option value="">All Status</option>
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Type</span>
+                    <select
+                      value={companyTypeFilter}
+                      onChange={(e) => {
+                        setCompanyTypeFilter(e.target.value);
+                        setCompanyPage(1);
+                      }}
+                      className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-600 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all cursor-pointer"
+                    >
+                      <option value="">All Types</option>
+                      <option value="SOCIETY">Society</option>
+                      <option value="GOVERNMENT">Government</option>
+                      <option value="CORPORATE">Corporate</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                   <table className="w-full">
+                    <thead className="bg-[#fcfdfe] border-b border-slate-100">
+                      <tr>
+                        <th className="px-4 py-2.5 text-center text-[9px] font-bold text-slate-400 uppercase tracking-widest">#</th>
+                        <th className="px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">Organization</th>
+                        <th className="px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">ID</th>
+                        <th className="px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">Head</th>
+                        <th className="px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">Contact</th>
+                        <th className="px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">Type</th>
+                        <th className="px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
+                        <th className="px-5 py-2.5 text-right text-[9px] font-bold text-slate-400 uppercase tracking-widest">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-slate-100">
+                      {companiesLoading ? (
+                        <tr>
+                          <td colSpan={8} className="py-20 text-center">
+                            <LoadingSpinner text="Refreshing database..." />
+                          </td>
+                        </tr>
+                      ) : companies.length === 0 ? (
+                        <tr>
+                          <td colSpan={8} className="py-20 text-center">
+                            <div className="flex flex-col items-center justify-center">
+                              <Building className="w-12 h-12 text-slate-200 mb-3" />
+                              <p className="text-slate-500 font-medium">No organizations matching your criteria</p>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : (
+                        companies.map((company, index) => (
+                          <tr key={company._id} className="hover:bg-slate-50 transition-colors group">
+                            <td className="px-4 py-4 text-center">
+                              <span className="text-xs font-bold text-slate-400">
+                                {(companyPage - 1) * companyPagination.limit + index + 1}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div 
+                                className="cursor-pointer"
+                                onClick={() => router.push(`/superadmin/company/${company._id}`)}
+                              >
+                                <div className="text-sm font-bold text-blue-600 hover:text-blue-800 hover:underline">{company.name}</div>
+                                <div className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-tighter">System Entry: {new Date(company.createdAt).toLocaleDateString()}</div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                               <span className="text-xs font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 border border-slate-200">
+                                 {company.companyId}
+                               </span>
+                            </td>
+                            <td className="px-5 py-3 whitespace-nowrap">
+                              <div className="text-[11px] font-bold text-slate-700">{(company as any).companyHead?.name || 'Not Assigned'}</div>
+                              <div className="text-[9px] font-medium text-slate-400 mt-0.5">{(company as any).companyHead?.email || '-'}</div>
+                            </td>
+                            <td className="px-5 py-3 whitespace-nowrap">
+                              <div className="text-[11px] font-bold text-indigo-600">
+                                {(() => {
+                                  const phone = (company as any).companyHead?.phone || company.contactPhone;
+                                  if (!phone) return '-';
+                                  const digitsOnly = phone.replace(/\D/g, '');
+                                  return digitsOnly.length >= 10 ? digitsOnly.slice(-10) : digitsOnly;
+                                })()}
+                              </div>
+                            </td>
+                            <td className="px-5 py-3 whitespace-nowrap">
+                              <span className="px-1.5 py-0.5 bg-indigo-50 text-indigo-600 rounded text-[9px] font-bold border border-indigo-100 uppercase tracking-wider">
+                                {company.companyType}
+                              </span>
+                            </td>
+                            <td className="px-5 py-3 whitespace-nowrap">
+                              <button 
+                                onClick={() => toggleCompanyStatus(company)}
+                                className={`px-2 py-0.5 rounded-md text-[9px] font-bold border uppercase tracking-widest transition-all hover:scale-105 active:scale-95 ${
+                                company.isActive 
+                                  ? 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100' 
+                                  : 'bg-rose-50 text-rose-600 border-rose-100 hover:bg-rose-100'
+                              }`}>
+                                {company.isActive ? 'Active' : 'Suspended'}
+                              </button>
+                            </td>
+                            <td className="px-5 py-3 whitespace-nowrap text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-7 w-7 p-0 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                                  onClick={() => handleEditCompany(company)}
+                                >
+                                  <Edit2 className="w-3.5 h-3.5" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-7 w-7 p-0 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                                  onClick={() => handleDeleteCompany(company)}
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/20">
+                  <Pagination
+                    currentPage={companyPage}
+                    totalPages={companyPagination.pages}
+                    totalItems={companyPagination.total}
+                    itemsPerPage={companyPagination.limit}
+                    onPageChange={setCompanyPage}
+                    className="shadow-none"
+                  />
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
 
           {/* Departments Tab */}
-          <TabsContent value="departments" className="space-y-6">
+          <TabsContent value="departments" className="space-y-4">
             <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
-              <CardHeader className="bg-slate-50 border-b border-slate-200 px-6 py-5">
+              <CardHeader className="bg-slate-900 border-0 px-5 py-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">
-                      <Building className="w-6 h-6 text-primary" />
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center backdrop-blur-md border border-white/20">
+                      <Settings className="w-4.5 h-4.5 text-white" />
                     </div>
                     <div>
-                      <CardTitle className="text-lg font-bold text-slate-900">Department Management</CardTitle>
-                      <CardDescription className="text-slate-500 mt-0.5">Manage all departments across companies</CardDescription>
+                      <CardTitle className="text-sm font-bold text-white">Department Ecosystem</CardTitle>
+                      <CardDescription className="text-slate-400 text-[10px] font-medium leading-none mt-1">Hierarchical organization structure</CardDescription>
                     </div>
                   </div>
                   <Button 
-                    className="bg-primary text-white hover:bg-primary/90 rounded-lg px-5 shadow-sm"
-                    onClick={() => setShowDepartmentDialog(true)}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg h-8 shadow-md shadow-indigo-900/20 font-bold text-[10px] uppercase tracking-wider px-4 border-0 transition-all"
+                    onClick={() => {
+                      setEditingDepartment(null);
+                      setShowDepartmentDialog(true);
+                    }}
                   >
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
+                    <Plus className="w-3 h-3 mr-1.5" />
                     Add Department
                   </Button>
                 </div>
               </CardHeader>
               <CardContent className="p-0">
-                <div className="overflow-hidden">
+                <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/30 flex flex-wrap items-center gap-3">
+                  <div className="relative flex-1 min-w-[280px]">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                    <input
+                      placeholder="Find department..."
+                      value={deptSearchTerm}
+                      onChange={(e) => {
+                        setDeptSearchTerm(e.target.value);
+                        setDepartmentPage(1);
+                      }}
+                      className="w-full pl-9 pr-4 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Filter By Company</span>
+                    <select
+                      value={deptCompanyFilter}
+                      onChange={(e) => {
+                        setDeptCompanyFilter(e.target.value);
+                        setDepartmentPage(1);
+                      }}
+                      className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-600 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all cursor-pointer min-w-[150px]"
+                    >
+                      <option value="">All Companies</option>
+                      {allCompanies.map(c => (
+                        <option key={c._id} value={c._id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-slate-50 border-b border-slate-200">
+                    <thead className="bg-[#fcfdfe] border-b border-slate-100">
                       <tr>
-                        <th className="px-3 py-4 text-center text-xs font-bold text-slate-600 uppercase tracking-wider">Sr. No.</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Department</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Company</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Contact</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Status</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Actions</th>
+                        <th className="px-4 py-2.5 text-center text-[9px] font-bold text-slate-400 uppercase tracking-widest">#</th>
+                        <th className="px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">Department</th>
+                        <th className="px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">Company</th>
+                        <th className="px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">Head</th>
+                        <th className="px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
+                        <th className="px-5 py-2.5 text-right text-[9px] font-bold text-slate-400 uppercase tracking-widest">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-slate-100">
-                      {departments.map((department, index) => (
-                        <tr key={department._id} className="hover:bg-gradient-to-r hover:from-purple-50/50 hover:to-pink-50/50 transition-all duration-200">
-                          <td className="px-3 py-4 text-center">
-                            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-purple-100 text-purple-700 text-xs font-bold">
-                              {(departmentPage - 1) * departmentPagination.limit + index + 1}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div 
-                              className="cursor-pointer"
-                              onClick={() => {
-                                const companyId = typeof department.companyId === 'object' ? department.companyId?._id : department.companyId;
-                                router.push(`/superadmin/department/${department._id}?companyId=${companyId}`);
-                              }}
-                            >
-                              <div className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline">{department.name}</div>
-                              <div className="text-sm text-gray-500">{department.departmentId}</div>
+                      {departments.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="py-20 text-center">
+                            <div className="flex flex-col items-center justify-center">
+                              <Settings className="w-12 h-12 text-slate-200 mb-3" />
+                              <p className="text-slate-500 font-medium">No departments matching your criteria</p>
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {getCompanyDisplay(department.companyId)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {department.contactPerson || 'N/A'}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                              Active
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="text-blue-600 hover:text-blue-900 mr-2"
-                              onClick={() => handleEditDepartment(department)}
-                            >
-                              Edit
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="text-red-600 hover:text-red-900"
-                              onClick={() => handleDeleteDepartment(department)}
-                            >
-                              Delete
-                            </Button>
-                          </td>
                         </tr>
-                      ))}
+                      ) : (
+                        departments.map((department, index) => (
+                          <tr key={department._id} className="hover:bg-slate-50 transition-colors group">
+                            <td className="px-4 py-4 text-center">
+                              <span className="text-xs font-bold text-slate-400">
+                                {(departmentPage - 1) * departmentPagination.limit + index + 1}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div 
+                                className="cursor-pointer"
+                                onClick={() => {
+                                  const companyId = typeof department.companyId === 'object' ? department.companyId?._id : department.companyId;
+                                  router.push(`/superadmin/department/${department._id}?companyId=${companyId}`);
+                                }}
+                              >
+                                <div className="text-sm font-bold text-blue-600 hover:text-blue-800 hover:underline">{department.name}</div>
+                                <div className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-tighter">ID: {department.departmentId}</div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className="text-xs font-bold text-slate-700">{getCompanyDisplay(department.companyId)}</span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-xs font-bold text-slate-700 uppercase">{department.contactPerson || 'Not Assigned'}</div>
+                              <div className="text-[10px] font-medium text-slate-400 mt-0.5">
+                                {(() => {
+                                  const phone = department.contactPhone;
+                                  if (!phone) return '-';
+                                  const digitsOnly = phone.replace(/\D/g, '');
+                                  return digitsOnly.length >= 10 ? digitsOnly.slice(-10) : digitsOnly;
+                                })()}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <button 
+                                onClick={() => toggleDepartmentStatus(department)}
+                                className={`px-2 py-0.5 rounded-md text-[10px] font-bold border uppercase tracking-widest transition-all hover:scale-105 active:scale-95 ${
+                                  department.isActive 
+                                    ? 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100' 
+                                    : 'bg-rose-50 text-rose-600 border-rose-100 hover:bg-rose-100'
+                                }`}
+                              >
+                                {department.isActive ? 'Active' : 'Suspended'}
+                              </button>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                  onClick={() => handleEditDepartment(department)}
+                                >
+                                  <Edit2 className="w-3.5 h-3.5" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-8 w-8 p-0 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                                  onClick={() => handleDeleteDepartment(department)}
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
 
-                <Pagination
-                  currentPage={departmentPage}
-                  totalPages={departmentPagination.pages}
-                  totalItems={departmentPagination.total}
-                  itemsPerPage={departmentPagination.limit}
-                  onPageChange={setDepartmentPage}
-                  className="mt-6 shadow-none border-t border-slate-100 rounded-none bg-slate-50/30"
-                />
+                <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/20">
+                  <Pagination
+                    currentPage={departmentPage}
+                    totalPages={departmentPagination.pages}
+                    totalItems={departmentPagination.total}
+                    itemsPerPage={departmentPagination.limit}
+                    onPageChange={setDepartmentPage}
+                    className="shadow-none"
+                  />
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
 
           {/* Users Tab */}
-          <TabsContent value="users" className="space-y-6">
-            <Card className="rounded-2xl border-0 shadow-xl overflow-hidden bg-white/80 backdrop-blur-sm">
-              <CardHeader className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white px-6 py-5">
+          <TabsContent value="users" className="space-y-4">
+            <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
+              <CardHeader className="bg-slate-900 border-0 px-5 py-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
-                      <Users className="w-6 h-6 text-white" />
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center backdrop-blur-md border border-white/20">
+                      <Users className="w-4.5 h-4.5 text-white" />
                     </div>
                     <div>
-                      <CardTitle className="text-xl font-bold text-white">User Management</CardTitle>
-                      <CardDescription className="text-white/80 mt-0.5">Manage all users across the platform</CardDescription>
+                      <CardTitle className="text-sm font-bold text-white">Platform Users</CardTitle>
+                      <CardDescription className="text-slate-400 text-[10px] font-medium leading-none mt-1">Access control and identity management</CardDescription>
                     </div>
                   </div>
                   <Button 
-                    className="bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm transition-all duration-200 rounded-xl px-5"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg h-8 shadow-md shadow-indigo-900/20 font-bold text-[10px] uppercase tracking-wider px-4 border-0 transition-all"
                     onClick={() => {
                       setEditingUser(null);
                       setShowUserDialog(true);
                     }}
                   >
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
+                    <Plus className="w-3 h-3 mr-1.5" />
                     Add User
                   </Button>
                 </div>
               </CardHeader>
               <CardContent className="p-0">
-                <div className="p-4 border-b border-emerald-100 bg-emerald-50/30 flex flex-wrap items-center gap-4">
-                  {/* Search Bar */}
-                  <div className="relative flex-1 min-w-[300px]">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-600" />
+                <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/30 flex flex-wrap items-center gap-3">
+                  <div className="relative flex-1 min-w-[280px]">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                     <input
-                      type="text"
-                      placeholder="Search by Name or User ID..."
+                      placeholder="Find user by name or ID..."
                       value={userSearchTerm}
                       onChange={(e) => {
                         setUserSearchTerm(e.target.value);
-                        setUserPage(1); // Reset to first page on search
+                        setUserPage(1);
                       }}
-                      className="w-full pl-10 pr-4 py-2 bg-white border border-emerald-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-sm"
+                      className="w-full pl-9 pr-4 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
                     />
                   </div>
 
-                  {/* Company Filter */}
                   <div className="flex items-center gap-2">
-                    <label className="text-xs font-semibold text-emerald-800 uppercase tracking-wider">Company:</label>
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Company</span>
                     <select
                       value={userCompanyFilter}
                       onChange={(e) => {
                         setUserCompanyFilter(e.target.value);
-                        setUserPage(1); // Reset to first page on filter
+                        setUserPage(1);
                       }}
-                      className="rounded-xl border border-emerald-200 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-sm min-w-[150px]"
+                      className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-600 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all cursor-pointer min-w-[120px]"
                     >
                       <option value="">All Companies</option>
                       {allCompanies.map(c => (
@@ -872,16 +1120,15 @@ export default function SuperAdminDashboard() {
                     </select>
                   </div>
 
-                  {/* Role Filter */}
                   <div className="flex items-center gap-2">
-                    <label className="text-xs font-semibold text-emerald-800 uppercase tracking-wider">Role:</label>
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Role</span>
                     <select
                       value={userRoleFilter}
                       onChange={(e) => {
                         setUserRoleFilter(e.target.value);
-                        setUserPage(1); // Reset to first page on filter
+                        setUserPage(1);
                       }}
-                      className="rounded-xl border border-emerald-200 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-sm min-w-[150px]"
+                      className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-600 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all cursor-pointer min-w-[120px]"
                     >
                       <option value="">All Roles</option>
                       <option value="SUPER_ADMIN">Super Admin</option>
@@ -890,25 +1137,8 @@ export default function SuperAdminDashboard() {
                       <option value="OPERATOR">Operator</option>
                     </select>
                   </div>
-
-                  {/* Clear Filters */}
-                  {(userSearchTerm || userCompanyFilter || userRoleFilter) && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => {
-                        setUserSearchTerm('');
-                        setUserCompanyFilter('');
-                        setUserRoleFilter('');
-                        setUserPage(1);
-                      }}
-                      className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-100 rounded-lg text-xs"
-                    >
-                      Clear All
-                    </Button>
-                  )}
                 </div>
-                <div className="overflow-hidden">
+                <div className="overflow-x-auto">
                   {(() => {
                     const filtered = users; // Filtering is now done on the backend
                     return filtered.length === 0 ? (
@@ -918,72 +1148,107 @@ export default function SuperAdminDashboard() {
                     </div>
                   ) : (
                   <table className="w-full">
-                    <thead className="bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50 border-b border-emerald-100">
+                    <thead className="bg-[#fcfdfe] border-b border-slate-100">
                       <tr>
-                        <th className="px-3 py-4 text-center text-xs font-bold text-emerald-700 uppercase tracking-wider">Sr. No.</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-emerald-700 uppercase tracking-wider">User</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-emerald-700 uppercase tracking-wider">Email</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-emerald-700 uppercase tracking-wider">Role</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-emerald-700 uppercase tracking-wider">Company</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-emerald-700 uppercase tracking-wider">Status</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-emerald-700 uppercase tracking-wider">Actions</th>
+                        <th className="px-4 py-2.5 text-center text-[9px] font-bold text-slate-400 uppercase tracking-widest">#</th>
+                        <th className="px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">User</th>
+                        <th className="px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">Email</th>
+                        <th className="px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">Credentials</th>
+                        <th className="px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">Role</th>
+                        <th className="px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">Company</th>
+                        <th className="px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
+                        <th className="px-5 py-2.5 text-right text-[9px] font-bold text-slate-400 uppercase tracking-widest">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-slate-100">
                       {filtered.map((u, idx) => (
-                      <tr key={u._id} className="hover:bg-gradient-to-r hover:from-emerald-50/50 hover:to-cyan-50/50 transition-all duration-200">
+                      <tr key={u._id} className="hover:bg-slate-50 transition-colors group">
                         <td className="px-3 py-4 text-center">
-                          <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">
+                          <span className="text-[10px] font-bold text-slate-400">
                             {(userPage - 1) * userPagination.limit + idx + 1}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
-                            <div className="flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center text-white font-semibold bg-gradient-to-br from-emerald-500 to-teal-600">
+                            <div className="flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center text-white font-bold bg-indigo-600 text-[11px] shadow-md shadow-indigo-100">
                               {(u.firstName?.[0] || '')}{(u.lastName?.[0] || '')}
                             </div>
-                            <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900">{u.firstName} {u.lastName}</div>
-                              <div className="text-sm text-gray-500">{u.userId || u._id}</div>
+                            <div className="ml-3">
+                              <div className="text-[11px] font-bold text-slate-800 leading-none">{u.firstName} {u.lastName}</div>
+                              <div className="text-[9px] font-bold text-slate-400 mt-0.5 uppercase tracking-tighter">{u.userId || u._id}</div>
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{u.email}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            u.role === 'SUPER_ADMIN' ? 'bg-yellow-100 text-yellow-800' :
-                            u.role === 'COMPANY_ADMIN' ? 'bg-blue-100 text-blue-800' :
-                            u.role === 'DEPARTMENT_ADMIN' ? 'bg-purple-100 text-purple-800' :
-                            'bg-slate-100 text-slate-800'
+                        <td className="px-4 py-3 whitespace-nowrap text-[11px] font-medium text-slate-600">{u.email}</td>
+                        <td className="px-6 py-3 whitespace-nowrap">
+                           <div className="flex flex-col">
+                              <div className="text-[11px] font-bold text-indigo-600 tabular-nums">
+                                {(() => {
+                                  const phone = u.phone;
+                                  if (!phone) return '-';
+                                  const digitsOnly = phone.replace(/\D/g, '');
+                                  return digitsOnly.length >= 10 ? digitsOnly.slice(-10) : digitsOnly;
+                                })()}
+                              </div>
+                              <div 
+                                className="flex items-center gap-1.5 cursor-pointer group/pass"
+                                onClick={() => togglePasswordVisibility(u._id)}
+                              >
+                                 <div className="text-[10px] font-mono text-slate-400 font-bold tracking-tight">
+                                   {u.rawPassword ? (visiblePasswords.includes(u._id) ? u.rawPassword : '••••••••') : (
+                                     visiblePasswords.includes(u._id) ? (
+                                       u.email === 'superadmin@platform.com' ? '1111111' : '••••••••'
+                                     ) : '••••••••'
+                                   )}
+                                 </div>
+                                 <div className="w-1.5 h-1.5 rounded-full bg-slate-200 group-hover/pass:bg-indigo-400 transition-colors"></div>
+                              </div>
+                           </div>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span className={`px-1.5 py-0.5 inline-flex text-[9px] leading-none font-black rounded uppercase tracking-widest ${
+                            u.role === 'SUPER_ADMIN' ? 'bg-amber-50 text-amber-600 border border-amber-100' :
+                            u.role === 'COMPANY_ADMIN' ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' :
+                            u.role === 'DEPARTMENT_ADMIN' ? 'bg-purple-50 text-purple-600 border border-purple-100' :
+                            'bg-slate-50 text-slate-600 border border-slate-100'
                           }`}>
-                            {u.role}
+                            {u.role.replace('_', ' ')}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        <td className="px-4 py-3 whitespace-nowrap text-[11px] font-bold text-slate-500">
                           {typeof u.companyId === 'object' && u.companyId?.name ? u.companyId.name : (u.companyId ? String(u.companyId) : '—')}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${u.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                            {u.isActive ? 'Active' : 'Inactive'}
-                          </span>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <button 
+                            onClick={() => toggleUserStatus(u)}
+                            className={`px-2 py-0.5 inline-flex text-[9px] uppercase tracking-widest leading-none font-black rounded-md transition-all hover:scale-105 active:scale-95 border ${
+                              u.isActive 
+                                ? 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100' 
+                                : 'bg-rose-50 text-rose-600 border-rose-100 hover:bg-rose-100'
+                            }`}
+                          >
+                            {u.isActive ? 'Active' : 'Suspended'}
+                          </button>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="text-blue-600 hover:text-blue-900 mr-2"
-                            onClick={() => handleEditUser(u)}
-                          >
-                            Edit
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="text-red-600 hover:text-red-900"
-                            onClick={() => handleDeleteUser(u)}
-                          >
-                            Delete
-                          </Button>
+                        <td className="px-4 py-3 whitespace-nowrap text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-7 w-7 p-0 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                              onClick={() => handleEditUser(u)}
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-7 w-7 p-0 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                              onClick={() => handleDeleteUser(u)}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                       ))}
@@ -1004,360 +1269,13 @@ export default function SuperAdminDashboard() {
               </CardContent>
             </Card>
           </TabsContent>
-
-          {/* Analytics Tab */}
-          <TabsContent value="analytics" className="space-y-6">
-            {loadingAnalytics ? (
-              <div className="text-center py-16">
-                <LoadingSpinner text="Loading analytics..." />
-              </div>
-            ) : analyticsData ? (
-              <div className="space-y-8 animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
-                {/* System Overview Charts */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Companies Distribution</CardTitle>
-                      <CardDescription>Active vs Inactive companies</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <ResponsiveContainer width="100%" height={300}>
-                        <PieChart>
-                          <Pie
-                            data={[
-                              { name: 'Active', value: stats.activeCompanies },
-                              { name: 'Inactive', value: stats.companies - stats.activeCompanies }
-                            ].filter(item => item.value > 0)}
-                            cx="50%"
-                            cy="50%"
-                            labelLine={false}
-                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                            outerRadius={80}
-                            fill="#8884d8"
-                            dataKey="value"
-                          >
-                            {[
-                              { name: 'Active', value: stats.activeCompanies },
-                              { name: 'Inactive', value: stats.companies - stats.activeCompanies }
-                            ].filter(item => item.value > 0).map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                            ))}
-                          </Pie>
-                          <Tooltip />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow animate-in fade-in-0 slide-in-from-right-4 duration-500">
-                    <CardHeader className="bg-gradient-to-r from-slate-50 to-white border-b border-slate-100">
-                      <CardTitle className="text-slate-900">Users Distribution</CardTitle>
-                      <CardDescription className="text-slate-600">Active vs Inactive users</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <ResponsiveContainer width="100%" height={300}>
-                        <PieChart>
-                          <Pie
-                            data={[
-                              { name: 'Active', value: stats.activeUsers },
-                              { name: 'Inactive', value: stats.users - stats.activeUsers }
-                            ].filter(item => item.value > 0)}
-                            cx="50%"
-                            cy="50%"
-                            labelLine={false}
-                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                            outerRadius={80}
-                            fill="#8884d8"
-                            dataKey="value"
-                          >
-                            {[
-                              { name: 'Active', value: stats.activeUsers },
-                              { name: 'Inactive', value: stats.users - stats.activeUsers }
-                            ].filter(item => item.value > 0).map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                            ))}
-                          </Pie>
-                          <Tooltip />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Grievance & Appointment Analytics */}
-                {analyticsData.grievances && (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <Card className="bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-300">
-                      <CardHeader className="bg-gradient-to-r from-slate-50 to-white border-b border-slate-100">
-                        <CardTitle className="text-slate-900">Grievance Status Distribution</CardTitle>
-                        <CardDescription className="text-slate-600">System-wide grievance status</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <ResponsiveContainer width="100%" height={300}>
-                          <BarChart data={[
-                            { name: 'Total', value: analyticsData.grievances.total },
-                            { name: 'Pending', value: analyticsData.grievances.pending },
-                            { name: 'In Progress', value: analyticsData.grievances.inProgress },
-                            { name: 'Resolved', value: analyticsData.grievances.resolved }
-                          ]}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" />
-                            <YAxis />
-                            <Tooltip />
-                            <Bar dataKey="value" fill="#8884d8" />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </CardContent>
-                    </Card>
-
-                    <Card className="bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-300">
-                      <CardHeader className="bg-gradient-to-r from-slate-50 to-white border-b border-slate-100">
-                        <CardTitle className="text-slate-900">Appointment Status Distribution</CardTitle>
-                        <CardDescription className="text-slate-600">System-wide appointment status</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <ResponsiveContainer width="100%" height={300}>
-                          <BarChart data={[
-                            { name: 'Total', value: analyticsData.appointments.total },
-                            { name: 'Pending', value: analyticsData.appointments.pending },
-                            { name: 'Confirmed', value: analyticsData.appointments.confirmed },
-                            { name: 'Completed', value: analyticsData.appointments.completed }
-                          ]}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" />
-                            <YAxis />
-                            <Tooltip />
-                            <Bar dataKey="value" fill="#00C49F" />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </CardContent>
-                    </Card>
-                  </div>
-                )}
-
-                {/* Time Series Charts */}
-                {analyticsData.grievances?.daily && analyticsData.grievances.daily.length > 0 && (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <Card className="bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-300">
-                      <CardHeader className="bg-gradient-to-r from-slate-50 to-white border-b border-slate-100">
-                        <CardTitle className="text-slate-900">Grievance Trends (Last 7 Days)</CardTitle>
-                        <CardDescription className="text-slate-600">Daily grievance creation</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <ResponsiveContainer width="100%" height={300}>
-                          <AreaChart data={analyticsData.grievances.daily}>
-                            <defs>
-                              <linearGradient id="colorGrievances" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8}/>
-                                <stop offset="95%" stopColor="#8884d8" stopOpacity={0}/>
-                              </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="date" />
-                            <YAxis />
-                            <Tooltip />
-                            <Area type="monotone" dataKey="count" stroke="#8884d8" fillOpacity={1} fill="url(#colorGrievances)" />
-                          </AreaChart>
-                        </ResponsiveContainer>
-                      </CardContent>
-                    </Card>
-
-                    <Card className="bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-300">
-                      <CardHeader className="bg-gradient-to-r from-slate-50 to-white border-b border-slate-100">
-                        <CardTitle className="text-slate-900">Appointment Trends (Last 7 Days)</CardTitle>
-                        <CardDescription className="text-slate-600">Daily appointment creation</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <ResponsiveContainer width="100%" height={300}>
-                          <AreaChart data={analyticsData.appointments?.daily || []}>
-                            <defs>
-                              <linearGradient id="colorAppointments" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#00C49F" stopOpacity={0.8}/>
-                                <stop offset="95%" stopColor="#00C49F" stopOpacity={0}/>
-                              </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="date" />
-                            <YAxis />
-                            <Tooltip />
-                            <Area type="monotone" dataKey="count" stroke="#00C49F" fillOpacity={1} fill="url(#colorAppointments)" />
-                          </AreaChart>
-                        </ResponsiveContainer>
-                      </CardContent>
-                    </Card>
-                  </div>
-                )}
-
-                {/* Performance Metrics */}
-                {analyticsData.grievances && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <Card className="bg-white border-slate-200 shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105 cursor-pointer">
-                      <CardHeader className="bg-gradient-to-br from-green-50 to-emerald-50 border-b border-green-100">
-                        <CardTitle className="text-sm font-semibold text-green-800">Resolution Rate</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-3xl font-bold text-green-700">
-                          {analyticsData.grievances.resolutionRate || 0}%
-                        </div>
-                        <p className="text-xs text-green-600 mt-1">
-                          {analyticsData.grievances.resolved} of {analyticsData.grievances.total} resolved
-                        </p>
-                      </CardContent>
-                    </Card>
-
-                    <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-                      <CardHeader>
-                        <CardTitle className="text-sm font-medium text-blue-800">Completion Rate</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-3xl font-bold text-blue-700">
-                          {analyticsData.appointments?.completionRate || 0}%
-                        </div>
-                        <p className="text-xs text-blue-600 mt-1">
-                          {analyticsData.appointments?.completed || 0} of {analyticsData.appointments?.total || 0} completed
-                        </p>
-                      </CardContent>
-                    </Card>
-
-                    <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-                      <CardHeader>
-                        <CardTitle className="text-sm font-medium text-purple-800">Last 7 Days</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-3xl font-bold text-purple-700">
-                          {analyticsData.grievances.last7Days || 0}
-                        </div>
-                        <p className="text-xs text-purple-600 mt-1">New grievances</p>
-                      </CardContent>
-                    </Card>
-
-                    <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-                      <CardHeader>
-                        <CardTitle className="text-sm font-medium text-orange-800">Last 7 Days</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-3xl font-bold text-orange-700">
-                          {analyticsData.appointments?.last7Days || 0}
-                        </div>
-                        <p className="text-xs text-orange-600 mt-1">New appointments</p>
-                      </CardContent>
-                    </Card>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-gray-500">No analytics data available</p>
-              </div>
-            )}
+          <TabsContent value="terminal" className="space-y-4 outline-none">
+            <TerminalLogs />
           </TabsContent>
 
-          {/* Audit Logs Tab */}
-          <TabsContent value="audit" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Audit Logs</CardTitle>
-                <CardDescription>Track all system activities and changes</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-start space-x-4 p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                    <div className="flex-shrink-0">
-                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                        </svg>
-                      </div>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">User Created</p>
-                      <p className="text-sm text-gray-500">SuperAdmin account was created</p>
-                      <p className="text-xs text-gray-400 mt-1">Just now • By System</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start space-x-4 p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                    <div className="flex-shrink-0">
-                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                        <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </div>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">System Initialized</p>
-                      <p className="text-sm text-gray-500">Platform setup completed</p>
-                      <p className="text-xs text-gray-400 mt-1">Today • By System</p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
 
-          {/* Settings Tab */}
-          <TabsContent value="settings" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>System Configuration</CardTitle>
-                  <CardDescription>Configure platform settings</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <p className="font-medium">Email Notifications</p>
-                      <p className="text-sm text-gray-500">Send email alerts to users</p>
-                    </div>
-                    <Button variant="outline" size="sm">Configure</Button>
-                  </div>
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <p className="font-medium">WhatsApp Integration</p>
-                      <p className="text-sm text-gray-500">Manage WhatsApp API settings</p>
-                    </div>
-                    <Button variant="outline" size="sm">Configure</Button>
-                  </div>
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <p className="font-medium">Security Settings</p>
-                      <p className="text-sm text-gray-500">Password policies and 2FA</p>
-                    </div>
-                    <Button variant="outline" size="sm">Configure</Button>
-                  </div>
-                </CardContent>
-              </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Database & Storage</CardTitle>
-                  <CardDescription>Manage data and backups</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <p className="font-medium">Database Backup</p>
-                      <p className="text-sm text-gray-500">Last backup: Never</p>
-                    </div>
-                    <Button variant="outline" size="sm">Backup Now</Button>
-                  </div>
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <p className="font-medium">Storage Usage</p>
-                      <p className="text-sm text-gray-500">0 MB / 10 GB used</p>
-                    </div>
-                    <Button variant="outline" size="sm">View Details</Button>
-                  </div>
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <p className="font-medium">Data Export</p>
-                      <p className="text-sm text-gray-500">Export all platform data</p>
-                    </div>
-                    <Button variant="outline" size="sm">Export</Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
+
         </Tabs>
         <CreateCompanyDialog 
           isOpen={showCreateDialog}

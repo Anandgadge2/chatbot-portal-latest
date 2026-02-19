@@ -848,20 +848,20 @@ function DashboardContent() {
       {/* Header with Gradient */}
       {/* Classic White Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20 shadow-sm transition-colors">
-                <Building className="w-6 h-6 text-primary" />
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20 shadow-sm transition-colors">
+                <Building className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+                <h1 className="text-lg font-bold text-slate-900 tracking-tight">
                   {isCompanyAdmin && 'Admin Dashboard'}
                   {isDepartmentAdmin && 'Department Admin Dashboard'}
                   {isOperator && 'Operator Dashboard'}
                   {isAnalyticsViewer && 'Analytics Dashboard'}
                 </h1>
-                <p className="text-sm text-slate-500 mt-0.5">
+                <p className="text-xs text-slate-500 mt-0.5">
                   Welcome back, <span className="font-semibold text-slate-900">{user.firstName} {user.lastName}</span>
                 </p>
               </div>
@@ -869,11 +869,9 @@ function DashboardContent() {
             <Button
               onClick={logout}
               variant="outline"
-              className="border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all duration-200 shadow-sm"
+              size="sm"
+              className="border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all duration-200 shadow-sm rounded-lg"
             >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
               Logout
             </Button>
           </div>
@@ -888,13 +886,13 @@ function DashboardContent() {
           }
           setActiveTab(value);
         }} className="space-y-4 sm:space-y-6">
-          <TabsList className="inline-flex h-auto sm:h-12 flex-wrap sm:flex-nowrap items-center justify-center rounded-xl bg-slate-100 p-1 border border-slate-200 gap-1">
+          <TabsList className="inline-flex h-auto items-center justify-center rounded-lg bg-slate-100 p-0.5 border border-slate-200 gap-0.5">
             {/* Conditional Tabs based on Enabled Modules */}
             
             {!isOperator && (
               <TabsTrigger 
                 value="overview" 
-                className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200"
+                className="px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-200"
               >
                 Overview
               </TabsTrigger>
@@ -904,7 +902,7 @@ function DashboardContent() {
             {hasModule(Module.GRIEVANCE) && hasPermission(user.role, Permission.READ_GRIEVANCE) && !isOperator && !isAnalyticsViewer && (
               <TabsTrigger 
                 value="grievances"
-                className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200"
+                className="px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-200"
               >
                 Grievances
               </TabsTrigger>
@@ -914,7 +912,7 @@ function DashboardContent() {
             {hasModule(Module.APPOINTMENT) && (isCompanyAdmin || isDepartmentAdmin) && (
               <TabsTrigger 
                 value="appointments"
-                className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200"
+                className="px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-200"
               >
                 Appointments
               </TabsTrigger>
@@ -924,9 +922,9 @@ function DashboardContent() {
             {hasModule(Module.LEAD_CAPTURE) && isCompanyAdmin && (
               <TabsTrigger 
                 value="leads"
-                className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200"
+                className="px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-200"
               >
-                Project Leads
+                Leads
               </TabsTrigger>
             )}
 
@@ -934,7 +932,7 @@ function DashboardContent() {
             {hasModule(Module.INCIDENT_WILDLIFE) && (isCompanyAdmin || isDepartmentAdmin) && (
               <TabsTrigger 
                 value="incidents"
-                className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200"
+                className="px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-200"
               >
                 🦁 Incidents
               </TabsTrigger>
@@ -944,7 +942,7 @@ function DashboardContent() {
             {hasModule(Module.REPORT_DOWNLOAD) && (isCompanyAdmin || isDepartmentAdmin) && (
               <TabsTrigger 
                 value="reports"
-                className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200"
+                className="px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-200"
               >
                 📊 Reports
               </TabsTrigger>
@@ -954,7 +952,7 @@ function DashboardContent() {
             {hasModule(Module.CUSTOMER_SUPPORT) && (isCompanyAdmin || isDepartmentAdmin) && (
               <TabsTrigger 
                 value="support"
-                className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200"
+                className="px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-200"
               >
                 💬 Support
               </TabsTrigger>
@@ -964,9 +962,9 @@ function DashboardContent() {
             {hasModule(Module.COMPANY_INFO) && !isOperator && (
               <TabsTrigger 
                 value="company-info"
-                className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200"
+                className="px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-200"
               >
-                ℹ️ Company Info
+                ℹ️ Info
               </TabsTrigger>
             )}
 
@@ -974,7 +972,7 @@ function DashboardContent() {
             {isCompanyAdmin && (
               <TabsTrigger 
                 value="departments"
-                className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200"
+                className="px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-200"
               >
                 Departments
               </TabsTrigger>
@@ -983,19 +981,9 @@ function DashboardContent() {
             {(isCompanyAdmin || isDepartmentAdmin) && (
               <TabsTrigger 
                 value="users"
-                className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200"
+                className="px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-200"
               >
                 Users
-              </TabsTrigger>
-            )}
-
-            {/* Other existing tabs... */}
-            {!isOperator && !isAnalyticsViewer && (
-              <TabsTrigger 
-                value="analytics"
-                className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200"
-              >
-                Analytics
               </TabsTrigger>
             )}
 
@@ -1004,43 +992,31 @@ function DashboardContent() {
               <>
                 <TabsTrigger 
                   value="profile" 
-                  className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200"
+                  className="px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-200"
                 >
                   Profile
                 </TabsTrigger>
                 {hasModule(Module.GRIEVANCE) && (
                    <TabsTrigger 
                     value="grievances" 
-                    className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200"
+                    className="px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-200"
                    >
                      Grievances
                    </TabsTrigger>
                 )}
-                <TabsTrigger 
-                  value="my-analytics" 
-                  className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200"
-                >
-                  My Analytics
-                </TabsTrigger>
               </>
             )}
-            {/* Analytics Viewer - Show Grievances and Analytics tabs */}
+            {/* Analytics Viewer - Show Grievances tab only */}
             {isAnalyticsViewer && (
               <>
                 {hasModule(Module.GRIEVANCE) && (
                   <TabsTrigger 
                     value="grievances"
-                    className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200"
+                    className="px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-200"
                   >
                     Grievances
                   </TabsTrigger>
                 )}
-                <TabsTrigger 
-                  value="analytics"
-                  className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-200"
-                >
-                  Analytics
-                </TabsTrigger>
               </>
             )}
           </TabsList>
@@ -1048,117 +1024,50 @@ function DashboardContent() {
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
             {/* Stats Grid - Moved to top */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {loadingStats ? (
                 <>
-                  {/* Skeleton Loaders - Modern Design */}
-                  <Card className="bg-slate-100 border border-slate-200 shadow-sm animate-pulse">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-slate-400 text-sm font-medium flex items-center justify-between">
-                        <div className="h-4 w-28 bg-slate-200 rounded"></div>
-                        <div className="h-4 w-4 bg-slate-200 rounded"></div>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="h-10 w-20 bg-slate-200 rounded mb-2"></div>
-                      <div className="h-3 w-24 bg-slate-200 rounded"></div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="bg-slate-100 border border-slate-200 shadow-sm animate-pulse">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-slate-400 text-sm font-medium flex items-center justify-between">
-                        <div className="h-4 w-20 bg-slate-200 rounded"></div>
-                        <div className="h-4 w-4 bg-slate-200 rounded"></div>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="h-10 w-16 bg-slate-200 rounded mb-2"></div>
-                      <div className="h-3 w-28 bg-slate-200 rounded"></div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="bg-slate-100 border border-slate-200 shadow-sm animate-pulse">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-slate-400 text-sm font-medium flex items-center justify-between">
-                        <div className="h-4 w-24 bg-slate-200 rounded"></div>
-                        <div className="h-4 w-4 bg-slate-200 rounded"></div>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="h-10 w-16 bg-slate-200 rounded mb-2"></div>
-                      <div className="h-3 w-24 bg-slate-200 rounded"></div>
-                    </CardContent>
-                  </Card>
-
-                  {isCompanyAdmin && (
-                    <Card className="bg-slate-100 border border-slate-200 shadow-sm animate-pulse">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-slate-400 text-sm font-medium flex items-center justify-between">
-                          <div className="h-4 w-24 bg-slate-200 rounded"></div>
-                          <div className="h-4 w-4 bg-slate-200 rounded"></div>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="h-10 w-12 bg-slate-200 rounded mb-2"></div>
-                        <div className="h-3 w-32 bg-slate-200 rounded"></div>
-                      </CardContent>
+                  {[1, 2, 3, 4].map(i => (
+                    <Card key={i} className="bg-white border border-slate-200 shadow-sm animate-pulse h-24 rounded-lg">
                     </Card>
-                  )}
+                  ))}
                 </>
               ) : stats ? (
                 <>
-                  {/* Total Grievances - Gradient Blue Card */}
-                  {/* Total Grievances - show if module active or SuperAdmin */}
                   {user && (user.enabledModules?.includes(Module.GRIEVANCE) || !user.companyId) && (
                     <Card 
-                      className="group relative overflow-hidden bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 border-0 shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 cursor-pointer rounded-2xl"
-                      onClick={() => {
-                        setActiveTab('grievances');
-                      }}
+                      className="group relative overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer rounded-lg"
+                      onClick={() => setActiveTab('grievances')}
                     >
-                      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-30"></div>
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-bl-[100px]"></div>
-                      <CardHeader className="pb-2 relative">
-                        <CardTitle className="text-white/90 text-sm font-medium flex items-center justify-between">
+                      <CardHeader className="p-3 pb-1">
+                        <CardTitle className="text-slate-600 text-xs font-medium flex items-center justify-between">
                           <span className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
-                              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                              </svg>
+                            <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                              <FileText className="w-4 h-4 text-blue-600" />
                             </div>
                             Total Grievances
                           </span>
-                          <svg className="w-5 h-5 text-white/60 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
                         </CardTitle>
                       </CardHeader>
-                      <CardContent className="relative">
-                        <p className="text-4xl font-bold text-white mb-2">{stats.grievances.total}</p>
-                        <p className="text-sm text-white/80 font-medium">
-                          <span className="inline-flex items-center gap-1 bg-white/20 px-2 py-0.5 rounded-full text-xs">
-                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
-                            {stats.grievances.pending} pending
-                          </span>
+                      <CardContent className="p-3 pt-0">
+                        <p className="text-2xl font-bold text-slate-900">{stats.grievances.total}</p>
+                        <p className="text-[10px] text-slate-500 mt-1">
+                          <span className="text-amber-600 font-semibold">{stats.grievances.pending} pending</span>
                         </p>
                       </CardContent>
                     </Card>
                   )}
 
-                  {/* Resolved - Gradient Emerald Card */}
-                  {/* Resolved - show if module active */}
                   {hasModule(Module.GRIEVANCE) && (
                     <Card 
-                      className="group relative overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer rounded-xl"
+                      className="group relative overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer rounded-lg"
                       onClick={() => {
-                        setPreviousTab(activeTab);
                         setActiveTab('grievances');
                         setGrievanceFilters(prev => ({ ...prev, status: 'RESOLVED' }));
                       }}
                     >
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-slate-600 text-sm font-medium flex items-center justify-between">
+                      <CardHeader className="p-3 pb-1">
+                        <CardTitle className="text-slate-600 text-xs font-medium flex items-center justify-between">
                           <span className="flex items-center gap-2">
                             <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
                               <CheckCircle className="w-4 h-4 text-emerald-600" />
@@ -1167,52 +1076,20 @@ function DashboardContent() {
                           </span>
                         </CardTitle>
                       </CardHeader>
-                      <CardContent>
-                        <p className="text-3xl font-bold text-slate-900 mb-1">{stats.grievances.resolved}</p>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
-                            Successfully closed
-                          </span>
-                        </div>
+                      <CardContent className="p-3 pt-0">
+                        <p className="text-2xl font-bold text-slate-900">{stats.grievances.resolved}</p>
+                        <p className="text-[10px] text-emerald-600 mt-1 font-medium">Successfully closed</p>
                       </CardContent>
                     </Card>
                   )}
 
-                  {/* Project Leads Card - show if module active */}
-                  {hasModule(Module.LEAD_CAPTURE) && isCompanyAdmin && (
-                    <Card 
-                      className="group relative overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer rounded-xl"
-                      onClick={() => {
-                        setActiveTab('leads');
-                      }}
-                    >
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-slate-600 text-sm font-medium flex items-center justify-between">
-                          <span className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
-                              <UserPlus className="w-4 h-4 text-blue-600" />
-                            </div>
-                            Total Leads
-                          </span>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-3xl font-bold text-slate-900 mb-1">{leads.length}</p>
-                        <p className="text-xs text-slate-500 font-medium">Active chatbot leads</p>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* Appointments - show if module active */}
                   {hasModule(Module.APPOINTMENT) && (isCompanyAdmin || isDepartmentAdmin) && (
                     <Card 
-                      className="group relative overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer rounded-xl"
-                      onClick={() => {
-                        setActiveTab('appointments');
-                      }}
+                      className="group relative overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer rounded-lg"
+                      onClick={() => setActiveTab('appointments')}
                     >
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-slate-600 text-sm font-medium flex items-center justify-between">
+                      <CardHeader className="p-3 pb-1">
+                        <CardTitle className="text-slate-600 text-xs font-medium flex items-center justify-between">
                           <span className="flex items-center gap-2">
                             <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
                               <CalendarClock className="w-4 h-4 text-purple-600" />
@@ -1221,79 +1098,33 @@ function DashboardContent() {
                           </span>
                         </CardTitle>
                       </CardHeader>
-                      <CardContent>
-                        <p className="text-3xl font-bold text-slate-900 mb-1">{stats.appointments.total}</p>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-medium text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">
-                            {stats.appointments.confirmed || 0} scheduled
-                          </span>
-                        </div>
+                      <CardContent className="p-3 pt-0">
+                        <p className="text-2xl font-bold text-slate-900">{stats.appointments.total}</p>
+                        <p className="text-[10px] text-purple-600 mt-1 font-medium">
+                          {stats.appointments.confirmed || 0} scheduled
+                        </p>
                       </CardContent>
                     </Card>
                   )}
 
-                  {/* Users - Gradient Indigo Card - For Department Admin */}
-                  {isDepartmentAdmin && (
-                    <Card 
-                      className="group relative overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer rounded-xl"
-                      onClick={() => {
-                        setPreviousTab(activeTab);
-                        setActiveTab('grievances');
-                        setGrievanceFilters(prev => ({ ...prev, status: 'PENDING' }));
-                      }}
-                    >
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-slate-600 text-sm font-medium flex items-center justify-between">
-                          <span className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
-                              <Clock className="w-4 h-4 text-amber-600" />
-                            </div>
-                            Pending
-                          </span>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-3xl font-bold text-slate-900 mb-1">{stats.grievances.pending + (stats.grievances.assigned || 0)}</p>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
-                            Requires action
-                          </span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* Departments - Gradient Amber Card */}
                   {isCompanyAdmin && (
                     <Card 
-                      className="group relative overflow-hidden bg-gradient-to-br from-amber-500 via-orange-500 to-red-500 border-0 shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 cursor-pointer rounded-2xl"
-                      onClick={() => {
-                        setActiveTab('departments');
-                      }}
+                      className="group relative overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer rounded-lg"
+                      onClick={() => setActiveTab('departments')}
                     >
-                      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-30"></div>
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-bl-[100px]"></div>
-                      <CardHeader className="pb-2 relative">
-                        <CardTitle className="text-white/90 text-sm font-medium flex items-center justify-between">
+                      <CardHeader className="p-3 pb-1">
+                        <CardTitle className="text-slate-600 text-xs font-medium flex items-center justify-between">
                           <span className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
-                              <Building className="w-4 h-4 text-white" />
+                            <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
+                              <Building className="w-4 h-4 text-amber-600" />
                             </div>
                             Departments
                           </span>
-                          <svg className="w-5 h-5 text-white/60 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
                         </CardTitle>
                       </CardHeader>
-                      <CardContent className="relative">
-                        <p className="text-4xl font-bold text-white mb-2">{stats.departments}</p>
-                        <p className="text-sm text-white/80 font-medium">
-                          <span className="inline-flex items-center gap-1 bg-white/20 px-2 py-0.5 rounded-full text-xs">
-                            <span className="w-1.5 h-1.5 rounded-full bg-yellow-300"></span>
-                            Active departments
-                          </span>
-                        </p>
+                      <CardContent className="p-3 pt-0">
+                        <p className="text-2xl font-bold text-slate-900">{stats.departments}</p>
+                        <p className="text-[10px] text-amber-600 mt-1 font-medium">Active units</p>
                       </CardContent>
                     </Card>
                   )}
@@ -1304,7 +1135,7 @@ function DashboardContent() {
             {/* Company Info (for Company Admin) - Beautified Modern Design */}
             {isCompanyAdmin && company && (
               <Card className="overflow-hidden border border-slate-200 shadow-sm bg-white rounded-xl">
-                <div className="bg-slate-50 px-6 py-6 border-b border-slate-200">
+                <div className="bg-slate-50 px-4 py-4 border-b border-slate-200">
                   <div className="relative flex items-center justify-between">
                     <div className="flex items-center space-x-4">
                       <div className="h-16 w-16 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20 shadow-sm">
@@ -1324,7 +1155,7 @@ function DashboardContent() {
                 </div>
                 <CardContent className="p-0">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-200/50">
-                    <div className="p-6 hover:bg-slate-50 transition-all duration-200 group">
+                    <div className="p-4 hover:bg-slate-50 transition-all duration-200 group">
                       <div className="flex items-center text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
                         <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center mr-2 shadow-sm">
                           <UserIcon className="w-4 h-4 text-blue-600" />
@@ -1336,7 +1167,7 @@ function DashboardContent() {
                         <span className="text-xs text-emerald-600 font-semibold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">Active</span>
                       </div>
                     </div>
-                    <div className="p-6 hover:bg-slate-50 transition-all duration-200 group">
+                    <div className="p-4 hover:bg-slate-50 transition-all duration-200 group">
                       <div className="flex items-center text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
                         <div className="w-8 h-8 bg-indigo-100 rounded flex items-center justify-center mr-2 shadow-sm">
                           <Building className="w-4 h-4 text-indigo-600" />
@@ -1348,7 +1179,7 @@ function DashboardContent() {
                         <span className="text-xs text-blue-600 font-semibold bg-blue-50 px-2.5 py-1 rounded-full border border-blue-100">Managed</span>
                       </div>
                     </div>
-                    <div className="p-6 hover:bg-slate-50 transition-all duration-200 group">
+                    <div className="p-4 hover:bg-slate-50 transition-all duration-200 group">
                       <div className="flex items-center text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
                         <div className="w-8 h-8 bg-cyan-100 rounded flex items-center justify-center mr-2 shadow-sm">
                           <Mail className="w-4 h-4 text-cyan-600" />
@@ -1357,7 +1188,7 @@ function DashboardContent() {
                       </div>
                       <div className="text-sm font-semibold text-slate-900 truncate">{company.contactEmail}</div>
                     </div>
-                    <div className="p-6 hover:bg-slate-50 transition-all duration-200 group">
+                    <div className="p-4 hover:bg-slate-50 transition-all duration-200 group">
                       <div className="flex items-center text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
                         <div className="w-8 h-8 bg-emerald-100 rounded flex items-center justify-center mr-2 shadow-sm">
                           <Phone className="w-4 h-4 text-emerald-600" />
@@ -1367,7 +1198,7 @@ function DashboardContent() {
                       <div className="text-sm font-semibold text-slate-900">{company.contactPhone}</div>
                     </div>
                   </div>
-                  <div className="bg-slate-50 p-6 border-t border-slate-200">
+                  <div className="bg-slate-50 p-4 border-t border-slate-200">
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
                       <div className="flex items-center space-x-8">
                         <div className="flex flex-col bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-slate-200/50 shadow-sm">
@@ -1400,7 +1231,7 @@ function DashboardContent() {
               <div className="space-y-6">
                 {/* Department Admin Profile Card */}
                 <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
-                  <CardHeader className="bg-slate-50 border-b border-slate-200 px-6 py-5">
+                  <CardHeader className="bg-slate-50 border-b border-slate-200 px-4 py-3">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">
                         <UserIcon className="w-6 h-6 text-primary" />
@@ -3252,929 +3083,7 @@ function DashboardContent() {
             </TabsContent>
           )}
 
-          {/* Analytics Tab */}
-          <TabsContent value="analytics" className="space-y-6">
-            <Card className="rounded-2xl border-0 shadow-xl overflow-hidden bg-white/80 backdrop-blur-sm">
-              <CardHeader className="bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 text-white px-6 py-5">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm shadow-lg">
-                    <TrendingUp className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-xl font-bold text-white">Analytics Dashboard</CardTitle>
-                    <CardDescription className="text-violet-100 mt-0.5">View statistics, metrics, and performance insights</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="p-6">
-                {loadingStats ? (
-                  <div className="py-20">
-                    <LoadingSpinner text="Loading feedback..." />
-                  </div>
-                ) : stats ? (
-                  <div className="space-y-8 animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
-                    {/* Interactive Performance Metrics */}
-                    <div>
-                      <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                        <TrendingUp className="w-5 h-5 text-purple-600" />
-                        Performance Metrics
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-                        <div 
-                          className="relative overflow-hidden bg-gradient-to-br from-emerald-500 via-green-500 to-teal-500 rounded-2xl p-5 text-white shadow-lg cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-[1.02] group"
-                          onClick={() => {
-                            const resolutionRate = stats.grievances.total > 0 
-                              ? ((stats.grievances.resolved / stats.grievances.total) * 100).toFixed(1)
-                              : '0.0';
-                            setSelectedMetric({
-                              title: 'Resolution Rate',
-                              description: 'The percentage of grievances that have been successfully resolved out of all grievances received.',
-                              formula: '(Resolved Grievances ÷ Total Grievances) × 100',
-                              interpretation: `A resolution rate of ${resolutionRate}% means that ${stats.grievances.resolved} out of ${stats.grievances.total} grievances have been resolved. Industry benchmark is typically 70-85%. ${parseFloat(resolutionRate) >= 70 ? 'Your performance is good!' : 'Consider improving resolution processes.'}`,
-                              currentValue: `${resolutionRate}%`,
-                              benchmark: '70-85% (Industry Standard)',
-                              icon: 'trending'
-                            });
-                            setShowMetricDialog(true);
-                          }}
-                        >
-                          <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2" />
-                          <div className="absolute bottom-0 left-0 w-16 h-16 bg-white/10 rounded-full translate-x-1/3 translate-y-1/3" />
-                          <div className="relative z-10">
-                            <div className="flex items-center justify-between mb-3">
-                              <p className="text-sm font-semibold text-white/90">Resolution Rate</p>
-                              <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-                                <CheckCircle className="w-5 h-5 text-white" />
-                              </div>
-                            </div>
-                            <p className="text-4xl font-black tracking-tight">
-                              {stats.grievances.total > 0 
-                                ? ((stats.grievances.resolved / stats.grievances.total) * 100).toFixed(1)
-                                : '0.0'}%
-                            </p>
-                            <p className="text-sm text-white/80 mt-2 font-medium">
-                              {stats.grievances.resolved} of {stats.grievances.total} resolved
-                            </p>
-                            <p className="text-xs text-white/60 mt-1 group-hover:text-white/80 transition-colors">Click for details →</p>
-                          </div>
-                        </div>
 
-                        <div 
-                          className="relative overflow-hidden bg-gradient-to-br from-blue-500 via-indigo-500 to-cyan-500 rounded-2xl p-5 text-white shadow-lg cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-[1.02] group"
-                          onClick={() => {
-                            const completionRate = stats.appointments.total > 0 
-                              ? ((stats.appointments.completed / stats.appointments.total) * 100).toFixed(1)
-                              : '0.0';
-                            setSelectedMetric({
-                              title: 'Completion Rate',
-                              description: 'The percentage of appointments that have been successfully completed out of all scheduled appointments.',
-                              formula: '(Completed Appointments ÷ Total Appointments) × 100',
-                              interpretation: `A completion rate of ${completionRate}% indicates that ${stats.appointments.completed} out of ${stats.appointments.total} appointments were completed. A good completion rate is above 75%. ${parseFloat(completionRate) >= 75 ? 'Excellent performance!' : 'Consider reducing no-shows and cancellations.'}`,
-                              currentValue: `${completionRate}%`,
-                              benchmark: '75-90% (Target Range)',
-                              icon: 'target'
-                            });
-                            setShowMetricDialog(true);
-                          }}
-                        >
-                          <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2" />
-                          <div className="absolute bottom-0 left-0 w-16 h-16 bg-white/10 rounded-full translate-x-1/3 translate-y-1/3" />
-                          <div className="relative z-10">
-                            <div className="flex items-center justify-between mb-3">
-                              <p className="text-sm font-semibold text-white/90">Completion Rate</p>
-                              <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-                                <CalendarCheck className="w-5 h-5 text-white" />
-                              </div>
-                            </div>
-                            <p className="text-4xl font-black tracking-tight">
-                              {stats.appointments.total > 0 
-                                ? ((stats.appointments.completed / stats.appointments.total) * 100).toFixed(1)
-                                : '0.0'}%
-                            </p>
-                            <p className="text-sm text-white/80 mt-2 font-medium">
-                              {stats.appointments.completed} of {stats.appointments.total} completed
-                            </p>
-                            <p className="text-xs text-white/60 mt-1 group-hover:text-white/80 transition-colors">Click for details →</p>
-                          </div>
-                        </div>
-
-                        {stats.grievances.slaComplianceRate !== undefined && (
-                          <div 
-                            className="relative overflow-hidden bg-gradient-to-br from-purple-500 via-violet-500 to-fuchsia-500 rounded-2xl p-5 text-white shadow-lg cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-[1.02] group"
-                            onClick={() => {
-                              const slaBreaches = stats.grievances.slaBreached || 0;
-                              const slaCompliance = stats.grievances.slaComplianceRate?.toFixed(1) || '0.0';
-                              setSelectedMetric({
-                                title: 'SLA Compliance',
-                                description: 'Service Level Agreement compliance measures the percentage of grievances resolved within the defined time frame.',
-                                formula: '((Total Grievances - SLA Breaches) ÷ Total Grievances) × 100',
-                                interpretation: `An SLA compliance of ${slaCompliance}% means ${stats.grievances.total - slaBreaches} out of ${stats.grievances.total} grievances were resolved within the SLA timeframe. ${slaBreaches} grievances breached the SLA. Target is 90%+ compliance. ${parseFloat(slaCompliance) >= 90 ? 'Outstanding compliance!' : 'Focus on reducing resolution times.'}`,
-                                currentValue: `${slaCompliance}%`,
-                                benchmark: '90%+ (Target)',
-                                icon: 'target'
-                              });
-                              setShowMetricDialog(true);
-                            }}
-                          >
-                            <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2" />
-                            <div className="absolute bottom-0 left-0 w-16 h-16 bg-white/10 rounded-full translate-x-1/3 translate-y-1/3" />
-                            <div className="relative z-10">
-                              <div className="flex items-center justify-between mb-3">
-                                <p className="text-sm font-semibold text-white/90">SLA Compliance</p>
-                                <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-                                  <Target className="w-5 h-5 text-white" />
-                                </div>
-                              </div>
-                              <p className="text-4xl font-black tracking-tight">
-                                {stats.grievances.slaComplianceRate?.toFixed(1)}%
-                              </p>
-                              <p className="text-sm text-white/80 mt-2 font-medium">
-                                {stats.grievances.slaBreached || 0} breaches
-                              </p>
-                              <p className="text-xs text-white/60 mt-1 group-hover:text-white/80 transition-colors">Click for details →</p>
-                            </div>
-                          </div>
-                        )}
-
-                        {stats.grievances.avgResolutionDays !== undefined && (
-                          <div 
-                            className="relative overflow-hidden bg-gradient-to-br from-amber-500 via-orange-500 to-red-500 rounded-2xl p-5 text-white shadow-lg cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-[1.02] group"
-                            onClick={() => {
-                              const avgDays = stats.grievances.avgResolutionDays?.toFixed(1) || '0.0';
-                              setSelectedMetric({
-                                title: 'Avg Resolution Time',
-                                description: 'The average number of days taken to resolve a grievance from the time it was created to resolution.',
-                                formula: 'Sum of (Resolution Date - Creation Date) ÷ Number of Resolved Grievances',
-                                interpretation: `On average, it takes ${avgDays} days to resolve a grievance. Industry best practice is 3-5 days for standard grievances. ${parseFloat(avgDays) <= 5 ? 'Excellent response time!' : 'Consider streamlining resolution processes to reduce time.'}`,
-                                currentValue: `${avgDays} days`,
-                                benchmark: '3-5 days (Best Practice)',
-                                icon: 'calculator'
-                              });
-                              setShowMetricDialog(true);
-                            }}
-                          >
-                            <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2" />
-                            <div className="absolute bottom-0 left-0 w-16 h-16 bg-white/10 rounded-full translate-x-1/3 translate-y-1/3" />
-                            <div className="relative z-10">
-                              <div className="flex items-center justify-between mb-3">
-                                <p className="text-sm font-semibold text-white/90">Avg Resolution Time</p>
-                                <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-                                  <Clock className="w-5 h-5 text-white" />
-                                </div>
-                              </div>
-                              <p className="text-4xl font-black tracking-tight">
-                                {stats.grievances.avgResolutionDays?.toFixed(1)}
-                              </p>
-                              <p className="text-sm text-white/80 mt-2 font-medium">Days Average</p>
-                              <p className="text-xs text-white/60 mt-1 group-hover:text-white/80 transition-colors">Click for details →</p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* STATUS DISTRIBUTION CHARTS */}
-                    <div>
-                      <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                        <PieChartIcon className="w-5 h-5 text-purple-600" />
-                        Status Distribution
-                      </h3>
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <Card className="rounded-2xl border border-slate-200/50 shadow-md hover:shadow-lg transition-shadow duration-300 bg-white/80 backdrop-blur-sm overflow-hidden">
-                          <CardHeader className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border-b border-slate-100 px-5 py-4">
-                            <CardTitle className="text-base font-bold text-slate-800 flex items-center gap-2">
-                              <FileText className="w-5 h-5 text-blue-600" />
-                              Grievance Status Distribution
-                            </CardTitle>
-                          </CardHeader>
-                        <CardContent>
-                          <ResponsiveContainer width="100%" height={280}>
-                            <PieChart>
-                              <defs>
-                                <linearGradient id="grievancePending" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor="#FFBB28" stopOpacity={0.9}/>
-                                  <stop offset="95%" stopColor="#FFBB28" stopOpacity={0.7}/>
-                                </linearGradient>
-                                <linearGradient id="grievanceInProgress" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor="#0088FE" stopOpacity={0.9}/>
-                                  <stop offset="95%" stopColor="#0088FE" stopOpacity={0.7}/>
-                                </linearGradient>
-                                <linearGradient id="grievanceResolved" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor="#00C49F" stopOpacity={0.9}/>
-                                  <stop offset="95%" stopColor="#00C49F" stopOpacity={0.7}/>
-                                </linearGradient>
-                              </defs>
-                              <Pie
-                                data={[
-                                  { name: 'Pending', value: stats.grievances.pending, fill: 'url(#grievancePending)' },
-                                  { name: 'In Progress', value: stats.grievances.inProgress, fill: 'url(#grievanceInProgress)' },
-                                  { name: 'Resolved', value: stats.grievances.resolved, fill: 'url(#grievanceResolved)' }
-                                ].filter(item => item.value > 0)}
-                                cx="50%"
-                                cy="50%"
-                                labelLine={true}
-                                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
-                                outerRadius={90}
-                                innerRadius={50}
-                                dataKey="value"
-                                paddingAngle={2}
-                              >
-                              </Pie>
-                              <Tooltip 
-                                contentStyle={{ 
-                                  backgroundColor: 'rgba(255, 255, 255, 0.95)', 
-                                  border: '1px solid #e5e7eb',
-                                  borderRadius: '8px',
-                                  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-                                }}
-                              />
-                              <Legend 
-                                verticalAlign="bottom" 
-                                height={36}
-                                iconType="circle"
-                              />
-                            </PieChart>
-                          </ResponsiveContainer>
-                        </CardContent>
-                      </Card>
-
-                      <Card className="bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-300">
-                        <CardHeader className="bg-gradient-to-r from-slate-50 to-white border-b border-slate-100">
-                          <CardTitle className="text-lg text-slate-900">Grievance Statistics</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <ResponsiveContainer width="100%" height={250}>
-                            <BarChart data={[
-                              { name: 'Total', value: stats.grievances.total },
-                              { name: 'Pending', value: stats.grievances.pending },
-                              { name: 'In Progress', value: stats.grievances.inProgress },
-                              { name: 'Resolved', value: stats.grievances.resolved }
-                            ]}>
-                              <CartesianGrid strokeDasharray="3 3" />
-                              <XAxis dataKey="name" />
-                              <YAxis />
-                              <Tooltip />
-                              <Bar dataKey="value" fill="#8884d8" />
-                            </BarChart>
-                          </ResponsiveContainer>
-                        </CardContent>
-                      </Card>
-                      </div>
-                    </div>
-
-                    {/* Appointment Charts */}
-                    <div>
-                      <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                        <CalendarClock className="w-5 h-5 text-purple-600" />
-                        Appointment Analytics
-                      </h3>
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <Card className="rounded-2xl border border-slate-200/50 shadow-md hover:shadow-lg transition-shadow duration-300 bg-white/80 backdrop-blur-sm overflow-hidden">
-                          <CardHeader className="bg-gradient-to-r from-purple-50 via-fuchsia-50 to-pink-50 border-b border-slate-100 px-5 py-4">
-                            <CardTitle className="text-base font-bold text-slate-800 flex items-center gap-2">
-                              <CalendarCheck className="w-5 h-5 text-purple-600" />
-                              Appointment Status Distribution
-                            </CardTitle>
-                          </CardHeader>
-                        <CardContent>
-                          <ResponsiveContainer width="100%" height={280}>
-                            <PieChart>
-                              <defs>
-                                <linearGradient id="appointmentPending" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor="#FFBB28" stopOpacity={0.9}/>
-                                  <stop offset="95%" stopColor="#FFBB28" stopOpacity={0.7}/>
-                                </linearGradient>
-                                <linearGradient id="appointmentConfirmed" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor="#0088FE" stopOpacity={0.9}/>
-                                  <stop offset="95%" stopColor="#0088FE" stopOpacity={0.7}/>
-                                </linearGradient>
-                                <linearGradient id="appointmentCompleted" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor="#00C49F" stopOpacity={0.9}/>
-                                  <stop offset="95%" stopColor="#00C49F" stopOpacity={0.7}/>
-                                </linearGradient>
-                              </defs>
-                              <Pie
-                                data={[
-                                  { name: 'Pending', value: stats.appointments.pending, fill: 'url(#appointmentPending)' },
-                                  { name: 'Confirmed', value: stats.appointments.confirmed, fill: 'url(#appointmentConfirmed)' },
-                                  { name: 'Completed', value: stats.appointments.completed, fill: 'url(#appointmentCompleted)' }
-                                ].filter(item => item.value > 0)}
-                                cx="50%"
-                                cy="50%"
-                                labelLine={true}
-                                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
-                                outerRadius={90}
-                                innerRadius={50}
-                                dataKey="value"
-                                paddingAngle={2}
-                              >
-                              </Pie>
-                              <Tooltip 
-                                contentStyle={{ 
-                                  backgroundColor: 'rgba(255, 255, 255, 0.95)', 
-                                  border: '1px solid #e5e7eb',
-                                  borderRadius: '8px',
-                                  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-                                }}
-                              />
-                              <Legend 
-                                verticalAlign="bottom" 
-                                height={36}
-                                iconType="circle"
-                              />
-                            </PieChart>
-                          </ResponsiveContainer>
-                        </CardContent>
-                      </Card>
-
-                        <Card className="rounded-2xl border border-slate-200/50 shadow-md hover:shadow-lg transition-shadow duration-300 bg-white/80 backdrop-blur-sm overflow-hidden">
-                          <CardHeader className="bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50 border-b border-slate-100 px-5 py-4">
-                            <CardTitle className="text-base font-bold text-slate-800 flex items-center gap-2">
-                              <BarChart2 className="w-5 h-5 text-emerald-600" />
-                              Appointment Statistics
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <ResponsiveContainer width="100%" height={250}>
-                              <BarChart data={[
-                                { name: 'Total', value: stats.appointments.total },
-                                { name: 'Pending', value: stats.appointments.pending },
-                                { name: 'Confirmed', value: stats.appointments.confirmed },
-                                { name: 'Completed', value: stats.appointments.completed }
-                              ]}>
-                                <defs>
-                                  <linearGradient id="appointmentGradient" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#10b981" stopOpacity={0.9}/>
-                                    <stop offset="100%" stopColor="#059669" stopOpacity={0.9}/>
-                                  </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                                <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 12 }} />
-                                <YAxis tick={{ fill: '#64748b', fontSize: 12 }} />
-                                <Tooltip 
-                                  contentStyle={{ 
-                                    backgroundColor: 'rgba(255, 255, 255, 0.95)', 
-                                    border: '1px solid #e5e7eb',
-                                    borderRadius: '8px',
-                                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-                                  }}
-                                />
-                                <Bar dataKey="value" fill="url(#appointmentGradient)" radius={[4, 4, 0, 0]} />
-                              </BarChart>
-                            </ResponsiveContainer>
-                          </CardContent>
-                        </Card>
-                      </div>
-                    </div>
-
-
-                    {/* Additional Analytics Charts */}
-                    {/* Priority chart commented out
-                    {stats.grievances.byPriority && stats.grievances.byPriority.length > 0 && (
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <Card>
-                          <CardHeader>
-                            <CardTitle className="text-base">Grievances by Priority</CardTitle>
-                            <CardDescription>Distribution of grievances by priority level</CardDescription>
-                          </CardHeader>
-                          <CardContent>
-                            <ResponsiveContainer width="100%" height={250}>
-                              <BarChart 
-                                data={stats.grievances.byPriority} 
-                                layout="vertical"
-                                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                              >
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis type="number" />
-                                <YAxis type="category" dataKey="priority" width={80} />
-                                <Tooltip />
-                                <Bar dataKey="count" fill="#8884d8" />
-                              </BarChart>
-                            </ResponsiveContainer>
-                          </CardContent>
-                        </Card>
-
-                        {stats.appointments.byDepartment && stats.appointments.byDepartment.length > 0 && (
-                          <Card>
-                            <CardHeader>
-                              <CardTitle className="text-base">Appointments by Department</CardTitle>
-                              <CardDescription>Distribution of appointments across departments</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                              <ResponsiveContainer width="100%" height={250}>
-                                <BarChart data={stats.appointments.byDepartment.map((dept: any) => ({
-                                  ...dept,
-                                  departmentName: dept.departmentName.replace(/\s+Department$/i, '').trim()
-                                }))}>
-                                  <CartesianGrid strokeDasharray="3 3" />
-                                  <XAxis dataKey="departmentName" angle={-45} textAnchor="end" height={100} />
-                                  <YAxis />
-                                  <Tooltip />
-                                  <Bar dataKey="count" fill="#00C49F" />
-                                </BarChart>
-                              </ResponsiveContainer>
-                            </CardContent>
-                          </Card>
-                        )}
-                      </div>
-                    )}
-                    */}
-                    
-                    {/* Show only Appointments by Department chart */}
-                    {stats.appointments.byDepartment && stats.appointments.byDepartment.length > 0 && (
-                      <div className="grid grid-cols-1 gap-6">
-                        <Card className="rounded-2xl border border-slate-200/50 shadow-md hover:shadow-lg transition-shadow duration-300 bg-white/80 backdrop-blur-sm overflow-hidden">
-                          <CardHeader className="bg-gradient-to-r from-amber-50 via-orange-50 to-red-50 border-b border-slate-100 px-5 py-4">
-                            <CardTitle className="text-base font-bold text-slate-800 flex items-center gap-2">
-                              <Building className="w-5 h-5 text-amber-600" />
-                              Appointments by Department
-                            </CardTitle>
-                            <CardDescription className="text-slate-500">Distribution of appointments across departments</CardDescription>
-                          </CardHeader>
-                          <CardContent>
-                            <ResponsiveContainer width="100%" height={250}>
-                              <BarChart data={stats.appointments.byDepartment.map((dept: any) => ({
-                                ...dept,
-                                departmentName: dept.departmentName ? dept.departmentName.replace(/\s+Department$/i, '').trim() : 'Unknown'
-                              }))}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="departmentName" angle={-45} textAnchor="end" height={100} />
-                                <YAxis />
-                                <Tooltip />
-                                <Bar dataKey="count" fill="#00C49F" />
-                              </BarChart>
-                            </ResponsiveContainer>
-                          </CardContent>
-                        </Card>
-                      </div>
-                    )}
-
-                    {/* Time Series Charts */}
-                    {stats.grievances.daily && stats.grievances.daily.length > 0 && (
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <Card>
-                          <CardHeader>
-                            <CardTitle className="text-base">Grievance Trends (Last 7 Days)</CardTitle>
-                            <CardDescription>Daily grievance creation trend</CardDescription>
-                          </CardHeader>
-                          <CardContent>
-                            <ResponsiveContainer width="100%" height={280}>
-                              <AreaChart data={stats.grievances.daily}>
-                                <defs>
-                                  <linearGradient id="colorGrievances" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8}/>
-                                    <stop offset="95%" stopColor="#8884d8" stopOpacity={0}/>
-                                  </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="date" />
-                                <YAxis />
-                                <Tooltip />
-                                <Area type="monotone" dataKey="count" stroke="#8884d8" fillOpacity={1} fill="url(#colorGrievances)" />
-                              </AreaChart>
-                            </ResponsiveContainer>
-                          </CardContent>
-                        </Card>
-
-                        <Card>
-                          <CardHeader>
-                            <CardTitle className="text-base">Appointment Trends (Last 7 Days)</CardTitle>
-                            <CardDescription>Daily appointment creation trend</CardDescription>
-                          </CardHeader>
-                          <CardContent>
-                            <ResponsiveContainer width="100%" height={280}>
-                              <AreaChart data={stats.appointments.daily}>
-                                <defs>
-                                  <linearGradient id="colorAppointments" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#00C49F" stopOpacity={0.8}/>
-                                    <stop offset="95%" stopColor="#00C49F" stopOpacity={0}/>
-                                  </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="date" />
-                                <YAxis />
-                                <Tooltip />
-                                <Area type="monotone" dataKey="count" stroke="#00C49F" fillOpacity={1} fill="url(#colorAppointments)" />
-                              </AreaChart>
-                            </ResponsiveContainer>
-                          </CardContent>
-                        </Card>
-                      </div>
-                    )}
-
-                    {/* Monthly Trends */}
-                    {(stats.grievances.monthly || stats.appointments.monthly) && (
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {stats.grievances.monthly && stats.grievances.monthly.length > 0 && (
-                          <Card>
-                            <CardHeader>
-                              <CardTitle className="text-base">Grievance Trends (Last 6 Months)</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <ResponsiveContainer width="100%" height={280}>
-                                <LineChart data={stats.grievances.monthly}>
-                                  <CartesianGrid strokeDasharray="3 3" />
-                                  <XAxis dataKey="month" />
-                                  <YAxis />
-                                  <Tooltip />
-                                  <Legend />
-                                  <Line type="monotone" dataKey="count" stroke="#8884d8" name="Total" />
-                                  <Line type="monotone" dataKey="resolved" stroke="#00C49F" name="Resolved" />
-                                </LineChart>
-                              </ResponsiveContainer>
-                            </CardContent>
-                          </Card>
-                        )}
-
-                        {stats.appointments.monthly && stats.appointments.monthly.length > 0 && (
-                          <Card>
-                            <CardHeader>
-                              <CardTitle className="text-base">Appointment Trends (Last 6 Months)</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <ResponsiveContainer width="100%" height={280}>
-                                <LineChart data={stats.appointments.monthly}>
-                                  <CartesianGrid strokeDasharray="3 3" />
-                                  <XAxis dataKey="month" />
-                                  <YAxis />
-                                  <Tooltip />
-                                  <Legend />
-                                  <Line type="monotone" dataKey="count" stroke="#00C49F" name="Total" />
-                                  <Line type="monotone" dataKey="completed" stroke="#0088FE" name="Completed" />
-                                </LineChart>
-                              </ResponsiveContainer>
-                            </CardContent>
-                          </Card>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Hourly Distribution */}
-                    {hourlyData && (hourlyData.grievances?.length > 0 || hourlyData.appointments?.length > 0) && (
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {hourlyData.grievances && hourlyData.grievances.length > 0 && (
-                          <Card>
-                            <CardHeader>
-                              <CardTitle className="text-lg">Grievance Distribution by Hour</CardTitle>
-                              <CardDescription>Peak hours for grievance submissions (Last 7 Days)</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                              <ResponsiveContainer width="100%" height={250}>
-                                <BarChart data={hourlyData.grievances}>
-                                  <CartesianGrid strokeDasharray="3 3" />
-                                  <XAxis dataKey="hour" label={{ value: 'Hour of Day', position: 'insideBottom', offset: -2 }} />
-                                  <YAxis />
-                                  <Tooltip />
-                                  <Bar dataKey="count" fill="#8884d8" />
-                                </BarChart>
-                              </ResponsiveContainer>
-                            </CardContent>
-                          </Card>
-                        )}
-
-                        {hourlyData.appointments && hourlyData.appointments.length > 0 && (
-                          <Card>
-                            <CardHeader>
-                              <CardTitle className="text-lg">Appointment Distribution by Hour</CardTitle>
-                              <CardDescription>Peak hours for appointment bookings (Last 7 Days)</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                              <ResponsiveContainer width="100%" height={250}>
-                                <BarChart data={hourlyData.appointments}>
-                                  <CartesianGrid strokeDasharray="3 3" />
-                                  <XAxis dataKey="hour" label={{ value: 'Hour of Day', position: 'insideBottom', offset: -2 }} />
-                                  <YAxis />
-                                  <Tooltip />
-                                  <Bar dataKey="count" fill="#00C49F" />
-                                </BarChart>
-                              </ResponsiveContainer>
-                            </CardContent>
-                          </Card>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Performance Metrics */}
-                    {performanceData && (
-                      <div className="grid">
-                        {/* {performanceData.topDepartments && performanceData.topDepartments.length > 0 && (
-                          <Card>
-                            <CardHeader>
-                              <CardTitle className="text-lg">Top Performing Departments</CardTitle>
-                              <CardDescription>Departments with highest resolution rates</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                              <ResponsiveContainer width="100%" height={250}>
-                                <BarChart 
-                                  data={performanceData.topDepartments.map((dept: any) => ({
-                                    ...dept,
-                                    departmentName: dept.departmentName.replace(/\s+Department$/i, '').trim()
-                                  }))}
-                                  layout="vertical"
-                                  margin={{ top: 5, right: 30, left: 100, bottom: 5 }}
-                                >
-                                  <CartesianGrid strokeDasharray="3 3" />
-                                  <XAxis type="number" />
-                                  <YAxis type="category" dataKey="departmentName" width={90} />
-                                  <Tooltip />
-                                  <Legend 
-                                    verticalAlign="top" 
-                                    align="right"
-                                    wrapperStyle={{ paddingBottom: '10px' }}
-                                  />
-                                  <Bar dataKey="total" fill="#8884d8" name="Total" />
-                                  <Bar dataKey="resolved" fill="#00C49F" name="Resolved" />
-                                </BarChart>
-                              </ResponsiveContainer>
-                            </CardContent>
-                          </Card>
-                        )} */}
-
-                        {performanceData.topOperators && performanceData.topOperators.length > 0 && (
-                          <Card className="rounded-2xl border border-slate-200/50 shadow-md hover:shadow-lg transition-shadow duration-300 bg-white/80 backdrop-blur-sm overflow-hidden">
-                            <CardHeader className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border-b border-slate-100">
-                              <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-sm">
-                                  <Users className="w-4 h-4 text-white" />
-                                </div>
-                                <div>
-                                  <CardTitle className="text-lg font-semibold text-slate-800">Top Performing Operators</CardTitle>
-                                  <CardDescription className="text-slate-500">Operators with most resolved grievances</CardDescription>
-                                </div>
-                              </div>
-                            </CardHeader>
-                            <CardContent className="pt-6">
-                              <ResponsiveContainer width="100%" height={300}>
-                                <BarChart 
-                                  data={performanceData.topOperators.map((op: any) => ({
-                                    ...op,
-                                    displayName: op.userName 
-                                      ? (op.userName.length > 15 ? op.userName.substring(0, 15) + '...' : op.userName)
-                                      : 'Unknown'
-                                  }))} 
-                                  margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
-                                >
-                                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                                  <XAxis 
-                                    dataKey="displayName" 
-                                    angle={-45} 
-                                    textAnchor="end" 
-                                    height={80}
-                                    tick={{ fontSize: 11, fill: '#64748b' }}
-                                    interval={0}
-                                  />
-                                  <YAxis tick={{ fontSize: 11, fill: '#64748b' }} />
-                                  <Tooltip 
-                                    content={({ active, payload }) => {
-                                      if (active && payload && payload.length) {
-                                        const data = payload[0].payload;
-                                        return (
-                                          <div className="bg-white p-3 rounded-lg shadow-lg border border-slate-200">
-                                            <p className="font-semibold text-slate-800">{data.userName || 'Unknown'}</p>
-                                            <p className="text-sm text-blue-600 font-medium">Resolved: {data.resolved}</p>
-                                          </div>
-                                        );
-                                      }
-                                      return null;
-                                    }}
-                                  />
-                                  <Bar dataKey="resolved" fill="url(#blueGradient)" radius={[4, 4, 0, 0]}>
-                                    <defs>
-                                      <linearGradient id="blueGradient" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stopColor="#3b82f6" />
-                                        <stop offset="100%" stopColor="#6366f1" />
-                                      </linearGradient>
-                                    </defs>
-                                  </Bar>
-                                </BarChart>
-                              </ResponsiveContainer>
-                            </CardContent>
-                          </Card>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Category Distribution */}
-                    {categoryData && categoryData.length > 0 && (
-                      <Card className="rounded-2xl border border-slate-200/50 shadow-md hover:shadow-lg transition-shadow duration-300 bg-white/80 backdrop-blur-sm overflow-hidden">
-                        <CardHeader className="bg-gradient-to-r from-purple-50 via-fuchsia-50 to-pink-50 border-b border-slate-100">
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-fuchsia-500 flex items-center justify-center shadow-sm">
-                              <Building className="w-4 h-4 text-white" />
-                            </div>
-                            <div>
-                              <CardTitle className="text-lg font-semibold text-slate-800">Grievance Distribution by Category</CardTitle>
-                              <CardDescription className="text-slate-500">Breakdown of grievances by department</CardDescription>
-                            </div>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="pt-6">
-                          <ResponsiveContainer width="100%" height={350}>
-                            <BarChart 
-                              data={categoryData.map((item: any) => {
-                                const cleanName = item.category 
-                                  ? item.category.replace(/\s+Department$/i, '').replace(/\s+Dept\.?$/i, '').trim() 
-                                  : 'Unknown';
-                                return {
-                                  ...item,
-                                  category: cleanName,
-                                  shortName: cleanName.length > 12 ? cleanName.substring(0, 10) + '...' : cleanName
-                                };
-                              })}
-                              margin={{ top: 20, right: 30, left: 20, bottom: 100 }}
-                            >
-                              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                              <XAxis 
-                                dataKey="shortName" 
-                                angle={-55} 
-                                textAnchor="end" 
-                                height={100}
-                                interval={0}
-                                tick={{ fontSize: 10, fill: '#64748b' }}
-                              />
-                              <YAxis tick={{ fontSize: 11, fill: '#64748b' }} />
-                              <Tooltip 
-                                content={({ active, payload }) => {
-                                  if (active && payload && payload.length) {
-                                    const data = payload[0].payload;
-                                    return (
-                                      <div className="bg-white p-3 rounded-lg shadow-lg border border-slate-200 min-w-[150px]">
-                                        <p className="font-semibold text-slate-800 mb-2 border-b border-slate-100 pb-1">{data.category}</p>
-                                        <div className="space-y-1">
-                                          <p className="text-sm flex justify-between">
-                                            <span className="text-purple-600">Total:</span> 
-                                            <span className="font-medium">{data.count}</span>
-                                          </p>
-                                          <p className="text-sm flex justify-between">
-                                            <span className="text-emerald-600">Resolved:</span> 
-                                            <span className="font-medium">{data.resolved}</span>
-                                          </p>
-                                        </div>
-                                      </div>
-                                    );
-                                  }
-                                  return null;
-                                }}
-                              />
-                              <Legend 
-                                verticalAlign="top" 
-                                height={36}
-                                wrapperStyle={{ paddingBottom: '10px' }}
-                              />
-                              <Bar dataKey="count" fill="url(#purpleGradient)" name="Total" radius={[4, 4, 0, 0]}>
-                                <defs>
-                                  <linearGradient id="purpleGradient" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#8b5cf6" />
-                                    <stop offset="100%" stopColor="#a855f7" />
-                                  </linearGradient>
-                                </defs>
-                              </Bar>
-                              <Bar dataKey="resolved" fill="url(#greenGradient)" name="Resolved" radius={[4, 4, 0, 0]}>
-                                <defs>
-                                  <linearGradient id="greenGradient" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#10b981" />
-                                    <stop offset="100%" stopColor="#34d399" />
-                                  </linearGradient>
-                                </defs>
-                              </Bar>
-                            </BarChart>
-                          </ResponsiveContainer>
-                        </CardContent>
-                      </Card>
-                    )}
-
-                    {/* Summary Stats */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <Card className="bg-gradient-to-br from-slate-50 to-blue-50 border-slate-200 shadow-lg">
-                        <CardHeader className="pb-3">
-                          <CardTitle className="text-xl font-bold bg-gradient-to-r from-slate-700 to-blue-700 bg-clip-text text-transparent flex items-center gap-2">
-                            <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            Grievance Summary
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="space-y-4">
-                            <div className="flex justify-between items-center p-3 bg-white rounded-lg shadow-sm border border-slate-100">
-                              <span className="text-slate-700 font-medium">Total Grievances:</span>
-                              <span className="font-bold text-2xl text-slate-800">{stats.grievances.total}</span>
-                            </div>
-                            
-                            <div className="grid grid-cols-2 gap-3">
-                              <div className="flex flex-col p-3 bg-gradient-to-br from-yellow-50 to-amber-50 rounded-lg border border-yellow-200">
-                                <span className="text-xs font-semibold text-yellow-700 mb-1">Pending:</span>
-                                <span className="font-bold text-xl text-yellow-800">{stats.grievances.pending}</span>
-                              </div>
-                              
-                              <div className="flex flex-col p-3 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg border border-blue-200">
-                                <span className="text-xs font-semibold text-blue-700 mb-1">In Progress:</span>
-                                <span className="font-bold text-xl text-blue-800">{stats.grievances.inProgress}</span>
-                              </div>
-                              
-                              <div className="flex flex-col p-3 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-200">
-                                <span className="text-xs font-semibold text-green-700 mb-1">Resolved:</span>
-                                <span className="font-bold text-xl text-green-800">{stats.grievances.resolved}</span>
-                              </div>
-                              
-                              {stats.grievances.closed !== undefined && (
-                                <div className="flex flex-col p-3 bg-gradient-to-br from-gray-50 to-slate-50 rounded-lg border border-gray-200">
-                                  <span className="text-xs font-semibold text-gray-700 mb-1">Closed:</span>
-                                  <span className="font-bold text-xl text-gray-800">{stats.grievances.closed}</span>
-                                </div>
-                              )}
-                            </div>
-                            
-                            <div className="mt-4 pt-4 border-t border-slate-200 space-y-2">
-                              <div className="flex justify-between items-center p-2 bg-white rounded-md">
-                                <span className="text-sm text-slate-600 flex items-center gap-1">
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                  </svg>
-                                  Last 30 Days:
-                                </span>
-                                <span className="font-bold text-slate-800">{stats.grievances.last30Days}</span>
-                              </div>
-                              {stats.grievances.avgResolutionDays !== undefined && (
-                                <div className="flex justify-between items-center p-2 bg-white rounded-md">
-                                  <span className="text-sm text-slate-600 flex items-center gap-1">
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    Avg Resolution:
-                                  </span>
-                                  <span className="font-bold text-slate-800">{stats.grievances.avgResolutionDays} days</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-
-                      <Card className="bg-gradient-to-br from-slate-50 to-purple-50 border-slate-200 shadow-lg">
-                        <CardHeader className="pb-3">
-                          <CardTitle className="text-xl font-bold bg-gradient-to-r from-slate-700 to-purple-700 bg-clip-text text-transparent flex items-center gap-2">
-                            <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                            Appointment Summary
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="space-y-4">
-                            <div className="flex justify-between items-center p-3 bg-white rounded-lg shadow-sm border border-slate-100">
-                              <span className="text-slate-700 font-medium">Total Appointments:</span>
-                              <span className="font-bold text-2xl text-slate-800">{stats.appointments.total}</span>
-                            </div>
-                            
-                            <div className="grid grid-cols-2 gap-3">
-                              <div className="flex flex-col p-3 bg-gradient-to-br from-yellow-50 to-amber-50 rounded-lg border border-yellow-200">
-                                <span className="text-xs font-semibold text-yellow-700 mb-1">Pending:</span>
-                                <span className="font-bold text-xl text-yellow-800">{stats.appointments.pending}</span>
-                              </div>
-                              
-                              <div className="flex flex-col p-3 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg border border-blue-200">
-                                <span className="text-xs font-semibold text-blue-700 mb-1">Confirmed:</span>
-                                <span className="font-bold text-xl text-blue-800">{stats.appointments.confirmed}</span>
-                              </div>
-                              
-                              <div className="flex flex-col p-3 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-200">
-                                <span className="text-xs font-semibold text-green-700 mb-1">Completed:</span>
-                                <span className="font-bold text-xl text-green-800">{stats.appointments.completed}</span>
-                              </div>
-                              
-                              {stats.appointments.cancelled !== undefined && (
-                                <div className="flex flex-col p-3 bg-gradient-to-br from-red-50 to-rose-50 rounded-lg border border-red-200">
-                                  <span className="text-xs font-semibold text-red-700 mb-1">Cancelled:</span>
-                                  <span className="font-bold text-xl text-red-800">{stats.appointments.cancelled}</span>
-                                </div>
-                              )}
-                            </div>
-                            
-                            <div className="mt-4 pt-4 border-t border-slate-200 space-y-2">
-                              <div className="flex justify-between items-center p-2 bg-white rounded-md">
-                                <span className="text-sm text-slate-600 flex items-center gap-1">
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                  </svg>
-                                  Last 30 Days:
-                                </span>
-                                <span className="font-bold text-slate-800">{stats.appointments.last30Days}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <p className="text-gray-500">No analytics data available</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
 
           {/* Profile Tab - For Operators */}
           {isOperator && (
@@ -4483,336 +3392,7 @@ function DashboardContent() {
               </Card>
             </TabsContent>
 
-            {/* My Analytics Tab - For Operators */}
-            <TabsContent value="my-analytics" className="space-y-6">
-              <Card className="rounded-2xl border-0 shadow-xl overflow-hidden bg-white/80 backdrop-blur-sm">
-                <CardHeader className="bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 text-white px-6 py-5">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm shadow-lg">
-                      <TrendingUp className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-xl font-bold text-white">My Analytics</CardTitle>
-                      <CardDescription className="text-violet-100 mt-0.5">View your personal performance metrics and statistics</CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-6">
-                  {(() => {
-                    // Calculate operator's personal stats
-                    const myGrievances = grievances.filter(g => {
-                      const assignedId = typeof g.assignedTo === 'object' && g.assignedTo ? (g.assignedTo as any)._id : g.assignedTo;
-                      return assignedId === user?.id;
-                    });
-                    const myAppointments = appointments.filter(a => {
-                      const assignedId = typeof a.assignedTo === 'object' && a.assignedTo ? (a.assignedTo as any)._id : a.assignedTo;
-                      return assignedId === user?.id;
-                    });
-                    
-                    const grievancesPending = myGrievances.filter(g => g.status === 'PENDING').length;
-                    const grievancesAssigned = myGrievances.filter(g => g.status === 'ASSIGNED').length;
-                    const grievancesResolved = myGrievances.filter(g => g.status === 'RESOLVED').length;
-                    
-                    const appointmentsScheduled = myAppointments.filter(a => a.status === 'SCHEDULED').length;
-                    const appointmentsCompleted = myAppointments.filter(a => a.status === 'COMPLETED').length;
-                    const appointmentsCancelled = myAppointments.filter(a => a.status === 'CANCELLED').length;
-                    
-                    const grievanceResolutionRate = myGrievances.length > 0 ? ((grievancesResolved / myGrievances.length) * 100) : 0;
-                    const appointmentCompletionRate = myAppointments.length > 0 ? ((appointmentsCompleted / myAppointments.length) * 100) : 0;
-                    
-                    // Data for pie charts
-                    const grievanceStatusData = [
-                      { name: 'Pending', value: grievancesPending, color: '#FFBB28' },
-                      { name: 'In Progress', value: grievancesAssigned, color: '#0088FE' },
-                      { name: 'Resolved', value: grievancesResolved, color: '#00C49F' }
-                    ].filter(d => d.value > 0);
-                    
-                    const appointmentStatusData = [
-                      { name: 'Scheduled', value: appointmentsScheduled, color: '#0088FE' },
-                      { name: 'Completed', value: appointmentsCompleted, color: '#00C49F' },
-                      { name: 'Cancelled', value: appointmentsCancelled, color: '#FF8042' }
-                    ].filter(d => d.value > 0);
-                    
-                    return (
-                      <div className="space-y-8">
-                        {/* Performance Metrics */}
-                        <div>
-                          <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                            <TrendingUp className="w-5 h-5 text-purple-600" />
-                            Performance Metrics
-                          </h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-                            <div className="relative overflow-hidden bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 rounded-2xl p-5 text-white shadow-lg">
-                              <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2" />
-                              <div className="relative z-10">
-                                <div className="flex items-center justify-between mb-3">
-                                  <p className="text-sm font-semibold text-white/90">Total Grievances</p>
-                                  <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center">
-                                    <FileText className="w-5 h-5 text-white" />
-                                  </div>
-                                </div>
-                                <p className="text-4xl font-black">{myGrievances.length}</p>
-                                <p className="text-sm text-white/80 mt-2">{grievancesResolved} resolved</p>
-                              </div>
-                            </div>
-                            
-                            <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 via-green-500 to-teal-500 rounded-2xl p-5 text-white shadow-lg">
-                              <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2" />
-                              <div className="relative z-10">
-                                <div className="flex items-center justify-between mb-3">
-                                  <p className="text-sm font-semibold text-white/90">Resolution Rate</p>
-                                  <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center">
-                                    <CheckCircle className="w-5 h-5 text-white" />
-                                  </div>
-                                </div>
-                                <p className="text-4xl font-black">{grievanceResolutionRate.toFixed(1)}%</p>
-                                <p className="text-sm text-white/80 mt-2">Grievances resolved</p>
-                              </div>
-                            </div>
-                            
-                            <div className="relative overflow-hidden bg-gradient-to-br from-purple-500 via-fuchsia-500 to-pink-500 rounded-2xl p-5 text-white shadow-lg">
-                              <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2" />
-                              <div className="relative z-10">
-                                <div className="flex items-center justify-between mb-3">
-                                  <p className="text-sm font-semibold text-white/90">Total Appointments</p>
-                                  <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center">
-                                    <CalendarClock className="w-5 h-5 text-white" />
-                                  </div>
-                                </div>
-                                <p className="text-4xl font-black">{myAppointments.length}</p>
-                                <p className="text-sm text-white/80 mt-2">{appointmentsCompleted} completed</p>
-                              </div>
-                            </div>
-                            
-                            <div className="relative overflow-hidden bg-gradient-to-br from-amber-500 via-orange-500 to-red-500 rounded-2xl p-5 text-white shadow-lg">
-                              <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2" />
-                              <div className="relative z-10">
-                                <div className="flex items-center justify-between mb-3">
-                                  <p className="text-sm font-semibold text-white/90">Completion Rate</p>
-                                  <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center">
-                                    <CalendarCheck className="w-5 h-5 text-white" />
-                                  </div>
-                                </div>
-                                <p className="text-4xl font-black">{appointmentCompletionRate.toFixed(1)}%</p>
-                                <p className="text-sm text-white/80 mt-2">Appointments completed</p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
 
-                        {/* Status Distribution Charts */}
-                        <div>
-                          <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                            <PieChartIcon className="w-5 h-5 text-purple-600" />
-                            Status Distribution
-                          </h3>
-                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            {/* Grievance Status Chart */}
-                            <Card className="rounded-2xl border border-slate-200/50 shadow-md bg-white/80 backdrop-blur-sm overflow-hidden">
-                              <CardHeader className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border-b border-slate-100 px-5 py-4">
-                                <CardTitle className="text-base font-bold text-slate-800 flex items-center gap-2">
-                                  <FileText className="w-5 h-5 text-blue-600" />
-                                  My Grievances by Status
-                                </CardTitle>
-                              </CardHeader>
-                              <CardContent className="p-5">
-                                {myGrievances.length > 0 ? (
-                                  <ResponsiveContainer width="100%" height={250}>
-                                    <PieChart>
-                                      <Pie
-                                        data={grievanceStatusData}
-                                        cx="50%"
-                                        cy="50%"
-                                        innerRadius={60}
-                                        outerRadius={90}
-                                        fill="#8884d8"
-                                        paddingAngle={5}
-                                        dataKey="value"
-                                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                                      >
-                                        {grievanceStatusData.map((entry, index) => (
-                                          <Cell key={`cell-${index}`} fill={entry.color} />
-                                        ))}
-                                      </Pie>
-                                      <Tooltip />
-                                      <Legend />
-                                    </PieChart>
-                                  </ResponsiveContainer>
-                                ) : (
-                                  <div className="flex flex-col items-center justify-center h-[250px] text-gray-400">
-                                    <FileText className="w-12 h-12 mb-2" />
-                                    <p>No grievances assigned yet</p>
-                                  </div>
-                                )}
-                              </CardContent>
-                            </Card>
-
-                            {/* Appointment Status Chart */}
-                            <Card className="rounded-2xl border border-slate-200/50 shadow-md bg-white/80 backdrop-blur-sm overflow-hidden">
-                              <CardHeader className="bg-gradient-to-r from-purple-50 via-fuchsia-50 to-pink-50 border-b border-slate-100 px-5 py-4">
-                                <CardTitle className="text-base font-bold text-slate-800 flex items-center gap-2">
-                                  <CalendarClock className="w-5 h-5 text-purple-600" />
-                                  My Appointments by Status
-                                </CardTitle>
-                              </CardHeader>
-                              <CardContent className="p-5">
-                                {myAppointments.length > 0 ? (
-                                  <ResponsiveContainer width="100%" height={250}>
-                                    <PieChart>
-                                      <Pie
-                                        data={appointmentStatusData}
-                                        cx="50%"
-                                        cy="50%"
-                                        innerRadius={60}
-                                        outerRadius={90}
-                                        fill="#8884d8"
-                                        paddingAngle={5}
-                                        dataKey="value"
-                                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                                      >
-                                        {appointmentStatusData.map((entry, index) => (
-                                          <Cell key={`cell-${index}`} fill={entry.color} />
-                                        ))}
-                                      </Pie>
-                                      <Tooltip />
-                                      <Legend />
-                                    </PieChart>
-                                  </ResponsiveContainer>
-                                ) : (
-                                  <div className="flex flex-col items-center justify-center h-[250px] text-gray-400">
-                                    <CalendarClock className="w-12 h-12 mb-2" />
-                                    <p>No appointments assigned yet</p>
-                                  </div>
-                                )}
-                              </CardContent>
-                            </Card>
-                          </div>
-                        </div>
-
-                        {/* Detailed Stats Cards */}
-                        <div>
-                          <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                            <BarChart2 className="w-5 h-5 text-purple-600" />
-                            Detailed Statistics
-                          </h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Grievances Details */}
-                            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-5 border border-blue-100 shadow-lg">
-                              <div className="flex items-center gap-3 mb-4">
-                                <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center shadow-md">
-                                  <FileText className="w-5 h-5 text-white" />
-                                </div>
-                                <h4 className="text-lg font-bold text-gray-900">Grievances Summary</h4>
-                              </div>
-                              
-                              <div className="space-y-3">
-                                <div className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-100">
-                                  <span className="text-sm text-gray-600 flex items-center gap-2">
-                                    <span className="w-3 h-3 bg-yellow-400 rounded-full"></span>
-                                    Pending
-                                  </span>
-                                  <span className="font-bold text-lg text-gray-900">{grievancesPending}</span>
-                                </div>
-                                <div className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-100">
-                                  <span className="text-sm text-gray-600 flex items-center gap-2">
-                                    <span className="w-3 h-3 bg-blue-500 rounded-full"></span>
-                                    In Progress
-                                  </span>
-                                  <span className="font-bold text-lg text-gray-900">{grievancesAssigned}</span>
-                                </div>
-                                <div className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-100">
-                                  <span className="text-sm text-gray-600 flex items-center gap-2">
-                                    <span className="w-3 h-3 bg-green-500 rounded-full"></span>
-                                    Resolved
-                                  </span>
-                                  <span className="font-bold text-lg text-gray-900">{grievancesResolved}</span>
-                                </div>
-                                <div className="flex justify-between items-center p-4 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl text-white mt-2">
-                                  <span className="text-sm font-semibold">Total Assigned</span>
-                                  <span className="font-bold text-2xl">{myGrievances.length}</span>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Appointments Details */}
-                            <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-5 border border-purple-100 shadow-lg">
-                              <div className="flex items-center gap-3 mb-4">
-                                <div className="w-10 h-10 bg-purple-500 rounded-xl flex items-center justify-center shadow-md">
-                                  <CalendarClock className="w-5 h-5 text-white" />
-                                </div>
-                                <h4 className="text-lg font-bold text-gray-900">Appointments Summary</h4>
-                              </div>
-                              
-                              <div className="space-y-3">
-                                <div className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-100">
-                                  <span className="text-sm text-gray-600 flex items-center gap-2">
-                                    <span className="w-3 h-3 bg-blue-500 rounded-full"></span>
-                                    Scheduled
-                                  </span>
-                                  <span className="font-bold text-lg text-gray-900">{appointmentsScheduled}</span>
-                                </div>
-                                <div className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-100">
-                                  <span className="text-sm text-gray-600 flex items-center gap-2">
-                                    <span className="w-3 h-3 bg-green-500 rounded-full"></span>
-                                    Completed
-                                  </span>
-                                  <span className="font-bold text-lg text-gray-900">{appointmentsCompleted}</span>
-                                </div>
-                                <div className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-100">
-                                  <span className="text-sm text-gray-600 flex items-center gap-2">
-                                    <span className="w-3 h-3 bg-red-500 rounded-full"></span>
-                                    Cancelled
-                                  </span>
-                                  <span className="font-bold text-lg text-gray-900">{appointmentsCancelled}</span>
-                                </div>
-                                <div className="flex justify-between items-center p-4 bg-gradient-to-r from-purple-500 to-fuchsia-500 rounded-xl text-white mt-2">
-                                  <span className="text-sm font-semibold">Total Assigned</span>
-                                  <span className="font-bold text-2xl">{myAppointments.length}</span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Overall Performance Card */}
-                        <div className="bg-gradient-to-r from-slate-50 via-gray-50 to-slate-50 rounded-2xl p-6 border border-slate-200 shadow-lg">
-                          <h4 className="text-lg font-bold text-gray-900 mb-5 flex items-center gap-2">
-                            <Target className="w-5 h-5 text-indigo-600" />
-                            Overall Performance
-                          </h4>
-                          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                            <div className="text-center p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
-                              <p className="text-3xl font-black text-indigo-600">{myGrievances.length + myAppointments.length}</p>
-                              <p className="text-xs font-semibold text-gray-500 uppercase mt-1">Total Tasks</p>
-                            </div>
-                            <div className="text-center p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
-                              <p className="text-3xl font-black text-emerald-600">{grievancesResolved + appointmentsCompleted}</p>
-                              <p className="text-xs font-semibold text-gray-500 uppercase mt-1">Completed</p>
-                            </div>
-                            <div className="text-center p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
-                              <p className="text-3xl font-black text-amber-600">{grievancesPending + grievancesAssigned + appointmentsScheduled}</p>
-                              <p className="text-xs font-semibold text-gray-500 uppercase mt-1">In Progress</p>
-                            </div>
-                            <div className="text-center p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
-                              <p className="text-3xl font-black text-red-600">{appointmentsCancelled}</p>
-                              <p className="text-xs font-semibold text-gray-500 uppercase mt-1">Cancelled</p>
-                            </div>
-                            <div className="text-center p-4 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl shadow-sm">
-                              <p className="text-3xl font-black text-white">
-                                {(myGrievances.length + myAppointments.length) > 0 
-                                  ? (((grievancesResolved + appointmentsCompleted) / (myGrievances.length + myAppointments.length)) * 100).toFixed(0)
-                                  : '0'}%
-                              </p>
-                              <p className="text-xs font-semibold text-white/80 uppercase mt-1">Efficiency</p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </CardContent>
-              </Card>
-            </TabsContent>
             </>
           )}
         </Tabs>

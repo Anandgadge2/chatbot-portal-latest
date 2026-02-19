@@ -42,12 +42,35 @@ router.get('/', requireSuperAdmin, async (req: Request, res: Response) => {
       .skip((Number(page) - 1) * Number(limit))
       .sort({ createdAt: -1 });
 
+    // Fetch all admins for these companies to dynamically set the head
+    const companyIds = companies.map(c => c._id);
+    const admins = await User.find({
+      companyId: { $in: companyIds },
+      role: UserRole.COMPANY_ADMIN
+    }).select('firstName lastName email phone companyId');
+
+    const companiesWithHead = companies.map(c => {
+      const admin = admins.find(a => a.companyId?.toString() === c._id.toString());
+      const companyObj = c.toObject();
+      
+      // Attach admin info as 'companyHead'
+      if (admin) {
+        (companyObj as any).companyHead = {
+          name: `${admin.firstName} ${admin.lastName}`,
+          email: admin.email,
+          phone: admin.phone
+        };
+      }
+      
+      return companyObj;
+    });
+
     const total = await Company.countDocuments(query);
 
     res.json({
       success: true,
       data: {
-        companies,
+        companies: companiesWithHead,
         pagination: {
           page: Number(page),
           limit: Number(limit),
