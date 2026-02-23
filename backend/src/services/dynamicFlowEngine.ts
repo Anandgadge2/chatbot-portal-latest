@@ -162,8 +162,9 @@ export class DynamicFlowEngine {
    * Special handling: grievance_category (or grievance_category_en etc.) loads departments; steps with buttons send buttons
    */
   private async executeMessageStep(step: IFlowStep): Promise<void> {
-    // Special handling for department selection – load departments automatically (stepId grievance_category or grievance_category_en etc.)
-    if (step.stepId === 'grievance_category' || (step.stepId && step.stepId.startsWith('grievance_category_'))) {
+    // Special handling for department selection – load departments automatically
+    if (step.stepId === 'grievance_category' || 
+        (step.stepId && (step.stepId.startsWith('grievance_category_') || step.stepId.startsWith('grv_dept_')))) {
       await this.loadDepartmentsForGrievance(step);
       return;
     }
@@ -301,8 +302,9 @@ export class DynamicFlowEngine {
         } else {
           displayDesc = getTranslation(`desc_${dept.name}`, lang) || dept.description?.substring(0, 72) || '';
         }
+        const prefix = (step.stepId && (step.stepId.startsWith('apt') || step.stepId.includes('appointment'))) ? 'apt' : 'grv';
         return {
-          id: `grv_dept_${dept._id}`,
+          id: `${prefix}_dept_${dept._id}`,
           title: displayName.length > 24 ? displayName.substring(0, 21) + '...' : displayName,
           description: displayDesc.substring(0, 72)
         };
@@ -328,10 +330,11 @@ export class DynamicFlowEngine {
       // Save step info and list mapping to session
       this.session.data.currentStepId = step.stepId;
       this.session.data.listMapping = {};
+      const prefix = (step.stepId && (step.stepId.startsWith('apt') || step.stepId.includes('appointment'))) ? 'apt' : 'grv';
       deptRows.forEach((row: any) => {
-        if (row.id.startsWith('grv_dept_')) {
+        if (row.id.startsWith(`${prefix}_dept_`)) {
           // Map department selection to next step (will be intercepted in handleListSelection for sub-depts)
-          this.session.data.listMapping[row.id] = step.nextStepId || 'grievance_description';
+          this.session.data.listMapping[row.id] = step.nextStepId || (prefix === 'apt' ? 'appointment_date' : 'grievance_description');
         }
       });
       
@@ -365,14 +368,15 @@ export class DynamicFlowEngine {
 
   /**
    * Load and display sub-departments for a selected parent department
+   * Works for both grievance and appointment flows (uses prefix from parent)
    */
-  private async loadSubDepartmentsForGrievance(parentId: string): Promise<void> {
+  private async loadSubDepartmentsForGrievance(parentId: string, rowIdPrefix: string = 'grv'): Promise<void> {
     try {
       const Department = (await import('../models/Department')).default;
       const { getTranslation } = await import('./chatbotEngine');
       const lang = this.session.language || 'en';
       
-      console.log(`🏢 Loading sub-departments for parent: ${parentId}`);
+      console.log(`🏢 Loading sub-departments for parent: ${parentId} (Prefix: ${rowIdPrefix})`);
       
       const subDepartments = await Department.find({ 
         parentDepartmentId: parentId, 
@@ -398,7 +402,7 @@ export class DynamicFlowEngine {
         }
 
         return {
-          id: `grv_sub_dept_${dept._id}`,
+          id: `${rowIdPrefix}_sub_dept_${dept._id}`,
           title: displayName.length > 24 ? displayName.substring(0, 21) + '...' : displayName,
           description: (dept.description || '').substring(0, 72)
         };
@@ -413,7 +417,7 @@ export class DynamicFlowEngine {
       const currentStep = this.flow.steps.find(s => s.stepId === this.session.data.currentStepId);
       this.session.data.listMapping = {};
       rows.forEach((row: any) => {
-        this.session.data.listMapping[row.id] = currentStep?.nextStepId || 'grievance_description';
+        this.session.data.listMapping[row.id] = currentStep?.nextStepId || (rowIdPrefix === 'apt' ? 'appointment_date' : 'grievance_description');
       });
       await updateSession(this.session);
 
@@ -512,17 +516,34 @@ export class DynamicFlowEngine {
       const Department = (await import('../models/Department')).default;
       const { getTranslation } = await import('./chatbotEngine');
 
-      let departments = await Department.find({
+      // Get ALL departments for this company first
+      let allDepts = await Department.find({
         companyId: this.company._id,
         isActive: true
       });
 
-      if (departments.length === 0) {
+      if (allDepts.length === 0) {
         console.warn(`⚠️ No departments found for ObjectId companyId: ${this.company._id}. Trying string comparison...`);
-        departments = await Department.find({
+        allDepts = await Department.find({
           companyId: this.company._id.toString(),
           isActive: true
         });
+      }
+
+      // Check if hierarchical departments module is enabled
+      const hierarchicalEnabled = this.company.enabledModules?.includes('HIERARCHICAL_DEPARTMENTS');
+      
+      let departments = allDepts;
+      
+      if (hierarchicalEnabled) {
+        // Filter for top-level departments (no parent) only if module is enabled
+        departments = allDepts.filter((d: any) => !d.parentDepartmentId);
+
+        // Fallback: if no hierarchy is defined, show all
+        if (departments.length === 0 && allDepts.length > 0) {
+          console.warn(`⚠️ Hierarchical Departments enabled but no top-level departments found for company ${this.company._id}. Falling back to all departments.`);
+          departments = allDepts;
+        }
       }
 
       if (departments.length === 0) {
@@ -548,8 +569,9 @@ export class DynamicFlowEngine {
           displayName = translatedName !== `dept_${dept.name}` ? translatedName : dept.name;
         }
         const desc = (dept.description || '').substring(0, 72);
+        const prefix = (step.stepId && (step.stepId.startsWith('apt') || step.stepId.includes('appointment'))) ? 'apt' : 'grv';
         return {
-          id: `grv_dept_${dept._id}`,
+          id: `${prefix}_dept_${dept._id}`,
           title: displayName.length > 24 ? displayName.substring(0, 21) + '...' : displayName,
           description: desc,
           nextStepId: step.nextStepId
@@ -1094,7 +1116,8 @@ export class DynamicFlowEngine {
       const appointmentDate = new Date(this.session.data.appointmentDate);
       const appointmentData = {
         companyId: this.company._id,
-        departmentId: null,
+        departmentId: (this.session.data.departmentId ? new mongoose.Types.ObjectId(this.session.data.departmentId) : null),
+        subDepartmentId: (this.session.data.subDepartmentId ? new mongoose.Types.ObjectId(this.session.data.subDepartmentId) : undefined),
         citizenName: this.session.data.citizenName,
         citizenPhone: this.userPhone,
         citizenWhatsApp: this.userPhone,
@@ -1108,6 +1131,9 @@ export class DynamicFlowEngine {
       this.session.data.appointmentId = appointment.appointmentId;
       this.session.data.status = 'Scheduled';
       await updateSession(this.session);
+      
+      const notifyTargetId = this.session.data.subDepartmentId || this.session.data.departmentId;
+
       await notifyDepartmentAdminOnCreation({
         type: 'appointment',
         action: 'created',
@@ -1115,6 +1141,7 @@ export class DynamicFlowEngine {
         citizenName: this.session.data.citizenName,
         citizenPhone: this.userPhone,
         citizenWhatsApp: this.userPhone,
+        departmentId: notifyTargetId as any,
         companyId: this.company._id,
         purpose: this.session.data.purpose,
         appointmentDate: appointment.appointmentDate,
@@ -1252,15 +1279,15 @@ export class DynamicFlowEngine {
           return;
         }
         console.log(`   Executing next step: ${nextStepId}`);
-        const isGrievanceConfirm = (currentStep.stepId === 'grievance_confirm' || (currentStep.stepId && currentStep.stepId.startsWith('grievance_confirm_')));
-        const isAppointmentConfirm = (currentStep.stepId === 'appointment_confirm' || (currentStep.stepId && currentStep.stepId.startsWith('appointment_confirm_')));
+        const isGrievanceConfirm = (currentStep.stepId === 'grievance_confirm' || (currentStep.stepId && (currentStep.stepId.startsWith('grievance_confirm_') || currentStep.stepId.startsWith('grv_conf_'))));
+        const isAppointmentConfirm = (currentStep.stepId === 'appointment_confirm' || (currentStep.stepId && (currentStep.stepId.startsWith('appointment_confirm_') || currentStep.stepId.startsWith('apt_conf_'))));
         // Lead Capture Triggers
-        const isLeadConfirm = (currentStep.stepId === 'lead_confirm' || (currentStep.stepId && currentStep.stepId.startsWith('lead_confirm_')));
+        const isLeadConfirm = (currentStep.stepId === 'lead_confirm' || (currentStep.stepId && (currentStep.stepId.startsWith('lead_confirm_') || currentStep.stepId.startsWith('lead_conf_'))));
         
-        const isGrievanceSuccess = nextStepId === 'grievance_success' || (nextStepId && nextStepId.startsWith('grievance_success'));
-        const isAppointmentSubmitted = nextStepId === 'appointment_submitted' || (nextStepId && nextStepId.startsWith('appointment_submitted'));
+        const isGrievanceSuccess = nextStepId === 'grievance_success' || (nextStepId && (nextStepId.startsWith('grievance_success') || nextStepId.startsWith('grv_success_')));
+        const isAppointmentSubmitted = nextStepId === 'appointment_submitted' || (nextStepId && (nextStepId.startsWith('appointment_submitted') || nextStepId.startsWith('apt_success_')));
         // Lead Capture Success Step
-        const isLeadSuccess = nextStepId === 'lead_success' || (nextStepId && nextStepId.startsWith('lead_success'));
+        const isLeadSuccess = nextStepId === 'lead_success' || (nextStepId && (nextStepId.startsWith('lead_success') || nextStepId.startsWith('lead_success_')));
 
         if (isGrievanceConfirm && isGrievanceSuccess && (buttonId === 'confirm_yes' || String(buttonId).startsWith('confirm_yes'))) {
           await this.createGrievanceAndSetSession();
@@ -1388,51 +1415,69 @@ export class DynamicFlowEngine {
       return;
     }
 
-    // Department selection (grv_dept_*) – set departmentId/category in session
-    if (rowId.startsWith('grv_dept_')) {
-      const departmentId = rowId.replace('grv_dept_', '');
-      console.log(`🏬 Department selected: ${departmentId}`);
-      
-      const department = await Department.findById(departmentId);
-      if (department) {
-        // Check if hierarchical departments module is enabled
-        const hierarchicalEnabled = this.company.enabledModules?.includes('HIERARCHICAL_DEPARTMENTS');
+    // Department selection (grv_dept_* or apt_dept_*)
+    if (rowId.includes('_dept_') && !rowId.includes('_sub_dept_')) {
+      const match = rowId.match(/^([a-z]+)_dept_(.+)$/);
+      if (match) {
+        const prefix = match[1];
+        const departmentId = match[2];
+        console.log(`🏬 Department selected: ${departmentId} (Prefix: ${prefix})`);
         
-        if (hierarchicalEnabled) {
-          // Check if this department has sub-departments
-          const subDepts = await Department.find({ parentDepartmentId: departmentId, isActive: true });
-          
-          if (subDepts.length > 0) {
-            console.log(`   - Has ${subDepts.length} sub-departments. Loading sub-menu...`);
-            this.session.data.departmentId = departmentId;
-            this.session.data.departmentName = department.name;
-            await updateSession(this.session);
-            await this.loadSubDepartmentsForGrievance(departmentId);
-            return;
-          }
-        }
+        const department = await Department.findById(departmentId);
+        if (department) {
+          const lang = this.session.language || 'en';
+          let localizedName = department.name;
+          if (lang === 'hi' && department.nameHi) localizedName = department.nameHi;
+          else if (lang === 'or' && department.nameOr) localizedName = department.nameOr;
+          else if (lang === 'mr' && department.nameMr) localizedName = department.nameMr;
 
-        // No sub-departments or module not enabled, save and proceed
-        this.session.data.departmentId = departmentId;
-        this.session.data.departmentName = department.name;
-        this.session.data.category = department.name;
-        delete this.session.data.subDepartmentId; // Clear any old sub-dept
-        await updateSession(this.session);
-        
-        console.log(`✅ Department saved to session: ${department.name}`);
+          const hierarchicalEnabled = this.company.enabledModules?.includes('HIERARCHICAL_DEPARTMENTS');
+          
+          if (hierarchicalEnabled) {
+            const subDepts = await Department.find({ parentDepartmentId: departmentId, isActive: true });
+            
+            if (subDepts.length > 0) {
+              console.log(`   - Has ${subDepts.length} sub-departments. Loading sub-menu...`);
+              this.session.data.departmentId = departmentId;
+              this.session.data.departmentName = localizedName;
+              await updateSession(this.session);
+              await this.loadSubDepartmentsForGrievance(departmentId, prefix);
+              return;
+            }
+          }
+
+          this.session.data.departmentId = departmentId;
+          this.session.data.departmentName = localizedName;
+          this.session.data.category = department.name;
+          delete this.session.data.subDepartmentId;
+          await updateSession(this.session);
+          
+          console.log(`✅ Department saved to session: ${localizedName}`);
+        }
       }
     }
 
-    // Sub-department selection (grv_sub_dept_*)
-    if (rowId.startsWith('grv_sub_dept_')) {
-      const subDeptId = rowId.replace('grv_sub_dept_', '');
-      const subDept = await Department.findById(subDeptId);
-      
-      if (subDept) {
-        this.session.data.subDepartmentId = subDeptId;
-        this.session.data.category = subDept.name;
-        await updateSession(this.session);
-        console.log(`✅ Sub-department saved to session: ${subDept.name}`);
+    // Sub-department selection (grv_sub_dept_* or apt_sub_dept_*)
+    if (rowId.includes('_sub_dept_')) {
+      const match = rowId.match(/^([a-z]+)_sub_dept_(.+)$/);
+      if (match) {
+        const prefix = match[1];
+        const subDeptId = match[2];
+        const subDept = await Department.findById(subDeptId);
+        
+        if (subDept) {
+          const lang = this.session.language || 'en';
+          let localizedSubName = subDept.name;
+          if (lang === 'hi' && subDept.nameHi) localizedSubName = subDept.nameHi;
+          else if (lang === 'or' && subDept.nameOr) localizedSubName = subDept.nameOr;
+          else if (lang === 'mr' && subDept.nameMr) localizedSubName = subDept.nameMr;
+
+          this.session.data.subDepartmentId = subDeptId;
+          this.session.data.category = subDept.name;
+          this.session.data.departmentName = `${this.session.data.departmentName} - ${localizedSubName}`;
+          await updateSession(this.session);
+          console.log(`✅ Sub-department saved to session: ${this.session.data.departmentName}`);
+        }
       }
     }
 
