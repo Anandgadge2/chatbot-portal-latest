@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import RouteRedirectLoader from '@/components/ui/RouteRedirectLoader';
 
 export default function ViewFlowPage() {
   const params = useParams();
@@ -17,7 +17,7 @@ export default function ViewFlowPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
-      <LoadingSpinner text="Redirecting to flow builder..." />
+      <RouteRedirectLoader title="Redirecting to Flow Editor" message="Opening the editable flow view for this chatbot..." />
     </div>
   );
 }

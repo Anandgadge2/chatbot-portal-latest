@@ -7,7 +7,7 @@ import { grievanceAPI, Grievance } from '../../lib/api/grievance';
 import { departmentAPI, Department } from '../../lib/api/department';
 import { FileText, MapPin, Phone, Calendar, Filter, Search, Eye, UserPlus, CheckCircle, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import toast from 'react-hot-toast';
+import { showErrorToast } from '@/lib/utils/feedback';
 import CitizenDetailsModal from '../../components/grievance/CitizenDetailsModal';
 import AssignmentDialog from '../../components/assignment/AssignmentDialog';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
@@ -52,7 +52,7 @@ export default function GrievancesPage() {
         setGrievances(activeGrievances);
       }
     } catch (error) {
-      toast.error('Failed to load grievances');
+      showErrorToast(error, 'Unable to load grievances right now.');
     } finally {
       setLoading(false);
     }

@@ -2,8 +2,8 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import RouteRedirectLoader from '@/components/ui/RouteRedirectLoader';
 
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 export default function FlowBuilderRedirect() {
   const router = useRouter();
@@ -14,8 +14,9 @@ export default function FlowBuilderRedirect() {
   }, [router]);
 
   return (
-    <div className="h-screen w-full flex items-center justify-center">
-      <LoadingSpinner text="Redirecting to Flows..." />
-    </div>
+    <RouteRedirectLoader
+      title="Redirecting to Flow Builder"
+      message="Taking you to the latest flow management experience..."
+    />
   );
 }

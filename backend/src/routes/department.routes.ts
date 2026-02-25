@@ -3,14 +3,17 @@ import Department from '../models/Department';
 import { authenticate } from '../middleware/auth';
 import { requirePermission } from '../middleware/rbac';
 import { requireDatabaseConnection } from '../middleware/dbConnection';
+import { tenantRateLimit } from '../middleware/tenantRateLimit';
 import { logUserAction } from '../utils/auditLogger';
 import { AuditAction, Permission, UserRole } from '../config/constants';
+import { getPagination } from '../utils/pagination';
 
 const router = express.Router();
 
 // All routes require database connection and authentication
 router.use(requireDatabaseConnection);
 router.use(authenticate);
+router.use(tenantRateLimit({ maxRequests: 1200, windowSeconds: 60 }));
 
 // @route   GET /api/departments
 // @desc    Get all departments (scoped by user role)
@@ -19,6 +22,7 @@ router.get('/', requirePermission(Permission.READ_DEPARTMENT), async (req: Reque
   try {
     const { page = 1, limit = 20, search, companyId } = req.query;
     const user = req.user!;
+    const pagination = getPagination(page, limit);
 
     const query: any = {};
 
@@ -35,7 +39,7 @@ router.get('/', requirePermission(Permission.READ_DEPARTMENT), async (req: Reque
           success: true,
           data: {
             departments: [],
-            pagination: { page: 1, limit: 20, total: 0, pages: 0 }
+            pagination: { page: 1, limit: pagination.limit, total: 0, pages: 0 }
           }
         });
         return;
@@ -54,8 +58,8 @@ router.get('/', requirePermission(Permission.READ_DEPARTMENT), async (req: Reque
 
     const departments = await Department.find(query)
       .populate('companyId', 'name companyId')
-      .limit(Number(limit))
-      .skip((Number(page) - 1) * Number(limit))
+      .limit(pagination.limit)
+      .skip(pagination.skip)
       .sort({ createdAt: -1 });
 
     // Fetch all admins for these departments to dynamically set the head
@@ -87,10 +91,10 @@ router.get('/', requirePermission(Permission.READ_DEPARTMENT), async (req: Reque
       data: {
         departments: departmentsWithHead,
         pagination: {
-          page: Number(page),
-          limit: Number(limit),
+          page: pagination.page,
+          limit: pagination.limit,
           total,
-          pages: Math.ceil(total / Number(limit))
+          pages: Math.ceil(total / pagination.limit)
         }
       }
     });

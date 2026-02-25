@@ -1,5 +1,6 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
 import { GrievanceStatus } from '../config/constants';
+import { tryEncryptPII } from '../utils/crypto';
 
 export interface IGrievance extends Document {
   grievanceId: string;
@@ -41,6 +42,13 @@ export interface IGrievance extends Document {
     performedBy?: mongoose.Types.ObjectId;
     timestamp: Date;
   }>;
+
+  // Encrypted shadow fields for PII-at-rest compliance
+  piiEncrypted?: {
+    citizenName?: string;
+    citizenPhone?: string;
+    citizenWhatsApp?: string;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -167,6 +175,11 @@ const GrievanceSchema: Schema = new Schema(
       enum: ['en', 'hi', 'mr', 'or'],
       default: 'en'
     },
+    piiEncrypted: {
+      citizenName: { type: String },
+      citizenPhone: { type: String },
+      citizenWhatsApp: { type: String },
+    },
     timeline: [{
       action: {
         type: String,
@@ -226,6 +239,15 @@ GrievanceSchema.pre('save', async function (next) {
       timestamp: new Date()
     }];
   }
+
+  // Maintain encrypted PII shadow fields (best-effort, non-breaking)
+  const existingEncrypted = (this as any).piiEncrypted || {};
+  this.piiEncrypted = {
+    ...existingEncrypted,
+    citizenName: tryEncryptPII((this as any).citizenName),
+    citizenPhone: tryEncryptPII((this as any).citizenPhone),
+    citizenWhatsApp: tryEncryptPII((this as any).citizenWhatsApp),
+  };
   next();
 });
 

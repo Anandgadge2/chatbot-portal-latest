@@ -7,7 +7,7 @@ import { appointmentAPI, Appointment } from '@/lib/api/appointment';
 import { departmentAPI, Department } from '@/lib/api/department';
 import { Calendar, MapPin, Phone, Filter, Search, Eye, Clock, UserPlus, ArrowLeft, CheckCircle, CalendarClock } from 'lucide-react';
 import Link from 'next/link';
-import toast from 'react-hot-toast';
+import { showErrorToast } from '@/lib/utils/feedback';
 import CitizenDetailsModal from '@/components/grievance/CitizenDetailsModal';
 import AssignmentDialog from '@/components/assignment/AssignmentDialog';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
@@ -36,7 +36,7 @@ export default function AppointmentsPage() {
   // Restrict access to Company Admin only
   useEffect(() => {
     if (!authLoading && user && user.role !== 'COMPANY_ADMIN') {
-      toast.error('Access denied. Appointments are only available for Company Admins.');
+      showErrorToast(null, 'Access denied: appointments are available only for Company Admin users.');
       router.push('/dashboard');
     }
   }, [user, authLoading, router]);
@@ -62,7 +62,7 @@ export default function AppointmentsPage() {
         setAppointments(activeAppointments);
       }
     } catch (error) {
-      toast.error('Failed to load appointments');
+      showErrorToast(error, 'Unable to load appointments right now.');
     } finally {
       setLoading(false);
     }

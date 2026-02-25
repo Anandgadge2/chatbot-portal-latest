@@ -6,10 +6,13 @@ class APIClient {
   private client: AxiosInstance;
 
   private listeners: ((event: any) => void)[] = [];
+  private isRefreshing = false;
+  private pendingRefresh: Promise<string | null> | null = null;
 
   constructor() {
     this.client = axios.create({
       baseURL: API_URL,
+      timeout: 20000,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -33,7 +36,7 @@ class APIClient {
 
         return config;
       },
-      (error) => {
+      async (error) => {
         this.emitLog({
           type: 'error',
           source: 'API_ERR',
@@ -56,7 +59,7 @@ class APIClient {
         });
         return response;
       },
-      (error) => {
+      async (error) => {
         const status = error.response?.status || 'ERR';
         const method = error.config?.method?.toUpperCase() || '???';
         const url = error.config?.url || '???';
@@ -64,25 +67,53 @@ class APIClient {
         this.emitLog({
           type: 'error',
           source: 'API_RES',
-          message: `${method} ${url} ${status} - ${error.response?.data?.message || error.message}`,
+          message: `${method} ${url} ${status} - ${this.getFriendlyErrorMessage(error)}`,
           timestamp: new Date().toISOString()
         });
 
         if (error.response?.status === 401) {
-          const currentToken = this.getToken();
-          const isLoginRequest = error.config?.url?.includes('/auth/login') || 
-                                 error.config?.url?.includes('/auth/sso');
-          
-          if (currentToken && !isLoginRequest) {
-            this.removeToken();
-            if (typeof window !== 'undefined') {
-              window.location.href = '/';
+          const originalConfig: any = error.config || {};
+          const isAuthRoute = originalConfig?.url?.includes('/auth/login') ||
+                              originalConfig?.url?.includes('/auth/sso') ||
+                              originalConfig?.url?.includes('/auth/refresh');
+
+          if (!isAuthRoute && !originalConfig._retry) {
+            originalConfig._retry = true;
+            const refreshed = await this.refreshAccessToken();
+            if (refreshed) {
+              originalConfig.headers = originalConfig.headers || {};
+              originalConfig.headers.Authorization = `Bearer ${refreshed}`;
+              return this.client(originalConfig);
             }
+          }
+
+          this.removeToken();
+          if (typeof window !== 'undefined') {
+            window.location.href = '/';
           }
         }
         return Promise.reject(error);
       }
     );
+  }
+
+
+  private getFriendlyErrorMessage(error: any): string {
+    if (!error) return 'Unexpected error occurred. Please try again.';
+
+    if (error.code === 'ECONNABORTED') {
+      return 'The request timed out. Please check your connection and retry.';
+    }
+
+    const status = error?.response?.status;
+    if (status === 400) return error?.response?.data?.message || 'Invalid request. Please verify your inputs.';
+    if (status === 401) return 'Your session has expired. Please login again.';
+    if (status === 403) return error?.response?.data?.message || 'You do not have permission to perform this action.';
+    if (status === 404) return error?.response?.data?.message || 'Requested resource was not found.';
+    if (status === 429) return 'Too many requests. Please wait a moment and try again.';
+    if (status && status >= 500) return 'Server is currently unavailable. Please try again shortly.';
+
+    return error?.response?.data?.message || error?.message || 'Something went wrong. Please try again.';
   }
 
   // Log Subscription System
@@ -95,6 +126,37 @@ class APIClient {
     return () => {
       this.listeners = this.listeners.filter(cb => cb !== callback);
     };
+  }
+
+
+  private getRefreshToken(): string | null {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('refreshToken');
+    }
+    return null;
+  }
+
+  private async refreshAccessToken(): Promise<string | null> {
+    if (this.pendingRefresh) return this.pendingRefresh;
+
+    this.pendingRefresh = (async () => {
+      const refreshToken = this.getRefreshToken();
+      if (!refreshToken) return null;
+      try {
+        const response = await axios.post(`${API_URL}/auth/refresh`, { refreshToken });
+        const nextAccess = response.data?.data?.accessToken;
+        const nextRefresh = response.data?.data?.refreshToken;
+        if (nextAccess) this.setToken(nextAccess);
+        if (nextRefresh) this.setRefreshToken(nextRefresh);
+        return nextAccess || null;
+      } catch {
+        return null;
+      } finally {
+        this.pendingRefresh = null;
+      }
+    })();
+
+    return this.pendingRefresh;
   }
 
   private getToken(): string | null {

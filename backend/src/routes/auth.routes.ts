@@ -1,9 +1,10 @@
 import express, { Request, Response } from 'express';
 import User from '../models/User';
-import { generateToken, generateRefreshToken } from '../utils/jwt';
+import { generateToken, verifyRefreshToken } from '../utils/jwt';
 import { logUserAction } from '../utils/auditLogger';
 import { AuditAction } from '../config/constants';
 import mongoose from 'mongoose';
+import { issueRefreshToken, rotateRefreshToken, revokeTokenFamily } from '../services/tokenRotationService';
 
 const router = express.Router();
 
@@ -130,7 +131,7 @@ router.post('/sso/login', async (req: Request, res: Response) => {
     };
 
     const accessToken = generateToken(sessionPayload);
-    const refreshToken = generateRefreshToken(sessionPayload);
+    const { refreshToken } = await issueRefreshToken(sessionPayload as any);
 
     // STEP 8: Audit log with SSO login type
     await logUserAction(
@@ -273,7 +274,7 @@ router.post('/login', async (req: Request, res: Response) => {
     };
 
     const accessToken = generateToken(tokenPayload);
-    const refreshToken = generateRefreshToken(tokenPayload);
+    const { refreshToken } = await issueRefreshToken(tokenPayload as any);
 
     // Audit log
     await logUserAction(
@@ -430,5 +431,64 @@ router.post('/register', async (req: Request, res: Response) => {
 });
 
 
+
+
+
+// @route   POST /api/auth/refresh
+// @desc    Rotate refresh token and issue new access/refresh pair
+// @access  Public
+router.post('/refresh', async (req: Request, res: Response) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) {
+      return res.status(400).json({ success: false, message: 'Refresh token is required' });
+    }
+
+    const payload = verifyRefreshToken(refreshToken) as any;
+    const nextRefresh = await rotateRefreshToken(refreshToken, payload);
+
+    const accessToken = generateToken({
+      userId: payload.userId,
+      phone: payload.phone,
+      email: payload.email,
+      role: payload.role,
+      companyId: payload.companyId,
+      departmentId: payload.departmentId,
+      loginType: payload.loginType || 'REFRESH',
+    });
+
+    return res.json({
+      success: true,
+      message: 'Token rotated successfully',
+      data: {
+        accessToken,
+        refreshToken: nextRefresh.refreshToken,
+      }
+    });
+  } catch (error: any) {
+    return res.status(401).json({ success: false, message: 'Invalid refresh token' });
+  }
+});
+
+// @route   POST /api/auth/logout
+// @desc    Revoke all refresh tokens in the same family
+// @access  Public
+router.post('/logout', async (req: Request, res: Response) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) {
+      return res.json({ success: true, message: 'Logged out' });
+    }
+
+    const payload = verifyRefreshToken(refreshToken) as any;
+    if (payload.familyId) {
+      await revokeTokenFamily(payload.familyId);
+    }
+
+    return res.json({ success: true, message: 'Logged out' });
+  } catch {
+    return res.json({ success: true, message: 'Logged out' });
+  }
+});
 
 export default router;

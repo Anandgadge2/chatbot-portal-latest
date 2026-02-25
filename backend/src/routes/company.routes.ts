@@ -4,14 +4,17 @@ import User from '../models/User';
 import { authenticate } from '../middleware/auth';
 import { requireSuperAdmin } from '../middleware/rbac';
 import { requireDatabaseConnection } from '../middleware/dbConnection';
+import { tenantRateLimit } from '../middleware/tenantRateLimit';
 import { logUserAction } from '../utils/auditLogger';
 import { AuditAction, UserRole } from '../config/constants';
+import { getPagination } from '../utils/pagination';
 
 const router = express.Router();
 
 // All routes require database connection and authentication
 router.use(requireDatabaseConnection);
 router.use(authenticate);
+router.use(tenantRateLimit({ maxRequests: 1200, windowSeconds: 60 }));
 
 // @route   GET /api/companies
 // @desc    Get all companies (SuperAdmin only)
@@ -19,6 +22,7 @@ router.use(authenticate);
 router.get('/', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const { page = 1, limit = 20, search, companyType, isActive } = req.query;
+    const pagination = getPagination(page, limit);
 
     const query: any = {};
 
@@ -38,8 +42,8 @@ router.get('/', requireSuperAdmin, async (req: Request, res: Response) => {
     }
 
     const companies = await Company.find(query)
-      .limit(Number(limit))
-      .skip((Number(page) - 1) * Number(limit))
+      .limit(pagination.limit)
+      .skip(pagination.skip)
       .sort({ createdAt: -1 });
 
     // Fetch all admins for these companies to dynamically set the head
@@ -72,10 +76,10 @@ router.get('/', requireSuperAdmin, async (req: Request, res: Response) => {
       data: {
         companies: companiesWithHead,
         pagination: {
-          page: Number(page),
-          limit: Number(limit),
+          page: pagination.page,
+          limit: pagination.limit,
           total,
-          pages: Math.ceil(total / Number(limit))
+          pages: Math.ceil(total / pagination.limit)
         }
       }
     });

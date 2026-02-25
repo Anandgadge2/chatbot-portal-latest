@@ -23,6 +23,7 @@ import { ProtectedButton } from '@/components/ui/ProtectedButton';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { Permission, hasPermission, Module } from '@/lib/permissions';
 import toast from 'react-hot-toast';
+import { showErrorToast, showSuccessToast } from '@/lib/utils/feedback';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import GrievanceDetailDialog from '@/components/grievance/GrievanceDetailDialog';
 import AppointmentDetailDialog from '@/components/appointment/AppointmentDetailDialog';
@@ -262,7 +263,7 @@ function DashboardContent() {
     a.download = `${filename}_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
-    toast.success(`Exported ${data.length} records to CSV`);
+    showSuccessToast(`Export completed: ${data.length} records downloaded as CSV.`);
   };
 
   const handleRefreshData = async () => {
@@ -273,9 +274,9 @@ function DashboardContent() {
         fetchAppointments(),
         fetchDashboardData(),
       ]);
-      toast.success('Data refreshed successfully');
+      showSuccessToast('Dashboard data refreshed successfully.');
     } catch (error) {
-      toast.error('Failed to refresh data');
+      showErrorToast(error, 'Unable to refresh dashboard data right now.');
     } finally {
       setIsRefreshing(false);
     }
@@ -298,10 +299,10 @@ function DashboardContent() {
         await fetchGrievances();
         await fetchDashboardData();
       } else {
-        toast.error('Failed to delete grievances');
+        showErrorToast(null, 'Unable to delete selected grievances.');
       }
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || error?.message || 'Failed to delete grievances');
+      showErrorToast(error, 'Unable to delete selected grievances.');
     } finally {
       setIsDeleting(false);
     }
@@ -323,10 +324,10 @@ function DashboardContent() {
         await fetchAppointments();
         await fetchDashboardData();
       } else {
-        toast.error('Failed to delete appointments');
+        showErrorToast(null, 'Unable to delete selected appointments.');
       }
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || error?.message || 'Failed to delete appointments');
+      showErrorToast(error, 'Unable to delete selected appointments.');
     } finally {
       setIsDeleting(false);
     }
@@ -414,7 +415,7 @@ function DashboardContent() {
       }
     } catch (error: any) {
       console.error('Failed to fetch dashboard stats:', error);
-      toast.error('Failed to load dashboard statistics');
+      showErrorToast(error, 'Unable to load dashboard analytics.');
     } finally {
       setLoadingStats(false);
     }
@@ -463,7 +464,7 @@ function DashboardContent() {
       }
     } catch (error: any) {
       console.error('Failed to fetch departments:', error);
-      toast.error('Failed to load departments');
+      showErrorToast(error, 'Unable to load departments.');
     } finally {
       setLoadingDepartments(false);
     }
@@ -499,7 +500,7 @@ function DashboardContent() {
       }
     } catch (error: any) {
       console.error('Failed to fetch users:', error);
-      toast.error('Failed to load users');
+      showErrorToast(error, 'Unable to load users.');
     } finally {
       setLoadingUsers(false);
     }
@@ -519,7 +520,7 @@ function DashboardContent() {
       }
     } catch (error: any) {
       console.error('Failed to fetch grievances:', error);
-      toast.error('Failed to load grievances');
+      showErrorToast(error, 'Unable to load grievances.');
     } finally {
       setLoadingGrievances(false);
     }
@@ -539,7 +540,7 @@ function DashboardContent() {
       }
     } catch (error: any) {
       console.error('Failed to fetch appointments:', error);
-      toast.error('Failed to load appointments');
+      showErrorToast(error, 'Unable to load appointments.');
     } finally {
       setLoadingAppointments(false);
     }
@@ -556,7 +557,7 @@ function DashboardContent() {
       }
     } catch (error: any) {
       console.error('Failed to fetch leads:', error);
-      toast.error('Failed to load leads');
+      showErrorToast(error, 'Unable to load leads.');
     } finally {
       setLoadingLeads(false);
     }
@@ -843,12 +844,12 @@ function DashboardContent() {
     try {
       const response = await userAPI.update(userId, { isActive: !currentStatus } as any);
       if (response.success) {
-        toast.success(`User ${!currentStatus ? 'activated' : 'deactivated'} successfully`);
+        showSuccessToast(`User ${!currentStatus ? 'activated' : 'deactivated'} successfully.`);
         fetchUsers();
       }
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || error.message || 'Failed to update user status';
-      toast.error(errorMessage);
+      showErrorToast({ message: errorMessage }, 'Unable to update user status.');
     }
   };
 
@@ -2101,7 +2102,7 @@ function DashboardContent() {
                                                 }
                                               } catch (error: any) {
                                                 const errorMessage = error.response?.data?.message || error.message || 'Failed to delete user';
-                                                toast.error(errorMessage);
+                                                showErrorToast({ message: errorMessage }, 'Unable to update user status.');
                                               } finally {
                                                 setConfirmDialog(p => ({ ...p, isOpen: false }));
                                               }

@@ -16,7 +16,7 @@ import CreateDepartmentDialog from '@/components/department/CreateDepartmentDial
 import CreateUserDialog from '@/components/user/CreateUserDialog';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
-import { Building, Users, Shield, Settings, FileText, BarChart2, RefreshCw, Search, Download, Trash2, Edit2, Plus, History, Terminal, ChevronRight, User as UserIcon } from 'lucide-react';
+import { Building, Users, Shield, Settings, FileText, BarChart2, RefreshCw, Search, Download, Trash2, Edit2, Plus, History, Terminal, ChevronRight, User as UserIcon, PanelTopOpen } from 'lucide-react';
 import { Pagination } from '@/components/ui/Pagination';
 import RecentActivityPanel from '@/components/dashboard/RecentActivityPanel';
 import TerminalLogs from '@/components/dashboard/TerminalLogs';
@@ -108,7 +108,7 @@ export default function SuperAdminDashboard() {
 
   useEffect(() => {
     if (!loading && !user) {
-      router.push('/superadmin-login');
+      router.push('/');
     } else if (!loading && user && user.role !== 'SUPER_ADMIN') {
       router.push('/dashboard');
     }
@@ -454,6 +454,15 @@ export default function SuperAdminDashboard() {
             </div>
 
             <div className="flex items-center gap-4">
+              <Button
+                onClick={() => router.push('/platform/overview')}
+                variant="outline"
+                size="sm"
+                className="border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:text-indigo-800 transition-all duration-200 shadow-sm rounded-lg font-bold text-[11px] uppercase tracking-wider"
+              >
+                <PanelTopOpen className="w-3.5 h-3.5 mr-1.5" />
+                Open Platform Layer
+              </Button>
               <div className="hidden md:flex flex-col items-end">
                 <span className="text-xs font-bold text-slate-900">{user.firstName} {user.lastName}</span>
                 <span className="text-[10px] text-slate-500 font-medium">Platform Superadmin</span>

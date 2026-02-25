@@ -7,7 +7,7 @@ import { appointmentAPI, Appointment } from '@/lib/api/appointment';
 import { departmentAPI, Department } from '@/lib/api/department';
 import { Calendar, Phone, Filter, Search, Eye, Clock, CheckCircle, ArrowLeft, ArrowUpDown } from 'lucide-react';
 import Link from 'next/link';
-import toast from 'react-hot-toast';
+import { showErrorToast } from '@/lib/utils/feedback';
 import AppointmentDetailDialog from '@/components/appointment/AppointmentDetailDialog';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
@@ -32,7 +32,7 @@ export default function CompletedAppointmentsPage() {
   // Restrict access to Company Admin only
   useEffect(() => {
     if (!authLoading && user && user.role !== 'COMPANY_ADMIN') {
-      toast.error('Access denied. Completed appointments are only available for Company Admins.');
+      showErrorToast(null, 'Access denied: completed appointments are available only for Company Admin users.');
       router.push('/dashboard');
     }
   }, [user, authLoading, router]);
@@ -57,7 +57,7 @@ export default function CompletedAppointmentsPage() {
         setAppointments(completedAppointments);
       }
     } catch (error) {
-      toast.error('Failed to load completed appointments');
+      showErrorToast(error, 'Unable to load completed appointments right now.');
     } finally {
       setLoading(false);
     }
@@ -82,7 +82,7 @@ export default function CompletedAppointmentsPage() {
         setModalOpen(true);
       }
     } catch (error) {
-      toast.error('Failed to load appointment details');
+      showErrorToast(error, 'Unable to load appointment details.');
     }
   };
 

@@ -13,7 +13,7 @@ import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { Shield, TrendingUp } from 'lucide-react';
 
 export default function LoginPage() {
-  const [phone, setPhone] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -40,16 +40,18 @@ export default function LoginPage() {
     setError('');
     
     // Validate inputs
-    if (!phone.trim()) {
-      const msg = 'Please enter your phone number';
+    if (!identifier.trim()) {
+      const msg = 'Please enter your phone number or email';
       setError(msg);
       toast.error(msg);
       return;
     }
 
-    // Validate phone number - must be exactly 10 digits
-    if (!validatePhoneNumber(phone.trim())) {
-      const msg = 'Phone number must be exactly 10 digits';
+    const trimmed = identifier.trim();
+    const isEmail = /@/.test(trimmed);
+
+    if (!isEmail && !validatePhoneNumber(trimmed)) {
+      const msg = 'If using phone, it must be exactly 10 digits';
       setError(msg);
       toast.error(msg);
       return;
@@ -73,8 +75,11 @@ export default function LoginPage() {
     setLoading(true);
     
     try {
-      console.log('🔐 Attempting login with:', { phone: phone.trim() });
-      await login({ phone: phone.trim(), password: password.trim() });
+      console.log('🔐 Attempting login with:', { identifier: trimmed });
+      await login(isEmail
+        ? { email: trimmed, password: password.trim() }
+        : { phone: normalizePhoneNumber(trimmed), password: password.trim() }
+      );
       console.log('✅ Login successful');
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || error.message || 'Login failed. Please try again.';
@@ -163,7 +168,7 @@ export default function LoginPage() {
               <CardContent className="px-8 pb-6">
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <div className="space-y-2">
-                    <Label htmlFor="phone" className="text-slate-700 font-semibold text-base">Phone Number</Label>
+                    <Label htmlFor="identifier" className="text-slate-700 font-semibold text-base">Phone or Email</Label>
                     <div className="relative group">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                         <svg className="h-5 w-5 text-slate-400 group-focus-within:text-purple-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -171,28 +176,16 @@ export default function LoginPage() {
                         </svg>
                       </div>
                       <Input
-                        id="phone"
-                        type="tel"
-                        placeholder="Enter 10 digit number"
-                        value={phone}
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/\D/g, '').slice(0, 10);
-                          setPhone(value);
-                        }}
-                        maxLength={10}
+                        id="identifier"
+                        type="text"
+                        placeholder="Enter email or 10 digit phone"
+                        value={identifier}
+                        onChange={(e) => setIdentifier(e.target.value)}
                         required
                         disabled={loading}
                         className="pl-12 h-12 border-slate-200 focus:border-purple-500 focus:ring-purple-500/20 bg-slate-50/50 rounded-lg text-slate-800 placeholder:text-slate-400 text-base"
                       />
                     </div>
-                    {phone && !validatePhoneNumber(phone) && (
-                      <p className="text-xs text-red-500 flex items-center gap-1">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Must be exactly 10 digits
-                      </p>
-                    )}
                   </div>
 
                   <div className="space-y-2">
