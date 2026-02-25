@@ -32,6 +32,21 @@ export default function LoginPage() {
     }
   }, [user, authLoading, router]);
 
+  const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+
+  const handleIdentifierChange = (value: string) => {
+    const trimmed = value.trim();
+
+    // if user starts typing email keep full value, otherwise allow only 10 numeric digits for phone
+    if (trimmed.includes('@')) {
+      setIdentifier(value.slice(0, 120));
+      return;
+    }
+
+    const digitsOnly = value.replace(/\D/g, '').slice(0, 10);
+    setIdentifier(digitsOnly);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -49,6 +64,13 @@ export default function LoginPage() {
 
     const trimmed = identifier.trim();
     const isEmail = /@/.test(trimmed);
+
+    if (isEmail && !isValidEmail(trimmed)) {
+      const msg = 'Please enter a valid email address';
+      setError(msg);
+      toast.error(msg);
+      return;
+    }
 
     if (!isEmail && !validatePhoneNumber(trimmed)) {
       const msg = 'If using phone, it must be exactly 10 digits';
@@ -180,12 +202,15 @@ export default function LoginPage() {
                         type="text"
                         placeholder="Enter email or 10 digit phone"
                         value={identifier}
-                        onChange={(e) => setIdentifier(e.target.value)}
+                        onChange={(e) => handleIdentifierChange(e.target.value)}
+                        inputMode={identifier.includes('@') ? 'email' : 'numeric'}
+                        maxLength={identifier.includes('@') ? 120 : 10}
                         required
                         disabled={loading}
                         className="pl-12 h-12 border-slate-200 focus:border-purple-500 focus:ring-purple-500/20 bg-slate-50/50 rounded-lg text-slate-800 placeholder:text-slate-400 text-base"
                       />
                     </div>
+                    <p className="text-xs text-slate-500">Use a valid email (e.g. admin@company.com) or a 10-digit phone number.</p>
                   </div>
 
                   <div className="space-y-2">
