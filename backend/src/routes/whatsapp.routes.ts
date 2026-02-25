@@ -5,6 +5,9 @@ import { getRedisClient, isRedisConnected } from '../config/redis';
 import Company from '../models/Company';
 import CompanyWhatsAppConfig from '../models/CompanyWhatsAppConfig';
 import { logger } from '../config/logger';
+import { enforceMetaIpAllowlist, verifyWebhookSignature } from '../middleware/webhookSecurity';
+import ConsentLog from '../models/ConsentLog';
+import { enqueueIncomingMessage } from '../queue/messageQueue';
 
 const router = express.Router();
 
@@ -47,13 +50,16 @@ router.get('/', requireDatabaseConnection, async (req: Request, res: Response) =
  * WEBHOOK RECEIVER (POST)
  * ============================================================
  */
-router.post('/', requireDatabaseConnection, async (req: Request, res: Response) => {
+router.post('/', requireDatabaseConnection, enforceMetaIpAllowlist, verifyWebhookSignature, async (req: Request, res: Response) => {
   try {
     const body = req.body;
 
+    const verbose = process.env.VERBOSE_REQUEST_LOGGING === 'true';
     logger.info(`📥 Webhook POST received`);
-    logger.info(`📦 Headers: ${JSON.stringify(req.headers)}`);
-    logger.info(`📦 Body: ${JSON.stringify(body, null, 2)}`);
+    if (verbose) {
+      logger.info(`📦 Headers: ${JSON.stringify(req.headers)}`);
+      logger.info(`📦 Body: ${JSON.stringify(body, null, 2)}`);
+    }
 
     if (body.object !== 'whatsapp_business_account') {
       logger.warn(`⚠️ Unknown webhook object: ${body.object}`);
@@ -82,6 +88,28 @@ router.post('/', requireDatabaseConnection, async (req: Request, res: Response) 
           try {
             const messageId = message.id;
             
+
+            // Consent logging (interaction-level, idempotent by messageId unique index)
+            try {
+              await ConsentLog.updateOne(
+                { messageId },
+                {
+                  $setOnInsert: {
+                    companyId: company._id,
+                    citizenPhone: message.from,
+                    messageId,
+                    messageType: message.type,
+                    channel: 'whatsapp',
+                    consentType: 'implied_interaction',
+                    metadata: { phoneNumberId: metadata?.phone_number_id }
+                  }
+                },
+                { upsert: true }
+              );
+            } catch (consentErr: any) {
+              logger.warn(`⚠️ Failed to persist consent log for ${messageId}: ${consentErr.message}`);
+            }
+
             // IDEMPOTENCY CHECK: Prevent duplicate processing
             if (await isMessageProcessed(messageId)) {
               logger.info(`⏭️ Message ${messageId} already processed, skipping...`);
@@ -93,10 +121,10 @@ router.post('/', requireDatabaseConnection, async (req: Request, res: Response) 
 
             if (message.type === 'interactive') {
               logger.info(`🔘 Interactive message received from ${message.from}`);
-              await handleInteractiveMessage(message, metadata, company);
+              await queueOrProcessInteractive(message, metadata, company);
             } else {
               logger.info(`📝 ${message.type} message received from ${message.from} (${message.type})`);
-              await handleIncomingMessage(message, metadata, company);
+              await queueOrProcessIncoming(message, metadata, company);
             }
           } catch (msgErr: any) {
             logger.error(`❌ Error processing message loop: ${msgErr.message}`, { stack: msgErr.stack });
@@ -162,6 +190,78 @@ async function getCompanyFromMetadata(metadata: any): Promise<any | null> {
  * HANDLE NORMAL MESSAGES
  * ============================================================
  */
+async function queueOrProcessIncoming(message: any, metadata: any, company: any) {
+  const messageType = message.type;
+  let messageText = '';
+  let mediaUrl = '';
+
+  if (messageType === 'text') {
+    messageText = message.text?.body || '';
+  } else if (messageType === 'image') {
+    messageText = message.image?.caption || '';
+    mediaUrl = message.image?.id || '';
+  } else if (messageType === 'document') {
+    messageText = message.document?.caption || '';
+    mediaUrl = message.document?.id || '';
+  } else if (messageType === 'audio' || messageType === 'voice') {
+    mediaUrl = message.audio?.id || message.voice?.id || '';
+  } else if (messageType === 'video') {
+    messageText = message.video?.caption || '';
+    mediaUrl = message.video?.id || '';
+  }
+
+  const payload = {
+    companyId: company.companyId,
+    from: message.from,
+    messageText,
+    messageType,
+    messageId: message.id,
+    mediaUrl,
+    metadata,
+  };
+
+  try {
+    await enqueueIncomingMessage(payload);
+  } catch {
+    // fallback to synchronous processing if queue unavailable
+    await processWhatsAppMessage(payload as any);
+  }
+}
+
+async function queueOrProcessInteractive(message: any, metadata: any, company: any) {
+  const interactive = message.interactive;
+  let buttonId = '';
+  let messageText = '';
+
+  if (interactive?.type === 'button_reply') {
+    buttonId = interactive.button_reply?.id || '';
+    messageText = interactive.button_reply?.title || '';
+  }
+
+  if (interactive?.type === 'list_reply') {
+    buttonId = interactive.list_reply?.id || '';
+    messageText = interactive.list_reply?.title || '';
+  }
+
+  if (!buttonId) return;
+
+  const payload = {
+    companyId: company.companyId,
+    from: message.from,
+    messageText,
+    messageType: 'interactive',
+    messageId: message.id,
+    metadata,
+    buttonId
+  };
+
+  try {
+    await enqueueIncomingMessage(payload);
+  } catch {
+    await processWhatsAppMessage(payload as any);
+  }
+}
+
 async function handleIncomingMessage(message: any, metadata: any, resolvedCompany?: any) {
   try {
     // Use resolved company if provided, otherwise resolve from metadata

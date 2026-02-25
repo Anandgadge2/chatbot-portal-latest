@@ -14,6 +14,9 @@ import { connectDatabase, closeDatabase, isDatabaseConnected } from './config/da
 import { connectRedis, disconnectRedis } from './config/redis';
 import { logger } from './config/logger'; 
 import { configureCloudinary } from './config/cloudinary';
+import { startMessageWorker } from './workers/messageWorker';
+import { startDataRetentionScheduler } from './services/dataRetentionService';
+import { initErrorTracker } from './services/errorTracker';
 
 // Import routes
 import authRoutes from './routes/auth.routes';
@@ -36,6 +39,7 @@ import chatbotFlowRoutes from './routes/chatbotFlow.routes';
 import whatsappConfigRoutes from './routes/companyWhatsAppConfig.routes';
 import emailConfigRoutes from './routes/companyEmailConfig.routes';
 import leadRoutes from './routes/lead.routes';
+import platformRoutes from './routes/platform.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -49,10 +53,11 @@ const PORT = process.env.PORT || 5001;
 // Trust proxy (required when behind Vercel/nginx; fixes express-rate-limit X-Forwarded-For validation)
 app.set('trust proxy', 1);
 
-// Custom logging middleware to see ALL traffic
-app.use((req, res, next) => {
+// Request logging middleware (debug-friendly, production-safe)
+const isVerboseRequestLogging = process.env.VERBOSE_REQUEST_LOGGING === 'true';
+app.use((req, _res, next) => {
   logger.info(`🌐 Incoming Request: ${req.method} ${req.url}`);
-  if (req.method === 'POST') {
+  if (isVerboseRequestLogging && req.method === 'POST') {
     logger.info(`📦 Headers: ${JSON.stringify(req.headers)}`);
   }
   next();
@@ -137,7 +142,12 @@ app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/sso', authLimiter);
 
 // Body parsing
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({
+  limit: '10mb',
+  verify: (req: any, _res, buf) => {
+    req.rawBody = Buffer.from(buf);
+  }
+}));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Logging
@@ -209,6 +219,7 @@ app.use('/api/chatbot-flows', chatbotFlowRoutes);
 app.use('/api/whatsapp-config', whatsappConfigRoutes);
 app.use('/api/email-config', emailConfigRoutes);
 app.use('/api/leads', leadRoutes);
+app.use('/api/platform', platformRoutes);
 
 // ================================
 // Error Handling
@@ -223,6 +234,8 @@ app.use(errorHandler);
 // ================================
 // Server Initialization
 const init = async () => {
+  // Init optional error tracker (Sentry)
+  await initErrorTracker();
   // Configure Cloudinary
   try {
     configureCloudinary();
@@ -261,6 +274,16 @@ const init = async () => {
   } catch (error: any) {
     // Redis is optional
   }
+
+  // Start background queue worker
+  try {
+    await startMessageWorker();
+  } catch (error: any) {
+    logger.warn('⚠️ Message worker startup skipped:', error.message);
+  }
+
+  // Start retention purge scheduler
+  startDataRetentionScheduler();
 
   // Initialize ID counters (for atomic ID generation)
   try {

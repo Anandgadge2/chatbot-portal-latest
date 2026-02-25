@@ -7,6 +7,10 @@ export interface JWTPayload {
   role: string;
   companyId?: string;
   departmentId?: string;
+  loginType?: string;
+  tokenType?: 'access' | 'refresh';
+  familyId?: string;
+  jti?: string;
 }
 
 export const generateToken = (payload: JWTPayload): string => {
@@ -16,7 +20,7 @@ export const generateToken = (payload: JWTPayload): string => {
     throw new Error('JWT_SECRET is not defined');
   }
 
-  return jwt.sign(payload, secret, {
+  return jwt.sign({ ...payload, tokenType: 'access' }, secret, {
     expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as string
   } as jwt.SignOptions);
 };
@@ -28,7 +32,7 @@ export const generateRefreshToken = (payload: JWTPayload): string => {
     throw new Error('JWT_REFRESH_SECRET is not defined');
   }
 
-  return jwt.sign(payload, secret, {
+  return jwt.sign({ ...payload, tokenType: 'access' }, secret, {
     expiresIn: (process.env.JWT_REFRESH_EXPIRES_IN || '30d') as string
   } as jwt.SignOptions);
 };

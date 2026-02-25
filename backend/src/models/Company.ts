@@ -24,6 +24,10 @@ export interface ICompany extends Document {
   // Note: chatbotConfig moved to ChatbotFlow model
   isActive: boolean;
   isSuspended: boolean;
+  dataRetention: {
+    retentionDays: number;
+    purgeEnabled: boolean;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -89,6 +93,17 @@ const CompanySchema: Schema = new Schema(
     isSuspended: {
       type: Boolean,
       default: false
+    },
+    dataRetention: {
+      retentionDays: {
+        type: Number,
+        default: 365,
+        min: 30
+      },
+      purgeEnabled: {
+        type: Boolean,
+        default: false
+      }
     }
   },
   {

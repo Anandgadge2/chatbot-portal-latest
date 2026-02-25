@@ -4,14 +4,17 @@ import Appointment from '../models/Appointment';
 import { authenticate } from '../middleware/auth';
 import { requirePermission } from '../middleware/rbac';
 import { requireDatabaseConnection } from '../middleware/dbConnection';
+import { tenantRateLimit } from '../middleware/tenantRateLimit';
 import { logUserAction } from '../utils/auditLogger';
 import { AuditAction, Permission, UserRole, AppointmentStatus } from '../config/constants';
+import { getPagination } from '../utils/pagination';
 
 const router = express.Router();
 
 // All routes require database connection and authentication
 router.use(requireDatabaseConnection);
 router.use(authenticate);
+router.use(tenantRateLimit({ maxRequests: 1200, windowSeconds: 60 }));
 
 // @route   GET /api/appointments
 // @desc    Get all appointments (scoped by role)
@@ -20,6 +23,7 @@ router.get('/', requirePermission(Permission.READ_APPOINTMENT), async (req: Requ
   try {
     const { page = 1, limit = 20, status, companyId, departmentId, assignedTo, date } = req.query;
     const currentUser = req.user!;
+    const pagination = getPagination(page, limit);
 
     const query: any = {};
 
@@ -47,7 +51,7 @@ router.get('/', requirePermission(Permission.READ_APPOINTMENT), async (req: Requ
           success: true,
           data: {
             appointments: [],
-            pagination: { page: 1, limit: Number(limit), total: 0, pages: 0 }
+            pagination: { page: 1, limit: pagination.limit, total: 0, pages: 0 }
           }
         });
         return;
@@ -73,9 +77,10 @@ router.get('/', requirePermission(Permission.READ_APPOINTMENT), async (req: Requ
       .populate('companyId', 'name companyId')
       .populate('departmentId', 'name departmentId')
       .populate('assignedTo', 'firstName lastName email')
-      .limit(Number(limit))
-      .skip((Number(page) - 1) * Number(limit))
-      .sort({ createdAt: -1, appointmentDate: 1, appointmentTime: 1 }); // Newest first
+      .limit(pagination.limit)
+      .skip(pagination.skip)
+      .sort({ createdAt: -1, appointmentDate: 1, appointmentTime: 1 })
+      .lean(); // Newest first
 
     const total = await Appointment.countDocuments(query);
 
@@ -84,10 +89,10 @@ router.get('/', requirePermission(Permission.READ_APPOINTMENT), async (req: Requ
       data: {
         appointments,
         pagination: {
-          page: Number(page),
-          limit: Number(limit),
+          page: pagination.page,
+          limit: pagination.limit,
           total,
-          pages: Math.ceil(total / Number(limit))
+          pages: Math.ceil(total / pagination.limit)
         }
       }
     });
