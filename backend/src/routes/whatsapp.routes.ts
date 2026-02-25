@@ -5,6 +5,8 @@ import { getRedisClient, isRedisConnected } from '../config/redis';
 import Company from '../models/Company';
 import CompanyWhatsAppConfig from '../models/CompanyWhatsAppConfig';
 import { logger } from '../config/logger';
+import { enforceMetaIpAllowlist, verifyWebhookSignature } from '../middleware/webhookSecurity';
+import ConsentLog from '../models/ConsentLog';
 
 const router = express.Router();
 
@@ -47,13 +49,16 @@ router.get('/', requireDatabaseConnection, async (req: Request, res: Response) =
  * WEBHOOK RECEIVER (POST)
  * ============================================================
  */
-router.post('/', requireDatabaseConnection, async (req: Request, res: Response) => {
+router.post('/', requireDatabaseConnection, enforceMetaIpAllowlist, verifyWebhookSignature, async (req: Request, res: Response) => {
   try {
     const body = req.body;
 
+    const verbose = process.env.VERBOSE_REQUEST_LOGGING === 'true';
     logger.info(`📥 Webhook POST received`);
-    logger.info(`📦 Headers: ${JSON.stringify(req.headers)}`);
-    logger.info(`📦 Body: ${JSON.stringify(body, null, 2)}`);
+    if (verbose) {
+      logger.info(`📦 Headers: ${JSON.stringify(req.headers)}`);
+      logger.info(`📦 Body: ${JSON.stringify(body, null, 2)}`);
+    }
 
     if (body.object !== 'whatsapp_business_account') {
       logger.warn(`⚠️ Unknown webhook object: ${body.object}`);
@@ -82,6 +87,28 @@ router.post('/', requireDatabaseConnection, async (req: Request, res: Response) 
           try {
             const messageId = message.id;
             
+
+            // Consent logging (interaction-level, idempotent by messageId unique index)
+            try {
+              await ConsentLog.updateOne(
+                { messageId },
+                {
+                  $setOnInsert: {
+                    companyId: company._id,
+                    citizenPhone: message.from,
+                    messageId,
+                    messageType: message.type,
+                    channel: 'whatsapp',
+                    consentType: 'implied_interaction',
+                    metadata: { phoneNumberId: metadata?.phone_number_id }
+                  }
+                },
+                { upsert: true }
+              );
+            } catch (consentErr: any) {
+              logger.warn(`⚠️ Failed to persist consent log for ${messageId}: ${consentErr.message}`);
+            }
+
             // IDEMPOTENCY CHECK: Prevent duplicate processing
             if (await isMessageProcessed(messageId)) {
               logger.info(`⏭️ Message ${messageId} already processed, skipping...`);

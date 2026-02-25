@@ -49,10 +49,11 @@ const PORT = process.env.PORT || 5001;
 // Trust proxy (required when behind Vercel/nginx; fixes express-rate-limit X-Forwarded-For validation)
 app.set('trust proxy', 1);
 
-// Custom logging middleware to see ALL traffic
-app.use((req, res, next) => {
+// Request logging middleware (debug-friendly, production-safe)
+const isVerboseRequestLogging = process.env.VERBOSE_REQUEST_LOGGING === 'true';
+app.use((req, _res, next) => {
   logger.info(`🌐 Incoming Request: ${req.method} ${req.url}`);
-  if (req.method === 'POST') {
+  if (isVerboseRequestLogging && req.method === 'POST') {
     logger.info(`📦 Headers: ${JSON.stringify(req.headers)}`);
   }
   next();
@@ -137,7 +138,12 @@ app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/sso', authLimiter);
 
 // Body parsing
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({
+  limit: '10mb',
+  verify: (req: any, _res, buf) => {
+    req.rawBody = Buffer.from(buf);
+  }
+}));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Logging

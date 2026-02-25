@@ -3,14 +3,17 @@ import User from '../models/User';
 import { authenticate } from '../middleware/auth';
 import { requirePermission } from '../middleware/rbac';
 import { requireDatabaseConnection } from '../middleware/dbConnection';
+import { tenantRateLimit } from '../middleware/tenantRateLimit';
 import { logUserAction } from '../utils/auditLogger';
 import { AuditAction, Permission, UserRole } from '../config/constants';
+import { getPagination } from '../utils/pagination';
 
 const router = express.Router();
 
 // All routes require database connection and authentication
 router.use(requireDatabaseConnection);
 router.use(authenticate);
+router.use(tenantRateLimit({ maxRequests: 1200, windowSeconds: 60 }));
 
 // @route   GET /api/users
 // @desc    Get all users (scoped by role)
@@ -19,6 +22,7 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
   try {
     const { page = 1, limit = 20, search, role, companyId, departmentId } = req.query;
     const currentUser = req.user!;
+    const pagination = getPagination(page, limit);
 
     const query: any = {};
 
@@ -44,7 +48,7 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
           success: true,
           data: {
             users: [],
-            pagination: { page: 1, limit: 20, total: 0, pages: 0 }
+            pagination: { page: 1, limit: pagination.limit, total: 0, pages: 0 }
           }
         });
         return;
@@ -59,7 +63,7 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
           success: true,
           data: {
             users: [],
-            pagination: { page: 1, limit: 20, total: 0, pages: 0 }
+            pagination: { page: 1, limit: pagination.limit, total: 0, pages: 0 }
           }
         });
         return;
@@ -89,9 +93,10 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
     const users = await User.find(query)
       .populate('companyId', 'name companyId')
       .populate('departmentId', 'name departmentId')
-      .limit(Number(limit))
-      .skip((Number(page) - 1) * Number(limit))
-      .sort({ createdAt: -1 });
+      .limit(pagination.limit)
+      .skip(pagination.skip)
+      .sort({ createdAt: -1 })
+      .lean();
 
     const total = await User.countDocuments(query);
 
@@ -100,10 +105,10 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
       data: {
         users,
         pagination: {
-          page: Number(page),
-          limit: Number(limit),
+          page: pagination.page,
+          limit: pagination.limit,
           total,
-          pages: Math.ceil(total / Number(limit))
+          pages: Math.ceil(total / pagination.limit)
         }
       }
     });
