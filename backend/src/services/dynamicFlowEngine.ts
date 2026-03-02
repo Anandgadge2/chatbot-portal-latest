@@ -1047,6 +1047,7 @@ export class DynamicFlowEngine {
       const grievance = new Grievance(grievanceData);
       await grievance.save();
       this.session.data.grievanceId = grievance.grievanceId;
+      this.session.data.id = grievance.grievanceId; // Set generic id for flow placeholders
       this.session.data.date = new Date(grievance.createdAt).toLocaleDateString('en-IN');
       const dept = departmentId ? await Department.findById(departmentId) : null;
       const subDept = this.session.data.subDepartmentId ? await Department.findById(this.session.data.subDepartmentId) : null;
@@ -1129,6 +1130,7 @@ export class DynamicFlowEngine {
       const appointment = new Appointment(appointmentData);
       await appointment.save();
       this.session.data.appointmentId = appointment.appointmentId;
+      this.session.data.id = appointment.appointmentId; // Set generic id for flow placeholders
       this.session.data.status = 'Scheduled';
       await updateSession(this.session);
       
@@ -1184,6 +1186,7 @@ export class DynamicFlowEngine {
       console.log(`✅ Lead created successfully: ${lead.leadId}`);
       
       this.session.data.leadId = lead.leadId;
+      this.session.data.id = lead.leadId; // Set generic id for flow placeholders
       await updateSession(this.session);
       
       // Notify admin logic can be added here if needed
@@ -1209,6 +1212,7 @@ export class DynamicFlowEngine {
     });
 
     // Replace special placeholders
+    message = message.replace(/\{id\}/g, this.session.data.id || this.session.data.grievanceId || this.session.data.appointmentId || this.session.data.leadId || '{id}');
     message = message.replace(/\{date\}/g, this.session.data.date ?? new Date().toLocaleDateString('en-IN'));
     message = message.replace(/\{time\}/g, this.session.data.time ?? new Date().toLocaleTimeString('en-IN'));
     message = message.replace(/\{companyName\}/g, this.company.name);

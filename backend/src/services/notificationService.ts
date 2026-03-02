@@ -209,112 +209,38 @@ export async function notifyDepartmentAdminOnCreation(
     const company = await getCompanyWithWhatsAppConfig(data.companyId);
     if (!company) return;
 
-    // ✅ Check if AUTO_NOTIFICATION module is enabled
-    if (!company.enabledModules?.includes('AUTO_NOTIFICATION')) {
-      logger.info('⏭️ AUTO_NOTIFICATION module disabled for this company. Skipping notification.');
+    // ✅ Find ALL relevant admins to notify: Department Admin AND Company Admins
+    // This fulfills the requirement of showing on both dashboards and notifying relevant parties.
+    const adminsToNotify: any[] = [];
+
+    // 1. Get Department Admin (Current or Parent fallback)
+    if (data.departmentId) {
+      const deptAdmin = await getDepartmentAdmin(data.departmentId);
+      if (deptAdmin) {
+        adminsToNotify.push({ user: deptAdmin, type: 'DEPT_ADMIN' });
+      }
+    }
+
+    // 2. Get Company Admins
+    const companyAdmins = await User.find({
+      companyId: data.companyId,
+      role: UserRole.COMPANY_ADMIN,
+      isActive: true
+    });
+    
+    companyAdmins.forEach(admin => {
+      // Avoid duplicates if same user is somehow both (unlikely but safe)
+      if (!adminsToNotify.find(a => a.user._id.toString() === admin._id.toString())) {
+        adminsToNotify.push({ user: admin, type: 'COMPANY_ADMIN' });
+      }
+    });
+
+    if (adminsToNotify.length === 0) {
+      logger.warn(`⚠️ No admins found to notify for company ${company.name} (Grievance/Appointment: ${data.grievanceId || data.appointmentId})`);
       return;
     }
 
-    // For CEO appointments, departmentId is null - notify Company Admin instead
-    if (data.type === 'appointment' && !data.departmentId) {
-      // Find Company Admin for CEO appointments
-      const companyAdmins = await User.find({
-        companyId: data.companyId,
-        role: UserRole.COMPANY_ADMIN,
-        isActive: true
-      });
-
-      if (companyAdmins.length === 0) {
-        logger.warn('⚠️ No Company Admin found to notify about CEO appointment');
-        return;
-      }
-
-      // Notify all Company Admins
-      for (const admin of companyAdmins) {
-        const createdAt = data.createdAt || new Date();
-        const formattedDate = new Date(createdAt).toLocaleString('en-IN', {
-          day: '2-digit',
-          month: 'long',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: true
-        });
-
-        const ceoWaData = {
-          companyName: company.name,
-          recipientName: admin.getFullName(),
-          appointmentId: data.appointmentId,
-          citizenName: data.citizenName,
-          citizenPhone: data.citizenPhone,
-          departmentName: 'CEO - Zilla Parishad Amravati',
-          purpose: data.purpose,
-          createdAt: data.createdAt,
-          appointmentDate: data.appointmentDate,
-          appointmentTime: data.appointmentTime,
-          formattedDate
-        };
-        let ceoMessage = await getNotificationWhatsAppMessage(data.companyId, 'appointment', 'created', ceoWaData);
-        if (!ceoMessage) {
-          ceoMessage =
-            `*${company.name}*\n` +
-            `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-            `📋 *NEW APPOINTMENT REQUEST RECEIVED*\n\n` +
-            `Respected ${admin.getFullName()},\n\n` +
-            `A new appointment request has been received for the CEO.\n\n` +
-            `*Appointment Details:*\n` +
-            `🎫 *Reference ID:* ${data.appointmentId}\n` +
-            `👤 *Citizen Name:* ${data.citizenName}\n` +
-            `📞 *Contact Number:* ${data.citizenPhone}\n` +
-            `🏢 *Department:* CEO - Zilla Parishad Amravati\n` +
-            `📝 *Purpose:* ${data.purpose}\n` +
-            `📅 *Requested Date:* ${data.appointmentDate ? new Date(data.appointmentDate).toLocaleDateString('en-IN') : 'N/A'}\n` +
-            `⏰ *Requested Time:* ${data.appointmentTime || 'N/A'}\n` +
-            `📅 *Received On:* ${formattedDate}\n\n` +
-            `*Action Required:*\n` +
-            `Please review this appointment request and schedule it from the dashboard.\n\n` +
-            `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-            `*${company.name}*\n` +
-            `Digital Appointment System\n` +
-            `This is an automated notification.`;
-        }
-        await safeSendWhatsApp(company, admin.phone, ceoMessage);
-
-        if (admin.email) {
-          try {
-            const emailData = {
-              companyName: company.name,
-              recipientName: admin.getFullName(),
-              appointmentId: data.appointmentId,
-              citizenName: data.citizenName,
-              citizenPhone: data.citizenPhone,
-              departmentName: 'CEO - Zilla Parishad Amravati',
-              purpose: data.purpose,
-              location: data.location,
-              createdAt: data.createdAt,
-              appointmentDate: data.appointmentDate,
-              appointmentTime: data.appointmentTime
-            };
-            const email = await getNotificationEmailContent(data.companyId, 'appointment', 'created', emailData);
-            const result = await sendEmail(admin.email, email.subject, email.html, email.text, { companyId: data.companyId });
-            if (result.success) {
-              logger.info(`✅ Email sent to Company Admin ${admin.getFullName()} (${admin.email})`);
-            }
-          } catch (error) {
-            logger.error(`❌ Error sending email to ${admin.email}:`, error);
-          }
-        }
-      }
-      return; // Exit early for CEO appointments
-    }
-
-    // For grievances or department appointments, use existing logic
-    const department = await Department.findById(data.departmentId);
-    if (!department) return;
-
-    const admin = await getDepartmentAdmin(data.departmentId);
-    if (!admin) return;
-
+    const department = data.departmentId ? await Department.findById(data.departmentId) : null;
     const createdAt = data.createdAt || new Date();
     const formattedDate = new Date(createdAt).toLocaleString('en-IN', {
       day: '2-digit',
@@ -325,68 +251,70 @@ export async function notifyDepartmentAdminOnCreation(
       hour12: true
     });
 
-    const notificationData = {
-      companyName: company.name,
-      recipientName: admin.getFullName(),
-      grievanceId: data.grievanceId,
-      appointmentId: data.appointmentId,
-      citizenName: data.citizenName,
-      citizenPhone: data.citizenPhone,
-      departmentName: department.name,
-      category: data.category,
-      priority: data.priority,
-      description: data.description,
-      purpose: data.purpose,
-      location: data.location,
-      createdAt: data.createdAt,
-      timeline: data.timeline,
-      appointmentDate: data.appointmentDate,
-      appointmentTime: data.appointmentTime,
-      formattedDate
-    };
+    // Notify each identified admin
+    for (const { user, type } of adminsToNotify) {
+      const notificationData = {
+        companyName: company.name,
+        recipientName: user.getFullName(),
+        grievanceId: data.grievanceId,
+        appointmentId: data.appointmentId,
+        citizenName: data.citizenName,
+        citizenPhone: data.citizenPhone,
+        departmentName: department ? department.name : (data.type === 'appointment' ? 'CEO Office' : 'General'),
+        category: data.category,
+        priority: data.priority,
+        description: data.description,
+        purpose: data.purpose,
+        location: data.location,
+        createdAt: data.createdAt,
+        timeline: data.timeline,
+        appointmentDate: data.appointmentDate,
+        appointmentTime: data.appointmentTime,
+        formattedDate
+      };
 
-    // Email
-    if (admin.email) {
-      try {
-        const email = await getNotificationEmailContent(data.companyId, data.type, 'created', notificationData);
-        const result = await sendEmail(admin.email, email.subject, email.html, email.text, { companyId: data.companyId });
-        if (result.success) {
-          logger.info(`✅ Email sent to department admin ${admin.getFullName()} (${admin.email})`);
-        } else {
-          logger.error(`❌ Failed to send email to ${admin.email}:`, result.error);
+      // 📧 Send Email
+      if (user.email) {
+        try {
+          const email = await getNotificationEmailContent(data.companyId, data.type, 'created', notificationData);
+          const result = await sendEmail(user.email, email.subject, email.html, email.text, { companyId: data.companyId });
+          if (result.success) {
+            logger.info(`✅ Email sent to ${type} ${user.getFullName()} (${user.email})`);
+          }
+        } catch (error) {
+          logger.error(`❌ Error sending email to ${user.email}:`, error);
         }
-      } catch (error) {
-        logger.error(`❌ Error sending email to ${admin.email}:`, error);
       }
-    } else {
-      logger.warn(`⚠️ Department admin ${admin.getFullName()} has no email address`);
-    }
 
-    let message = await getNotificationWhatsAppMessage(data.companyId, data.type, 'created', notificationData);
-    if (!message) {
-      const categoryText = data.category ? `\n📂 *Category:* ${data.category}\n` : '';
-      const locationText = data.location ? `\n📍 *Location:* ${data.location}\n` : '';
-      message =
-        `*${company.name}*\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-        `📋 *NEW ${data.type === 'grievance' ? 'GRIEVANCE' : 'APPOINTMENT'} RECEIVED*\n\n` +
-        `Respected ${admin.getFullName()},\n\n` +
-        `This is to inform you that a new ${data.type === 'grievance' ? 'grievance' : 'appointment'} has been received through our digital portal and has been assigned to your department for immediate attention and necessary action.\n\n` +
-        `*Grievance/Appointment Details:*\n` +
-        `🎫 *Reference ID:* ${data.grievanceId || data.appointmentId}\n` +
-        `👤 *Citizen Name:* ${data.citizenName}\n` +
-        `📞 *Contact Number:* ${data.citizenPhone}\n` +
-        `🏢 *Department:* ${department.name}${categoryText}${locationText}` +
-        `📝 *Description:*\n${data.description || data.purpose}\n\n` +
-        `📅 *Received On:* ${formattedDate}\n\n` +
-        `*Action Required:*\n` +
-        `Please review this ${data.type === 'grievance' ? 'grievance' : 'appointment'} at your earliest convenience and take appropriate action. Kindly ensure timely resolution as per the service level agreement (SLA) guidelines.\n\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `*${company.name}*\n` +
-        `Digital Grievance Redressal System\n` +
-        `This is an automated notification.`;
+      // 📱 Send WhatsApp
+      let message = await getNotificationWhatsAppMessage(data.companyId, data.type, 'created', notificationData);
+      if (!message) {
+        const typeLabel = data.type === 'grievance' ? 'GRIEVANCE' : 'APPOINTMENT';
+        const categoryText = data.category ? `\n📂 *Category:* ${data.category}\n` : '';
+        const locationText = data.location ? `\n📍 *Location:* ${data.location}\n` : '';
+        const deptName = department ? department.name : (data.type === 'appointment' ? 'CEO - Zilla Parishad' : 'General');
+        
+        message =
+          `*${company.name}*\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+          `📋 *NEW ${typeLabel} RECEIVED*\n\n` +
+          `Respected ${user.getFullName()},\n\n` +
+          `This is to inform you that a new ${data.type} has been received and is now available on your dashboard for review.\n\n` +
+          `*Details:*\n` +
+          `🎫 *Ref ID:* ${data.grievanceId || data.appointmentId}\n` +
+          `👤 *Citizen:* ${data.citizenName}\n` +
+          `📞 *Contact:* ${data.citizenPhone}\n` +
+          `🏢 *Department:* ${deptName}${categoryText}${locationText}` +
+          `📝 *Description:*\n${data.description || data.purpose}\n\n` +
+          `📅 *Received:* ${formattedDate}\n\n` +
+          `*Dashboard Visibility:*\n` +
+          `This ${data.type} is automatically visible on the ${type === 'COMPANY_ADMIN' ? 'Company Admin' : 'Department Admin'} dashboard for tracking and management.\n\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+          `Digital Governance System\n` +
+          `*${company.name}*`;
+      }
+      await safeSendWhatsApp(company, user.phone, message);
     }
-    await safeSendWhatsApp(company, admin.phone, message);
 
   } catch (error) {
     logger.error('❌ notifyDepartmentAdminOnCreation failed:', error);

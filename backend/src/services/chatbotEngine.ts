@@ -35,11 +35,11 @@ export interface ChatbotMessage {
 // Professional Government Language Translations
 const translations = {
   en: {
-    welcome: '🇮🇳 *Zilla Parishad Amravati - Official Digital Portal*\n\nNamaskar! Welcome to the official WhatsApp service of Zilla Parishad Amravati.\n\nWe are dedicated to providing transparent and efficient services to all citizens.\n\n👇 *Please select your preferred language:*',
+    welcome: '🇮🇳 *Collectorate Jharsuguda - Official Digital Portal*\n\nNamaskar! Welcome to the official WhatsApp service of Collectorate Jharsuguda.\n\nWe are dedicated to providing transparent and efficient services to all citizens.\n\n👇 *Please select your preferred language:*',
     serviceUnavailable: '⚠️ *Service Notice*\n\nThe requested service is currently under maintenance. We apologize for the inconvenience.\n\nPlease try again later or visit our official website.',
-    mainMenu: '🏛️ *Citizen Services Menu*\n\nWelcome to the Zilla Parishad Digital Helpdesk.\n\n👇 *Please select a service from the options below:*',
-    grievanceRaise: '📝 *Register a Grievance*\n\nYou can file a formal complaint regarding any ZP department.\n\nTo begin, please provide the details as requested.',
-    appointmentBook: '📅 *Book an Official Appointment*\n\nSchedule a meeting with the Chief Executive Officer (CEO), Zilla Parishad.\n\nPlease provide the required details to proceed with your appointment request.',
+    mainMenu: '🏛️ *Citizen Services Menu*\n\nWelcome to the Collectorate Jharsuguda Digital Helpdesk.\n\n👇 *Please select a service from the options below:*',
+    grievanceRaise: '📝 *Register a Grievance*\n\nYou can file a formal complaint regarding any department.\n\nTo begin, please provide the details as requested.',
+    appointmentBook: '📅 *Book an Official Appointment*\n\nSchedule a meeting with the District Magistrate / Collector.\n\nPlease provide the required details to proceed with your appointment request.',
     appointmentBookCEO: '📅 *New Appointment Request*\n\nPlease enter your Full Name (as per official records):',
     aptRequested: '✅ *Appointment Request Submitted*\n\nYour appointment request has been received.\n\n🎫 *Ref No:* `{id}`\n👤 *Name:* {name}\n📅 *Requested Date:* {date}\n⏰ *Requested Time:* {time}\n🎯 *Purpose:* {purpose}\n\n⏳ *Status:* Your request is pending approval. You will receive a confirmation message once the appointment is scheduled.\n\nThank you for your patience.',
     aptScheduled: '✅ *Appointment Confirmed*\n\nYour appointment has been scheduled.\n\n🎫 *Ref No:* `{id}`\n👤 *Name:* {name}\n📅 *Date:* {date}\n⏰ *Time:* {time}\n🎯 *Purpose:* {purpose}\n\nPlease arrive 15 minutes early with valid ID.\n\n📝 *Remarks:* {remarks}',
@@ -58,7 +58,7 @@ const translations = {
     label_no_remarks: 'Case closed as per protocol.',
     grievanceError: '❌ *System Error*\n\nWe could not process your request at this moment. Please try again later.',
     backToMenu: '↩️ Main Menu',
-    help: 'ℹ️ *Helpdesk & Support*\n\nFor further assistance:\n📞 *Helpline:* 1800-123-4567\n🌐 *Website:* zpamravati.gov.in\n📍 *Office:* Zilla Parishad Bhavan, Amravati\n\n_Office Hours: 10:00 AM - 6:00 PM (Mon-Sat)_',
+    help: 'ℹ️ *Helpdesk & Support*\n\nFor further assistance:\n📞 *Helpline:* 06645-270007\n🌐 *Website:* jharsuguda.nic.in\n📍 *Office:* Collectorate, Jharsuguda\n\n_Office Hours: 10:00 AM - 5:30 PM (Mon-Sat)_',
     invalidOption: '⚠️ *Invalid Input*\n\nPlease select a valid option from the buttons provided.',
     sessionExpired: '⏳ *Session Timed Out*\n\nYour session has expired. Please type "Hi" to start again.',
     menu_grievance: '📝 File Grievance',
@@ -137,7 +137,6 @@ const translations = {
     'desc_Water Conservation Department': 'Water conservation and management',
     'desc_Animal Husbandry Department': 'Animal husbandry and dairy development',
     'desc_IT Cell': 'Information technology services',
-    goodbye: '👋 *Thank You*\n\nThank you for contacting Zilla Parishad Amravati. We are always ready to serve you.\n\n📞 *For Support:*\n• Type "Hi" anytime for assistance\n• Type "Help" for helpdesk information\n• Type "Menu" to see all services\n\n🌐 *Website:* zpamravati.gov.in\n📍 *Office:* Zilla Parishad Bhavan, Amravati\n\n_Office Hours: 10:00 AM - 6:00 PM (Mon-Sat)_',
     appointmentConfirm: '📋 *Verify Appointment*\n\nPlease confirm your booking details:',
     err_no_record_found: '❌ *No Records Found*\n\nWe could not find any record matching that reference number.',
     grievanceCancel: '🚫 *Cancelled*\n\nThe grievance registration has been cancelled.',
@@ -158,12 +157,14 @@ const translations = {
     status_COMPLETED: 'Completed',
     footer_grv_guidance: 'For case escalation, please contact the department head.',
     footer_apt_guidance: 'Carry this digital receipt for entry.',
+    err_no_record_guidance: 'Please double-check the number or contact support.',
+    goodbye: '👋 *Thank You*\n\nThank you for contacting Collectorate Jharsuguda. We are always ready to serve you.\n\n📞 *For Support:*\n• Type "Hi" anytime for assistance\n• Type "Help" for helpdesk information\n• Type "Menu" to see all services\n\n🌐 *Website:* jharsuguda.nic.in\n📍 *Office:* Collectorate, Jharsuguda\n\n_Office Hours: 10:00 AM - 5:30 PM (Mon-Sat)_',
     err_no_record_guidance: 'Please double-check the number or contact support.'
   },
   hi: {
-    welcome: '🇮🇳 *जिला परिषद अमरावती - आधिकारिक डिजिटल पोर्टल*\n\nनमस्कार! जिला परिषद अमरावती की आधिकारिक व्हाट्सएप सेवा में आपका स्वागत है।\n\nहम सभी नागरिकों को पारदर्शी और कुशल सेवाएं प्रदान करने के लिए प्रतिबद्ध हैं।\n\n👇 *कृपया अपनी पसंदीदा भाषा चुनें:*\n\n💡 *सुझाव:* किसी भी मामले में यदि आप पिछले मेनू पर जाना चाहते हैं, तो *back* टाइप करें',
+    welcome: '🇮🇳 *कलेक्टर कार्यालय झारसुगुड़ा - आधिकारिक डिजिटल पोर्टल*\n\nनमस्कार! कलेक्टर कार्यालय झारसुगुड़ा की आधिकारिक व्हाट्सएप सेवा में आपका स्वागत है।\n\nहम सभी नागरिकों को पारदर्शी और कुशल सेवाएं प्रदान करने के लिए प्रतिबद्ध हैं।\n\n👇 *कृपया अपनी पसंदीदा भाषा चुनें:*\n\n💡 *सुझाव:* किसी भी मामले में यदि आप पिछले मेनू पर जाना चाहते हैं, तो *back* टाइप करें',
     serviceUnavailable: '⚠️ *सेवा सूचना*\n\nअनुरोधित सेवा वर्तमान में रखरखाव के अधीन है। असुविधा के लिए हमें खेद है।\n\nकृपया बाद में प्रयास करें या हमारी आधिकारिक वेबसाइट पर जाएं।',
-    mainMenu: '🏛️ *नागरिक सेवा मेनू*\n\nजिला परिषद डिजिटल हेल्पडेस्क में आपका स्वागत है।\n\n👇 *कृपया नीचे दिए गए विकल्पों में से एक सेवा चुनें:*',
+    mainMenu: '🏛️ *नागरिक सेवा मेनू*\n\nकलेक्टर कार्यालय झारसुगुड़ा डिजिटल हेल्पडेस्क में आपका स्वागत है।\n\n👇 *कृपया नीचे दिए गए विकल्पों में से एक सेवा चुनें:*',
     grievanceRaise: '📝 *शिकायत दर्ज करें*\n\nआप किसी भी विभाग के संबंध में औपचारिक शिकायत दर्ज कर सकते हैं।\n\nशुरू करने के लिए, कृपया मांगी गई जानकारी प्रदान करें।',
     appointmentBook: '📅 *अधिकारी नियुक्ति (Appointment)*\n\nसरकारी अधिकारियों के साथ बैठक निर्धारित करें।\n\n👇 *विभाग चुनें:*',
     rtsServices: '⚖️ *सेवा का अधिकार (RTS) पोर्टल*\n\nसेवा का अधिकार अधिनियम के तहत विभिन्न सरकारी सेवाओं तक पहुंचें।\n\n👇 *एक सेवा चुनें:*',
@@ -256,7 +257,7 @@ const translations = {
     'desc_Water Conservation Department': 'जल संरक्षण और प्रबंधन',
     'desc_Animal Husbandry Department': 'पशुपालन और डेयरी विकास',
     'desc_IT Cell': 'सूचना प्रौद्योगिकी सेवाएं',
-    goodbye: '👋 *धन्यवाद*\n\nजिला परिषद अमरावती से संपर्क करने के लिए धन्यवाद। हम आपकी सेवा में हमेशा तत्पर हैं।\n\n📞 *सहायता के लिए:*\n• कभी भी "Hi" टाइप करें\n• "Help" टाइप करें हेल्पडेस्क जानकारी के लिए\n• "Menu" टाइप करें सभी सेवाएं देखने के लिए\n\n🌐 *वेबसाइट:* zpamravati.gov.in\n📍 *कार्यालय:* जिला परिषद भवन, अमरावती\n\n_कार्यालय समय: सुबह 10:00 - शाम 6:00 (सोम-शनि)_',
+    goodbye: '👋 *धन्यवाद*\n\nकलेक्टर कार्यालय झारसुगुड़ा से संपर्क करने के लिए धन्यवाद। हम आपकी सेवा में हमेशा तत्पर हैं।\n\n📞 *सहायता के लिए:*\n• कभी भी "Hi" टाइप करें\n• "Help" टाइप करें हेल्पडेस्क जानकारी के लिए\n• "Menu" टाइप करें सभी सेवाएं देखने के लिए\n\n🌐 *वेबसाइट:* jharsuguda.nic.in\n📍 *कार्यालय:* कलेक्टर कार्यालय, झारसुगुड़ा\n\n_कार्यालय समय: सुबह 10:00 - शाम 5:30 (सोम-शनि)_',
     appointmentConfirm: '📋 *नियुक्ति की पुष्टि करें*\n\nकृपया अपने बुकिंग विवरण की पुष्टि करें:',
     err_no_record_found: '❌ *कोई रिकॉर्ड नहीं मिला*\n\nहमें उस संदर्भ संख्या से मेल खाने वाला कोई रिकॉर्ड नहीं मिला।',
     grievanceCancel: '🚫 *रद्द किया गया*\n\nशिकायत पंजीकरण रद्द कर दिया गया है।',
@@ -278,14 +279,14 @@ const translations = {
     footer_grv_guidance: 'मामले को आगे बढ़ाने के लिए, कृपया विभागाध्यक्ष से संपर्क करें।',
     footer_apt_guidance: 'प्रवेश के लिए यह डिजिटल रसीद साथ रखें।',
     err_no_record_guidance: 'कृपया संख्या की दोबारा जाँच करें या सहायता से संपर्क करें।',
-    help: 'ℹ️ *हेल्पडेस्क और समर्थन*\n\nअधिक सहायता के लिए:\n📞 *हेल्पलाइन:* 1800-123-4567\n🌐 *वेबसाइट:* zpamravati.gov.in\n📍 *कार्यालय:* जिला परिषद भवन, अमरावती\n\n_कार्यालय समय: सुबह 10:00 - शाम 6:00 (सोम-शनि)_',
+    help: 'ℹ️ *हेल्पडेस्क और समर्थन*\n\nअधिक सहायता के लिए:\n📞 *हेल्पलाइन:* 06645-270007\n🌐 *वेबसाइट:* jharsuguda.nic.in\n📍 *कार्यालय:* कलेक्टर कार्यालय, झारसुगुड़ा\n\n_कार्यालय समय: सुबह 10:00 - शाम 5:30 (सोम-शनि)_',
     invalidOption: '⚠️ *अमान्य इनपुट*\n\nकृपया दिए गए बटनों में से एक वैध विकल्प चुनें।',
     sessionExpired: '⏳ *सत्र समाप्त*\n\nआपका सत्र समाप्त हो गया है। कृपया फिर से शुरू करने के लिए "Hi" टाइप करें।'
   },
   mr: {
-    welcome: '🇮🇳 *जिल्हा परिषद अमरावती - अधिकृत डिजिटल पोर्टल*\n\nनमस्कार! जिल्हा परिषद अमरावतीच्या अधिकृत व्हॉट्सॲप सेवेमध्ये आपले स्वागत आहे.\n\nआम्ही सर्व नागरिकांना पारदर्शक आणि कार्यक्षम सेवा देण्यासाठी कटिबद्ध आहोत.\n\n👇 *कृपया आपली पसंतीची भाषा निवडा:*\n\n💡 *टीप:* कोणत्याही बाबतीत जर तुम्हाला मागील मेनूवर जायचे असेल, तर *back* टाइप करा',
+    welcome: '🇮🇳 *कलेक्टर कार्यालय झारसुगुड़ा - अधिकृत डिजिटल पोर्टल*\n\nनमस्कार! कलेक्टर कार्यालय झारसुगुड़ाच्या अधिकृत व्हॉट्सॲप सेवेमध्ये आपले स्वागत आहे.\n\nआम्ही सर्व नागरिकांना पारदर्शक आणि कार्यक्षम सेवा देण्यासाठी कटिबद्ध आहोत.\n\n👇 *कृपया आपली पसंतीची भाषा निवडा:*\n\n💡 *टीप:* कोणत्याही बाबतीत जर तुम्हाला मागील मेनूवर जायचे असेल, तर *back* टाइप करा',
     serviceUnavailable: '⚠️ *सेवा सूचना*\n\nविनंती केलेली सेवा सध्या देखभालीखाली आहे. गैरसोयीबद्दल क्षमस्व.\n\nकृपया नंतर प्रयत्न करा किंवा आमच्या अधिकृत वेबसाइटला भेट द्या.',
-    mainMenu: '🏛️ *नागरिक सेवा मेनू*\n\nजिल्हा परिषद डिजिटल हेल्पडेस्कमध्ये आपले स्वागत आहे.\n\n👇 *कृपया खालील पर्यायांमधून सेवा निवडा:*',
+    mainMenu: '🏛️ *नागरिक सेवा मेनू*\n\nकलेक्टर कार्यालय झारसुगुड़ा डिजिटल हेल्पडेस्कमध्ये आपले स्वागत आहे.\n\n👇 *कृपया खालील पर्यायांमधून सेवा निवडा:*',
     grievanceRaise: '📝 *तक्रार नोंदवा*\n\nआपण कोणत्याही विभागाशी संबंधित अधिकृत तक्रार नोंदवू शकता.\n\nसुरू करण्यासाठी, कृपया विचारलेली माहिती द्या.',
     appointmentBook: '📅 *अधिकारी भेट (Appointment)*\n\nसरकारी अधिकाऱ्यांशी भेट निश्चित करा.\n\n👇 *विभाग निवडा:*',
     rtsServices: '⚖️ *सेवेचा अधिकार (RTS) पोर्टल*\n\nसेवेचा अधिकार कायद्याखाली विविध सरकारी सेवांमध्ये प्रवेश करा.\n\n👇 *एक सेवा निवडा:*',
@@ -377,7 +378,7 @@ const translations = {
     'desc_Water Conservation Department': 'जल संधारण आणि व्यवस्थापन',
     'desc_Animal Husbandry Department': 'पशुपालन आणि दुग्धव्यवसाय विकास',
     'desc_IT Cell': 'माहिती तंत्रज्ञान सेवा',
-    goodbye: '👋 *धन्यवाद*\n\nजिल्हा परिषद अमरावतीशी संपर्क साधल्याबद्दल धन्यवाद. आम्ही नेहमी तुमच्या सेवेसाठी तत्पर आहोत.\n\n📞 *मदतीसाठी:*\n• कधीही "Hi" टाइप करा\n• "Help" टाइप करा हेल्पडेस्क माहितीसाठी\n• "Menu" टाइप करा सर्व सेवा पाहण्यासाठी\n\n🌐 *वेबसाइट:* zpamravati.gov.in\n📍 *कार्यालय:* जिल्हा परिषद भवन, अमरावती\n\n_कार्यालय वेळ: सकाळी 10:00 - संध्याकाळी 6:00 (सोम-शनि)_',
+    goodbye: '👋 *धन्यवाद*\n\nकलेक्टर कार्यालय झारसुगुड़ाशी संपर्क साधल्याबद्दल धन्यवाद. आम्ही नेहमी तुमच्या सेवेसाठी तत्पर आहोत.\n\n📞 *मदतीसाठी:*\n• कधीही "Hi" टाइप करा\n• "Help" टाइप करा हेल्पडेस्क माहितीसाठी\n• "Menu" टाइप करा सर्व सेवा पाहण्यासाठी\n\n🌐 *वेबसाइट:* jharsuguda.nic.in\n📍 *कार्यालय:* कलेक्टर कार्यालय, झारसुगुड़ा\n\n_कार्यालय वेळ: सकाळी १०:०० - संध्याकाळी ५:३० (सोम-शनि)_',
     appointmentConfirm: '📋 *अपॉइंटमेंटची पुष्टी करा*\n\nकृपया तुमच्या बुकिंग तपशीलाची पुष्टी करा:',
     err_no_record_found: '❌ *कोणताही रेकॉर्ड सापडला नाही*\n\nआम्हाला त्या संदर्भ क्रमांकाशी जुळणारा कोणताही रेकॉर्ड सापडला नाही.',
     grievanceCancel: '🚫 *रद्द केले*\n\nतक्रार नोंदणी रद्द केली आहे.',
@@ -399,7 +400,7 @@ const translations = {
     footer_grv_guidance: 'प्रकरण पुढे नेण्यासाठी, कृपया विभाग प्रमुखांशी संपर्क साधा.',
     footer_apt_guidance: 'प्रवेशासाठी ही डिजिटल पावती सोबत ठेवा.',
     err_no_record_guidance: 'कृपया नंबर पुन्हा तपासा किंवा मदतीसाठी संपर्क साधा.',
-    help: 'ℹ️ *हेल्पडेस्क आणि समर्थन*\n\nअधिक मदतीसाठी:\n📞 *हेल्पलाइन:* 1800-123-4567\n🌐 *वेबसाइट:* zpamravati.gov.in\n📍 *कचेरी:* जिल्हा परिषद भवन, अमरावती\n\n_कार्यालय वेळ: सकाळी १०:०० - संध्याकाळी ६:०० (सोम-शनि)_',
+    help: 'ℹ️ *हेल्पडेस्क आणि समर्थन*\n\nअधिक मदतीसाठी:\n📞 *हेल्पलाईन:* 06645-270007\n🌐 *वेबसाइट:* jharsuguda.nic.in\n📍 *कार्यालय:* कलेक्टर कार्यालय, झारसुगुड़ा\n\n_कार्यालय वेळ: सकाळी १०:०० - संध्याकाळी ५:३୦ (सोम-शनि)_',
     invalidOption: '⚠️ *अवैध इनपुट*\n\nकृपया दिलेल्या बटणांमधून वैध पर्याय निवडा.',
     sessionExpired: '⏳ *सत्र समाप्त*\n\nतुमचे सत्र समाप्त झाले आहे. कृपया पुन्हा सुरू करण्यासाठी "Hi" टाइप करा.'
   },
@@ -1070,6 +1071,7 @@ async function showLanguageSelection(session: UserSession, message: ChatbotMessa
     [
       { id: 'lang_en', title: '🇬🇧 English' },
       { id: 'lang_hi', title: '🇮🇳 हिंदी' },
+      { id: 'lang_or', title: '🇮🇳 ଓଡ଼ିଆ' },
       { id: 'lang_mr', title: '🇮🇳 मराठी' }
     ]
   );
@@ -2458,8 +2460,8 @@ async function handleStatusTracking(
       'CANCELLED': '❌'
     };
 
-    // Appointment is for CEO - no department
-    const deptName = 'CEO - Zilla Parishad Amravati';
+    // Appointment is for official - use company name or specific official title
+    const deptName = `Office of the Collector, ${company.name || 'Jharsuguda'}`;
 
     await sendWhatsAppMessage(
       company,

@@ -2,7 +2,7 @@
   "metadata": {
     "name": "Collectorate Jharsuguda – Full Trilingual Flow",
     "description": "A complete, strictly trilingual flow (English, Hindi, Odia) for Grievance, Appointment, and Tracking services.",
-    "companyId": "",
+    "companyId": "6989db83453881ef7ba5c778",
     "version": 1,
     "isActive": true
   },
@@ -11,7 +11,11 @@
       "id": "start_node",
       "type": "start",
       "position": { "x": 0, "y": 600 },
-      "data": { "label": "Start Trigger", "trigger": "hi", "triggerType": "keyword" }
+      "data": {
+        "label": "Start Trigger",
+        "trigger": "hi",
+        "triggerType": "keyword"
+      }
     },
     {
       "id": "language_selection",
@@ -35,8 +39,16 @@
         "label": "Main Menu (EN)",
         "messageText": "🏛️ *Citizen Services Menu*\n\nWelcome to the Collectorate Jharsuguda Digital Helpdesk.\n\n👇 *Please select a service:*",
         "buttons": [
-          { "id": "grv_en", "text": "📝 File Grievance", "type": "quick_reply" },
-          { "id": "apt_en", "text": "📅 Book Appointment", "type": "quick_reply" },
+          {
+            "id": "grv_en",
+            "text": "📝 File Grievance",
+            "type": "quick_reply"
+          },
+          {
+            "id": "apt_en",
+            "text": "📅 Book Appointment",
+            "type": "quick_reply"
+          },
           { "id": "trk_en", "text": "🔍 Track Status", "type": "quick_reply" }
         ]
       }
@@ -49,9 +61,21 @@
         "label": "Main Menu (HI)",
         "messageText": "🏛️ *नागरिक सेवा मेनू*\n\nझारसुगुडा डिजिटल हेल्पडेस्क में आपका स्वागत है।\n\n👇 *कृपया एक सेवा चुनें:*",
         "buttons": [
-          { "id": "grv_hi", "text": "📝 शिकायत दर्ज करें", "type": "quick_reply" },
-          { "id": "apt_hi", "text": "📅 अपॉइंटमेंट बुक", "type": "quick_reply" },
-          { "id": "trk_hi", "text": "🔍 स्थिति ट्रैक करें", "type": "quick_reply" }
+          {
+            "id": "grv_hi",
+            "text": "📝 शिकायत दर्ज करें",
+            "type": "quick_reply"
+          },
+          {
+            "id": "apt_hi",
+            "text": "📅 अपॉइंटमेंट बुक",
+            "type": "quick_reply"
+          },
+          {
+            "id": "trk_hi",
+            "text": "🔍 स्थिति ट्रैक करें",
+            "type": "quick_reply"
+          }
         ]
       }
     },
@@ -64,7 +88,11 @@
         "messageText": "🏛️ *ନାଗରିକ ସେବା ମେନୁ*\n\nଝାରସୁଗୁଡା ଡିଜିଟାଲ୍ ହେଲ୍ପଡେସ୍କରେ ଆପଣଙ୍କୁ ସ୍ବାଗତ କରୁଛି।\n\n👇 *ଦୟାକରି ଏକ ସେବା ଚୟନ କରନ୍ତୁ:*",
         "buttons": [
           { "id": "grv_or", "text": "📝 ଫାଇଲ୍ ଅଭିଯୋଗ", "type": "quick_reply" },
-          { "id": "apt_or", "text": "📅 ଆପଏଣ୍ଟମେଣ୍ଟ ବୁକ୍", "type": "quick_reply" },
+          {
+            "id": "apt_or",
+            "text": "📅 ଆପଏଣ୍ଟମେଣ୍ଟ ବୁକ୍",
+            "type": "quick_reply"
+          },
           { "id": "trk_or", "text": "🔍 ଟ୍ରାକ୍ ସ୍ଥିତି", "type": "quick_reply" }
         ]
       }
@@ -113,7 +141,11 @@
         "label": "Confirm (EN)",
         "messageText": "📋 *Confirm Submission*\n\n👤 Name: {citizenName}\n🏢 Dept: {departmentName}\n📝 Issue: {description}\n\nIs this correct?",
         "buttons": [
-          { "id": "confirm_yes", "text": "✅ Yes, Submit", "type": "quick_reply" },
+          {
+            "id": "confirm_yes",
+            "text": "✅ Yes, Submit",
+            "type": "quick_reply"
+          },
           { "id": "confirm_no", "text": "❌ Cancel", "type": "quick_reply" }
         ]
       }
@@ -171,7 +203,11 @@
         "label": "Confirm (HI)",
         "messageText": "📋 *सबमिशन की पुष्टि करें*\n\n👤 नाम: {citizenName}\n🏢 विभाग: {departmentName}\n📝 मुद्दा: {description}\n\nक्या यह सही है?",
         "buttons": [
-          { "id": "confirm_yes", "text": "✅ हाँ, जमा करें", "type": "quick_reply" },
+          {
+            "id": "confirm_yes",
+            "text": "✅ हाँ, जमा करें",
+            "type": "quick_reply"
+          },
           { "id": "confirm_no", "text": "❌ रद्द करें", "type": "quick_reply" }
         ]
       }
@@ -229,8 +265,16 @@
         "label": "Confirm (OR)",
         "messageText": "📋 *ଦାଖଲ ନିଶ୍ଚିତ କରନ୍ତୁ*\n\n👤 ନାମ: {citizenName}\n🏢 ବିଭାଗ: {departmentName}\n📝 ସମସ୍ୟା: {description}\n\nଏହା ସଠିକ୍ କି?",
         "buttons": [
-          { "id": "confirm_yes", "text": "✅ ହଁ, ଦାଖଲ କରନ୍ତୁ", "type": "quick_reply" },
-          { "id": "confirm_no", "text": "❌ ବାତିଲ୍ କରନ୍ତୁ", "type": "quick_reply" }
+          {
+            "id": "confirm_yes",
+            "text": "✅ ହଁ, ଦାଖଲ କରନ୍ତୁ",
+            "type": "quick_reply"
+          },
+          {
+            "id": "confirm_no",
+            "text": "❌ ବାତିଲ୍ କରନ୍ତୁ",
+            "type": "quick_reply"
+          }
         ]
       }
     },
@@ -299,8 +343,16 @@
         "label": "Apt Confirm (EN)",
         "messageText": "📋 *Confirm Appointment*\n\n👤 Name: {citizenName}\n🏢 Dept: {departmentName}\n📅 Date: {appointmentDate}\n⏰ Time: {appointmentTime}\n\nProceed with booking?",
         "buttons": [
-          { "id": "appt_confirm_yes", "text": "✅ Yes, Book", "type": "quick_reply" },
-          { "id": "appt_confirm_no", "text": "❌ Cancel", "type": "quick_reply" }
+          {
+            "id": "appt_confirm_yes",
+            "text": "✅ Yes, Book",
+            "type": "quick_reply"
+          },
+          {
+            "id": "appt_confirm_no",
+            "text": "❌ Cancel",
+            "type": "quick_reply"
+          }
         ]
       }
     },
@@ -369,8 +421,16 @@
         "label": "Apt Confirm (HI)",
         "messageText": "📋 *नियुक्ति की पुष्टि करें*\n\n👤 नाम: {citizenName}\n🏢 विभाग: {departmentName}\n📅 दिनांक: {appointmentDate}\n⏰ समय: {appointmentTime}\n\nक्या आप बुकिंग के साथ आगे बढ़ना चाहते हैं?",
         "buttons": [
-          { "id": "appt_confirm_yes", "text": "✅ हाँ, बुक करें", "type": "quick_reply" },
-          { "id": "appt_confirm_no", "text": "❌ रद्द करें", "type": "quick_reply" }
+          {
+            "id": "appt_confirm_yes",
+            "text": "✅ हाँ, बुक करें",
+            "type": "quick_reply"
+          },
+          {
+            "id": "appt_confirm_no",
+            "text": "❌ रद्द करें",
+            "type": "quick_reply"
+          }
         ]
       }
     },
@@ -439,8 +499,16 @@
         "label": "Apt Confirm (OR)",
         "messageText": "📋 *ନିଯୁକ୍ତି ନିଶ୍ଚିତ କରନ୍ତୁ*\n\n👤 ନାମ: {citizenName}\n🏢 ବିଭାଗ: {departmentName}\n📅 ତାରିଖ: {appointmentDate}\n⏰ ସମୟ: {appointmentTime}\n\nଆପଣ ବୁକିଂ ସହିତ ଆଗକୁ ବଢିବାକୁ ଚାହାଁନ୍ତି କି?",
         "buttons": [
-          { "id": "appt_confirm_yes", "text": "✅ ହଁ, ବୁକ୍ କରନ୍ତୁ", "type": "quick_reply" },
-          { "id": "appt_confirm_no", "text": "❌ ବାତିଲ୍ କରନ୍ତୁ", "type": "quick_reply" }
+          {
+            "id": "appt_confirm_yes",
+            "text": "✅ ହଁ, ବୁକ୍ କରନ୍ତୁ",
+            "type": "quick_reply"
+          },
+          {
+            "id": "appt_confirm_no",
+            "text": "❌ ବାତିଲ୍ କରନ୍ତୁ",
+            "type": "quick_reply"
+          }
         ]
       }
     },
@@ -518,59 +586,299 @@
     }
   ],
   "edges": [
-    { "id": "e_start", "source": "start_node", "target": "language_selection", "type": "smoothstep", "animated": true },
-    { "id": "e_lang_en", "source": "language_selection", "target": "main_menu_en", "sourceHandle": "button-0", "type": "smoothstep" },
-    { "id": "e_lang_hi", "source": "language_selection", "target": "main_menu_hi", "sourceHandle": "button-1", "type": "smoothstep" },
-    { "id": "e_lang_or", "source": "language_selection", "target": "main_menu_or", "sourceHandle": "button-2", "type": "smoothstep" },
-    
-    { "id": "e_grv_en", "source": "main_menu_en", "target": "grv_id_en", "sourceHandle": "button-0", "type": "smoothstep" },
-    { "id": "e_apt_en", "source": "main_menu_en", "target": "apt_id_en", "sourceHandle": "button-1", "type": "smoothstep" },
-    { "id": "e_trk_en", "source": "main_menu_en", "target": "trk_id_en", "sourceHandle": "button-2", "type": "smoothstep" },
-    
-    { "id": "e_grv_hi", "source": "main_menu_hi", "target": "grv_id_hi", "sourceHandle": "button-0", "type": "smoothstep" },
-    { "id": "e_apt_hi", "source": "main_menu_hi", "target": "apt_id_hi", "sourceHandle": "button-1", "type": "smoothstep" },
-    { "id": "e_trk_hi", "source": "main_menu_hi", "target": "trk_id_hi", "sourceHandle": "button-2", "type": "smoothstep" },
-    
-    { "id": "e_grv_or", "source": "main_menu_or", "target": "grv_id_or", "sourceHandle": "button-0", "type": "smoothstep" },
-    { "id": "e_apt_or", "source": "main_menu_or", "target": "apt_id_or", "sourceHandle": "button-1", "type": "smoothstep" },
-    { "id": "e_trk_or", "source": "main_menu_or", "target": "trk_id_or", "sourceHandle": "button-2", "type": "smoothstep" },
-    
-    { "id": "e_grvid_en", "source": "grv_id_en", "target": "grv_dept_en", "type": "smoothstep" },
-    { "id": "e_grvdp_en", "source": "grv_dept_en", "target": "grv_desc_en", "type": "smoothstep" },
-    { "id": "e_grvds_en", "source": "grv_desc_en", "target": "grv_conf_en", "type": "smoothstep" },
-    { "id": "e_grvcf_en_y", "source": "grv_conf_en", "target": "grv_success_en", "sourceHandle": "button-0", "type": "smoothstep" },
-    { "id": "e_grvcf_en_n", "source": "grv_conf_en", "target": "main_menu_en", "sourceHandle": "button-1", "type": "smoothstep" },
-    
-    { "id": "e_grvid_hi", "source": "grv_id_hi", "target": "grv_dept_hi", "type": "smoothstep" },
-    { "id": "e_grvdp_hi", "source": "grv_dept_hi", "target": "grv_desc_hi", "type": "smoothstep" },
-    { "id": "e_grvds_hi", "source": "grv_desc_hi", "target": "grv_conf_hi", "type": "smoothstep" },
-    { "id": "e_grvcf_hi_y", "source": "grv_conf_hi", "target": "grv_success_hi", "sourceHandle": "button-0", "type": "smoothstep" },
-    
-    { "id": "e_grvid_or", "source": "grv_id_or", "target": "grv_dept_or", "type": "smoothstep" },
-    { "id": "e_grvdp_or", "source": "grv_dept_or", "target": "grv_desc_or", "type": "smoothstep" },
-    { "id": "e_grvds_or", "source": "grv_desc_or", "target": "grv_conf_or", "type": "smoothstep" },
-    { "id": "e_grvcf_or_y", "source": "grv_conf_or", "target": "grv_success_or", "sourceHandle": "button-0", "type": "smoothstep" },
-    
-    { "id": "e_aptid_en", "source": "apt_id_en", "target": "apt_dept_en", "type": "smoothstep" },
-    { "id": "e_aptdp_en", "source": "apt_dept_en", "target": "apt_date_en", "type": "smoothstep" },
-    { "id": "e_aptdt_en", "source": "apt_date_en", "target": "apt_time_en", "type": "smoothstep" },
-    { "id": "e_apttm_en", "source": "apt_time_en", "target": "apt_conf_en", "type": "smoothstep" },
-    { "id": "e_aptcf_en_y", "source": "apt_conf_en", "target": "apt_success_en", "sourceHandle": "button-0", "type": "smoothstep" },
-    
-    { "id": "e_aptid_hi", "source": "apt_id_hi", "target": "apt_dept_hi", "type": "smoothstep" },
-    { "id": "e_aptdp_hi", "source": "apt_dept_hi", "target": "apt_date_hi", "type": "smoothstep" },
-    { "id": "e_aptdt_hi", "source": "apt_date_hi", "target": "apt_time_hi", "type": "smoothstep" },
-    { "id": "e_apttm_hi", "source": "apt_time_hi", "target": "apt_conf_hi", "type": "smoothstep" },
-    { "id": "e_aptcf_hi_y", "source": "apt_conf_hi", "target": "apt_success_hi", "sourceHandle": "button-0", "type": "smoothstep" },
-    
-    { "id": "e_aptid_or", "source": "apt_id_or", "target": "apt_dept_or", "type": "smoothstep" },
-    { "id": "e_aptdp_or", "source": "apt_dept_or", "target": "apt_date_or", "type": "smoothstep" },
-    { "id": "e_aptdt_or", "source": "apt_date_or", "target": "apt_time_or", "type": "smoothstep" },
-    { "id": "e_apttm_or", "source": "apt_time_or", "target": "apt_conf_or", "type": "smoothstep" },
-    { "id": "e_aptcf_or_y", "source": "apt_conf_or", "target": "apt_success_or", "sourceHandle": "button-0", "type": "smoothstep" },
-    
-    { "id": "e_trkid_en", "source": "trk_id_en", "target": "trk_result_en", "type": "smoothstep" },
-    { "id": "e_trkid_hi", "source": "trk_id_hi", "target": "trk_result_hi", "type": "smoothstep" },
-    { "id": "e_trkid_or", "source": "trk_id_or", "target": "trk_result_or", "type": "smoothstep" }
+    {
+      "id": "e_start",
+      "source": "start_node",
+      "target": "language_selection",
+      "type": "smoothstep",
+      "animated": true
+    },
+    {
+      "id": "e_lang_en",
+      "source": "language_selection",
+      "target": "main_menu_en",
+      "sourceHandle": "button-0",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_lang_hi",
+      "source": "language_selection",
+      "target": "main_menu_hi",
+      "sourceHandle": "button-1",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_lang_or",
+      "source": "language_selection",
+      "target": "main_menu_or",
+      "sourceHandle": "button-2",
+      "type": "smoothstep"
+    },
+
+    {
+      "id": "e_grv_en",
+      "source": "main_menu_en",
+      "target": "grv_id_en",
+      "sourceHandle": "button-0",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_apt_en",
+      "source": "main_menu_en",
+      "target": "apt_id_en",
+      "sourceHandle": "button-1",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_trk_en",
+      "source": "main_menu_en",
+      "target": "trk_id_en",
+      "sourceHandle": "button-2",
+      "type": "smoothstep"
+    },
+
+    {
+      "id": "e_grv_hi",
+      "source": "main_menu_hi",
+      "target": "grv_id_hi",
+      "sourceHandle": "button-0",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_apt_hi",
+      "source": "main_menu_hi",
+      "target": "apt_id_hi",
+      "sourceHandle": "button-1",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_trk_hi",
+      "source": "main_menu_hi",
+      "target": "trk_id_hi",
+      "sourceHandle": "button-2",
+      "type": "smoothstep"
+    },
+
+    {
+      "id": "e_grv_or",
+      "source": "main_menu_or",
+      "target": "grv_id_or",
+      "sourceHandle": "button-0",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_apt_or",
+      "source": "main_menu_or",
+      "target": "apt_id_or",
+      "sourceHandle": "button-1",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_trk_or",
+      "source": "main_menu_or",
+      "target": "trk_id_or",
+      "sourceHandle": "button-2",
+      "type": "smoothstep"
+    },
+
+    {
+      "id": "e_grvid_en",
+      "source": "grv_id_en",
+      "target": "grv_dept_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_grvdp_en",
+      "source": "grv_dept_en",
+      "target": "grv_desc_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_grvds_en",
+      "source": "grv_desc_en",
+      "target": "grv_conf_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_grvcf_en_y",
+      "source": "grv_conf_en",
+      "target": "grv_success_en",
+      "sourceHandle": "button-0",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_grvcf_en_n",
+      "source": "grv_conf_en",
+      "target": "main_menu_en",
+      "sourceHandle": "button-1",
+      "type": "smoothstep"
+    },
+
+    {
+      "id": "e_grvid_hi",
+      "source": "grv_id_hi",
+      "target": "grv_dept_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_grvdp_hi",
+      "source": "grv_dept_hi",
+      "target": "grv_desc_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_grvds_hi",
+      "source": "grv_desc_hi",
+      "target": "grv_conf_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_grvcf_hi_y",
+      "source": "grv_conf_hi",
+      "target": "grv_success_hi",
+      "sourceHandle": "button-0",
+      "type": "smoothstep"
+    },
+
+    {
+      "id": "e_grvid_or",
+      "source": "grv_id_or",
+      "target": "grv_dept_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_grvdp_or",
+      "source": "grv_dept_or",
+      "target": "grv_desc_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_grvds_or",
+      "source": "grv_desc_or",
+      "target": "grv_conf_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_grvcf_or_y",
+      "source": "grv_conf_or",
+      "target": "grv_success_or",
+      "sourceHandle": "button-0",
+      "type": "smoothstep"
+    },
+
+    {
+      "id": "e_aptid_en",
+      "source": "apt_id_en",
+      "target": "apt_dept_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_aptdp_en",
+      "source": "apt_dept_en",
+      "target": "apt_date_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_aptdt_en",
+      "source": "apt_date_en",
+      "target": "apt_time_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_apttm_en",
+      "source": "apt_time_en",
+      "target": "apt_conf_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_aptcf_en_y",
+      "source": "apt_conf_en",
+      "target": "apt_success_en",
+      "sourceHandle": "button-0",
+      "type": "smoothstep"
+    },
+
+    {
+      "id": "e_aptid_hi",
+      "source": "apt_id_hi",
+      "target": "apt_dept_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_aptdp_hi",
+      "source": "apt_dept_hi",
+      "target": "apt_date_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_aptdt_hi",
+      "source": "apt_date_hi",
+      "target": "apt_time_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_apttm_hi",
+      "source": "apt_time_hi",
+      "target": "apt_conf_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_aptcf_hi_y",
+      "source": "apt_conf_hi",
+      "target": "apt_success_hi",
+      "sourceHandle": "button-0",
+      "type": "smoothstep"
+    },
+
+    {
+      "id": "e_aptid_or",
+      "source": "apt_id_or",
+      "target": "apt_dept_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_aptdp_or",
+      "source": "apt_dept_or",
+      "target": "apt_date_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_aptdt_or",
+      "source": "apt_date_or",
+      "target": "apt_time_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_apttm_or",
+      "source": "apt_time_or",
+      "target": "apt_conf_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_aptcf_or_y",
+      "source": "apt_conf_or",
+      "target": "apt_success_or",
+      "sourceHandle": "button-0",
+      "type": "smoothstep"
+    },
+
+    {
+      "id": "e_trkid_en",
+      "source": "trk_id_en",
+      "target": "trk_result_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_trkid_hi",
+      "source": "trk_id_hi",
+      "target": "trk_result_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_trkid_or",
+      "source": "trk_id_or",
+      "target": "trk_result_or",
+      "type": "smoothstep"
+    }
   ]
 }

@@ -31,8 +31,11 @@ router.get('/', requirePermission(Permission.READ_GRIEVANCE), async (req: Reques
       // CompanyAdmin can see all grievances in their company
       query.companyId = currentUser.companyId;
     } else if (currentUser.role === UserRole.DEPARTMENT_ADMIN) {
-      // DepartmentAdmin can see grievances in their department
-      query.departmentId = currentUser.departmentId;
+      // DepartmentAdmin can see grievances in their department (parent or sub)
+      query.$or = [
+        { departmentId: currentUser.departmentId },
+        { subDepartmentId: currentUser.departmentId }
+      ];
     } else if (currentUser.role === UserRole.OPERATOR) {
       // Operator can only see assigned grievances
       query.assignedTo = currentUser._id;
