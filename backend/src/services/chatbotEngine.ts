@@ -158,8 +158,7 @@ const translations = {
     footer_grv_guidance: 'For case escalation, please contact the department head.',
     footer_apt_guidance: 'Carry this digital receipt for entry.',
     err_no_record_guidance: 'Please double-check the number or contact support.',
-    goodbye: '👋 *Thank You*\n\nThank you for contacting Collectorate Jharsuguda. We are always ready to serve you.\n\n📞 *For Support:*\n• Type "Hi" anytime for assistance\n• Type "Help" for helpdesk information\n• Type "Menu" to see all services\n\n🌐 *Website:* jharsuguda.nic.in\n📍 *Office:* Collectorate, Jharsuguda\n\n_Office Hours: 10:00 AM - 5:30 PM (Mon-Sat)_',
-    err_no_record_guidance: 'Please double-check the number or contact support.'
+    goodbye: '👋 *Thank You*\n\nThank you for contacting Collectorate Jharsuguda. We are always ready to serve you.\n\n📞 *For Support:*\n• Type "Hi" anytime for assistance\n• Type "Help" for helpdesk information\n• Type "Menu" to see all services\n\n🌐 *Website:* jharsuguda.nic.in\n📍 *Office:* Collectorate, Jharsuguda\n\n_Office Hours: 10:00 AM - 5:30 PM (Mon-Sat)_'
   },
   hi: {
     welcome: '🇮🇳 *कलेक्टर कार्यालय झारसुगुड़ा - आधिकारिक डिजिटल पोर्टल*\n\nनमस्कार! कलेक्टर कार्यालय झारसुगुड़ा की आधिकारिक व्हाट्सएप सेवा में आपका स्वागत है।\n\nहम सभी नागरिकों को पारदर्शी और कुशल सेवाएं प्रदान करने के लिए प्रतिबद्ध हैं।\n\n👇 *कृपया अपनी पसंदीदा भाषा चुनें:*\n\n💡 *सुझाव:* किसी भी मामले में यदि आप पिछले मेनू पर जाना चाहते हैं, तो *back* टाइप करें',
