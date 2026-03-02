@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 import { validatePhoneNumber, validatePassword, validateTelephone } from '@/lib/utils/phoneUtils';
 import { Module } from '@/lib/permissions';
 import { AVAILABLE_MODULES } from '@/config/modules';
+import { Building } from 'lucide-react';
 
 interface CreateCompanyDialogProps {
   isOpen: boolean;
