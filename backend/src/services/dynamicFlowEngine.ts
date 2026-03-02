@@ -1117,8 +1117,8 @@ export class DynamicFlowEngine {
       const appointmentDate = new Date(this.session.data.appointmentDate);
       const appointmentData = {
         companyId: this.company._id,
-        departmentId: (this.session.data.departmentId ? new mongoose.Types.ObjectId(this.session.data.departmentId) : null),
-        subDepartmentId: (this.session.data.subDepartmentId ? new mongoose.Types.ObjectId(this.session.data.subDepartmentId) : undefined),
+        departmentId: null, // Appointments are always for Company Admin only
+        subDepartmentId: undefined, // No sub-department for appointments
         citizenName: this.session.data.citizenName,
         citizenPhone: this.userPhone,
         citizenWhatsApp: this.userPhone,
@@ -1134,8 +1134,7 @@ export class DynamicFlowEngine {
       this.session.data.status = 'Scheduled';
       await updateSession(this.session);
       
-      const notifyTargetId = this.session.data.subDepartmentId || this.session.data.departmentId;
-
+      // Notify company admin (no department for appointments)
       await notifyDepartmentAdminOnCreation({
         type: 'appointment',
         action: 'created',
@@ -1143,7 +1142,7 @@ export class DynamicFlowEngine {
         citizenName: this.session.data.citizenName,
         citizenPhone: this.userPhone,
         citizenWhatsApp: this.userPhone,
-        departmentId: notifyTargetId as any,
+        departmentId: undefined, // No department — company admin only
         companyId: this.company._id,
         purpose: this.session.data.purpose,
         appointmentDate: appointment.appointmentDate,
