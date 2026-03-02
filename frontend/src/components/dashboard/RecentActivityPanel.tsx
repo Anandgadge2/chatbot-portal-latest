@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { apiClient } from '@/lib/api/client';
 import { 
   Activity, 
@@ -37,11 +37,7 @@ export default function RecentActivityPanel({ companyId }: { companyId?: string 
   const [loadingActivities, setLoadingActivities] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    fetchRecentActivities();
-  }, [companyId]);
-
-  const fetchRecentActivities = async () => {
+  const fetchRecentActivities = useCallback(async () => {
     try {
       if (!loadingActivities) setRefreshing(true);
       const url = companyId ? `/audit?limit=20&companyId=${companyId}` : '/audit?limit=20';
@@ -61,7 +57,11 @@ export default function RecentActivityPanel({ companyId }: { companyId?: string 
       setLoadingActivities(false);
       setRefreshing(false);
     }
-  };
+  }, [companyId, loadingActivities]);
+
+  useEffect(() => {
+    fetchRecentActivities();
+  }, [fetchRecentActivities]);
 
   const getActivityIcon = (action: string, resourceType: string) => {
     switch (action) {

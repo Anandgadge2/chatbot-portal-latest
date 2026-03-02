@@ -570,38 +570,38 @@ function DashboardContent() {
         fetchCompany();
       }
     }
-  }, [mounted, user?.id, user?.role, fetchDashboardData, fetchCompany]);
+  }, [mounted, user, fetchDashboardData, fetchCompany]);
 
   // 2. Specialized effects for each paginated module
   useEffect(() => {
     if (mounted && user && user.role !== 'SUPER_ADMIN') {
       fetchDepartments(departmentPage);
     }
-  }, [mounted, user?.id, departmentPage, fetchDepartments]);
+  }, [mounted, user, departmentPage, fetchDepartments]);
 
   useEffect(() => {
     if (mounted && user && user.role !== 'SUPER_ADMIN') {
       fetchUsers(userPage);
     }
-  }, [mounted, user?.id, userPage, fetchUsers]);
+  }, [mounted, user, userPage, fetchUsers]);
 
   useEffect(() => {
     if (mounted && user && user.role !== 'SUPER_ADMIN') {
       fetchGrievances(grievancePage);
     }
-  }, [mounted, user?.id, grievancePage, fetchGrievances]);
+  }, [mounted, user, grievancePage, fetchGrievances]);
 
   useEffect(() => {
     if (mounted && user && user.role !== 'SUPER_ADMIN') {
       fetchAppointments(appointmentPage);
     }
-  }, [mounted, user?.id, appointmentPage, fetchAppointments]);
+  }, [mounted, user, appointmentPage, fetchAppointments]);
 
   useEffect(() => {
     if (mounted && user && hasModule(Module.LEAD_CAPTURE)) {
       fetchLeads();
     }
-  }, [mounted, user?.id, hasModule, fetchLeads]);
+  }, [mounted, user, hasModule, fetchLeads]);
 
   // 3. Polling isolated from initial load triggers
   useEffect(() => {
@@ -657,7 +657,7 @@ function DashboardContent() {
 
       return () => clearInterval(pollInterval);
     }
-  }, [mounted, user?.id, grievancePage, appointmentPage, fetchDashboardData, prevGrievanceCount, prevAppointmentCount]);
+  }, [mounted, user, grievancePage, appointmentPage, fetchDashboardData, prevGrievanceCount, prevAppointmentCount]);
  
   useEffect(() => {
     if (mounted && user && activeTab === 'analytics') {
