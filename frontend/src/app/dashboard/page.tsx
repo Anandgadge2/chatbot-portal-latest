@@ -75,7 +75,8 @@ import {
   LayoutDashboard,
   Search,
   RefreshCw,
-  Download
+  Download,
+  Calendar
 } from 'lucide-react';
 
 interface DashboardStats {
@@ -869,43 +870,50 @@ function DashboardContent() {
     <div className="min-h-screen bg-slate-50">
       {/* Header with Gradient */}
       {/* Classic White Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 transition-all duration-300">
-        <div className="max-w-[1600px] mx-auto px-4 lg:px-6">
-          <div className="flex items-center justify-between h-14">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-100">
-                  <Building className="w-4 h-4 text-white" />
+      {/* Premium Admin Header */}
+      <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 transition-all duration-300 shadow-2xl overflow-hidden">
+        {/* Subtle Background Pattern */}
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
+          <div className="absolute inset-0" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")` }}></div>
+        </div>
+        
+        <div className="max-w-[1600px] mx-auto px-4 lg:px-6 relative z-10">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-8">
+              <div className="flex items-center gap-3 group">
+                <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-900/40 border border-indigo-500/30 group-hover:scale-105 transition-transform duration-300">
+                  <LayoutDashboard className="w-5 h-5 text-white" />
                 </div>
                 <div className="hidden sm:block">
-                  <h1 className="text-sm font-black text-slate-900 tracking-tight leading-none uppercase">
+                  <h1 className="text-sm font-black text-white tracking-tight leading-none uppercase">
                     {isCompanyAdmin && (company?.name || 'Company Admin')}
                     {isDepartmentAdmin && 'Department Hub'}
                     {isOperator && 'Operator Center'}
                     {isAnalyticsViewer && 'Analytics Portal'}
                   </h1>
-                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Control Panel v2.0</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Control Panel</p>
+                    <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse"></span>
+                  </div>
                 </div>
               </div>
 
-              <div className="h-8 w-px bg-slate-200 hidden lg:block"></div>
-
-              {/* Navigation injected from below via TabsList */}
-              <div className="hidden md:flex items-center h-14" id="header-nav-container">
-                {/* Re-locating TabsList here via manual render since we are inside a single component */}
-              </div>
+              <div className="h-8 w-px bg-slate-800 hidden lg:block"></div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="hidden xl:flex flex-col items-end mr-2">
-                <span className="text-[10px] font-black text-slate-900 leading-none">{user.firstName} {user.lastName}</span>
-                <span className="text-[9px] font-bold text-indigo-500 uppercase tracking-tighter mt-0.5">{user.role}</span>
+            <div className="flex items-center gap-4">
+              <div className="hidden lg:flex flex-col items-end mr-2">
+                <span className="text-[10px] font-black text-white leading-none uppercase tracking-tight">{user.firstName} {user.lastName}</span>
+                <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-tighter mt-1 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20">{user.role.replace('_', ' ')}</span>
               </div>
+              
+              <div className="w-px h-6 bg-slate-800 hidden lg:block mr-2"></div>
+              
               <Button
                 onClick={logout}
                 variant="ghost"
                 size="sm"
-                className="h-9 w-9 p-0 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                className="h-10 w-10 p-0 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all border border-transparent hover:border-slate-700 shadow-sm"
                 title="Logout System"
               >
                 <Power className="w-4 h-4" />
@@ -924,54 +932,78 @@ function DashboardContent() {
           setActiveTab(value);
         }} className="space-y-4 sm:space-y-6">
             {/* Dashboard Navigation in Header */}
-            <div className="flex items-center gap-2">
-              <TabsList className="bg-slate-100/50 p-0.5 border border-slate-200/60 h-9">
+            <div className="mb-4 sticky top-[64px] z-40 bg-slate-50/95 backdrop-blur-sm py-4 -mx-4 px-4 sm:mx-0 sm:px-0">
+              <TabsList className="bg-slate-200/50 p-1 border border-slate-300/50 h-10 shadow-sm overflow-x-auto no-scrollbar max-w-full">
                 {!isOperator && (
-                  <TabsTrigger value="overview" className="px-3 h-8 text-[11px] font-bold uppercase tracking-tight data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                  <TabsTrigger 
+                    value="overview" 
+                    className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
+                  >
                     Overview
                   </TabsTrigger>
                 )}
                 
                 {/* Analytics Tab - Professional Monitoring */}
                 {!isSuperAdmin && (
-                  <TabsTrigger value="analytics" className="px-3 h-8 text-[11px] font-bold uppercase tracking-tight data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                  <TabsTrigger 
+                    value="analytics" 
+                    className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg flex items-center"
+                  >
                     <TrendingUp className="w-3.5 h-3.5 mr-1.5" />
                     Analytics
                   </TabsTrigger>
                 )}
 
                 {hasModule(Module.GRIEVANCE) && hasPermission(user.role, Permission.READ_GRIEVANCE) && (
-                  <TabsTrigger value="grievances" className="px-3 h-8 text-[11px] font-bold uppercase tracking-tight data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                  <TabsTrigger 
+                    value="grievances" 
+                    className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
+                  >
                     Grievances
                   </TabsTrigger>
                 )}
 
                 {hasModule(Module.APPOINTMENT) && (isCompanyAdmin || isDepartmentAdmin) && (
-                  <TabsTrigger value="appointments" className="px-3 h-8 text-[11px] font-bold uppercase tracking-tight data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                  <TabsTrigger 
+                    value="appointments" 
+                    className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
+                  >
                     Appointments
                   </TabsTrigger>
                 )}
 
                 {isCompanyAdmin && (
-                  <TabsTrigger value="departments" className="px-3 h-8 text-[11px] font-bold uppercase tracking-tight data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                  <TabsTrigger 
+                    value="departments" 
+                    className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
+                  >
                     Departments
                   </TabsTrigger>
                 )}
 
                 {(isCompanyAdmin || isDepartmentAdmin) && (
-                  <TabsTrigger value="users" className="px-3 h-8 text-[11px] font-bold uppercase tracking-tight data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                  <TabsTrigger 
+                    value="users" 
+                    className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
+                  >
                     Users
                   </TabsTrigger>
                 )}
 
                 {hasModule(Module.LEAD_CAPTURE) && isCompanyAdmin && (
-                  <TabsTrigger value="leads" className="px-3 h-8 text-[11px] font-bold uppercase tracking-tight data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                  <TabsTrigger 
+                    value="leads" 
+                    className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
+                  >
                     Leads
                   </TabsTrigger>
                 )}
 
                 {isOperator && (
-                  <TabsTrigger value="profile" className="px-3 h-8 text-[11px] font-bold uppercase tracking-tight data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                  <TabsTrigger 
+                    value="profile" 
+                    className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
+                  >
                     My Profile
                   </TabsTrigger>
                 )}
@@ -1092,19 +1124,19 @@ function DashboardContent() {
             {/* Company Info (for Company Admin) - Beautified Modern Design */}
             {isCompanyAdmin && company && (
               <Card className="overflow-hidden border border-slate-200 shadow-sm bg-white rounded-xl">
-                <div className="bg-slate-50 px-4 py-4 border-b border-slate-200">
+                <div className="bg-slate-900 px-6 py-5">
                   <div className="relative flex items-center justify-between">
                     <div className="flex items-center space-x-4">
-                      <div className="h-16 w-16 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20 shadow-sm">
-                        <Building className="text-primary w-8 h-8" />
+                      <div className="h-16 w-16 bg-white/10 rounded-2xl flex items-center justify-center border border-white/20 shadow-lg">
+                        <Building className="text-indigo-400 w-8 h-8" />
                       </div>
                       <div>
-                        <h3 className="text-xl font-bold text-slate-900 leading-tight">{company.name}</h3>
-                        <p className="text-slate-500 text-sm font-medium mt-1">Company Profile & Statistics</p>
+                        <h3 className="text-xl font-bold text-white leading-tight">{company.name}</h3>
+                        <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1">Company Profile & Statistics</p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <span className="px-4 py-2 rounded-lg bg-slate-200 text-slate-700 text-sm font-semibold">
+                      <span className="px-4 py-1.5 rounded-lg bg-white/10 border border-white/20 text-indigo-400 text-[10px] font-black uppercase tracking-widest">
                         {company.companyType}
                       </span>
                     </div>
@@ -1188,14 +1220,14 @@ function DashboardContent() {
               <div className="space-y-6">
                 {/* Department Admin Profile Card */}
                 <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
-                  <CardHeader className="bg-slate-50 border-b border-slate-200 px-4 py-3">
+                  <CardHeader className="bg-slate-900 px-6 py-4">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">
-                        <UserIcon className="w-6 h-6 text-primary" />
+                      <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
+                        <UserIcon className="w-5 h-5 text-indigo-400" />
                       </div>
                       <div>
-                        <CardTitle className="text-lg font-bold text-slate-900">My Profile</CardTitle>
-                        <CardDescription className="text-slate-500 mt-0.5">Your personal information</CardDescription>
+                        <CardTitle className="text-base font-bold text-white uppercase tracking-tight">My Profile</CardTitle>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Your personal information and credentials</p>
                       </div>
                     </div>
                   </CardHeader>
@@ -1231,13 +1263,13 @@ function DashboardContent() {
 
                 {/* My Department Card - with Department Name in Header */}
                 <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white mt-6">
-                  <CardHeader className="bg-slate-50 border-b border-slate-200 px-6 py-5">
+                  <CardHeader className="bg-slate-900 px-6 py-4">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">
-                        <Building className="w-6 h-6 text-primary" />
+                      <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
+                        <Building className="w-5 h-5 text-indigo-400" />
                       </div>
                       <div>
-                        <CardTitle className="text-lg font-bold text-slate-900">
+                        <CardTitle className="text-base font-bold text-white uppercase tracking-tight">
                           {(() => {
                             // Try to get department from user object first (if populated)
                             if (user?.departmentId && typeof user.departmentId === 'object' && (user.departmentId as any).name) {
@@ -1247,7 +1279,7 @@ function DashboardContent() {
                             return departments.length > 0 ? departments[0].name : 'My Department';
                           })()}
                         </CardTitle>
-                        <CardDescription className="text-white/80 mt-0.5">Your department information and statistics</CardDescription>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Your department information and service statistics</p>
                       </div>
                     </div>
                   </CardHeader>
@@ -1365,12 +1397,19 @@ function DashboardContent() {
             )}
 
             {/* Quick Actions */}
-            <Card className="border border-slate-200 shadow-sm">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-slate-900 text-lg font-semibold">Quick Actions</CardTitle>
-                <CardDescription className="text-slate-500">Common tasks and operations</CardDescription>
+            <Card className="border border-slate-200 shadow-sm rounded-xl overflow-hidden">
+              <CardHeader className="bg-slate-900 px-5 py-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-indigo-500/20 rounded-lg flex items-center justify-center border border-indigo-500/30">
+                    <Zap className="w-4 h-4 text-indigo-400" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-sm font-bold text-white">Quick Actions</CardTitle>
+                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Common tasks and operations</p>
+                  </div>
+                </div>
               </CardHeader>
-              <CardContent className="space-y-2">
+              <CardContent className="p-4 space-y-2">
                 {isCompanyAdmin && (
                   <>
                     <ProtectedButton
@@ -1496,10 +1535,17 @@ function DashboardContent() {
               </div>
 
               {/* Advanced Analytics Table or Data */}
-              <Card className="border border-slate-200 shadow-sm bg-white rounded-2xl overflow-hidden">
-                <CardHeader className="border-b border-slate-100 bg-slate-50/50">
-                  <CardTitle className="text-base font-black text-slate-900">Performance Metrics Overview</CardTitle>
-                  <CardDescription>Real-time data synchronization with backend services</CardDescription>
+              <Card className="border border-slate-200 shadow-sm bg-white rounded-xl overflow-hidden">
+                <CardHeader className="bg-slate-900 px-6 py-4">
+                  <div className="flex items-center gap-3">
+                     <div className="w-9 h-9 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
+                        <Activity className="w-4 h-4 text-indigo-400" />
+                     </div>
+                     <div>
+                        <CardTitle className="text-base font-bold text-white uppercase tracking-tight">Performance Metrics Overview</CardTitle>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Real-time data synchronization with backend services</p>
+                     </div>
+                  </div>
                 </CardHeader>
                 <CardContent className="p-0">
                   <div className="p-12 text-center">
@@ -1516,26 +1562,26 @@ function DashboardContent() {
           {isCompanyAdmin && (
             <TabsContent value="departments" className="space-y-6">
               {/* Company Admin View - Show all departments */}
-                <Card className="rounded-2xl border-0 shadow-xl overflow-hidden bg-white/80 backdrop-blur-sm">
-                  <CardHeader className="bg-gradient-to-r from-cyan-600 via-teal-600 to-emerald-600 text-white px-6 py-5">
+                <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
+                  <CardHeader className="bg-slate-900 px-6 py-4">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm shadow-lg">
-                          <Building className="w-6 h-6 text-white" />
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
+                          <Building className="w-4 h-4 text-indigo-400" />
                         </div>
                         <div>
-                          <CardTitle className="text-xl font-bold text-white">Department Management</CardTitle>
-                          <CardDescription className="text-cyan-100 mt-0.5">
+                          <CardTitle className="text-base font-bold text-white">Department Management</CardTitle>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
                             Manage all departments in your company
-                          </CardDescription>
+                          </p>
                         </div>
                       </div>
                       <ProtectedButton
                         permission={Permission.CREATE_DEPARTMENT}
                         onClick={() => setShowDepartmentDialog(true)}
-                        className="bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm transition-all duration-200 rounded-xl px-5"
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-8 text-[10px] font-bold uppercase tracking-widest rounded-lg px-4 shadow-md"
                       >
-                        <Building className="w-4 h-4 mr-2" />
+                        <Building className="w-3.5 h-3.5 mr-1.5" />
                         Add Department
                       </ProtectedButton>
                     </div>
@@ -1554,30 +1600,30 @@ function DashboardContent() {
                         <div className="overflow-x-auto">
                           <div className="max-h-[600px] overflow-y-auto custom-scrollbar">
                             <table className="w-full relative border-collapse min-w-[800px]">
-                            <thead className="sticky top-0 z-20 bg-gradient-to-r from-cyan-50 via-teal-50 to-emerald-50 border-b border-teal-100">
+                            <thead className="sticky top-0 z-20 bg-[#fcfdfe] border-b border-slate-200">
                               <tr>
-                                <th className="px-3 py-4 text-center text-[11px] font-bold text-teal-700 uppercase tracking-wider">Sr. No.</th>
-                                <th className="px-6 py-4 text-left">
+                                <th className="px-3 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">Sr.</th>
+                                <th className="px-6 py-3 text-left">
                                   <button 
                                     onClick={() => handleSort('name', 'departments')}
-                                    className="group flex items-center space-x-1.5 text-[11px] font-bold text-teal-700 uppercase tracking-wider hover:text-teal-800 transition-colors"
+                                    className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                                   >
                                     <span>Department Name</span>
-                                    <ArrowUpDown className={`w-3.5 h-3.5 transition-colors ${sortConfig.key === 'name' ? 'text-teal-700' : 'text-teal-300 group-hover:text-teal-400'}`} />
+                                    <ArrowUpDown className={`w-3 h-3 transition-colors ${sortConfig.key === 'name' ? 'text-indigo-500' : 'text-slate-300 group-hover:text-slate-400'}`} />
                                   </button>
                                 </th>
-                                <th className="px-6 py-4 text-left">
+                                <th className="px-6 py-3 text-left">
                                   <button 
                                     onClick={() => handleSort('departmentId', 'departments')}
-                                    className="group flex items-center space-x-1.5 text-[11px] font-bold text-teal-700 uppercase tracking-wider hover:text-teal-800 transition-colors"
+                                    className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                                   >
                                     <span>Dept ID</span>
-                                    <ArrowUpDown className={`w-3.5 h-3.5 transition-colors ${sortConfig.key === 'departmentId' ? 'text-teal-700' : 'text-teal-300 group-hover:text-teal-400'}`} />
+                                    <ArrowUpDown className={`w-3 h-3 transition-colors ${sortConfig.key === 'departmentId' ? 'text-indigo-500' : 'text-slate-300 group-hover:text-slate-400'}`} />
                                   </button>
                                 </th>
-                                <th className="px-6 py-4 text-left font-bold text-[11px] text-teal-700 uppercase tracking-wider">Description</th>
-                                <th className="px-6 py-4 text-left font-bold text-[11px] text-teal-700 uppercase tracking-wider">Status</th>
-                                <th className="px-6 py-4 text-right font-bold text-[11px] text-teal-700 uppercase tracking-wider">Actions</th>
+                                <th className="px-6 py-3 text-left font-black text-[9px] text-slate-400 uppercase tracking-widest">Description</th>
+                                <th className="px-6 py-3 text-left font-black text-[9px] text-slate-400 uppercase tracking-widest">Status</th>
+                                <th className="px-6 py-3 text-right font-black text-[9px] text-slate-400 uppercase tracking-widest">Actions</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 bg-white">
@@ -1588,14 +1634,14 @@ function DashboardContent() {
                                       {(departmentPage - 1) * departmentPagination.limit + index + 1}
                                     </span>
                                   </td>
-                                  <td className="px-6 py-5 whitespace-nowrap">
+                                  <td className="px-6 py-4 whitespace-nowrap">
                                     <div className="flex items-center">
-                                      <div className="flex-shrink-0 h-10 w-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center shadow-sm">
-                                        <Building className="w-5 h-5" />
+                                      <div className="flex-shrink-0 h-8 w-8 bg-slate-100 text-slate-600 rounded-lg flex items-center justify-center">
+                                        <Building className="w-4 h-4" />
                                       </div>
                                       <div className="ml-3">
                                         <div 
-                                          className="text-sm font-bold text-gray-900 group-hover:text-blue-600 cursor-pointer hover:underline transition-colors duration-200 flex items-center gap-2"
+                                          className="text-sm font-bold text-slate-900 group-hover/row:text-indigo-600 cursor-pointer hover:underline transition-colors duration-200 flex items-center gap-2"
                                           onClick={() => {
                                             setNavigatingToDepartment(dept._id);
                                             setSelectedDepartmentId(dept._id);
@@ -1736,16 +1782,16 @@ function DashboardContent() {
           {/* Leads Tab Content */}
           {hasModule(Module.LEAD_CAPTURE) && isCompanyAdmin && (
             <TabsContent value="leads" className="space-y-6">
-              <Card className="rounded-2xl border-0 shadow-xl overflow-hidden bg-white/80 backdrop-blur-sm">
-                <CardHeader className="bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 text-white px-6 py-5">
+              <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
+                <CardHeader className="bg-slate-900 px-6 py-4">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
-                        <UserPlus className="w-6 h-6 text-white" />
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
+                        <UserPlus className="w-4 h-4 text-indigo-400" />
                       </div>
                       <div>
-                        <CardTitle className="text-xl font-bold text-white">Project Leads {leads.length > 0 && `(${leads.length})`}</CardTitle>
-                        <CardDescription className="text-blue-100">Potential leads captured from chatbot interactions</CardDescription>
+                        <CardTitle className="text-base font-bold text-white">Project Leads {leads.length > 0 && `(${leads.length})`}</CardTitle>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Leads captured from chatbot interactions</p>
                       </div>
                     </div>
                     <button onClick={() => exportToCSV(leads, 'leads', [
@@ -1756,9 +1802,9 @@ function DashboardContent() {
                       { key: 'projectType', label: 'Project Type' },
                       { key: 'budgetRange', label: 'Budget' },
                       { key: 'status', label: 'Status' }
-                    ])} className="flex items-center gap-2 px-4 py-2 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all border border-white/30">
-                      <Download className="w-4 h-4" />
-                      Export
+                    ])} className="flex items-center gap-2 px-4 h-8 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-all border border-white/20 text-[10px] font-bold uppercase tracking-wider">
+                      <Download className="w-3.5 h-3.5" />
+                      Export CSV
                     </button>
                   </div>
                 </CardHeader>
@@ -1844,17 +1890,17 @@ function DashboardContent() {
           {(isCompanyAdmin || isDepartmentAdmin) && (
             <TabsContent value="users" className="space-y-6">
             <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
-              <CardHeader className="bg-slate-50 border-b border-slate-200 text-slate-900 px-6 py-5">
+              <CardHeader className="bg-slate-900 px-6 py-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">
-                      <Users className="w-6 h-6 text-primary" />
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
+                      <Users className="w-4 h-4 text-indigo-400" />
                     </div>
                     <div>
-                      <CardTitle className="text-lg font-bold text-slate-900">User Management</CardTitle>
-                      <CardDescription className="text-slate-500 mt-0.5">
+                      <CardTitle className="text-base font-bold text-white">User Management</CardTitle>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
                         {isCompanyAdmin ? 'Manage users in your company' : 'Manage users in your department'}
-                      </CardDescription>
+                      </p>
                     </div>
                   </div>
                   {hasPermission(user?.role || '', Permission.CREATE_USER) && (
@@ -1865,9 +1911,9 @@ function DashboardContent() {
                         e.stopPropagation();
                         setShowUserDialog(true);
                       }}
-                      className="bg-primary text-white hover:bg-primary/90 rounded-lg px-5 shadow-sm"
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-8 text-[10px] font-bold uppercase tracking-widest rounded-lg px-4 shadow-md"
                     >
-                      <UserPlus className="w-4 h-4 mr-2" />
+                      <UserPlus className="w-3.5 h-3.5 mr-1.5" />
                       Add User
                     </Button>
                   )}
@@ -1890,46 +1936,46 @@ function DashboardContent() {
                     <div className="overflow-hidden">
                       <div className="overflow-x-auto custom-scrollbar">
                         <table className="w-full relative border-collapse min-w-[1200px]">
-                            <thead className="bg-slate-50 border-b border-slate-200">
+                            <thead className="bg-[#fcfdfe] border-b border-slate-200">
                               <tr>
-                                <th className="px-3 py-4 text-center text-xs font-bold text-emerald-700 uppercase tracking-wide">Sr. No.</th>
-                                <th className="px-6 py-4 text-left min-w-[200px]">
+                                <th className="px-3 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">Sr.</th>
+                                <th className="px-6 py-3 text-left min-w-[200px]">
                                   <button 
                                     onClick={() => handleSort('firstName', 'users')}
-                                    className="group flex items-center space-x-1.5 text-xs font-bold text-emerald-700 uppercase tracking-wide hover:text-emerald-800 transition-colors"
+                                    className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                                   >
                                     <span>User Info</span>
-                                    <ArrowUpDown className={`w-3.5 h-3.5 transition-colors ${sortConfig.key === 'firstName' ? 'text-emerald-700' : 'text-emerald-300 group-hover:text-emerald-400'}`} />
+                                    <ArrowUpDown className={`w-3 h-3 transition-colors ${sortConfig.key === 'firstName' ? 'text-indigo-500' : 'text-slate-300 group-hover:text-slate-400'}`} />
                                   </button>
                                 </th>
-                                <th className="px-6 py-4 text-left min-w-[220px]">
+                                <th className="px-6 py-3 text-left min-w-[220px]">
                                   <button 
                                     onClick={() => handleSort('email', 'users')}
-                                    className="group flex items-center space-x-1.5 text-xs font-bold text-emerald-700 uppercase tracking-wide hover:text-emerald-800 transition-colors"
+                                    className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                                   >
                                     <span>Contact Information</span>
-                                    <ArrowUpDown className={`w-3.5 h-3.5 transition-colors ${sortConfig.key === 'email' ? 'text-emerald-700' : 'text-emerald-300 group-hover:text-emerald-400'}`} />
+                                    <ArrowUpDown className={`w-3 h-3 transition-colors ${sortConfig.key === 'email' ? 'text-indigo-500' : 'text-slate-300 group-hover:text-slate-400'}`} />
                                   </button>
                                 </th>
-                                <th className="px-6 py-4 text-left min-w-[200px]">
+                                <th className="px-6 py-3 text-left min-w-[200px]">
                                   <button 
                                     onClick={() => handleSort('role', 'users')}
-                                    className="group flex items-center space-x-1.5 text-xs font-bold text-emerald-700 uppercase tracking-wide hover:text-emerald-800 transition-colors"
+                                    className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                                   >
-                                    <span>Role & Dept</span>
-                                    <ArrowUpDown className={`w-3.5 h-3.5 transition-colors ${sortConfig.key === 'role' ? 'text-emerald-700' : 'text-emerald-300 group-hover:text-emerald-400'}`} />
+                                    <span>Role &amp; Dept</span>
+                                    <ArrowUpDown className={`w-3 h-3 transition-colors ${sortConfig.key === 'role' ? 'text-indigo-500' : 'text-slate-300 group-hover:text-slate-400'}`} />
                                   </button>
                                 </th>
-                                <th className="px-6 py-4 text-left min-w-[180px]">
+                                <th className="px-6 py-3 text-left min-w-[180px]">
                                   <button 
                                     onClick={() => handleSort('isActive', 'users')}
-                                    className="group flex items-center space-x-1.5 text-xs font-bold text-emerald-700 uppercase tracking-wide hover:text-emerald-800 transition-colors"
+                                    className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                                   >
-                                    <span>Status & Access</span>
-                                    <ArrowUpDown className={`w-3.5 h-3.5 transition-colors ${sortConfig.key === 'isActive' ? 'text-emerald-700' : 'text-emerald-300 group-hover:text-emerald-400'}`} />
+                                    <span>Status &amp; Access</span>
+                                    <ArrowUpDown className={`w-3 h-3 transition-colors ${sortConfig.key === 'isActive' ? 'text-indigo-500' : 'text-slate-300 group-hover:text-slate-400'}`} />
                                   </button>
                                 </th>
-                                <th className="px-6 py-4 text-right text-xs font-bold text-emerald-700 uppercase tracking-wide min-w-[140px] sticky right-0 bg-gradient-to-r from-green-50 to-teal-50">Actions</th>
+                                <th className="px-6 py-3 text-right text-[9px] font-black text-slate-400 uppercase tracking-widest min-w-[140px] sticky right-0 bg-[#fcfdfe]">Actions</th>
                               </tr>
                             </thead>
                           <tbody className="divide-y divide-slate-100 bg-white">
@@ -2154,28 +2200,26 @@ function DashboardContent() {
               </Button>
             )}
             <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
-              <CardHeader className="bg-slate-50 border-b border-slate-200 text-slate-900 px-6 py-5">
+              <CardHeader className="bg-slate-900 px-6 py-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">
-                      <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
+                      <FileText className="w-5 h-5 text-indigo-400" />
                     </div>
                     <div>
-                      <CardTitle className="text-lg font-bold text-slate-900">
+                      <CardTitle className="text-base font-bold text-white">
                         {grievanceFilters.status === 'RESOLVED' ? 'Resolved Grievances' : grievanceFilters.status === 'REJECTED' ? 'Rejected Grievances' : grievanceFilters.status === 'CLOSED' ? 'Closed Grievances' : 'Active Grievances'}
                       </CardTitle>
-                      <CardDescription className="text-slate-500 mt-0.5">
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
                         {grievanceFilters.status === 'RESOLVED' ? 'View all resolved grievances' : grievanceFilters.status === 'REJECTED' ? 'View all rejected grievances' : grievanceFilters.status === 'CLOSED' ? 'View all closed grievances' : 'View and manage grievances'}
-                      </CardDescription>
+                      </p>
                     </div>
                   </div>
                   <Link 
                     href="/resolved-grievances"
-                    className="flex items-center gap-2 px-5 py-2.5 bg-white text-slate-700 rounded-lg hover:bg-slate-50 transition-all duration-200 text-sm font-semibold border border-slate-200 shadow-sm"
+                    className="flex items-center gap-2 px-4 h-8 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-all border border-white/20 text-[10px] font-bold uppercase tracking-wider"
                   >
-                    <CheckCircle className="w-4 h-4 text-emerald-500" />
+                    <CheckCircle className="w-3.5 h-3.5" />
                     View Resolved
                   </Link>
                 </div>
@@ -2358,10 +2402,10 @@ function DashboardContent() {
                   <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-lg bg-white">
                     <div className="max-h-[600px] overflow-y-auto custom-scrollbar">
                       <table className="w-full relative border-collapse">
-                        <thead className="sticky top-0 z-20 bg-slate-50 border-b border-slate-200">
+                        <thead className="sticky top-0 z-20 bg-[#fcfdfe] border-b border-slate-200">
                           <tr className="whitespace-nowrap">
                             {user?.role === 'SUPER_ADMIN' && (
-                              <th className="px-3 py-4 text-center text-[11px] font-bold text-indigo-600 uppercase tracking-wider">
+                              <th className="px-3 py-4 text-center">
                                 <input
                                   type="checkbox"
                                   checked={selectedGrievances.size > 0 && selectedGrievances.size === getSortedData(grievances, 'grievances').length}
@@ -2372,68 +2416,68 @@ function DashboardContent() {
                                       setSelectedGrievances(new Set());
                                     }
                                   }}
-                                  className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 cursor-pointer"
+                                  className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer"
                                   title="Select All"
                                 />
                               </th>
                             )}
-                            <th className="px-3 py-4 text-center text-[11px] font-bold text-indigo-600 uppercase tracking-wider">Sr. No.</th>
-                            <th className="px-4 py-4 text-left">
+                            <th className="px-3 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">Sr.</th>
+                            <th className="px-4 py-3 text-left">
                               <button 
                                 onClick={() => handleSort('grievanceId', 'grievances')}
-                                className="group flex items-center space-x-1.5 text-[11px] font-bold text-indigo-600 uppercase tracking-wider hover:text-indigo-800 transition-colors"
+                                className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                               >
-                                <span>App No</span>
-                                <ArrowUpDown className={`w-3.5 h-3.5 transition-colors ${sortConfig.key === 'grievanceId' ? 'text-indigo-600' : 'text-indigo-300 group-hover:text-indigo-400'}`} />
+                                <span>Grievance No</span>
+                                <ArrowUpDown className={`w-3 h-3 transition-colors ${sortConfig.key === 'grievanceId' ? 'text-indigo-500' : 'text-slate-300 group-hover:text-slate-400'}`} />
                               </button>
                             </th>
-                            <th className="px-4 py-4 text-left">
+                            <th className="px-4 py-3 text-left">
                               <button 
                                 onClick={() => handleSort('citizenName', 'grievances')}
-                                className="group flex items-center space-x-1.5 text-[11px] font-bold text-indigo-600 uppercase tracking-wider hover:text-indigo-800 transition-colors"
+                                className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                               >
                                 <span>Citizen</span>
-                                <ArrowUpDown className={`w-3.5 h-3.5 transition-colors ${sortConfig.key === 'citizenName' ? 'text-blue-600' : 'text-gray-300 group-hover:text-gray-400'}`} />
+                                <ArrowUpDown className={`w-3 h-3 transition-colors ${sortConfig.key === 'citizenName' ? 'text-indigo-500' : 'text-slate-300 group-hover:text-slate-400'}`} />
                               </button>
                             </th>
                             <th className="px-4 py-3 text-left">
                               <button 
                                 onClick={() => handleSort('category', 'grievances')}
-                                className="group flex items-center space-x-1.5 text-[11px] font-bold text-gray-500 uppercase tracking-wider hover:text-blue-600 transition-colors"
+                                className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                               >
-                                <span>Dept & Category</span>
-                                <ArrowUpDown className={`w-3.5 h-3.5 transition-colors ${sortConfig.key === 'category' ? 'text-indigo-600' : 'text-indigo-300 group-hover:text-indigo-400'}`} />
+                                <span>Dept &amp; Category</span>
+                                <ArrowUpDown className={`w-3 h-3 transition-colors ${sortConfig.key === 'category' ? 'text-indigo-500' : 'text-slate-300 group-hover:text-slate-400'}`} />
                               </button>
                             </th>
-                            <th className="px-4 py-4 text-left">
+                            <th className="px-4 py-3 text-left">
                               <button 
                                 onClick={() => handleSort('assignedTo', 'grievances')}
-                                className="group flex items-center space-x-1.5 text-[11px] font-bold text-indigo-600 uppercase tracking-wider hover:text-indigo-800 transition-colors"
+                                className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                               >
-                                <span>Assigned With</span>
-                                <ArrowUpDown className={`w-3.5 h-3.5 transition-colors ${sortConfig.key === 'assignedTo' ? 'text-indigo-600' : 'text-indigo-300 group-hover:text-indigo-400'}`} />
+                                <span>Assigned Official</span>
+                                <ArrowUpDown className={`w-3 h-3 transition-colors ${sortConfig.key === 'assignedTo' ? 'text-indigo-500' : 'text-slate-300 group-hover:text-slate-400'}`} />
                               </button>
                             </th>
-                            <th className="px-4 py-4 text-left">
+                            <th className="px-4 py-3 text-left">
                               <button 
                                 onClick={() => handleSort('status', 'grievances')}
-                                className="group flex items-center space-x-1.5 text-[11px] font-bold text-indigo-600 uppercase tracking-wider hover:text-indigo-800 transition-colors"
+                                className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                               >
                                 <span>Status</span>
-                                <ArrowUpDown className={`w-3.5 h-3.5 transition-colors ${sortConfig.key === 'status' ? 'text-indigo-600' : 'text-indigo-300 group-hover:text-indigo-400'}`} />
+                                <ArrowUpDown className={`w-3 h-3 transition-colors ${sortConfig.key === 'status' ? 'text-indigo-500' : 'text-slate-300 group-hover:text-slate-400'}`} />
                               </button>
                             </th>
-                            <th className="px-4 py-4 text-left text-[11px] font-bold text-indigo-600 uppercase tracking-wider">Overdue</th>
-                            <th className="px-4 py-4 text-left">
+                            <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">SLA Status</th>
+                            <th className="px-4 py-3 text-left">
                               <button 
                                 onClick={() => handleSort('createdAt', 'grievances')}
-                                className="group flex items-center space-x-1.5 text-[11px] font-bold text-indigo-600 uppercase tracking-wider hover:text-indigo-800 transition-colors"
+                                className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                               >
                                 <span>Raised On</span>
-                                <ArrowUpDown className={`w-3.5 h-3.5 transition-colors ${sortConfig.key === 'createdAt' ? 'text-indigo-600' : 'text-indigo-300 group-hover:text-indigo-400'}`} />
+                                <ArrowUpDown className={`w-3 h-3 transition-colors ${sortConfig.key === 'createdAt' ? 'text-indigo-500' : 'text-slate-300 group-hover:text-slate-400'}`} />
                               </button>
                             </th>
-                            <th className="px-4 py-4 text-center text-[11px] font-bold text-indigo-600 uppercase tracking-wider">Actions</th>
+                            <th className="px-4 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">Actions</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 bg-white">
@@ -2639,36 +2683,34 @@ function DashboardContent() {
           {/* Appointments Tab - show if module active or SuperAdmin */}
           {user && (user.enabledModules?.includes(Module.APPOINTMENT) || !user.companyId) && (isCompanyAdmin || isDepartmentAdmin) && (
           <TabsContent value="appointments" className="space-y-6">
-            <Card className="rounded-2xl border-0 shadow-xl overflow-hidden bg-white/80 backdrop-blur-sm">
-              <CardHeader className="bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 text-white px-6 py-5">
+            <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
+              <CardHeader className="bg-slate-900 px-6 py-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
-                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
+                      <Calendar className="w-5 h-5 text-indigo-400" />
                     </div>
                     <div>
-                      <CardTitle className="text-xl font-bold text-white">Appointments</CardTitle>
-                      <CardDescription className="text-white/80 mt-0.5">View and manage all scheduled appointments</CardDescription>
+                      <CardTitle className="text-base font-bold text-white">Appointments</CardTitle>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">View and manage all scheduled appointments</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
                     <Link
                       href="/completed-appointments"
-                      className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl transition-all border border-white/30 backdrop-blur-sm font-medium text-sm"
+                      className="flex items-center gap-2 px-3 h-8 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-all border border-white/20 text-[10px] font-bold uppercase tracking-wider"
                     >
-                      <CheckCircle className="w-4 h-4" />
-                      Completed Appointments
+                      <CheckCircle className="w-3.5 h-3.5" />
+                      Completed
                     </Link>
                     {(user?.role === 'COMPANY_ADMIN' || user?.role === 'DEPARTMENT_ADMIN') && (
                       <Button
                         onClick={() => setShowAvailabilityCalendar(true)}
-                        className="bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm transition-all duration-200 rounded-xl px-5"
-                        title="Configure when appointments can be scheduled including holidays, weekends, and time slots"
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-8 text-[10px] font-bold uppercase tracking-widest rounded-lg px-4 shadow-md"
+                        title="Configure when appointments can be scheduled"
                       >
-                        <CalendarClock className="w-4 h-4 mr-2" />
-                        Manage Availability
+                        <CalendarClock className="w-3.5 h-3.5 mr-1.5" />
+                        Availability
                       </Button>
                     )}
                   </div>
@@ -2819,10 +2861,10 @@ function DashboardContent() {
                   <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-lg bg-white">
                     <div className="max-h-[600px] overflow-y-auto custom-scrollbar">
                       <table className="w-full relative border-collapse">
-                        <thead className="sticky top-0 z-20 bg-gradient-to-r from-purple-50 via-fuchsia-50 to-pink-50 backdrop-blur-sm shadow-sm border-b border-slate-200">
+                        <thead className="sticky top-0 z-20 bg-[#fcfdfe] border-b border-slate-200">
                         <tr className="whitespace-nowrap">
                           {user?.role === 'SUPER_ADMIN' && (
-                            <th className="px-3 py-4 text-center text-[11px] font-bold text-purple-600 uppercase tracking-wider">
+                            <th className="px-3 py-4 text-center">
                               <input
                                 type="checkbox"
                                 checked={selectedAppointments.size > 0 && selectedAppointments.size === getSortedData(appointments, 'appointments').length}
@@ -2833,58 +2875,58 @@ function DashboardContent() {
                                     setSelectedAppointments(new Set());
                                   }
                                 }}
-                                className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 cursor-pointer"
+                                className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer"
                                 title="Select All"
                               />
                             </th>
                           )}
-                          <th className="px-3 py-4 text-center text-[11px] font-bold text-purple-600 uppercase tracking-wider">Sr. No.</th>
-                          <th className="px-4 py-4 text-left">
+                          <th className="px-3 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">Sr.</th>
+                          <th className="px-4 py-3 text-left">
                             <button 
                               onClick={() => handleSort('appointmentId', 'appointments')}
-                              className="group flex items-center space-x-1.5 text-[11px] font-bold text-purple-600 uppercase tracking-wider hover:text-purple-800 transition-colors"
+                              className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                             >
                               <span>App ID</span>
-                              <ArrowUpDown className={`w-3.5 h-3.5 transition-colors ${sortConfig.key === 'appointmentId' ? 'text-purple-600' : 'text-purple-300 group-hover:text-purple-400'}`} />
+                              <ArrowUpDown className={`w-3 h-3 transition-colors ${sortConfig.key === 'appointmentId' ? 'text-indigo-500' : 'text-slate-300 group-hover:text-slate-400'}`} />
                             </button>
                           </th>
-                          <th className="px-4 py-4 text-left">
+                          <th className="px-4 py-3 text-left">
                             <button 
                               onClick={() => handleSort('citizenName', 'appointments')}
-                              className="group flex items-center space-x-1.5 text-[11px] font-bold text-purple-600 uppercase tracking-wider hover:text-purple-800 transition-colors"
+                              className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                             >
                               <span>Citizen</span>
-                              <ArrowUpDown className={`w-3.5 h-3.5 transition-colors ${sortConfig.key === 'citizenName' ? 'text-purple-600' : 'text-purple-300 group-hover:text-purple-400'}`} />
+                              <ArrowUpDown className={`w-3 h-3 transition-colors ${sortConfig.key === 'citizenName' ? 'text-indigo-500' : 'text-slate-300 group-hover:text-slate-400'}`} />
                             </button>
                           </th>
-                          <th className="px-4 py-4 text-left">
+                          <th className="px-4 py-3 text-left">
                             <button 
                               onClick={() => handleSort('purpose', 'appointments')}
-                              className="group flex items-center space-x-1.5 text-[11px] font-bold text-purple-600 uppercase tracking-wider hover:text-purple-800 transition-colors"
+                              className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                             >
-                              <span>Dept & Purpose</span>
-                              <ArrowUpDown className={`w-3.5 h-3.5 transition-colors ${sortConfig.key === 'purpose' ? 'text-purple-600' : 'text-purple-300 group-hover:text-purple-400'}`} />
+                              <span>Dept &amp; Purpose</span>
+                              <ArrowUpDown className={`w-3 h-3 transition-colors ${sortConfig.key === 'purpose' ? 'text-indigo-500' : 'text-slate-300 group-hover:text-slate-400'}`} />
                             </button>
                           </th>
-                          <th className="px-4 py-4 text-left">
+                          <th className="px-4 py-3 text-left">
                             <button 
                               onClick={() => handleSort('appointmentDate', 'appointments')}
-                              className="group flex items-center space-x-1.5 text-[11px] font-bold text-purple-600 uppercase tracking-wider hover:text-purple-800 transition-colors"
+                              className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                             >
                               <span>Scheduled At</span>
-                              <ArrowUpDown className={`w-3.5 h-3.5 transition-colors ${sortConfig.key === 'appointmentDate' ? 'text-purple-600' : 'text-purple-300 group-hover:text-purple-400'}`} />
+                              <ArrowUpDown className={`w-3 h-3 transition-colors ${sortConfig.key === 'appointmentDate' ? 'text-indigo-500' : 'text-slate-300 group-hover:text-slate-400'}`} />
                             </button>
                           </th>
-                          <th className="px-4 py-4 text-left">
+                          <th className="px-4 py-3 text-left">
                             <button 
                               onClick={() => handleSort('status', 'appointments')}
-                              className="group flex items-center space-x-1.5 text-[11px] font-bold text-purple-600 uppercase tracking-wider hover:text-purple-800 transition-colors"
+                              className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                             >
                               <span>Status</span>
-                              <ArrowUpDown className={`w-3.5 h-3.5 transition-colors ${sortConfig.key === 'status' ? 'text-purple-600' : 'text-purple-300 group-hover:text-purple-400'}`} />
+                              <ArrowUpDown className={`w-3 h-3 transition-colors ${sortConfig.key === 'status' ? 'text-indigo-500' : 'text-slate-300 group-hover:text-slate-400'}`} />
                             </button>
                           </th>
-                          <th className="px-4 py-4 text-center text-[11px] font-bold text-purple-600 uppercase tracking-wider">Actions</th>
+                          <th className="px-4 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
@@ -3027,24 +3069,24 @@ function DashboardContent() {
           {/* Project Leads Tab - NEW for PugArch and others with LEAD_CAPTURE */}
           {user && (user.enabledModules?.includes(Module.LEAD_CAPTURE) || !user.companyId) && (isCompanyAdmin) && (
             <TabsContent value="leads" className="space-y-6">
-              <Card className="rounded-2xl border-0 shadow-xl overflow-hidden bg-white/80 backdrop-blur-sm">
-                <CardHeader className="bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 text-white px-6 py-5">
+              <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
+                <CardHeader className="bg-slate-900 px-6 py-4">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
-                        <UserPlus className="w-6 h-6 text-white" />
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
+                        <UserPlus className="w-5 h-5 text-indigo-400" />
                       </div>
                       <div>
-                        <CardTitle className="text-xl font-bold text-white">Project Leads</CardTitle>
-                        <CardDescription className="text-blue-100 mt-0.5">Manage and track potential business opportunities from chatbot</CardDescription>
+                        <CardTitle className="text-base font-bold text-white uppercase tracking-tight">Project Leads</CardTitle>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Manage and track potential business opportunities</p>
                       </div>
                     </div>
                     <Button 
                       onClick={() => fetchLeads()} 
                       variant="outline" 
-                      className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+                      className="bg-white/10 hover:bg-white/20 text-white border-white/20 h-8 text-[10px] font-bold uppercase tracking-wider"
                     >
-                      <RefreshCw className={`w-4 h-4 mr-2 ${loadingLeads ? 'animate-spin' : ''}`} />
+                      <RefreshCw className={`w-3.5 h-3.5 mr-2 ${loadingLeads ? 'animate-spin' : ''}`} />
                       Refresh
                     </Button>
                   </div>
@@ -3280,7 +3322,14 @@ function DashboardContent() {
             <TabsContent value="profile" className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-1">
-                  <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-2xl p-6 border border-indigo-100 shadow-lg">
+                  <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div className="bg-slate-900 px-6 py-4 border-b border-slate-800">
+                       <h3 className="text-white text-sm font-bold uppercase tracking-tight flex items-center gap-2">
+                          <UserIcon className="w-4 h-4 text-indigo-400" />
+                          Official Identity
+                       </h3>
+                    </div>
+                    <div className="p-6">
                     <div className="flex flex-col items-center text-center">
                       <div className="w-24 h-24 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl mb-4">
                         <span className="text-3xl font-bold text-white uppercase">
@@ -3342,6 +3391,7 @@ function DashboardContent() {
                     </div>
                   </div>
                 </div>
+              </div>
 
                 {/* Performance Statistics */}
                 <div className="lg:col-span-2 space-y-6">

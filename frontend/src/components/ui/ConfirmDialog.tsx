@@ -1,8 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { AlertTriangle, Info, X } from 'lucide-react';
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -27,62 +26,75 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  const variantStyles = {
+  const variantConfig = {
     danger: {
-      confirmButton: 'bg-red-600 hover:bg-red-700 text-white',
-      icon: (
-        <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-        </svg>
-      )
+      iconBg: 'bg-rose-100',
+      iconColor: 'text-rose-600',
+      headerAccent: 'border-rose-500',
+      confirmBtn: 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-900/20',
+      Icon: AlertTriangle,
     },
     warning: {
-      confirmButton: 'bg-yellow-600 hover:bg-yellow-700 text-white',
-      icon: (
-        <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-        </svg>
-      )
+      iconBg: 'bg-amber-100',
+      iconColor: 'text-amber-600',
+      headerAccent: 'border-amber-500',
+      confirmBtn: 'bg-amber-600 hover:bg-amber-700 text-white shadow-amber-900/20',
+      Icon: AlertTriangle,
     },
     info: {
-      confirmButton: 'bg-blue-600 hover:bg-blue-700 text-white',
-      icon: (
-        <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      )
+      iconBg: 'bg-blue-100',
+      iconColor: 'text-blue-600',
+      headerAccent: 'border-blue-500',
+      confirmBtn: 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-900/20',
+      Icon: Info,
     }
   };
 
-  const styles = variantStyles[variant];
+  const { iconBg, iconColor, headerAccent, confirmBtn, Icon } = variantConfig[variant];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <Card className="w-full max-w-md mx-4">
-        <CardHeader>
-          <div className="flex items-center space-x-3">
-            {styles.icon}
-            <CardTitle>{title}</CardTitle>
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+      <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        {/* Dark Header */}
+        <div className={`bg-slate-900 p-5 flex items-start justify-between border-b-4 ${headerAccent}`}>
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 ${iconBg} rounded-xl flex items-center justify-center flex-shrink-0`}>
+              <Icon className={`w-5 h-5 ${iconColor}`} />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-white">{title}</h2>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Confirmation Required</p>
+            </div>
           </div>
-          <CardDescription className="mt-2">{message}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex justify-end space-x-3">
-            <Button
-              variant="outline"
-              onClick={onCancel}
-            >
-              {cancelText}
-            </Button>
-            <Button
-              className={styles.confirmButton}
-              onClick={onConfirm}
-            >
-              {confirmText}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          <button
+            onClick={onCancel}
+            className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all flex-shrink-0"
+          >
+            <X className="w-4 h-4 text-white" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-5">
+          <p className="text-sm text-slate-600 leading-relaxed">{message}</p>
+        </div>
+
+        {/* Footer */}
+        <div className="bg-slate-50 px-5 py-4 border-t border-slate-100 flex justify-end gap-3">
+          <button
+            onClick={onCancel}
+            className="px-5 py-2 border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 rounded-lg text-xs font-bold uppercase tracking-wider transition-all"
+          >
+            {cancelText}
+          </button>
+          <button
+            onClick={onConfirm}
+            className={`px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider shadow-md transition-all ${confirmBtn}`}
+          >
+            {confirmText}
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

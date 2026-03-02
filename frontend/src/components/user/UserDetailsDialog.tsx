@@ -44,31 +44,33 @@ export default function UserDetailsDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm overflow-y-auto p-4">
       <div className="w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl shadow-2xl bg-white animate-in fade-in zoom-in duration-200 flex flex-col">
-        {/* Gradient Header */}
-        <div className={`bg-gradient-to-r ${roleGradient} p-5 relative overflow-hidden flex-shrink-0`}>
-          {/* Background pattern */}
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA4KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-50"></div>
+        {/* Dark Slate Header */}
+        <div className="bg-slate-900 p-5 relative overflow-hidden flex-shrink-0 border-b border-slate-800">
+          {/* Subtle Background Pattern */}
+          <div className="absolute inset-0 bg-white bg-opacity-5">
+             <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
+          </div>
           
           <div className="relative">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-3 min-w-0 flex-1">
-                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm flex-shrink-0">
+                <div className="w-12 h-12 bg-white bg-opacity-10 rounded-xl flex items-center justify-center backdrop-blur-sm border border-white border-opacity-10 shadow-lg flex-shrink-0">
                   <UserIcon className="w-6 h-6 text-white" />
                 </div>
                 <div className="min-w-0">
-                  <h2 className="text-lg font-bold text-white">User Details</h2>
+                  <h2 className="text-lg font-bold text-white uppercase tracking-tight">User Profile Details</h2>
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    <span className="px-2 py-0.5 bg-white/20 rounded-full text-[11px] font-bold text-white backdrop-blur-sm">
+                    <span className="px-2 py-0.5 bg-indigo-500 bg-opacity-20 rounded-md text-[10px] font-black text-indigo-300 border border-indigo-500 border-opacity-20 uppercase tracking-widest">
                       {user.userId || `USER${user._id.substring(0, 8).toUpperCase()}`}
                     </span>
-                    <span className="text-white/80 text-xs">•</span>
-                    <span className="text-white/80 text-xs">{timeAgo}</span>
+                    <span className="text-slate-400 text-xs font-bold uppercase tracking-tighter">•</span>
+                    <span className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">{timeAgo}</span>
                   </div>
                 </div>
               </div>
               <button 
                 onClick={onClose}
-                className="w-9 h-9 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center transition-all backdrop-blur-sm flex-shrink-0"
+                className="w-9 h-9 rounded-lg bg-white bg-opacity-10 hover:bg-opacity-20 flex items-center justify-center transition-all border border-white border-opacity-10 backdrop-blur-sm flex-shrink-0"
               >
                 <X className="w-5 h-5 text-white" />
               </button>

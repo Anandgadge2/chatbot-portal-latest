@@ -169,34 +169,64 @@ async function safeSendWhatsApp(
 /* Department Admin Lookup                                             */
 /* ------------------------------------------------------------------ */
 
-async function getDepartmentAdmin(departmentId: any): Promise<any | null> {
-  try {
-    // Try to find admin for the specific department (could be a sub-department)
-    let admin = await User.findOne({
-      departmentId,
-      role: UserRole.DEPARTMENT_ADMIN,
-      isActive: true
-    });
+/**
+ * 🏢 HIERARCHICAL LOOKUP: Returns ALL department admins in the chain.
+ * For a sub-department, we notify:
+ *   1. The sub-department's own admin (if exists)
+ *   2. The parent department's admin (if exists)
+ * This ensures full hierarchy visibility on dashboards.
+ */
+async function getHierarchicalDepartmentAdmins(departmentId: any): Promise<any[]> {
+  const admins: any[] = [];
+  if (!departmentId) return admins;
 
-    // 🏢 Fallback: If no admin found for sub-department, try finding admin for parent department
-    if (!admin) {
-      const dept = await Department.findById(departmentId);
-      if (dept && dept.parentDepartmentId) {
-        logger.info(`🔍 No admin found for sub-department ${dept.name} (${departmentId}), falling back to parent department.`);
-        admin = await User.findOne({
-          departmentId: dept.parentDepartmentId,
-          role: UserRole.DEPARTMENT_ADMIN,
-          isActive: true
-        });
+  try {
+    let currentDeptId = departmentId;
+    const processedDeptIds = new Set<string>();
+
+    while (currentDeptId) {
+      const currentIdStr = currentDeptId.toString();
+      if (processedDeptIds.has(currentIdStr)) break;
+      processedDeptIds.add(currentIdStr);
+
+      const dept = await Department.findById(currentDeptId);
+      if (!dept) break;
+
+      // Find admin for this department
+      const admin = await User.findOne({
+        departmentId: currentDeptId,
+        role: UserRole.DEPARTMENT_ADMIN,
+        isActive: true
+      });
+
+      if (admin) {
+        // Avoid duplicate if same person manages multiple levels
+        const alreadyAdded = admins.some(a => a._id.toString() === admin._id.toString());
+        if (!alreadyAdded) {
+          admins.push(admin);
+        }
+      }
+
+      // Move to parent department
+      currentDeptId = dept.parentDepartmentId;
+      if (currentDeptId) {
+        logger.info(`🔍 Traversing up hierarchy: ${dept.name} -> Checking parent admin.`);
       }
     }
 
-    return admin;
+    return admins;
   } catch (error) {
-    logger.error('Error getting department admin:', error);
-    return null;
+    logger.error('Error getting hierarchical department admins:', error);
+    return admins;
   }
 }
+
+// Keep for backward compatibility
+async function getDepartmentAdmin(departmentId: any): Promise<any | null> {
+  const admins = await getHierarchicalDepartmentAdmins(departmentId);
+  return admins.length > 0 ? admins[0] : null;
+}
+
 
 /* ------------------------------------------------------------------ */
 /* Creation Notification                                               */
@@ -209,19 +239,21 @@ export async function notifyDepartmentAdminOnCreation(
     const company = await getCompanyWithWhatsAppConfig(data.companyId);
     if (!company) return;
 
-    // ✅ Find ALL relevant admins to notify: Department Admin AND Company Admins
-    // This fulfills the requirement of showing on both dashboards and notifying relevant parties.
+    // ✅ Find ALL relevant admins to notify using full hierarchical lookup:
+    //    1. Sub-department admin (if grievance is for a sub-dept)
+    //    2. Parent department admin 
+    //    3. Company Admins
     const adminsToNotify: any[] = [];
 
-    // 1. Get Department Admin (Current or Parent fallback)
+    // 1. Get ALL department admins in the hierarchy (sub-dept + parent dept)
     if (data.departmentId) {
-      const deptAdmin = await getDepartmentAdmin(data.departmentId);
-      if (deptAdmin) {
-        adminsToNotify.push({ user: deptAdmin, type: 'DEPT_ADMIN' });
-      }
+      const deptAdmins = await getHierarchicalDepartmentAdmins(data.departmentId);
+      deptAdmins.forEach(admin => {
+        adminsToNotify.push({ user: admin, type: 'DEPT_ADMIN' });
+      });
     }
 
-    // 2. Get Company Admins
+    // 2. Get ALL Company Admins for this company
     const companyAdmins = await User.find({
       companyId: data.companyId,
       role: UserRole.COMPANY_ADMIN,
@@ -234,6 +266,7 @@ export async function notifyDepartmentAdminOnCreation(
         adminsToNotify.push({ user: admin, type: 'COMPANY_ADMIN' });
       }
     });
+
 
     if (adminsToNotify.length === 0) {
       logger.warn(`⚠️ No admins found to notify for company ${company.name} (Grievance/Appointment: ${data.grievanceId || data.appointmentId})`);
@@ -630,10 +663,14 @@ export async function notifyHierarchyOnStatusChange(
       }
     }
 
+    // Find ALL relevant admins interested in the status change
+    const admins = await getHierarchicalDepartmentAdmins(data.departmentId);
+    const adminIds = admins.map(a => a._id.toString());
+
     const users = await User.find({
       $or: [
         { role: UserRole.COMPANY_ADMIN, companyId: data.companyId },
-        { role: UserRole.DEPARTMENT_ADMIN, departmentId: data.departmentId },
+        { _id: { $in: adminIds } }, // Direct admin + all parent department admins
         { _id: data.assignedTo }
       ],
       isActive: true

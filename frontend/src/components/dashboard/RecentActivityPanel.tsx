@@ -121,27 +121,27 @@ export default function RecentActivityPanel({ companyId }: { companyId?: string 
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col h-full overflow-hidden">
-      {/* Header */}
-      <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col h-full overflow-hidden">
+      {/* Dark Header — matching superadmin theme */}
+      <div className="bg-slate-900 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 bg-white rounded-2xl flex items-center justify-center border border-slate-200 shadow-sm">
-            <ShieldCheck className="w-5 h-5 text-blue-600" />
+          <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30 shadow-sm">
+            <ShieldCheck className="w-5 h-5 text-indigo-400" />
           </div>
           <div>
-            <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">System Audit Log</h3>
+            <h3 className="text-sm font-bold text-white uppercase tracking-tight">System Audit Log</h3>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Real-time Stream</span>
+              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Real-time Stream</span>
             </div>
           </div>
         </div>
         <button 
           onClick={fetchRecentActivities}
           disabled={refreshing}
-          className="p-2.5 hover:bg-white hover:shadow-md border border-transparent hover:border-slate-200 rounded-xl transition-all group"
+          className="w-9 h-9 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-lg transition-all"
         >
-          <RefreshCw className={`w-4 h-4 text-slate-400 group-hover:text-blue-600 ${refreshing ? 'animate-spin text-blue-600' : ''}`} />
+          <RefreshCw className={`w-4 h-4 text-white ${refreshing ? 'animate-spin' : ''}`} />
         </button>
       </div>
 

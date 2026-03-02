@@ -280,46 +280,50 @@ export default function WhatsAppConfigPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-green-50/30">
-      {/* Header */}
-      <header className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 sticky top-0 z-50 shadow-xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+    <div className="min-h-screen bg-slate-50/50">
+      {/* Header with Dark Slate Theme */}
+      <header className="bg-slate-900 sticky top-0 z-50 shadow-2xl border-b border-slate-800">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-10"></div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Button 
                 variant="ghost" 
                 onClick={() => router.push(`/superadmin/company/${companyId}`)} 
-                className="text-white/80 hover:text-white hover:bg-white/10 transition-all"
+                className="text-slate-400 hover:text-white hover:bg-white/10 transition-all -ml-2 h-9 w-9 p-0 rounded-xl"
               >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Company
+                <ArrowLeft className="w-5 h-5" />
               </Button>
-              <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm shadow-lg">
-                <MessageSquare className="w-6 h-6 text-white" />
+              <div className="w-11 h-11 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-md border border-white/20 shadow-inner">
+                <MessageSquare className="w-5 h-5 text-green-400" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white tracking-tight">WhatsApp Configuration</h1>
-                <p className="text-sm text-white/80 mt-0.5">{company?.name}</p>
+                <h1 className="text-xl font-bold text-white tracking-tight leading-none">WhatsApp Matrix</h1>
+                <div className="flex items-center gap-2 mt-1.5">
+                   <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                     Configuration Node: <span className="text-indigo-400">{company?.name}</span>
+                   </p>
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5">
               {isEditing ? (
                 <>
                   <Button
                     onClick={handleSave}
                     disabled={saving}
-                    className="bg-white text-green-600 hover:bg-white/90"
+                    className="h-10 px-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all shadow-lg shadow-indigo-900/20 font-bold text-[11px] uppercase tracking-wider border-0"
                   >
                     <Save className="w-4 h-4 mr-2" />
-                    {saving ? 'Saving...' : 'Save Changes'}
+                    {saving ? 'Processing...' : 'Deploy Changes'}
                   </Button>
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     onClick={() => {
                       setIsEditing(false);
                       fetchData();
                     }}
-                    className="text-white border-white/30 hover:bg-white/10"
+                    className="h-10 px-4 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-all border border-white/10 font-bold text-[11px] uppercase tracking-wider"
                   >
                     Cancel
                   </Button>
@@ -327,9 +331,9 @@ export default function WhatsAppConfigPage() {
               ) : (
                 <Button
                   onClick={() => setIsEditing(true)}
-                  className="bg-white text-green-600 hover:bg-white/90"
+                  className="h-10 px-6 bg-slate-800 hover:bg-slate-700 text-white rounded-xl transition-all border border-slate-700 font-bold text-[11px] uppercase tracking-wider"
                 >
-                  Edit Configuration
+                  Modify Config
                 </Button>
               )}
             </div>
@@ -340,15 +344,13 @@ export default function WhatsAppConfigPage() {
       <main className="max-w-[1600px] mx-auto w-full px-4 py-4">
         <div className="space-y-6">
           {/* WhatsApp Business API Credentials */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Phone className="w-5 h-5" />
-                WhatsApp Business API Credentials
-              </CardTitle>
-              <CardDescription>
-                Configure your WhatsApp Business API connection for this company
-              </CardDescription>
+          <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
+            <CardHeader className="bg-slate-900 px-6 py-4 border-b border-slate-800">
+                <CardTitle className="text-base font-bold text-white uppercase tracking-tight flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-green-400" />
+                  Cloud API Infrastructure credentials
+                </CardTitle>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Meta Business Suite Connectivity</p>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -471,15 +473,13 @@ export default function WhatsAppConfigPage() {
           </Card>
 
           {/* Chatbot Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="w-5 h-5" />
-                Chatbot Settings
+          <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
+            <CardHeader className="bg-slate-900 px-6 py-4 border-b border-slate-800">
+              <CardTitle className="text-base font-bold text-white uppercase tracking-tight flex items-center gap-2">
+                <Shield className="w-4 h-4 text-indigo-400" />
+                Automated Response Intelligence
               </CardTitle>
-              <CardDescription>
-                Configure chatbot behavior and preferences
-              </CardDescription>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Chatbot behavioral configurations</p>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -525,15 +525,13 @@ export default function WhatsAppConfigPage() {
           </Card>
 
           {/* WhatsApp Message Templates */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="w-5 h-5" />
-                WhatsApp Message Templates
+          <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
+            <CardHeader className="bg-slate-900 px-6 py-4 border-b border-slate-800">
+              <CardTitle className="text-base font-bold text-white uppercase tracking-tight flex items-center gap-2">
+                <FileText className="w-4 h-4 text-emerald-400" />
+                Dynamic Message Templates
               </CardTitle>
-              <CardDescription>
-                Customize notification messages sent via WhatsApp. Leave empty to use default messages. Use placeholders like {'{citizenName}'}, {'{grievanceId}'}.
-              </CardDescription>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Custom notification schemas for automated alerts</p>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-col sm:flex-row gap-4">
@@ -568,23 +566,27 @@ export default function WhatsAppConfigPage() {
                   <p className="text-xs text-muted-foreground">{PLACEHOLDERS}</p>
                 </div>
               </div>
-              <Button onClick={handleSaveWhatsAppTemplates} disabled={savingTemplates}>
-                <Save className="w-4 h-4 mr-2" />
-                {savingTemplates ? 'Saving...' : 'Save WhatsApp Templates'}
-              </Button>
+              <div className="pt-4 border-t border-slate-100 flex justify-end">
+                <Button 
+                  onClick={handleSaveWhatsAppTemplates} 
+                  disabled={savingTemplates}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg h-9 text-[11px] font-bold uppercase tracking-wider px-6 border-0 shadow-lg shadow-emerald-900/20"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  {savingTemplates ? 'Saving...' : 'Commit Templates'}
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
           {/* Rate Limits */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="w-5 h-5" />
-                Rate Limits
+          <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
+            <CardHeader className="bg-slate-900 px-6 py-4 border-b border-slate-800">
+              <CardTitle className="text-base font-bold text-white uppercase tracking-tight flex items-center gap-2">
+                <Clock className="w-4 h-4 text-amber-400" />
+                Transmission Rate Controls
               </CardTitle>
-              <CardDescription>
-                Configure message rate limiting
-              </CardDescription>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Traffic shaping and message frequency limits</p>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -626,15 +628,13 @@ export default function WhatsAppConfigPage() {
 
           {/* Statistics */}
           {config?._id && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Globe className="w-5 h-5" />
-                  Statistics
+            <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
+              <CardHeader className="bg-slate-900 px-6 py-4 border-b border-slate-800">
+                <CardTitle className="text-base font-bold text-white uppercase tracking-tight flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-blue-400" />
+                  Operational Telemetry
                 </CardTitle>
-                <CardDescription>
-                  Usage statistics for this WhatsApp configuration
-                </CardDescription>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Real-time usage and throughput metrics</p>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

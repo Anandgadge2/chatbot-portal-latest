@@ -1476,6 +1476,21 @@ export class DynamicFlowEngine {
           else if (lang === 'or' && subDept.nameOr) localizedSubName = subDept.nameOr;
           else if (lang === 'mr' && subDept.nameMr) localizedSubName = subDept.nameMr;
 
+          // HIERARCHICAL: Check if this sub-department has its own sub-departments
+          const hierarchicalEnabled = this.company.enabledModules?.includes('HIERARCHICAL_DEPARTMENTS');
+          if (hierarchicalEnabled) {
+            const nestedSubDepts = await Department.find({ parentDepartmentId: subDeptId, isActive: true });
+            if (nestedSubDepts.length > 0) {
+              console.log(`   - Has ${nestedSubDepts.length} nested sub-departments. Loading deeper menu...`);
+              // Move current sub-dept to departmentId (the new "parent")
+              this.session.data.departmentId = subDeptId;
+              this.session.data.departmentName = localizedSubName;
+              await updateSession(this.session);
+              await this.loadSubDepartmentsForGrievance(subDeptId, prefix);
+              return;
+            }
+          }
+
           this.session.data.subDepartmentId = subDeptId;
           this.session.data.category = subDept.name;
           this.session.data.departmentName = `${this.session.data.departmentName} - ${localizedSubName}`;

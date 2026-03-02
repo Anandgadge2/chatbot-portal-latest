@@ -132,32 +132,44 @@ export default function CompanyFlowsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-purple-50/30">
-      {/* Header */}
-      <header className="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 sticky top-0 z-50 shadow-xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+    <div className="min-h-screen bg-slate-50">
+      {/* Header with Dark Slate Theme */}
+      <header className="bg-slate-900 sticky top-0 z-50 shadow-2xl border-b border-slate-800">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-10 pointer-events-none"></div>
+        <div className="relative max-w-[1600px] mx-auto px-4 lg:px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-6">
               <Button 
                 variant="ghost" 
                 onClick={() => router.push(`/superadmin/company/${companyId}`)} 
-                className="text-white/80 hover:text-white hover:bg-white/10 transition-all">
+                className="h-10 px-4 bg-white/5 hover:bg-white/10 text-white rounded-xl border border-white/10 font-bold text-[11px] uppercase tracking-wider"
+              >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Company
+                Return
               </Button>
-              <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm shadow-lg">
-                <Workflow className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-white tracking-tight">Flows</h1>
-                <p className="text-sm text-white/80 mt-0.5">Manage your chatbot flows</p>
+              
+              <div className="h-10 w-px bg-slate-800 hidden md:block"></div>
+
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-md border border-white/20 shadow-inner">
+                  <Workflow className="w-5 h-5 text-indigo-400" />
+                </div>
+                <div>
+                  <h1 className="text-lg font-bold text-white tracking-tight leading-none uppercase">Interactive Flows</h1>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1.5 flex items-center gap-2">
+                     <span className="h-1 w-1 bg-indigo-500 rounded-full animate-pulse"></span>
+                     Orchestration & Logic Registry
+                  </p>
+                </div>
               </div>
             </div>
+            
             <Button
               onClick={handleCreateFlow}
-              className="bg-white text-purple-600 hover:bg-white/90 rounded-xl shadow-lg">
+              className="h-10 px-6 bg-white hover:bg-white/90 text-slate-900 rounded-xl shadow-lg shadow-white/5 font-bold text-[11px] uppercase tracking-wider border-0"
+            >
               <Plus className="w-4 h-4 mr-2" />
-              Create Flow
+              Initialize Flow
             </Button>
           </div>
         </div>

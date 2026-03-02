@@ -243,37 +243,41 @@ export default function DepartmentDetail() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-cyan-50/30">
-      {/* Header with Gradient */}
-      <header className="bg-gradient-to-r from-cyan-600 via-teal-600 to-emerald-600 sticky top-0 z-50 shadow-xl">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-30"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+    <div className="min-h-screen bg-slate-50">
+      {/* Header with Dark Slate Theme */}
+      <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 shadow-xl overflow-hidden h-20">
+        {/* Subtle Background Pattern */}
+        <div className="absolute inset-0 bg-white bg-opacity-5">
+           <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
+        </div>
+        
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col justify-center">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Button 
                 variant="ghost" 
                 onClick={() => router.push('/dashboard')} 
-                className="text-white/80 hover:text-white hover:bg-white/10 transition-all -ml-2"
+                className="bg-white bg-opacity-10 hover:bg-opacity-20 text-white rounded-xl border border-white border-opacity-10 transition-all -ml-2"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back
               </Button>
-              <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm shadow-lg">
-                <Building className="w-6 h-6 text-white" />
+              <div className="w-10 h-10 bg-white bg-opacity-10 rounded-xl flex items-center justify-center backdrop-blur-sm border border-white border-opacity-10 shadow-lg">
+                <Building className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white tracking-tight">{department.name}</h1>
-                <p className="text-sm text-white/80 mt-0.5">
-                  Department Dashboard • <span className="font-semibold">{department.departmentId}</span>
+                <h1 className="text-xl font-bold text-white tracking-tight uppercase leading-none">{department.name}</h1>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1.5 flex items-center gap-2">
+                  <span className="bg-indigo-500 bg-opacity-20 text-indigo-300 px-1.5 py-0.5 rounded text-[9px] border border-indigo-500 border-opacity-20">{department.departmentId}</span>
                   {company && ` • ${company.name}`}
                 </p>
               </div>
             </div>
             <button
               onClick={fetchData}
-              className="flex items-center gap-2 px-4 py-2 bg-white/10 text-white rounded-xl hover:bg-white/20 transition-all border border-white/30"
+              className="flex items-center gap-2 px-4 py-2 bg-white bg-opacity-10 text-white rounded-xl hover:bg-opacity-20 transition-all border border-white border-opacity-20 text-xs font-bold uppercase"
             >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className="w-3 h-3" />
               Refresh
             </button>
           </div>
@@ -282,18 +286,18 @@ export default function DepartmentDetail() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="inline-flex h-12 items-center justify-center rounded-2xl bg-white/80 backdrop-blur-sm p-1.5 shadow-lg border border-slate-200/50 gap-1">
-            <TabsTrigger value="overview" className="px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-teal-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100">Overview</TabsTrigger>
-            <TabsTrigger value="users" className="px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-teal-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100">Users</TabsTrigger>
+          <TabsList className="bg-slate-200 bg-opacity-50 p-1.5 rounded-2xl h-auto gap-1 border border-slate-200">
+            <TabsTrigger value="overview" className="px-6 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg text-xs font-bold uppercase">Overview</TabsTrigger>
+            <TabsTrigger value="users" className="px-6 data-[state=active]:bg-white rounded-lg text-xs font-bold uppercase">Users</TabsTrigger>
             {user && (user.enabledModules?.includes(Module.GRIEVANCE) || !user.companyId) && (
               <TabsTrigger 
                 value="grievances" 
-                className="px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-teal-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100"
+                className="px-6 data-[state=active]:bg-white rounded-lg text-xs font-bold uppercase"
               >
                 Grievances
               </TabsTrigger>
             )}
-            <TabsTrigger value="analytics" className="px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-teal-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100">Analytics</TabsTrigger>
+            <TabsTrigger value="analytics" className="px-6 data-[state=active]:bg-white rounded-lg text-xs font-bold uppercase">Analytics</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -366,12 +370,14 @@ export default function DepartmentDetail() {
             </div>
 
             {/* Department Details */}
-            <Card className="rounded-2xl border-0 shadow-xl overflow-hidden bg-white/80 backdrop-blur-sm">
-              <CardHeader className="bg-gradient-to-r from-slate-100 to-cyan-50 border-b px-6 py-4">
-                <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                  <Building className="w-5 h-5 text-cyan-600" />
-                  Department Information
-                </CardTitle>
+            <Card className="rounded-2xl border border-slate-200 border-opacity-50 shadow-xl overflow-hidden bg-white">
+              <CardHeader className="bg-slate-50 border-b px-6 py-4 flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                    <Building className="w-4 h-4 text-indigo-500" />
+                    Department Information
+                  </CardTitle>
+                </div>
               </CardHeader>
               <CardContent className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -504,7 +510,7 @@ export default function DepartmentDetail() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Link href="/resolved-grievances" className="flex items-center gap-2 px-4 py-2 bg-emerald-500/80 text-white rounded-xl hover:bg-emerald-500 transition-all">
+                      <Link href="/resolved-grievances" className="flex items-center gap-2 px-4 py-2 bg-indigo-500 bg-opacity-80 text-white rounded-xl hover:bg-opacity-100 transition-all text-xs font-bold uppercase border border-indigo-400 border-opacity-30">
                         <CheckCircle className="w-4 h-4" />
                         View Resolved
                       </Link>

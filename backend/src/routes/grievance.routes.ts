@@ -28,16 +28,19 @@ router.get('/', requirePermission(Permission.READ_GRIEVANCE), async (req: Reques
       // SuperAdmin can see all grievances, but can filter by companyId if provided
       if (companyId) query.companyId = companyId;
     } else if (currentUser.role === UserRole.COMPANY_ADMIN) {
-      // CompanyAdmin can see all grievances in their company
+      // CompanyAdmin can see all grievances in THEIR company only
       query.companyId = currentUser.companyId;
     } else if (currentUser.role === UserRole.DEPARTMENT_ADMIN) {
-      // DepartmentAdmin can see grievances in their department (parent or sub)
+      // 🏢 HIERARCHICAL: DeptAdmin sees grievances where their dept is the parent OR sub-department
+      // Company scoping is mandatory to prevent cross-company data leakage
+      query.companyId = currentUser.companyId;
       query.$or = [
         { departmentId: currentUser.departmentId },
         { subDepartmentId: currentUser.departmentId }
       ];
     } else if (currentUser.role === UserRole.OPERATOR) {
-      // Operator can only see assigned grievances
+      // Operator can only see grievances assigned to them, scoped to their company
+      query.companyId = currentUser.companyId;
       query.assignedTo = currentUser._id;
     }
 
@@ -156,28 +159,33 @@ router.get('/:id', requirePermission(Permission.READ_GRIEVANCE), async (req: Req
       return;
     }
 
-    // Check access
+    // Check access - enforce company isolation for all non-superadmin roles
     if (currentUser.role !== UserRole.SUPER_ADMIN) {
-      if (currentUser.role === UserRole.COMPANY_ADMIN && grievance.companyId._id.toString() !== currentUser.companyId?.toString()) {
-        res.status(403).json({
-          success: false,
-          message: 'Access denied'
-        });
+      // Always enforce company scope first
+      const grievanceCompanyId = (grievance.companyId as any)?._id?.toString() || grievance.companyId?.toString();
+      if (grievanceCompanyId && currentUser.companyId && grievanceCompanyId !== currentUser.companyId.toString()) {
+        res.status(403).json({ success: false, message: 'Access denied - cross-company access prohibited' });
         return;
       }
-      if (currentUser.role === UserRole.DEPARTMENT_ADMIN && grievance.departmentId?._id.toString() !== currentUser.departmentId?.toString()) {
-        res.status(403).json({
-          success: false,
-          message: 'Access denied'
-        });
-        return;
+
+      if (currentUser.role === UserRole.DEPARTMENT_ADMIN) {
+        // 🏢 HIERARCHICAL: Allow access if admin's dept is the parent OR sub-department of the grievance
+        const grievanceDeptId = (grievance.departmentId as any)?._id?.toString() || grievance.departmentId?.toString();
+        const grievanceSubDeptId = (grievance.subDepartmentId as any)?._id?.toString() || grievance.subDepartmentId?.toString();
+        const adminDeptId = currentUser.departmentId?.toString();
+        const hasAccess = grievanceDeptId === adminDeptId || grievanceSubDeptId === adminDeptId;
+        if (!hasAccess) {
+          res.status(403).json({ success: false, message: 'Access denied - grievance not in your department' });
+          return;
+        }
       }
-      if (currentUser.role === UserRole.OPERATOR && grievance.assignedTo?._id.toString() !== currentUser._id.toString()) {
-        res.status(403).json({
-          success: false,
-          message: 'Access denied'
-        });
-        return;
+
+      if (currentUser.role === UserRole.OPERATOR) {
+        const assignedToId = (grievance.assignedTo as any)?._id?.toString() || grievance.assignedTo?.toString();
+        if (assignedToId !== currentUser._id.toString()) {
+          res.status(403).json({ success: false, message: 'Access denied - not assigned to you' });
+          return;
+        }
       }
     }
 

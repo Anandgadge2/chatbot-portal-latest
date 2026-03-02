@@ -12,7 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { UserRole } from '@/lib/permissions';
 import toast from 'react-hot-toast';
 import { validatePhoneNumber, validatePassword, normalizePhoneNumber, denormalizePhoneNumber } from '@/lib/utils/phoneUtils';
-import { Building } from 'lucide-react';
+import { Building, Users } from 'lucide-react';
 
 interface CreateUserDialogProps {
   isOpen: boolean;
@@ -378,13 +378,18 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({ isOpen, onClose, on
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-      <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-lg rounded-2xl border border-slate-200/50 shadow-2xl">
-        <CardHeader className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 text-white rounded-t-2xl">
-          <CardTitle className="text-xl">{editingUser ? 'Edit User' : 'Create New User'}</CardTitle>
-          <CardDescription className="text-indigo-100">
-            {editingUser ? 'Update user information' : 'Add a new user to the platform'}
-          </CardDescription>
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden">
+        <CardHeader className="bg-slate-900 px-6 py-4 border-b border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-md border border-white/20 shadow-inner">
+               <Users className="w-5 h-5 text-indigo-400" />
+            </div>
+            <div>
+              <CardTitle className="text-base font-bold text-white uppercase tracking-tight">{editingUser ? 'Modify Personnel Profile' : 'Initialize New Personnel'}</CardTitle>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Global Authorization Registry</p>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">

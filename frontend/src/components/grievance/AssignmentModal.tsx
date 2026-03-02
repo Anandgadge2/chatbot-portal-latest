@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Users, Check } from 'lucide-react';
+import { X, Users, Check, UserCheck } from 'lucide-react';
 import { apiClient } from '@/lib/api/client';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
@@ -86,114 +86,128 @@ export default function AssignmentModal({
 
   if (!isOpen) return null;
 
+  const typeLabel = itemType === 'grievance' ? 'Grievance' : 'Appointment';
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-        {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white p-6 flex items-center justify-between">
-          <div className="flex items-center">
-            <Users className="w-6 h-6 mr-3" />
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-150">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+        {/* Dark Header — matching superadmin theme */}
+        <div className="bg-slate-900 p-5 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
+              <UserCheck className="w-5 h-5 text-indigo-400" />
+            </div>
             <div>
-              <h2 className="text-2xl font-bold">Assign {itemType === 'grievance' ? 'Grievance' : 'Appointment'}</h2>
-              <p className="text-indigo-100 text-sm mt-1">Select a user to handle this {itemType}</p>
+              <h2 className="text-base font-bold text-white">Assign {typeLabel}</h2>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                Select an officer to handle this {itemType}
+              </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors"
+            className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all"
           >
-            <X className="w-6 h-6" />
+            <X className="w-4 h-4 text-white" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6">
+        <div className="overflow-y-auto flex-1 p-5">
           {loading ? (
-            <div className="flex justify-center py-12">
-              <LoadingSpinner text="Loading available users..." />
+            <div className="flex justify-center py-16">
+              <LoadingSpinner text="Loading available officers..." />
             </div>
           ) : users.length === 0 ? (
-            <div className="text-center py-12">
-              <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-600">No users available for assignment</p>
+            <div className="flex flex-col items-center justify-center py-16">
+              <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mb-3">
+                <Users className="w-7 h-7 text-slate-400" />
+              </div>
+              <p className="text-sm font-bold text-slate-600">No Officers Available</p>
+              <p className="text-xs text-slate-400 mt-1">No users are available for assignment</p>
             </div>
           ) : (
-            <div className="space-y-3">
-              <p className="text-sm text-gray-600 mb-4">
-                Select a user from your {users[0]?.departmentId ? 'department' : 'company'} to assign this {itemType}:
+            <div className="space-y-2">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">
+                {users.length} Officers Available
               </p>
-              {users.map((user) => (
-                <div
-                  key={user._id}
-                  onClick={() => setSelectedUser(user._id)}
-                  className={`
-                    flex items-center justify-between p-4 rounded-lg border-2 cursor-pointer transition-all
-                    ${selectedUser === user._id
-                      ? 'border-indigo-600 bg-indigo-50'
-                      : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
-                    }
-                  `}
-                >
-                  <div className="flex items-center space-x-4">
-                    <div className={`
-                      w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg
-                      ${selectedUser === user._id ? 'bg-indigo-600' : 'bg-gray-400'}
-                    `}>
-                      {user.firstName.charAt(0)}{user.lastName.charAt(0)}
-                    </div>
-                    <div>
-                      <p className="font-semibold text-gray-900">
-                        {user.firstName} {user.lastName}
-                      </p>
-                      <p className="text-sm text-gray-600">{user.email}</p>
-                      <div className="flex items-center space-x-2 mt-1">
-                        <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800">
-                          {user.role.replace('_', ' ')}
-                        </span>
-                        {user.departmentId && (
-                          <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800">
-                            {user.departmentId.name}
+              {users.map((user) => {
+                const isSelected = selectedUser === user._id;
+                const isCurrent = currentAssignee === user._id;
+                return (
+                  <div
+                    key={user._id}
+                    onClick={() => !isCurrent && setSelectedUser(user._id)}
+                    className={`
+                      flex items-center justify-between p-3.5 rounded-xl border-2 cursor-pointer transition-all duration-150
+                      ${isSelected
+                        ? 'border-indigo-500 bg-indigo-50'
+                        : isCurrent
+                        ? 'border-emerald-300 bg-emerald-50 cursor-not-allowed'
+                        : 'border-slate-200 bg-white hover:border-indigo-300 hover:bg-slate-50'
+                      }
+                    `}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`
+                        w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-sm flex-shrink-0
+                        ${isSelected ? 'bg-indigo-600' : isCurrent ? 'bg-emerald-500' : 'bg-slate-300'}
+                      `}>
+                        {user.firstName.charAt(0)}{user.lastName.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-slate-900">
+                          {user.firstName} {user.lastName}
+                          {isCurrent && <span className="ml-2 text-[9px] font-black text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded uppercase">Current</span>}
+                        </p>
+                        <p className="text-xs text-slate-500">{user.email}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">
+                            {user.role.replace('_', ' ')}
                           </span>
-                        )}
+                          {user.departmentId && (
+                            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
+                              {user.departmentId.name}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
+                    {isSelected && (
+                      <div className="w-7 h-7 bg-indigo-600 rounded-full flex items-center justify-center flex-shrink-0">
+                        <Check className="w-4 h-4 text-white" />
+                      </div>
+                    )}
                   </div>
-                  {selectedUser === user._id && (
-                    <div className="flex-shrink-0">
-                      <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center">
-                        <Check className="w-5 h-5 text-white" />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="bg-gray-50 px-6 py-4 flex justify-end space-x-3 border-t">
+        <div className="bg-slate-50 px-5 py-4 flex justify-end gap-3 border-t border-slate-200 flex-shrink-0">
           <button
             onClick={onClose}
-            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
             disabled={submitting}
+            className="px-5 py-2 border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 rounded-lg text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             onClick={handleAssign}
             disabled={!selectedUser || submitting}
-            className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+            className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold uppercase tracking-wider shadow-md shadow-indigo-900/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {submitting ? (
               <>
-                <LoadingSpinner className="mr-2" />
-                Assigning...
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                <span>Assigning...</span>
               </>
             ) : (
               <>
-                <Users className="w-4 h-4 mr-2" />
-                Assign {itemType === 'grievance' ? 'Grievance' : 'Appointment'}
+                <UserCheck className="w-4 h-4" />
+                <span>Assign {typeLabel}</span>
               </>
             )}
           </button>

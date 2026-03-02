@@ -3,8 +3,10 @@ import { apiClient } from './client';
 export interface User {
   _id: string;
   userId: string;
+  username?: string;
   firstName: string;
   lastName: string;
+  fullName?: string;
   email: string;
   phone?: string;
   role: string;

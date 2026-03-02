@@ -423,35 +423,39 @@ export default function ChatbotFlowsPage() {
   const activeFlow = flows.find(f => f.isActive);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-purple-50/30">
-      {/* Header */}
-      <header className="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 sticky top-0 z-50 shadow-xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+    <div className="min-h-screen bg-slate-50/50">
+      {/* Header with Dark Slate Theme */}
+      <header className="bg-slate-900 sticky top-0 z-50 shadow-2xl border-b border-slate-800">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-10"></div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Button 
                 variant="ghost" 
                 onClick={() => router.push(`/superadmin/company/${companyId}`)} 
-                className="text-white/80 hover:text-white hover:bg-white/10 transition-all"
+                className="text-slate-400 hover:text-white hover:bg-white/10 transition-all -ml-2 h-9 w-9 p-0 rounded-xl"
               >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Company
+                <ArrowLeft className="w-5 h-5" />
               </Button>
-              <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm shadow-lg">
-                <Workflow className="w-6 h-6 text-white" />
+              <div className="w-11 h-11 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-md border border-white/20 shadow-inner">
+                <Workflow className="w-5 h-5 text-indigo-400" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white tracking-tight">Chatbot Flow Management</h1>
-                <p className="text-sm text-white/80 mt-0.5">{company?.name}</p>
+                <h1 className="text-xl font-bold text-white tracking-tight leading-none">Response Pipelines</h1>
+                <div className="flex items-center gap-2 mt-1.5">
+                   <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                     Intelligence Node: <span className="text-indigo-400">{company?.name}</span>
+                   </p>
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5">
               <Button
                 onClick={handleCreateFlow}
-                className="bg-white text-purple-600 hover:bg-white/90"
+                className="h-10 px-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all shadow-lg shadow-indigo-900/20 font-bold text-[11px] uppercase tracking-wider border-0"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Create New Flow
+                Initialize Flow
               </Button>
             </div>
           </div>
@@ -462,32 +466,39 @@ export default function ChatbotFlowsPage() {
         <div className="space-y-6">
           {/* Active Flow Info */}
           {whatsappConfig && whatsappConfig._id && whatsappConfig.isActive && (
-            <Card className="border-green-300 bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl shadow-lg">
-              <CardHeader className="bg-gradient-to-r from-green-100 to-emerald-100 border-b">
-                <CardTitle className="text-green-700 flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5" />
-                  Active WhatsApp Configuration
+            <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
+              <CardHeader className="bg-slate-900 px-6 py-4 border-b border-slate-800">
+                <CardTitle className="text-base font-bold text-white uppercase tracking-tight flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-green-400" />
+                  Active Operational Matrix
                 </CardTitle>
-                <CardDescription className="text-green-600">
-                  <span className="font-semibold">Phone Number:</span> {whatsappConfig.displayPhoneNumber || whatsappConfig.phoneNumber}
-                  {activeFlow && (
-                    <span className="ml-3">• <span className="font-semibold">Active Flow:</span> <strong>{activeFlow.flowName || activeFlow.name}</strong> (v{activeFlow.version || 1})</span>
-                  )}
-                </CardDescription>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Live WhatsApp Deployment Status</p>
               </CardHeader>
+              <CardContent className="p-6 bg-slate-50/50">
+                 <div className="flex flex-wrap items-center gap-6">
+                    <div>
+                        <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">Phone Endpoint</p>
+                        <p className="text-sm font-bold text-slate-700 mt-1">{whatsappConfig.displayPhoneNumber || whatsappConfig.phoneNumber}</p>
+                    </div>
+                    {activeFlow && (
+                      <div className="pl-6 border-l border-slate-200">
+                          <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">Active Logic Node</p>
+                          <p className="text-sm font-bold text-slate-700 mt-1">{activeFlow.flowName || activeFlow.name} <span className="text-slate-400 font-medium ml-1">(v{activeFlow.version || 1})</span></p>
+                      </div>
+                    )}
+                 </div>
+              </CardContent>
             </Card>
           )}
 
           {(!whatsappConfig || !whatsappConfig._id || !whatsappConfig.isActive) && (
-            <Card className="border-yellow-200 bg-yellow-50/50 rounded-2xl shadow-lg">
-              <CardHeader>
-                <CardTitle className="text-yellow-700 flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5" />
-                  ⚠️ WhatsApp Not Configured
+            <Card className="rounded-xl border border-amber-200 shadow-sm overflow-hidden bg-white">
+              <CardHeader className="bg-slate-900 px-6 py-4 border-b border-slate-800">
+                <CardTitle className="text-base font-bold text-white uppercase tracking-tight flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-amber-400" />
+                  Incomplete Infrastructure
                 </CardTitle>
-                <CardDescription>
-                  Please configure WhatsApp settings before creating chatbot flows.
-                </CardDescription>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">WhatsApp Configuration Required</p>
               </CardHeader>
               <CardContent>
                 <Button
@@ -502,31 +513,29 @@ export default function ChatbotFlowsPage() {
 
           {/* Default Flows Notice */}
           {!hasDefaultFlows && (
-            <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl shadow-lg">
-              <CardHeader className="bg-gradient-to-r from-blue-100 to-indigo-100 border-b">
-                <CardTitle className="text-blue-700 flex items-center gap-2">
-                  <Workflow className="w-5 h-5" />
-                  Default Flows Available
-                </CardTitle>
-                <CardDescription className="text-blue-600">
-                  Generate default flows (Grievance, Appointment, Tracking) that you can customize. These flows provide a starting point for your chatbot.
-                </CardDescription>
-              </CardHeader>
+            <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
+                <CardHeader className="bg-slate-900 px-6 py-4 border-b border-slate-800">
+                  <CardTitle className="text-base font-bold text-white uppercase tracking-tight flex items-center gap-2">
+                    <Workflow className="w-4 h-4 text-indigo-400" />
+                    Standard Pipeline Templates Available
+                  </CardTitle>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Initialize core organization workflows</p>
+                </CardHeader>
               <CardContent className="pt-4">
                 <Button
                   onClick={handleGenerateDefaultFlows}
                   disabled={checkingDefaults}
-                  className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg h-9 text-[11px] font-bold uppercase tracking-wider px-6 border-0 shadow-lg shadow-indigo-900/20"
                 >
                   {checkingDefaults ? (
                     <>
-                      <LoadingSpinner className="w-4 h-4 mr-2" />
-                      Generating...
+                      <LoadingSpinner className="w-3 h-3 mr-2" />
+                      Provisioning...
                     </>
                   ) : (
                     <>
                       <Plus className="w-4 h-4 mr-2" />
-                      Generate Default Flows
+                      Initialize Core Flows
                     </>
                   )}
                 </Button>
@@ -536,18 +545,18 @@ export default function ChatbotFlowsPage() {
 
           {/* Flows List with Tabs */}
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="space-y-6">
-            <TabsList className="inline-flex h-12 items-center justify-center rounded-2xl bg-white/80 backdrop-blur-sm p-1.5 shadow-lg border border-slate-200/50 gap-1">
+            <TabsList className="inline-flex h-11 items-center justify-center rounded-xl bg-slate-100 p-1 border border-slate-200 gap-1">
               <TabsTrigger 
                 value="your-flows" 
-                className="px-6 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100"
+                className="px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm data-[state=inactive]:text-slate-500 data-[state=inactive]:hover:text-slate-800"
               >
-                Your Flows ({flows.filter(f => !f.isTemplate).length})
+                Operational Pipelines ({flows.filter(f => !f.isTemplate).length})
               </TabsTrigger>
               <TabsTrigger 
                 value="templates" 
-                className="px-6 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100"
+                className="px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm data-[state=inactive]:text-slate-500 data-[state=inactive]:hover:text-slate-800"
               >
-                Templates ({flows.filter(f => f.isTemplate).length})
+                Workflow Library ({flows.filter(f => f.isTemplate).length})
               </TabsTrigger>
             </TabsList>
 
@@ -597,51 +606,40 @@ export default function ChatbotFlowsPage() {
                   flows.filter(f => !f.isTemplate).map((flow) => {
                     const isDefaultFlow = ['grievance', 'appointment', 'tracking'].includes(flow.flowType);
                     return (
-                    <Card key={flow._id} className={`rounded-2xl border-0 shadow-xl overflow-hidden bg-white/80 backdrop-blur-sm transition-all hover:shadow-2xl ${flow.isActive ? 'border-green-300 border-2' : ''} ${isDefaultFlow ? 'border-l-4 border-l-orange-400' : ''}`}>
-                      <CardHeader className={`${flow.isActive ? 'bg-gradient-to-r from-green-50 to-emerald-50' : 'bg-gradient-to-r from-purple-50 to-indigo-50'} border-b px-6 py-5`}>
+                    <Card key={flow._id} className={`rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white transition-all hover:shadow-md ${flow.isActive ? 'ring-1 ring-green-500 shadow-green-100' : ''}`}>
+                      <CardHeader className="bg-slate-50 border-b border-slate-100 px-6 py-4">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2 flex-wrap">
-                              <CardTitle className="text-xl font-bold text-slate-800">{flow.flowName || flow.name || 'Unnamed Flow'}</CardTitle>
+                            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                              <CardTitle className="text-sm font-bold text-slate-800 uppercase tracking-tight">{flow.flowName || flow.name || 'Unnamed Flow'}</CardTitle>
                               {isDefaultFlow && (
-                                <span className="px-3 py-1 bg-orange-100 text-orange-700 text-xs font-bold rounded-full border border-orange-200">
-                                  📋 DEFAULT
+                                <span className="px-2 py-0.5 bg-orange-50 text-orange-600 text-[8px] font-black uppercase tracking-widest rounded border border-orange-100">
+                                  Standard
                                 </span>
                               )}
                               {flow.isActive && (
-                                <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full border border-green-200">
-                                  ✓ ACTIVE
+                                <span className="px-2 py-0.5 bg-green-50 text-green-600 text-[8px] font-black uppercase tracking-widest rounded border border-green-100">
+                                  Deployed
                                 </span>
                               )}
-                              <span className="px-3 py-1 bg-gray-100 text-gray-700 text-xs font-bold rounded-full">
+                              <span className="px-2 py-0.5 bg-slate-100 text-slate-500 text-[8px] font-black uppercase tracking-widest rounded border border-slate-200">
                                 v{flow.version || 1}
                               </span>
-                              {flow.flowType && (
-                                <span className={`px-3 py-1 text-xs font-bold rounded-full ${
-                                  isDefaultFlow 
-                                    ? 'bg-orange-100 text-orange-700' 
-                                    : 'bg-blue-100 text-blue-700'
-                                }`}>
-                                  {flow.flowType.toUpperCase()}
-                                </span>
-                              )}
                             </div>
-                            <CardDescription className="text-slate-600 mt-1">{flow.flowDescription || flow.description || 'No description'}</CardDescription>
-                            <div className="mt-3 text-sm text-slate-600 flex flex-wrap gap-3">
-                              <span className="flex items-center gap-1">
-                                <Workflow className="w-4 h-4" />
-                                <span className="font-medium">{flow.steps?.length || 0}</span> steps
-                              </span>
-                              <span>•</span>
-                              <span>Type: <strong>{flow.flowType || 'custom'}</strong></span>
-                              <span>•</span>
-                              <span>Created: {flow.createdAt ? new Date(flow.createdAt).toLocaleDateString() : 'N/A'}</span>
-                              {flow.updatedAt && (
-                                <>
-                                  <span>•</span>
-                                  <span>Updated: {new Date(flow.updatedAt).toLocaleDateString()}</span>
-                                </>
-                              )}
+                            <p className="text-xs text-slate-500 line-clamp-1">{flow.flowDescription || flow.description || 'No description provided'}</p>
+                            <div className="mt-3 flex items-center gap-4">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Type:</span>
+                                <span className="text-[10px] font-bold text-indigo-600 uppercase">{flow.flowType || 'custom'}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 pl-4 border-l border-slate-200">
+                                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Complexity:</span>
+                                <span className="text-[10px] font-bold text-slate-700 uppercase">{flow.steps?.length || 0} Nodes</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 pl-4 border-l border-slate-200">
+                                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Updated:</span>
+                                <span className="text-[10px] font-bold text-slate-700 uppercase">{flow.updatedAt ? new Date(flow.updatedAt).toLocaleDateString() : 'N/A'}</span>
+                              </div>
                             </div>
                           </div>
                           <div className="flex items-center gap-2 ml-4 flex-wrap">

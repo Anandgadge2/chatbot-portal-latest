@@ -30,12 +30,23 @@ router.get('/dashboard', requirePermission(Permission.VIEW_ANALYTICS), async (re
       if (companyId) baseQuery.companyId = companyId;
       if (departmentId) baseQuery.departmentId = departmentId;
     } else if (currentUser.role === UserRole.COMPANY_ADMIN) {
+      // Company admin sees ALL data within their company only
       baseQuery.companyId = currentUser.companyId;
       if (departmentId) baseQuery.departmentId = departmentId;
-    } else if (currentUser.role === UserRole.DEPARTMENT_ADMIN || currentUser.role === UserRole.OPERATOR || currentUser.role === UserRole.ANALYTICS_VIEWER) {
-      // Department Admins, Operators, and Analytics Viewers see department-wide analytics
-      baseQuery.departmentId = currentUser.departmentId;
+    } else if (currentUser.role === UserRole.DEPARTMENT_ADMIN || currentUser.role === UserRole.ANALYTICS_VIEWER) {
+      // 🏢 HIERARCHICAL: Department Admins see grievances where their dept is parent OR sub-dept
+      // Company scoping is MANDATORY to prevent cross-company data leakage
+      baseQuery.companyId = currentUser.companyId;
+      baseQuery.$or = [
+        { departmentId: currentUser.departmentId },
+        { subDepartmentId: currentUser.departmentId }
+      ];
+    } else if (currentUser.role === UserRole.OPERATOR) {
+      // Operators only see their own assigned items
+      baseQuery.companyId = currentUser.companyId;
+      baseQuery.assignedTo = currentUser._id;
     }
+
 
     // Get grievance statistics (exclude deleted)
     const totalGrievances = await Grievance.countDocuments({ ...baseQuery });

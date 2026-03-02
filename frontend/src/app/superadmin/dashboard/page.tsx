@@ -415,35 +415,40 @@ export default function SuperAdminDashboard() {
     <div className="min-h-screen bg-[#f8fafc]">
       {/* Header with Gradient */}
       {/* Classic White Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50">
-        <div className="max-w-[1600px] mx-auto px-4 lg:px-6">
-          <div className="flex items-center justify-between h-14">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-200">
-                  <Shield className="w-4 h-4 text-white" />
+      {/* Header with Dark Slate Theme */}
+      <header className="bg-slate-900 sticky top-0 z-50 shadow-2xl border-b border-slate-800">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-10 pointer-events-none"></div>
+        <div className="relative max-w-[1600px] mx-auto px-4 lg:px-6">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-8">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-md border border-white/20 shadow-inner">
+                  <Shield className="w-5 h-5 text-indigo-400" />
                 </div>
                 <div>
-                  <h1 className="text-base font-bold text-slate-900 tracking-tight leading-none">Master Admin</h1>
-                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Control Center</p>
+                  <h1 className="text-lg font-bold text-white tracking-tight leading-none uppercase">Nexus Prime</h1>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1.5 flex items-center gap-2">
+                     <span className="h-1 w-1 bg-indigo-500 rounded-full animate-pulse"></span>
+                     Omni-Channel Control
+                  </p>
                 </div>
               </div>
 
-              <div className="h-8 w-px bg-slate-200 hidden md:block"></div>
+              <div className="h-10 w-px bg-slate-800 hidden md:block"></div>
 
               <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full hidden md:block">
-                <TabsList className="bg-transparent border-0 h-14 gap-0.5 p-0">
+                <TabsList className="bg-transparent border-0 h-16 gap-1 p-0">
                   {[
-                    { val: 'overview', label: 'Overview', icon: BarChart2 },
-                    { val: 'companies', label: 'Companies', icon: Building },
-                    { val: 'departments', label: 'Departments', icon: Settings },
-                    { val: 'users', label: 'Users', icon: Users },
+                    { val: 'overview', label: 'Matrix', icon: BarChart2 },
+                    { val: 'companies', label: 'Entities', icon: Building },
+                    { val: 'departments', label: 'Nodes', icon: Settings },
+                    { val: 'users', label: 'Personnel', icon: Users },
                     { val: 'terminal', label: 'System Logs', icon: Terminal },
                   ].map((t) => (
                     <TabsTrigger
                       key={t.val}
                       value={t.val}
-                      className="px-4 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-600 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-indigo-600 text-slate-500 font-bold text-[11px] transition-all hover:text-slate-900"
+                      className="px-5 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-500 data-[state=active]:bg-white/5 data-[state=active]:text-white data-[state=active]:shadow-none text-slate-400 font-black text-[10px] uppercase tracking-widest transition-all hover:text-white hover:bg-white/5"
                     >
                       <t.icon className="w-3.5 h-3.5 mr-2" />
                       {t.label}
@@ -453,18 +458,18 @@ export default function SuperAdminDashboard() {
               </Tabs>
             </div>
 
-            <div className="flex items-center gap-4">
-              <div className="hidden md:flex flex-col items-end">
-                <span className="text-xs font-bold text-slate-900">{user.firstName} {user.lastName}</span>
-                <span className="text-[10px] text-slate-500 font-medium">Platform Superadmin</span>
+            <div className="flex items-center gap-5">
+              <div className="hidden lg:flex flex-col items-end border-r border-slate-800 pr-5">
+                <span className="text-[11px] font-black text-white uppercase tracking-wider">{user.firstName} {user.lastName}</span>
+                <span className="text-[9px] text-indigo-400 font-black uppercase tracking-[0.2em] mt-0.5">Primary Superadmin</span>
               </div>
               <Button
                 onClick={logout}
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                className="border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all duration-200 shadow-sm rounded-lg font-bold text-[11px] uppercase tracking-wider"
+                className="h-10 px-6 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-all border border-white/10 font-bold text-[11px] uppercase tracking-wider"
               >
-                Logout
+                Terminate Session
               </Button>
             </div>
           </div>
