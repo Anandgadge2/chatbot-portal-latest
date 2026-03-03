@@ -209,7 +209,7 @@ function transformNodeToStep(node: FlowNode, edges: FlowEdge[]): BackendFlowStep
     case 'end':
       return {
         ...baseStep,
-        stepType: 'message',
+        stepType: 'end',
         messageText: (node.data as any).endMessage || 'Thank you!',
       };
 
@@ -482,6 +482,16 @@ function transformStepToNode(step: BackendFlowStep, index: number): FlowNode {
         },
       };
 
+    case 'end':
+      return {
+        ...baseNode,
+        type: 'end',
+        data: {
+          ...baseNode.data,
+          endMessage: step.messageText || '',
+        },
+      };
+
     case 'start':
       return {
         ...baseNode,
@@ -540,7 +550,7 @@ function mapNodeTypeToStepType(nodeType: NodeType): BackendFlowStep['stepType'] 
     userInput: 'input',
     delay: 'delay',
     start: 'start',
-    end: 'message',
+    end: 'end',
     dynamicResponse: 'dynamic_response',
   };
   return mapping[nodeType] || 'message';
@@ -562,6 +572,7 @@ function mapStepTypeToNodeType(stepType: BackendFlowStep['stepType']): NodeType 
     assign_department: 'assignDepartment',
     dynamic_response: 'dynamicResponse',
     start: 'start',
+    end: 'end',
   };
   return mapping[stepType] || 'textMessage';
 }

@@ -8,8 +8,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { departmentAPI, Department } from '@/lib/api/department';
 import { companyAPI, Company } from '@/lib/api/company';
 import { useAuth } from '@/contexts/AuthContext';
-import { Building, Shield } from 'lucide-react';
+import { Building, Shield, Languages } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
 
 interface CreateDepartmentDialogProps {
   isOpen: boolean;
@@ -181,7 +183,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({ isOpen,
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden">
+      <Card className="w-full max-w-lg max-h-[90vh] flex flex-col bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden">
         <CardHeader className="bg-slate-900 px-6 py-4 border-b border-slate-800">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-md border border-white/20 shadow-inner">
@@ -193,170 +195,207 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({ isOpen,
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex-1 overflow-y-auto p-6 custom-scrollbar">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <Label htmlFor="name">Department Name (English) *</Label>
-              <Input
-                id="name"
-                name="name"
-                type="text"
-                value={formData.name}
-                onChange={handleChange}
-                required
-                placeholder="e.g. Revenue Department"
-              />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="nameHi">Name in Hindi (optional)</Label>
-                <Input
-                  id="nameHi"
-                  name="nameHi"
-                  type="text"
-                  value={formData.nameHi}
-                  onChange={handleChange}
-                  placeholder="e.g. राजस्व विभाग"
-                />
-                <p className="text-[10px] text-slate-500 mt-0.5">Shown when user selects Hindi</p>
-              </div>
-              <div>
-                <Label htmlFor="nameOr">Name in Odia (optional)</Label>
-                <Input
-                  id="nameOr"
-                  name="nameOr"
-                  type="text"
-                  value={formData.nameOr}
-                  onChange={handleChange}
-                  placeholder="e.g. ଆଦାୟ ବିଭାଗ"
-                />
-                <p className="text-[10px] text-slate-500 mt-0.5">Shown when user selects Odia</p>
-              </div>
-              <div>
-                <Label htmlFor="nameMr">Name in Marathi (optional)</Label>
-                <Input
-                  id="nameMr"
-                  name="nameMr"
-                  type="text"
-                  value={formData.nameMr}
-                  onChange={handleChange}
-                  placeholder="e.g. राजस्व विभाग"
-                />
-                <p className="text-[10px] text-slate-500 mt-0.5">Shown when user selects Marathi</p>
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="companyId">Company *</Label>
-              {user?.role === 'COMPANY_ADMIN' && !editingDepartment ? (
-                <>
-                  <Input
-                    id="companyId"
-                    type="text"
-                    value={companies.find(c => c._id === formData.companyId)?.name || 'Loading...'}
-                    disabled
-                    className="bg-gray-50"
-                  />
-                  <input type="hidden" name="companyId" value={formData.companyId} />
-                </>
-              ) : (
-                <select
-                  id="companyId"
-                  name="companyId"
-                  value={formData.companyId}
-                  onChange={(e) => setFormData(prev => ({ ...prev, companyId: e.target.value, parentDepartmentId: '' }))}
-                  className="w-full p-2 border rounded-md"
-                  required
-                >
-                  <option value="">Select a company</option>
-                  {companies.map((company) => (
-                    <option key={company._id} value={company._id}>
-                      {company.name}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-
-            {formData.companyId && (() => {
-              // Find the selected company to check if hierarchical departments module is enabled
-              const selectedCompany = companies.find(c => c._id === formData.companyId);
-              const hierarchicalEnabled = selectedCompany?.enabledModules?.includes('HIERARCHICAL_DEPARTMENTS');
-              
-              return hierarchicalEnabled ? (
-                <div>
-                  <Label htmlFor="parentDepartmentId">Parent Department (optional)</Label>
+                <Label htmlFor="companyId">Company *</Label>
+                {user?.role === 'COMPANY_ADMIN' && !editingDepartment ? (
+                  <>
+                    <Input
+                      id="companyId"
+                      type="text"
+                      value={companies.find(c => c._id === formData.companyId)?.name || 'Loading...'}
+                      disabled
+                      className="bg-gray-50 text-xs font-bold"
+                    />
+                    <input type="hidden" name="companyId" value={formData.companyId} />
+                  </>
+                ) : (
                   <select
-                    id="parentDepartmentId"
-                    name="parentDepartmentId"
-                    value={formData.parentDepartmentId}
-                    onChange={handleChange}
-                    className="w-full p-2 border rounded-md"
+                    id="companyId"
+                    name="companyId"
+                    value={formData.companyId}
+                    onChange={(e) => setFormData(prev => ({ ...prev, companyId: e.target.value, parentDepartmentId: '' }))}
+                    className="w-full h-10 px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
+                    required
                   >
-                    <option value="">None (Top-level Department)</option>
-                    {allDepartments
-                      .filter(d => !editingDepartment || d._id !== editingDepartment._id)
-                      .filter(d => !d.parentDepartmentId) // Only allow top-level departments as parents for now
-                      .map((dept) => (
-                        <option key={dept._id} value={dept._id}>
-                          {dept.name}
-                        </option>
-                      ))}
+                    <option value="">Select a company</option>
+                    {companies.map((company) => (
+                      <option key={company._id} value={company._id}>
+                        {company.name}
+                      </option>
+                    ))}
                   </select>
-                  <p className="text-[10px] text-slate-500 mt-0.5">If selected, this will become a sub-department</p>
-                </div>
-              ) : null;
-            })()}
+                )}
+              </div>
 
-            <div>
-              <Label htmlFor="description">Description (English)</Label>
-              <textarea
-                id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                rows={2}
-                className="w-full p-2 border rounded-md"
-                placeholder="Department description"
-              />
+              {formData.companyId && (() => {
+                const selectedCompany = companies.find(c => c._id === formData.companyId);
+                const hierarchicalEnabled = selectedCompany?.enabledModules?.includes('HIERARCHICAL_DEPARTMENTS');
+                
+                return hierarchicalEnabled ? (
+                  <div>
+                    <Label htmlFor="parentDepartmentId">Parent Department</Label>
+                    <select
+                      id="parentDepartmentId"
+                      name="parentDepartmentId"
+                      value={formData.parentDepartmentId}
+                      onChange={handleChange}
+                      className="w-full h-10 px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
+                    >
+                      <option value="">Top-level Department</option>
+                      {allDepartments
+                        .filter(d => !editingDepartment || d._id !== editingDepartment._id)
+                        .filter(d => !d.parentDepartmentId)
+                        .map((dept) => (
+                          <option key={dept._id} value={dept._id}>
+                            {dept.name}
+                          </option>
+                        ))}
+                    </select>
+                    <p className="text-[9px] text-slate-500 mt-1 font-bold uppercase tracking-tighter">Hierarchy Level: Sub-Dept</p>
+                  </div>
+                ) : (
+                  <div className="flex items-center h-full pt-6">
+                    <p className="text-[10px] text-slate-400 font-bold uppercase italic">Standard flat structure enabled</p>
+                  </div>
+                );
+              })()}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="descriptionHi">Description in Hindi (optional)</Label>
-                <textarea
-                  id="descriptionHi"
-                  name="descriptionHi"
-                  value={formData.descriptionHi}
-                  onChange={handleChange}
-                  rows={2}
-                  className="w-full p-2 border rounded-md"
-                  placeholder="For chatbot list when Hindi selected"
-                />
+
+            <div className="pt-4 space-y-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Languages className="w-4 h-4 text-indigo-500" />
+                <span className="text-xs font-black text-slate-800 uppercase tracking-widest">Localized Metadata</span>
               </div>
-              <div>
-                <Label htmlFor="descriptionOr">Description in Odia (optional)</Label>
-                <textarea
-                  id="descriptionOr"
-                  name="descriptionOr"
-                  value={formData.descriptionOr}
-                  onChange={handleChange}
-                  rows={2}
-                  className="w-full p-2 border rounded-md"
-                  placeholder="For chatbot list when Odia selected"
-                />
-              </div>
-              <div>
-                <Label htmlFor="descriptionMr">Description in Marathi (optional)</Label>
-                <textarea
-                  id="descriptionMr"
-                  name="descriptionMr"
-                  value={formData.descriptionMr}
-                  onChange={handleChange}
-                  rows={2}
-                  className="w-full p-2 border rounded-md"
-                  placeholder="For chatbot list when Marathi selected"
-                />
-              </div>
+              
+              <Tabs defaultValue="en" className="w-full">
+                <TabsList className="grid w-full grid-cols-4 h-10 bg-slate-100 p-1 rounded-xl">
+                  {['en', 'hi', 'or', 'mr'].map((l) => (
+                    <TabsTrigger 
+                      key={l} 
+                      value={l}
+                      className="rounded-lg text-[10px] font-black uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm"
+                    >
+                      {l === 'en' ? 'English' : l === 'hi' ? 'Hindi' : l === 'or' ? 'Odia' : 'Marathi'}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+
+                {/* English Content */}
+                <TabsContent value="en" className="space-y-4 mt-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="space-y-2">
+                    <Label htmlFor="name" className="text-[10px] font-black uppercase tracking-widest text-slate-500">Primary Name (Required)</Label>
+                    <Input
+                      id="name"
+                      name="name"
+                      type="text"
+                      value={formData.name}
+                      onChange={handleChange}
+                      required
+                      placeholder="e.g. Revenue Department"
+                      className="border-slate-200 focus:border-indigo-500"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="description" className="text-[10px] font-black uppercase tracking-widest text-slate-500">Service Description</Label>
+                    <Textarea
+                      id="description"
+                      name="description"
+                      value={formData.description}
+                      onChange={handleChange}
+                      rows={3}
+                      placeholder="Explain the purpose of this department..."
+                      className="border-slate-200 focus:border-indigo-500 min-h-[80px]"
+                    />
+                  </div>
+                </TabsContent>
+
+                {/* Hindi Content */}
+                <TabsContent value="hi" className="space-y-4 mt-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="space-y-2">
+                    <Label htmlFor="nameHi" className="text-[10px] font-black uppercase tracking-widest text-slate-500">हिंदी नाम (Hindi Name)</Label>
+                    <Input
+                      id="nameHi"
+                      name="nameHi"
+                      type="text"
+                      value={formData.nameHi}
+                      onChange={handleChange}
+                      placeholder="e.g. राजस्व विभाग"
+                      className="border-slate-200 focus:border-indigo-500"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="descriptionHi" className="text-[10px] font-black uppercase tracking-widest text-slate-500">हिंदी विवरण (Hindi Description)</Label>
+                    <Textarea
+                      id="descriptionHi"
+                      name="descriptionHi"
+                      value={formData.descriptionHi}
+                      onChange={handleChange}
+                      rows={3}
+                      placeholder="विभाग का विवरण हिंदी में..."
+                      className="border-slate-200 focus:border-indigo-500 min-h-[80px]"
+                    />
+                  </div>
+                </TabsContent>
+
+                {/* Odia Content */}
+                <TabsContent value="or" className="space-y-4 mt-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="space-y-2">
+                    <Label htmlFor="nameOr" className="text-[10px] font-black uppercase tracking-widest text-slate-500">ଓଡ଼ିଆ ନାମ (Odia Name)</Label>
+                    <Input
+                      id="nameOr"
+                      name="nameOr"
+                      type="text"
+                      value={formData.nameOr}
+                      onChange={handleChange}
+                      placeholder="e.g. ଆଦାୟ ବିଭାଗ"
+                      className="border-slate-200 focus:border-indigo-500"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="descriptionOr" className="text-[10px] font-black uppercase tracking-widest text-slate-500">ଓଡ଼ିଆ ବିବରଣୀ (Odia Description)</Label>
+                    <Textarea
+                      id="descriptionOr"
+                      name="descriptionOr"
+                      value={formData.descriptionOr}
+                      onChange={handleChange}
+                      rows={3}
+                      placeholder="ବିଭାଗର ବିବରଣୀ ଓଡ଼ିଆରେ..."
+                      className="border-slate-200 focus:border-indigo-500 min-h-[80px]"
+                    />
+                  </div>
+                </TabsContent>
+
+                {/* Marathi Content */}
+                <TabsContent value="mr" className="space-y-4 mt-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="space-y-2">
+                    <Label htmlFor="nameMr" className="text-[10px] font-black uppercase tracking-widest text-slate-500">मराठी नाव (Marathi Name)</Label>
+                    <Input
+                      id="nameMr"
+                      name="nameMr"
+                      type="text"
+                      value={formData.nameMr}
+                      onChange={handleChange}
+                      placeholder="e.g. राजस्व विभाग"
+                      className="border-slate-200 focus:border-indigo-500"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="descriptionMr" className="text-[10px] font-black uppercase tracking-widest text-slate-500">मराठी विवरण (Marathi Description)</Label>
+                    <Textarea
+                      id="descriptionMr"
+                      name="descriptionMr"
+                      value={formData.descriptionMr}
+                      onChange={handleChange}
+                      rows={3}
+                      placeholder="विभागाचे वर्णन मराठीत..."
+                      className="border-slate-200 focus:border-indigo-500 min-h-[80px]"
+                    />
+                  </div>
+                </TabsContent>
+              </Tabs>
             </div>
 
 

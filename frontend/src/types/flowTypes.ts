@@ -34,6 +34,7 @@ export interface BaseNodeData {
 
 export interface TextMessageNodeData extends BaseNodeData {
   messageText: string;
+  messageTextTranslations?: Record<string, string>;
   variables?: string[];
   language?: 'en' | 'hi' | 'or' | 'mr';
 }
@@ -56,9 +57,11 @@ export interface TemplateMessageNodeData extends BaseNodeData {
 
 export interface ButtonMessageNodeData extends BaseNodeData {
   messageText: string;
+  messageTextTranslations?: Record<string, string>;
   buttons: Array<{
     id: string;
     text: string;
+    titleTranslations?: Record<string, string>;
     type: 'quick_reply' | 'call' | 'url';
     value?: string;
   }>;
@@ -66,13 +69,18 @@ export interface ButtonMessageNodeData extends BaseNodeData {
 
 export interface ListMessageNodeData extends BaseNodeData {
   messageText: string;
+  messageTextTranslations?: Record<string, string>;
   buttonText: string;
+  buttonTextTranslations?: Record<string, string>;
   sections: Array<{
     title: string;
+    titleTranslations?: Record<string, string>;
     rows: Array<{
       id: string;
       title: string;
+      titleTranslations?: Record<string, string>;
       description?: string;
+      descriptionTranslations?: Record<string, string>;
     }>;
   }>;
   isDynamic?: boolean;
@@ -111,6 +119,7 @@ export interface AssignDepartmentNodeData extends BaseNodeData {
 
 export interface UserInputNodeData extends BaseNodeData {
   messageText: string;
+  messageTextTranslations?: Record<string, string>;
   inputType: 'text' | 'number' | 'email' | 'phone' | 'date' | 'image' | 'document' | 'location';
   saveToField: string;
   validation?: {
@@ -135,6 +144,7 @@ export interface DelayNodeData extends BaseNodeData {
 
 export interface EndNodeData extends BaseNodeData {
   endMessage?: string;
+  endMessageTranslations?: Record<string, string>;
   clearSession?: boolean;
 }
 
@@ -235,12 +245,14 @@ export interface ValidationResult {
 
 export interface BackendFlowStep {
   stepId: string;
-  stepType: 'start' | 'message' | 'buttons' | 'list' | 'input' | 'media' | 'condition' | 'api_call' | 'delay' | 'assign_department' | 'dynamic_response';
+  stepType: 'start' | 'message' | 'buttons' | 'list' | 'input' | 'media' | 'condition' | 'api_call' | 'delay' | 'assign_department' | 'dynamic_response' | 'end';
   stepName: string;
   messageText?: string;
+  messageTextTranslations?: Record<string, string>;
   buttons?: Array<{
     id: string;
     title: string;
+    titleTranslations?: Record<string, string>;
     description?: string;
     nextStepId?: string;
     action?: 'next' | 'end' | 'restart' | 'goto';
@@ -248,12 +260,16 @@ export interface BackendFlowStep {
   listConfig?: {
     listSource?: 'manual' | 'departments';
     buttonText: string;
+    buttonTextTranslations?: Record<string, string>;
     sections: Array<{
       title: string;
+      titleTranslations?: Record<string, string>;
       rows: Array<{
         id: string;
         title: string;
+        titleTranslations?: Record<string, string>;
         description?: string;
+        descriptionTranslations?: Record<string, string>;
         nextStepId?: string;
       }>;
     }>;
@@ -270,6 +286,7 @@ export interface BackendFlowStep {
     placeholder?: string;
     saveToField: string;
     nextStepId?: string;
+    messageTextTranslations?: Record<string, string>;
   };
   mediaConfig?: {
     mediaType: 'image' | 'document' | 'video';
@@ -277,6 +294,7 @@ export interface BackendFlowStep {
     optional: boolean;
     saveToField?: string;
     nextStepId?: string;
+    messageTextTranslations?: Record<string, string>;
   };
   conditionConfig?: {
     field: string;

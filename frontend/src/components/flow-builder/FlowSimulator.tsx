@@ -30,11 +30,21 @@ export default function FlowSimulator({ nodes, edges, flowName, onClose }: FlowS
   const [currentNodeId, setCurrentNodeId] = useState<string | null>(null);
   const [isSimulating, setIsSimulating] = useState(false);
   const [userInput, setUserInput] = useState('');
+  const [language, setLanguage] = useState<'en' | 'hi' | 'or' | 'mr'>('en');
   const [activeList, setActiveList] = useState<{
     nodeId: string;
     buttonText: string;
     sections: any[];
   } | null>(null);
+
+  // Helper to get localized text
+  const getLocalText = (nodeData: any, field: string) => {
+    const translationsField = `${field}Translations`;
+    if (nodeData[translationsField] && nodeData[translationsField][language]) {
+      return nodeData[translationsField][language];
+    }
+    return nodeData[field] || '';
+  };
 
   // Start simulation
   const startSimulation = async () => {
@@ -82,27 +92,29 @@ export default function FlowSimulator({ nodes, edges, flowName, onClose }: FlowS
         break;
 
       case 'textMessage':
-        const textMsg = (node.data as any).messageText || 'Hello!';
+        const textMsg = getLocalText(node.data, 'messageText') || 'Hello!';
         addMessage('bot', textMsg);
         // Auto-continue to next node
         await continueToNextNode(nodeId);
         break;
 
       case 'buttonMessage':
-        const buttons = (node.data as any).buttons || [];
-        const buttonMsg = (node.data as any).messageText || 'Please select an option:';
-        addMessage('bot', buttonMsg, buttons.map((btn: any, idx: number) => ({
-          text: btn.text,
+        const btnData = node.data as any;
+        const buttonMsg = getLocalText(btnData, 'messageText') || 'Please select an option:';
+        const buttons = (btnData.buttons || []).map((btn: any, idx: number) => ({
+          text: (btn.titleTranslations && btn.titleTranslations[language]) || btn.text || btn.title,
           id: `button-${idx}`,
-        })));
+        }));
+        addMessage('bot', buttonMsg, buttons);
         break;
 
 
       case 'listMessage':
-        const isDynamic = (node.data as any).isDynamic;
-        const dynamicSource = (node.data as any).dynamicSource;
-        const listText = (node.data as any).messageText || 'Please select from the list:';
-        const buttonText = (node.data as any).buttonText || 'View Menu';
+        const listData = node.data as any;
+        const isDynamic = listData.isDynamic;
+        const dynamicSource = listData.dynamicSource;
+        const listText = getLocalText(listData, 'messageText') || 'Please select from the list:';
+        const buttonText = getLocalText(listData, 'buttonText') || 'View Menu';
         
         let sections = (node.data as any).sections || [];
 
@@ -115,8 +127,12 @@ export default function FlowSimulator({ nodes, edges, flowName, onClose }: FlowS
                 title: 'Departments',
                 rows: departments.map((dept: any) => ({
                   id: dept._id,
-                  title: dept.name,
-                  description: dept.description
+                  title: language === 'hi' ? (dept.nameHi || dept.name) :
+                         language === 'or' ? (dept.nameOr || dept.name) :
+                         language === 'mr' ? (dept.nameMr || dept.name) : dept.name,
+                  description: language === 'hi' ? (dept.descriptionHi || dept.description) :
+                               language === 'or' ? (dept.descriptionOr || dept.description) :
+                               language === 'mr' ? (dept.descriptionMr || dept.description) : dept.description
                 }))
               }];
             }
@@ -132,7 +148,7 @@ export default function FlowSimulator({ nodes, edges, flowName, onClose }: FlowS
         break;
 
       case 'userInput':
-        const inputPrompt = (node.data as any).messageText || 'Please enter your response:';
+        const inputPrompt = getLocalText(node.data, 'messageText') || 'Please enter your response:';
         addMessage('bot', inputPrompt);
         // Wait for user input
         break;
@@ -145,7 +161,8 @@ export default function FlowSimulator({ nodes, edges, flowName, onClose }: FlowS
         break;
 
       case 'end':
-        addMessage('bot', '✅ Conversation ended. Thank you!');
+        const endMsg = getLocalText(node.data, 'endMessage') || '✅ Conversation ended. Thank you!';
+        addMessage('bot', endMsg);
         setIsSimulating(false);
         break;
 
@@ -267,8 +284,21 @@ export default function FlowSimulator({ nodes, edges, flowName, onClose }: FlowS
           </div>
           <div className="flex-1">
             <div className="font-semibold">{flowName}</div>
-            <div className="text-xs text-gray-200">
-              {isSimulating ? 'typing...' : 'Flow Simulator'}
+            <div className="flex items-center gap-2">
+              <select 
+                value={language} 
+                onChange={(e) => setLanguage(e.target.value as any)}
+                className="bg-transparent text-[10px] border-none focus:ring-0 text-gray-200 cursor-pointer p-0"
+              >
+                <option value="en" className="text-black">EN</option>
+                <option value="hi" className="text-black">HI</option>
+                <option value="or" className="text-black">OR</option>
+                <option value="mr" className="text-black">MR</option>
+              </select>
+              <div className="text-[10px] text-gray-200">•</div>
+              <div className="text-[10px] text-gray-200">
+                {isSimulating ? 'typing...' : 'Simulator'}
+              </div>
             </div>
           </div>
           <Phone className="w-5 h-5" />

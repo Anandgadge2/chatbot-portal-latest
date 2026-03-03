@@ -6,9 +6,66 @@ import Department from '../models/Department';
 import User from '../models/User';
 import { sendWhatsAppMessage, sendWhatsAppButtons, sendWhatsAppList } from './whatsappService';
 import { UserSession, updateSession } from './sessionService';
+import { ActionService } from './actionService';
 import { findDepartmentByCategory } from './departmentMapper';
-import { notifyDepartmentAdminOnCreation, notifyUserOnAssignment } from './notificationService';
 import { GrievanceStatus, AppointmentStatus, UserRole } from '../config/constants';
+
+/**
+ * Pick the best-fit message text for the current session language.
+ * Priority: step.messageTextTranslations[lang] → step.messageTextTranslations['en'] → step.messageText
+ */
+function getLocalText(step: IFlowStep, lang: string): string {
+  const translations = (step as any).messageTextTranslations as Record<string, string> | undefined;
+  if (translations) {
+    if (translations[lang]) return translations[lang];
+    if (translations['en']) return translations['en'];
+  }
+  return step.messageText || '';
+}
+
+/** Fallback UI strings used when no Flow step provides them (department list loading etc.) */
+const UI_TEXT: Record<string, Record<string, string>> = {
+  en: {
+    select_dept: 'Select Department',
+    view_dept: '🏢 View Departments',
+    load_more: '⬇️ Load More',
+    no_dept: '⚠️ No departments are set up for this service yet. Please contact the administrator.',
+    upload_photo: '📷 Please upload the image or document now:',
+    sub_dept_title: '🏢 *Sub-Department Selection*\n\nPlease select the relevant sub-department:',
+    sub_dept_btn: 'View Sub-Depts'
+  },
+  hi: {
+    select_dept: 'विभाग चुनें',
+    view_dept: '🏢 विभाग देखें',
+    load_more: '⬇️ और देखें',
+    no_dept: '⚠️ इस सेवा के लिए कोई विभाग सेट नहीं किया गया है। कृपया प्रशासक से संपर्क करें।',
+    upload_photo: '📷 कृपया अभी छवि या दस्तावेज़ अपलोड करें:',
+    sub_dept_title: '🏢 *उप-विभाग चयन*\n\nकृपया संबंधित उप-विभाग चुनें:',
+    sub_dept_btn: 'उप-विभाग देखें'
+  },
+  or: {
+    select_dept: 'ବିଭାଗ ବାଛନ୍ତୁ',
+    view_dept: '🏢 ବିଭାଗ ଦେଖନ୍ତୁ',
+    load_more: '⬇️ ଅଧିକ ଦେଖନ୍ତୁ',
+    no_dept: '⚠️ ଏହି ସେବା ପାଇଁ କୌଣସି ବିଭାଗ ସ୍ଥାପନ କରାଯାଇ ନାହିଁ। ଦୟାକରି ପ୍ରଶାସକଙ୍କ ସହ ଯୋଗାଯୋଗ କରନ୍ତୁ।',
+    upload_photo: '📷 ଦୟାକରି ବର୍ତ୍ତମାନ ଛବି/ଦସ୍ତାବିଜ୍ ଅପଲୋଡ କରନ୍ତୁ:',
+    sub_dept_title: '🏢 *ଉପ-ବିଭାଗ ଚୟନ*\n\nଦୟାକରି ସମ୍ବନ୍ଧିତ ଉପ-ବିଭାଗ ବାଛନ୍ତୁ:',
+    sub_dept_btn: 'ଉପ-ବିଭାଗ ଦେଖନ୍ତୁ'
+  },
+  mr: {
+    select_dept: 'विभाग निवडा',
+    view_dept: '🏢 विभाग पहा',
+    load_more: '⬇️ आणखी पहा',
+    no_dept: '⚠️ या सेवेसाठी कोणताही विभाग सेट केलेला नाही. कृपया प्रशासकाशी संपर्क साधा.',
+    upload_photo: '📷 कृपया आता प्रतिमा किंवा दस्तऐवज अपलोड करा:',
+    sub_dept_title: '🏢 *उप-विभाग निवड*\n\nकृपया संबंधित उप-विभाग निवडा:',
+    sub_dept_btn: 'उप-विभाग पहा'
+  }
+};
+
+function ui(key: string, lang: string): string {
+  return (UI_TEXT[lang] || UI_TEXT['en'])[key] || (UI_TEXT['en'][key] || key);
+}
 
 /**
  * Dynamic Flow Execution Engine
@@ -123,6 +180,14 @@ export class DynamicFlowEngine {
           await this.executeApiCallStep(step);
           break;
         
+        case 'assign_department':
+          await this.executeAssignDepartmentStep(step);
+          break;
+        
+        case 'end':
+          await this.executeEndStep(step);
+          break;
+        
       default:
         console.error(`❌ Unknown step type: ${step.stepType}`);
         await this.sendErrorMessage();
@@ -176,8 +241,9 @@ export class DynamicFlowEngine {
 
     // If step has buttons (e.g. language_selection saved as "message" from dashboard), send as buttons
     if (step.buttons && step.buttons.length > 0) {
-      const message = this.replacePlaceholders(step.messageText || '');
-      const buttons = step.buttons.map(btn => ({ id: btn.id, title: btn.title }));
+      const lang = this.session.language || 'en';
+      const message = this.replacePlaceholders(getLocalText(step, lang));
+      const buttons = step.buttons.map(btn => ({ id: btn.id, title: (btn as any).titleTranslations?.[lang] || btn.title }));
       await sendWhatsAppButtons(this.company, this.userPhone, message, buttons);
       this.session.data.currentStepId = step.stepId;
       this.session.data.buttonMapping = {};
@@ -190,7 +256,7 @@ export class DynamicFlowEngine {
       return;
     }
 
-    const message = this.replacePlaceholders(step.messageText || '');
+    const message = this.replacePlaceholders(getLocalText(step, this.session.language || 'en'));
 
     // FIX: Avoid sending empty messages (would cause WhatsApp error #100)
     if (!message || message.trim() === '') {
@@ -231,9 +297,9 @@ export class DynamicFlowEngine {
    * Updated to only show top-level departments initially
    */
   private async loadDepartmentsForGrievance(step: IFlowStep): Promise<void> {
+    const lang = this.session.language || 'en';
     try {
       const Department = (await import('../models/Department')).default;
-      const { getTranslation } = await import('./chatbotEngine');
       
       console.log(`🏬 Loading top-level departments for company: ${this.company._id}`);
       
@@ -262,9 +328,7 @@ export class DynamicFlowEngine {
       console.log(`📊 Found ${departments.length} top-level department(s)`);
       
       if (departments.length === 0) {
-        // No departments found - send error message
-        const errorMessage = getTranslation('msg_no_dept_grv', this.session.language);
-        await sendWhatsAppMessage(this.company, this.userPhone, errorMessage);
+        await sendWhatsAppMessage(this.company, this.userPhone, ui('no_dept', lang));
         
         // Auto-advance to next step (never repeat same step)
         await this.runNextStepIfDifferent(step.nextStepId, step.stepId);
@@ -278,7 +342,6 @@ export class DynamicFlowEngine {
       
       const offset = this.session.data.deptOffset || 0;
       const showLoadMore = departments.length > offset + 9;
-      const lang = this.session.language || 'en';
       const deptRows = departments.slice(offset, offset + 9).map((dept: any) => {
         // Use department's Hindi/Odia/Marathi name if set and language matches; else fallback to central translation or name
         let displayName: string;
@@ -289,8 +352,7 @@ export class DynamicFlowEngine {
         } else if (lang === 'mr' && dept.nameMr && dept.nameMr.trim()) {
           displayName = dept.nameMr.trim();
         } else {
-          const translatedName = getTranslation(`dept_${dept.name}`, lang);
-          displayName = translatedName !== `dept_${dept.name}` ? translatedName : dept.name;
+          displayName = dept.name;
         }
         let displayDesc: string;
         if (lang === 'hi' && dept.descriptionHi && dept.descriptionHi.trim()) {
@@ -300,7 +362,7 @@ export class DynamicFlowEngine {
         } else if (lang === 'mr' && dept.descriptionMr && dept.descriptionMr.trim()) {
           displayDesc = dept.descriptionMr.trim();
         } else {
-          displayDesc = getTranslation(`desc_${dept.name}`, lang) || dept.description?.substring(0, 72) || '';
+          displayDesc = dept.description?.substring(0, 72) || '';
         }
         const prefix = (step.stepId && (step.stepId.startsWith('apt') || step.stepId.includes('appointment'))) ? 'apt' : 'grv';
         return {
@@ -310,18 +372,16 @@ export class DynamicFlowEngine {
         };
       });
       
-      // Add "Load More" button if there are more departments
       if (showLoadMore) {
         deptRows.push({
           id: 'grv_load_more',
-          title: getTranslation('btn_load_more', this.session.language),
+          title: ui('load_more', lang),
           description: `${departments.length - offset - 9} more departments available`
         });
       }
       
-      // Create sections (WhatsApp requires at least 1 section with 1-10 rows)
       const sections = [{
-        title: getTranslation('btn_select_dept', this.session.language),
+        title: ui('select_dept', lang),
         rows: deptRows
       }];
       
@@ -346,12 +406,12 @@ export class DynamicFlowEngine {
       await updateSession(this.session);
       
       try {
-        const message = this.replacePlaceholders(step.messageText || getTranslation('selection_department', this.session.language));
+        const message = this.replacePlaceholders(getLocalText(step, lang) || ui('view_dept', lang));
         await sendWhatsAppList(
           this.company,
           this.userPhone,
           message,
-          getTranslation('btn_select_dept', this.session.language),
+          ui('view_dept', lang),
           sections
         );
       } catch (error) {
@@ -360,9 +420,7 @@ export class DynamicFlowEngine {
       }
     } catch (error: any) {
       console.error('❌ Error loading departments for grievance:', error);
-      const { getTranslation } = await import('./chatbotEngine');
-      const errorMessage = getTranslation('msg_no_dept_grv', this.session.language);
-      await sendWhatsAppMessage(this.company, this.userPhone, errorMessage);
+      await sendWhatsAppMessage(this.company, this.userPhone, ui('no_dept', this.session.language || 'en'));
     }
   }
 
@@ -373,7 +431,6 @@ export class DynamicFlowEngine {
   private async loadSubDepartmentsForGrievance(parentId: string, rowIdPrefix: string = 'grv'): Promise<void> {
     try {
       const Department = (await import('../models/Department')).default;
-      const { getTranslation } = await import('./chatbotEngine');
       const lang = this.session.language || 'en';
       
       console.log(`🏢 Loading sub-departments for parent: ${parentId} (Prefix: ${rowIdPrefix})`);
@@ -397,19 +454,29 @@ export class DynamicFlowEngine {
         } else if (lang === 'mr' && dept.nameMr && dept.nameMr.trim()) {
           displayName = dept.nameMr.trim();
         } else {
-          const translatedName = getTranslation(`dept_${dept.name}`, lang);
-          displayName = translatedName !== `dept_${dept.name}` ? translatedName : dept.name;
+          displayName = dept.name;
+        }
+
+        let displayDesc: string;
+        if (lang === 'hi' && dept.descriptionHi && dept.descriptionHi.trim()) {
+          displayDesc = dept.descriptionHi.trim();
+        } else if (lang === 'or' && dept.descriptionOr && dept.descriptionOr.trim()) {
+          displayDesc = dept.descriptionOr.trim();
+        } else if (lang === 'mr' && dept.descriptionMr && dept.descriptionMr.trim()) {
+          displayDesc = dept.descriptionMr.trim();
+        } else {
+          displayDesc = (dept.description || '').substring(0, 72);
         }
 
         return {
           id: `${rowIdPrefix}_sub_dept_${dept._id}`,
           title: displayName.length > 24 ? displayName.substring(0, 21) + '...' : displayName,
-          description: (dept.description || '').substring(0, 72)
+          description: displayDesc
         };
       });
 
       const sections = [{
-        title: lang === 'or' ? 'ଉପ-ବିଭାଗ ବାଛନ୍ତୁ' : (lang === 'hi' ? 'उप-विभाग चुनें' : 'Select Sub-Department'),
+        title: ui('select_dept', lang),
         rows: rows
       }];
 
@@ -421,15 +488,11 @@ export class DynamicFlowEngine {
       });
       await updateSession(this.session);
 
-      const message = lang === 'or' ? '🏢 *ଉପ-ବିଭାଗ ଚୟନ*\n\nଦୟାକରି ସମ୍ବନ୍ଧିତ ଉପ-ବିଭାଗ ବାଛନ୍ତୁ:' : 
-                     (lang === 'hi' ? '🏢 *उप-विभाग चयन*\n\nकृपया संबंधित उप-विभाग चुनें:' : 
-                     '🏢 *Sub-Department Selection*\n\nPlease select the relevant sub-department:');
-      
       await sendWhatsAppList(
         this.company,
         this.userPhone,
-        message,
-        lang === 'or' ? 'ଉପ-ବିଭାଗ ଦେଖନ୍ତୁ' : (lang === 'hi' ? 'उप-विभाग देखें' : 'View Sub-Departments'),
+        ui('sub_dept_title', lang),
+        ui('sub_dept_btn', lang),
         sections
       );
     } catch (error: any) {
@@ -446,10 +509,11 @@ export class DynamicFlowEngine {
       return;
     }
 
-    const message = this.replacePlaceholders(step.messageText || '');
+    const lang = this.session.language || 'en';
+    const message = this.replacePlaceholders(getLocalText(step, lang));
     const buttons = step.buttons.map(btn => ({
       id: btn.id,
-      title: btn.title
+      title: (btn as any).titleTranslations?.[lang] || btn.title
     }));
 
     await sendWhatsAppButtons(this.company, this.userPhone, message, buttons);
@@ -487,18 +551,31 @@ export class DynamicFlowEngine {
       return;
     }
 
-    const message = this.replacePlaceholders(step.messageText || '');
+    const lang = this.session.language || 'en';
+    const message = this.replacePlaceholders(getLocalText(step, lang));
+    
+    // Map sections and rows to their translated versions
+    const translatedSections = (step.listConfig.sections || []).map(section => ({
+      title: section.title, // Section titles don't have translations in schema yet, adding if needed or just using default
+      rows: section.rows.map(row => ({
+        id: row.id,
+        title: (row as any).titleTranslations?.[lang] || row.title,
+        description: (row as any).descriptionTranslations?.[lang] || row.description,
+        nextStepId: row.nextStepId
+      }))
+    }));
+
     await sendWhatsAppList(
       this.company,
       this.userPhone,
       message,
       step.listConfig.buttonText,
-      step.listConfig.sections || []
+      translatedSections
     );
 
     this.session.data.currentStepId = step.stepId;
     this.session.data.listMapping = {};
-    (step.listConfig.sections || []).forEach(section => {
+    translatedSections.forEach(section => {
       section.rows.forEach(row => {
         if (row.nextStepId) {
           this.session.data.listMapping[row.id] = row.nextStepId;
@@ -512,9 +589,9 @@ export class DynamicFlowEngine {
    * Load departments from DB and send as list (for list steps with listSource: 'departments')
    */
   private async loadDepartmentsForListStep(step: IFlowStep): Promise<void> {
+    const lang = this.session.language || 'en';
     try {
       const Department = (await import('../models/Department')).default;
-      const { getTranslation } = await import('./chatbotEngine');
 
       // Get ALL departments for this company first
       let allDepts = await Department.find({
@@ -547,13 +624,11 @@ export class DynamicFlowEngine {
       }
 
       if (departments.length === 0) {
-        const errorMessage = getTranslation('msg_no_dept_grv', this.session.language);
-        await sendWhatsAppMessage(this.company, this.userPhone, errorMessage);
+        await sendWhatsAppMessage(this.company, this.userPhone, ui('no_dept', lang));
         await this.runNextStepIfDifferent(step.nextStepId, step.stepId);
         return;
       }
 
-      const lang = this.session.language || 'en';
       const offset = this.session.data.deptOffset || 0;
       
       const deptRows = departments.slice(offset, offset + 9).map((dept: any) => {
@@ -565,24 +640,32 @@ export class DynamicFlowEngine {
         } else if (lang === 'mr' && dept.nameMr && dept.nameMr.trim()) {
           displayName = dept.nameMr.trim();
         } else {
-          const translatedName = getTranslation(`dept_${dept.name}`, lang);
-          displayName = translatedName !== `dept_${dept.name}` ? translatedName : dept.name;
+          displayName = dept.name;
         }
-        const desc = (dept.description || '').substring(0, 72);
+        let displayDesc: string;
+        if (lang === 'hi' && dept.descriptionHi && dept.descriptionHi.trim()) {
+          displayDesc = dept.descriptionHi.trim();
+        } else if (lang === 'or' && dept.descriptionOr && dept.descriptionOr.trim()) {
+          displayDesc = dept.descriptionOr.trim();
+        } else if (lang === 'mr' && dept.descriptionMr && dept.descriptionMr.trim()) {
+          displayDesc = dept.descriptionMr.trim();
+        } else {
+          displayDesc = (dept.description || '').substring(0, 72);
+        }
+
         const prefix = (step.stepId && (step.stepId.startsWith('apt') || step.stepId.includes('appointment'))) ? 'apt' : 'grv';
         return {
           id: `${prefix}_dept_${dept._id}`,
           title: displayName.length > 24 ? displayName.substring(0, 21) + '...' : displayName,
-          description: desc,
+          description: displayDesc,
           nextStepId: step.nextStepId
         }; 
       });
 
-      // Add "Load More" if there are more departments
       if (departments.length > offset + 9) {
         deptRows.push({
           id: 'grv_load_more',
-          title: getTranslation('btn_load_more', lang),
+          title: ui('load_more', lang),
           description: 'Show more departments...',
           nextStepId: step.stepId
         });
@@ -590,12 +673,12 @@ export class DynamicFlowEngine {
 
       const listConfig = step.listConfig!;
       const sections = [{
-        title: listConfig.buttonText || getTranslation('btn_select_dept', lang),
+        title: listConfig.buttonText || ui('select_dept', lang),
         rows: deptRows
       }];
 
-      const message = this.replacePlaceholders(step.messageText || getTranslation('selection_department', lang));
-      await sendWhatsAppList(this.company, this.userPhone, message, listConfig.buttonText || getTranslation('btn_select_dept', lang), sections);
+      const message = this.replacePlaceholders(getLocalText(step, lang) || ui('view_dept', lang));
+      await sendWhatsAppList(this.company, this.userPhone, message, listConfig.buttonText || ui('view_dept', lang), sections);
 
       this.session.data.currentStepId = step.stepId;
       this.session.data.listMapping = {};
@@ -605,8 +688,7 @@ export class DynamicFlowEngine {
       await updateSession(this.session);
     } catch (error: any) {
       console.error('❌ Error loading departments for list step:', error);
-      const { getTranslation } = await import('./chatbotEngine');
-      await sendWhatsAppMessage(this.company, this.userPhone, getTranslation('msg_no_dept_grv', this.session.language));
+      await sendWhatsAppMessage(this.company, this.userPhone, ui('no_dept', this.session.language || 'en'));
     }
   }
 
@@ -624,7 +706,8 @@ export class DynamicFlowEngine {
 
     // If no user input yet, send the prompt
     if (!userInput) {
-      const message = this.replacePlaceholders(step.messageText || 'Please provide your input:');
+      const lang = this.session.language || 'en';
+      const message = this.replacePlaceholders(getLocalText(step, lang) || 'Please provide your input:');
       await sendWhatsAppMessage(this.company, this.userPhone, message);
 
       this.session.data.currentStepId = step.stepId;
@@ -661,8 +744,7 @@ export class DynamicFlowEngine {
         await updateSession(this.session);
         if (nextStepId) await this.runNextStepIfDifferent(nextStepId, step.stepId);
       } else {
-        const { getTranslation } = await import('./chatbotEngine');
-        const reminder = (getTranslation('msg_upload_photo', this.session.language || 'en') as string) + '\n\n_Type *back* or *skip* to continue without uploading._';
+        const reminder = ui('upload_photo', this.session.language || 'en') + '\n\n_Type *back* or *skip* to continue without uploading._';
         await sendWhatsAppMessage(this.company, this.userPhone, reminder);
       }
       return;
@@ -755,7 +837,8 @@ export class DynamicFlowEngine {
       return;
     }
 
-    const message = this.replacePlaceholders(step.messageText || 'Please upload media:');
+    const lang = this.session.language || 'en';
+    const message = this.replacePlaceholders(getLocalText(step, lang) || 'Please upload media:');
     await sendWhatsAppMessage(this.company, this.userPhone, message);
 
     // Save media step info to session
@@ -952,6 +1035,66 @@ export class DynamicFlowEngine {
   }
 
   /**
+   * Execute assign department step - Forcibly set department in session
+   */
+  private async executeAssignDepartmentStep(step: IFlowStep): Promise<void> {
+    const config = (step as any).assignDepartmentConfig;
+    if (!config) {
+      console.warn('⚠️ Assign department step has no config; skipping');
+      await this.runNextStepIfDifferent(step.nextStepId, step.stepId);
+      return;
+    }
+
+    let departmentId = config.departmentId;
+    if (config.isDynamic && config.conditionField) {
+      departmentId = this.session.data[config.conditionField];
+    }
+
+    if (departmentId) {
+      try {
+        const Department = (await import('../models/Department')).default;
+        const dept = await Department.findById(departmentId);
+        if (dept) {
+          const lang = this.session.language || 'en';
+          let localizedName = dept.name;
+          if (lang === 'hi' && dept.nameHi) localizedName = dept.nameHi;
+          else if (lang === 'or' && dept.nameOr) localizedName = dept.nameOr;
+          else if (lang === 'mr' && dept.nameMr) localizedName = dept.nameMr;
+
+          this.session.data.departmentId = departmentId;
+          this.session.data.departmentName = localizedName;
+          this.session.data.category = dept.name; // Use original name for category mapping if needed
+          await updateSession(this.session);
+          console.log(`✅ Assigned department: ${localizedName} (${departmentId})`);
+        }
+      } catch (err) {
+        console.error('❌ Error in executeAssignDepartmentStep:', err);
+      }
+    }
+
+    await this.runNextStepIfDifferent(step.nextStepId, step.stepId);
+  }
+
+  /**
+   * Execute end step - Send final message and optionally clear session
+   */
+  private async executeEndStep(step: IFlowStep): Promise<void> {
+    const lang = this.session.language || 'en';
+    const message = this.replacePlaceholders(getLocalText(step, lang));
+    
+    if (message && message.trim()) {
+      await sendWhatsAppMessage(this.company, this.userPhone, message);
+    }
+
+    const clearSessionFlag = (step as any).endConfig?.clearSession || (step as any).clearSession;
+    if (clearSessionFlag) {
+      console.log(`🧹 Clearing session for user ${this.userPhone}`);
+      this.session.data = { currentStepId: 'start' };
+      await updateSession(this.session);
+    }
+  }
+
+  /**
    * Load grievance or appointment by refNumber into session.data for track_result step placeholders (status, assignedTo, remarks, recordType)
    */
   private async loadTrackResultIntoSession(): Promise<void> {
@@ -1010,188 +1153,6 @@ export class DynamicFlowEngine {
       this.session.data.assignedTo = '—';
       this.session.data.remarks = 'Could not fetch status. Please try again.';
       this.session.data.recordType = '—';
-    }
-  }
-
-  /**
-   * Create grievance from session data and set session.data.grievanceId, department, date for success step placeholders
-   */
-  private async createGrievanceAndSetSession(): Promise<void> {
-    try {
-      let departmentId: mongoose.Types.ObjectId | null = null;
-      if (this.session.data.departmentId) {
-        try {
-          departmentId = typeof this.session.data.departmentId === 'string'
-            ? new mongoose.Types.ObjectId(this.session.data.departmentId)
-            : this.session.data.departmentId;
-        } catch {
-          departmentId = await findDepartmentByCategory(this.company._id, this.session.data.category);
-        }
-      }
-      if (!departmentId && this.session.data.category) {
-        departmentId = await findDepartmentByCategory(this.company._id, this.session.data.category);
-      }
-      const grievanceData = {
-        companyId: this.company._id,
-        departmentId: departmentId || undefined,
-        subDepartmentId: (this.session.data.subDepartmentId ? new mongoose.Types.ObjectId(this.session.data.subDepartmentId) : undefined),
-        citizenName: this.session.data.citizenName,
-        citizenPhone: this.userPhone,
-        citizenWhatsApp: this.userPhone,
-        description: this.session.data.description,
-        category: this.session.data.category,
-        media: this.session.data.media || [],
-        status: GrievanceStatus.PENDING,
-        language: this.session.language
-      };
-      const grievance = new Grievance(grievanceData);
-      await grievance.save();
-      this.session.data.grievanceId = grievance.grievanceId;
-      this.session.data.id = grievance.grievanceId; // Set generic id for flow placeholders
-      this.session.data.date = new Date(grievance.createdAt).toLocaleDateString('en-IN');
-      const dept = departmentId ? await Department.findById(departmentId) : null;
-      const subDept = this.session.data.subDepartmentId ? await Department.findById(this.session.data.subDepartmentId) : null;
-      
-      this.session.data.department = subDept ? `${dept?.name} - ${subDept.name}` : (dept ? dept.name : (this.session.data.category || 'General'));
-      
-      await updateSession(this.session);
-      
-      if (departmentId) {
-        // Notify department admin OR sub-department admin
-        const notifyTargetId = this.session.data.subDepartmentId || departmentId;
-        
-        await notifyDepartmentAdminOnCreation({
-          type: 'grievance',
-          action: 'created',
-          grievanceId: grievance.grievanceId,
-          citizenName: this.session.data.citizenName,
-          citizenPhone: this.userPhone,
-          citizenWhatsApp: this.userPhone,
-          departmentId: notifyTargetId as any,
-          companyId: this.company._id,
-          description: this.session.data.description,
-          category: this.session.data.category,
-          createdAt: grievance.createdAt,
-          timeline: grievance.timeline
-        });
-
-        // Auto-assign to admin of selected (sub)department
-        const targetAdmin = await User.findOne({
-          departmentId: notifyTargetId,
-          role: UserRole.DEPARTMENT_ADMIN,
-          isActive: true
-        });
-
-        if (targetAdmin) {
-          grievance.assignedTo = targetAdmin._id;
-          await grievance.save();
-          await notifyUserOnAssignment({
-            type: 'grievance',
-            action: 'assigned',
-            grievanceId: grievance.grievanceId,
-            citizenName: this.session.data.citizenName,
-            citizenPhone: this.userPhone,
-            citizenWhatsApp: this.userPhone,
-            departmentId: notifyTargetId as any,
-            companyId: this.company._id,
-            assignedTo: targetAdmin._id,
-            assignedByName: 'System (Auto-assign)',
-            assignedAt: new Date(),
-            description: this.session.data.description,
-            category: this.session.data.category,
-            createdAt: grievance.createdAt,
-            timeline: grievance.timeline
-          });
-        }
-      }
-    } catch (err: any) {
-      console.error('❌ Error creating grievance in flow:', err);
-    }
-  }
-
-  /**
-   * Create appointment from session data and set session.data.appointmentId, status for success step placeholders
-   */
-  private async createAppointmentAndSetSession(): Promise<void> {
-    try {
-      const appointmentDate = new Date(this.session.data.appointmentDate);
-      const appointmentData = {
-        companyId: this.company._id,
-        departmentId: null, // Appointments are always for Company Admin only
-        subDepartmentId: undefined, // No sub-department for appointments
-        citizenName: this.session.data.citizenName,
-        citizenPhone: this.userPhone,
-        citizenWhatsApp: this.userPhone,
-        purpose: this.session.data.purpose,
-        appointmentDate,
-        appointmentTime: this.session.data.appointmentTime,
-        status: AppointmentStatus.SCHEDULED
-      };
-      const appointment = new Appointment(appointmentData);
-      await appointment.save();
-      this.session.data.appointmentId = appointment.appointmentId;
-      this.session.data.id = appointment.appointmentId; // Set generic id for flow placeholders
-      this.session.data.status = 'Scheduled';
-      await updateSession(this.session);
-      
-      // Notify company admin (no department for appointments)
-      await notifyDepartmentAdminOnCreation({
-        type: 'appointment',
-        action: 'created',
-        appointmentId: appointment.appointmentId,
-        citizenName: this.session.data.citizenName,
-        citizenPhone: this.userPhone,
-        citizenWhatsApp: this.userPhone,
-        departmentId: undefined, // No department — company admin only
-        companyId: this.company._id,
-        purpose: this.session.data.purpose,
-        appointmentDate: appointment.appointmentDate,
-        appointmentTime: appointment.appointmentTime,
-        createdAt: appointment.createdAt,
-        timeline: appointment.timeline
-      });
-    } catch (err: any) {
-      console.error('❌ Error creating appointment in flow:', err);
-    }
-  }
-
-  /**
-   * Create lead from session data and set session.data.leadId for success step placeholders
-   */
-  private async createLeadAndSetSession(): Promise<void> {
-    try {
-      const Lead = (await import('../models/Lead')).default;
-      
-      const leadData = {
-        companyId: this.company._id,
-        name: this.session.data.citizenName || 'WhatsApp User',
-        contactInfo: this.userPhone,
-        // Fallback or use session data if available
-        projectType: this.session.data.projectType || 'General Inquiry',
-        projectDescription: this.session.data.description || 'Lead captured from WhatsApp chatbot interaction.',
-        budgetRange: this.session.data.budget || 'Not specified',
-        timeline: this.session.data.timeline || 'Not specified',
-        source: 'whatsapp',
-        status: 'NEW',
-        metadata: {
-            from: this.userPhone,
-            sessionData: this.session.data
-        }
-      };
-      
-      const lead = new Lead(leadData);
-      await lead.save();
-      
-      console.log(`✅ Lead created successfully: ${lead.leadId}`);
-      
-      this.session.data.leadId = lead.leadId;
-      this.session.data.id = lead.leadId; // Set generic id for flow placeholders
-      await updateSession(this.session);
-      
-      // Notify admin logic can be added here if needed
-      
-    } catch (err: any) {
-      console.error('❌ Error creating lead in flow:', err);
     }
   }
 
@@ -1293,11 +1254,11 @@ export class DynamicFlowEngine {
         const isLeadSuccess = nextStepId === 'lead_success' || (nextStepId && (nextStepId.startsWith('lead_success') || nextStepId.startsWith('lead_success_')));
 
         if (isGrievanceConfirm && isGrievanceSuccess && (buttonId === 'confirm_yes' || String(buttonId).startsWith('confirm_yes'))) {
-          await this.createGrievanceAndSetSession();
+          await ActionService.createGrievance(this.session, this.company, this.userPhone);
         } else if (isAppointmentConfirm && isAppointmentSubmitted && (buttonId === 'appt_confirm_yes' || String(buttonId).startsWith('appt_confirm_yes'))) {
-          await this.createAppointmentAndSetSession();
+          await ActionService.createAppointment(this.session, this.company, this.userPhone);
         } else if (isLeadConfirm && isLeadSuccess && (buttonId === 'lead_confirm_yes' || String(buttonId).startsWith('lead_confirm_yes'))) {
-          await this.createLeadAndSetSession();
+          await ActionService.createLead(this.session, this.company, this.userPhone);
         }
         await this.runNextStepIfDifferent(nextStepId, currentStep.stepId);
         return;

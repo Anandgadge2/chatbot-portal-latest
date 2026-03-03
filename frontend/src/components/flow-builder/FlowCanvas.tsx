@@ -546,7 +546,16 @@ export default function FlowCanvas({
             </ReactFlow>
           </div>
         </div>
-
+        
+        {/* Right Sidebar - Node Configuration */}
+        {selectedNode && (
+          <NodeConfigPanel
+            node={selectedNode}
+            onUpdate={(data) => updateNodeData(selectedNode.id, data)}
+            onDelete={() => deleteNode(selectedNode.id)}
+            onClose={() => setSelectedNode(null)}
+          />
+        )}
       </div>
     </DndContext>
   );

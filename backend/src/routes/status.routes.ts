@@ -9,7 +9,6 @@ import Company from '../models/Company';
 import { logUserAction } from '../utils/auditLogger';
 import { AuditAction } from '../config/constants';
 import { sendWhatsAppMessage } from '../services/whatsappService';
-import { getTranslation } from '../services/chatbotEngine';
 
 const router = express.Router();
 

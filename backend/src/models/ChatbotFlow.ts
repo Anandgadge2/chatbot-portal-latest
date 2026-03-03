@@ -9,17 +9,22 @@ import mongoose, { Schema, Document, Model } from 'mongoose';
 
 export interface IFlowStep {
   stepId: string;
-  stepType: 'start' | 'message' | 'buttons' | 'list' | 'input' | 'media' | 'condition' | 'api_call' | 'delay' | 'assign_department' | 'dynamic_response';
+  stepType: 'start' | 'message' | 'buttons' | 'list' | 'input' | 'media' | 'condition' | 'api_call' | 'delay' | 'assign_department' | 'dynamic_response' | 'end';
   stepName: string;
   
   // Message configuration
-  messageText?: string; // Can contain placeholders like {name}, {date}, etc.
-  // Removed: messageTemplate - redundant, messageText can handle templates
+  messageText?: string; // Default/English text; also used as fallback
+  /**
+   * Per-language message text. Takes priority over messageText.
+   * Example: { en: 'Hello', hi: 'नमस्ते', or: 'ନମସ୍କାର' }
+   */
+  messageTextTranslations?: Record<string, string>;
   
   // Button configuration
   buttons?: Array<{
     id: string;
-    title: string;
+    title: string; // Default/English title
+    titleTranslations?: Record<string, string>; // { en: '...', hi: '...', or: '...' }
     description?: string;
     nextStepId?: string; // Which step to go to when clicked
     action?: 'next' | 'end' | 'restart' | 'goto';
@@ -34,7 +39,9 @@ export interface IFlowStep {
       rows: Array<{
         id: string;
         title: string;
+        titleTranslations?: Record<string, string>; // Per-language row title
         description?: string;
+        descriptionTranslations?: Record<string, string>; // Per-language row description
         nextStepId?: string;
       }>;
     }>;
@@ -161,15 +168,16 @@ const FlowStepSchema = new Schema({
   stepId: { type: String, required: true },
   stepType: { 
     type: String, 
-    enum: ['start', 'message', 'buttons', 'list', 'input', 'media', 'condition', 'api_call', 'delay', 'assign_department', 'dynamic_response'],
+    enum: ['start', 'message', 'buttons', 'list', 'input', 'media', 'condition', 'api_call', 'delay', 'assign_department', 'dynamic_response', 'end'],
     required: true 
   },
   stepName: { type: String, required: true },
-  messageText: String, // Can contain placeholders like {name}, {date}, etc.
-  // Removed: messageTemplate - redundant, messageText can handle templates
+  messageText: String,
+  messageTextTranslations: { type: Schema.Types.Mixed, default: {} }, // { en: '...', hi: '...', or: '...' }
   buttons: [{
     id: String,
     title: String,
+    titleTranslations: { type: Schema.Types.Mixed, default: {} }, // { en: '...', hi: '...' }
     description: String,
     nextStepId: String,
     action: { type: String, enum: ['next', 'end', 'restart', 'goto'] }
@@ -184,7 +192,9 @@ const FlowStepSchema = new Schema({
       rows: [{
         id: String,
         title: String,
+        titleTranslations: { type: Schema.Types.Mixed, default: {} },
         description: String,
+        descriptionTranslations: { type: Schema.Types.Mixed, default: {} },
         nextStepId: String
       }]
     }]

@@ -137,7 +137,7 @@ const GrievanceSchema: Schema = new Schema(
       },
       type: {
         type: String,
-        enum: ['image', 'document'],
+        enum: ['image', 'document', 'video'], // Added 'video' support
         required: true
       },
       uploadedAt: {

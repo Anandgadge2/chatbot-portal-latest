@@ -135,7 +135,7 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
       });
     }
     
-    const { firstName, lastName, email, password, phone, role, departmentId } = req.body;
+    const { firstName, lastName, email, password, phone, role, departmentId, customRoleId } = req.body;
     let companyId = req.body.companyId;
 
     // Validation
@@ -327,6 +327,7 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
         password,
         phone: normalizedPhone,
         role,
+        customRoleId: customRoleId || undefined,
         companyId: finalCompanyId || undefined,
         departmentId: departmentId || undefined,
         isActive: true,
@@ -521,6 +522,9 @@ router.put('/:id', requirePermission(Permission.UPDATE_USER), async (req: Reques
     }
     if (req.body.departmentId === '') {
       req.body.departmentId = undefined;
+    }
+    if (req.body.customRoleId === '') {
+      req.body.customRoleId = undefined;
     }
 
     // Check access based on company/department

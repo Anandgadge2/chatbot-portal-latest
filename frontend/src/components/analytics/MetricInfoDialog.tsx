@@ -37,8 +37,8 @@ export default function MetricInfoDialog({ isOpen, onClose, metric }: MetricInfo
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] p-0 overflow-hidden flex flex-col border-0 shadow-2xl rounded-2xl">
+        <DialogHeader className="p-6 border-b border-slate-100 flex-shrink-0">
           <div className="flex items-center space-x-3">
             {getIcon()}
             <DialogTitle className="text-2xl">{metric.title}</DialogTitle>
@@ -48,7 +48,7 @@ export default function MetricInfoDialog({ isOpen, onClose, metric }: MetricInfo
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 mt-4">
+        <div className="p-6 space-y-6 overflow-y-auto flex-1 custom-scrollbar">
           {/* Current Value */}
           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-100">
             <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wider mb-2">

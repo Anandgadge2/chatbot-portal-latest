@@ -3,7 +3,7 @@ import Lead from '../models/Lead';
 import { authenticate } from '../middleware/auth';
 import { requireDatabaseConnection } from '../middleware/dbConnection';
 import Company from '../models/Company';
-import { LeadStatus, Module } from '../config/constants';
+import { LeadStatus, Module, UserRole } from '../config/constants';
 
 const router = express.Router();
 
@@ -77,6 +77,12 @@ router.get('/', async (req: Request, res: Response) => {
   try {
     const { companyId } = req.query;
     if (!companyId) return res.status(400).json({ success: false, message: 'companyId is required' });
+
+    // ✅ Multi-Tenant Scoping Check
+    const currentUser = req.user!;
+    if (currentUser.role !== UserRole.SUPER_ADMIN && companyId !== currentUser.companyId?.toString()) {
+      return res.status(403).json({ success: false, message: 'Access denied - you can only view leads for your own company' });
+    }
 
     // Validate that the company has the LEAD_CAPTURE module enabled
     const company = await Company.findById(companyId);

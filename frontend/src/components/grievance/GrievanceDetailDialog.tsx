@@ -121,8 +121,8 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({ isOpen, g
     : null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm overflow-y-auto p-4">
-      <div className="w-full max-w-3xl max-h-[85vh] overflow-hidden rounded-2xl shadow-2xl bg-white animate-in fade-in zoom-in duration-200 flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="w-full max-w-3xl max-h-[90vh] overflow-hidden rounded-2xl shadow-2xl bg-white animate-in fade-in zoom-in duration-200 flex flex-col">
         {/* Dark Slate Header — consistent with superadmin theme */}
         <div className="bg-slate-900 p-5 flex items-start justify-between gap-4 flex-shrink-0">
           <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -166,7 +166,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({ isOpen, g
 
 
         {/* Scrollable Content */}
-        <div className="overflow-y-auto flex-1 p-5 space-y-5">
+        <div className="overflow-y-auto flex-1 p-5 space-y-5 custom-scrollbar">
           {/* Quick Info Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-3 border border-blue-100">

@@ -247,13 +247,31 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_APPOINTMENT
     }
 
     const appointment = await Appointment.findById(req.params.id);
-
     if (!appointment) {
-      res.status(404).json({
-        success: false,
-        message: 'Appointment not found'
-      });
+      res.status(404).json({ success: false, message: 'Appointment not found' });
       return;
+    }
+
+    // ✅ Multi-Tenant Scoping Check
+    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+      if (appointment.companyId.toString() !== currentUser.companyId?.toString()) {
+        res.status(403).json({ success: false, message: 'Access denied - cross-company access prohibited' });
+        return;
+      }
+
+      if (currentUser.role === UserRole.DEPARTMENT_ADMIN) {
+        if (appointment.departmentId?.toString() !== currentUser.departmentId?.toString()) {
+          res.status(403).json({ success: false, message: 'Access denied - appointment not in your department' });
+          return;
+        }
+      }
+
+      if (currentUser.role === UserRole.OPERATOR) {
+        if (appointment.assignedTo?.toString() !== currentUser._id.toString()) {
+          res.status(403).json({ success: false, message: 'Access denied - not assigned to you' });
+          return;
+        }
+      }
     }
 
     const oldStatus = appointment.status;
@@ -370,20 +388,16 @@ router.put('/:id', requirePermission(Permission.UPDATE_APPOINTMENT), async (req:
       });
     }
 
-    // Permission checks for department/company scope
-    if (currentUser.role === UserRole.DEPARTMENT_ADMIN) {
-      if (appointment.departmentId?.toString() !== currentUser.departmentId?.toString()) {
-        return res.status(403).json({
-          success: false,
-          message: 'You can only update appointments in your department'
-        });
-      }
-    } else if (currentUser.role === UserRole.COMPANY_ADMIN) {
+    // ✅ Multi-Tenant Scoping Check
+    if (currentUser.role !== UserRole.SUPER_ADMIN) {
       if (appointment.companyId.toString() !== currentUser.companyId?.toString()) {
-        return res.status(403).json({
-          success: false,
-          message: 'You can only update appointments in your company'
-        });
+        return res.status(403).json({ success: false, message: 'Access denied - cross-company access prohibited' });
+      }
+
+      if (currentUser.role === UserRole.DEPARTMENT_ADMIN) {
+        if (appointment.departmentId?.toString() !== currentUser.departmentId?.toString()) {
+          return res.status(403).json({ success: false, message: 'Access denied - appointment not in your department' });
+        }
       }
     }
 

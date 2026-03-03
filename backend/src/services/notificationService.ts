@@ -816,7 +816,6 @@ export async function notifyCitizenOnAppointmentStatusChange(data: {
     }
 
     const { AppointmentStatus } = await import('../config/constants');
-    const { getTranslation } = await import('./chatbotEngine');
     
     // Format date and time
     const appointmentDate = new Date(data.appointmentDate);

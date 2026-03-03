@@ -19,7 +19,7 @@ import StatusUpdateModal from '@/components/grievance/StatusUpdateModal';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import toast from 'react-hot-toast';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Building, Users, FileText, Calendar, ArrowLeft, BarChart2, Search, Filter, ArrowUpDown, Download, RefreshCw, CheckCircle, Clock, TrendingUp, Trash2, MessageSquare, Mail, Settings, Workflow, UserPlus, Upload, FileSpreadsheet, Plus, Table, AlertCircle, Info, ChevronRight } from 'lucide-react';
+import { Building, Users, FileText, Calendar, ArrowLeft, BarChart2, Search, Filter, ArrowUpDown, Download, RefreshCw, CheckCircle, Clock, TrendingUp, Trash2, MessageSquare, Mail, Settings, Workflow, UserPlus, Upload, FileSpreadsheet, Plus, Table, AlertCircle, Info, ChevronRight, Menu, X } from 'lucide-react';
 import { Module } from '@/lib/permissions';
 import * as XLSX from 'xlsx';
 
@@ -572,6 +572,8 @@ export default function CompanyDrillDown() {
     URL.revokeObjectURL(url);
   };
 
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   if (loading) return <div className="flex min-h-screen items-center justify-center bg-slate-50"><LoadingSpinner text="Loading..." /></div>;
   if (!company) return <div className="flex min-h-screen items-center justify-center text-center"><h2 className="text-2xl font-bold mb-4">Company not found</h2><Button onClick={() => router.push('/superadmin/dashboard')}>Back</Button></div>;
 
@@ -592,28 +594,28 @@ export default function CompanyDrillDown() {
       <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 shadow-xl transition-all h-20">
         <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
         <div className="max-w-[1600px] mx-auto px-4 lg:px-8 h-full flex items-center justify-between relative">
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3 lg:gap-6">
             <Button 
                variant="ghost" 
                onClick={() => router.push('/superadmin/dashboard')} 
-               className="bg-white bg-opacity-10 hover:bg-opacity-20 text-white h-11 px-4 rounded-xl border border-white border-opacity-10 transition-all group"
+               className="hidden md:flex bg-white bg-opacity-10 hover:bg-opacity-20 text-white h-11 px-4 rounded-xl border border-white border-opacity-10 transition-all group"
             >
               <ArrowLeft className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" />
               <span className="text-xs font-bold uppercase tracking-tight">Dashboard</span>
             </Button>
-            <div className="w-11 h-11 bg-white bg-opacity-10 rounded-xl flex items-center justify-center backdrop-blur-sm border border-white border-opacity-10 shadow-lg">
-              <Building className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 lg:w-11 lg:h-11 bg-white bg-opacity-10 rounded-xl flex items-center justify-center backdrop-blur-sm border border-white border-opacity-10 shadow-lg">
+              <Building className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
             </div>
-            <div>
-              <h1 className="text-xl font-black text-white tracking-tight uppercase leading-none">{company.name}</h1>
-              <div className="flex items-center gap-2 mt-2">
-                <span className="bg-indigo-500 bg-opacity-20 text-indigo-300 px-2 py-0.5 rounded text-[9px] border border-indigo-500 border-opacity-20 font-black uppercase tracking-widest">{company.companyId}</span>
-                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest opacity-60">• Super Admin Portal</span>
+            <div className="max-w-[150px] sm:max-w-none">
+              <h1 className="text-sm lg:text-xl font-black text-white tracking-tight uppercase leading-none truncate">{company.name}</h1>
+              <div className="flex items-center gap-2 mt-1 lg:mt-2">
+                <span className="bg-indigo-500 bg-opacity-20 text-indigo-300 px-1.5 py-0.5 rounded text-[8px] lg:text-[9px] border border-indigo-500 border-opacity-20 font-black uppercase tracking-widest">{company.companyId}</span>
+                <span className="hidden sm:inline text-[9px] lg:text-[10px] text-slate-400 font-bold uppercase tracking-widest opacity-60">• Super Admin Portal</span>
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="flex bg-white/5 p-1 rounded-2xl border border-white/10 backdrop-blur-sm">
+          <div className="flex items-center gap-2 lg:gap-4">
+            <div className="hidden md:flex bg-white/5 p-1 rounded-2xl border border-white/10 backdrop-blur-sm">
                 <Button variant="ghost" className="h-9 px-4 hover:bg-white/10 text-white rounded-xl text-[10px] font-black uppercase tracking-wider" onClick={() => router.push(`/superadmin/company/${companyId}/whatsapp-config`)}>
                   <MessageSquare className="w-3.5 h-3.5 mr-2 text-indigo-400" />
                   WhatsApp
@@ -627,16 +629,73 @@ export default function CompanyDrillDown() {
                   Flows
                 </Button>
             </div>
-            <div className="h-11 w-px bg-slate-700/50 mx-2"></div>
-            <Button variant="ghost" onClick={fetchData} className="h-11 w-11 p-0 text-slate-400 hover:text-white rounded-xl hover:bg-white/10 border border-transparent hover:border-white/10">
+            <div className="hidden md:block h-11 w-px bg-slate-700/50 mx-2"></div>
+            <Button variant="ghost" onClick={fetchData} className="hidden sm:flex h-11 w-11 p-0 text-slate-400 hover:text-white rounded-xl hover:bg-white/10 border border-transparent hover:border-white/10 items-center justify-center">
               <RefreshCw className="w-5 h-5" />
             </Button>
+            <button 
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden p-2 text-white bg-white/10 rounded-lg"
+            >
+              {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
           </div>
         </div>
+
+        {/* Mobile Menu Overlay for Company Portal */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden absolute top-20 left-0 w-full bg-slate-900 border-b border-slate-800 z-50 animate-in slide-in-from-top-4 duration-300 shadow-2xl">
+            <div className="p-4 space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <Button 
+                  variant="ghost" 
+                  className="w-full h-12 bg-white/5 hover:bg-white/10 text-white rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center" 
+                  onClick={() => router.push(`/superadmin/company/${companyId}/whatsapp-config`)}
+                >
+                  <MessageSquare className="w-4 h-4 mr-2 text-indigo-400" />
+                  WhatsApp
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  className="w-full h-12 bg-white/5 hover:bg-white/10 text-white rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center" 
+                  onClick={() => router.push(`/superadmin/company/${companyId}/email-config`)}
+                >
+                  <Mail className="w-4 h-4 mr-2 text-blue-400" />
+                  Email
+                </Button>
+              </div>
+              <Button 
+                variant="ghost" 
+                className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[11px] font-black uppercase tracking-wider flex items-center justify-center shadow-lg shadow-indigo-600/20" 
+                onClick={() => router.push(`/superadmin/company/${companyId}/chatbot-flows`)}
+              >
+                <Workflow className="w-4 h-4 mr-2" />
+                Flow Management
+              </Button>
+              <div className="pt-3 border-t border-slate-800 flex items-center gap-2">
+                <Button 
+                  variant="ghost" 
+                  onClick={() => router.push('/superadmin/dashboard')} 
+                  className="flex-1 bg-white/5 hover:bg-white/10 text-white h-12 rounded-xl border border-white/10 text-[10px] font-black uppercase tracking-widest"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Dashboard
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  onClick={() => { fetchData(); setIsMobileMenuOpen(false); }} 
+                  className="w-12 h-12 bg-white/5 text-slate-400 rounded-xl flex items-center justify-center"
+                >
+                  <RefreshCw className="w-5 h-5" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </header>
-      <main className="max-w-[1600px] mx-auto w-full px-4 py-8">
+      <main className="max-w-[1600px] mx-auto w-full px-4 py-8 overflow-hidden">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="bg-slate-100 p-1.5 rounded-2xl h-auto gap-1.5 border border-slate-200/60 shadow-inner">
+          <TabsList className="bg-slate-100 p-1 lg:p-1.5 rounded-2xl h-auto gap-1 lg:gap-1.5 border border-slate-200/60 shadow-inner w-full flex overflow-x-auto no-scrollbar justify-start sm:justify-center">
             <TabsTrigger value="overview" className="px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-700 transition-all">Overview</TabsTrigger>
             <TabsTrigger value="departments" className="px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-700 transition-all">Departments</TabsTrigger>
             <TabsTrigger value="users" className="px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-700 transition-all">Users</TabsTrigger>

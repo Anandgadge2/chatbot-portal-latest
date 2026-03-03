@@ -16,6 +16,7 @@ export interface IUser extends Document {
   rawPassword?: string; // For administrator visibility
   lastLogin?: Date;
   createdBy?: mongoose.Types.ObjectId; // Track who created this user for hierarchical rights
+  customRoleId?: mongoose.Types.ObjectId; // Optional: points to a company-defined Role for custom permissions
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -90,6 +91,12 @@ const UserSchema: Schema = new Schema(
       type: Schema.Types.ObjectId,
       ref: 'User',
       index: true
+    },
+    customRoleId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Role',
+      index: true,
+      default: null
     }
   },
   {

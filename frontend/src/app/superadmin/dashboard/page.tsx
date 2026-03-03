@@ -16,10 +16,11 @@ import CreateDepartmentDialog from '@/components/department/CreateDepartmentDial
 import CreateUserDialog from '@/components/user/CreateUserDialog';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
-import { Building, Users, Shield, Settings, FileText, BarChart2, RefreshCw, Search, Download, Trash2, Edit2, Plus, History, Terminal, ChevronRight, User as UserIcon } from 'lucide-react';
+import { Building, Users, Shield, Settings, FileText, BarChart2, RefreshCw, Search, Download, Trash2, Edit2, Plus, History, Terminal, ChevronRight, Menu, X, User as UserIcon } from 'lucide-react';
 import { Pagination } from '@/components/ui/Pagination';
 import RecentActivityPanel from '@/components/dashboard/RecentActivityPanel';
 import TerminalLogs from '@/components/dashboard/TerminalLogs';
+import RoleManagement from '@/components/roles/RoleManagement';
 
 const CHART_COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
@@ -79,6 +80,8 @@ export default function SuperAdminDashboard() {
   const [userPage, setUserPage] = useState(1);
   const [userPagination, setUserPagination] = useState({ total: 0, pages: 1, limit: 10 });
   const [visiblePasswords, setVisiblePasswords] = useState<string[]>([]);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [selectedRoleCompanyId, setSelectedRoleCompanyId] = useState<string>('');
 
   const togglePasswordVisibility = (userId: string) => {
     setVisiblePasswords(prev => 
@@ -422,15 +425,11 @@ export default function SuperAdminDashboard() {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-8">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-md border border-white/20 shadow-inner">
-                  <Shield className="w-5 h-5 text-indigo-400" />
+                <div className="w-9 h-9 xl:w-10 xl:h-10 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-md border border-white/20 shadow-inner">
+                  <Shield className="w-4.5 h-4.5 xl:w-5 xl:h-5 text-indigo-400" />
                 </div>
                 <div>
-                  <h1 className="text-lg font-bold text-white tracking-tight leading-none uppercase">Nexus Prime</h1>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1.5 flex items-center gap-2">
-                     <span className="h-1 w-1 bg-indigo-500 rounded-full animate-pulse"></span>
-                     Omni-Channel Control
-                  </p>
+                  <h1 className="text-base xl:text-lg font-bold text-white uppercase">Master Admin</h1>
                 </div>
               </div>
 
@@ -439,10 +438,11 @@ export default function SuperAdminDashboard() {
               <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full hidden md:block">
                 <TabsList className="bg-transparent border-0 h-16 gap-1 p-0">
                   {[
-                    { val: 'overview', label: 'Matrix', icon: BarChart2 },
-                    { val: 'companies', label: 'Entities', icon: Building },
-                    { val: 'departments', label: 'Nodes', icon: Settings },
-                    { val: 'users', label: 'Personnel', icon: Users },
+                    { val: 'overview', label: 'Overview', icon: BarChart2 },
+                    { val: 'companies', label: 'Companies', icon: Building },
+                    { val: 'departments', label: 'Departments', icon: Settings },
+                    { val: 'users', label: 'Users', icon: Users },
+                    { val: 'roles', label: 'Roles', icon: Shield },
                     { val: 'terminal', label: 'System Logs', icon: Terminal },
                   ].map((t) => (
                     <TabsTrigger
@@ -461,19 +461,65 @@ export default function SuperAdminDashboard() {
             <div className="flex items-center gap-5">
               <div className="hidden lg:flex flex-col items-end border-r border-slate-800 pr-5">
                 <span className="text-[11px] font-black text-white uppercase tracking-wider">{user.firstName} {user.lastName}</span>
-                <span className="text-[9px] text-indigo-400 font-black uppercase tracking-[0.2em] mt-0.5">Primary Superadmin</span>
               </div>
               <Button
                 onClick={logout}
                 variant="ghost"
                 size="sm"
-                className="h-10 px-6 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-all border border-white/10 font-bold text-[11px] uppercase tracking-wider"
+                className="hidden md:flex h-10 px-6 bg-white/5 hover:bg-red-500 text-white rounded-xl transition-all border border-white/10 font-bold text-[11px] uppercase tracking-wider"
               >
-                Terminate Session
+                LOGOUT
               </Button>
+              <button 
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="md:hidden p-2 text-white bg-white/10 rounded-lg"
+              >
+                {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
             </div>
           </div>
         </div>
+
+        {/* Mobile Menu Overlay */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden absolute top-16 left-0 w-full bg-slate-900 border-b border-slate-800 z-50 animate-in slide-in-from-top-4 duration-300">
+            <div className="p-4 space-y-2">
+              {[
+                { val: 'overview', label: 'Overview', icon: BarChart2 },
+                { val: 'companies', label: 'Companies', icon: Building },
+                { val: 'departments', label: 'Departments', icon: Settings },
+                { val: 'users', label: 'Users', icon: Users },
+                { val: 'roles', label: 'Roles', icon: Shield },
+                { val: 'terminal', label: 'System Logs', icon: Terminal },
+              ].map((t) => (
+                <button
+                  key={t.val}
+                  onClick={() => {
+                    setActiveTab(t.val);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold uppercase tracking-wider transition-all ${
+                    activeTab === t.val 
+                      ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' 
+                      : 'text-slate-400 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <t.icon className="w-4 h-4" />
+                  {t.label}
+                </button>
+              ))}
+              <div className="pt-4 border-t border-slate-800">
+                <Button
+                  onClick={logout}
+                  variant="destructive"
+                  className="w-full rounded-xl font-bold uppercase tracking-widest text-xs"
+                >
+                  Logout Session
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
       <main className="max-w-[1600px] mx-auto px-4 lg:px-6 py-4">
@@ -484,10 +530,7 @@ export default function SuperAdminDashboard() {
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-black text-slate-900 tracking-tighter">System Intelligence</h2>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">Real-time Metrics • Active Nodes</p>
-                </div>
+               
               </div>
               <div className="flex items-center gap-2">
                  <div className="bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-sm flex items-center gap-3">
@@ -1274,6 +1317,47 @@ export default function SuperAdminDashboard() {
               </CardContent>
             </Card>
           </TabsContent>
+          <TabsContent value="roles" className="space-y-4 outline-none">
+            <Card className="border-0 shadow-xl rounded-2xl overflow-hidden bg-white">
+              <CardHeader className="bg-slate-50 border-b border-slate-100 p-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <CardTitle className="text-xl font-black text-slate-800 tracking-tight uppercase">Role Governance</CardTitle>
+                    <CardDescription className="text-slate-500 font-medium">Manage access control across the network</CardDescription>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Select<br/>Entity</span>
+                    <select
+                      className="bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700 shadow-sm min-w-[200px]"
+                      value={selectedRoleCompanyId}
+                      onChange={(e) => setSelectedRoleCompanyId(e.target.value)}
+                    >
+                      <option value="">Select Company...</option>
+                      {allCompanies.map(c => (
+                        <option key={c._id} value={c._id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-6">
+                {selectedRoleCompanyId ? (
+                  <RoleManagement companyId={selectedRoleCompanyId} />
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
+                    <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center">
+                      <Shield className="w-8 h-8 text-slate-300" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-black text-slate-400 uppercase tracking-tight">No Entity Selected</h3>
+                      <p className="text-slate-400 text-sm max-w-[280px] font-medium">Please select a company from the dropdown above to manage its roles and permissions.</p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="terminal" className="space-y-4 outline-none">
             <TerminalLogs />
           </TabsContent>

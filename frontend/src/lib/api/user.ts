@@ -13,6 +13,7 @@ export interface User {
   companyId?: string | { _id: string; name: string; companyId: string };
   departmentId?: string | { _id: string; name: string; departmentId: string };
   isActive: boolean;
+  customRoleId?: string | { _id: string; name: string };
   rawPassword?: string;
   isEmailVerified: boolean;
   createdAt: string;
@@ -26,6 +27,7 @@ export interface CreateUserData {
   password: string;
   phone?: string;
   role: string;
+  customRoleId?: string;
   companyId?: string;
   departmentId?: string;
 }

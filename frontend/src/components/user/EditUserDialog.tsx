@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { userAPI, User } from '@/lib/api/user';
 import { departmentAPI, Department } from '@/lib/api/department';
+import { roleAPI, Role } from '@/lib/api/role';
 import { useAuth } from '@/contexts/AuthContext';
 import toast from 'react-hot-toast';
 import { User as UserIcon } from 'lucide-react';
@@ -36,8 +37,10 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({ isOpen, onClose, onUser
     email: '',
     phone: '',
     role: 'OPERATOR',
+    customRoleId: '',
     departmentId: ''
   });
+  const [customRoles, setCustomRoles] = useState<Role[]>([]);
 
   // Define fetchDepartments BEFORE useEffect that uses it
   const fetchDepartments = useCallback(async () => {
@@ -55,6 +58,18 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({ isOpen, onClose, onUser
     }
   }, [currentUser]);
 
+  const fetchCustomRoles = useCallback(async (companyId: string) => {
+    if (!companyId) return;
+    try {
+      const response = await roleAPI.getRoles(companyId);
+      if (response.success) {
+        setCustomRoles(response.data.roles || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch custom roles:', error);
+    }
+  }, []);
+
   useEffect(() => {
     if (isOpen && user) {
       // Populate form with user data
@@ -64,14 +79,23 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({ isOpen, onClose, onUser
         email: user.email || '',
         phone: user.phone || '',
         role: user.role || 'OPERATOR',
+        customRoleId: typeof user.customRoleId === 'object' ? user.customRoleId?._id : (user.customRoleId || ''),
         departmentId: user.departmentId 
           ? (typeof user.departmentId === 'object' ? user.departmentId._id : user.departmentId)
           : ''
       });
       
+      const companyId = currentUser?.companyId 
+        ? (typeof currentUser.companyId === 'object' ? currentUser.companyId._id : currentUser.companyId)
+        : '';
+      
+      if (companyId) {
+        fetchCustomRoles(companyId);
+      }
+      
       fetchDepartments();
     }
-  }, [isOpen, user, fetchDepartments]);
+  }, [isOpen, user, currentUser, fetchCustomRoles, fetchDepartments]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,9 +129,9 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({ isOpen, onClose, onUser
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[650px] max-h-[90vh] overflow-hidden rounded-2xl shadow-2xl bg-white p-0 border-0">
+      <DialogContent className="sm:max-w-[650px] max-h-[90vh] overflow-hidden rounded-2xl shadow-2xl bg-white p-0 border-0 flex flex-col">
         {/* Gradient Header */}
-        <div className="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 p-6 relative overflow-hidden">
+        <div className="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 p-6 relative overflow-hidden flex-shrink-0">
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA4KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-30"></div>
           <DialogHeader className="relative">
             <DialogTitle className="text-2xl font-bold text-white flex items-center gap-3">
@@ -123,7 +147,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({ isOpen, onClose, onUser
         </div>
         
         <form onSubmit={handleSubmit}>
-          <div className="overflow-y-auto max-h-[calc(90vh-200px)] p-6 space-y-5">
+          <div className="overflow-y-auto flex-1 p-6 space-y-5 custom-scrollbar">
             <div className="grid grid-cols-2 gap-5">
               <div className="space-y-2">
                 <Label htmlFor="firstName" className="text-sm font-semibold text-slate-700">First Name *</Label>
@@ -207,10 +231,28 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({ isOpen, onClose, onUser
                   ))}
                 </select>
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="customRoleId" className="text-sm font-semibold text-slate-700">Custom Role (Optional)</Label>
+                <select
+                  id="customRoleId"
+                  name="customRoleId"
+                  value={formData.customRoleId}
+                  onChange={(e) => setFormData({ ...formData, customRoleId: e.target.value })}
+                  className="flex h-11 w-full rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="">No Custom Role</option>
+                  {customRoles.map((role) => (
+                    <option key={role._id} value={role._id}>
+                      {role.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
-          <DialogFooter className="px-6 py-4 bg-gradient-to-r from-slate-50 to-white border-t border-slate-200">
+          <DialogFooter className="px-6 py-4 bg-gradient-to-r from-slate-50 to-white border-t border-slate-200 flex-shrink-0">
             <Button 
               type="button" 
               variant="outline" 

@@ -11,6 +11,36 @@ import { Permission, UserRole, GrievanceStatus, AppointmentStatus } from '../con
 
 const router = express.Router();
 
+/**
+ * Standardizes the base query for analytics based on user role and filters.
+ * Ensures strict multi-tenant isolation and hierarchical department access.
+ */
+const getAnalyticsBaseQuery = (currentUser: any, companyId?: any, departmentId?: any) => {
+  const query: any = {};
+
+  if (currentUser.role === UserRole.SUPER_ADMIN) {
+    if (companyId) query.companyId = new mongoose.Types.ObjectId(companyId.toString());
+    if (departmentId) query.departmentId = new mongoose.Types.ObjectId(departmentId.toString());
+  } else {
+    // All other roles are strictly scoped to their company
+    query.companyId = currentUser.companyId;
+
+    if (currentUser.role === UserRole.DEPARTMENT_ADMIN || currentUser.role === UserRole.ANALYTICS_VIEWER) {
+      // 🏢 HIERARCHICAL: Can see data in their department OR sub-department
+      query.$or = [
+        { departmentId: currentUser.departmentId },
+        { subDepartmentId: currentUser.departmentId }
+      ];
+    } else if (currentUser.role === UserRole.OPERATOR) {
+      query.assignedTo = currentUser._id;
+    } else if (currentUser.role === UserRole.COMPANY_ADMIN) {
+      // Company admins can further filter by department within their company
+      if (departmentId) query.departmentId = new mongoose.Types.ObjectId(departmentId.toString());
+    }
+  }
+  return query;
+};
+
 // All routes require database connection and authentication
 router.use(requireDatabaseConnection);
 router.use(authenticate);
@@ -23,29 +53,7 @@ router.get('/dashboard', requirePermission(Permission.VIEW_ANALYTICS), async (re
     const currentUser = req.user!;
     const { companyId, departmentId } = req.query;
 
-    // Build base query based on user role
-    const baseQuery: any = {};
-
-    if (currentUser.role === UserRole.SUPER_ADMIN) {
-      if (companyId) baseQuery.companyId = companyId;
-      if (departmentId) baseQuery.departmentId = departmentId;
-    } else if (currentUser.role === UserRole.COMPANY_ADMIN) {
-      // Company admin sees ALL data within their company only
-      baseQuery.companyId = currentUser.companyId;
-      if (departmentId) baseQuery.departmentId = departmentId;
-    } else if (currentUser.role === UserRole.DEPARTMENT_ADMIN || currentUser.role === UserRole.ANALYTICS_VIEWER) {
-      // 🏢 HIERARCHICAL: Department Admins see grievances where their dept is parent OR sub-dept
-      // Company scoping is MANDATORY to prevent cross-company data leakage
-      baseQuery.companyId = currentUser.companyId;
-      baseQuery.$or = [
-        { departmentId: currentUser.departmentId },
-        { subDepartmentId: currentUser.departmentId }
-      ];
-    } else if (currentUser.role === UserRole.OPERATOR) {
-      // Operators only see their own assigned items
-      baseQuery.companyId = currentUser.companyId;
-      baseQuery.assignedTo = currentUser._id;
-    }
+    const baseQuery = getAnalyticsBaseQuery(currentUser, companyId, departmentId);
 
 
     // Get grievance statistics (exclude deleted)
@@ -305,19 +313,7 @@ router.get('/grievances/by-department', requirePermission(Permission.VIEW_ANALYT
     const currentUser = req.user!;
     const { companyId } = req.query;
 
-    const matchQuery: any = {};
-
-    if (currentUser.role === UserRole.SUPER_ADMIN) {
-      if (companyId) matchQuery.companyId = new mongoose.Types.ObjectId(companyId as string);
-    } else if (currentUser.role === UserRole.COMPANY_ADMIN) {
-      matchQuery.companyId = currentUser.companyId;
-    } else {
-      res.status(403).json({
-        success: false,
-        message: 'Access denied'
-      });
-      return;
-    }
+    const matchQuery = getAnalyticsBaseQuery(currentUser, companyId);
 
     const distribution = await Grievance.aggregate([
       { $match: matchQuery },
@@ -375,17 +371,7 @@ router.get('/grievances/by-status', requirePermission(Permission.VIEW_ANALYTICS)
     const currentUser = req.user!;
     const { companyId, departmentId } = req.query;
 
-    const matchQuery: any = {};
-
-    if (currentUser.role === UserRole.SUPER_ADMIN) {
-      if (companyId) matchQuery.companyId = new mongoose.Types.ObjectId(companyId as string);
-      if (departmentId) matchQuery.departmentId = new mongoose.Types.ObjectId(departmentId as string);
-    } else if (currentUser.role === UserRole.COMPANY_ADMIN) {
-      matchQuery.companyId = currentUser.companyId;
-      if (departmentId) matchQuery.departmentId = new mongoose.Types.ObjectId(departmentId as string);
-    } else if (currentUser.role === UserRole.DEPARTMENT_ADMIN) {
-      matchQuery.departmentId = currentUser.departmentId;
-    }
+    const matchQuery = getAnalyticsBaseQuery(currentUser, companyId, departmentId);
 
     const distribution = await Grievance.aggregate([
       { $match: matchQuery },
@@ -419,21 +405,10 @@ router.get('/grievances/trends', requirePermission(Permission.VIEW_ANALYTICS), a
     const currentUser = req.user!;
     const { companyId, departmentId, days = 30 } = req.query;
 
-    const matchQuery: any = {
-      createdAt: {
-        $gte: new Date(Date.now() - Number(days) * 24 * 60 * 60 * 1000)
-      }
+    const matchQuery = getAnalyticsBaseQuery(currentUser, companyId, departmentId);
+    matchQuery.createdAt = {
+      $gte: new Date(Date.now() - Number(days) * 24 * 60 * 60 * 1000)
     };
-
-    if (currentUser.role === UserRole.SUPER_ADMIN) {
-      if (companyId) matchQuery.companyId = new mongoose.Types.ObjectId(companyId as string);
-      if (departmentId) matchQuery.departmentId = new mongoose.Types.ObjectId(departmentId as string);
-    } else if (currentUser.role === UserRole.COMPANY_ADMIN) {
-      matchQuery.companyId = currentUser.companyId;
-      if (departmentId) matchQuery.departmentId = new mongoose.Types.ObjectId(departmentId as string);
-    } else if (currentUser.role === UserRole.DEPARTMENT_ADMIN) {
-      matchQuery.departmentId = currentUser.departmentId;
-    }
 
     const trends = await Grievance.aggregate([
       { $match: matchQuery },
@@ -469,21 +444,13 @@ router.get('/appointments/by-date', requirePermission(Permission.VIEW_ANALYTICS)
     const currentUser = req.user!;
     const { companyId, departmentId, days = 30 } = req.query;
 
+    const baseQuery = getAnalyticsBaseQuery(currentUser, companyId, departmentId);
     const matchQuery: any = {
+      ...baseQuery,
       appointmentDate: {
         $gte: new Date(Date.now() - Number(days) * 24 * 60 * 60 * 1000)
       }
     };
-
-    if (currentUser.role === UserRole.SUPER_ADMIN) {
-      if (companyId) matchQuery.companyId = new mongoose.Types.ObjectId(companyId as string);
-      if (departmentId) matchQuery.departmentId = new mongoose.Types.ObjectId(departmentId as string);
-    } else if (currentUser.role === UserRole.COMPANY_ADMIN) {
-      matchQuery.companyId = currentUser.companyId;
-      if (departmentId) matchQuery.departmentId = new mongoose.Types.ObjectId(departmentId as string);
-    } else if (currentUser.role === UserRole.DEPARTMENT_ADMIN) {
-      matchQuery.departmentId = currentUser.departmentId;
-    }
 
     const distribution = await Appointment.aggregate([
       { $match: matchQuery },
@@ -525,17 +492,7 @@ router.get('/performance', requirePermission(Permission.VIEW_ANALYTICS), async (
     const currentUser = req.user!;
     const { companyId, departmentId } = req.query;
 
-    const baseQuery: any = {};
-
-    if (currentUser.role === UserRole.SUPER_ADMIN) {
-      if (companyId) baseQuery.companyId = new mongoose.Types.ObjectId(companyId as string);
-      if (departmentId) baseQuery.departmentId = new mongoose.Types.ObjectId(departmentId as string);
-    } else if (currentUser.role === UserRole.COMPANY_ADMIN) {
-      baseQuery.companyId = currentUser.companyId;
-      if (departmentId) baseQuery.departmentId = new mongoose.Types.ObjectId(departmentId as string);
-    } else if (currentUser.role === UserRole.DEPARTMENT_ADMIN) {
-      baseQuery.departmentId = currentUser.departmentId;
-    }
+    const baseQuery = getAnalyticsBaseQuery(currentUser, companyId, departmentId);
 
     // Top performing departments (by resolution rate)
     const topDepartments = await Grievance.aggregate([
@@ -667,21 +624,10 @@ router.get('/hourly', requirePermission(Permission.VIEW_ANALYTICS), async (req: 
     const currentUser = req.user!;
     const { companyId, departmentId, days = 7 } = req.query;
 
-    const baseQuery: any = {
-      createdAt: {
-        $gte: new Date(Date.now() - Number(days) * 24 * 60 * 60 * 1000)
-      }
+    const baseQuery = getAnalyticsBaseQuery(currentUser, companyId, departmentId);
+    baseQuery.createdAt = {
+      $gte: new Date(Date.now() - Number(days) * 24 * 60 * 60 * 1000)
     };
-
-    if (currentUser.role === UserRole.SUPER_ADMIN) {
-      if (companyId) baseQuery.companyId = new mongoose.Types.ObjectId(companyId as string);
-      if (departmentId) baseQuery.departmentId = new mongoose.Types.ObjectId(departmentId as string);
-    } else if (currentUser.role === UserRole.COMPANY_ADMIN) {
-      baseQuery.companyId = currentUser.companyId;
-      if (departmentId) baseQuery.departmentId = new mongoose.Types.ObjectId(departmentId as string);
-    } else if (currentUser.role === UserRole.DEPARTMENT_ADMIN) {
-      baseQuery.departmentId = currentUser.departmentId;
-    }
 
     const hourlyGrievances = await Grievance.aggregate([
       { $match: baseQuery },
@@ -729,17 +675,7 @@ router.get('/category', requirePermission(Permission.VIEW_ANALYTICS), async (req
     const currentUser = req.user!;
     const { companyId, departmentId } = req.query;
 
-    const baseQuery: any = {};
-
-    if (currentUser.role === UserRole.SUPER_ADMIN) {
-      if (companyId) baseQuery.companyId = new mongoose.Types.ObjectId(companyId as string);
-      if (departmentId) baseQuery.departmentId = new mongoose.Types.ObjectId(departmentId as string);
-    } else if (currentUser.role === UserRole.COMPANY_ADMIN) {
-      baseQuery.companyId = currentUser.companyId;
-      if (departmentId) baseQuery.departmentId = new mongoose.Types.ObjectId(departmentId as string);
-    } else if (currentUser.role === UserRole.DEPARTMENT_ADMIN) {
-      baseQuery.departmentId = currentUser.departmentId;
-    }
+    const baseQuery = getAnalyticsBaseQuery(currentUser, companyId, departmentId);
 
     const categoryDistribution = await Grievance.aggregate([
       { $match: { ...baseQuery, category: { $exists: true, $ne: null } } },

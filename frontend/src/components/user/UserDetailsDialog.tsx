@@ -42,7 +42,7 @@ export default function UserDetailsDialog({
   const roleGradient = getRoleColor(user.role);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm overflow-y-auto p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl shadow-2xl bg-white animate-in fade-in zoom-in duration-200 flex flex-col">
         {/* Dark Slate Header */}
         <div className="bg-slate-900 p-5 relative overflow-hidden flex-shrink-0 border-b border-slate-800">
@@ -79,7 +79,7 @@ export default function UserDetailsDialog({
         </div>
 
         {/* Scrollable Content */}
-        <div className="overflow-y-auto flex-1 p-5 space-y-5">
+        <div className="overflow-y-auto flex-1 p-5 space-y-5 custom-scrollbar">
           {/* Quick Info Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100">
@@ -103,6 +103,11 @@ export default function UserDetailsDialog({
               </div>
               <p className="text-base font-bold text-gray-900 truncate" title={user.role}>
                 {user.role.replace('_', ' ')}
+                {user.customRoleId && (
+                  <span className="ml-1 text-[10px] text-purple-600 block">
+                    (+ Custom: {typeof user.customRoleId === 'object' ? user.customRoleId.name : 'Selected'})
+                  </span>
+                )}
               </p>
             </div>
 
@@ -175,6 +180,18 @@ export default function UserDetailsDialog({
                 </div>
                 <p className="text-sm font-bold text-gray-900">{user.role.replace('_', ' ')}</p>
               </div>
+
+              {user.customRoleId && (
+                <div className="bg-white rounded-lg p-4 border border-purple-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Shield className="w-4 h-4 text-purple-500" />
+                    <span className="text-xs font-semibold text-purple-500 uppercase">Custom Role</span>
+                  </div>
+                  <p className="text-sm font-bold text-gray-900">
+                    {typeof user.customRoleId === 'object' ? user.customRoleId.name : 'Unknown Custom Role'}
+                  </p>
+                </div>
+              )}
 
               {user.departmentId && (
                 <div className="bg-white rounded-lg p-4 border border-slate-200">

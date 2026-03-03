@@ -106,8 +106,8 @@ const ChangePermissionsDialog: React.FC<ChangePermissionsDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-6 -m-6 mb-4 rounded-t-lg">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] p-0 overflow-hidden flex flex-col border-0 shadow-2xl rounded-2xl">
+        <DialogHeader className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-6 rounded-t-lg flex-shrink-0">
           <DialogTitle className="flex items-center gap-3 text-white text-xl">
             <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
               <Shield className="w-6 h-6 text-white" />
@@ -119,8 +119,8 @@ const ChangePermissionsDialog: React.FC<ChangePermissionsDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit}>
-          <div className="space-y-6 py-4">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+          <div className="space-y-6 p-6 overflow-y-auto flex-1 custom-scrollbar">
             <div className="space-y-3">
               <Label className="text-base font-semibold text-gray-700">Current Role</Label>
               <div className="p-4 bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl border-2 border-slate-200">
@@ -168,7 +168,7 @@ const ChangePermissionsDialog: React.FC<ChangePermissionsDialogProps> = ({
             )}
           </div>
 
-          <DialogFooter className="gap-3 pt-4">
+          <DialogFooter className="gap-3 p-6 border-t border-slate-100 flex-shrink-0">
             <Button 
               type="button" 
               variant="outline" 

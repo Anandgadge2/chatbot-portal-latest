@@ -233,13 +233,35 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_GRIEVANCE, 
     }
 
     const grievance = await Grievance.findById(req.params.id);
-
     if (!grievance) {
-      res.status(404).json({
-        success: false,
-        message: 'Grievance not found'
-      });
+      res.status(404).json({ success: false, message: 'Grievance not found' });
       return;
+    }
+
+    // ✅ Multi-Tenant Scoping Check
+    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+      const grievanceCompanyId = grievance.companyId?.toString();
+      if (grievanceCompanyId !== currentUser.companyId?.toString()) {
+        res.status(403).json({ success: false, message: 'Access denied - cross-company access prohibited' });
+        return;
+      }
+
+      if (currentUser.role === UserRole.DEPARTMENT_ADMIN) {
+        const grievanceDeptId = grievance.departmentId?.toString();
+        const grievanceSubDeptId = grievance.subDepartmentId?.toString();
+        const adminDeptId = currentUser.departmentId?.toString();
+        if (grievanceDeptId !== adminDeptId && grievanceSubDeptId !== adminDeptId) {
+          res.status(403).json({ success: false, message: 'Access denied - grievance not in your department' });
+          return;
+        }
+      }
+
+      if (currentUser.role === UserRole.OPERATOR) {
+        if (grievance.assignedTo?.toString() !== currentUser._id.toString()) {
+          res.status(403).json({ success: false, message: 'Access denied - not assigned to you' });
+          return;
+        }
+      }
     }
 
     const oldStatus = grievance.status;
@@ -337,16 +359,30 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
       return;
     }
 
-    const grievance = await Grievance.findById(req.params.id)
-      .populate('companyId')
-      .populate('departmentId');
-
+    const grievance = await Grievance.findById(req.params.id);
     if (!grievance) {
-      res.status(404).json({
-        success: false,
-        message: 'Grievance not found'
-      });
+      res.status(404).json({ success: false, message: 'Grievance not found' });
       return;
+    }
+
+    // ✅ Multi-Tenant Scoping Check
+    const currentUser = req.user!;
+    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+      const grievanceCompanyId = grievance.companyId?.toString();
+      if (grievanceCompanyId !== currentUser.companyId?.toString()) {
+        res.status(403).json({ success: false, message: 'Access denied - cross-company access prohibited' });
+        return;
+      }
+
+      if (currentUser.role === UserRole.DEPARTMENT_ADMIN) {
+        const grievanceDeptId = grievance.departmentId?.toString();
+        const grievanceSubDeptId = grievance.subDepartmentId?.toString();
+        const adminDeptId = currentUser.departmentId?.toString();
+        if (grievanceDeptId !== adminDeptId && grievanceSubDeptId !== adminDeptId) {
+          res.status(403).json({ success: false, message: 'Access denied - grievance not in your department' });
+          return;
+        }
+      }
     }
 
     const assignedUser = await User.findById(assignedTo);
@@ -474,20 +510,22 @@ router.put('/:id', requirePermission(Permission.UPDATE_GRIEVANCE), async (req: R
       });
     }
 
-    // Permission checks for department/company scope
-    if (currentUser.role === UserRole.DEPARTMENT_ADMIN) {
-      if (grievance.departmentId?.toString() !== currentUser.departmentId?.toString()) {
-        return res.status(403).json({
-          success: false,
-          message: 'You can only update grievances in your department'
-        });
+    // ✅ Multi-Tenant Scoping Check
+    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+      const grievanceCompanyId = grievance.companyId?.toString();
+      if (grievanceCompanyId !== currentUser.companyId?.toString()) {
+        res.status(403).json({ success: false, message: 'Access denied - cross-company access prohibited' });
+        return;
       }
-    } else if (currentUser.role === UserRole.COMPANY_ADMIN) {
-      if (grievance.companyId.toString() !== currentUser.companyId?.toString()) {
-        return res.status(403).json({
-          success: false,
-          message: 'You can only update grievances in your company'
-        });
+
+      if (currentUser.role === UserRole.DEPARTMENT_ADMIN) {
+        const grievanceDeptId = grievance.departmentId?.toString();
+        const grievanceSubDeptId = grievance.subDepartmentId?.toString();
+        const adminDeptId = currentUser.departmentId?.toString();
+        if (grievanceDeptId !== adminDeptId && grievanceSubDeptId !== adminDeptId) {
+          res.status(403).json({ success: false, message: 'Access denied - grievance not in your department' });
+          return;
+        }
       }
     }
 

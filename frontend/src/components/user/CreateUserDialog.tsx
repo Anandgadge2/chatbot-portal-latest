@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { userAPI, User } from '@/lib/api/user';
 import { companyAPI, Company } from '@/lib/api/company';
 import { departmentAPI, Department } from '@/lib/api/department';
+import { roleAPI, Role } from '@/lib/api/role';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserRole } from '@/lib/permissions';
 import toast from 'react-hot-toast';
@@ -26,6 +27,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({ isOpen, onClose, on
   const [loading, setLoading] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [customRoles, setCustomRoles] = useState<Role[]>([]);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -33,6 +35,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({ isOpen, onClose, on
     password: '',
     phone: '',
     role: 'OPERATOR',
+    customRoleId: '',
     companyId: '',
     departmentId: ''
   });
@@ -150,6 +153,21 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({ isOpen, onClose, on
     }
   }, [user]);
 
+  const fetchCustomRoles = useCallback(async (companyId: string) => {
+    if (!companyId) {
+      setCustomRoles([]);
+      return;
+    }
+    try {
+      const response = await roleAPI.getRoles(companyId);
+      if (response.success) {
+        setCustomRoles(response.data.roles);
+      }
+    } catch (error) {
+      console.error('Failed to fetch custom roles:', error);
+    }
+  }, []);
+
   useEffect(() => {
     if (isOpen) {
       fetchCompanies();
@@ -163,6 +181,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({ isOpen, onClose, on
           password: '', // Don't show password
           phone: editingUser.phone ? denormalizePhoneNumber(editingUser.phone) : '',
           role: editingUser.role || 'OPERATOR',
+          customRoleId: typeof editingUser.customRoleId === 'object' ? editingUser.customRoleId?._id : (editingUser.customRoleId || ''),
           companyId: typeof editingUser.companyId === 'object' ? editingUser.companyId?._id : (editingUser.companyId || ''),
           departmentId: typeof editingUser.departmentId === 'object' ? editingUser.departmentId?._id : (editingUser.departmentId || '')
         });
@@ -183,6 +202,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({ isOpen, onClose, on
             password: '',
             phone: '',
             role: 'OPERATOR',
+            customRoleId: '',
             companyId: userCompanyId,
             departmentId: ''
           });
@@ -194,6 +214,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({ isOpen, onClose, on
             password: '',
             phone: '',
             role: 'OPERATOR',
+            customRoleId: '',
             companyId: userCompanyId,
             departmentId: userDepartmentId
           });
@@ -205,6 +226,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({ isOpen, onClose, on
             password: '',
             phone: '',
             role: 'OPERATOR',
+            customRoleId: '',
             companyId: '',
             departmentId: ''
           });
@@ -212,6 +234,15 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({ isOpen, onClose, on
       }
     }
   }, [isOpen, user, editingUser, fetchCompanies, fetchDepartments]);
+
+  useEffect(() => {
+    if (formData.companyId) {
+      fetchCustomRoles(formData.companyId);
+    } else {
+      setCustomRoles([]);
+      setFormData(prev => ({ ...prev, customRoleId: '' }));
+    }
+  }, [formData.companyId, fetchCustomRoles]);
 
   useEffect(() => {
     // Reset dependent fields when role changes
@@ -301,6 +332,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({ isOpen, onClose, on
             password: '',
             phone: '',
             role: 'OPERATOR',
+            customRoleId: '',
             companyId: '',
             departmentId: ''
           });
@@ -379,7 +411,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({ isOpen, onClose, on
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden">
+      <Card className="w-full max-w-lg max-h-[90vh] flex flex-col bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden">
         <CardHeader className="bg-slate-900 px-6 py-4 border-b border-slate-800">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-md border border-white/20 shadow-inner">
@@ -391,7 +423,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({ isOpen, onClose, on
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex-1 overflow-y-auto p-6 custom-scrollbar">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -492,6 +524,25 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({ isOpen, onClose, on
                     </option>
                   ))}
                 </select>
+              </div>
+              <div>
+                <Label htmlFor="customRoleId">Custom Role (Optional)</Label>
+                <select
+                  id="customRoleId"
+                  name="customRoleId"
+                  value={formData.customRoleId}
+                  onChange={handleChange}
+                  className="w-full p-2 border rounded-md"
+                  disabled={!formData.companyId}
+                >
+                  <option value="">No Custom Role</option>
+                  {customRoles.map((role) => (
+                    <option key={role._id} value={role._id}>
+                      {role.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-slate-500 mt-1">If selected, this role provides additional custom permissions.</p>
               </div>
             </div>
 
