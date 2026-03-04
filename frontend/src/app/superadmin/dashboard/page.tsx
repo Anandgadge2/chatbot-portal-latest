@@ -82,6 +82,7 @@ export default function SuperAdminDashboard() {
   const [visiblePasswords, setVisiblePasswords] = useState<string[]>([]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [selectedRoleCompanyId, setSelectedRoleCompanyId] = useState<string>('');
+  const [navigatingCompanyId, setNavigatingCompanyId] = useState<string | null>(null);
 
   const togglePasswordVisibility = (userId: string) => {
     setVisiblePasswords(prev => 
@@ -89,6 +90,12 @@ export default function SuperAdminDashboard() {
         ? prev.filter(id => id !== userId)
         : [...prev, userId]
     );
+  };
+
+  const handleOpenCompanyDashboard = (companyId: string) => {
+    if (navigatingCompanyId) return;
+    setNavigatingCompanyId(companyId);
+    router.push(`/superadmin/company/${companyId}`);
   };
 
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -416,6 +423,13 @@ export default function SuperAdminDashboard() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc]">
+      {navigatingCompanyId && (
+        <div className="fixed inset-0 z-[70] bg-slate-900/40 backdrop-blur-[1px] flex items-center justify-center">
+          <div className="bg-white border border-slate-200 rounded-xl px-6 py-5 shadow-2xl">
+            <LoadingSpinner text="Opening company dashboard..." />
+          </div>
+        </div>
+      )}
       {/* Header with Gradient */}
       {/* Classic White Header */}
       {/* Header with Dark Slate Theme */}
@@ -859,10 +873,13 @@ export default function SuperAdminDashboard() {
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div 
-                                className="cursor-pointer"
-                                onClick={() => router.push(`/superadmin/company/${company._id}`)}
+                                className={`cursor-pointer ${navigatingCompanyId ? 'pointer-events-none' : ''}`}
+                                onClick={() => handleOpenCompanyDashboard(company._id)}
                               >
-                                <div className="text-sm font-bold text-blue-600 hover:text-blue-800 hover:underline">{company.name}</div>
+                                <div className="text-sm font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-2">
+                                  {company.name}
+                                  {navigatingCompanyId === company._id && <LoadingSpinner className="scale-50 origin-left" />}
+                                </div>
                                 <div className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-tighter">System Entry: {new Date(company.createdAt).toLocaleDateString()}</div>
                               </div>
                             </td>
