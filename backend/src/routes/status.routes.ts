@@ -341,6 +341,27 @@ router.put('/appointment/:id', requirePermission(Permission.STATUS_CHANGE_APPOIN
         appointmentTime: appointment.appointmentTime,
         purpose: appointment.purpose
       });
+
+      // ✅ Hierarchical Admin Notification: If appointment is completed or cancelled
+      if (status === AppointmentStatus.COMPLETED || status === AppointmentStatus.CANCELLED) {
+        const { notifyHierarchyOnStatusChange } = await import('../services/notificationService');
+        await notifyHierarchyOnStatusChange({
+          type: 'appointment',
+          action: status === AppointmentStatus.COMPLETED ? 'resolved' : 'resolved', 
+          appointmentId: appointment.appointmentId,
+          citizenName: appointment.citizenName,
+          citizenPhone: appointment.citizenPhone,
+          departmentId: appointment.departmentId,
+          companyId: appointment.companyId,
+          remarks: remarks || '',
+          resolvedBy: currentUser._id,
+          resolvedAt: new Date(),
+          createdAt: appointment.createdAt,
+          appointmentDate: appointment.appointmentDate,
+          appointmentTime: appointment.appointmentTime,
+          timeline: appointment.timeline
+        }, oldStatus, status);
+      }
     }
 
     await logUserAction(
