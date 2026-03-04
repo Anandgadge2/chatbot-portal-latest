@@ -6,6 +6,40 @@
     "version": 1,
     "isActive": true
   },
+  "settings": {
+    "sessionTimeout": 30,
+    "errorFallbackMessage": "⚠️ I'm sorry, I didn't understand that. Please use the menu buttons or type 'menu' to restart.",
+    "enableTypingIndicator": true
+  },
+  "translations": {
+    "en": {
+      "welcome": "🏛️ Welcome to Collectorate Jharsuguda Helpdesk. Type 'menu' to see services.",
+      "select_dept": "Select Department",
+      "sub_dept_title": "🏢 *Select Sub-Department*\n\nPlease choose the specific office/section:",
+      "sub_dept_btn": "Select Section",
+      "upload_photo": "📷 *Please upload the image/document now:*\n\n_Or type *skip* to continue without uploading._",
+      "button_fallback": "⚠️ *Invalid selection.*\n\nPlease tap one of the buttons above to continue.",
+      "menu_fallback": "⚠️ *Invalid selection.*\n\nPlease select an option from the menu list."
+    },
+    "hi": {
+      "welcome": "🏛️ कलेक्टरेट झारसुगुडा हेल्पडेस्क में आपका स्वागत है। सेवाएं देखने के लिए 'menu' टाइप करें।",
+      "select_dept": "विभाग चुनें",
+      "sub_dept_title": "🏢 *उप-विभाग चुनें*\n\nकृपया संबंधित कार्यालय/अनुभाग चुनें:",
+      "sub_dept_btn": "अनुभाग चुनें",
+      "upload_photo": "📷 *कृपया अभी फोटो/दस्तावेज़ अपलोड करें:*\n\n_अपलोड किए बिना जारी रखने के लिए *skip* टाइप करें।_",
+      "button_fallback": "⚠️ *अमान्य चयन।*\n\nजारी रखने के लिए ऊपर दिए गए बटनों में से किसी एक पर टैप करें।",
+      "menu_fallback": "⚠️ *अमान्य चयन।*\n\nकृपया मेनू सूची से एक विकल्प चुनें।"
+    },
+    "or": {
+      "welcome": "🏛️ ଝାରସୁଗୁଡା କଲେକ୍ଟରେଟ୍ ସହାୟତା କେନ୍ଦ୍ରକୁ ସ୍ୱାଗତ। ସେବାଗୁଡିକ ଦେଖିବା ପାଇଁ 'menu' ଟାଇପ୍ କରନ୍ତୁ।",
+      "select_dept": "ବିଭାଗ ବାଛନ୍ତୁ",
+      "sub_dept_title": "🏢 *ଉପ-ବିଭାଗ ଚୟନ କରନ୍ତୁ*\n\nଦୟାକରି ନିର୍ଦ୍ଦିଷ୍ଟ କାର୍ଯ୍ୟାଳୟ/ଶାଖା ବାଛନ୍ତୁ:",
+      "sub_dept_btn": "ଶାଖା ବାଛନ୍ତୁ",
+      "upload_photo": "📷 *ଦୟାକରି ଏବେ ଫୋଟୋ/ଡକ୍ୟୁମେଣ୍ଟ ଅପଲୋଡ କରନ୍ତୁ:*\n\n_ଅପଲୋଡ ନ କରି ଜାରି ରଖିବାକୁ *skip* ଟାଇପ୍ କରନ୍ତୁ।_",
+      "button_fallback": "⚠️ *ଅବୈଧ ଚୟନ।*\n\nଜାରି ରଖିବା ପାଇଁ ଉପରୋକ୍ତ ବଟନ୍ ଗୁଡ଼ିକ ମଧ୍ୟରୁ ଗୋଟିଏ ଟ୍ୟାପ୍ କରନ୍ତୁ।",
+      "menu_fallback": "⚠️ *ଅବୈଧ ଚୟନ।*\n\nଦୟାକରି ମେନୁ ତାଲିକାରୁ ଏକ ବିକଳ୍ପ ଚୟନ କରନ୍ତୁ।"
+    }
+  },
   "nodes": [
     {
       "id": "start_node",

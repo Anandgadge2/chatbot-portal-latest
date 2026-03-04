@@ -118,7 +118,7 @@ export default function SuperAdminDashboard() {
 
   useEffect(() => {
     if (!loading && !user) {
-      router.push('/superadmin-login');
+      router.push('/');
     } else if (!loading && user && user.role !== 'SUPER_ADMIN') {
       router.push('/dashboard');
     }

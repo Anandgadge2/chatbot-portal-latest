@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
 import { requireDatabaseConnection } from '../middleware/dbConnection';
-import { processWhatsAppMessage } from '../services/chatbotEngine';
+import { processWhatsAppMessage } from '../services/dynamicFlowEngine';
 import { getRedisClient, isRedisConnected } from '../config/redis';
 import Company from '../models/Company';
 import CompanyWhatsAppConfig from '../models/CompanyWhatsAppConfig';

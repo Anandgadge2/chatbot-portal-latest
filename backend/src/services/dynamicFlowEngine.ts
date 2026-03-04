@@ -1,14 +1,30 @@
 import mongoose from 'mongoose';
 import ChatbotFlow, { IFlowStep, IChatbotFlow } from '../models/ChatbotFlow';
+import Company from '../models/Company';
+import CompanyWhatsAppConfig from '../models/CompanyWhatsAppConfig';
 import Grievance from '../models/Grievance';
 import Appointment from '../models/Appointment';
 import Department from '../models/Department';
 import User from '../models/User';
 import { sendWhatsAppMessage, sendWhatsAppButtons, sendWhatsAppList } from './whatsappService';
-import { UserSession, updateSession } from './sessionService';
+import { UserSession, updateSession, getSession, getSessionFromMongo, clearSession } from './sessionService';
+import { uploadWhatsAppMediaToCloudinary } from './mediaService';
 import { ActionService } from './actionService';
 import { findDepartmentByCategory } from './departmentMapper';
 import { GrievanceStatus, AppointmentStatus, UserRole } from '../config/constants';
+
+// ─── Message Interface ────────────────────────────────────────────────────────
+
+export interface ChatbotMessage {
+  companyId: string;
+  from: string;
+  messageText: string;
+  messageType: string;
+  messageId: string;
+  mediaUrl?: string;
+  metadata?: any;
+  buttonId?: string;
+}
 
 /**
  * Pick the best-fit message text for the current session language.
@@ -24,7 +40,19 @@ function getLocalText(step: IFlowStep, lang: string): string {
 }
 
 /**
+ * Routing constants
+ */
+const GREETINGS = new Set([
+  'hi', 'hii', 'hello', 'start', 'namaste', 'नमस्ते', 'restart', 'menu',
+  'ନମସ୍କାର', 'ନମସ୍କାର', 'helo', 'hey', 'begin'
+]);
+
+/**
  * Localization helper for UI strings
+ * Priorities: 
+ * 1. flow.translations[lang][key]
+ * 2. flow.settings.errorFallbackMessage (for 'error_fallback' key)
+ * 3. global UI_STRINGS fallback
  */
 const UI_STRINGS: Record<string, Record<string, string>> = {
   view_dept: {
@@ -64,14 +92,55 @@ const UI_STRINGS: Record<string, Record<string, string>> = {
     mr: '⬇️ अधिक पहा'
   },
   upload_photo: {
-    en: '� *Please upload the image/document now:*\n\n_Type *skip* to continue without uploading._',
-    hi: '� *कृपया अभी फोटो/दस्तावेज़ अपलोड करें:*\n\n_अपलोड किए बिना जारी रखने के लिए *skip* टाइप करें।_',
-    or: '� *ଦୟାକରି ଏବେ ଫୋଟୋ/ଡକ୍ୟୁମେଣ୍ଟ ଅପଲୋଡ କରନ୍ତୁ:*\n\n_ଅପଲୋଡ ନ କରି ଜାରି ରଖିବାକୁ *skip* ଟାଇପ୍ କରନ୍ତୁ।_',
-    mr: '� *कृपया आता फोटो/दस्तावेज अपलोड करा:*\n\n_अपलोड न करता पुढे जाण्यासाठी *skip* टाइप करा।_'
+    en: '📷 *Please upload the image/document now:*\n\n_Type *skip* to continue without uploading._',
+    hi: '📷 *कृपया अभी फोटो/दस्तावेज़ अपलोड करें:*\n\n_अपलोड किए बिना जारी रखने के लिए *skip* टाइप करें।_',
+    or: '📷 *ଦୟାକରି ଏବେ ଫୋଟୋ/ଡକ୍ୟୁମେଣ୍ଟ ଅପଲୋଡ କରନ୍ତୁ:*\n\n_ଅପଲୋଡ ନ କରି ଜାରି ରଖିବାକୁ *skip* ଟାଇପ୍ କରନ୍ତୁ।_',
+    mr: '📷 *कृपया आता फोटो/दस्तावेज अपलोड करा:*\n\n_अपलोड न करता पुढे जाण्यासाठी *skip* टाइप करा।_'
+  },
+  welcome: {
+    en: '👋 *Welcome!*\n\nType *"Hi"* to get started.',
+    hi: '👋 *स्वागत है!*\n\nशुरू करने के लिए *"Hi"* टाइप करें।',
+    or: '👋 *ସ୍ୱାଗତମ୍!*\n\nଆରମ୍ଭ କରିବା ପାଇଁ *"Hi"* ଟାଇପ୍ କରନ୍ତୁ।',
+    mr: '👋 *स्वागत आहे!*\n\nसुरू करण्यासाठी *"Hi"* टाइप करा।'
+  },
+  service_unavailable: {
+    en: '⚠️ *Service Temporarily Unavailable*\n\nThe chatbot flow is inactive or not configured.\n\nPlease contact the administrator.',
+    hi: '⚠️ *सेवा अस्थायी रूप से अनुपलब्ध है*\n\nचैटबॉट प्रवाह निष्क्रिय है या कॉन्फ़िगर नहीं किया गया है।\n\nकृपया व्यवस्थापक से संपर्क करें।',
+    or: '⚠️ *ସେବା ଅସ୍ଥାୟୀ ଭାବରେ ଅନୁପଲବ୍ଧ *\n\nଚାଟବଟ୍ ପ୍ରବାହ ନିଷ୍କ୍ରିୟ ଅଛି କିମ୍ବା କନଫିଗର କରାଯାଇ ନାହିଁ ।\n\nଦୟାକରି ପ୍ରଶାସକଙ୍କ ସହିତ ଯୋଗାଯୋଗ କରନ୍ତୁ ।',
+    mr: '⚠️ *सेवा तात्पुरती अनुपलब्ध आहे*\n\nचॅटबॉट प्रवाह निष्क्रिय आहे किंवा कॉन्फिगर केलेला नाही.\n\nकृपया प्रशासकाशी संपर्क साधा.'
+  },
+  no_flow: {
+    en: '👋 *Welcome!*\n\nThis service is not yet configured.\n\nPlease contact the administrator to set up the chatbot flow.\n\n_Type "Hi" to try again once the flow is configured._',
+    hi: '👋 *स्वागत है!*\n\nयह सेवा अभी तक कॉन्फ़िगर नहीं की गई है।\n\nचैटबॉट प्रवाह सेट करने के लिए कृपया व्यवस्थापक से संपर्क करें।\n\n_प्रवाह कॉन्फ़िगर होने के बाद फिर से प्रयास करने के लिए "Hi" टाइप करें।_',
+    or: '👋 *ସ୍ୱାଗତମ୍!*\n\nଏହି ସେବା ଏପର୍ଯ୍ୟନ୍ତ କନଫିଗର ହୋଇନାହିଁ ।\n\nଦୟାକରି ଚାଟବଟ୍ ପ୍ରବାହ ସେଟ୍ କରିବା ପାଇଁ ପ୍ରଶାସକଙ୍କ ସହିତ ଯୋଗାଯୋଗ କରନ୍ତୁ । \n\n_ପ୍ରବାହ କନଫିଗର ହେବା ପରେ ପୁନର୍ବାର ଚେଷ୍ଟା କରିବାକୁ "Hi" ଟାଇପ୍ କରନ୍ତୁ।_',
+    mr: '👋 *स्वागत आहे!*\n\nही सेवा अद्याप कॉन्फिगर केलेली नाही.\n\nकृपया चॅटबॉट प्रवाह सेट करण्यासाठी प्रशासकाशी संपर्क साधा.\n\n_प्रवाह कॉन्फिगर झाल्यानंतर पुन्हा प्रयत्न करण्यासाठी "Hi" टाइप करा._'
+  },
+  menu_fallback: {
+    en: '⚠️ *Please use the menu above.*\n\nTap the *"Select"* or *"View"* button to open the options and make your selection.',
+    hi: '⚠️ *कृपया ऊपर दी गई सूची मेनू का उपयोग करें।*\n\nविकल्प खोलने के लिए *"चुनें"* या *"देखें"* बटन पर टैप करें।',
+    or: '⚠️ *ଦୟାକରି ଉପରୋକ୍ତ ତାଲିକା ମେନୁ ବ୍ୟବହାର କରନ୍ତୁ।*\n\nବିକଳ୍ପ ଖୋଲିବାକୁ *"ବାଛନ୍ତୁ"* ବଟନ୍ ଟ୍ୟାପ୍ କରନ୍ତୁ।',
+    mr: '⚠️ *कृपया वरील याद्या मेनू वापरा।*\n\nपर्याय उघडण्यासाठी *"निवडा"* बटणावर टॅप करा।'
+  },
+  button_fallback: {
+    en: '⚠️ *Please use the buttons above.*\n\nTap one of the options shown to continue.',
+    hi: '⚠️ *कृपया ऊपर दिए गए बटन का उपयोग करें।*\n\nजारी रखने के लिए किसी एक विकल्प पर टैप करें।',
+    or: '⚠️ *ଦୟାକରି ଉପରୋକ୍ତ ବଟନ୍ ବ୍ୟବହାର କରନ୍ତୁ।*\n\nଜାରି ରଖିବା ପାଇଁ ଗୋଟିଏ ବିକଳ୍ପ ଟ୍ୟାପ୍ କରନ୍ତୁ।',
+    mr: '⚠️ *कृपया वरील बटणे वापरा।*\n\nसुरू ठेवण्यासाठी एका पर्यायांवर टॅप करा।'
   }
 };
 
-function ui(key: string, lang: string): string {
+function ui(key: string, lang: string, flow?: IChatbotFlow | null): string {
+  // 1. Flow-wide settings fallback
+  if (key === 'error_fallback' && (flow as any)?.settings?.errorFallbackMessage) {
+    return (flow as any).settings.errorFallbackMessage;
+  }
+  
+  // 2. Flow-specific translation map
+  if (flow?.translations?.[lang]?.[key]) {
+    return flow.translations[lang][key];
+  }
+  
+  // 3. Global defaults
   const translations = UI_STRINGS[key];
   if (!translations) return key;
   return translations[lang] || translations['en'] || key;
@@ -98,6 +167,14 @@ export class DynamicFlowEngine {
     this.session = session;
     this.company = company;
     this.userPhone = userPhone;
+  }
+
+  /**
+   * Internal UI localization helper. 
+   * Uses flow-defined translations first, then falls back to global defaults.
+   */
+  private ui(key: string): string {
+    return ui(key, this.session.language || 'en', this.flow);
   }
 
   /**
@@ -406,7 +483,7 @@ export class DynamicFlowEngine {
       });
 
       const sections = [{
-        title: ui('select_dept', lang),
+        title: this.ui('select_dept'),
         rows: rows
       }];
 
@@ -419,13 +496,12 @@ export class DynamicFlowEngine {
       await updateSession(this.session);
 
       try {
-        const lang = this.session.language || 'en';
-        const message = this.replacePlaceholders(getLocalText(step, lang) || ui('sub_dept_title', lang));
+        const message = this.replacePlaceholders(getLocalText(step, lang) || this.ui('sub_dept_title'));
         await sendWhatsAppList(
           this.company,
           this.userPhone,
           message,
-          ui('sub_dept_btn', lang),
+          this.ui('sub_dept_btn'),
           sections
         );
       } catch (error) {
@@ -552,7 +628,7 @@ export class DynamicFlowEngine {
       }
 
       if (departments.length === 0) {
-        await sendWhatsAppMessage(this.company, this.userPhone, ui('no_dept', lang));
+        await sendWhatsAppMessage(this.company, this.userPhone, this.ui('no_dept'));
         await this.runNextStepIfDifferent(step.nextStepId, step.stepId);
         return;
       }
@@ -593,7 +669,7 @@ export class DynamicFlowEngine {
       if (departments.length > offset + 9) {
         deptRows.push({
           id: 'grv_load_more',
-          title: ui('load_more', lang),
+          title: this.ui('load_more'),
           description: 'Show more departments...',
           nextStepId: step.stepId
         });
@@ -601,12 +677,12 @@ export class DynamicFlowEngine {
 
       const listConfig = step.listConfig!;
       const sections = [{
-        title: listConfig.buttonText || ui('select_dept', lang),
+        title: listConfig.buttonText || this.ui('select_dept'),
         rows: deptRows
       }];
 
-      const message = this.replacePlaceholders(getLocalText(step, lang) || ui('view_dept', lang));
-      await sendWhatsAppList(this.company, this.userPhone, message, listConfig.buttonText || ui('view_dept', lang), sections);
+      const message = this.replacePlaceholders(getLocalText(step, lang) || this.ui('view_dept'));
+      await sendWhatsAppList(this.company, this.userPhone, message, listConfig.buttonText || this.ui('view_dept'), sections);
 
       this.session.data.currentStepId = step.stepId;
       this.session.data.listMapping = {};
@@ -616,7 +692,7 @@ export class DynamicFlowEngine {
       await updateSession(this.session);
     } catch (error: any) {
       console.error('❌ Error loading departments for list step:', error);
-      await sendWhatsAppMessage(this.company, this.userPhone, ui('no_dept', this.session.language || 'en'));
+      await sendWhatsAppMessage(this.company, this.userPhone, this.ui('no_dept'));
     }
   }
 
@@ -643,13 +719,7 @@ export class DynamicFlowEngine {
       // For media/file inputs, use a friendly upload prompt if no proper message is configured
       let message: string;
       if (isMediaInput && (!rawMessage || isAutoGenerated)) {
-        const uploadPrompts: Record<string, string> = {
-          en: '📷 *Please upload the image/document now:*\n\n_Or type *skip* to continue without uploading._',
-          hi: '📷 *कृपया अभी फोटो/दस्तावेज़ अपलोड करें:*\n\n_अपलोड किए बिना जारी रखने के लिए *skip* टाइप करें।_',
-          or: '📷 *ଦୟାକରି ଏବେ ଫୋଟୋ/ଡକ୍ୟୁମେଣ୍ଟ ଅପଲୋଡ କରନ୍ତୁ:*\n\n_ଅପଲୋଡ ନ କରି ଜାରି ରଖିବାକୁ *skip* ଟାଇପ୍ କରନ୍ତୁ।_',
-          mr: '📷 *कृपया आता फोटो/दस्तावेज अपलोड करा:*\n\n_अपलोड न करता पुढे जाण्यासाठी *skip* टाइप करा।_',
-        };
-        message = this.replacePlaceholders(uploadPrompts[lang] || uploadPrompts['en']);
+        message = this.replacePlaceholders(this.ui('upload_photo'));
       } else {
         message = this.replacePlaceholders(rawMessage || '📝 Please provide your input:');
       }
@@ -692,8 +762,7 @@ export class DynamicFlowEngine {
         await updateSession(this.session);
         if (nextStepId) await this.runNextStepIfDifferent(nextStepId, step.stepId);
       } else {
-        const reminder = ui('upload_photo', this.session.language || 'en');
-        await sendWhatsAppMessage(this.company, this.userPhone, reminder);
+        await sendWhatsAppMessage(this.company, this.userPhone, this.ui('upload_photo'));
       }
       return;
     }
@@ -1451,14 +1520,7 @@ export class DynamicFlowEngine {
     console.error(`   Button mapping: ${JSON.stringify(this.session.data.buttonMapping)}`);
     console.error(`   Default nextStepId: ${currentStep.nextStepId}`);
     // Send a user-friendly fallback message instead of generic error
-    const lang = this.session.language || 'en';
-    const fallbackMsgs: Record<string, string> = {
-      en: '⚠️ *Invalid selection.*\n\nPlease tap one of the buttons above to continue.',
-      hi: '⚠️ *अमान्य चयन।*\n\nजारी रखने के लिए ऊपर दिए गए बटनों में से किसी एक पर टैप करें।',
-      or: '⚠️ *ଅବୈଧ ଚୟନ।*\n\nଜାରି ରଖିବା ପାଇଁ ଉପରୋକ୍ତ ବଟନ୍ ଗୁଡ଼ିକ ମଧ୍ୟରୁ ଗୋଟିଏ ଟ୍ୟାପ୍ କରନ୍ତୁ।',
-      mr: '⚠️ *अवैध निवड।*\n\nपुढे सुरू ठेवण्यासाठी वरील बटणांपैकी एकावर टॅप करा।'
-    };
-    await sendWhatsAppMessage(this.company, this.userPhone, fallbackMsgs[lang] || fallbackMsgs['en']);
+    await sendWhatsAppMessage(this.company, this.userPhone, this.ui('button_fallback'));
     // Re-send the current step to show the buttons again
     if (currentStep.stepType === 'buttons') {
       await this.executeButtonsStep(currentStep);
@@ -1556,25 +1618,12 @@ export class DynamicFlowEngine {
             await updateSession(this.session);
 
             // Send sub-department WhatsApp list
-            const subDeptTitle: Record<string, string> = {
-              en: '🏢 *Select Sub-Department*\n\nPlease choose the specific section:',
-              hi: '🏢 *उप-विभाग चुनें*\n\nकृपया संबंधित अनुभाग चुनें:',
-              or: '🏢 *ଉପ-ବିଭାଗ ଚୟନ କରନ୍ତୁ*\n\nଦୟାକରି ସଂଶ୍ଳିଷ୍ଟ ବିଭାଗ ବାଛନ୍ତୁ:',
-              mr: '🏢 *पोट-विभाग निवडा*\n\nकृपया संबंधित विभाग निवडा:'
-            };
-            const subDeptBtn: Record<string, string> = {
-              en: 'Select Section',
-              hi: 'विभाग चुनें',
-              or: 'ବିଭାଗ ବାଛନ୍ତୁ',
-              mr: 'विभाग निवडा'
-            };
-
             await sendWhatsAppList(
               this.company,
               this.userPhone,
-              subDeptTitle[lang] || subDeptTitle['en'],
-              subDeptBtn[lang] || subDeptBtn['en'],
-              [{ title: ui('select_dept', lang), rows }]
+              this.ui('sub_dept_title'),
+              this.ui('sub_dept_btn'),
+              [{ title: this.ui('select_dept'), rows }]
             );
             return; // ← stop here; sub-dept selection will advance the flow
           } else {
@@ -1744,4 +1793,386 @@ export async function loadFlowForTrigger(
 export function getStartStepForTrigger(flow: IChatbotFlow, trigger: string): string | null {
   const triggerConfig = flow.triggers.find(t => t.triggerValue === trigger);
   return triggerConfig?.startStepId || flow.startStepId;
+}
+
+/**
+ * ─── Main Chatbot Router (Merged from chatbotEngine.ts) ───────────────────────
+ * 
+ * This is the entry point for all incoming WhatsApp messages.
+ * It manages sessions, resolves companies, and routes to DynamicFlowEngine.
+ */
+export async function processWhatsAppMessage(message: ChatbotMessage): Promise<any> {
+  const { from, messageType, messageId } = message;
+  const mediaUrl = message.mediaUrl;
+  const companyId = message.companyId;
+  const buttonId = message.buttonId?.trim();
+  const userInput = (message.messageText || '').trim().toLowerCase();
+  const rawInput = (message.messageText || '').trim();
+
+  console.log(`\n📨 Incoming [${messageType}] from ${from} | Company: ${companyId}`);
+  if (buttonId) console.log(`   ButtonId: ${buttonId}`);
+  if (userInput) console.log(`   Text: "${rawInput.substring(0, 80)}"`);
+
+  // ── 1. Find Company ───────────────────────────────────────────────────────
+  const company = await findCompany(companyId);
+  if (!company) {
+    console.error(`❌ Company not found: ${companyId}`);
+    return;
+  }
+
+  // ── 2. Load or create session ─────────────────────────────────────────────
+  let session = await getSession(from, companyId);
+
+  // ── 3. Handle greeting → always restart the flow ─────────────────────────
+  if (!buttonId && GREETINGS.has(userInput)) {
+    await handleGreeting(from, companyId, userInput, company, message);
+    return;
+  }
+
+  // ── 4. Session recovery: if Redis lost the session, recover from Mongo ────
+  if (
+    session.step === 'start' &&
+    !session.data?.flowId &&
+    !buttonId &&
+    rawInput &&
+    !GREETINGS.has(userInput)
+  ) {
+    const mongoSession = await getSessionFromMongo(from, companyId);
+    if (mongoSession?.data?.flowId && (mongoSession.data.currentStepId || mongoSession.data.awaitingInput)) {
+      console.log('🔄 Session recovered from MongoDB');
+      session.data = mongoSession.data;
+      session.step = mongoSession.step;
+      session.language = mongoSession.language;
+    }
+  }
+
+  // ── 5. Auto-start if session has no flow context yet ─────────────────────
+  if (session.step === 'start' && !session.data?.flowId) {
+    await handleAutoStart(from, companyId, buttonId, company, session, message);
+    return;
+  }
+
+  // ── 6. Continue an active flow ────────────────────────────────────────────
+  if (session.data?.flowId) {
+    await continueFlow(session, company, from, companyId, buttonId, userInput, rawInput, messageType, mediaUrl, message);
+    return;
+  }
+
+  // ── 7. Fallback: no flow context at all ───────────────────────────────────
+  await sendWhatsAppMessage(company, from, ui('welcome', session.language || 'en'));
+}
+
+/**
+ * Helper: Find Company
+ */
+async function findCompany(companyId: string): Promise<any | null> {
+  try {
+    let company: any = null;
+
+    // 1. Try finding by _id if it's a valid ObjectId
+    if (mongoose.Types.ObjectId.isValid(companyId) && companyId.length === 24) {
+      company = await Company.findById(companyId).lean();
+    }
+
+    // 2. Fallback: try finding by custom companyId string field
+    if (!company) {
+      company = await Company.findOne({ companyId }).lean();
+    }
+
+    if (!company) return null;
+
+    // 3. Load WhatsApp config
+    const waConfig = await CompanyWhatsAppConfig.findOne({ 
+      companyId: company._id, 
+      isActive: true 
+    }).lean();
+    
+    if (waConfig) (company as any).whatsappConfig = waConfig;
+
+    return company;
+  } catch (err) {
+    console.error('❌ Error finding company:', err);
+    return null;
+  }
+}
+
+/**
+ * Helper: Handle Greeting (restart)
+ */
+async function handleGreeting(
+  from: string,
+  companyId: string,
+  trigger: string,
+  company: any,
+  message: ChatbotMessage
+): Promise<void> {
+  console.log(`🔄 Greeting received: "${trigger}" → restarting flow`);
+
+  const flow = await loadFlowForTrigger(companyId, trigger);
+  if (!flow || !flow.isActive) {
+    // Try the generic "hi" trigger as fallback
+    const fallback = await loadFlowForTrigger(companyId, 'hi');
+    if (!fallback || !fallback.isActive) {
+      const session = await getSession(from, companyId);
+      await sendWhatsAppMessage(company, from, ui('no_flow', session.language || 'en', fallback));
+      return;
+    }
+    return executeFlowFromStart(from, companyId, fallback, company, 'hi');
+  }
+  return executeFlowFromStart(from, companyId, flow, company, trigger);
+}
+
+/**
+ * Helper: Auto-start on first message
+ */
+async function handleAutoStart(
+  from: string,
+  companyId: string,
+  buttonId: string | undefined,
+  company: any,
+  session: UserSession,
+  message: ChatbotMessage
+): Promise<void> {
+  const flow = await loadFlowForTrigger(companyId, 'hi');
+  if (!flow || !flow.isActive) {
+    await sendWhatsAppMessage(company, from, ui('no_flow', session.language || 'en', flow));
+    return;
+  }
+
+  let startStepId = getStartStepForTrigger(flow, 'hi') || flow.startStepId;
+  const startStep = flow.steps.find(s => s.stepId === startStepId);
+  if (!startStep) startStepId = flow.startStepId;
+
+  // Handle reconstructed button click if session lost
+  if (buttonId) {
+    session.data = { flowId: flow.flowId, currentStepId: startStepId, buttonMapping: {}, listMapping: {} };
+    flow.steps.forEach((s: any) => {
+      (s.buttons || []).forEach((btn: any) => {
+        if (btn.nextStepId) (session.data as any).buttonMapping[btn.id] = btn.nextStepId;
+      });
+      ((s.listConfig?.sections) || []).forEach((sec: any) => {
+        (sec.rows || []).forEach((row: any) => {
+          if (row.nextStepId) (session.data as any).listMapping[row.id] = row.nextStepId;
+        });
+      });
+    });
+    await updateSession(session);
+
+    const engine = new DynamicFlowEngine(flow, session, company, from);
+    if ((session.data as any).listMapping?.[buttonId]) {
+      await engine.handleListSelection(buttonId);
+    } else {
+      await engine.handleButtonClick(buttonId);
+    }
+    return;
+  }
+
+  // Normal auto-start
+  session.data = { flowId: flow.flowId };
+  await updateSession(session);
+  const engine = new DynamicFlowEngine(flow, session, company, from);
+  await engine.executeStep(startStepId);
+}
+
+/**
+ * Helper: Continue an active flow
+ */
+async function continueFlow(
+  session: UserSession,
+  company: any,
+  from: string,
+  companyId: string,
+  buttonId: string | undefined,
+  userInput: string,
+  rawInput: string,
+  messageType: string,
+  mediaUrl: string | undefined,
+  message: ChatbotMessage
+): Promise<void> {
+  let flow = await ChatbotFlow.findOne({ flowId: session.data.flowId, isActive: true });
+
+  if (!flow && mongoose.Types.ObjectId.isValid(String(session.data.flowId))) {
+    flow = await ChatbotFlow.findOne({ _id: session.data.flowId, isActive: true });
+    if (flow) {
+      session.data.flowId = (flow as any).flowId;
+      await updateSession(session);
+    }
+  }
+
+  if (!flow) {
+    console.warn('⚠️ Active flow not found or deactivated, clearing session');
+    await clearSession(from, companyId);
+    await sendWhatsAppMessage(company, from, ui('service_unavailable', session.language || 'en'));
+    return;
+  }
+
+  const engine = new DynamicFlowEngine(flow, session, company, from);
+
+  // 1. Date/Time selections (Special handlers)
+  if (buttonId?.startsWith('date_') && session.data.dateMapping) {
+    const date = session.data.dateMapping[buttonId];
+    if (date) {
+      session.data.selectedDate = date;
+      session.data.appointmentDate = date;
+      await updateSession(session);
+      const nextStepId = session.data.availabilityNextStepId || session.data.currentStepId;
+      if (nextStepId) await engine.executeStep(nextStepId);
+    }
+    return;
+  }
+
+  if (buttonId?.startsWith('time_') && session.data.timeMapping) {
+    const time = session.data.timeMapping[buttonId];
+    if (time) {
+      session.data.selectedTime = time;
+      session.data.appointmentTime = time;
+      await updateSession(session);
+      const nextStepId = session.data.availabilityNextStepId || session.data.currentStepId;
+      if (nextStepId) await engine.executeStep(nextStepId);
+    }
+    return;
+  }
+
+  // 2. List selection
+  if (buttonId && session.data.listMapping?.[buttonId] !== undefined) {
+    await engine.handleListSelection(buttonId);
+    return;
+  }
+
+  // 3. Button click
+  if (buttonId) {
+    await engine.handleButtonClick(buttonId);
+    return;
+  }
+
+  // 4. Media upload
+  if (session.data.awaitingMedia && (messageType === 'image' || messageType === 'document' || messageType === 'video') && mediaUrl) {
+    await handleMediaUpload(session, company, from, messageType, mediaUrl, engine);
+    return;
+  }
+
+  // 5. Media skip
+  if (session.data.awaitingMedia) {
+    const skipKeywords = ['back', 'skip', 'cancel', 'no', 'na', 'n/a'];
+    if (skipKeywords.some(k => userInput === k || userInput.includes(k))) {
+      const nextStepId = session.data.awaitingMedia.nextStepId;
+      delete session.data.awaitingMedia;
+      await updateSession(session);
+      if (nextStepId) await engine.executeStep(nextStepId);
+    } else {
+      await sendWhatsAppMessage(company, from, ui('upload_photo', session.language || 'en', flow));
+    }
+    return;
+  }
+
+  // 6. Media input step skip
+  const isMediaInputStep = ['image', 'document', 'video'].includes(session.data.awaitingInput?.type);
+  if (isMediaInputStep && session.data.awaitingInput) {
+    const skipKeywords = ['back', 'skip', 'cancel', 'no', 'na'];
+    if (skipKeywords.some(k => userInput === k || userInput.includes(k))) {
+      const nextStepId = session.data.awaitingInput.nextStepId;
+      delete session.data.awaitingInput;
+      await updateSession(session);
+      if (nextStepId) await engine.executeStep(nextStepId);
+    } else {
+      await sendWhatsAppMessage(company, from, ui('upload_photo', session.language || 'en', flow));
+    }
+    return;
+  }
+
+  // 7. Text input
+  if (session.data.awaitingInput) {
+    await engine.executeStep(session.data.currentStepId, rawInput);
+    return;
+  }
+
+  // 8. Fallback: Encourage menu usage if buttons/lists are active
+  if (session.data.listMapping && Object.keys(session.data.listMapping).length > 0) {
+    await sendWhatsAppMessage(company, from, ui('menu_fallback', session.language || 'en', flow));
+    return;
+  }
+
+  if (session.data.buttonMapping && Object.keys(session.data.buttonMapping).length > 0) {
+    await sendWhatsAppMessage(company, from, ui('button_fallback', session.language || 'en', flow));
+    return;
+  }
+
+  // 9. Re-run current step
+  const stepId = session.data.currentStepId || flow.startStepId;
+  await engine.executeStep(stepId, rawInput);
+}
+
+/**
+ * Helper: Start flow from beginning
+ */
+async function executeFlowFromStart(
+  from: string,
+  companyId: string,
+  flow: any,
+  company: any,
+  trigger: string
+): Promise<void> {
+  let startStepId = getStartStepForTrigger(flow, trigger) || flow.startStepId;
+  const startStep = flow.steps.find((s: any) => s.stepId === startStepId);
+  if (!startStep) startStepId = flow.startStepId;
+
+  await clearSession(from, companyId);
+  const session = await getSession(from, companyId);
+  session.data = { flowId: flow.flowId };
+  await updateSession(session);
+
+  const engine = new DynamicFlowEngine(flow, session, company, from);
+  await engine.executeStep(startStepId);
+}
+
+/**
+ * Helper: Process media upload
+ */
+async function handleMediaUpload(
+  session: UserSession,
+  company: any,
+  from: string,
+  messageType: string,
+  mediaUrl: string,
+  engine: DynamicFlowEngine
+): Promise<void> {
+  const { nextStepId, saveToField = 'media' } = session.data.awaitingMedia;
+
+  try {
+    const accessToken = (company as any)?.whatsappConfig?.accessToken;
+    if (accessToken) {
+      const folder = (company?.name || company?._id?.toString() || 'chatbot').replace(/\s+/g, '_');
+      const cloudUrl = await uploadWhatsAppMediaToCloudinary(mediaUrl, accessToken, folder);
+      storeMedia(session.data, saveToField, cloudUrl || mediaUrl, messageType, !!cloudUrl);
+    } else {
+      storeMedia(session.data, saveToField, mediaUrl, messageType, false);
+    }
+  } catch (err: any) {
+    console.error('❌ Media upload failed:', err.message);
+    storeMedia(session.data, saveToField, mediaUrl, messageType, false);
+  }
+
+  delete session.data.awaitingMedia;
+  await updateSession(session);
+  if (nextStepId) await engine.executeStep(nextStepId);
+}
+
+/**
+ * Helper: Store media in session
+ */
+function storeMedia(data: any, field: string, url: string, type: string, isCloudinary: boolean): void {
+  const mediaEntry = { url, type, uploadedAt: new Date(), isCloudinary };
+
+  if (field === 'media') {
+    data.media = data.media || [];
+    data.media.push(mediaEntry);
+  } else {
+    data[field] = url;
+    const attachmentFields = ['attachmentUrl', 'attachment', 'fileUrl', 'documentUrl', 'mediaUrl'];
+    if (attachmentFields.includes(field)) {
+      data.media = data.media || [];
+      const alreadyStored = data.media.some((m: any) => m.url === url);
+      if (!alreadyStored) data.media.push(mediaEntry);
+    }
+  }
 }
