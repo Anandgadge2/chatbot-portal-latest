@@ -73,12 +73,21 @@ export class ActionService {
       
       // Update session with results for placeholders
       session.data.grievanceId = grievance.grievanceId;
-      session.data.id = grievance.grievanceId; 
+      session.data.id = grievance.grievanceId;
       session.data.date = new Date(grievance.createdAt).toLocaleDateString('en-IN');
       
       const dept = departmentId ? await Department.findById(departmentId) : null;
       const subDept = session.data.subDepartmentId ? await Department.findById(session.data.subDepartmentId) : null;
-      session.data.department = subDept ? `${dept?.name} - ${subDept.name}` : (dept ? dept.name : (session.data.category || 'General'));
+      // Set explicit fields for placeholder resolution in success/confirm steps
+      session.data.department = dept ? dept.name : (session.data.category || 'General');
+      session.data.subDepartment = subDept ? subDept.name : '';
+      session.data.subDepartmentName = subDept ? subDept.name : '';
+      // Keep departmentName the parent-only name for display
+      session.data.departmentName = dept ? dept.name : (session.data.category || 'General');
+      
+      // Build evidence URL string for success notification
+      const evidenceUrls = (session.data.media || []).map((m: any) => m.url).filter(Boolean);
+      session.data.evidenceUrl = evidenceUrls.length > 0 ? evidenceUrls.join(', ') : '';
       
       await updateSession(session);
       
@@ -96,6 +105,9 @@ export class ActionService {
           companyId: company._id,
           description: session.data.description,
           category: session.data.category,
+          departmentName: dept ? dept.name : session.data.category,
+          subDepartmentName: subDept ? subDept.name : undefined,
+          evidenceUrls: (session.data.media || []).map((m: any) => m.url).filter(Boolean),
           createdAt: grievance.createdAt,
           timeline: grievance.timeline
         });

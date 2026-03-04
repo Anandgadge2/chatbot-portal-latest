@@ -702,7 +702,7 @@ export class DynamicFlowEngine {
       return;
     }
 
-    const isMediaInput = ['image', 'document', 'video'].includes(step.inputConfig.inputType);
+    const isMediaInput = ['image', 'document', 'video', 'file'].includes(step.inputConfig.inputType);
 
     // If no user input yet, send the prompt
     if (!userInput) {
@@ -713,11 +713,13 @@ export class DynamicFlowEngine {
       this.session.data.currentStepId = step.stepId;
       if (isMediaInput) {
         // Wait for actual media (or skip); do not advance on text
+        // 'file' type maps to 'document' for WhatsApp media handling
+        const mediaType = (step.inputConfig.inputType === 'file' ? 'document' : step.inputConfig.inputType) as 'image' | 'document' | 'video';
         this.session.data.awaitingMedia = {
-          mediaType: step.inputConfig.inputType as 'image' | 'document' | 'video',
+          mediaType,
           optional: !step.inputConfig.validation?.required,
           saveToField: step.inputConfig.saveToField || 'media',
-          nextStepId: step.inputConfig.nextStepId
+          nextStepId: step.inputConfig.nextStepId || step.nextStepId
         };
         delete this.session.data.awaitingInput;
       } else {
@@ -1164,18 +1166,33 @@ export class DynamicFlowEngine {
   private replacePlaceholders(template: string): string {
     let message = template;
 
-    // Replace session data placeholders (flat keys and nested like status, assignedTo, remarks from track API)
+    // Build comprehensive replacement map from session data
+    const sessionData = this.session.data;
+
+    // Handle confirmation message department/sub-dept formatting
+    const deptDisplay = sessionData.departmentName || sessionData.category || '';
+    const subDeptDisplay = sessionData.subDepartmentName || '';
+
+    // Replace session data placeholders (flat keys from session)
     const placeholderRegex = /\{([^}]+)\}/g;
     message = message.replace(placeholderRegex, (match, key) => {
-      const val = this.session.data[key];
+      const val = sessionData[key];
       return val != null && val !== '' ? String(val) : match;
     });
 
-    // Replace special placeholders
-    message = message.replace(/\{id\}/g, this.session.data.id || this.session.data.grievanceId || this.session.data.appointmentId || this.session.data.leadId || '{id}');
-    message = message.replace(/\{date\}/g, this.session.data.date ?? new Date().toLocaleDateString('en-IN'));
-    message = message.replace(/\{time\}/g, this.session.data.time ?? new Date().toLocaleTimeString('en-IN'));
+    // Replace special placeholders that may not be in session.data directly
+    message = message.replace(/\{id\}/g, sessionData.id || sessionData.grievanceId || sessionData.appointmentId || sessionData.leadId || '{id}');
+    message = message.replace(/\{date\}/g, sessionData.date ?? new Date().toLocaleDateString('en-IN'));
+    message = message.replace(/\{time\}/g, sessionData.time ?? new Date().toLocaleTimeString('en-IN'));
     message = message.replace(/\{companyName\}/g, this.company.name);
+    // Extra aliases used in confirmation steps
+    message = message.replace(/\{department\}/g, deptDisplay);
+    message = message.replace(/\{subDepartment\}/g, subDeptDisplay);
+    message = message.replace(/\{subDepartmentName\}/g, subDeptDisplay);
+    message = message.replace(/\{description\}/g, sessionData.description || '');
+    message = message.replace(/\{citizenName\}/g, sessionData.citizenName || '');
+    // Remove any remaining unresolved placeholders that would look ugly to the user
+    message = message.replace(/\{[a-zA-Z_]+\}/g, '');
 
     return message;
   }
@@ -1350,7 +1367,19 @@ export class DynamicFlowEngine {
     console.error(`   Expected responses: ${JSON.stringify(currentStep.expectedResponses)}`);
     console.error(`   Button mapping: ${JSON.stringify(this.session.data.buttonMapping)}`);
     console.error(`   Default nextStepId: ${currentStep.nextStepId}`);
-    await this.sendErrorMessage();
+    // Send a user-friendly fallback message instead of generic error
+    const lang = this.session.language || 'en';
+    const fallbackMsgs: Record<string, string> = {
+      en: '⚠️ *Invalid selection.*\n\nPlease tap one of the buttons above to continue.',
+      hi: '⚠️ *अमान्य चयन।*\n\nजारी रखने के लिए ऊपर दिए गए बटनों में से किसी एक पर टैप करें।',
+      or: '⚠️ *ଅବୈଧ ଚୟନ।*\n\nଜାରି ରଖିବା ପାଇଁ ଉପରୋକ୍ତ ବଟନ୍ ଗୁଡ଼ିକ ମଧ୍ୟରୁ ଗୋଟିଏ ଟ୍ୟାପ୍ କରନ୍ତୁ।',
+      mr: '⚠️ *अवैध निवड।*\n\nपुढे सुरू ठेवण्यासाठी वरील बटणांपैकी एकावर टॅप करा।'
+    };
+    await sendWhatsAppMessage(this.company, this.userPhone, fallbackMsgs[lang] || fallbackMsgs['en']);
+    // Re-send the current step to show the buttons again
+    if (currentStep.stepType === 'buttons') {
+      await this.executeButtonsStep(currentStep);
+    }
   }
 
   /**
@@ -1422,10 +1451,11 @@ export class DynamicFlowEngine {
     }
 
     // Sub-department selection (grv_sub_dept_* or apt_sub_dept_*)
+    // NOTE: We intentionally do NOT recurse deeper than 1 level of sub-department.
+    // If more nesting is needed, the flow builder should handle it explicitly.
     if (rowId.includes('_sub_dept_')) {
       const match = rowId.match(/^([a-z]+)_sub_dept_(.+)$/);
       if (match) {
-        const prefix = match[1];
         const subDeptId = match[2];
         const subDept = await Department.findById(subDeptId);
         
@@ -1436,26 +1466,14 @@ export class DynamicFlowEngine {
           else if (lang === 'or' && subDept.nameOr) localizedSubName = subDept.nameOr;
           else if (lang === 'mr' && subDept.nameMr) localizedSubName = subDept.nameMr;
 
-          // HIERARCHICAL: Check if this sub-department has its own sub-departments
-          const hierarchicalEnabled = this.company.enabledModules?.includes('HIERARCHICAL_DEPARTMENTS');
-          if (hierarchicalEnabled) {
-            const nestedSubDepts = await Department.find({ parentDepartmentId: subDeptId, isActive: true });
-            if (nestedSubDepts.length > 0) {
-              console.log(`   - Has ${nestedSubDepts.length} nested sub-departments. Loading deeper menu...`);
-              // Move current sub-dept to departmentId (the new "parent")
-              this.session.data.departmentId = subDeptId;
-              this.session.data.departmentName = localizedSubName;
-              await updateSession(this.session);
-              await this.loadSubDepartmentsForGrievance(subDeptId, prefix);
-              return;
-            }
-          }
-
+          // Save sub-department separately (for placeholder resolution and confirmation messages)
           this.session.data.subDepartmentId = subDeptId;
+          this.session.data.subDepartmentName = localizedSubName;
           this.session.data.category = subDept.name;
-          this.session.data.departmentName = `${this.session.data.departmentName} - ${localizedSubName}`;
+          // Keep parent departmentName intact; add sub-dept name separately
+          // Do NOT overwrite departmentName to avoid confusion in confirmation steps
           await updateSession(this.session);
-          console.log(`✅ Sub-department saved to session: ${this.session.data.departmentName}`);
+          console.log(`✅ Sub-department saved to session: ${localizedSubName} (parent dept: ${this.session.data.departmentName})`);
         }
       }
     }
@@ -1465,7 +1483,15 @@ export class DynamicFlowEngine {
       await this.runNextStepIfDifferent(nextStepId, this.session.data.currentStepId);
     } else {
       console.error(`❌ No mapping found for list row ${rowId}`);
-      await this.sendErrorMessage();
+      // User may have typed text when a list was expected — send a friendly fallback
+      const lang = this.session.language || 'en';
+      const fallbackMsgs: Record<string, string> = {
+        en: '⚠️ *Please use the list menu above.*\n\nTap *"Select"* or *"View"* button to open the options and make your selection.',
+        hi: '⚠️ *कृपया ऊपर दी गई सूची मेनू का उपयोग करें।*\n\nविकल्प खोलने के लिए *"चुनें"* या *"देखें"* बटन पर टैप करें।',
+        or: '⚠️ *ଦୟାକରି ଉପରୋକ୍ତ ତାଲିକା ମେନୁ ବ୍ୟବହାର କରନ୍ତୁ।*\n\nବିକଳ୍ପ ଖୋଲିବାକୁ *"ବାଛନ୍ତୁ"* ବଟନ୍ ଟ୍ୟାପ୍ କରନ୍ତୁ।',
+        mr: '⚠️ *कृपया वरील याद्या मेनू वापरा।*\n\nपर्याय उघडण्यासाठी *"निवडा"* बटणावर टॅप करा।'
+      };
+      await sendWhatsAppMessage(this.company, this.userPhone, fallbackMsgs[lang] || fallbackMsgs['en']);
     }
   }
 }

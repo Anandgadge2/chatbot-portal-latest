@@ -337,6 +337,31 @@ async function continueFlow(
     return;
   }
 
+  // ── Fallback: user sent regular text while a list/button was waiting ──────
+  if (session.data.listMapping && Object.keys(session.data.listMapping).length > 0) {
+    const lang = session.language || 'en';
+    const msgs: Record<string, string> = {
+      en: '⚠️ *Please use the menu above.*\n\nTap the *"Select"* or *"View"* button to open the list and pick an option. Typing a reply here won\'t work for this step.',
+      hi: '⚠️ *कृपया ऊपर दिए गए मेनू का उपयोग करें।*\n\nसूची खोलने के लिए *"चुनें"* बटन टैप करें।',
+      or: '⚠️ *ଦୟାକରି ଉପରୋକ୍ତ ମେନୁ ବ୍ୟବହାର କରନ୍ତୁ।*\n\n*"ବାଛନ୍ତୁ"* ବଟନ୍ ଟ୍ୟାପ୍ କରି ତାଲିକାରୁ ବାଛନ୍ତୁ।',
+      mr: '⚠️ *कृपया वरील मेनू वापरा।*\n\n*"निवडा"* बटण टॅप करून यादीतून निवडा।'
+    };
+    await sendWhatsAppMessage(company, from, msgs[lang] || msgs['en']);
+    return;
+  }
+
+  if (session.data.buttonMapping && Object.keys(session.data.buttonMapping).length > 0) {
+    const lang = session.language || 'en';
+    const msgs: Record<string, string> = {
+      en: '⚠️ *Please use the buttons above.*\n\nTap one of the options shown to continue. Typing a reply won\'t work for this step.',
+      hi: '⚠️ *कृपया ऊपर दिए गए बटन का उपयोग करें।*\n\nजारी रखने के लिए किसी एक विकल्प पर टैप करें।',
+      or: '⚠️ *ଦୟାକରି ଉପରୋକ୍ତ ବଟନ୍ ବ୍ୟବହାର କରନ୍ତୁ।*\n\nଜାରି ରଖିବା ପାଇଁ ଗୋଟିଏ ବିକଳ୍ପ ଟ୍ୟାପ୍ କରନ୍ତୁ।',
+      mr: '⚠️ *कृपया वरील बटणे वापरा।*\n\nसुरू ठेवण्यासाठी एका पर्यायांवर टॅप करा।'
+    };
+    await sendWhatsAppMessage(company, from, msgs[lang] || msgs['en']);
+    return;
+  }
+
   // ── Fallback: re-run current step with user input ─────────────────────────
   const stepId = session.data.currentStepId || flow.startStepId;
   console.log(`🔄 No specific handler; running step: ${stepId}`);

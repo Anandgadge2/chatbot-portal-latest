@@ -22,11 +22,15 @@ interface NotificationData {
   citizenPhone: string;
   citizenWhatsApp?: string;
   departmentId?: any;
+  parentDepartmentId?: any;
+  subDepartmentId?: any;
+  departmentName?: string;
+  subDepartmentName?: string;
+  evidenceUrls?: string[];
   companyId: any;
   description?: string;
   purpose?: string;
   category?: string;
-  priority?: string;
   location?: string;
   remarks?: string;
   assignedTo?: any;
@@ -307,7 +311,6 @@ export async function notifyDepartmentAdminOnCreation(
         citizenPhone: data.citizenPhone,
         departmentName: department ? department.name : (data.type === 'appointment' ? 'CEO Office' : 'General'),
         category: data.category,
-        priority: data.priority,
         description: data.description,
         purpose: data.purpose,
         location: data.location,
@@ -337,26 +340,37 @@ export async function notifyDepartmentAdminOnCreation(
         const typeLabel = data.type === 'grievance' ? 'GRIEVANCE' : 'APPOINTMENT';
         const categoryText = data.category ? `\n📂 *Category:* ${data.category}\n` : '';
         const locationText = data.location ? `\n📍 *Location:* ${data.location}\n` : '';
-        const deptName = department ? department.name : (data.type === 'appointment' ? 'CEO - Zilla Parishad' : 'General');
+        // Use passed-in dept/subDept names if available, otherwise lookup
+        const mainDeptName = data.departmentName || (department ? department.name : (data.type === 'appointment' ? 'CEO Office' : 'General'));
+        const subDeptName = data.subDepartmentName || '';
+        const deptLine = subDeptName
+          ? `🏢 *Department:* ${mainDeptName}\n🏢 *Sub-Department:* ${subDeptName}`
+          : `🏢 *Department:* ${mainDeptName}`;
         
+        // Evidence/media
+        const evidenceUrls: string[] = data.evidenceUrls || [];
+        const evidenceText = evidenceUrls.length > 0
+          ? `\n📎 *Uploaded Evidence:*\n${evidenceUrls.join('\n')}`
+          : '';
+
         message =
           `*${company.name}*\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
           `📋 *NEW ${typeLabel} RECEIVED*\n\n` +
           `Respected ${user.getFullName()},\n\n` +
-          `This is to inform you that a new ${data.type} has been received and is now available on your dashboard for review.\n\n` +
-          `*Details:*\n` +
-          `🎫 *Ref ID:* ${data.grievanceId || data.appointmentId}\n` +
-          `👤 *Citizen:* ${data.citizenName}\n` +
-          `📞 *Contact:* ${data.citizenPhone}\n` +
-          `🏢 *Department:* ${deptName}${categoryText}${locationText}` +
-          `📝 *Description:*\n${data.description || data.purpose}\n\n` +
-          `📅 *Received:* ${formattedDate}\n\n` +
-          `*Dashboard Visibility:*\n` +
-          `This ${data.type} is automatically visible on the ${type === 'COMPANY_ADMIN' ? 'Company Admin' : 'Department Admin'} dashboard for tracking and management.\n\n` +
+          `Grievance/Appointment Details:\n` +
+          `🎫 *Reference ID:* ${data.grievanceId || data.appointmentId}\n` +
+          `👤 *Citizen Name:* ${data.citizenName}\n` +
+          `📞 *Contact Number:* ${data.citizenPhone}\n` +
+          `${deptLine}\n` +
+          `📝 *Description:*\n${data.description || data.purpose}${evidenceText}${categoryText}${locationText}` +
+          `\n📅 *Received On:* ${formattedDate}\n\n` +
+          `*Action Required:*\n` +
+          `Please review this grievance at your earliest convenience and take appropriate action. Kindly ensure timely resolution as per the service level agreement (SLA) guidelines.\n\n` +
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-          `Digital Governance System\n` +
-          `*${company.name}*`;
+          `*${company.name}*\n` +
+          `Digital Grievance Redressal System\n` +
+          `This is an automated notification.`;
       }
       await safeSendWhatsApp(company, user.phone, message);
     }
@@ -402,7 +416,6 @@ export async function notifyUserOnAssignment(
       citizenName: data.citizenName,
       citizenPhone: data.citizenPhone,
       departmentName,
-      priority: data.priority,
       description: data.description || data.purpose,
       purpose: data.purpose,
       assignedByName: assignedByName,
