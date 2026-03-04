@@ -37,11 +37,27 @@ export class ActionService {
         departmentId = await findDepartmentByCategory(company._id, session.data.category);
       }
 
-      // Sanitize media
+      // Collect media from session.data.media[] (array) AND any plain-string attachment fields.
+      // The grievance flow may save the upload to session.data.attachmentUrl (string) because
+      // the input step's saveToField is 'attachmentUrl', not 'media'.
       const validMediaTypes = ['image', 'document', 'video'];
-      const sanitizedMedia = (session.data.media || []).filter(
+      const mediaFromArray: any[] = (session.data.media || []).filter(
         (m: any) => m && m.url && validMediaTypes.includes(m.type)
       );
+
+      // Detect uploaded files stored as plain strings in common field names
+      const extraAttachmentFields = ['attachmentUrl', 'attachment', 'fileUrl', 'documentUrl', 'mediaUrl'];
+      const extraMedia: any[] = [];
+      for (const field of extraAttachmentFields) {
+        const val = session.data[field];
+        if (val && typeof val === 'string' && val.startsWith('http')) {
+          // Guess type: if URL contains 'image' or ends with image extension → image, else document
+          const isImg = /\.(jpe?g|png|gif|webp|bmp)(\?|$)/i.test(val) || val.includes('/image/') || val.toLowerCase().includes('image');
+          extraMedia.push({ url: val, type: isImg ? 'image' : 'document', uploadedAt: new Date(), isCloudinary: val.includes('cloudinary') });
+        }
+      }
+
+      const sanitizedMedia = [...mediaFromArray, ...extraMedia];
       
       const grievanceData = {
         companyId: company._id,

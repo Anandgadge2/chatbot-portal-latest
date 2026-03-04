@@ -1508,16 +1508,78 @@ export class DynamicFlowEngine {
           else if (lang === 'or' && department.nameOr) localizedName = department.nameOr;
           else if (lang === 'mr' && department.nameMr) localizedName = department.nameMr;
 
-          // Hierarchical modules are now handled explicitly via flow nodes (dynamicSource: 'sub-departments')
-          // No longer auto-triggers sub-dept menu to avoid showing it twice against flow's own nodes.
           this.session.data.departmentId = departmentId;
           this.session.data.departmentName = localizedName;
           this.session.data.category = department.name;
           delete this.session.data.subDepartmentId;
+          delete this.session.data.subDepartmentName;
           await updateSession(this.session);
-          console.log(`✅ Department saved to session: ${localizedName}. Continuing via flow routing.`);
-          
-          console.log(`✅ Department saved to session: ${localizedName}`);
+          console.log(`✅ Department saved to session: ${localizedName}. Checking for sub-departments...`);
+
+          // --- Auto-inject sub-department list if this department has children ---
+          const subDepartments = await Department.find({
+            parentDepartmentId: departmentId,
+            _id: { $ne: departmentId },
+            isActive: true
+          });
+
+          if (subDepartments.length > 0) {
+            console.log(`🏢 Found ${subDepartments.length} sub-departments. Injecting sub-dept list...`);
+
+            // Determine which step to advance to after a sub-dept is chosen
+            const currentStep = this.flow.steps.find(s => s.stepId === this.session.data.currentStepId);
+            const afterSubDeptStepId = listMapping[rowId] || currentStep?.nextStepId;
+
+            const rows = subDepartments.map((dept: any) => {
+              let displayName = dept.name;
+              if (lang === 'hi' && dept.nameHi?.trim()) displayName = dept.nameHi.trim();
+              else if (lang === 'or' && dept.nameOr?.trim()) displayName = dept.nameOr.trim();
+              else if (lang === 'mr' && dept.nameMr?.trim()) displayName = dept.nameMr.trim();
+
+              let displayDesc = (dept.description || '').substring(0, 72);
+              if (lang === 'hi' && dept.descriptionHi?.trim()) displayDesc = dept.descriptionHi.trim().substring(0, 72);
+              else if (lang === 'or' && dept.descriptionOr?.trim()) displayDesc = dept.descriptionOr.trim().substring(0, 72);
+              else if (lang === 'mr' && dept.descriptionMr?.trim()) displayDesc = dept.descriptionMr.trim().substring(0, 72);
+
+              return {
+                id: `${prefix}_sub_dept_${dept._id}`,
+                title: displayName.length > 24 ? displayName.substring(0, 21) + '...' : displayName,
+                description: displayDesc
+              };
+            });
+
+            // Save sub-dept list mapping pointing to the step after the dept step
+            this.session.data.listMapping = {};
+            rows.forEach((row: any) => {
+              this.session.data.listMapping[row.id] = afterSubDeptStepId;
+            });
+            await updateSession(this.session);
+
+            // Send sub-department WhatsApp list
+            const subDeptTitle: Record<string, string> = {
+              en: '🏢 *Select Sub-Department*\n\nPlease choose the specific section:',
+              hi: '🏢 *उप-विभाग चुनें*\n\nकृपया संबंधित अनुभाग चुनें:',
+              or: '🏢 *ଉପ-ବିଭାଗ ଚୟନ କରନ୍ତୁ*\n\nଦୟାକରି ସଂଶ୍ଳିଷ୍ଟ ବିଭାଗ ବାଛନ୍ତୁ:',
+              mr: '🏢 *पोट-विभाग निवडा*\n\nकृपया संबंधित विभाग निवडा:'
+            };
+            const subDeptBtn: Record<string, string> = {
+              en: 'Select Section',
+              hi: 'विभाग चुनें',
+              or: 'ବିଭାଗ ବାଛନ୍ତୁ',
+              mr: 'विभाग निवडा'
+            };
+
+            await sendWhatsAppList(
+              this.company,
+              this.userPhone,
+              subDeptTitle[lang] || subDeptTitle['en'],
+              subDeptBtn[lang] || subDeptBtn['en'],
+              [{ title: ui('select_dept', lang), rows }]
+            );
+            return; // ← stop here; sub-dept selection will advance the flow
+          } else {
+            console.log(`ℹ️ No sub-departments for department ${departmentId}. Advancing normally.`);
+          }
         }
       }
     }

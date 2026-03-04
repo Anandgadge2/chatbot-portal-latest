@@ -433,11 +433,25 @@ async function handleMediaUpload(
 }
 
 function storeMedia(data: any, field: string, url: string, type: string, isCloudinary: boolean): void {
+  const mediaEntry = { url, type, uploadedAt: new Date(), isCloudinary };
+
   if (field === 'media') {
+    // Standard media array field
     data.media = data.media || [];
-    data.media.push({ url, type, uploadedAt: new Date(), isCloudinary });
+    data.media.push(mediaEntry);
   } else {
+    // Custom field name (e.g. attachmentUrl) — save the URL string for placeholder resolution
     data[field] = url;
+    // ALSO push to data.media[] so the Grievance/Appointment model always receives it
+    const attachmentFields = ['attachmentUrl', 'attachment', 'fileUrl', 'documentUrl', 'mediaUrl'];
+    if (attachmentFields.includes(field)) {
+      data.media = data.media || [];
+      // Only push if not already in array (avoid duplicates)
+      const alreadyStored = data.media.some((m: any) => m.url === url);
+      if (!alreadyStored) {
+        data.media.push(mediaEntry);
+      }
+    }
   }
 }
 
