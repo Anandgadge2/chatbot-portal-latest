@@ -446,7 +446,6 @@ export class DynamicFlowEngine {
       if (stepForSubDeptCheck && stepForSubDeptCheck.nextStepId) {
         const nextStep = this.flow.steps.find(s => s.stepId === stepForSubDeptCheck.nextStepId);
         const isNextStepSubDept = nextStep && (
-          (nextStep.data?.dynamicSource === 'sub-departments') || 
           (nextStep.listConfig as any)?.dynamicSource === 'sub-departments' ||
           (nextStep.listConfig as any)?.isDynamic === true
         );
@@ -1421,6 +1420,46 @@ export class DynamicFlowEngine {
         await updateSession(this.session);
       }
       
+      // ✅ CRITICAL: Trigger business actions on confirm/submit steps
+      // This path is hit when buttons don't have nextStepId set (e.g. Jharsuguda JSON flow)
+      // — routing comes purely from step.nextStepId set by the flow transformer via edges.
+      const defNextStepId = currentStep.nextStepId;
+      const dfIsGrievanceConfirmStep = (
+        currentStep.stepId === 'grievance_confirm' ||
+        currentStep.stepId?.startsWith('grievance_confirm_') ||
+        currentStep.stepId?.startsWith('grv_conf_') ||
+        currentStep.stepId?.startsWith('grv_confirm_')
+      );
+      const dfIsGrievanceSuccessStep = (
+        defNextStepId === 'grievance_success' ||
+        defNextStepId?.startsWith('grievance_success') ||
+        defNextStepId?.startsWith('grv_success_')
+      );
+      // For this path, ANY button click from a grv_confirm step to grv_success should trigger
+      // (because cancel buttons route to menu — NOT to grv_success — so this is safe)
+      const dfIsNotCancel = !String(buttonId).startsWith('cancel') && !String(buttonId).startsWith('cancel_grv');
+      
+      if (dfIsGrievanceConfirmStep && dfIsGrievanceSuccessStep && dfIsNotCancel) {
+        console.log(`🎯 [Path3/default] Triggering createGrievance. StepId: ${currentStep.stepId}, NextStep: ${defNextStepId}, ButtonId: ${buttonId}`);
+        await ActionService.createGrievance(this.session, this.company, this.userPhone);
+      } else {
+        const dfIsAptConfirmStep = (
+          currentStep.stepId === 'appointment_confirm' ||
+          currentStep.stepId?.startsWith('appointment_confirm_') ||
+          currentStep.stepId?.startsWith('apt_conf_') ||
+          currentStep.stepId?.startsWith('apt_confirm_')
+        );
+        const dfIsAptSuccessStep = (
+          defNextStepId === 'appointment_submitted' ||
+          defNextStepId?.startsWith('appointment_submitted') ||
+          defNextStepId?.startsWith('apt_success_')
+        );
+        if (dfIsAptConfirmStep && dfIsAptSuccessStep && dfIsNotCancel) {
+          console.log(`🎯 [Path3/default] Triggering createAppointment. StepId: ${currentStep.stepId}, NextStep: ${defNextStepId}, ButtonId: ${buttonId}`);
+          await ActionService.createAppointment(this.session, this.company, this.userPhone);
+        }
+      }
+
       console.log(`   Executing next step from default: ${currentStep.nextStepId}`);
       await this.runNextStepIfDifferent(currentStep.nextStepId, currentStep.stepId);
       return;

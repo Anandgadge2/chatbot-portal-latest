@@ -380,6 +380,53 @@ router.post('/', authenticate, requireSuperAdmin, async (req: Request, res: Resp
     
     logger.info(`✅ Transformed ${transformedSteps.length} steps`);
 
+    // ✅ CRITICAL: Process EDGES to inject button routing into expectedResponses.
+    // The JSON flow uses edges with `sourceHandle` = button ID to define routing.
+    // Without this, button clicks from the JSON flow have no routing information.
+    if (edges && Array.isArray(edges) && edges.length > 0) {
+      logger.info(`🔗 Processing ${edges.length} edge(s) to inject button routing...`);
+      
+      for (const edge of edges) {
+        if (!edge.source || !edge.target) continue;
+        
+        const sourceStep = transformedSteps.find((s: any) => s.stepId === edge.source);
+        if (!sourceStep) continue;
+        
+        if (edge.sourceHandle) {
+          // Edge with a sourceHandle = button click routing
+          // Set as an expectedResponse on the source step
+          if (!sourceStep.expectedResponses) sourceStep.expectedResponses = [];
+          
+          // Avoid duplicates
+          const alreadyExists = sourceStep.expectedResponses.some(
+            (er: any) => er.type === 'button_click' && er.value === edge.sourceHandle
+          );
+          if (!alreadyExists) {
+            sourceStep.expectedResponses.push({
+              type: 'button_click',
+              value: edge.sourceHandle,
+              nextStepId: edge.target
+            });
+          }
+          
+          // Also ensure button objects have nextStepId set (used for buttonMapping fallback)
+          if (sourceStep.buttons && Array.isArray(sourceStep.buttons)) {
+            const matchingBtn = sourceStep.buttons.find((b: any) => b.id === edge.sourceHandle);
+            if (matchingBtn) {
+              matchingBtn.nextStepId = edge.target;
+            }
+          }
+        } else {
+          // Edge without sourceHandle = direct step transition (auto-advance)
+          // Only set nextStepId if not already set
+          if (!sourceStep.nextStepId) {
+            sourceStep.nextStepId = edge.target;
+          }
+        }
+      }
+      logger.info(`✅ Edge processing complete. Button routing injected into steps.`);
+    }
+
     // Validate WhatsApp Business API limits
     for (let i = 0; i < transformedSteps.length; i++) {
       const err = validateStepWhatsAppLimits(transformedSteps[i], i);
@@ -709,6 +756,36 @@ router.put('/:id', authenticate, requireSuperAdmin, async (req: Request, res: Re
         if (err) {
           return res.status(400).json({ success: false, message: err });
         }
+      }
+
+      // ✅ CRITICAL: Process EDGES to inject button routing into expectedResponses (same as POST route)
+      if (edges && Array.isArray(edges) && edges.length > 0) {
+        logger.info(`🔗 [PUT] Processing ${edges.length} edge(s) to inject button routing...`);
+        for (const edge of edges) {
+          if (!edge.source || !edge.target) continue;
+          const sourceStep = transformedSteps.find((s: any) => s.stepId === edge.source);
+          if (!sourceStep) continue;
+          if (edge.sourceHandle) {
+            if (!sourceStep.expectedResponses) sourceStep.expectedResponses = [];
+            const alreadyExists = sourceStep.expectedResponses.some(
+              (er: any) => er.type === 'button_click' && er.value === edge.sourceHandle
+            );
+            if (!alreadyExists) {
+              sourceStep.expectedResponses.push({
+                type: 'button_click',
+                value: edge.sourceHandle,
+                nextStepId: edge.target
+              });
+            }
+            if (sourceStep.buttons && Array.isArray(sourceStep.buttons)) {
+              const matchingBtn = sourceStep.buttons.find((b: any) => b.id === edge.sourceHandle);
+              if (matchingBtn) matchingBtn.nextStepId = edge.target;
+            }
+          } else {
+            if (!sourceStep.nextStepId) sourceStep.nextStepId = edge.target;
+          }
+        }
+        logger.info(`✅ [PUT] Edge processing complete.`);
       }
     }
 
