@@ -33,46 +33,64 @@
     },
     {
       "id": "main_menu_en",
-      "type": "buttonMessage",
+      "type": "listMessage",
       "position": { "x": 600, "y": 200 },
       "data": {
         "label": "Main Menu (EN)",
         "messageText": "🏛️ *Citizen Services Menu*\n\nPlease select a service:",
-        "buttons": [
-          { "id": "grv_en", "text": "📝 File Grievance", "type": "quick_reply" },
-          { "id": "apt_en", "text": "📅 Book Appointment", "type": "quick_reply" },
-          { "id": "trk_en", "text": "🔍 Track Status", "type": "quick_reply" },
-          { "id": "help_en", "text": "ℹ️ Helpdesk & Support", "type": "quick_reply" }
+        "buttonText": "Select Service",
+        "sections": [
+          {
+            "title": "Services",
+            "rows": [
+              { "id": "grv_en", "title": "📝 File Grievance", "description": "Lodge a formal complaint" },
+              { "id": "apt_en", "title": "📅 Book Appointment", "description": "Schedule meeting with Collector" },
+              { "id": "trk_en", "title": "🔍 Track Status", "description": "Check application status" },
+              { "id": "help_en", "title": "ℹ️ Help & Support", "description": "Office info and helpline" }
+            ]
+          }
         ]
       }
     },
     {
       "id": "main_menu_hi",
-      "type": "buttonMessage",
+      "type": "listMessage",
       "position": { "x": 600, "y": 600 },
       "data": {
         "label": "Main Menu (HI)",
         "messageText": "🏛️ *नागरिक सेवा मेनू*\n\nकृपया एक सेवा चुनें:",
-        "buttons": [
-          { "id": "grv_hi", "text": "📝 शिकायत दर्ज करें", "type": "quick_reply" },
-          { "id": "apt_hi", "text": "📅 अपॉइंटमेंट बुक करें", "type": "quick_reply" },
-          { "id": "trk_hi", "text": "🔍 स्थिति ट्रैक करें", "type": "quick_reply" },
-          { "id": "help_hi", "text": "ℹ️ हेल्पडेस्क और सहायता", "type": "quick_reply" }
+        "buttonText": "सेवा चुनें",
+        "sections": [
+          {
+            "title": "सेवाएं",
+            "rows": [
+              { "id": "grv_hi", "title": "📝 शिकायत भेजें", "description": "औपचारिक शिकायत दर्ज करें" },
+              { "id": "apt_hi", "title": "📅 बुकिंग करें", "description": "कलेक्टर के साथ बैठक शेड्यूल करें" },
+              { "id": "trk_hi", "title": "🔍 स्थिति जांचें", "description": "अपनी शिकायत/बुकिंग ट्रैक करें" },
+              { "id": "help_hi", "title": "ℹ️ सहायता केंद्र", "description": "संपर्क और सहायता जानकारी" }
+            ]
+          }
         ]
       }
     },
     {
       "id": "main_menu_or",
-      "type": "buttonMessage",
+      "type": "listMessage",
       "position": { "x": 600, "y": 1000 },
       "data": {
         "label": "Main Menu (OR)",
         "messageText": "🏛️ *ନାଗରିକ ସେବା ମେନୁ*\n\nଦୟାକରି ଏକ ସେବା ଚୟନ କରନ୍ତୁ:",
-        "buttons": [
-          { "id": "grv_or", "text": "📝 ଅଭିଯୋଗ ଦାଖଲ କରନ୍ତୁ", "type": "quick_reply" },
-          { "id": "apt_or", "text": "📅 ଆପଏଣ୍ଟମେଣ୍ଟ ବୁକ୍ କରନ୍ତୁ", "type": "quick_reply" },
-          { "id": "trk_or", "text": "🔍 ସ୍ଥିତି ଟ୍ରାକ୍ କରନ୍ତୁ", "type": "quick_reply" },
-          { "id": "help_or", "text": "ℹ️ ହେଲ୍ପଡେସ୍କ ଏବଂ ସହାୟତା", "type": "quick_reply" }
+        "buttonText": "ସେବା ଚୟନ କରନ୍ତୁ",
+        "sections": [
+          {
+            "title": "ସେବାଗୁଡିକ",
+            "rows": [
+              { "id": "grv_or", "title": "📝 ଅଭିଯୋଗ", "description": "ଆନୁଷ୍ଠାନିକ ଅଭିଯୋଗ ଦାଖଲ କରନ୍ତୁ" },
+              { "id": "apt_or", "title": "📅 ବୁକିଂ କରିବେ", "description": "କଲେକ୍ଟରଙ୍କ ସହିତ ସାକ୍ଷାତ ପାଇଁ ସମୟ" },
+              { "id": "trk_or", "title": "🔍 ସ୍ଥିତି ଯାଞ୍ଚ", "description": "ଆପଣଙ୍କର ଅଭିଯୋଗ/ବୁକିଂ ଟ୍ରାକ୍ କରନ୍ତୁ" },
+              { "id": "help_or", "title": "ℹ️ ସହାୟତା କେନ୍ଦ୍ର", "description": "ଅଫିସ୍ ଯୋଗାଯୋଗ ଏବଂ ସହାୟତା" }
+            ]
+          }
         ]
       }
     },
@@ -167,7 +185,7 @@
         "label": "Confirm Submission (EN)",
         "messageText": "📋 *Confirm Submission*\n\nPlease verify your details:\n\n👤 *Name:* {citizenName}\n🏢 *Dept:* {departmentName}\n🏢 *Section:* {subDepartmentName}\n📝 *Issue:* {description}\n\n👇 Is this correct?",
         "buttons": [
-          { "id": "submit_grv_en", "text": "✅ Submit Grievance", "type": "quick_reply" },
+          { "id": "submit_grv_en", "text": "✅ Confirm Submit", "type": "quick_reply" },
           { "id": "cancel_grv_en", "text": "❌ Cancel", "type": "quick_reply" }
         ]
       }
@@ -247,8 +265,8 @@
         "label": "Evidence (HI)",
         "messageText": "📷 *सहायक साक्ष्य*\n\nअपने दावे के समर्थन में एक फोटो या दस्तावेज अपलोड करें (वैकल्पिक)।\n\n👇 एक विकल्प चुनें:",
         "buttons": [
-          { "id": "upload_file_hi", "text": "📎 फाइल अपलोड करें", "type": "quick_reply" },
-          { "id": "skip_evidence_hi", "text": "⏭️ छोड़ें", "type": "quick_reply" }
+          { "id": "upload_file_hi", "text": "📎 फाइल भेजें", "type": "quick_reply" },
+          { "id": "skip_evidence_hi", "text": "⏭️ छोड़ें", "type": "quick_reply" }
         ]
       }
     },
@@ -272,7 +290,7 @@
         "label": "Confirm Submission (HI)",
         "messageText": "📋 *सबमिशन की पुष्टि करें*\n\nकृपया अपने विवरणों को सत्यापित करें:\n\n👤 *नाम:* {citizenName}\n🏢 *विभाग:* {departmentName}\n🏢 *अनुभाग:* {subDepartmentName}\n📝 *समस्या:* {description}\n\n👇 क्या यह सही है?",
         "buttons": [
-          { "id": "submit_grv_hi", "text": "✅ शिकायत दर्ज करें", "type": "quick_reply" },
+          { "id": "submit_grv_hi", "text": "✅ भेजें", "type": "quick_reply" },
           { "id": "cancel_grv_hi", "text": "❌ रद्द करें", "type": "quick_reply" }
         ]
       }
@@ -352,7 +370,7 @@
         "label": "Evidence (OR)",
         "messageText": "📷 *ସହାୟକ ପ୍ରମାଣ*\n\nଆପଣଙ୍କ ଅଭିଯୋଗକୁ ସମର୍ଥନ କରିବା ପାଇଁ ଏକ ଫଟୋ କିମ୍ବା ଦଲିଲ ଅପଲୋଡ୍ କରନ୍ତୁ (ବୈକଳ୍ପିକ)।\n\n👇 ଏକ ବିକଳ୍ପ ବାଛନ୍ତୁ:",
         "buttons": [
-          { "id": "upload_file_or", "text": "📎 ଫାଇଲ୍ ଅପଲୋଡ୍ କରନ୍ତୁ", "type": "quick_reply" },
+          { "id": "upload_file_or", "text": "📎 ଫାଇଲ୍ ଦିଅନ୍ତୁ", "type": "quick_reply" },
           { "id": "skip_evidence_or", "text": "⏭️ ବାଦ୍ ଦିଅନ୍ତୁ", "type": "quick_reply" }
         ]
       }
@@ -377,8 +395,8 @@
         "label": "Confirm Submission (OR)",
         "messageText": "📋 *ଦାଖଲ ନିଶ୍ଚିତ କରନ୍ତୁ*\n\nଦୟାକରି ଆପଣଙ୍କର ବିବରଣୀ ଯାଞ୍ଚ କରନ୍ତୁ:\n\n👤 *ନାମ:* {citizenName}\n🏢 *ବିଭାଗ:* {departmentName}\n🏢 *ବିଭାଗ:* {subDepartmentName}\n📝 *ସମସ୍ୟା:* {description}\n\n👇 ଏହା ସଠିକ୍ କି?",
         "buttons": [
-          { "id": "submit_grv_or", "text": "✅ ଅଭିଯୋଗ ଦାଖଲ କରନ୍ତୁ", "type": "quick_reply" },
-          { "id": "cancel_grv_or", "text": "❌ ବାତିଲ୍ କରନ୍ତୁ", "type": "quick_reply" }
+          { "id": "submit_grv_or", "text": "✅ ଦାଖଲ କରନ୍ତୁ", "type": "quick_reply" },
+          { "id": "cancel_grv_or", "text": "❌ ବାତିଲ୍", "type": "quick_reply" }
         ]
       }
     },
@@ -561,7 +579,7 @@
         "label": "Verify Appointment (HI)",
         "messageText": "📋 *अपॉइंटमेंट सत्यापित करें*\n\nकृपया अपने बुकिंग विवरण की पुष्टि करें:\n\n👤 *नाम:* {citizenName}\n🎯 *उद्देश्य:* {meetingPurpose}\n📅 *तारीख:* {appointmentDate}\n⏰ *समय:* कार्यालय द्वारा पुष्टि की जाएगी\n\n👇 क्या यह सही है?",
         "buttons": [
-          { "id": "confirm_apt_hi", "text": "✅ बुकिंग की पुष्टि करें", "type": "quick_reply" },
+          { "id": "confirm_apt_hi", "text": "✅ बुकिंग करें", "type": "quick_reply" },
           { "id": "cancel_apt_hi", "text": "❌ रद्द करें", "type": "quick_reply" }
         ]
       }
@@ -675,8 +693,8 @@
         "label": "Verify Appointment (OR)",
         "messageText": "📋 *ଆପଏଣ୍ଟମେଣ୍ଟ ଯାଞ୍ଚ କରନ୍ତୁ*\n\nଦୟାକରି ଆପଣଙ୍କର ବୁକିଂ ବିବରଣୀ ନିଶ୍ଚିତ କରନ୍ତୁ:\n\n👤 *ନାମ:* {citizenName}\n🎯 *ଉଦ୍ଦେଶ୍ୟ:* {meetingPurpose}\n📅 *ତାରିଖ:* {appointmentDate}\n⏰ *ସମୟ:* କାର୍ଯ୍ୟାଳୟ ଦ୍ୱାରା ନିଶ୍ଚିତ କରାଯିବ\n\n👇 ଏହା ସଠିକ୍ କି?",
         "buttons": [
-          { "id": "confirm_apt_or", "text": "✅ ବୁକିଂ ନିଶ୍ଚିତ କରନ୍ତୁ", "type": "quick_reply" },
-          { "id": "cancel_apt_or", "text": "❌ ବାତିଲ୍ କରନ୍ତୁ", "type": "quick_reply" }
+          { "id": "confirm_apt_or", "text": "✅ ନିଶ୍ଚିତ କରନ୍ତୁ", "type": "quick_reply" },
+          { "id": "cancel_apt_or", "text": "❌ ବାତିଲ୍", "type": "quick_reply" }
         ]
       }
     },
