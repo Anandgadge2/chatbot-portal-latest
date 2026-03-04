@@ -2963,10 +2963,7 @@ function DashboardContent() {
                             </td>
                             <td className="px-4 py-4">
                               <div className="flex flex-col max-w-[150px]">
-                                <span className="text-xs font-semibold text-gray-700 truncate">
-                                  CEO - Zilla Parishad Amravati
-                                </span>
-                                <span className="text-[10px] text-gray-500 truncate italic">{appointment.purpose}</span>
+                                <span className="text-[10px] text-gray-500 whitespace-normal break-words italic">{appointment.purpose}</span>
                               </div>
                             </td>
                             <td className="px-4 py-4">
