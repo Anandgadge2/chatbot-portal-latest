@@ -55,7 +55,7 @@ router.get('/', async (req: Request, res: Response) => {
       })
     );
 
-    res.json({ success: true, data: enriched });
+    res.json({ success: true, data: { roles: enriched } });
   } catch (err: any) {
     console.error('❌ GET /roles error:', err);
     res.status(500).json({ success: false, message: err.message });
@@ -74,7 +74,7 @@ router.get('/:id', async (req: Request, res: Response) => {
     }
 
     const userCount = await User.countDocuments({ customRoleId: role._id });
-    res.json({ success: true, data: { ...role.toObject(), userCount } });
+    res.json({ success: true, data: { role: { ...role.toObject(), userCount } } });
   } catch (err: any) {
     console.error('❌ GET /roles/:id error:', err);
     res.status(500).json({ success: false, message: err.message });
@@ -133,7 +133,7 @@ router.post('/', async (req: Request, res: Response) => {
 
     await logUserAction(req, AuditAction.CREATE, 'Role', role._id.toString(), { roleName: role.name });
 
-    res.status(201).json({ success: true, data: role, message: 'Role created successfully' });
+    res.status(201).json({ success: true, data: { role }, message: 'Role created successfully' });
   } catch (err: any) {
     if (err.code === 11000) {
       return res.status(409).json({ success: false, message: 'A role with this name already exists in this company' });
@@ -166,7 +166,7 @@ router.put('/:id', async (req: Request, res: Response) => {
 
     await logUserAction(req, AuditAction.UPDATE, 'Role', role._id.toString(), { roleName: role.name });
 
-    res.json({ success: true, data: role, message: 'Role updated successfully' });
+    res.json({ success: true, data: { role }, message: 'Role updated successfully' });
   } catch (err: any) {
     if (err.code === 11000) {
       return res.status(409).json({ success: false, message: 'A role with this name already exists in this company' });

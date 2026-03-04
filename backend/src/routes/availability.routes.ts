@@ -121,6 +121,7 @@ router.get('/chatbot/:companyId', async (req: Request, res: Response) => {
     const availableDates: Array<{
       date: string;
       formattedDate: string;
+      buttonLabel: string;
       timeSlots: string[];
       formattedTimeSlots: Array<{ time: string; label: string }>;
     }> = [];
@@ -177,6 +178,7 @@ router.get('/chatbot/:companyId', async (req: Request, res: Response) => {
           data: {
             date: targetDate.toISOString().split('T')[0],
             formattedDate: `${weekdayNames[dayOfWeek]}, ${targetDate.getDate()} ${monthNames[targetDate.getMonth()]} ${targetDate.getFullYear()}`,
+            buttonLabel: `${targetDate.getDate()} ${monthNames[targetDate.getMonth()].slice(0, 3)} (${weekdayNames[dayOfWeek].slice(0, 3)})`,
             timeSlots,
             formattedTimeSlots
           }
@@ -188,6 +190,7 @@ router.get('/chatbot/:companyId', async (req: Request, res: Response) => {
         data: {
           date: targetDate.toISOString().split('T')[0],
           formattedDate: `${weekdayNames[dayOfWeek]}, ${targetDate.getDate()} ${monthNames[targetDate.getMonth()]} ${targetDate.getFullYear()}`,
+          buttonLabel: `${targetDate.getDate()} ${monthNames[targetDate.getMonth()].slice(0, 3)} (${weekdayNames[dayOfWeek].slice(0, 3)})`,
           timeSlots: [],
           formattedTimeSlots: []
         }
@@ -229,6 +232,7 @@ router.get('/chatbot/:companyId', async (req: Request, res: Response) => {
         availableDates.push({
           date: date.toISOString().split('T')[0],
           formattedDate: `${weekdayNames[dayOfWeek]}, ${date.getDate()} ${monthNames[date.getMonth()]} ${date.getFullYear()}`,
+          buttonLabel: `${date.getDate()} ${monthNames[date.getMonth()].slice(0, 3)} (${weekdayNames[dayOfWeek].slice(0, 3)})`,
           timeSlots,
           formattedTimeSlots: timeSlots.map(time => {
             const [hours, minutes] = time.split(':');

@@ -124,6 +124,24 @@ router.post('/', async (req: Request, res: Response) => {
       status: GrievanceStatus.PENDING
     });
 
+    // ✅ Notify Admins about the new portal-submitted grievance
+    const { notifyDepartmentAdminOnCreation } = await import('../services/notificationService');
+    await notifyDepartmentAdminOnCreation({
+      type: 'grievance',
+      action: 'created',
+      grievanceId: grievance.grievanceId,
+      citizenName: grievance.citizenName,
+      citizenPhone: grievance.citizenPhone,
+      citizenWhatsApp: grievance.citizenWhatsApp,
+      departmentId: departmentId as any,
+      companyId: companyId as any,
+      description: grievance.description,
+      category: grievance.category,
+      departmentName: 'Portal Submission',
+      createdAt: grievance.createdAt,
+      timeline: grievance.timeline
+    }).catch(err => console.error('❌ Notification failed:', err));
+
     res.status(201).json({
       success: true,
       message: 'Grievance registered successfully',
