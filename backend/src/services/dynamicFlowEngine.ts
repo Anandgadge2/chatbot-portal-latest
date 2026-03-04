@@ -126,6 +126,30 @@ const UI_STRINGS: Record<string, Record<string, string>> = {
     hi: '⚠️ *कृपया ऊपर दिए गए बटन का उपयोग करें।*\n\nजारी रखने के लिए किसी एक विकल्प पर टैप करें।',
     or: '⚠️ *ଦୟାକରି ଉପରୋକ୍ତ ବଟନ୍ ବ୍ୟବହାର କରନ୍ତୁ।*\n\nଜାରି ରଖିବା ପାଇଁ ଗୋଟିଏ ବିକଳ୍ପ ଟ୍ୟାପ୍ କରନ୍ତୁ।',
     mr: '⚠️ *कृपया वरील बटणे वापरा।*\n\nसुरू ठेवण्यासाठी एका पर्यायांवर टॅप करा।'
+  },
+  track_not_found: {
+    en: '❌ *No Records Found*\n\nWe could not find any record matching that reference number.\n\nPlease double-check the number or contact support.',
+    hi: '❌ *कोई रिकॉर्ड नहीं मिला*\n\nहमें उस संदर्भ संख्या से मेल खाने वाला कोई रिकॉर्ड नहीं मिला।\n\nकृपया संख्या की दोबारा जांच करें या सहायता से संपर्क करें।',
+    or: '❌ *କୌଣସି ରେକର୍ଡ ମିଳିଲାନାହିଁ*\n\nଆମେ ସେହି ରେଫରେନ୍ସ ନମ୍ବର ସହିତ ମେଳ ଖାଉଥିବା କୌଣସି ରେକର୍ଡ ପାଇଲୁ ନାହିଁ।\n\nଦୟାକରି ନମ୍ବର ଯାଞ୍ଚ କରନ୍ତୁ କିମ୍ବା ସମର୍ଥନ ସହିତ ଯୋଗାଯୋଗ କରନ୍ତୁ।',
+    mr: '❌ *कोणतेही रेकॉर्ड आढळले नाही*\n\nआम्हाला त्या संदर्भ क्रमांकाशी जुळणारे कोणतेही रेकॉर्ड सापडले नाही.\n\nकृपया क्रमांक तपासा किंवा सपोर्टशी संपर्क साधा.'
+  },
+  track_found: {
+    en: '📌 📄 *Grievance Status*\n\n📅 Date: {date}\n🎫 Ref No: {refNumber}\n\n🏢 Dept: {departmentName}\n📊 Status: 📋 {status}\n\n📝 Details: {remarks}\n\nFor case escalation, please contact the department head.',
+    hi: '📌 📄 *शिकायत की स्थिति*\n\n📅 तिथि: {date}\n🎫 संदर्भ संख्या: {refNumber}\n\n🏢 विभाग: {departmentName}\n� स्थिति: 📋 {status}\n\n📝 विवरण: {remarks}\n\nमामले को आगे बढ़ाने के लिए, कृपया विभाग प्रमुख से संपर्क करें।',
+    or: '📌 📄 *ଅଭିଯୋଗ ସ୍ଥିତି*\n\n📅 ତାରିଖ: {date}\n🎫 ରେଫରେନ୍ସ ନମ୍ବର: {refNumber}\n\n🏢 ବିଭାଗ: {departmentName}\n📊 ସ୍ଥିତି: 📋 {status}\n\n📝 ବିବରଣୀ: {remarks}\n\nଅଧିକ ସହାୟତା ପାଇଁ, ଦୟାକରି ବିଭାଗୀୟ ମୁଖ୍ୟଙ୍କ ସହ ଯୋଗାଯୋଗ କରନ୍ତୁ।',
+    mr: '📌 📄 *तक्रार स्थिती*\n\n📅 तारीख: {date}\n🎫 संदर्भ क्र: {refNumber}\n\n🏢 विभाग: {departmentName}\n📊 स्थिती: 📋 {status}\n\n📝 तपशील: {remarks}\n\nअधिक मदतीसाठी, कृपया विभाग प्रमुखांशी संपर्क साधा.'
+  },
+  track_another: {
+    en: '🔍 Track Another',
+    hi: '🔍 दूसरा ट्रैक करें',
+    or: '🔍 ଅନ୍ୟ ଟ୍ରାକ୍ କରନ୍ତୁ',
+    mr: '🔍 दुसरे ट्रॅक करा'
+  },
+  main_menu_btn: {
+    en: '↩️ Main Menu',
+    hi: '↩️ मुख्य मेनू',
+    or: '↩️ ମୁଖ୍ୟ ମେନୁ',
+    mr: '↩️ मुख्य मेनू'
   }
 };
 
