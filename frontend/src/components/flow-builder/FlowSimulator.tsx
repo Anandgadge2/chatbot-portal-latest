@@ -98,7 +98,7 @@ export default function FlowSimulator({
     setCurrentNodeId(null);
 
     // Initial system message
-    addMessage("bot", `👋 Welcome! Type "hi" or "menu" to begin.`);
+    addMessage("bot", `👋 Welcome! Type "hi" to begin.`);
   };
 
   // Effect to automatically restart on first mount
@@ -210,11 +210,18 @@ export default function FlowSimulator({
     }
   };
 
-  const continueToNextNode = async (sourceId: string, handleId?: string) => {
+  const continueToNextNode = async (
+    sourceId: string,
+    handleId?: string,
+    fallbackHandleId?: string,
+  ) => {
     let nextEdge;
     if (handleId) {
       nextEdge = edges.find(
-        (e) => e.source === sourceId && e.sourceHandle === handleId,
+        (e) =>
+          e.source === sourceId &&
+          (e.sourceHandle === handleId ||
+            (fallbackHandleId && e.sourceHandle === fallbackHandleId)),
       );
     } else {
       nextEdge = edges.find((e) => e.source === sourceId);
@@ -265,15 +272,26 @@ export default function FlowSimulator({
     addMessage("user", buttonText);
 
     if (buttonId.startsWith("list-row-")) {
-      const [_l, _r, secIdx, rowIdx] = buttonId.split("-");
-      await continueToNextNode(currentNodeId!, `row-${secIdx}-${rowIdx}`);
+      const [_l, _r, secIdxStr, rowIdxStr] = buttonId.split("-");
+      const secIdx = parseInt(secIdxStr, 10);
+      const rowIdx = parseInt(rowIdxStr, 10);
+
+      const currentNode = nodes.find((n) => n.id === currentNodeId);
+      const curSection = (currentNode?.data as any)?.sections?.[secIdx];
+      const rowId = curSection?.rows?.[rowIdx]?.id;
+
+      await continueToNextNode(
+        currentNodeId!,
+        `row-${secIdx}-${rowIdx}`,
+        rowId,
+      );
     } else {
       const currentNode = nodes.find((n) => n.id === currentNodeId);
       if (currentNode?.type === "buttonMessage") {
         const btnIdx = (currentNode.data as any).buttons?.findIndex(
           (b: any) => b.id === buttonId,
         );
-        await continueToNextNode(currentNodeId!, `button-${btnIdx}`);
+        await continueToNextNode(currentNodeId!, `button-${btnIdx}`, buttonId);
       } else {
         await continueToNextNode(currentNodeId!);
       }
@@ -323,7 +341,7 @@ export default function FlowSimulator({
         }
       `}</style>
 
-      <div className="bg-[#E5DDD5] w-full sm:w-[400px] h-full sm:h-[85vh] sm:max-h-[820px] flex flex-col shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6)] relative overflow-hidden sm:rounded-[40px] border-[10px] border-[#1a1a1a] transition-all duration-500 scale-100 origin-center">
+      <div className="bg-[#E5DDD5] w-full sm:w-[420px] h-full sm:h-[87vh] sm:max-h-[840px] flex flex-col shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6)] relative overflow-hidden sm:rounded-[40px] border-[10px] border-[#1a1a1a] transition-all duration-500 scale-100 origin-center">
         {/* Phone Notch */}
         <div className="hidden sm:block absolute top-0 left-1/2 -translate-x-1/2 w-40 h-6 bg-[#1a1a1a] rounded-b-2xl z-50"></div>
 
@@ -359,7 +377,7 @@ export default function FlowSimulator({
                 {isSimulating ? "typing..." : "online"}
               </span>
               <span>•</span>
-              <select
+              {/* <select
                 value={language}
                 onChange={(e) => setLanguage(e.target.value as any)}
                 className="bg-transparent text-[11px] border-none focus:ring-0 text-white cursor-pointer p-0 font-medium"
@@ -376,7 +394,7 @@ export default function FlowSimulator({
                 <option value="mr" className="text-black">
                   मराठी (Marathi)
                 </option>
-              </select>
+              </select> */}
             </div>
           </div>
           <div className="flex items-center gap-4 px-1">
