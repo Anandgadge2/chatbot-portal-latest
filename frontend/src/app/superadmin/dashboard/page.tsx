@@ -40,6 +40,8 @@ export default function SuperAdminDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [companies, setCompanies] = useState<Company[]>([]);
   const [companiesLoading, setCompaniesLoading] = useState(false);
+  const [departmentsLoading, setDepartmentsLoading] = useState(false);
+  const [usersLoading, setUsersLoading] = useState(false);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [stats, setStats] = useState({
@@ -82,6 +84,8 @@ export default function SuperAdminDashboard() {
   const [visiblePasswords, setVisiblePasswords] = useState<string[]>([]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [selectedRoleCompanyId, setSelectedRoleCompanyId] = useState<string>('');
+  const [navigatingCompanyId, setNavigatingCompanyId] = useState<string | null>(null);
+  const [pageTransitionMessage, setPageTransitionMessage] = useState<string>('');
 
   const togglePasswordVisibility = (userId: string) => {
     setVisiblePasswords(prev => 
@@ -89,6 +93,25 @@ export default function SuperAdminDashboard() {
         ? prev.filter(id => id !== userId)
         : [...prev, userId]
     );
+  };
+
+  const startPageTransition = (message: string) => {
+    setPageTransitionMessage(message);
+  };
+
+  const handleOpenCompanyDashboard = (companyId: string) => {
+    if (navigatingCompanyId) return;
+    setNavigatingCompanyId(companyId);
+    startPageTransition('Opening company dashboard...');
+    router.push(`/superadmin/company/${companyId}`);
+  };
+
+  const handleOpenDepartmentDashboard = (department: Department) => {
+    if (navigatingCompanyId) return;
+    const companyId = typeof department.companyId === 'object' ? department.companyId?._id : department.companyId;
+    setNavigatingCompanyId(department._id);
+    startPageTransition('Opening department dashboard...');
+    router.push(`/superadmin/department/${department._id}?companyId=${companyId}`);
   };
 
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -143,6 +166,7 @@ export default function SuperAdminDashboard() {
   }, [companyPage, companyPagination.limit, companyDebouncedSearchTerm, companyStatusFilter, companyTypeFilter]);
 
   const fetchDepartments = useCallback(async (page = departmentPage) => {
+    setDepartmentsLoading(true);
     try {
       const response = await departmentAPI.getAll({ 
         page, 
@@ -160,10 +184,13 @@ export default function SuperAdminDashboard() {
       }
     } catch (error: any) {
       toast.error('Failed to fetch departments');
+    } finally {
+      setDepartmentsLoading(false);
     }
   }, [departmentPage, departmentPagination.limit, deptDebouncedSearchTerm, deptCompanyFilter]);
 
   const fetchUsers = useCallback(async (page = userPage) => {
+    setUsersLoading(true);
     try {
       const response = await userAPI.getAll({ 
         page, 
@@ -182,6 +209,8 @@ export default function SuperAdminDashboard() {
       }
     } catch (error: any) {
       toast.error('Failed to fetch users');
+    } finally {
+      setUsersLoading(false);
     }
   }, [userPage, userPagination.limit, userRoleFilter, debouncedSearchTerm, userCompanyFilter]);
 
@@ -416,6 +445,13 @@ export default function SuperAdminDashboard() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc]">
+      {navigatingCompanyId && (
+        <div className="fixed inset-0 z-[70] bg-slate-900/40 backdrop-blur-[1px] flex items-center justify-center">
+          <div className="bg-white border border-slate-200 rounded-xl px-6 py-5 shadow-2xl">
+            <LoadingSpinner text={pageTransitionMessage || 'Switching page...'} />
+          </div>
+        </div>
+      )}
       {/* Header with Gradient */}
       {/* Classic White Header */}
       {/* Header with Dark Slate Theme */}
@@ -859,10 +895,13 @@ export default function SuperAdminDashboard() {
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div 
-                                className="cursor-pointer"
-                                onClick={() => router.push(`/superadmin/company/${company._id}`)}
+                                className={`cursor-pointer ${pageTransitionMessage ? 'pointer-events-none opacity-80' : ''}`}
+                                onClick={() => handleOpenCompanyDashboard(company._id)}
                               >
-                                <div className="text-sm font-bold text-blue-600 hover:text-blue-800 hover:underline">{company.name}</div>
+                                <div className="text-sm font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-2">
+                                  {company.name}
+                                  {navigatingCompanyId === company._id && <LoadingSpinner className="scale-50 origin-left" />}
+                                </div>
                                 <div className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-tighter">System Entry: {new Date(company.createdAt).toLocaleDateString()}</div>
                               </div>
                             </td>
@@ -1014,7 +1053,13 @@ export default function SuperAdminDashboard() {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-slate-100">
-                      {departments.length === 0 ? (
+                      {departmentsLoading ? (
+                        <tr>
+                          <td colSpan={6} className="py-20 text-center">
+                            <LoadingSpinner text="Loading departments..." />
+                          </td>
+                        </tr>
+                      ) : departments.length === 0 ? (
                         <tr>
                           <td colSpan={6} className="py-20 text-center">
                             <div className="flex flex-col items-center justify-center">
@@ -1033,11 +1078,8 @@ export default function SuperAdminDashboard() {
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div 
-                                className="cursor-pointer"
-                                onClick={() => {
-                                  const companyId = typeof department.companyId === 'object' ? department.companyId?._id : department.companyId;
-                                  router.push(`/superadmin/department/${department._id}?companyId=${companyId}`);
-                                }}
+                                className={`cursor-pointer ${pageTransitionMessage ? 'pointer-events-none opacity-80' : ''}`}
+                                onClick={() => handleOpenDepartmentDashboard(department)}
                               >
                                 <div className="text-sm font-bold text-blue-600 hover:text-blue-800 hover:underline">{department.name}</div>
                                 <div className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-tighter">ID: {department.departmentId}</div>
@@ -1189,7 +1231,11 @@ export default function SuperAdminDashboard() {
                 <div className="overflow-x-auto">
                   {(() => {
                     const filtered = users; // Filtering is now done on the backend
-                    return filtered.length === 0 ? (
+                    return usersLoading ? (
+                    <div className="py-16 text-center">
+                      <LoadingSpinner text="Loading users..." />
+                    </div>
+                  ) : filtered.length === 0 ? (
                     <div className="p-8 text-center text-gray-500">
                       <Users className="w-12 h-12 mx-auto mb-3 text-gray-300" />
                       <p>{userRoleFilter ? `No users with role ${userRoleFilter}.` : 'No users yet. Add users or ensure you have Company Admins and other roles.'}</p>
