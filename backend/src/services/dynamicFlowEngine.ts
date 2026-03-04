@@ -440,6 +440,26 @@ export class DynamicFlowEngine {
         isActive: true 
       });
 
+      // Special check: If the next flow node after the dept step explicitly handles sub-departments,
+      // skip injecting our own dynamic sub-dept menu to avoid showing it twice.
+      const stepForSubDeptCheck = this.flow.steps.find(s => s.stepId === this.session.data.currentStepId);
+      if (stepForSubDeptCheck && stepForSubDeptCheck.nextStepId) {
+        const nextStep = this.flow.steps.find(s => s.stepId === stepForSubDeptCheck.nextStepId);
+        const isNextStepSubDept = nextStep && (
+          (nextStep.data?.dynamicSource === 'sub-departments') || 
+          (nextStep.listConfig as any)?.dynamicSource === 'sub-departments' ||
+          (nextStep.listConfig as any)?.isDynamic === true
+        );
+        
+        if (isNextStepSubDept) {
+          console.log(`⏩ Next flow node is already a sub-dept node. Advancing directly to it instead of injecting menu.`);
+          this.session.data.departmentId = parentId; // Ensure parent is saved
+          await updateSession(this.session);
+          await this.executeStep(stepForSubDeptCheck.nextStepId);
+          return;
+        }
+      }
+
       if (subDepartments.length === 0) {
         console.warn(`⚠️ No sub-departments found for parent ${parentId}. Proceeding.`);
         return;
@@ -480,11 +500,11 @@ export class DynamicFlowEngine {
         rows: rows
       }];
 
-      // Update list mapping for sub-departments
-      const currentStep = this.flow.steps.find(s => s.stepId === this.session.data.currentStepId);
+      // Update list mapping for sub-departments — reuse stepForSubDeptCheck
+      const subDeptMappingStep = this.flow.steps.find(s => s.stepId === this.session.data.currentStepId);
       this.session.data.listMapping = {};
       rows.forEach((row: any) => {
-        this.session.data.listMapping[row.id] = currentStep?.nextStepId || (rowIdPrefix === 'apt' ? 'appointment_date' : 'grievance_description');
+        this.session.data.listMapping[row.id] = subDeptMappingStep?.nextStepId || (rowIdPrefix === 'apt' ? 'appointment_date' : 'grievance_description');
       });
       await updateSession(this.session);
 
@@ -1191,6 +1211,9 @@ export class DynamicFlowEngine {
     message = message.replace(/\{subDepartmentName\}/g, subDeptDisplay);
     message = message.replace(/\{description\}/g, sessionData.description || '');
     message = message.replace(/\{citizenName\}/g, sessionData.citizenName || '');
+    message = message.replace(/\{websiteUrl\}/g, this.company.website || 'Digital Portal');
+    message = message.replace(/\{companyAddress\}/g, this.company.address || 'Office Headquarters');
+    message = message.replace(/\{helplineNumber\}/g, this.company.helplineNumber || 'For support, reply Help');
     // Remove any remaining unresolved placeholders that would look ugly to the user
     message = message.replace(/\{[a-zA-Z_]+\}/g, '');
 
@@ -1260,21 +1283,71 @@ export class DynamicFlowEngine {
           return;
         }
         console.log(`   Executing next step: ${nextStepId}`);
-        const isGrievanceConfirm = (currentStep.stepId === 'grievance_confirm' || (currentStep.stepId && (currentStep.stepId.startsWith('grievance_confirm_') || currentStep.stepId.startsWith('grv_conf_'))));
-        const isAppointmentConfirm = (currentStep.stepId === 'appointment_confirm' || (currentStep.stepId && (currentStep.stepId.startsWith('appointment_confirm_') || currentStep.stepId.startsWith('apt_conf_'))));
-        // Lead Capture Triggers
-        const isLeadConfirm = (currentStep.stepId === 'lead_confirm' || (currentStep.stepId && (currentStep.stepId.startsWith('lead_confirm_') || currentStep.stepId.startsWith('lead_conf_'))));
-        
-        const isGrievanceSuccess = nextStepId === 'grievance_success' || (nextStepId && (nextStepId.startsWith('grievance_success') || nextStepId.startsWith('grv_success_')));
-        const isAppointmentSubmitted = nextStepId === 'appointment_submitted' || (nextStepId && (nextStepId.startsWith('appointment_submitted') || nextStepId.startsWith('apt_success_')));
-        // Lead Capture Success Step
-        const isLeadSuccess = nextStepId === 'lead_success' || (nextStepId && (nextStepId.startsWith('lead_success') || nextStepId.startsWith('lead_success_')));
 
-        if (isGrievanceConfirm && isGrievanceSuccess && (buttonId === 'confirm_yes' || String(buttonId).startsWith('confirm_yes'))) {
+        // ---- Detect which action to trigger ----
+        // Grievance confirm step: any step whose ID contains 'confirm' and maps to a 'grv_success' or 'grievance_success' step
+        const isGrievanceConfirm = (
+          currentStep.stepId === 'grievance_confirm' ||
+          currentStep.stepId?.startsWith('grievance_confirm_') ||
+          currentStep.stepId?.startsWith('grv_conf_') ||
+          currentStep.stepId?.startsWith('grv_confirm_')
+        );
+        const isGrievanceSuccess = (
+          nextStepId === 'grievance_success' ||
+          nextStepId?.startsWith('grievance_success') ||
+          nextStepId?.startsWith('grv_success_')
+        );
+        // Appointment confirm step
+        const isAppointmentConfirm = (
+          currentStep.stepId === 'appointment_confirm' ||
+          currentStep.stepId?.startsWith('appointment_confirm_') ||
+          currentStep.stepId?.startsWith('apt_conf_') ||
+          currentStep.stepId?.startsWith('apt_confirm_')
+        );
+        const isAppointmentSubmitted = (
+          nextStepId === 'appointment_submitted' ||
+          nextStepId?.startsWith('appointment_submitted') ||
+          nextStepId?.startsWith('apt_success_')
+        );
+        // Lead confirm
+        const isLeadConfirm = (
+          currentStep.stepId === 'lead_confirm' ||
+          currentStep.stepId?.startsWith('lead_confirm_') ||
+          currentStep.stepId?.startsWith('lead_conf_')
+        );
+        const isLeadSuccess = (
+          nextStepId === 'lead_success' ||
+          nextStepId?.startsWith('lead_success')
+        );
+
+        // Detect SUBMIT button click (any submit/confirm-yes variant)
+        const isSubmitClick = (
+          buttonId === 'confirm_yes' ||
+          String(buttonId).startsWith('confirm_yes') ||
+          String(buttonId).startsWith('submit_grv') ||
+          String(buttonId).startsWith('submit_grievance') ||
+          buttonId === 'grv_confirm_yes'
+        );
+        const isApptSubmitClick = (
+          buttonId === 'appt_confirm_yes' ||
+          String(buttonId).startsWith('appt_confirm_yes') ||
+          String(buttonId).startsWith('submit_apt') ||
+          String(buttonId).startsWith('confirm_apt')
+        );
+        const isLeadSubmitClick = (
+          buttonId === 'lead_confirm_yes' ||
+          String(buttonId).startsWith('lead_confirm_yes') ||
+          String(buttonId).startsWith('submit_lead')
+        );
+
+        if (isGrievanceConfirm && isGrievanceSuccess && isSubmitClick) {
+          console.log(`🎯 Triggering createGrievance for button: ${buttonId}`);
           await ActionService.createGrievance(this.session, this.company, this.userPhone);
-        } else if (isAppointmentConfirm && isAppointmentSubmitted && (buttonId === 'appt_confirm_yes' || String(buttonId).startsWith('appt_confirm_yes'))) {
+        } else if (isAppointmentConfirm && isAppointmentSubmitted && isApptSubmitClick) {
+          console.log(`🎯 Triggering createAppointment for button: ${buttonId}`);
           await ActionService.createAppointment(this.session, this.company, this.userPhone);
-        } else if (isLeadConfirm && isLeadSuccess && (buttonId === 'lead_confirm_yes' || String(buttonId).startsWith('lead_confirm_yes'))) {
+        } else if (isLeadConfirm && isLeadSuccess && isLeadSubmitClick) {
+          console.log(`🎯 Triggering createLead for button: ${buttonId}`);
           await ActionService.createLead(this.session, this.company, this.userPhone);
         }
         await this.runNextStepIfDifferent(nextStepId, currentStep.stepId);
@@ -1306,6 +1379,23 @@ export class DynamicFlowEngine {
       }
       
       console.log(`   Executing next step from button mapping: ${nextStepIdFromMapping}`);
+      // Also trigger grievance/appointment/lead creation if this is a submit button
+      const bmIsGrievanceConfirm = (
+        currentStep.stepId?.startsWith('grv_confirm_') ||
+        currentStep.stepId?.startsWith('grievance_confirm')
+      );
+      const bmIsGrievanceSuccess = nextStepIdFromMapping?.startsWith('grv_success_') || nextStepIdFromMapping?.startsWith('grievance_success');
+      const bmIsAptConfirm = currentStep.stepId?.startsWith('apt_confirm_') || currentStep.stepId?.startsWith('appointment_confirm');
+      const bmIsAptSuccess = nextStepIdFromMapping?.startsWith('apt_success_') || nextStepIdFromMapping?.startsWith('appointment_submitted');
+      const bmIsSubmit = String(buttonId).startsWith('submit_grv') || String(buttonId).startsWith('submit_apt') || buttonId === 'confirm_yes' || String(buttonId).startsWith('confirm_apt');
+      
+      if (bmIsGrievanceConfirm && bmIsGrievanceSuccess && bmIsSubmit) {
+        console.log(`🎯 [buttonMapping path] Triggering createGrievance for button: ${buttonId}`);
+        await ActionService.createGrievance(this.session, this.company, this.userPhone);
+      } else if (bmIsAptConfirm && bmIsAptSuccess && bmIsSubmit) {
+        console.log(`🎯 [buttonMapping path] Triggering createAppointment for button: ${buttonId}`);
+        await ActionService.createAppointment(this.session, this.company, this.userPhone);
+      }
       await this.runNextStepIfDifferent(nextStepIdFromMapping, currentStep.stepId);
       return;
     } else {

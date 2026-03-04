@@ -196,7 +196,7 @@
       "position": { "x": 2900, "y": 0 },
       "data": {
         "label": "Success Message (EN)",
-        "messageText": "👋 *Thank You*\n\nYour grievance has been successfully registered.\n\n*Reference No:* {grievanceId}\n\nYou will receive updates via WhatsApp.\n\n---\nThank you for contacting Collectorate Jharsuguda.\n\n📞 *For Support:*\n• Type \"Hi\" anytime for assistance\n• Type \"Help\" for helpdesk information\n• Type \"Menu\" to see all services"
+        "messageText": "✅ *Grievance Registered Successfully!*\n\n*Reference Number:* `{grievanceId}`\n\n👤 *Name:* {citizenName}\n🏢 *Department:* {departmentName}\n📂 *Section:* {subDepartmentName}\n📝 *Issue:* {description}\n\nYou will receive status updates via WhatsApp.\n\n---\nThank you for contacting {companyName}.\n\n📞 *For Support:*\n• Type \"Hi\" anytime for assistance\n• Type \"Help\" for helpdesk information\n• Type \"Menu\" to see all services"
       }
     },
     {
@@ -301,7 +301,7 @@
       "position": { "x": 2900, "y": 400 },
       "data": {
         "label": "Success Message (HI)",
-        "messageText": "👋 *आपका धन्यवाद*\n\nआपकी शिकायत सफलतापूर्वक दर्ज कर ली गई है।\n\n*संदर्भ संख्या:* {grievanceId}\n\nआपको व्हाट्सएप के माध्यम से अपडेट प्राप्त होंगे।\n\n---\nकलेक्टरेट झारसुगुडा से संपर्क करने के लिए धन्यवाद।\n\n📞 *सहायता के लिए:*\n• सहायता के लिए कभी भी \"Hi\" टाइप करें\n• हेल्पडेस्क जानकारी के लिए \"Help\" टाइप करें\n• सभी सेवाओं को देखने के लिए \"Menu\" टाइप करें"
+        "messageText": "✅ *शिकायत सफलतापूर्वक दर्ज!*\n\n*संदर्भ संख्या:* `{grievanceId}`\n\n👤 *नाम:* {citizenName}\n🏢 *विभाग:* {departmentName}\n📂 *अनुभाग:* {subDepartmentName}\n📝 *समस्या:* {description}\n\nआपको व्हाट्सएप के माध्यम से अपडेट प्राप्त होंगे।\n\n---\n{companyName} से संपर्क करने के लिए धन्यवाद।\n\n📞 *सहायता के लिए:*\n• सहायता के लिए कभी भी \"Hi\" टाइप करें\n• हेल्पडेस्क जानकारी के लिए \"Help\" टाइप करें\n• सभी सेवाओं को देखने के लिए \"Menu\" टाइप करें"
       }
     },
     {
@@ -406,7 +406,7 @@
       "position": { "x": 2900, "y": 800 },
       "data": {
         "label": "Success Message (OR)",
-        "messageText": "👋 *ଆପଣଙ୍କୁ ଧନ୍ୟବାଦ*\n\nଆପଣଙ୍କ ଅଭିଯୋଗ ସଫଳତାର ସହିତ ପଞ୍ଜିକୃତ ହୋଇଛି।\n\n*ରେଫରେନ୍ସ ନମ୍ବର:* {grievanceId}\n\nଆପଣ ହ୍ବାଟସ୍ଆପ୍ ମାଧ୍ୟମରେ ଅପଡେଟ୍ ପାଇବେ।\n\n---\nଝାରସୁଗୁଡା କଲେକ୍ଟରେଟ୍ ସହିତ ଯୋଗାଯୋଗ କରିଥିବାରୁ ଧନ୍ୟବାଦ।\n\n📞 *ସହାୟତା ପାଇଁ:*\n• ସହାୟତା ପାଇଁ ଯେକୌଣସି ସମୟରେ \"Hi\" ଟାଇପ୍ କରନ୍ତୁ\n• ହେଲ୍ପଡେସ୍କ ସୂଚନା ପାଇଁ \"Help\" ଟାଇପ୍ କରନ୍ତୁ\n• ସମସ୍ତ ସେବା ଦେଖିବା ପାଇଁ \"Menu\" ଟାଇପ୍ କରନ୍ତୁ"
+        "messageText": "✅ *ଅଭିଯୋଗ ସଫଳତାର ସହ ପଞ୍ଜିକୃତ!*\n\n*ରେଫରେନ୍ସ ନମ୍ବର:* `{grievanceId}`\n\n👤 *ନାମ:* {citizenName}\n🏢 *ବିଭାଗ:* {departmentName}\n📂 *ଉପ-ବିଭାଗ:* {subDepartmentName}\n📝 *ସମସ୍ୟା:* {description}\n\nଆପଣ ହ୍ବାଟସ୍ଆପ୍ ମାଧ୍ୟମରେ ଅଡ଼ଡ଼ ଅପଡେଟ ପାଇବେ।\n\n---\n{companyName} ସହ ଯୋଗାଯୋଗ କରିଥିବାରୁ ଧନ୍ୟବାଦ।\n\n📞 *ସହାୟତା ପାଇଁ:*\n• ସହାୟତା ପାଇଁ ଯେକୌଣସି ସମୟରେ \"Hi\" ଟାଇପ୍ କରନ୍ତୁ\n• ହେଲ୍ପଡେସ୍କ ସୂଚନା ପାଇଁ \"Help\" ଟାଇପ୍ କରନ୍ତୁ\n• ସମସ୍ତ ସେବା ଦେଖିବା ପାଇଁ \"Menu\" ଟାଇପ୍ କରନ୍ତୁ"
       }
     },
     {
