@@ -23,49 +23,62 @@ function getLocalText(step: IFlowStep, lang: string): string {
   return step.messageText || '';
 }
 
-/** Fallback UI strings used when no Flow step provides them (department list loading etc.) */
-const UI_TEXT: Record<string, Record<string, string>> = {
-  en: {
-    select_dept: 'Select Department',
-    view_dept: '🏢 View Departments',
-    load_more: '⬇️ Load More',
-    no_dept: '⚠️ No departments are set up for this service yet. Please contact the administrator.',
-    upload_photo: '📷 Please upload the image or document now:',
-    sub_dept_title: '🏢 *Sub-Department Selection*\n\nPlease select the relevant sub-department:',
-    sub_dept_btn: 'View Sub-Depts'
+/**
+ * Localization helper for UI strings
+ */
+const UI_STRINGS: Record<string, Record<string, string>> = {
+  view_dept: {
+    en: '🏢 *Select Department*',
+    hi: '🏢 *विभाग चुनें*',
+    or: '🏢 *ବିଭାଗ ଚୟନ କରନ୍ତୁ*',
+    mr: '🏢 *विभाग निवडा*'
   },
-  hi: {
-    select_dept: 'विभाग चुनें',
-    view_dept: '🏢 विभाग देखें',
-    load_more: '⬇️ और देखें',
-    no_dept: '⚠️ इस सेवा के लिए कोई विभाग सेट नहीं किया गया है। कृपया प्रशासक से संपर्क करें।',
-    upload_photo: '📷 कृपया अभी छवि या दस्तावेज़ अपलोड करें:',
-    sub_dept_title: '🏢 *उप-विभाग चयन*\n\nकृपया संबंधित उप-विभाग चुनें:',
-    sub_dept_btn: 'उप-विभाग देखें'
+  select_dept: {
+    en: 'Please select a department from the list below:',
+    hi: 'कृपया नीचे दी गई सूची से विभाग चुनें:',
+    or: 'ଦୟାକରି ନିମ୍ନଲିଖିତ ତାଲିକାରୁ ବିଭାଗ ଚୟନ କରନ୍ତୁ:',
+    mr: 'कृपया खालील यादीतून विभाग निवडा:'
   },
-  or: {
-    select_dept: 'ବିଭାଗ ବାଛନ୍ତୁ',
-    view_dept: '🏢 ବିଭାଗ ଦେଖନ୍ତୁ',
-    load_more: '⬇️ ଅଧିକ ଦେଖନ୍ତୁ',
-    no_dept: '⚠️ ଏହି ସେବା ପାଇଁ କୌଣସି ବିଭାଗ ସ୍ଥାପନ କରାଯାଇ ନାହିଁ। ଦୟାକରି ପ୍ରଶାସକଙ୍କ ସହ ଯୋଗାଯୋଗ କରନ୍ତୁ।',
-    upload_photo: '📷 ଦୟାକରି ବର୍ତ୍ତମାନ ଛବି/ଦସ୍ତାବିଜ୍ ଅପଲୋଡ କରନ୍ତୁ:',
-    sub_dept_title: '🏢 *ଉପ-ବିଭାଗ ଚୟନ*\n\nଦୟାକରି ସମ୍ବନ୍ଧିତ ଉପ-ବିଭାଗ ବାଛନ୍ତୁ:',
-    sub_dept_btn: 'ଉପ-ବିଭାଗ ଦେଖନ୍ତୁ'
+  sub_dept_title: {
+    en: '🏢 *Select Sub-Department*',
+    hi: '🏢 *उप-विभाग चुनें*',
+    or: '🏢 *ଉପ-ବିଭାଗ ଚୟନ କରନ୍ତୁ*',
+    mr: '🏢 *पोट-विभाग निवडा*'
   },
-  mr: {
-    select_dept: 'विभाग निवडा',
-    view_dept: '🏢 विभाग पहा',
-    load_more: '⬇️ आणखी पहा',
-    no_dept: '⚠️ या सेवेसाठी कोणताही विभाग सेट केलेला नाही. कृपया प्रशासकाशी संपर्क साधा.',
-    upload_photo: '📷 कृपया आता प्रतिमा किंवा दस्तऐवज अपलोड करा:',
-    sub_dept_title: '🏢 *उप-विभाग निवड*\n\nकृपया संबंधित उप-विभाग निवडा:',
-    sub_dept_btn: 'उप-विभाग पहा'
+  sub_dept_btn: {
+    en: 'Select Sub-Dept',
+    hi: 'उप-विभाग चुनें',
+    or: 'ଉପ-ବିଭାଗ ବାଛନ୍ତୁ',
+    mr: 'पोट-विभाग निवडा'
+  },
+  no_dept: {
+    en: '⚠️ No departments or services found for this organization.',
+    hi: '⚠️ इस संगठन के लिए कोई विभाग या सेवाएँ नहीं मिलीं।',
+    or: '⚠️ ଏହି ସଂଗଠନ ପାଇଁ କୌଣସି ବିଭାଗ କିମ୍ବା ସେବା ମିଳିଲା ନାହିଁ ।',
+    mr: '⚠️ या संस्थेसाठी कोणतेही विभाग किंवा सेवा आढळल्या नाहीत.'
+  },
+  load_more: {
+    en: '⬇️ Load More',
+    hi: '⬇️ और देखें',
+    or: '⬇️ ଅଧିକ ଦେଖନ୍ତୁ',
+    mr: '⬇️ अधिक पहा'
+  },
+  upload_photo: {
+    en: '📸 Please upload a photo or document related to your grievance.',
+    hi: '📸 कृपया अपनी शिकायत से संबंधित एक फोटो या दस्तावेज अपलोड करें।',
+    or: '📸 ଦୟାକରି ଆପଣଙ୍କ ଅଭିଯୋଗ ସହିତ ଜଡିତ ଏକ ଫଟୋ କିମ୍ବା ଦଲିଲ ଅପଲୋଡ୍ କରନ୍ତୁ |',
+    mr: '📸 कृपया तुमच्या तक्रारीशी संबंधित फोटो किंवा कागदपत्र अपलोड करा.'
   }
 };
 
 function ui(key: string, lang: string): string {
-  return (UI_TEXT[lang] || UI_TEXT['en'])[key] || (UI_TEXT['en'][key] || key);
+  const translations = UI_STRINGS[key];
+  if (!translations) return key;
+  return translations[lang] || translations['en'] || key;
 }
+
+
+
 
 /**
  * Dynamic Flow Execution Engine
@@ -161,8 +174,31 @@ export class DynamicFlowEngine {
           break;
         
         case 'list':
+        // Check for specific dynamic sources
+        const isDynamicDepts = 
+          step.listConfig?.listSource === 'departments' || 
+          (step.listConfig as any)?.dynamicSource === 'departments' ||
+          (step.listConfig as any)?.isDynamic === true;
+        
+        const isDynamicSubDepts = 
+          (step.listConfig as any)?.dynamicSource === 'sub-departments' ||
+          ((step.listConfig as any)?.isDynamic === true && step.stepId?.includes('subdept'));
+
+        if (isDynamicDepts) {
+          await this.loadDepartmentsForListStep(step);
+        } else if (isDynamicSubDepts) {
+          const parentId = this.session.data.departmentId;
+          const prefix = (step.stepId && (step.stepId.startsWith('apt') || step.stepId.includes('appointment'))) ? 'apt' : 'grv';
+          if (parentId) {
+            await this.loadSubDepartmentsForListStep(step, parentId, prefix);
+          } else {
+            console.warn(`⚠️ Attempted to load sub-departments but no departmentId in session. Falling back to departments.`);
+            await this.loadDepartmentsForListStep(step);
+          }
+        } else {
           await this.executeListStep(step);
-          break;
+        }
+        break;
         
         case 'input':
           await this.executeInputStep(step, userInput);
@@ -227,12 +263,8 @@ export class DynamicFlowEngine {
    * Special handling: grievance_category (or grievance_category_en etc.) loads departments; steps with buttons send buttons
    */
   private async executeMessageStep(step: IFlowStep): Promise<void> {
-    // Special handling for department selection – load departments automatically
-    if (step.stepId === 'grievance_category' || 
-        (step.stepId && (step.stepId.startsWith('grievance_category_') || step.stepId.startsWith('grv_dept_')))) {
-      await this.loadDepartmentsForGrievance(step);
-      return;
-    }
+    // Simple message step - no special ID fallbacks for departments anymore to avoid duplicates
+    // Rely exclusively on step.stepType === 'list' with isDynamic: true in the flow.
 
     // Special handling for track_result: fetch grievance or appointment by refNumber and set session.data for placeholders (status, assignedTo, remarks)
     if (step.stepId === 'track_result' || (step.stepId && step.stepId.startsWith('track_result_'))) {
@@ -292,143 +324,13 @@ export class DynamicFlowEngine {
     await this.runNextStepIfDifferent(step.nextStepId, step.stepId);
   }
 
-  /**
-   * Load and display departments for grievance flow
-   * Updated to only show top-level departments initially
-   */
-  private async loadDepartmentsForGrievance(step: IFlowStep): Promise<void> {
-    const lang = this.session.language || 'en';
-    try {
-      const Department = (await import('../models/Department')).default;
-      
-      console.log(`🏬 Loading top-level departments for company: ${this.company._id}`);
-      
-      // Get ALL departments for this company first to determine structure
-      let allDepts = await Department.find({ 
-        companyId: this.company._id, 
-        isActive: true 
-      });
 
-      // Check if hierarchical departments module is enabled
-      const hierarchicalEnabled = this.company.enabledModules?.includes('HIERARCHICAL_DEPARTMENTS');
-      
-      let departments = allDepts;
-      
-      if (hierarchicalEnabled) {
-        // Filter for top-level departments (no parent) only if module is enabled
-        departments = allDepts.filter((d: any) => !d.parentDepartmentId);
-
-        // Fallback: if no hierarchy is defined, show all
-        if (departments.length === 0 && allDepts.length > 0) {
-          console.warn(`⚠️ Hierarchical Departments enabled but no top-level departments found for company ${this.company._id}. Falling back to all departments.`);
-          departments = allDepts;
-        }
-      }
-      
-      console.log(`📊 Found ${departments.length} top-level department(s)`);
-      
-      if (departments.length === 0) {
-        await sendWhatsAppMessage(this.company, this.userPhone, ui('no_dept', lang));
-        
-        // Auto-advance to next step (never repeat same step)
-        await this.runNextStepIfDifferent(step.nextStepId, step.stepId);
-        return;
-      }
-      
-      // Initialize department offset if not set
-      if (!this.session.data.deptOffset) {
-        this.session.data.deptOffset = 0;
-      }
-      
-      const offset = this.session.data.deptOffset || 0;
-      const showLoadMore = departments.length > offset + 9;
-      const deptRows = departments.slice(offset, offset + 9).map((dept: any) => {
-        // Use department's Hindi/Odia/Marathi name if set and language matches; else fallback to central translation or name
-        let displayName: string;
-        if (lang === 'hi' && dept.nameHi && dept.nameHi.trim()) {
-          displayName = dept.nameHi.trim();
-        } else if (lang === 'or' && dept.nameOr && dept.nameOr.trim()) {
-          displayName = dept.nameOr.trim();
-        } else if (lang === 'mr' && dept.nameMr && dept.nameMr.trim()) {
-          displayName = dept.nameMr.trim();
-        } else {
-          displayName = dept.name;
-        }
-        let displayDesc: string;
-        if (lang === 'hi' && dept.descriptionHi && dept.descriptionHi.trim()) {
-          displayDesc = dept.descriptionHi.trim();
-        } else if (lang === 'or' && dept.descriptionOr && dept.descriptionOr.trim()) {
-          displayDesc = dept.descriptionOr.trim();
-        } else if (lang === 'mr' && dept.descriptionMr && dept.descriptionMr.trim()) {
-          displayDesc = dept.descriptionMr.trim();
-        } else {
-          displayDesc = dept.description?.substring(0, 72) || '';
-        }
-        const prefix = (step.stepId && (step.stepId.startsWith('apt') || step.stepId.includes('appointment'))) ? 'apt' : 'grv';
-        return {
-          id: `${prefix}_dept_${dept._id}`,
-          title: displayName.length > 24 ? displayName.substring(0, 21) + '...' : displayName,
-          description: displayDesc.substring(0, 72)
-        };
-      });
-      
-      if (showLoadMore) {
-        deptRows.push({
-          id: 'grv_load_more',
-          title: ui('load_more', lang),
-          description: `${departments.length - offset - 9} more departments available`
-        });
-      }
-      
-      const sections = [{
-        title: ui('select_dept', lang),
-        rows: deptRows
-      }];
-      
-      console.log(`📋 Sending top-level department list with ${deptRows.length} items (offset: ${offset})`);
-      
-      // Save step info and list mapping to session
-      this.session.data.currentStepId = step.stepId;
-      this.session.data.listMapping = {};
-      const prefix = (step.stepId && (step.stepId.startsWith('apt') || step.stepId.includes('appointment'))) ? 'apt' : 'grv';
-      deptRows.forEach((row: any) => {
-        if (row.id.startsWith(`${prefix}_dept_`)) {
-          // Map department selection to next step (will be intercepted in handleListSelection for sub-depts)
-          this.session.data.listMapping[row.id] = step.nextStepId || (prefix === 'apt' ? 'appointment_date' : 'grievance_description');
-        }
-      });
-      
-      // Handle "Load More" button mapping
-      if (showLoadMore) {
-        this.session.data.listMapping['grv_load_more'] = step.stepId; // Stay on same step
-      }
-      
-      await updateSession(this.session);
-      
-      try {
-        const message = this.replacePlaceholders(getLocalText(step, lang) || ui('view_dept', lang));
-        await sendWhatsAppList(
-          this.company,
-          this.userPhone,
-          message,
-          ui('view_dept', lang),
-          sections
-        );
-      } catch (error) {
-        console.error('❌ Failed to send list, falling back to buttons');
-        // fallback logic...
-      }
-    } catch (error: any) {
-      console.error('❌ Error loading departments for grievance:', error);
-      await sendWhatsAppMessage(this.company, this.userPhone, ui('no_dept', this.session.language || 'en'));
-    }
-  }
 
   /**
    * Load and display sub-departments for a selected parent department
    * Works for both grievance and appointment flows (uses prefix from parent)
    */
-  private async loadSubDepartmentsForGrievance(parentId: string, rowIdPrefix: string = 'grv'): Promise<void> {
+  private async loadSubDepartmentsForListStep(step: IFlowStep, parentId: string, rowIdPrefix: string = 'grv'): Promise<void> {
     try {
       const Department = (await import('../models/Department')).default;
       const lang = this.session.language || 'en';
@@ -507,13 +409,19 @@ export class DynamicFlowEngine {
       });
       await updateSession(this.session);
 
-      await sendWhatsAppList(
-        this.company,
-        this.userPhone,
-        ui('sub_dept_title', lang),
-        ui('sub_dept_btn', lang),
-        sections
-      );
+      try {
+        const lang = this.session.language || 'en';
+        const message = this.replacePlaceholders(getLocalText(step, lang) || ui('sub_dept_title', lang));
+        await sendWhatsAppList(
+          this.company,
+          this.userPhone,
+          message,
+          ui('sub_dept_btn', lang),
+          sections
+        );
+      } catch (error) {
+        console.error('❌ Failed to send sub-dept list:', error);
+      }
     } catch (error: any) {
       console.error('❌ Error loading sub-departments:', error);
     }
@@ -559,16 +467,8 @@ export class DynamicFlowEngine {
       return;
     }
 
-    // Check if we should load departments dynamically
-    const isDynamicDepartments = 
-      step.listConfig.listSource === 'departments' || 
-      (step.listConfig as any).dynamicSource === 'departments' ||
-      (step.listConfig as any).isDynamic === true;
-
-    if (isDynamicDepartments) {
-      await this.loadDepartmentsForListStep(step);
-      return;
-    }
+    // Dynamic flows are now handled by the switch in executeStep.
+    // If we reach here, it's a manual list step.
 
     const lang = this.session.language || 'en';
     const message = this.replacePlaceholders(getLocalText(step, lang));
@@ -1201,6 +1101,7 @@ export class DynamicFlowEngine {
 
     // Replace special placeholders that may not be in session.data directly
     message = message.replace(/\{id\}/g, sessionData.id || sessionData.grievanceId || sessionData.appointmentId || sessionData.leadId || '{id}');
+    message = message.replace(/\{companyId\}/g, this.company.companyId || (this.company._id ? this.company._id.toString() : '{companyId}'));
     message = message.replace(/\{date\}/g, sessionData.date ?? new Date().toLocaleDateString('en-IN'));
     message = message.replace(/\{time\}/g, sessionData.time ?? new Date().toLocaleTimeString('en-IN'));
     message = message.replace(/\{companyName\}/g, this.company.name);
@@ -1532,8 +1433,9 @@ export class DynamicFlowEngine {
     if (isDynamic && currentStep) {
       await this.loadDepartmentsForListStep(currentStep);
     } else if (currentStep) {
-        await this.loadDepartmentsForGrievance(currentStep);
-      }
+      // Fallback for list steps that are dynamic but don't have isDynamic flag (rare)
+      await this.loadDepartmentsForListStep(currentStep);
+    }
       return;
     }
 
@@ -1553,26 +1455,14 @@ export class DynamicFlowEngine {
           else if (lang === 'or' && department.nameOr) localizedName = department.nameOr;
           else if (lang === 'mr' && department.nameMr) localizedName = department.nameMr;
 
-          const hierarchicalEnabled = this.company.enabledModules?.includes('HIERARCHICAL_DEPARTMENTS');
-          
-          if (hierarchicalEnabled) {
-            const subDepts = await Department.find({ parentDepartmentId: departmentId, isActive: true });
-            
-            if (subDepts.length > 0) {
-              console.log(`   - Has ${subDepts.length} sub-departments. Loading sub-menu...`);
-              this.session.data.departmentId = departmentId;
-              this.session.data.departmentName = localizedName;
-              await updateSession(this.session);
-              await this.loadSubDepartmentsForGrievance(departmentId, prefix);
-              return;
-            }
-          }
-
+          // Hierarchical modules are now handled explicitly via flow nodes (dynamicSource: 'sub-departments')
+          // No longer auto-triggers sub-dept menu to avoid showing it twice against flow's own nodes.
           this.session.data.departmentId = departmentId;
           this.session.data.departmentName = localizedName;
           this.session.data.category = department.name;
           delete this.session.data.subDepartmentId;
           await updateSession(this.session);
+          console.log(`✅ Department saved to session: ${localizedName}. Continuing via flow routing.`);
           
           console.log(`✅ Department saved to session: ${localizedName}`);
         }

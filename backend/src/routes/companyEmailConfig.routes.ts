@@ -7,8 +7,50 @@ import { authenticate } from '../middleware/auth';
 import { requireSuperAdmin } from '../middleware/rbac';
 import nodemailer from 'nodemailer';
 import SMTPTransport from 'nodemailer/lib/smtp-transport';
+import { generateNotificationEmail, getTransporterForCompany, sendEmail } from '../services/emailService';
 
 const router = express.Router();
+
+/**
+ * @route   GET /api/email-config/default-template
+ * @desc    Get the built-in default template content for a given template key
+ */
+router.get('/default-template', authenticate, requireSuperAdmin, async (req: Request, res: Response) => {
+  try {
+    const type_action = (req.query.type as string) || 'grievance_created';
+    const parts = type_action.split('_');
+    const type = parts[0] as 'grievance' | 'appointment';
+    const action = parts.slice(1).join('_') as 'created' | 'assigned' | 'resolved';
+    // Generate with placeholder values so superadmin can see the structure
+    const sampleData = {
+      companyName: '{companyName}',
+      recipientName: '{recipientName}',
+      citizenName: '{citizenName}',
+      citizenPhone: '{citizenPhone}',
+      grievanceId: '{grievanceId}',
+      appointmentId: '{appointmentId}',
+      departmentName: '{departmentName}',
+      description: '{description}',
+      purpose: '{purpose}',
+      category: '{category}',
+      location: '{location}',
+      priority: 'MEDIUM',
+      assignedByName: '{assignedByName}',
+      resolvedByName: '{resolvedByName}',
+      remarks: '{remarks}',
+      createdAt: new Date().toISOString(),
+      assignedAt: new Date().toISOString(),
+      resolvedAt: new Date().toISOString(),
+      appointmentDate: new Date().toISOString(),
+      appointmentTime: '10:00',
+    };
+    const result = generateNotificationEmail(type, action, sampleData);
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to generate default template', error: error.message });
+  }
+});
+
 
 const TEMPLATE_KEYS = [
   'grievance_created', 'grievance_assigned', 'grievance_resolved',
@@ -253,7 +295,6 @@ router.post('/company/:companyId/test', authenticate, requireSuperAdmin, async (
       auth: configToTest.auth,
       tls: { 
         rejectUnauthorized: true,
-        // Some older servers might need this, but for security we keep it true by default
       }
     } as SMTPTransport.Options);
 
@@ -272,6 +313,65 @@ router.post('/company/:companyId/test', authenticate, requireSuperAdmin, async (
     });
   }
 });
+
+/**
+ * @route   POST /api/email-config/company/:companyId/send-test
+ * @desc    Send a real test email to verify SMTP delivery end-to-end
+ */
+router.post('/company/:companyId/send-test', authenticate, requireSuperAdmin, async (req: Request, res: Response) => {
+  try {
+    const { companyId } = req.params;
+    const { to } = req.body;
+
+    if (!to || typeof to !== 'string' || !to.includes('@')) {
+      return res.status(400).json({ success: false, message: 'Valid "to" email address is required' });
+    }
+
+    const cid = mongoose.Types.ObjectId.isValid(companyId)
+      ? new mongoose.Types.ObjectId(companyId)
+      : null;
+
+    if (!cid) {
+      return res.status(400).json({ success: false, message: 'Invalid company ID' });
+    }
+
+    const config = await CompanyEmailConfig.findOne({ companyId: cid, isActive: true });
+    if (!config) {
+      return res.status(404).json({ success: false, message: 'No active email configuration found for this company. Please save SMTP settings first.' });
+    }
+
+    const subject = `Test Email from ${config.fromName} – SMTP Verification`;
+    const html = `
+      <!DOCTYPE html>
+      <html><head><meta charset="UTF-8"></head>
+      <body style="font-family: Arial, sans-serif; padding: 30px;">
+        <h2 style="color: #0f4c81;">✅ SMTP Test Successful</h2>
+        <p>This is a test email sent from your <strong>${config.fromName}</strong> email configuration.</p>
+        <table style="border-collapse: collapse; margin: 20px 0;">
+          <tr><td style="padding: 6px 12px; background: #f5f7fa; font-weight: bold;">SMTP Host</td><td style="padding: 6px 12px;">${config.host}</td></tr>
+          <tr><td style="padding: 6px 12px; background: #f5f7fa; font-weight: bold;">Port</td><td style="padding: 6px 12px;">${config.port}</td></tr>
+          <tr><td style="padding: 6px 12px; background: #f5f7fa; font-weight: bold;">From Email</td><td style="padding: 6px 12px;">${config.fromEmail}</td></tr>
+          <tr><td style="padding: 6px 12px; background: #f5f7fa; font-weight: bold;">From Name</td><td style="padding: 6px 12px;">${config.fromName}</td></tr>
+        </table>
+        <p style="color: #27ae60;">If you received this email, your SMTP configuration is working correctly and emails will be delivered to department admins when grievances are submitted.</p>
+        <p style="color: #7f8c8d; font-size: 12px;">Sent at: ${new Date().toLocaleString('en-IN')}</p>
+      </body></html>
+    `;
+
+    const result = await sendEmail(to, subject, html, subject, { companyId: cid });
+    if (result.success) {
+      res.json({ success: true, message: `Test email sent to ${to}` });
+    } else {
+      res.status(500).json({ success: false, message: (result as any).error || 'Failed to send email' });
+    }
+  } catch (error: any) {
+    console.error('Send test email error:', error);
+    res.status(500).json({ success: false, message: error.message || 'Failed to send test email' });
+  }
+});
+
+
+
 
 /**
  * @route   GET /api/email-config/company/:companyId/templates

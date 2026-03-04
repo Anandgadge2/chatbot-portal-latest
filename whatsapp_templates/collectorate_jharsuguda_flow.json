@@ -491,17 +491,7 @@
         "validation": { "required": true }
       }
     },
-    {
-      "id": "trk_api_en",
-      "type": "apiCall",
-      "position": { "x": 1150, "y": 350 },
-      "data": {
-        "label": "Fetch Status (EN)",
-        "method": "GET",
-        "endpoint": "/api/track/{refNumber}",
-        "saveResponseTo": "trackInfo"
-      }
-    },
+
     {
       "id": "trk_result_en",
       "type": "textMessage",
@@ -605,17 +595,7 @@
         "validation": { "required": true }
       }
     },
-    {
-      "id": "trk_api_hi",
-      "type": "apiCall",
-      "position": { "x": 1150, "y": 750 },
-      "data": {
-        "label": "Fetch Status (HI)",
-        "method": "GET",
-        "endpoint": "/api/track/{refNumber}",
-        "saveResponseTo": "trackInfo"
-      }
-    },
+
     {
       "id": "trk_result_hi",
       "type": "textMessage",
@@ -719,17 +699,7 @@
         "validation": { "required": true }
       }
     },
-    {
-      "id": "trk_api_or",
-      "type": "apiCall",
-      "position": { "x": 1150, "y": 1150 },
-      "data": {
-        "label": "Fetch Status (OR)",
-        "method": "GET",
-        "endpoint": "/api/track/{refNumber}",
-        "saveResponseTo": "trackInfo"
-      }
-    },
+
     {
       "id": "trk_result_or",
       "type": "textMessage",
@@ -819,16 +789,13 @@
     { "id": "e_or_apt7", "source": "apt_confirm_or", "target": "main_menu_or", "sourceHandle": "cancel_apt_or", "type": "smoothstep" },
 
     { "id": "e_en_trk", "source": "main_menu_en", "target": "trk_start_en", "sourceHandle": "trk_en", "type": "smoothstep" },
-    { "id": "e_en_trk2", "source": "trk_start_en", "target": "trk_api_en", "type": "smoothstep" },
-    { "id": "e_en_trk3", "source": "trk_api_en", "target": "trk_result_en", "type": "smoothstep" },
+    { "id": "e_en_trk2", "source": "trk_start_en", "target": "trk_result_en", "type": "smoothstep" },
 
     { "id": "e_hi_trk", "source": "main_menu_hi", "target": "trk_start_hi", "sourceHandle": "trk_hi", "type": "smoothstep" },
-    { "id": "e_hi_trk2", "source": "trk_start_hi", "target": "trk_api_hi", "type": "smoothstep" },
-    { "id": "e_hi_trk3", "source": "trk_api_hi", "target": "trk_result_hi", "type": "smoothstep" },
+    { "id": "e_hi_trk2", "source": "trk_start_hi", "target": "trk_result_hi", "type": "smoothstep" },
 
     { "id": "e_or_trk", "source": "main_menu_or", "target": "trk_start_or", "sourceHandle": "trk_or", "type": "smoothstep" },
-    { "id": "e_or_trk2", "source": "trk_start_or", "target": "trk_api_or", "type": "smoothstep" },
-    { "id": "e_or_trk3", "source": "trk_api_or", "target": "trk_result_or", "type": "smoothstep" },
+    { "id": "e_or_trk2", "source": "trk_start_or", "target": "trk_result_or", "type": "smoothstep" },
 
     { "id": "e_en_help", "source": "main_menu_en", "target": "helpdesk_en", "sourceHandle": "help_en", "type": "smoothstep" },
     { "id": "e_en_help_back", "source": "helpdesk_en", "target": "main_menu_en", "sourceHandle": "back_to_menu_en", "type": "smoothstep" },
