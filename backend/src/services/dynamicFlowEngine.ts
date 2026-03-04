@@ -901,6 +901,7 @@ export class DynamicFlowEngine {
 
       // Build URL with query parameters for GET requests (replace placeholders in body values e.g. {appointmentDate})
       let url = this.replacePlaceholders(endpoint);
+      console.log(`🔗 Resolved API URL: ${url}`);
       if (method === 'GET' && body) {
         const queryParams = new URLSearchParams();
         Object.keys(body).forEach(key => {

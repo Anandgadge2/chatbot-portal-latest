@@ -454,14 +454,14 @@
     },
     {
       "id": "apt_time_en",
-      "type": "buttonMessage",
+      "type": "apiCall",
       "position": { "x": 1650, "y": 200 },
       "data": {
         "label": "Time Slot (EN)",
-        "messageText": "⏰ *For Collector meetings:*\n\n⏰ *Time:* To be confirmed by office",
-        "buttons": [
-          { "id": "conf_time_en", "text": "Proceed", "type": "quick_reply" }
-        ]
+        "messageText": "⏰ *Choose Time Slot*\n\nSelect an available time for {appointmentDate}:",
+        "method": "GET",
+        "endpoint": "/api/availability/chatbot/{companyId}?selectedDate={appointmentDate}",
+        "saveResponseTo": "availableTimes"
       }
     },
     {
@@ -470,7 +470,7 @@
       "position": { "x": 1900, "y": 200 },
       "data": {
         "label": "Verify Appointment (EN)",
-        "messageText": "📋 *Verify Appointment*\n\nPlease confirm your booking details:\n\n👤 *Name:* {citizenName}\n🎯 *Purpose:* {meetingPurpose}\n📅 *Date:* {appointmentDate}\n⏰ *Time:* To be confirmed by office\n\n👇 Is this correct?",
+        "messageText": "📋 *Verify Appointment*\n\nPlease confirm your booking details:\n\n👤 *Name:* {citizenName}\n🎯 *Purpose:* {meetingPurpose}\n📅 *Date:* {appointmentDate}\n⏰ *Time:* {appointmentTime}\n\n👇 Is this correct?",
         "buttons": [
           { "id": "confirm_apt_en", "text": "✅ Confirm Booking", "type": "quick_reply" },
           { "id": "cancel_apt_en", "text": "❌ Cancel", "type": "quick_reply" }
@@ -558,14 +558,14 @@
     },
     {
       "id": "apt_time_hi",
-      "type": "buttonMessage",
+      "type": "apiCall",
       "position": { "x": 1650, "y": 600 },
       "data": {
         "label": "Time Slot (HI)",
-        "messageText": "⏰ *कलेक्टर की बैठकों के लिए:*\n\n⏰ *समय:* कार्यालय द्वारा पुष्टि की जाएगी",
-        "buttons": [
-          { "id": "conf_time_hi", "text": "आगे बढ़ें", "type": "quick_reply" }
-        ]
+        "messageText": "⏰ *समय चुनें*\n\n{appointmentDate} के लिए उपलब्ध समय चुनें:",
+        "method": "GET",
+        "endpoint": "/api/availability/chatbot/{companyId}?selectedDate={appointmentDate}",
+        "saveResponseTo": "availableTimes"
       }
     },
     {
@@ -574,7 +574,7 @@
       "position": { "x": 1900, "y": 600 },
       "data": {
         "label": "Verify Appointment (HI)",
-        "messageText": "📋 *अपॉइंटमेंट सत्यापित करें*\n\nकृपया अपने बुकिंग विवरण की पुष्टि करें:\n\n👤 *नाम:* {citizenName}\n🎯 *उद्देश्य:* {meetingPurpose}\n📅 *तारीख:* {appointmentDate}\n⏰ *समय:* कार्यालय द्वारा पुष्टि की जाएगी\n\n👇 क्या यह सही है?",
+        "messageText": "📋 *अपॉइंटमेंट सत्यापित करें*\n\nकृपया अपने बुकिंग विवरण की पुष्टि करें:\n\n👤 *नाम:* {citizenName}\n🎯 *उद्देश्य:* {meetingPurpose}\n📅 *तारीख:* {appointmentDate}\n⏰ *समय:* {appointmentTime}\n\n👇 क्या यह सही है?",
         "buttons": [
           { "id": "confirm_apt_hi", "text": "✅ बुकिंग करें", "type": "quick_reply" },
           { "id": "cancel_apt_hi", "text": "❌ रद्द करें", "type": "quick_reply" }
@@ -662,14 +662,14 @@
     },
     {
       "id": "apt_time_or",
-      "type": "buttonMessage",
+      "type": "apiCall",
       "position": { "x": 1650, "y": 1000 },
       "data": {
         "label": "Time Slot (OR)",
-        "messageText": "⏰ *କଲେକ୍ଟରଙ୍କ ସାକ୍ଷାତ ପାଇଁ:*\n\n⏰ *ସମୟ:* କାର୍ଯ୍ୟାଳୟ ଦ୍ୱାରା ନିଶ୍ଚିତ କରାଯିବ",
-        "buttons": [
-          { "id": "conf_time_or", "text": "ଆଗକୁ ବଢନ୍ତୁ", "type": "quick_reply" }
-        ]
+        "messageText": "⏰ *ସମୟ ଚୟନ କରନ୍ତୁ*\n\n{appointmentDate} ପାଇଁ ଉପଲବ୍ଧ ସମୟ ବାଛନ୍ତୁ:",
+        "method": "GET",
+        "endpoint": "/api/availability/chatbot/{companyId}?selectedDate={appointmentDate}",
+        "saveResponseTo": "availableTimes"
       }
     },
     {
@@ -678,7 +678,7 @@
       "position": { "x": 1900, "y": 1000 },
       "data": {
         "label": "Verify Appointment (OR)",
-        "messageText": "📋 *ଆପଏଣ୍ଟମେଣ୍ଟ ଯାଞ୍ଚ କରନ୍ତୁ*\n\nଦୟାକରି ଆପଣଙ୍କର ବୁକିଂ ବିବରଣୀ ନିଶ୍ଚିତ କରନ୍ତୁ:\n\n👤 *ନାମ:* {citizenName}\n🎯 *ଉଦ୍ଦେଶ୍ୟ:* {meetingPurpose}\n📅 *ତାରିଖ:* {appointmentDate}\n⏰ *ସମୟ:* କାର୍ଯ୍ୟାଳୟ ଦ୍ୱାରା ନିଶ୍ଚିତ କରାଯିବ\n\n👇 ଏହା ସଠିକ୍ କି?",
+        "messageText": "📋 *ଆପଏଣ୍ଟମେଣ୍ଟ ଯାଞ୍ଚ କରନ୍ତୁ*\n\nଦୟାକରି ଆପଣଙ୍କର ବୁକିଂ ବିବରଣୀ ନିଶ୍ଚିତ କରନ୍ତୁ:\n\n👤 *ନାମ:* {citizenName}\n🎯 *ଉଦ୍ଦେଶ୍ୟ:* {meetingPurpose}\n📅 *ତାରିଖ:* {appointmentDate}\n⏰ *ସମୟ:* {appointmentTime}\n\n👇 ଏହା ସଠିକ୍ କି?",
         "buttons": [
           { "id": "confirm_apt_or", "text": "✅ ନିଶ୍ଚିତ କରନ୍ତୁ", "type": "quick_reply" },
           { "id": "cancel_apt_or", "text": "❌ ବାତିଲ୍", "type": "quick_reply" }
@@ -772,7 +772,7 @@
     { "id": "e_en_apt2", "source": "apt_intro_en", "target": "apt_purpose_en", "type": "smoothstep" },
     { "id": "e_en_apt3", "source": "apt_purpose_en", "target": "apt_date_en", "type": "smoothstep" },
     { "id": "e_en_apt4", "source": "apt_date_en", "target": "apt_time_en", "type": "smoothstep" },
-    { "id": "e_en_apt5", "source": "apt_time_en", "target": "apt_confirm_en", "sourceHandle": "conf_time_en", "type": "smoothstep" },
+    { "id": "e_en_apt5", "source": "apt_time_en", "target": "apt_confirm_en", "type": "smoothstep" },
     { "id": "e_en_apt6", "source": "apt_confirm_en", "target": "apt_success_en", "sourceHandle": "confirm_apt_en", "type": "smoothstep" },
     { "id": "e_en_apt7", "source": "apt_confirm_en", "target": "main_menu_en", "sourceHandle": "cancel_apt_en", "type": "smoothstep" },
 
@@ -780,7 +780,7 @@
     { "id": "e_hi_apt2", "source": "apt_intro_hi", "target": "apt_purpose_hi", "type": "smoothstep" },
     { "id": "e_hi_apt3", "source": "apt_purpose_hi", "target": "apt_date_hi", "type": "smoothstep" },
     { "id": "e_hi_apt4", "source": "apt_date_hi", "target": "apt_time_hi", "type": "smoothstep" },
-    { "id": "e_hi_apt5", "source": "apt_time_hi", "target": "apt_confirm_hi", "sourceHandle": "conf_time_hi", "type": "smoothstep" },
+    { "id": "e_hi_apt5", "source": "apt_time_hi", "target": "apt_confirm_hi", "type": "smoothstep" },
     { "id": "e_hi_apt6", "source": "apt_confirm_hi", "target": "apt_success_hi", "sourceHandle": "confirm_apt_hi", "type": "smoothstep" },
     { "id": "e_hi_apt7", "source": "apt_confirm_hi", "target": "main_menu_hi", "sourceHandle": "cancel_apt_hi", "type": "smoothstep" },
 
@@ -788,7 +788,7 @@
     { "id": "e_or_apt2", "source": "apt_intro_or", "target": "apt_purpose_or", "type": "smoothstep" },
     { "id": "e_or_apt3", "source": "apt_purpose_or", "target": "apt_date_or", "type": "smoothstep" },
     { "id": "e_or_apt4", "source": "apt_date_or", "target": "apt_time_or", "type": "smoothstep" },
-    { "id": "e_or_apt5", "source": "apt_time_or", "target": "apt_confirm_or", "sourceHandle": "conf_time_or", "type": "smoothstep" },
+    { "id": "e_or_apt5", "source": "apt_time_or", "target": "apt_confirm_or", "type": "smoothstep" },
     { "id": "e_or_apt6", "source": "apt_confirm_or", "target": "apt_success_or", "sourceHandle": "confirm_apt_or", "type": "smoothstep" },
     { "id": "e_or_apt7", "source": "apt_confirm_or", "target": "main_menu_or", "sourceHandle": "cancel_apt_or", "type": "smoothstep" },
 

@@ -1,8 +1,10 @@
 import { Router, Request, Response } from 'express';
+import mongoose from 'mongoose';
 import AppointmentAvailability, { IAppointmentAvailability, ISpecialDate } from '../models/AppointmentAvailability';
 import { authenticate } from '../middleware/auth';
 import { logger } from '../config/logger';
 import { UserRole } from '../config/constants';
+import Company from '../models/Company';
 
 const router = Router();
 
@@ -51,7 +53,16 @@ router.get('/public/:companyId', async (req: Request, res: Response) => {
     const { companyId } = req.params;
     const { departmentId } = req.query;
 
-    const query: any = { companyId, isActive: true };
+    let actualCompanyId = companyId;
+    if (!mongoose.Types.ObjectId.isValid(companyId)) {
+      const Company = (await import('../models/Company')).default;
+      const company = await Company.findOne({ companyId: companyId });
+      if (company) {
+        actualCompanyId = company._id as any;
+      }
+    }
+
+    const query: any = { companyId: actualCompanyId, isActive: true };
     if (departmentId) {
       query.departmentId = departmentId;
     } else {
@@ -105,7 +116,16 @@ router.get('/chatbot/:companyId', async (req: Request, res: Response) => {
     const maxDate = new Date();
     maxDate.setDate(maxDate.getDate() + daysToShow);
 
-    const query: any = { companyId: companyId, isActive: true };
+    let actualCompanyId = companyId;
+    if (!mongoose.Types.ObjectId.isValid(companyId)) {
+      const Company = (await import('../models/Company')).default;
+      const company = await Company.findOne({ companyId: companyId });
+      if (company) {
+        actualCompanyId = company._id as any;
+      }
+    }
+
+    const query: any = { companyId: actualCompanyId, isActive: true };
     if (departmentId) {
       query.departmentId = departmentId;
     } else {
