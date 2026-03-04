@@ -56,8 +56,9 @@ const GREETINGS = new Set([
  * 2. flow.settings.errorFallbackMessage (for 'error_fallback' key)
  * 3. global UI_STRINGS fallback (from uiStrings.json)
  */
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const UI_STRINGS: Record<string, Record<string, string>> = require('../config/uiStrings.json');
+// Import UI strings instead of require to ensure they are included in the dist folder by tsc
+import UI_STRINGS_IMPORT from '../config/uiStrings.json';
+const UI_STRINGS: Record<string, Record<string, string>> = UI_STRINGS_IMPORT as any;
 
 
 function ui(key: string, lang: string, flow?: IChatbotFlow | null): string {
@@ -191,18 +192,17 @@ export class DynamicFlowEngine {
         
         case 'list':
         // Check for specific dynamic sources
-        const isDynamicDepts = 
-          step.listConfig?.listSource === 'departments' || 
-          (step.listConfig as any)?.dynamicSource === 'departments' ||
-          (step.listConfig as any)?.isDynamic === true;
-        
         const isDynamicSubDepts = 
           (step.listConfig as any)?.dynamicSource === 'sub-departments' ||
-          ((step.listConfig as any)?.isDynamic === true && step.stepId?.includes('subdept'));
+          ((step.listConfig as any)?.isDynamic === true && (step.stepId?.includes('subdept') || step.stepId?.includes('sub_dept')));
+        
+        const isDynamicDepts = !isDynamicSubDepts && (
+          step.listConfig?.listSource === 'departments' || 
+          (step.listConfig as any)?.dynamicSource === 'departments' ||
+          (step.listConfig as any)?.isDynamic === true
+        );
 
-        if (isDynamicDepts) {
-          await this.loadDepartmentsForListStep(step);
-        } else if (isDynamicSubDepts) {
+        if (isDynamicSubDepts) {
           const parentId = this.session.data.departmentId;
           const prefix = (step.stepId && (step.stepId.startsWith('apt') || step.stepId.includes('appointment'))) ? 'apt' : 'grv';
           if (parentId) {
@@ -211,6 +211,8 @@ export class DynamicFlowEngine {
             console.warn(`⚠️ Attempted to load sub-departments but no departmentId in session. Falling back to departments.`);
             await this.loadDepartmentsForListStep(step);
           }
+        } else if (isDynamicDepts) {
+          await this.loadDepartmentsForListStep(step);
         } else {
           await this.executeListStep(step);
         }
@@ -272,6 +274,25 @@ export class DynamicFlowEngine {
         }
       }
     }
+  }
+
+  /**
+   * Resolve next step ID from edges or step config
+   */
+  private resolveNextStepId(stepId: string, sourceHandle?: string): string | null {
+    const step = this.flow.steps.find(s => s.stepId === stepId);
+    if (!step) return null;
+
+    if (sourceHandle) {
+      const edge = this.flow.edges?.find(e => e.source === stepId && e.sourceHandle === sourceHandle);
+      if (edge) return edge.target;
+    }
+    
+    // Default edge (no sourceHandle)
+    const edge = this.flow.edges?.find(e => e.source === stepId && !e.sourceHandle);
+    if (edge) return edge.target;
+    
+    return step.nextStepId || null;
   }
 
   /**
@@ -399,7 +420,14 @@ export class DynamicFlowEngine {
       }
 
       if (subDepartments.length === 0) {
-        console.warn(`⚠️ No sub-departments found for parent ${parentId}. Proceeding.`);
+        console.warn(`⚠️ No sub-departments found for parent ${parentId}. Proceeding to next step.`);
+        const nextId = this.resolveNextStepId(step.stepId);
+        if (nextId) {
+          await this.executeStep(nextId);
+        } else {
+          // Fallback if no edge found
+          await this.executeStep(rowIdPrefix === 'apt' ? 'appointment_date' : 'grievance_description');
+        }
         return;
       }
 
@@ -439,10 +467,12 @@ export class DynamicFlowEngine {
       }];
 
       // Update list mapping for sub-departments — reuse stepForSubDeptCheck
-      const subDeptMappingStep = this.flow.steps.find(s => s.stepId === this.session.data.currentStepId);
+      const subDeptMappingStepId = this.session.data.currentStepId;
+      const nextStepFromFlow = this.resolveNextStepId(subDeptMappingStepId);
+      
       this.session.data.listMapping = {};
       rows.forEach((row: any) => {
-        this.session.data.listMapping[row.id] = subDeptMappingStep?.nextStepId || (rowIdPrefix === 'apt' ? 'appointment_date' : 'grievance_description');
+        this.session.data.listMapping[row.id] = nextStepFromFlow || (rowIdPrefix === 'apt' ? 'appointment_date' : 'grievance_description');
       });
       await updateSession(this.session);
 
@@ -1552,7 +1582,27 @@ export class DynamicFlowEngine {
           await updateSession(this.session);
           console.log(`✅ Department saved to session: ${localizedName}. Checking for sub-departments...`);
 
-          // --- Auto-inject sub-department list if this department has children ---
+          // --- Auto-inject sub-department list ONLY IF the flow doesn't handle it explicitly ---
+          const currentStep = this.flow.steps.find(s => s.stepId === this.session.data.currentStepId);
+          const nextFlowStepId = this.resolveNextStepId(this.session.data.currentStepId);
+          const nextStep = nextFlowStepId ? this.flow.steps.find(s => s.stepId === nextFlowStepId) : null;
+          
+          const isNextStepDynamicSubDept = nextStep && (
+            (nextStep.listConfig as any)?.dynamicSource === 'sub-departments' ||
+            (nextStep.listConfig as any)?.isDynamic === true ||
+            nextStep.stepId?.includes('subdept')
+          );
+
+          if (isNextStepDynamicSubDept) {
+            console.log(`⏩ Flow already has explicit sub-dept step (${nextFlowStepId}). Skipping auto-injection.`);
+            // Just advance normally to the next step which will handle the sub-depts
+            const targetId = listMapping[rowId] || nextFlowStepId;
+            if (targetId) {
+              await this.runNextStepIfDifferent(targetId, this.session.data.currentStepId);
+              return;
+            }
+          }
+
           const subDepartments = await Department.find({
             parentDepartmentId: departmentId,
             _id: { $ne: departmentId },
@@ -1563,8 +1613,7 @@ export class DynamicFlowEngine {
             console.log(`🏢 Found ${subDepartments.length} sub-departments. Injecting sub-dept list...`);
 
             // Determine which step to advance to after a sub-dept is chosen
-            const currentStep = this.flow.steps.find(s => s.stepId === this.session.data.currentStepId);
-            const afterSubDeptStepId = listMapping[rowId] || currentStep?.nextStepId;
+            const afterSubDeptStepId = listMapping[rowId] || currentStep?.nextStepId || nextFlowStepId;
 
             const rows = subDepartments.map((dept: any) => {
               let displayName = dept.name;
@@ -1584,7 +1633,7 @@ export class DynamicFlowEngine {
               };
             });
 
-            // Save sub-dept list mapping pointing to the step after the dept step
+            // Save sub-dept list mapping
             this.session.data.listMapping = {};
             rows.forEach((row: any) => {
               this.session.data.listMapping[row.id] = afterSubDeptStepId;

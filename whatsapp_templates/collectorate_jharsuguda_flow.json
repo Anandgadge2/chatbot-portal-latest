@@ -389,8 +389,8 @@
       "position": { "x": 1650, "y": 800 },
       "data": {
         "label": "Sub-Dept Selection (OR)",
-        "messageText": "🏢 *ଉପ-ବିଭାଗ ବାଛନ୍ତୁ*\n\nଦୟାକରି ସମ୍ପୃକ୍ତ ବିଭାଗ ବାଛନ୍ତୁ:",
-        "buttonText": "ବିଭାଗ ବାଛନ୍ତୁ",
+        "messageText": "🏢 *ଉପ-ବିଭାଗ ବାଛନ୍ତୁ*\n\nଦୟାକରି ସମ୍ପୃକ୍ତ ଅନୁଭାଗ ବାଛନ୍ତୁ:",
+        "buttonText": "ଅନୁଭାଗ ବାଛନ୍ତୁ",
         "isDynamic": true,
         "dynamicSource": "sub-departments",
         "params": { "departmentId": "{departmentId}" }
@@ -439,7 +439,7 @@
       "position": { "x": 2650, "y": 800 },
       "data": {
         "label": "Confirm Submission (OR)",
-        "messageText": "📋 *ଦାଖଲ ନିଶ୍ଚିତ କରନ୍ତୁ*\n\nଦୟାକରି ଆପଣଙ୍କର ବିବରଣୀ ଯାଞ୍ଚ କରନ୍ତୁ:\n\n👤 *ନାମ:* {citizenName}\n🏢 *ବିଭାଗ:* {departmentName}\n🏢 *ବିଭାଗ:* {subDepartmentName}\n📝 *ସମସ୍ୟା:* {description}\n\n👇 ଏହା ସଠିକ୍ କି?",
+        "messageText": "📋 *ଦାଖଲ ନିଶ୍ଚିତ କରନ୍ତୁ*\n\nଦୟାକରି ଆପଣଙ୍କର ବିବରଣୀ ଯାଞ୍ଚ କରନ୍ତୁ:\n\n👤 *ନାମ:* {citizenName}\n🏢 *ବିଭାଗ:* {departmentName}\n🏢 *ଉପ-ବିଭାଗ:* {subDepartmentName}\n📝 *ସମସ୍ୟା:* {description}\n\n👇 ଏହା ସଠିକ୍ କି?",
         "buttons": [
           { "id": "submit_grv_or", "text": "✅ ଦାଖଲ କରନ୍ତୁ", "type": "quick_reply" },
           { "id": "cancel_grv_or", "text": "❌ ବାତିଲ୍", "type": "quick_reply" }
