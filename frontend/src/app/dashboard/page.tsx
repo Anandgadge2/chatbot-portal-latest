@@ -2904,7 +2904,7 @@ function DashboardContent() {
                               onClick={() => handleSort('purpose', 'appointments')}
                               className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                             >
-                              <span>Dept &amp; Purpose</span>
+                              <span>Purpose</span>
                               <ArrowUpDown className={`w-3 h-3 transition-colors ${sortConfig.key === 'purpose' ? 'text-indigo-500' : 'text-slate-300 group-hover:text-slate-400'}`} />
                             </button>
                           </th>
@@ -2954,7 +2954,7 @@ function DashboardContent() {
                                       toast.error('Failed to load details');
                                     }
                                   }}
-                                  className="text-gray-900 font-bold text-sm text-left hover:text-purple-600 hover:underline"
+                                  className="text-gray-900 font-bold text-sm text-left hover:text-purple-600 hover:underline whitespace-normal break-words"
                                 >
                                   {appointment.citizenName}
                                 </button>
@@ -2963,7 +2963,7 @@ function DashboardContent() {
                             </td>
                             <td className="px-4 py-4">
                               <div className="flex flex-col max-w-[150px]">
-                                <span className="text-[10px] text-gray-500 whitespace-normal break-words italic">{appointment.purpose}</span>
+                                <span className="text-[12px] text-gray-500 whitespace-normal break-words italic">{appointment.purpose}</span>
                               </div>
                             </td>
                             <td className="px-4 py-4">
