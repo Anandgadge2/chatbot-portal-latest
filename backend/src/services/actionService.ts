@@ -48,12 +48,17 @@ export class ActionService {
       // Detect uploaded files stored as plain strings in common field names
       const extraAttachmentFields = ['attachmentUrl', 'attachment', 'fileUrl', 'documentUrl', 'mediaUrl'];
       const extraMedia: any[] = [];
+      const existingUrls = new Set(mediaFromArray.map(m => m.url));
+
       for (const field of extraAttachmentFields) {
         const val = session.data[field];
         if (val && typeof val === 'string' && val.startsWith('http')) {
-          // Guess type: if URL contains 'image' or ends with image extension → image, else document
-          const isImg = /\.(jpe?g|png|gif|webp|bmp)(\?|$)/i.test(val) || val.includes('/image/') || val.toLowerCase().includes('image');
-          extraMedia.push({ url: val, type: isImg ? 'image' : 'document', uploadedAt: new Date(), isCloudinary: val.includes('cloudinary') });
+          if (!existingUrls.has(val)) {
+            // Guess type: if URL contains 'image' or ends with image extension → image, else document
+            const isImg = /\.(jpe?g|png|gif|webp|bmp)(\?|$)/i.test(val) || val.includes('/image/') || val.toLowerCase().includes('image');
+            extraMedia.push({ url: val, type: isImg ? 'image' : 'document', uploadedAt: new Date(), isCloudinary: val.includes('cloudinary') });
+            existingUrls.add(val);
+          }
         }
       }
 
