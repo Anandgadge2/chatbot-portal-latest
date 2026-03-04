@@ -19,7 +19,11 @@
       "sub_dept_btn": "Select Section",
       "upload_photo": "📷 *Please upload the image/document now:*\n\n_Or type *skip* to continue without uploading._",
       "button_fallback": "⚠️ *Invalid selection.*\n\nPlease tap one of the buttons above to continue.",
-      "menu_fallback": "⚠️ *Invalid selection.*\n\nPlease select an option from the menu list."
+      "menu_fallback": "⚠️ *Invalid selection.*\n\nPlease select an option from the menu list.",
+      "track_not_found": "❌ *No Records Found*\n\nWe could not find any record matching that reference number.\n\nPlease double-check the number or contact support.",
+      "track_found": "📌 📄 *Grievance Status*\n\n📅 Date: {date}\n🎫 Ref No: {refNumber}\n\n🏢 Dept: {departmentName}\n📂 Category: {category}\n📊 Status: 📋 {status}\n\n📝 Details: {remarks}\n\nFor case escalation, please contact the department head.",
+      "track_another": "🔍 Track Another",
+      "main_menu_btn": "↩️ Main Menu"
     },
     "hi": {
       "welcome": "🏛️ कलेक्टरेट झारसुगुडा हेल्पडेस्क में आपका स्वागत है। सेवाएं देखने के लिए 'menu' टाइप करें।",
@@ -28,7 +32,11 @@
       "sub_dept_btn": "अनुभाग चुनें",
       "upload_photo": "📷 *कृपया अभी फोटो/दस्तावेज़ अपलोड करें:*\n\n_अपलोड किए बिना जारी रखने के लिए *skip* टाइप करें।_",
       "button_fallback": "⚠️ *अमान्य चयन।*\n\nजारी रखने के लिए ऊपर दिए गए बटनों में से किसी एक पर टैप करें।",
-      "menu_fallback": "⚠️ *अमान्य चयन।*\n\nकृपया मेनू सूची से एक विकल्प चुनें।"
+      "menu_fallback": "⚠️ *अमान्य चयन।*\n\nकृपया मेनू सूची से एक विकल्प चुनें।",
+      "track_not_found": "❌ *कोई रिकॉर्ड नहीं मिला*\n\nहमें उस संदर्भ संख्या से मेल खाने वाला कोई रिकॉर्ड नहीं मिला।\n\nकृपया संख्या की दोबारा जांच करें या सहायता से संपर्क करें।",
+      "track_found": "📌 📄 *शिकायत की स्थिति*\n\n📅 तिथि: {date}\n🎫 संदर्भ संख्या: {refNumber}\n\n🏢 विभाग: {departmentName}\n📂 श्रेणी: {category}\n📊 स्थिति: 📋 {status}\n\n📝 विवरण: {remarks}\n\nमामले को आगे बढ़ाने के लिए, कृपया विभाग प्रमुख से संपर्क करें।",
+      "track_another": "🔍 दूसरा ट्रैक करें",
+      "main_menu_btn": "↩️ मुख्य मेनू"
     },
     "or": {
       "welcome": "🏛️ ଝାରସୁଗୁଡା କଲେକ୍ଟରେଟ୍ ସହାୟତା କେନ୍ଦ୍ରକୁ ସ୍ୱାଗତ। ସେବାଗୁଡିକ ଦେଖିବା ପାଇଁ 'menu' ଟାଇପ୍ କରନ୍ତୁ।",
@@ -37,7 +45,11 @@
       "sub_dept_btn": "ଶାଖା ବାଛନ୍ତୁ",
       "upload_photo": "📷 *ଦୟାକରି ଏବେ ଫୋଟୋ/ଡକ୍ୟୁମେଣ୍ଟ ଅପଲୋଡ କରନ୍ତୁ:*\n\n_ଅପଲୋଡ ନ କରି ଜାରି ରଖିବାକୁ *skip* ଟାଇପ୍ କରନ୍ତୁ।_",
       "button_fallback": "⚠️ *ଅବୈଧ ଚୟନ।*\n\nଜାରି ରଖିବା ପାଇଁ ଉପରୋକ୍ତ ବଟନ୍ ଗୁଡ଼ିକ ମଧ୍ୟରୁ ଗୋଟିଏ ଟ୍ୟାପ୍ କରନ୍ତୁ।",
-      "menu_fallback": "⚠️ *ଅବୈଧ ଚୟନ।*\n\nଦୟାକରି ମେନୁ ତାଲିକାରୁ ଏକ ବିକଳ୍ପ ଚୟନ କରନ୍ତୁ।"
+      "menu_fallback": "⚠️ *ଅବୈଧ ଚୟନ।*\n\nଦୟାକରି ମେନୁ ତାଲିକାରୁ ଏକ ବିକଳ୍ପ ଚୟନ କରନ୍ତୁ।",
+      "track_not_found": "❌ *କୌଣସି ରେକର୍ଡ ମିଳିଲାନାହିଁ*\n\nଆମେ ସେହି ରେଫରେନ୍ସ ନମ୍ବର ସହିତ ମେଳ ଖାଉଥିବା କୌଣସି ରେକର୍ଡ ପାଇଲୁ ନାହିଁ।\n\nଦୟାକରି ନମ୍ବର ଯାଞ୍ଚ କରନ୍ତୁ କିମ୍ବା ସମର୍ଥନ ସହିତ ଯୋଗାଯୋଗ କରନ୍ତୁ।",
+      "track_found": "📌 📄 *ଅଭିଯୋଗ ସ୍ଥିତି*\n\n📅 ତାରିଖ: {date}\n🎫 ରେଫରେନ୍ସ ନମ୍ବର: {refNumber}\n\n🏢 ବିଭାଗ: {departmentName}\n📂 ବର୍ଗ: {category}\n📊 ସ୍ଥିତି: 📋 {status}\n\n📝 ବିବରଣୀ: {remarks}\n\nଅଧିକ ସହାୟତା ପାଇଁ, ଦୟାକରି ବିଭାଗୀୟ ମୁଖ୍ୟଙ୍କ ସହ ଯୋଗାଯୋଗ କରନ୍ତୁ।",
+      "track_another": "🔍 ଅନ୍ୟ ଟ୍ରାକ୍ କରନ୍ତୁ",
+      "main_menu_btn": "↩️ ମୁଖ୍ୟ ମେନୁ"
     }
   },
   "nodes": [

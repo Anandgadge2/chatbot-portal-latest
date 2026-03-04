@@ -1,21 +1,35 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Grievance } from '@/lib/api/grievance';
-import { Appointment } from '@/lib/api/appointment';
-import { X, MapPin, Phone, Calendar, Image as ImageIcon, FileText, User, MessageCircle, Tag, Clock, FileType } from 'lucide-react';
-import Image from 'next/image';
-import { format, formatDistanceToNow } from 'date-fns';
+import { useState } from "react";
+import { Grievance } from "@/lib/api/grievance";
+import { Appointment } from "@/lib/api/appointment";
+import {
+  X,
+  MapPin,
+  Phone,
+  Calendar,
+  Image as ImageIcon,
+  FileText,
+  User,
+  MessageCircle,
+  Tag,
+  Clock,
+  FileType,
+} from "lucide-react";
+import Image from "next/image";
+import { format, formatDistanceToNow } from "date-fns";
 
 const isImageMedia = (media: { type?: string; url?: string }) =>
-  media.type === 'image' || /\.(jpe?g|png|gif|webp|bmp)(\?|$)/i.test(media.url || '') || (media.url && media.url.includes('image'));
+  media.type === "image" ||
+  /\.(jpe?g|png|gif|webp|bmp)(\?|$)/i.test(media.url || "") ||
+  (media.url && media.url.includes("image"));
 
 const getDocumentLabel = (url: string) => {
-  if (!url) return 'Document';
+  if (!url) return "Document";
   const lower = url.toLowerCase();
-  if (lower.includes('.pdf') || lower.includes('pdf')) return 'PDF';
-  if (lower.includes('.doc') || lower.includes('word')) return 'Word';
-  return 'Document';
+  if (lower.includes(".pdf") || lower.includes("pdf")) return "PDF";
+  if (lower.includes(".doc") || lower.includes("word")) return "Word";
+  return "Document";
 };
 
 interface CitizenDetailsModalProps {
@@ -29,34 +43,52 @@ export default function CitizenDetailsModal({
   isOpen,
   onClose,
   grievance,
-  appointment
+  appointment,
 }: CitizenDetailsModalProps) {
-  const [fullScreenMedia, setFullScreenMedia] = useState<{ url: string; alt?: string } | null>(null);
+  const [fullScreenMedia, setFullScreenMedia] = useState<{
+    url: string;
+    alt?: string;
+  } | null>(null);
 
   if (!isOpen || (!grievance && !appointment)) return null;
 
   const data = (grievance || appointment) as any;
-  const type = grievance ? 'Grievance' : 'Appointment';
-  const createdDate = new Date(data?.createdAt || '');
+  const type = grievance ? "Grievance" : "Appointment";
+  const createdDate = new Date(data?.createdAt || "");
   const timeAgo = formatDistanceToNow(createdDate, { addSuffix: true });
   const id = grievance?.grievanceId || appointment?.appointmentId;
 
   // Get status config for header gradient
   const getStatusConfig = () => {
-    const status = data?.status || 'PENDING';
+    const status = data?.status || "PENDING";
     switch (status) {
-      case 'RESOLVED':
-      case 'COMPLETED':
-        return { gradient: 'from-emerald-500 to-green-600', icon: <FileText className="w-6 h-6 text-white" /> };
-      case 'CONFIRMED':
-      case 'IN_PROGRESS':
-        return { gradient: 'from-blue-500 to-indigo-600', icon: <FileText className="w-6 h-6 text-white" /> };
-      case 'SCHEDULED':
-        return { gradient: 'from-indigo-500 to-purple-600', icon: <FileText className="w-6 h-6 text-white" /> };
-      case 'CANCELLED':
-        return { gradient: 'from-red-500 to-rose-600', icon: <FileText className="w-6 h-6 text-white" /> };
+      case "RESOLVED":
+      case "COMPLETED":
+        return {
+          gradient: "from-emerald-500 to-green-600",
+          icon: <FileText className="w-6 h-6 text-white" />,
+        };
+      case "CONFIRMED":
+      case "IN_PROGRESS":
+        return {
+          gradient: "from-blue-500 to-indigo-600",
+          icon: <FileText className="w-6 h-6 text-white" />,
+        };
+      case "SCHEDULED":
+        return {
+          gradient: "from-indigo-500 to-purple-600",
+          icon: <FileText className="w-6 h-6 text-white" />,
+        };
+      case "CANCELLED":
+        return {
+          gradient: "from-red-500 to-rose-600",
+          icon: <FileText className="w-6 h-6 text-white" />,
+        };
       default:
-        return { gradient: 'from-amber-500 to-orange-600', icon: <FileText className="w-6 h-6 text-white" /> };
+        return {
+          gradient: "from-amber-500 to-orange-600",
+          icon: <FileText className="w-6 h-6 text-white" />,
+        };
     }
   };
 
@@ -66,10 +98,12 @@ export default function CitizenDetailsModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm overflow-y-auto p-4">
       <div className="w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl shadow-2xl bg-white animate-in fade-in zoom-in duration-200 flex flex-col">
         {/* Gradient Header */}
-        <div className={`bg-gradient-to-r ${statusConfig.gradient} p-5 relative overflow-hidden flex-shrink-0`}>
+        <div
+          className={`bg-gradient-to-r ${statusConfig.gradient} p-5 relative overflow-hidden flex-shrink-0`}
+        >
           {/* Background pattern */}
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA4KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-50"></div>
-          
+
           <div className="relative">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -77,7 +111,9 @@ export default function CitizenDetailsModal({
                   {statusConfig.icon}
                 </div>
                 <div className="min-w-0">
-                  <h2 className="text-lg font-bold text-white">Citizen Details</h2>
+                  <h2 className="text-lg font-bold text-white">
+                    Citizen Details
+                  </h2>
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
                     <span className="px-2 py-0.5 bg-white/20 rounded-full text-[11px] font-bold text-white backdrop-blur-sm">
                       {type} ID: {id}
@@ -87,7 +123,7 @@ export default function CitizenDetailsModal({
                   </div>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={onClose}
                 className="w-9 h-9 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center transition-all backdrop-blur-sm flex-shrink-0"
               >
@@ -106,9 +142,16 @@ export default function CitizenDetailsModal({
                 <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
                   <User className="w-4 h-4 text-blue-600" />
                 </div>
-                <span className="text-xs font-bold text-blue-600 uppercase">Citizen</span>
+                <span className="text-xs font-bold text-blue-600 uppercase">
+                  Citizen
+                </span>
               </div>
-              <p className="text-base font-bold text-gray-900 truncate" title={data?.citizenName}>{data?.citizenName}</p>
+              <p
+                className="text-base font-bold text-gray-900 truncate"
+                title={data?.citizenName}
+              >
+                {data?.citizenName}
+              </p>
             </div>
 
             {grievance && (
@@ -117,10 +160,15 @@ export default function CitizenDetailsModal({
                   <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
                     <Tag className="w-4 h-4 text-purple-600" />
                   </div>
-                  <span className="text-xs font-bold text-purple-600 uppercase">Category</span>
+                  <span className="text-xs font-bold text-purple-600 uppercase">
+                    Category
+                  </span>
                 </div>
-                <p className="text-base font-bold text-gray-900 truncate" title={grievance.category || 'General'}>
-                  {grievance.category || 'General'}
+                <p
+                  className="text-base font-bold text-gray-900 truncate"
+                  title={grievance.category || "General"}
+                >
+                  {grievance.category || "General"}
                 </p>
               </div>
             )}
@@ -131,10 +179,12 @@ export default function CitizenDetailsModal({
                   <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
                     <Calendar className="w-4 h-4 text-purple-600" />
                   </div>
-                  <span className="text-xs font-bold text-purple-600 uppercase">Date</span>
+                  <span className="text-xs font-bold text-purple-600 uppercase">
+                    Date
+                  </span>
                 </div>
                 <p className="text-base font-bold text-gray-900">
-                  {format(new Date(appointment.appointmentDate), 'dd MMM yyyy')}
+                  {format(new Date(appointment.appointmentDate), "dd MMM yyyy")}
                 </p>
               </div>
             )}
@@ -144,9 +194,13 @@ export default function CitizenDetailsModal({
                 <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
                   <Clock className="w-4 h-4 text-emerald-600" />
                 </div>
-                <span className="text-xs font-bold text-emerald-600 uppercase">Created</span>
+                <span className="text-xs font-bold text-emerald-600 uppercase">
+                  Created
+                </span>
               </div>
-              <p className="text-base font-bold text-gray-900">{format(createdDate, 'dd MMM yyyy')}</p>
+              <p className="text-base font-bold text-gray-900">
+                {format(createdDate, "dd MMM yyyy")}
+              </p>
             </div>
 
             <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-100">
@@ -154,9 +208,13 @@ export default function CitizenDetailsModal({
                 <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
                   <Clock className="w-4 h-4 text-amber-600" />
                 </div>
-                <span className="text-xs font-bold text-amber-600 uppercase">Time</span>
+                <span className="text-xs font-bold text-amber-600 uppercase">
+                  Time
+                </span>
               </div>
-              <p className="text-base font-bold text-gray-900">{format(createdDate, 'hh:mm a')}</p>
+              <p className="text-base font-bold text-gray-900">
+                {format(createdDate, "hh:mm a")}
+              </p>
             </div>
           </div>
 
@@ -175,8 +233,12 @@ export default function CitizenDetailsModal({
                     <User className="w-6 h-6 text-blue-600" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">Full Name</p>
-                    <p className="text-base font-bold text-slate-800 truncate">{data?.citizenName}</p>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">
+                      Full Name
+                    </p>
+                    <p className="text-base font-bold text-slate-800 truncate">
+                      {data?.citizenName}
+                    </p>
                   </div>
                 </div>
 
@@ -185,8 +247,12 @@ export default function CitizenDetailsModal({
                     <Phone className="w-6 h-6 text-green-600" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">Phone Number</p>
-                    <p className="text-base font-bold text-slate-800">{data?.citizenPhone}</p>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">
+                      Phone Number
+                    </p>
+                    <p className="text-base font-bold text-slate-800">
+                      {data?.citizenPhone}
+                    </p>
                   </div>
                 </div>
 
@@ -196,8 +262,12 @@ export default function CitizenDetailsModal({
                       <MessageCircle className="w-6 h-6 text-emerald-600" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">WhatsApp</p>
-                      <p className="text-base font-bold text-slate-800">{data?.citizenWhatsApp}</p>
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">
+                        WhatsApp
+                      </p>
+                      <p className="text-base font-bold text-slate-800">
+                        {data?.citizenWhatsApp}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -217,43 +287,58 @@ export default function CitizenDetailsModal({
               {grievance && (
                 <>
                   <div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Category</p>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">
+                      Category
+                    </p>
                     <span className="inline-block px-4 py-2 rounded-lg text-base font-medium bg-blue-100 text-blue-800 border border-blue-200">
-                      {grievance.category || 'General'}
+                      {grievance.category || "General"}
                     </span>
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Description</p>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">
+                      Description
+                    </p>
                     <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl p-5 border border-slate-100">
                       <p className="text-base text-slate-700 leading-relaxed whitespace-pre-wrap">
-                        {grievance.description || 'No description provided'}
+                        {grievance.description || "No description provided"}
                       </p>
                     </div>
                   </div>
                 </>
               )}
-              
+
               {appointment && (
                 <>
                   <div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Purpose</p>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">
+                      Purpose
+                    </p>
                     <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl p-5 border border-slate-100">
                       <p className="text-base text-slate-700 leading-relaxed whitespace-pre-wrap">
-                        {appointment.purpose || 'No purpose provided'}
+                        {appointment.purpose || "No purpose provided"}
                       </p>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-5">
                     <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Date</p>
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">
+                        Date
+                      </p>
                       <p className="text-base font-bold text-slate-800 flex items-center gap-2">
                         <Calendar className="w-5 h-5 text-blue-600" />
-                        {format(new Date(appointment.appointmentDate), 'dd MMM yyyy')}
+                        {format(
+                          new Date(appointment.appointmentDate),
+                          "dd MMM yyyy",
+                        )}
                       </p>
                     </div>
                     <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Time</p>
-                      <p className="text-base font-bold text-slate-800">{appointment.appointmentTime}</p>
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">
+                        Time
+                      </p>
+                      <p className="text-base font-bold text-slate-800">
+                        {appointment.appointmentTime}
+                      </p>
                     </div>
                   </div>
                 </>
@@ -261,13 +346,22 @@ export default function CitizenDetailsModal({
 
               <div className="grid grid-cols-2 gap-5 pt-2">
                 <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Created At</p>
-                  <p className="text-base font-semibold text-slate-800">{format(createdDate, 'dd/MM/yyyy, hh:mm:ss a')}</p>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">
+                    Created At
+                  </p>
+                  <p className="text-base font-semibold text-slate-800">
+                    {format(createdDate, "dd/MM/yyyy, hh:mm:ss a")}
+                  </p>
                 </div>
                 <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Last Updated</p>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">
+                    Last Updated
+                  </p>
                   <p className="text-base font-semibold text-slate-800">
-                    {format(new Date(data?.updatedAt || data?.createdAt || ''), 'dd/MM/yyyy, hh:mm:ss a')}
+                    {format(
+                      new Date(data?.updatedAt || data?.createdAt || ""),
+                      "dd/MM/yyyy, hh:mm:ss a",
+                    )}
                   </p>
                 </div>
               </div>
@@ -336,19 +430,25 @@ export default function CitizenDetailsModal({
                   {grievance.media.map((media: any, index: number) => {
                     const isImage = isImageMedia(media);
                     return (
-                      <div key={index} className="relative group rounded-xl overflow-hidden border border-slate-200 aspect-video">
+                      <div
+                        key={index}
+                        className="relative group rounded-xl overflow-hidden border border-slate-200 aspect-video"
+                      >
                         {isImage ? (
                           <button
                             type="button"
-                            onClick={() => setFullScreenMedia({ url: media.url, alt: `Evidence ${index + 1}` })}
+                            onClick={() =>
+                              setFullScreenMedia({
+                                url: media.url,
+                                alt: `Evidence ${index + 1}`,
+                              })
+                            }
                             className="absolute inset-0 w-full h-full text-left focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-inset rounded-xl"
                           >
-                            <Image
+                            <img
                               src={media.url}
                               alt={`Evidence ${index + 1}`}
-                              fill
-                              className="object-cover group-hover:scale-105 transition-transform duration-300 cursor-pointer"
-                              unoptimized={!media.url?.includes('cloudinary')}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 cursor-pointer"
                             />
                             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
                               <span className="opacity-0 group-hover:opacity-100 text-white text-sm font-medium bg-black/50 px-3 py-1.5 rounded-lg transition-opacity">
@@ -359,12 +459,23 @@ export default function CitizenDetailsModal({
                         ) : (
                           <button
                             type="button"
-                            onClick={() => media.url && window.open(media.url, '_blank', 'noopener,noreferrer')}
+                            onClick={() =>
+                              media.url &&
+                              window.open(
+                                media.url,
+                                "_blank",
+                                "noopener,noreferrer",
+                              )
+                            }
                             className="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 flex flex-col items-center justify-center hover:from-slate-200 hover:to-slate-300 transition-colors cursor-pointer border-0"
                           >
                             <FileType className="w-10 h-10 text-slate-500 mb-2" />
-                            <span className="text-sm font-medium text-slate-600">{getDocumentLabel(media.url || '')}</span>
-                            <span className="text-xs text-slate-400 mt-0.5">Click to open</span>
+                            <span className="text-sm font-medium text-slate-600">
+                              {getDocumentLabel(media.url || "")}
+                            </span>
+                            <span className="text-xs text-slate-400 mt-0.5">
+                              Click to open
+                            </span>
                           </button>
                         )}
                       </div>
@@ -392,13 +503,14 @@ export default function CitizenDetailsModal({
               >
                 <X className="w-6 h-6" />
               </button>
-              <div className="relative w-full h-full min-h-[50vh]" onClick={(e) => e.stopPropagation()}>
-                <Image
+              <div
+                className="relative w-full h-full min-h-[50vh]"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <img
                   src={fullScreenMedia.url}
-                  alt={fullScreenMedia.alt || 'Full size'}
-                  fill
-                  className="object-contain"
-                  unoptimized
+                  alt={fullScreenMedia.alt || "Full size"}
+                  className="w-full h-full object-contain"
                 />
               </div>
             </div>
@@ -415,22 +527,38 @@ export default function CitizenDetailsModal({
               </div>
               <div className="p-5">
                 <div className="space-y-3">
-                  {grievance.statusHistory.map((history: any, index: number) => (
-                    <div key={index} className="flex items-start gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
-                      <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
-                        history.status === 'RESOLVED' ? 'bg-green-500' :
-                        history.status === 'IN_PROGRESS' ? 'bg-blue-500' :
-                        'bg-yellow-500'
-                      }`} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-slate-800">{history.status}</p>
-                        <p className="text-xs text-slate-600 mt-1">{history.remarks || 'Status updated'}</p>
-                        <p className="text-[10px] text-slate-400 mt-1">
-                          {format(new Date(history.changedAt), 'dd/MM/yyyy, hh:mm:ss a')}
-                        </p>
+                  {grievance.statusHistory.map(
+                    (history: any, index: number) => (
+                      <div
+                        key={index}
+                        className="flex items-start gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200"
+                      >
+                        <div
+                          className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
+                            history.status === "RESOLVED"
+                              ? "bg-green-500"
+                              : history.status === "IN_PROGRESS"
+                                ? "bg-blue-500"
+                                : "bg-yellow-500"
+                          }`}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-slate-800">
+                            {history.status}
+                          </p>
+                          <p className="text-xs text-slate-600 mt-1">
+                            {history.remarks || "Status updated"}
+                          </p>
+                          <p className="text-[10px] text-slate-400 mt-1">
+                            {format(
+                              new Date(history.changedAt),
+                              "dd/MM/yyyy, hh:mm:ss a",
+                            )}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ),
+                  )}
                 </div>
               </div>
             </div>
@@ -449,17 +577,23 @@ export default function CitizenDetailsModal({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {data?.departmentId && (
                     <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Department</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">
+                        Department
+                      </p>
                       <p className="text-sm font-bold text-slate-800">
-                        {typeof data.departmentId === 'object' ? (data.departmentId as any).name : data.departmentId}
+                        {typeof data.departmentId === "object"
+                          ? (data.departmentId as any).name
+                          : data.departmentId}
                       </p>
                     </div>
                   )}
                   {data?.assignedTo && (
                     <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Assigned To</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">
+                        Assigned To
+                      </p>
                       <p className="text-sm font-bold text-slate-800">
-                        {typeof data.assignedTo === 'object' 
+                        {typeof data.assignedTo === "object"
                           ? `${(data.assignedTo as any).firstName} ${(data.assignedTo as any).lastName}`
                           : data.assignedTo}
                       </p>

@@ -354,6 +354,26 @@ export class DynamicFlowEngine {
     // Special handling for track_result: fetch grievance or appointment by refNumber and set session.data for placeholders (status, assignedTo, remarks)
     if (step.stepId?.includes('track_result') || step.stepId?.includes('trk_result')) {
       await this.loadTrackResultIntoSession();
+      const lang = this.session.language || 'en';
+      const isNotFound = this.session.data.status === 'Not Found' || this.session.data.status === 'Invalid' || this.session.data.status === 'Error';
+      
+      const messageTemplate = isNotFound ? this.ui('track_not_found') : this.ui('track_found');
+      const message = this.replacePlaceholders(messageTemplate);
+      
+      const buttons = [
+        { id: `trk_${lang}`, title: this.ui('track_another') || '🔍 Track Another' },
+        { id: `main_menu_${lang}`, title: this.ui('main_menu_btn') || '↩️ Main Menu' }
+      ];
+      
+      await sendWhatsAppButtons(this.company, this.userPhone, message, buttons);
+      
+      this.session.data.currentStepId = step.stepId;
+      this.session.data.buttonMapping = {
+        [`trk_${lang}`]: `trk_start_${lang}`,
+        [`main_menu_${lang}`]: `main_menu_${lang}`
+      };
+      await updateSession(this.session);
+      return;
     }
 
     // If step has buttons (e.g. language_selection saved as "message" from dashboard), send as buttons
@@ -1122,8 +1142,11 @@ export class DynamicFlowEngine {
         const grievance = await Grievance.findOne({
           companyId: this.company._id,
           grievanceId: ref
-        }).populate('assignedTo', 'name');
+        }).populate('assignedTo', 'name')
+          .populate('departmentId', 'name nameHi nameOr nameMr');
+
         if (grievance) {
+          const lang = this.session.language || 'en';
           this.session.data.recordType = 'Grievance';
           this.session.data.status = grievance.status;
           const lastHistory = grievance.statusHistory && grievance.statusHistory.length > 0
@@ -1131,6 +1154,20 @@ export class DynamicFlowEngine {
             : null;
           this.session.data.remarks = (lastHistory as any)?.remarks ?? (grievance as any).remarks ?? '—';
           this.session.data.assignedTo = (grievance as any).assignedTo?.name ?? (grievance as any).assignedTo ?? 'Not assigned';
+          
+          // Enhanced tracking details
+          this.session.data.date = new Date(grievance.createdAt).toLocaleDateString();
+          const dept = (grievance as any).departmentId;
+          if (dept) {
+             let localeDeptName = dept.name;
+             if (lang === 'hi' && dept.nameHi) localeDeptName = dept.nameHi;
+             if (lang === 'or' && dept.nameOr) localeDeptName = dept.nameOr;
+             this.session.data.departmentName = localeDeptName || 'General';
+          } else {
+             this.session.data.departmentName = 'General';
+          }
+          this.session.data.category = (grievance as any).category || 'General';
+          
           await updateSession(this.session);
         } else {
           this.session.data.status = 'Not Found';
@@ -1143,6 +1180,7 @@ export class DynamicFlowEngine {
           companyId: this.company._id,
           appointmentId: ref
         }).populate('assignedTo', 'name');
+        
         if (appointment) {
           this.session.data.recordType = 'Appointment';
           this.session.data.status = appointment.status;
@@ -1151,6 +1189,11 @@ export class DynamicFlowEngine {
             : null;
           this.session.data.remarks = (lastHistory as any)?.remarks ?? (appointment as any).remarks ?? '—';
           this.session.data.assignedTo = (appointment as any).assignedTo?.name ?? (appointment as any).assignedTo ?? 'Not assigned';
+          
+          this.session.data.date = new Date(appointment.createdAt).toLocaleDateString();
+          this.session.data.departmentName = 'Administration';
+          this.session.data.category = (appointment as any).purpose || 'General';
+
           await updateSession(this.session);
         } else {
           this.session.data.status = 'Not Found';
