@@ -174,19 +174,6 @@
       }
     },
     {
-      "id": "grv_subdept_en",
-      "type": "listMessage",
-      "position": { "x": 1650, "y": 0 },
-      "data": {
-        "label": "Sub-Dept Selection (EN)",
-        "messageText": "🏢 *Select Sub-Department*\n\nPlease choose the concerned section:",
-        "buttonText": "Select Section",
-        "isDynamic": true,
-        "dynamicSource": "sub-departments",
-        "params": { "departmentId": "{departmentId}" }
-      }
-    },
-    {
       "id": "grv_desc_en",
       "type": "userInput",
       "position": { "x": 1900, "y": 0 },
@@ -279,19 +266,6 @@
       }
     },
     {
-      "id": "grv_subdept_hi",
-      "type": "listMessage",
-      "position": { "x": 1650, "y": 400 },
-      "data": {
-        "label": "Sub-Dept Selection (HI)",
-        "messageText": "🏢 *उप-विभाग चुनें*\n\nकृपया संबंधित अनुभाग चुनें:",
-        "buttonText": "अनुभाग चुनें",
-        "isDynamic": true,
-        "dynamicSource": "sub-departments",
-        "params": { "departmentId": "{departmentId}" }
-      }
-    },
-    {
       "id": "grv_desc_hi",
       "type": "userInput",
       "position": { "x": 1900, "y": 400 },
@@ -381,19 +355,6 @@
         "buttonText": "ବିଭାଗ ବାଛନ୍ତୁ",
         "isDynamic": true,
         "dynamicSource": "departments"
-      }
-    },
-    {
-      "id": "grv_subdept_or",
-      "type": "listMessage",
-      "position": { "x": 1650, "y": 800 },
-      "data": {
-        "label": "Sub-Dept Selection (OR)",
-        "messageText": "🏢 *ଉପ-ବିଭାଗ ବାଛନ୍ତୁ*\n\nଦୟାକରି ସମ୍ପୃକ୍ତ ଅନୁଭାଗ ବାଛନ୍ତୁ:",
-        "buttonText": "ଅନୁଭାଗ ବାଛନ୍ତୁ",
-        "isDynamic": true,
-        "dynamicSource": "sub-departments",
-        "params": { "departmentId": "{departmentId}" }
       }
     },
     {
@@ -777,8 +738,7 @@
     { "id": "e_en_grv", "source": "main_menu_en", "target": "grv_intro_en", "sourceHandle": "grv_en", "type": "smoothstep" },
     { "id": "e_en_grv2", "source": "grv_intro_en", "target": "grv_name_en", "type": "smoothstep" },
     { "id": "e_en_grv3", "source": "grv_name_en", "target": "grv_dept_en", "type": "smoothstep" },
-    { "id": "e_en_grv4", "source": "grv_dept_en", "target": "grv_subdept_en", "type": "smoothstep" },
-    { "id": "e_en_grv5", "source": "grv_subdept_en", "target": "grv_desc_en", "type": "smoothstep" },
+    { "id": "e_en_grv4", "source": "grv_dept_en", "target": "grv_desc_en", "type": "smoothstep" },
     { "id": "e_en_grv6", "source": "grv_desc_en", "target": "grv_evidence_en", "type": "smoothstep" },
     { "id": "e_en_grv7", "source": "grv_evidence_en", "target": "grv_upload_en", "sourceHandle": "upload_file_en", "type": "smoothstep" },
     { "id": "e_en_grv8", "source": "grv_evidence_en", "target": "grv_confirm_en", "sourceHandle": "skip_evidence_en", "type": "smoothstep" },
@@ -789,8 +749,7 @@
     { "id": "e_hi_grv", "source": "main_menu_hi", "target": "grv_intro_hi", "sourceHandle": "grv_hi", "type": "smoothstep" },
     { "id": "e_hi_grv2", "source": "grv_intro_hi", "target": "grv_name_hi", "type": "smoothstep" },
     { "id": "e_hi_grv3", "source": "grv_name_hi", "target": "grv_dept_hi", "type": "smoothstep" },
-    { "id": "e_hi_grv4", "source": "grv_dept_hi", "target": "grv_subdept_hi", "type": "smoothstep" },
-    { "id": "e_hi_grv5", "source": "grv_subdept_hi", "target": "grv_desc_hi", "type": "smoothstep" },
+    { "id": "e_hi_grv4", "source": "grv_dept_hi", "target": "grv_desc_hi", "type": "smoothstep" },
     { "id": "e_hi_grv6", "source": "grv_desc_hi", "target": "grv_evidence_hi", "type": "smoothstep" },
     { "id": "e_hi_grv7", "source": "grv_evidence_hi", "target": "grv_upload_hi", "sourceHandle": "upload_file_hi", "type": "smoothstep" },
     { "id": "e_hi_grv8", "source": "grv_evidence_hi", "target": "grv_confirm_hi", "sourceHandle": "skip_evidence_hi", "type": "smoothstep" },
@@ -801,8 +760,7 @@
     { "id": "e_or_grv", "source": "main_menu_or", "target": "grv_intro_or", "sourceHandle": "grv_or", "type": "smoothstep" },
     { "id": "e_or_grv2", "source": "grv_intro_or", "target": "grv_name_or", "type": "smoothstep" },
     { "id": "e_or_grv3", "source": "grv_name_or", "target": "grv_dept_or", "type": "smoothstep" },
-    { "id": "e_or_grv4", "source": "grv_dept_or", "target": "grv_subdept_or", "type": "smoothstep" },
-    { "id": "e_or_grv5", "source": "grv_subdept_or", "target": "grv_desc_or", "type": "smoothstep" },
+    { "id": "e_or_grv4", "source": "grv_dept_or", "target": "grv_desc_or", "type": "smoothstep" },
     { "id": "e_or_grv6", "source": "grv_desc_or", "target": "grv_evidence_or", "type": "smoothstep" },
     { "id": "e_or_grv7", "source": "grv_evidence_or", "target": "grv_upload_or", "sourceHandle": "upload_file_or", "type": "smoothstep" },
     { "id": "e_or_grv8", "source": "grv_evidence_or", "target": "grv_confirm_or", "sourceHandle": "skip_evidence_or", "type": "smoothstep" },

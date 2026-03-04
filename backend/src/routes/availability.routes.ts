@@ -112,7 +112,25 @@ router.get('/chatbot/:companyId', async (req: Request, res: Response) => {
       query.departmentId = { $exists: false };
     }
 
-    const availability = await AppointmentAvailability.findOne(query);
+    let availability = await AppointmentAvailability.findOne(query);
+    
+    // Fallback to default availability if not found
+    if (!availability) {
+      availability = {
+        weeklySchedule: {
+          sunday: { isAvailable: false },
+          monday: { isAvailable: true, morning: { enabled: true, startTime: '09:00', endTime: '12:00' }, afternoon: { enabled: true, startTime: '14:00', endTime: '17:00' }, evening: { enabled: false } },
+          tuesday: { isAvailable: true, morning: { enabled: true, startTime: '09:00', endTime: '12:00' }, afternoon: { enabled: true, startTime: '14:00', endTime: '17:00' }, evening: { enabled: false } },
+          wednesday: { isAvailable: true, morning: { enabled: true, startTime: '09:00', endTime: '12:00' }, afternoon: { enabled: true, startTime: '14:00', endTime: '17:00' }, evening: { enabled: false } },
+          thursday: { isAvailable: true, morning: { enabled: true, startTime: '09:00', endTime: '12:00' }, afternoon: { enabled: true, startTime: '14:00', endTime: '17:00' }, evening: { enabled: false } },
+          friday: { isAvailable: true, morning: { enabled: true, startTime: '09:00', endTime: '12:00' }, afternoon: { enabled: true, startTime: '14:00', endTime: '17:00' }, evening: { enabled: false } },
+          saturday: { isAvailable: false }
+        },
+        specialDates: [],
+        maxAdvanceBookingDays: 30
+      } as any;
+    }
+
     
     const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];

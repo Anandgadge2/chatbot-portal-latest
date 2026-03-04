@@ -917,24 +917,31 @@ export class DynamicFlowEngine {
       // Make API call using built-in fetch (Node.js 18+) or axios
       let fetchFn: any;
       try {
-        // Try to use global fetch (Node.js 18+)
         if (typeof fetch !== 'undefined') {
           fetchFn = fetch;
         } else {
-          // Fallback to axios if available
           const axios = (await import('axios')).default;
-          fetchFn = async (url: string, options: any) => {
-            const response = await axios({
-              url,
-              method: options.method || 'GET',
-              headers: options.headers || {},
-              data: options.body ? JSON.parse(options.body) : undefined
-            });
-            return {
-              json: async () => response.data,
-              status: response.status,
-              ok: response.status >= 200 && response.status < 300
-            };
+          fetchFn = async (u: string, opt: any) => {
+            try {
+              const res = await axios({
+                url: u,
+                method: opt.method || 'GET',
+                headers: opt.headers || {},
+                data: opt.body ? JSON.parse(opt.body) : undefined,
+                validateStatus: () => true // Don't throw on error status
+              });
+              return {
+                json: async () => res.data,
+                status: res.status,
+                ok: res.status >= 200 && res.status < 300
+              };
+            } catch (err: any) {
+              return {
+                json: async () => ({ success: false, message: err.message }),
+                status: err.response?.status || 500,
+                ok: false
+              };
+            }
           };
         }
       } catch (error) {
@@ -957,9 +964,11 @@ export class DynamicFlowEngine {
 
       // Replace placeholders in URL (e.g., {companyId})
       url = this.replacePlaceholders(url);
+      
       // Node fetch needs absolute URL for same-server API calls
       if (url.startsWith('/')) {
-        const base = process.env.API_BASE_URL || process.env.BASE_URL || `http://localhost:${process.env.PORT || 5001}`;
+        const port = process.env.PORT || 5000; // Match server.ts default or .env
+        const base = process.env.API_BASE_URL || process.env.BASE_URL || `http://127.0.0.1:${port}`;
         url = base.replace(/\/$/, '') + url;
       }
       console.log(`🌐 Making API call: ${method} ${url}`);
