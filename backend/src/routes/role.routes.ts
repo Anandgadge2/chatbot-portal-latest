@@ -3,14 +3,20 @@ import mongoose from 'mongoose';
 import Role from '../models/Role';
 import User from '../models/User';
 import { UserRole, AuditAction } from '../config/constants';
-import { createAuditLog } from '../utils/auditLogger';
+import { createAuditLog, logUserAction } from '../utils/auditLogger';
+import { authenticate } from '../middleware/auth';
+import { requireDatabaseConnection } from '../middleware/dbConnection';
 
 const router = Router();
+
+// Apply middleware to all routes
+router.use(requireDatabaseConnection);
+router.use(authenticate);
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function isOwnOrSuperAdmin(req: Request, targetCompanyId: string): boolean {
-  const user = (req as any).user;
+  const user = req.user;
   if (!user) return false;
   if (user.role === UserRole.SUPER_ADMIN) return true;
   return user.companyId?.toString() === targetCompanyId;
@@ -20,7 +26,7 @@ function isOwnOrSuperAdmin(req: Request, targetCompanyId: string): boolean {
 
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const user = (req as any).user;
+    const user = req.user!;
     const rawCompanyId = req.query.companyId as string;
 
     // Determine which company to fetch roles for
@@ -29,8 +35,10 @@ router.get('/', async (req: Request, res: Response) => {
         ? rawCompanyId
         : user.companyId?.toString();
 
+    // If SUPER_ADMIN but no companyId provided, we can return an empty list or system roles
     if (!companyId) {
-      return res.status(400).json({ success: false, message: 'companyId is required' });
+      // If we want to return a 400, it's safer for now as roles are company-scoped
+      return res.status(400).json({ success: false, message: 'companyId is required to fetch roles' });
     }
 
     if (!isOwnOrSuperAdmin(req, companyId)) {
@@ -96,7 +104,7 @@ router.get('/:id/users', async (req: Request, res: Response) => {
 
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const user = (req as any).user;
+    const user = req.user!;
     const { companyId, name, description, permissions } = req.body;
 
     const targetCompanyId = companyId || user.companyId?.toString();
@@ -118,19 +126,12 @@ router.post('/', async (req: Request, res: Response) => {
       description: description?.trim(),
       permissions: permissions || [],
       isSystem: false,
-      createdBy: user._id || user.id
+      createdBy: user._id
     });
 
     await role.save();
 
-    await createAuditLog({
-      action: AuditAction.CREATE,
-      resource: 'Role',
-      resourceId: role._id.toString(),
-      userId: user._id?.toString() || user.id,
-      companyId: targetCompanyId,
-      details: { roleName: role.name }
-    });
+    await logUserAction(req, AuditAction.CREATE, 'Role', role._id.toString(), { roleName: role.name });
 
     res.status(201).json({ success: true, data: role, message: 'Role created successfully' });
   } catch (err: any) {
@@ -146,7 +147,7 @@ router.post('/', async (req: Request, res: Response) => {
 
 router.put('/:id', async (req: Request, res: Response) => {
   try {
-    const user = (req as any).user;
+    const user = req.user!;
     const role = await Role.findById(req.params.id);
 
     if (!role) return res.status(404).json({ success: false, message: 'Role not found' });
@@ -159,18 +160,11 @@ router.put('/:id', async (req: Request, res: Response) => {
     if (name) role.name = name.trim();
     if (description !== undefined) role.description = description?.trim();
     if (permissions !== undefined) role.permissions = permissions;
-    role.updatedBy = user._id || user.id;
+    role.updatedBy = user._id;
 
     await role.save();
 
-    await createAuditLog({
-      action: AuditAction.UPDATE,
-      resource: 'Role',
-      resourceId: role._id.toString(),
-      userId: user._id?.toString() || user.id,
-      companyId: role.companyId.toString(),
-      details: { roleName: role.name }
-    });
+    await logUserAction(req, AuditAction.UPDATE, 'Role', role._id.toString(), { roleName: role.name });
 
     res.json({ success: true, data: role, message: 'Role updated successfully' });
   } catch (err: any) {
@@ -186,7 +180,7 @@ router.put('/:id', async (req: Request, res: Response) => {
 
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
-    const user = (req as any).user;
+    const user = req.user!;
     const role = await Role.findById(req.params.id);
 
     if (!role) return res.status(404).json({ success: false, message: 'Role not found' });
@@ -201,19 +195,12 @@ router.delete('/:id', async (req: Request, res: Response) => {
     const usersWithRole = await User.countDocuments({ customRoleId: role._id });
     if (usersWithRole > 0) {
       await User.updateMany({ customRoleId: role._id }, { $unset: { customRoleId: '' } });
-      console.log(`   Unassigned role from ${usersWithRole} user(s)`);
+      console.log(`Snapshot: Unassigned role from ${usersWithRole} user(s)`);
     }
 
     await Role.findByIdAndDelete(req.params.id);
 
-    await createAuditLog({
-      action: AuditAction.DELETE,
-      resource: 'Role',
-      resourceId: role._id.toString(),
-      userId: user._id?.toString() || user.id,
-      companyId: role.companyId.toString(),
-      details: { roleName: role.name }
-    });
+    await logUserAction(req, AuditAction.DELETE, 'Role', role._id.toString(), { roleName: role.name });
 
     res.json({ success: true, message: 'Role deleted successfully' });
   } catch (err: any) {
@@ -226,7 +213,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
 
 router.post('/:id/assign-user', async (req: Request, res: Response) => {
   try {
-    const user = (req as any).user;
+    const user = req.user!;
     const { userId } = req.body;
 
     const role = await Role.findById(req.params.id);
@@ -242,7 +229,7 @@ router.post('/:id/assign-user', async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: 'User does not belong to this company' });
     }
 
-    (targetUser as any).customRoleId = role._id;
+    targetUser.customRoleId = role._id;
     await targetUser.save();
 
     res.json({ success: true, message: `Role "${role.name}" assigned to user` });

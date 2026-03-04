@@ -155,10 +155,11 @@ export class ActionService {
       const appointmentDate = new Date(session.data.appointmentDate);
       const appointmentData = {
         companyId: company._id,
-        departmentId: null,
+        departmentId: session.data.departmentId || undefined,
         citizenName: session.data.citizenName,
         citizenPhone: userPhone,
         citizenWhatsApp: userPhone,
+        citizenEmail: session.data.citizenEmail,
         purpose: session.data.purpose,
         appointmentDate,
         appointmentTime: session.data.appointmentTime,

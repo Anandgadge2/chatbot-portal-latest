@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import User from '../models/User';
 import Grievance from '../models/Grievance';
+import Department from '../models/Department';
 import { authenticate } from '../middleware/auth';
 import { requirePermission } from '../middleware/rbac';
 import { requireDatabaseConnection } from '../middleware/dbConnection';
@@ -318,8 +319,21 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_GRIEVANCE, 
       };
 
       await notifyCitizenOnResolution(resolutionPayload);
-
       await notifyHierarchyOnStatusChange(resolutionPayload, oldStatus, status);
+    } else if (oldStatus !== status) {
+      // Notify citizen for other status updates
+      const { notifyCitizenOnGrievanceStatusChange } = await import('../services/notificationService');
+      const dept = grievance.departmentId ? await Department.findById(grievance.departmentId) : null;
+      await notifyCitizenOnGrievanceStatusChange({
+        companyId: grievance.companyId,
+        grievanceId: grievance.grievanceId,
+        citizenName: grievance.citizenName,
+        citizenPhone: grievance.citizenPhone,
+        citizenWhatsApp: grievance.citizenWhatsApp,
+        departmentName: dept ? dept.name : undefined,
+        newStatus: status,
+        remarks
+      });
     }
 
     await logUserAction(
@@ -462,6 +476,20 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
       assignedAt: grievance.assignedAt,
       createdAt: grievance.createdAt,
       timeline: grievance.timeline
+    });
+
+    // Notify citizen about assignment/status change
+    const { notifyCitizenOnGrievanceStatusChange } = await import('../services/notificationService');
+    const dept = grievance.departmentId ? await Department.findById(grievance.departmentId) : null;
+    await notifyCitizenOnGrievanceStatusChange({
+      companyId: grievance.companyId,
+      grievanceId: grievance.grievanceId,
+      citizenName: grievance.citizenName,
+      citizenPhone: grievance.citizenPhone,
+      citizenWhatsApp: grievance.citizenWhatsApp,
+      departmentName: dept ? dept.name : undefined,
+      newStatus: GrievanceStatus.ASSIGNED,
+      remarks: `Your grievance has been assigned to ${assignedUser.getFullName()} for resolution.`
     });
 
     await logUserAction(

@@ -16,8 +16,11 @@ async function diagnoseWebhook() {
     console.log('=' .repeat(60));
 
     // Connect to database
-    const mongoUri = process.env.MONGODB_URI || 'mongodb+srv://agadge797_db_user:Amg797gmail@cluster0.5sim50l.mongodb.net/';
-    await mongoose.connect(mongoUri);
+    if (!process.env.MONGODB_URI) {
+      console.error('❌ MONGODB_URI not found in environment variables. Please check your .env file.');
+      return;
+    }
+    await mongoose.connect(process.env.MONGODB_URI);
     console.log('✅ Connected to MongoDB\n');
 
     // 1. Check Companies

@@ -912,7 +912,7 @@ export class DynamicFlowEngine {
             
             // Save date mapping and next step so chatbot can advance on button click
             this.session.data.currentStepId = step.stepId;
-            this.session.data.availabilityNextStepId = nextStepId || null;
+            this.session.data.availabilityNextStepId = nextStepId || step.nextStepId || null;
             this.session.data.dateMapping = {};
             dates.forEach((date: any) => {
               this.session.data.dateMapping[`date_${date.date}`] = date.date;
@@ -936,7 +936,7 @@ export class DynamicFlowEngine {
             
             // Save time mapping and next step so chatbot can advance on button click
             this.session.data.currentStepId = step.stepId;
-            this.session.data.availabilityNextStepId = nextStepId || null;
+            this.session.data.availabilityNextStepId = nextStepId || step.nextStepId || null;
             this.session.data.timeMapping = {};
             timeSlots.forEach((slot: any) => {
               this.session.data.timeMapping[`time_${slot.time}`] = slot.time;
@@ -1101,7 +1101,7 @@ export class DynamicFlowEngine {
 
     // Replace special placeholders that may not be in session.data directly
     message = message.replace(/\{id\}/g, sessionData.id || sessionData.grievanceId || sessionData.appointmentId || sessionData.leadId || '{id}');
-    message = message.replace(/\{companyId\}/g, this.company.companyId || (this.company._id ? this.company._id.toString() : '{companyId}'));
+    message = message.replace(/\{companyId\}/g, (this.company._id ? this.company._id.toString() : this.company.companyId) || '{companyId}');
     message = message.replace(/\{date\}/g, sessionData.date ?? new Date().toLocaleDateString('en-IN'));
     message = message.replace(/\{time\}/g, sessionData.time ?? new Date().toLocaleTimeString('en-IN'));
     message = message.replace(/\{companyName\}/g, this.company.name);
@@ -1388,6 +1388,32 @@ export class DynamicFlowEngine {
             return;
           }
         }
+      }
+    }
+
+    // ✅ Handle dynamic date selection from API call buttons
+    if (this.session.data.dateMapping && this.session.data.dateMapping[buttonId]) {
+      const selectedDate = this.session.data.dateMapping[buttonId];
+      this.session.data.appointmentDate = selectedDate;
+      const nextStepId = this.session.data.availabilityNextStepId;
+      console.log(`📅 Date selected: ${selectedDate}, nextStepId: ${nextStepId}`);
+      await updateSession(this.session);
+      if (nextStepId) {
+        await this.runNextStepIfDifferent(nextStepId, currentStep.stepId);
+        return;
+      }
+    }
+
+    // ✅ Handle dynamic time selection from API call buttons
+    if (this.session.data.timeMapping && this.session.data.timeMapping[buttonId]) {
+      const selectedTime = this.session.data.timeMapping[buttonId];
+      this.session.data.appointmentTime = selectedTime;
+      const nextStepId = this.session.data.availabilityNextStepId;
+      console.log(`⏰ Time selected: ${selectedTime}, nextStepId: ${nextStepId}`);
+      await updateSession(this.session);
+      if (nextStepId) {
+        await this.runNextStepIfDifferent(nextStepId, currentStep.stepId);
+        return;
       }
     }
 
