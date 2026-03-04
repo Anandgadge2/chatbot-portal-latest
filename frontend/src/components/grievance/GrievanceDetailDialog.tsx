@@ -31,13 +31,14 @@ import {
   ArrowRight,
   FileType,
 } from "lucide-react";
-import Image from "next/image";
 
 // Helper: treat as image if type is image or URL looks like an image
+// Cloudinary image URLs contain /image/upload/ in the path
 const isImageMedia = (media: { type?: string; url?: string }) =>
   media.type === "image" ||
   /\.(jpe?g|png|gif|webp|bmp)(\?|$)/i.test(media.url || "") ||
-  (media.url && media.url.includes("image"));
+  /\/image\/upload\//i.test(media.url || "") ||
+  (media.url?.includes("image") && !media.url?.includes("raw"));
 
 // Helper: label for documents (PDF, Word, etc.)
 const getDocumentLabel = (url: string) => {
@@ -62,6 +63,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
   const [fullScreenMedia, setFullScreenMedia] = useState<{
     url: string;
     alt?: string;
+    isImage?: boolean;
   } | null>(null);
 
   if (!isOpen || !grievance) return null;
@@ -464,7 +466,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                     return (
                       <div
                         key={index}
-                        className="relative group rounded-xl overflow-hidden border border-slate-200 aspect-video"
+                        className="relative group rounded-xl overflow-hidden border border-slate-200 aspect-video bg-slate-100"
                       >
                         {isImage ? (
                           <button
@@ -472,19 +474,30 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                             onClick={() =>
                               setFullScreenMedia({
                                 url: media.url,
-                                alt: `Upload ${index + 1}`,
+                                alt: `Evidence ${index + 1}`,
+                                isImage: true,
                               })
                             }
                             className="absolute inset-0 w-full h-full text-left focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-inset rounded-xl"
+                            aria-label={`View evidence ${index + 1} in full screen`}
                           >
                             <img
                               src={media.url}
-                              alt={`Upload ${index + 1}`}
+                              alt={`Evidence ${index + 1}`}
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 cursor-pointer"
+                              onError={(e) => {
+                                const target = e.currentTarget;
+                                target.style.display = "none";
+                                const parent = target.parentElement;
+                                if (parent) {
+                                  parent.innerHTML = `<div class="w-full h-full flex flex-col items-center justify-center gap-2 text-slate-400"><svg xmlns='http://www.w3.org/2000/svg' class='w-8 h-8' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z'/></svg><span class='text-xs'>Image unavailable</span></div>`;
+                                }
+                              }}
                             />
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                              <span className="opacity-0 group-hover:opacity-100 text-white text-sm font-medium bg-black/50 px-3 py-1.5 rounded-lg transition-opacity">
-                                Click to view full screen
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center pointer-events-none">
+                              <span className="opacity-0 group-hover:opacity-100 text-white text-xs font-semibold bg-black/60 px-3 py-1.5 rounded-lg transition-all duration-200 flex items-center gap-1.5">
+                                <ExternalLink className="w-3.5 h-3.5" />
+                                View Full Screen
                               </span>
                             </div>
                           </button>
@@ -492,20 +505,23 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                           <button
                             type="button"
                             onClick={() =>
-                              media.url &&
-                              window.open(
-                                media.url,
-                                "_blank",
-                                "noopener,noreferrer",
-                              )
+                              setFullScreenMedia({
+                                url: media.url,
+                                alt: getDocumentLabel(media.url || ""),
+                                isImage: false,
+                              })
                             }
-                            className="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 flex flex-col items-center justify-center hover:from-slate-200 hover:to-slate-300 transition-colors cursor-pointer border-0"
+                            className="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 flex flex-col items-center justify-center hover:from-indigo-50 hover:to-blue-100 transition-all duration-200 cursor-pointer border-0 gap-2"
+                            aria-label={`View ${getDocumentLabel(media.url || "")} document`}
                           >
-                            <FileType className="w-10 h-10 text-slate-500 mb-2" />
-                            <span className="text-sm font-medium text-slate-600">
+                            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm border border-slate-200">
+                              <FileType className="w-6 h-6 text-indigo-500" />
+                            </div>
+                            <span className="text-sm font-semibold text-slate-700">
                               {getDocumentLabel(media.url || "")}
                             </span>
-                            <span className="text-xs text-slate-400 mt-0.5">
+                            <span className="text-xs text-slate-400 flex items-center gap-1">
+                              <ExternalLink className="w-3 h-3" />
                               Click to open
                             </span>
                           </button>
@@ -514,38 +530,6 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                     );
                   })}
                 </div>
-              </div>
-            </div>
-          )}
-
-          {/* Full-screen image overlay */}
-          {fullScreenMedia && (
-            <div
-              className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4"
-              onClick={() => setFullScreenMedia(null)}
-              role="dialog"
-              aria-modal="true"
-              aria-label="Media full screen view"
-            >
-              <button
-                type="button"
-                onClick={() => setFullScreenMedia(null)}
-                className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
-                aria-label="Close full screen"
-              >
-                <X className="w-6 h-6" />
-              </button>
-              <div
-                className="relative w-full h-full min-h-[50vh]"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Image
-                  src={fullScreenMedia.url}
-                  alt={fullScreenMedia.alt || "Full size"}
-                  fill
-                  className="object-contain"
-                  unoptimized
-                />
               </div>
             </div>
           )}
@@ -749,25 +733,93 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
         </div>
       </div>
 
-      {/* Full Screen Image Modal */}
+      {/* Full Screen Media Modal — handles both images and documents */}
       {fullScreenMedia && (
-        <div 
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 backdrop-blur-md p-4 animate-in fade-in"
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-md animate-in fade-in duration-200"
           onClick={() => setFullScreenMedia(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Full screen view: ${fullScreenMedia.alt}`}
         >
-          <button 
-            className="absolute top-4 right-4 text-white/70 hover:text-white p-2 rounded-full bg-white/10 hover:bg-white/20 transition-all"
-            onClick={(e) => { e.stopPropagation(); setFullScreenMedia(null); }}
-          >
-            <X className="w-6 h-6" />
-          </button>
-          <div className="relative w-full max-w-5xl aspect-video md:aspect-auto md:h-[85vh] rounded-xl overflow-hidden shadow-2xl border border-white/10" onClick={(e) => e.stopPropagation()}>
-            <img
-              src={fullScreenMedia.url}
-              alt={fullScreenMedia.alt || 'Full screen media'}
-              className="w-full h-full object-contain"
-            />
+          {/* Top bar */}
+          <div className="absolute top-0 inset-x-0 h-16 flex items-center justify-between px-5 bg-gradient-to-b from-black/60 to-transparent pointer-events-none z-10">
+            <span className="text-white/80 text-sm font-semibold">
+              {fullScreenMedia.alt}
+            </span>
+            <div className="flex items-center gap-2 pointer-events-auto">
+              {/* Download button */}
+              <a
+                href={fullScreenMedia.url}
+                download
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-white/15 hover:bg-white/30 text-white text-xs font-semibold rounded-lg transition-all"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                Open / Download
+              </a>
+              {/* Close button */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setFullScreenMedia(null);
+                }}
+                className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/30 flex items-center justify-center text-white transition-all"
+                aria-label="Close full screen view"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
+
+          {fullScreenMedia.isImage ? (
+            /* Image viewer */
+            <div
+              className="relative flex items-center justify-center w-full h-full p-16"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={fullScreenMedia.url}
+                alt={fullScreenMedia.alt || "Full screen media"}
+                className="max-w-full max-h-full object-contain rounded-lg shadow-2xl select-none"
+                draggable={false}
+                onError={(e) => {
+                  e.currentTarget.alt = "Failed to load image";
+                }}
+              />
+            </div>
+          ) : (
+            /* Document viewer — embed in iframe for PDFs, otherwise open link */
+            <div
+              className="flex flex-col items-center justify-center gap-6 p-8"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="w-24 h-24 bg-white/10 rounded-2xl flex items-center justify-center border border-white/20">
+                <FileType className="w-12 h-12 text-white/80" />
+              </div>
+              <div className="text-center">
+                <p className="text-white text-lg font-bold mb-1">
+                  {fullScreenMedia.alt}
+                </p>
+                <p className="text-white/60 text-sm mb-6">
+                  Click the button below to open or download this file
+                </p>
+                <a
+                  href={fullScreenMedia.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-500 hover:bg-indigo-400 text-white font-semibold rounded-xl transition-all shadow-lg"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  Open Document
+                </a>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
