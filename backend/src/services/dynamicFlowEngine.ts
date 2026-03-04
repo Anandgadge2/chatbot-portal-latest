@@ -12,6 +12,7 @@ import { uploadWhatsAppMediaToCloudinary } from './mediaService';
 import { ActionService } from './actionService';
 import { findDepartmentByCategory } from './departmentMapper';
 import { GrievanceStatus, AppointmentStatus, UserRole } from '../config/constants';
+import { getChatbotAvailabilityData } from '../routes/availability.routes';
 
 // ─── Message Interface ────────────────────────────────────────────────────────
 
@@ -895,12 +896,12 @@ export class DynamicFlowEngine {
       console.error('❌ API call step has no API configuration');
       return;
     }
-
+    let url = '';
     try {
       const { method, endpoint, headers, body, saveResponseTo, nextStepId } = step.apiConfig;
 
       // Build URL with query parameters for GET requests (replace placeholders in body values e.g. {appointmentDate})
-      let url = this.replacePlaceholders(endpoint);
+      url = this.replacePlaceholders(endpoint);
       console.log(`🔗 Resolved API URL: ${url}`);
       if (method === 'GET' && body) {
         const queryParams = new URLSearchParams();
@@ -976,14 +977,44 @@ export class DynamicFlowEngine {
 
       console.log(`🌐 Making API call: ${method} ${url}`);
       
-      const response = await fetchFn(url, options);
-      
-      if (!response.ok) {
-        console.error(`❌ API call failed with status ${response.status} to ${url}`);
-        throw new Error(`API call failed with status ${response.status}`);
+      let data: any;
+
+      // OPTIMIZATION: If it's an internal call to availability chatbot, call the logic directly
+      // This avoids "fetch failed" issues on Vercel/localhost loops
+      if (url.includes('/api/availability/chatbot/')) {
+        console.log('⚡ Internal optimization: calling availability logic directly');
+        try {
+          // Parse companyId and query params from URL
+          const urlObj = new URL(url, 'http://localhost');
+          const pathSegments = urlObj.pathname.split('/');
+          const companyId = pathSegments[pathSegments.length - 1];
+          const queryParams = Object.fromEntries(urlObj.searchParams.entries());
+          
+          data = await getChatbotAvailabilityData({
+            companyId,
+            departmentId: queryParams.departmentId,
+            selectedDate: queryParams.selectedDate,
+            daysAhead: queryParams.daysAhead
+          });
+          
+          // Wrap in object expected by flow engine
+          data = { success: true, data };
+          console.log('✅ Direct availability call successful');
+        } catch (dirErr: any) {
+          console.error('❌ Direct availability call failed:', dirErr.message);
+          throw new Error(`Direct availability call failed: ${dirErr.message}`);
+        }
+      } else {
+        const response = await fetchFn(url, options);
+        
+        if (!response.ok) {
+          console.error(`❌ API call failed with status ${response.status} to ${url}`);
+          throw new Error(`API call failed with status ${response.status}`);
+        }
+        
+        data = await response.json();
       }
-      
-      const data = await response.json();
+
       console.log(`✅ API call response received from ${url.substring(0, 50)}...`);
 
       // Save response to session if needed
@@ -993,9 +1024,10 @@ export class DynamicFlowEngine {
       }
 
       // Special handling for availability API - generate buttons dynamically
-      if (endpoint.includes('/availability/chatbot/') && data.success && data.data) {
-        const availabilityData = data.data;
-        
+      // Match either the direct data or the fetched data structure
+      const availabilityData = data?.data || data;
+
+      if (availabilityData && (availabilityData.availableDates || availabilityData.formattedTimeSlots)) {
         // Resolve next step properly from edges if not explicitly set in config
         const effectiveNextStepId = nextStepId || this.resolveNextStepId(step.stepId) || step.nextStepId;
         
@@ -1050,7 +1082,11 @@ export class DynamicFlowEngine {
       const nextId = nextStepId || this.resolveNextStepId(step.stepId) || step.nextStepId;
       await this.runNextStepIfDifferent(nextId, step.stepId);
     } catch (error: any) {
-      console.error('❌ API call execution failed:', error.message);
+      console.error(`❌ API call execution failed to [${url}]:`, error.message);
+      if (error.response) {
+        console.error('📦 Response status:', error.response.status);
+        console.error('📦 Response data:', JSON.stringify(error.response.data));
+      }
       await this.sendErrorMessage();
     }
   }

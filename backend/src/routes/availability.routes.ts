@@ -104,194 +104,197 @@ router.get('/public/:companyId', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * Common Logic for Chatbot Availability - Exported for internal use by DynamicFlowEngine
+ */
+export async function getChatbotAvailabilityData(params: {
+  companyId: string;
+  departmentId?: string;
+  selectedDate?: string;
+  daysAhead?: string;
+}) {
+  const { companyId, departmentId, selectedDate, daysAhead = '30' } = params;
+  
+  const daysToShow = parseInt(daysAhead as string) || 30;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const maxDate = new Date();
+  maxDate.setDate(maxDate.getDate() + daysToShow);
+
+  let actualCompanyId = companyId;
+  if (!mongoose.Types.ObjectId.isValid(companyId)) {
+    const company = await Company.findOne({ companyId: companyId });
+    if (company) {
+      actualCompanyId = company._id as any;
+    } else {
+      console.log(`⚠️ Company NOT found for slug: ${companyId}`);
+    }
+  }
+
+  const query: any = { companyId: actualCompanyId, isActive: true };
+  if (departmentId) {
+    query.departmentId = departmentId;
+  } else {
+    query.departmentId = { $exists: false };
+  }
+
+  let availability = await AppointmentAvailability.findOne(query);
+
+  // Fallback to default availability if not found
+  if (!availability) {
+    availability = {
+      companyId: actualCompanyId as any,
+      departmentId: departmentId as any,
+      weeklySchedule: {
+        monday: { isAvailable: true, morning: { enabled: true, startTime: '09:00', endTime: '12:00' }, afternoon: { enabled: true, startTime: '14:00', endTime: '17:00' } },
+        tuesday: { isAvailable: true, morning: { enabled: true, startTime: '09:00', endTime: '12:00' }, afternoon: { enabled: true, startTime: '14:00', endTime: '17:00' } },
+        wednesday: { isAvailable: true, morning: { enabled: true, startTime: '09:00', endTime: '12:00' }, afternoon: { enabled: true, startTime: '14:00', endTime: '17:00' } },
+        thursday: { isAvailable: true, morning: { enabled: true, startTime: '09:00', endTime: '12:00' }, afternoon: { enabled: true, startTime: '14:00', endTime: '17:00' } },
+        friday: { isAvailable: true, morning: { enabled: true, startTime: '09:00', endTime: '12:00' }, afternoon: { enabled: true, startTime: '14:00', endTime: '17:00' } },
+        saturday: { isAvailable: false },
+        sunday: { isAvailable: false }
+      },
+      specialDates: [],
+      maxAdvanceBookingDays: 30
+    } as any;
+  }
+
+  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  
+  const availableDates: Array<{
+    date: string;
+    formattedDate: string;
+    buttonLabel: string;
+    timeSlots: string[];
+    formattedTimeSlots: Array<{ time: string; label: string }>;
+  }> = [];
+
+  // If selectedDate is provided, return only time slots for that date
+  if (selectedDate) {
+    const targetDate = new Date(selectedDate as string);
+    const dayOfWeek = targetDate.getDay();
+    const dayName = dayNames[dayOfWeek] as 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday';
+    
+    // Check for special date
+    const specialDate = availability?.specialDates?.find(sd => {
+      const sdDate = new Date(sd.date);
+      return sdDate.getFullYear() === targetDate.getFullYear() &&
+              sdDate.getMonth() === targetDate.getMonth() &&
+              sdDate.getDate() === targetDate.getDate();
+    });
+
+    const daySchedule = specialDate || availability?.weeklySchedule[dayName];
+    
+    if (daySchedule && (specialDate?.isAvailable !== false && daySchedule.isAvailable !== false)) {
+      const timeSlots: string[] = [];
+      const formattedTimeSlots: Array<{ time: string; label: string }> = [];
+      const slots = specialDate || daySchedule;
+      
+      if (slots.morning?.enabled) {
+        const time = slots.morning.startTime;
+        timeSlots.push(time);
+        formattedTimeSlots.push({ time, label: `🕘 ${time} AM` });
+      }
+      if (slots.afternoon?.enabled) {
+        const time = slots.afternoon.startTime;
+        timeSlots.push(time);
+        formattedTimeSlots.push({ time, label: `🕑 ${time} PM` });
+      }
+      if (slots.evening?.enabled) {
+        const time = slots.evening.startTime;
+        timeSlots.push(time);
+        formattedTimeSlots.push({ time, label: `🕔 ${time} PM` });
+      }
+
+      return {
+        date: targetDate.toISOString().split('T')[0],
+        formattedDate: `${weekdayNames[dayOfWeek]}, ${targetDate.getDate()} ${monthNames[targetDate.getMonth()]} ${targetDate.getFullYear()}`,
+        buttonLabel: `${targetDate.getDate()} ${monthNames[targetDate.getMonth()].slice(0, 3)} (${weekdayNames[dayOfWeek].slice(0, 3)})`,
+        timeSlots,
+        formattedTimeSlots
+      };
+    }
+    
+    return {
+      date: targetDate.toISOString().split('T')[0],
+      formattedDate: `${weekdayNames[dayOfWeek]}, ${targetDate.getDate()} ${monthNames[targetDate.getMonth()]} ${targetDate.getFullYear()}`,
+      buttonLabel: `${targetDate.getDate()} ${monthNames[targetDate.getMonth()].slice(0, 3)} (${weekdayNames[dayOfWeek].slice(0, 3)})`,
+      timeSlots: [],
+      formattedTimeSlots: []
+    };
+  }
+
+  // Otherwise, return available dates
+  for (let i = 0; i < daysToShow; i++) {
+    const date = new Date(today);
+    date.setDate(date.getDate() + i);
+    if (date > maxDate) break;
+    
+    const dayOfWeek = date.getDay();
+    const dayName = dayNames[dayOfWeek] as 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday';
+    
+    const specialDate = availability?.specialDates?.find(sd => {
+      const sdDate = new Date(sd.date);
+      return sdDate.getFullYear() === date.getFullYear() &&
+              sdDate.getMonth() === date.getMonth() &&
+              sdDate.getDate() === date.getDate();
+    });
+
+    if (specialDate && !specialDate.isAvailable) continue; 
+    
+    const daySchedule = availability?.weeklySchedule[dayName];
+    if (!daySchedule?.isAvailable && !specialDate) continue;
+
+    const slots = specialDate || daySchedule;
+    if (!slots || slots.isAvailable === false) continue;
+
+    const timeSlots: string[] = [];
+    if (slots.morning?.enabled) timeSlots.push(slots.morning.startTime);
+    if (slots.afternoon?.enabled) timeSlots.push(slots.afternoon.startTime);
+    if (slots.evening?.enabled) timeSlots.push(slots.evening.startTime);
+
+    if (timeSlots.length > 0) {
+      availableDates.push({
+        date: date.toISOString().split('T')[0],
+        formattedDate: `${weekdayNames[dayOfWeek]}, ${date.getDate()} ${monthNames[date.getMonth()]} ${date.getFullYear()}`,
+        buttonLabel: `${date.getDate()} ${monthNames[date.getMonth()].slice(0, 3)} (${weekdayNames[dayOfWeek].slice(0, 3)})`,
+        timeSlots,
+        formattedTimeSlots: timeSlots.map(time => {
+          const [hours, minutes] = time.split(':');
+          const hour = parseInt(hours);
+          const period = hour >= 12 ? 'PM' : 'AM';
+          const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+          const emoji = hour < 12 ? '🕘' : hour < 17 ? '🕑' : '🕔';
+          return {
+            time,
+            label: `${emoji} ${displayHour}:${minutes} ${period}`
+          };
+        })
+      });
+    }
+  }
+
+  return { availableDates };
+}
+
 // Get available dates for chatbot (formatted for buttons)
 router.get('/chatbot/:companyId', async (req: Request, res: Response) => {
   try {
     const { companyId } = req.params;
-    const { departmentId, selectedDate, daysAhead = '30' } = req.query;
+    const { departmentId, selectedDate, daysAhead } = req.query;
     
-    const daysToShow = parseInt(daysAhead as string) || 30;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const maxDate = new Date();
-    maxDate.setDate(maxDate.getDate() + daysToShow);
-
-    let actualCompanyId = companyId;
-    if (!mongoose.Types.ObjectId.isValid(companyId)) {
-      const Company = (await import('../models/Company')).default;
-      const company = await Company.findOne({ companyId: companyId });
-      if (company) {
-        actualCompanyId = company._id as any;
-      }
-    }
-
-    const query: any = { companyId: actualCompanyId, isActive: true };
-    if (departmentId) {
-      query.departmentId = departmentId;
-    } else {
-      query.departmentId = { $exists: false };
-    }
-
-    let availability = await AppointmentAvailability.findOne(query);
-    
-    // Fallback to default availability if not found
-    if (!availability) {
-      availability = {
-        weeklySchedule: {
-          sunday: { isAvailable: false },
-          monday: { isAvailable: true, morning: { enabled: true, startTime: '09:00', endTime: '12:00' }, afternoon: { enabled: true, startTime: '14:00', endTime: '17:00' }, evening: { enabled: false } },
-          tuesday: { isAvailable: true, morning: { enabled: true, startTime: '09:00', endTime: '12:00' }, afternoon: { enabled: true, startTime: '14:00', endTime: '17:00' }, evening: { enabled: false } },
-          wednesday: { isAvailable: true, morning: { enabled: true, startTime: '09:00', endTime: '12:00' }, afternoon: { enabled: true, startTime: '14:00', endTime: '17:00' }, evening: { enabled: false } },
-          thursday: { isAvailable: true, morning: { enabled: true, startTime: '09:00', endTime: '12:00' }, afternoon: { enabled: true, startTime: '14:00', endTime: '17:00' }, evening: { enabled: false } },
-          friday: { isAvailable: true, morning: { enabled: true, startTime: '09:00', endTime: '12:00' }, afternoon: { enabled: true, startTime: '14:00', endTime: '17:00' }, evening: { enabled: false } },
-          saturday: { isAvailable: false }
-        },
-        specialDates: [],
-        maxAdvanceBookingDays: 30
-      } as any;
-    }
-
-    
-    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    const weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    
-    const availableDates: Array<{
-      date: string;
-      formattedDate: string;
-      buttonLabel: string;
-      timeSlots: string[];
-      formattedTimeSlots: Array<{ time: string; label: string }>;
-    }> = [];
-
-    // If selectedDate is provided, return only time slots for that date
-    if (selectedDate) {
-      const targetDate = new Date(selectedDate as string);
-      const dayOfWeek = targetDate.getDay();
-      const dayName = dayNames[dayOfWeek] as 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday';
-      
-      // Check for special date
-      const specialDate = availability?.specialDates?.find(sd => {
-        const sdDate = new Date(sd.date);
-        return sdDate.getFullYear() === targetDate.getFullYear() &&
-               sdDate.getMonth() === targetDate.getMonth() &&
-               sdDate.getDate() === targetDate.getDate();
-      });
-
-      const daySchedule = specialDate || availability?.weeklySchedule[dayName];
-      
-      if (daySchedule && (specialDate?.isAvailable !== false && daySchedule.isAvailable !== false)) {
-        const timeSlots: string[] = [];
-        const formattedTimeSlots: Array<{ time: string; label: string }> = [];
-        
-        const slots = specialDate || daySchedule;
-        
-        if (slots.morning?.enabled) {
-          const time = slots.morning.startTime;
-          timeSlots.push(time);
-          formattedTimeSlots.push({ 
-            time, 
-            label: `🕘 ${time} AM` 
-          });
-        }
-        if (slots.afternoon?.enabled) {
-          const time = slots.afternoon.startTime;
-          timeSlots.push(time);
-          formattedTimeSlots.push({ 
-            time, 
-            label: `🕑 ${time} PM` 
-          });
-        }
-        if (slots.evening?.enabled) {
-          const time = slots.evening.startTime;
-          timeSlots.push(time);
-          formattedTimeSlots.push({ 
-            time, 
-            label: `🕔 ${time} PM` 
-          });
-        }
-
-        return res.json({
-          success: true,
-          data: {
-            date: targetDate.toISOString().split('T')[0],
-            formattedDate: `${weekdayNames[dayOfWeek]}, ${targetDate.getDate()} ${monthNames[targetDate.getMonth()]} ${targetDate.getFullYear()}`,
-            buttonLabel: `${targetDate.getDate()} ${monthNames[targetDate.getMonth()].slice(0, 3)} (${weekdayNames[dayOfWeek].slice(0, 3)})`,
-            timeSlots,
-            formattedTimeSlots
-          }
-        });
-      }
-      
-      return res.json({
-        success: true,
-        data: {
-          date: targetDate.toISOString().split('T')[0],
-          formattedDate: `${weekdayNames[dayOfWeek]}, ${targetDate.getDate()} ${monthNames[targetDate.getMonth()]} ${targetDate.getFullYear()}`,
-          buttonLabel: `${targetDate.getDate()} ${monthNames[targetDate.getMonth()].slice(0, 3)} (${weekdayNames[dayOfWeek].slice(0, 3)})`,
-          timeSlots: [],
-          formattedTimeSlots: []
-        }
-      });
-    }
-
-    // Otherwise, return available dates
-    for (let i = 0; i < daysToShow; i++) {
-      const date = new Date(today);
-      date.setDate(date.getDate() + i);
-      
-      if (date > maxDate) break;
-      
-      const dayOfWeek = date.getDay();
-      const dayName = dayNames[dayOfWeek] as 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday';
-      
-      // Check for special dates (holidays)
-      const specialDate = availability?.specialDates?.find(sd => {
-        const sdDate = new Date(sd.date);
-        return sdDate.getFullYear() === date.getFullYear() &&
-               sdDate.getMonth() === date.getMonth() &&
-               sdDate.getDate() === date.getDate();
-      });
-
-      if (specialDate && !specialDate.isAvailable) continue; // Skip holidays
-      
-      const daySchedule = availability?.weeklySchedule[dayName];
-      if (!daySchedule?.isAvailable && !specialDate) continue;
-
-      const slots = specialDate || daySchedule;
-      if (!slots || slots.isAvailable === false) continue;
-
-      const timeSlots: string[] = [];
-      if (slots.morning?.enabled) timeSlots.push(slots.morning.startTime);
-      if (slots.afternoon?.enabled) timeSlots.push(slots.afternoon.startTime);
-      if (slots.evening?.enabled) timeSlots.push(slots.evening.startTime);
-
-      if (timeSlots.length > 0) {
-        availableDates.push({
-          date: date.toISOString().split('T')[0],
-          formattedDate: `${weekdayNames[dayOfWeek]}, ${date.getDate()} ${monthNames[date.getMonth()]} ${date.getFullYear()}`,
-          buttonLabel: `${date.getDate()} ${monthNames[date.getMonth()].slice(0, 3)} (${weekdayNames[dayOfWeek].slice(0, 3)})`,
-          timeSlots,
-          formattedTimeSlots: timeSlots.map(time => {
-            const [hours, minutes] = time.split(':');
-            const hour = parseInt(hours);
-            const period = hour >= 12 ? 'PM' : 'AM';
-            const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
-            const emoji = hour < 12 ? '🕘' : hour < 17 ? '🕑' : '🕔';
-            return {
-              time,
-              label: `${emoji} ${displayHour}:${minutes} ${period}`
-            };
-          })
-        });
-      }
-    }
+    const data = await getChatbotAvailabilityData({
+      companyId,
+      departmentId: departmentId as string,
+      selectedDate: selectedDate as string,
+      daysAhead: daysAhead as string
+    });
 
     return res.json({
       success: true,
-      data: {
-        availableDates
-      }
+      data
     });
   } catch (error: any) {
     logger.error('Error fetching chatbot availability:', error);

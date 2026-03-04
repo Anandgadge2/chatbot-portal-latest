@@ -443,10 +443,10 @@
     {
       "id": "apt_date_en",
       "type": "apiCall",
-      "position": { "x": 1400, "y": 200 },
+      "position": { "x": 1650, "y": 200 },
       "data": {
         "label": "Select Date (EN)",
-        "messageText": "🗓️ *Select Date*\n\nChoose a convenient date:",
+        "messageText": "🗓️ *Select Date*\n\nChoose an available date for your meeting with the Collector:",
         "method": "GET",
         "endpoint": "/api/availability/chatbot/{companyId}",
         "saveResponseTo": "availableDates"
@@ -455,13 +455,26 @@
     {
       "id": "apt_time_en",
       "type": "apiCall",
-      "position": { "x": 1650, "y": 200 },
+      "position": { "x": 1900, "y": 200 },
       "data": {
         "label": "Time Slot (EN)",
         "messageText": "⏰ *Choose Time Slot*\n\nSelect an available time for {appointmentDate}:",
         "method": "GET",
         "endpoint": "/api/availability/chatbot/{companyId}?selectedDate={appointmentDate}",
         "saveResponseTo": "availableTimes"
+      }
+    },
+    {
+      "id": "apt_confirm_en",
+      "type": "buttonMessage",
+      "position": { "x": 1900, "y": 200 },
+      "data": {
+        "label": "Verify Appointment (EN)",
+        "messageText": "📋 *Verify Appointment*\n\nPlease confirm your booking details:\n\n👤 *Name:* {citizenName}\n🎯 *Purpose:* {meetingPurpose}\n📅 *Date:* {appointmentDate}\n⏰ *Time:* {appointmentTime}\n\n👇 Is this correct?",
+        "buttons": [
+          { "id": "confirm_apt_en", "text": "✅ Confirm Booking", "type": "quick_reply" },
+          { "id": "cancel_apt_en", "text": "❌ Cancel", "type": "quick_reply" }
+        ]
       }
     },
     {
@@ -547,10 +560,10 @@
     {
       "id": "apt_date_hi",
       "type": "apiCall",
-      "position": { "x": 1400, "y": 600 },
+      "position": { "x": 1650, "y": 600 },
       "data": {
         "label": "Select Date (HI)",
-        "messageText": "🗓️ *तारीख चुनें*\n\nएक सुविधाजनक तारीख चुनें:",
+        "messageText": "🗓️ *तारीख चुनें*\n\nकलेक्टर के साथ बैठक के लिए उपलब्ध तारीख चुनें:",
         "method": "GET",
         "endpoint": "/api/availability/chatbot/{companyId}",
         "saveResponseTo": "availableDates"
@@ -559,7 +572,7 @@
     {
       "id": "apt_time_hi",
       "type": "apiCall",
-      "position": { "x": 1650, "y": 600 },
+      "position": { "x": 1900, "y": 600 },
       "data": {
         "label": "Time Slot (HI)",
         "messageText": "⏰ *समय चुनें*\n\n{appointmentDate} के लिए उपलब्ध समय चुनें:",
@@ -571,10 +584,10 @@
     {
       "id": "apt_confirm_hi",
       "type": "buttonMessage",
-      "position": { "x": 1900, "y": 600 },
+      "position": { "x": 2150, "y": 600 },
       "data": {
         "label": "Verify Appointment (HI)",
-        "messageText": "📋 *अपॉइंटमेंट सत्यापित करें*\n\nकृपया अपने बुकिंग विवरण की पुष्टि करें:\n\n👤 *नाम:* {citizenName}\n🎯 *उद्देश्य:* {meetingPurpose}\n📅 *तारीख:* {appointmentDate}\n⏰ *समय:* {appointmentTime}\n\n👇 क्या यह सही है?",
+        "messageText": "📋 *अपॉइंटमेंट सत्यापित करें*\n\nकृपया अपने बुकिंग विवरण की पुष्टि करें:\n\n👤 *नाम:* {citizenName}\n *उद्देश्य:* {meetingPurpose}\n📅 *तारीख:* {appointmentDate}\n⏰ *समय:* {appointmentTime}\n\n👇 क्या यह सही है?",
         "buttons": [
           { "id": "confirm_apt_hi", "text": "✅ बुकिंग करें", "type": "quick_reply" },
           { "id": "cancel_apt_hi", "text": "❌ रद्द करें", "type": "quick_reply" }
@@ -651,10 +664,10 @@
     {
       "id": "apt_date_or",
       "type": "apiCall",
-      "position": { "x": 1400, "y": 1000 },
+      "position": { "x": 1650, "y": 1000 },
       "data": {
         "label": "Select Date (OR)",
-        "messageText": "🗓️ *ତାରିଖ ବାଛନ୍ତୁ*\n\nଏକ ସୁବିଧାଜନକ ତାରିଖ ବାଛନ୍ତୁ:",
+        "messageText": "🗓️ *ତାରିଖ ବାଛନ୍ତୁ*\n\nକଲେକ୍ଟରଙ୍କ ସହିତ ସାକ୍ଷାତ ପାଇଁ ଉପଲବ୍ଧ ତାରିଖ ବାଛନ୍ତୁ:",
         "method": "GET",
         "endpoint": "/api/availability/chatbot/{companyId}",
         "saveResponseTo": "availableDates"
@@ -663,7 +676,7 @@
     {
       "id": "apt_time_or",
       "type": "apiCall",
-      "position": { "x": 1650, "y": 1000 },
+      "position": { "x": 1900, "y": 1000 },
       "data": {
         "label": "Time Slot (OR)",
         "messageText": "⏰ *ସମୟ ଚୟନ କରନ୍ତୁ*\n\n{appointmentDate} ପାଇଁ ଉପଲବ୍ଧ ସମୟ ବାଛନ୍ତୁ:",
@@ -675,10 +688,10 @@
     {
       "id": "apt_confirm_or",
       "type": "buttonMessage",
-      "position": { "x": 1900, "y": 1000 },
+      "position": { "x": 2150, "y": 1000 },
       "data": {
         "label": "Verify Appointment (OR)",
-        "messageText": "📋 *ଆପଏଣ୍ଟମେଣ୍ଟ ଯାଞ୍ଚ କରନ୍ତୁ*\n\nଦୟାକରି ଆପଣଙ୍କର ବୁକିଂ ବିବରଣୀ ନିଶ୍ଚିତ କରନ୍ତୁ:\n\n👤 *ନାମ:* {citizenName}\n🎯 *ଉଦ୍ଦେଶ୍ୟ:* {meetingPurpose}\n📅 *ତାରିଖ:* {appointmentDate}\n⏰ *ସମୟ:* {appointmentTime}\n\n👇 ଏହା ସଠିକ୍ କି?",
+        "messageText": "📋 *ଆପଏଣ୍ଟମେଣ୍ଟ ଯାଞ୍ଚ କରନ୍ତୁ*\n\nଦୟାକରି ଆପଣଙ୍କର ବୁକିଂ ବିବରଣୀ ନିଶ୍ଚିତ କରନ୍ତୁ:\n\n👤 *ନାମ:* {citizenName}\n *ସାକ୍ଷାତର ଉଦ୍ଦେଶ୍ୟ:* {meetingPurpose}\n📅 *ତାରିଖ:* {appointmentDate}\n⏰ *ସମୟ:* {appointmentTime}\n\n👇 ଏହା ସଠିକ୍ କି?",
         "buttons": [
           { "id": "confirm_apt_or", "text": "✅ ନିଶ୍ଚିତ କରନ୍ତୁ", "type": "quick_reply" },
           { "id": "cancel_apt_or", "text": "❌ ବାତିଲ୍", "type": "quick_reply" }
