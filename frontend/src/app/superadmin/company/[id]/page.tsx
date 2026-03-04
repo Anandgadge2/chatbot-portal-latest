@@ -302,6 +302,8 @@ export default function CompanyDrillDown() {
   const [leads, setLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingLeads, setLoadingLeads] = useState(false);
+  const [navigationLoading, setNavigationLoading] = useState(false);
+  const [navigationMessage, setNavigationMessage] = useState('Switching page...');
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedGrievance, setSelectedGrievance] = useState<Grievance | null>(null);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
@@ -428,6 +430,13 @@ export default function CompanyDrillDown() {
       direction = null;
     }
     setSortConfig({ key, direction });
+  };
+
+  const navigateWithLoader = (path: string, message: string) => {
+    if (navigationLoading) return;
+    setNavigationMessage(message);
+    setNavigationLoading(true);
+    router.push(path);
   };
 
   const filteredUsers = useMemo(() => {
@@ -575,7 +584,7 @@ export default function CompanyDrillDown() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   if (loading) return <div className="flex min-h-screen items-center justify-center bg-slate-50"><LoadingSpinner text="Loading..." /></div>;
-  if (!company) return <div className="flex min-h-screen items-center justify-center text-center"><h2 className="text-2xl font-bold mb-4">Company not found</h2><Button onClick={() => router.push('/superadmin/dashboard')}>Back</Button></div>;
+  if (!company) return <div className="flex min-h-screen items-center justify-center text-center"><h2 className="text-2xl font-bold mb-4">Company not found</h2><Button onClick={() => navigateWithLoader('/superadmin/dashboard', 'Returning to Super Admin dashboard...')}>Back</Button></div>;
 
   const grievanceStatusData = [
     { name: 'Pending', value: stats.pendingGrievances, color: '#FFBB28' },
@@ -591,13 +600,20 @@ export default function CompanyDrillDown() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {navigationLoading && (
+        <div className="fixed inset-0 z-[90] bg-slate-900/40 backdrop-blur-[1px] flex items-center justify-center">
+          <div className="bg-white border border-slate-200 rounded-xl px-6 py-5 shadow-2xl">
+            <LoadingSpinner text={navigationMessage} />
+          </div>
+        </div>
+      )}
       <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 shadow-xl transition-all h-20">
         <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
         <div className="max-w-[1600px] mx-auto px-4 lg:px-8 h-full flex items-center justify-between relative">
           <div className="flex items-center gap-3 lg:gap-6">
             <Button 
                variant="ghost" 
-               onClick={() => router.push('/superadmin/dashboard')} 
+               onClick={() => navigateWithLoader('/superadmin/dashboard', 'Returning to Super Admin dashboard...')} 
                className="hidden md:flex bg-white bg-opacity-10 hover:bg-opacity-20 text-white h-11 px-4 rounded-xl border border-white border-opacity-10 transition-all group"
             >
               <ArrowLeft className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" />
@@ -616,15 +632,15 @@ export default function CompanyDrillDown() {
           </div>
           <div className="flex items-center gap-2 lg:gap-4">
             <div className="hidden md:flex bg-white/5 p-1 rounded-2xl border border-white/10 backdrop-blur-sm">
-                <Button variant="ghost" className="h-9 px-4 hover:bg-white/10 text-white rounded-xl text-[10px] font-black uppercase tracking-wider" onClick={() => router.push(`/superadmin/company/${companyId}/whatsapp-config`)}>
+                <Button variant="ghost" className="h-9 px-4 hover:bg-white/10 text-white rounded-xl text-[10px] font-black uppercase tracking-wider" onClick={() => navigateWithLoader(`/superadmin/company/${companyId}/whatsapp-config`, 'Opening WhatsApp configuration...')}>
                   <MessageSquare className="w-3.5 h-3.5 mr-2 text-indigo-400" />
                   WhatsApp
                 </Button>
-                <Button variant="ghost" className="h-9 px-4 hover:bg-white/10 text-white rounded-xl text-[10px] font-black uppercase tracking-wider" onClick={() => router.push(`/superadmin/company/${companyId}/email-config`)}>
+                <Button variant="ghost" className="h-9 px-4 hover:bg-white/10 text-white rounded-xl text-[10px] font-black uppercase tracking-wider" onClick={() => navigateWithLoader(`/superadmin/company/${companyId}/email-config`, 'Opening email configuration...')}>
                   <Mail className="w-3.5 h-3.5 mr-2 text-blue-400" />
                   Email
                 </Button>
-                <Button variant="ghost" className="h-9 px-5 bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all hover:scale-105" onClick={() => router.push(`/superadmin/company/${companyId}/chatbot-flows`)}>
+                <Button variant="ghost" className="h-9 px-5 bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all hover:scale-105" onClick={() => navigateWithLoader(`/superadmin/company/${companyId}/chatbot-flows`, 'Opening flow management...')}>
                   <Workflow className="w-3.5 h-3.5 mr-2" />
                   Flows
                 </Button>
@@ -650,7 +666,7 @@ export default function CompanyDrillDown() {
                 <Button 
                   variant="ghost" 
                   className="w-full h-12 bg-white/5 hover:bg-white/10 text-white rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center" 
-                  onClick={() => router.push(`/superadmin/company/${companyId}/whatsapp-config`)}
+                  onClick={() => navigateWithLoader(`/superadmin/company/${companyId}/whatsapp-config`, 'Opening WhatsApp configuration...')}
                 >
                   <MessageSquare className="w-4 h-4 mr-2 text-indigo-400" />
                   WhatsApp
@@ -658,7 +674,7 @@ export default function CompanyDrillDown() {
                 <Button 
                   variant="ghost" 
                   className="w-full h-12 bg-white/5 hover:bg-white/10 text-white rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center" 
-                  onClick={() => router.push(`/superadmin/company/${companyId}/email-config`)}
+                  onClick={() => navigateWithLoader(`/superadmin/company/${companyId}/email-config`, 'Opening email configuration...')}
                 >
                   <Mail className="w-4 h-4 mr-2 text-blue-400" />
                   Email
@@ -667,7 +683,7 @@ export default function CompanyDrillDown() {
               <Button 
                 variant="ghost" 
                 className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[11px] font-black uppercase tracking-wider flex items-center justify-center shadow-lg shadow-indigo-600/20" 
-                onClick={() => router.push(`/superadmin/company/${companyId}/chatbot-flows`)}
+                onClick={() => navigateWithLoader(`/superadmin/company/${companyId}/chatbot-flows`, 'Opening flow management...')}
               >
                 <Workflow className="w-4 h-4 mr-2" />
                 Flow Management
@@ -675,7 +691,7 @@ export default function CompanyDrillDown() {
               <div className="pt-3 border-t border-slate-800 flex items-center gap-2">
                 <Button 
                   variant="ghost" 
-                  onClick={() => router.push('/superadmin/dashboard')} 
+                  onClick={() => navigateWithLoader('/superadmin/dashboard', 'Returning to Super Admin dashboard...')} 
                   className="flex-1 bg-white/5 hover:bg-white/10 text-white h-12 rounded-xl border border-white/10 text-[10px] font-black uppercase tracking-widest"
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
