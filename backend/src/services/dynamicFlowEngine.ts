@@ -936,6 +936,7 @@ export class DynamicFlowEngine {
                 ok: res.status >= 200 && res.status < 300
               };
             } catch (err: any) {
+              console.error(`❌ Axios API call error for ${u}:`, err.message, err.response?.data);
               return {
                 json: async () => ({ success: false, message: err.message }),
                 status: err.response?.status || 500,
@@ -967,27 +968,40 @@ export class DynamicFlowEngine {
       
       // Node fetch needs absolute URL for same-server API calls
       if (url.startsWith('/')) {
-        const port = process.env.PORT || 5000; // Match server.ts default or .env
-        const base = process.env.API_BASE_URL || process.env.BASE_URL || `http://127.0.0.1:${port}`;
-        url = base.replace(/\/$/, '') + url;
+        const port = process.env.PORT || 5001;
+        const apiBase = process.env.API_BASE_URL || `http://127.0.0.1:${port}`;
+        url = apiBase.replace(/\/$/, '') + url;
       }
+
       console.log(`🌐 Making API call: ${method} ${url}`);
+      
       const response = await fetchFn(url, options);
+      
+      if (!response.ok) {
+        console.error(`❌ API call failed with status ${response.status} to ${url}`);
+        throw new Error(`API call failed with status ${response.status}`);
+      }
+      
       const data = await response.json();
+      console.log(`✅ API call response received from ${url.substring(0, 50)}...`);
 
       // Save response to session if needed
       if (saveResponseTo) {
         this.session.data[saveResponseTo] = data;
+        await updateSession(this.session);
       }
 
       // Special handling for availability API - generate buttons dynamically
       if (endpoint.includes('/availability/chatbot/') && data.success && data.data) {
         const availabilityData = data.data;
         
+        // Resolve next step properly from edges if not explicitly set in config
+        const effectiveNextStepId = nextStepId || this.resolveNextStepId(step.stepId) || step.nextStepId;
+        
         // If it's a date selection (availableDates array)
         if (availabilityData.availableDates && Array.isArray(availabilityData.availableDates)) {
           const dates = availabilityData.availableDates;
-          const buttons = dates.slice(0, 3).map((date: any, index: number) => ({
+          const buttons = dates.slice(0, 3).map((date: any) => ({
             id: `date_${date.date}`,
             title: date.buttonLabel || date.formattedDate || date.date
           }));
@@ -996,9 +1010,8 @@ export class DynamicFlowEngine {
             const message = this.replacePlaceholders(step.messageText || '📅 Please select a date:');
             await sendWhatsAppButtons(this.company, this.userPhone, message, buttons);
             
-            // Save date mapping and next step so chatbot can advance on button click
             this.session.data.currentStepId = step.stepId;
-            this.session.data.availabilityNextStepId = nextStepId || step.nextStepId || null;
+            this.session.data.availabilityNextStepId = effectiveNextStepId;
             this.session.data.dateMapping = {};
             dates.forEach((date: any) => {
               this.session.data.dateMapping[`date_${date.date}`] = date.date;
@@ -1011,7 +1024,7 @@ export class DynamicFlowEngine {
         // If it's a time slot selection (formattedTimeSlots array)
         if (availabilityData.formattedTimeSlots && Array.isArray(availabilityData.formattedTimeSlots)) {
           const timeSlots = availabilityData.formattedTimeSlots;
-          const buttons = timeSlots.slice(0, 3).map((slot: any, index: number) => ({
+          const buttons = timeSlots.slice(0, 3).map((slot: any) => ({
             id: `time_${slot.time}`,
             title: slot.label || slot.time
           }));
@@ -1020,9 +1033,8 @@ export class DynamicFlowEngine {
             const message = this.replacePlaceholders(step.messageText || '⏰ Please select a time:');
             await sendWhatsAppButtons(this.company, this.userPhone, message, buttons);
             
-            // Save time mapping and next step so chatbot can advance on button click
             this.session.data.currentStepId = step.stepId;
-            this.session.data.availabilityNextStepId = nextStepId || step.nextStepId || null;
+            this.session.data.availabilityNextStepId = effectiveNextStepId;
             this.session.data.timeMapping = {};
             timeSlots.forEach((slot: any) => {
               this.session.data.timeMapping[`time_${slot.time}`] = slot.time;
@@ -1033,10 +1045,11 @@ export class DynamicFlowEngine {
         }
       }
 
-      // Auto-advance to next step (never repeat same step)
-      await this.runNextStepIfDifferent(nextStepId, step.stepId);
-    } catch (error) {
-      console.error('❌ API call failed:', error);
+      // Auto-advance to next step if no early return (e.g. no buttons sent)
+      const nextId = nextStepId || this.resolveNextStepId(step.stepId) || step.nextStepId;
+      await this.runNextStepIfDifferent(nextId, step.stepId);
+    } catch (error: any) {
+      console.error('❌ API call execution failed:', error.message);
       await this.sendErrorMessage();
     }
   }

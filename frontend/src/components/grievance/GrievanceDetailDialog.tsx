@@ -34,19 +34,37 @@ import {
 
 // Helper: treat as image if type is image or URL looks like an image
 // Cloudinary image URLs contain /image/upload/ in the path
-const isImageMedia = (media: { type?: string; url?: string }) =>
-  media.type === "image" ||
-  /\.(jpe?g|png|gif|webp|bmp)(\?|$)/i.test(media.url || "") ||
-  /\/image\/upload\//i.test(media.url || "") ||
-  (media.url?.includes("image") && !media.url?.includes("raw"));
+const isImageMedia = (media: { type?: string; url?: string }) => {
+  if (media.type === "image") return true;
+  if (media.type === "document") return false;
 
-// Helper: label for documents (PDF, Word, etc.)
-const getDocumentLabel = (url: string) => {
-  if (!url) return "Document";
-  const lower = url.toLowerCase();
-  if (lower.includes(".pdf") || lower.includes("pdf")) return "PDF";
-  if (lower.includes(".doc") || lower.includes("word")) return "Word";
-  return "Document";
+  const url = media.url || "";
+  // Strict extension check
+  if (/\.(jpe?g|png|gif|webp|bmp|svg)(\?|$)/i.test(url)) return true;
+
+  // Cloudinary specific detection
+  if (/\/image\/upload\//i.test(url)) {
+    // If it has document extensions or /raw/, it's not an image
+    if (
+      /\.(pdf|docx?|xlsx?|txt|csv)$/i.test(url) ||
+      /\/raw\/upload\//i.test(url)
+    ) {
+      return false;
+    }
+    return true;
+  }
+
+  return url.includes("image") && !url.includes("raw") && !url.includes("pdf");
+};
+
+const getDocumentLabel = (media: { url: string; type?: string }) => {
+  const url = (media.url || "").toLowerCase();
+  if (url.endsWith(".pdf") || url.includes("/pdf")) return "PDF Document";
+  if (url.endsWith(".doc") || url.endsWith(".docx") || url.includes("/msword"))
+    return "Word Document";
+  if (url.endsWith(".xlsx") || url.endsWith(".xls")) return "Excel Spreadsheet";
+  if (url.endsWith(".txt")) return "Text File";
+  return media.type === "document" ? "Document" : "File";
 };
 
 interface GrievanceDetailDialogProps {
@@ -507,18 +525,18 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                             onClick={() =>
                               setFullScreenMedia({
                                 url: media.url,
-                                alt: getDocumentLabel(media.url || ""),
+                                alt: getDocumentLabel(media),
                                 isImage: false,
                               })
                             }
                             className="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 flex flex-col items-center justify-center hover:from-indigo-50 hover:to-blue-100 transition-all duration-200 cursor-pointer border-0 gap-2"
-                            aria-label={`View ${getDocumentLabel(media.url || "")} document`}
+                            aria-label={`View ${getDocumentLabel(media)} document`}
                           >
                             <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm border border-slate-200">
                               <FileType className="w-6 h-6 text-indigo-500" />
                             </div>
                             <span className="text-sm font-semibold text-slate-700">
-                              {getDocumentLabel(media.url || "")}
+                              {getDocumentLabel(media)}
                             </span>
                             <span className="text-xs text-slate-400 flex items-center gap-1">
                               <ExternalLink className="w-3 h-3" />
