@@ -981,15 +981,23 @@ export class DynamicFlowEngine {
 
       // OPTIMIZATION: If it's an internal call to availability chatbot, call the logic directly
       // This avoids "fetch failed" issues on Vercel/localhost loops
-      if (url.includes('/api/availability/chatbot/')) {
+      const optimizedUrlPattern = '/api/availability/chatbot';
+      if (url.toLowerCase().includes(optimizedUrlPattern)) {
         console.log('⚡ Internal optimization: calling availability logic directly');
         try {
-          // Parse companyId and query params from URL
-          const urlObj = new URL(url, 'http://localhost');
-          const pathSegments = urlObj.pathname.split('/');
-          const companyId = pathSegments[pathSegments.length - 1];
+          // Parse companyId and query params from URL correctly using built-in URL
+          // If relative URL, prefix it for URL constructor
+          const checkUrl = url.startsWith('/') ? `http://localhost${url}` : url;
+          const urlObj = new URL(checkUrl);
+          const pathName = urlObj.pathname; // e.g. /api/availability/chatbot/CMP000006
+          
+          // Robustly find any segment after /chatbot/
+          const match = pathName.match(/\/chatbot\/([^/]+)/i);
+          const companyId = match ? match[1] : (pathName.split('/').pop() || '');
+          
           const queryParams = Object.fromEntries(urlObj.searchParams.entries());
           
+          console.log(`📡 Calling availability logic directly for company: ${companyId}`);
           data = await getChatbotAvailabilityData({
             companyId,
             departmentId: queryParams.departmentId,
@@ -998,13 +1006,18 @@ export class DynamicFlowEngine {
           });
           
           // Wrap in object expected by flow engine
-          data = { success: true, data };
+          data = (data as any).availableDates || (data as any).formattedTimeSlots ? { success: true, data } : data;
           console.log('✅ Direct availability call successful');
         } catch (dirErr: any) {
           console.error('❌ Direct availability call failed:', dirErr.message);
-          throw new Error(`Direct availability call failed: ${dirErr.message}`);
+          // Don't throw if it was a fallback, try actual fetch if it fails but we're already optimized
+          if (!fetchFn) throw new Error(`Direct availability call failed: ${dirErr.message}`);
+          console.warn('⚠️ Direct call failed; falling back to actual network fetch');
         }
-      } else {
+      }
+      
+      // If data is still missing, proceed with real network call
+      if (data === undefined) {
         const response = await fetchFn(url, options);
         
         if (!response.ok) {
@@ -1259,8 +1272,9 @@ export class DynamicFlowEngine {
     });
 
     // Replace special placeholders that may not be in session.data directly
+    const cidFromObj = this.company.companyId || (this.company._id ? this.company._id.toString() : '');
+    message = message.replace(/\{companyId\}/g, cidFromObj || '{companyId}');
     message = message.replace(/\{id\}/g, sessionData.id || sessionData.grievanceId || sessionData.appointmentId || sessionData.leadId || '{id}');
-    message = message.replace(/\{companyId\}/g, (this.company._id ? this.company._id.toString() : this.company.companyId) || '{companyId}');
     message = message.replace(/\{date\}/g, sessionData.date ?? new Date().toLocaleDateString('en-IN'));
     message = message.replace(/\{time\}/g, sessionData.time ?? new Date().toLocaleTimeString('en-IN'));
     message = message.replace(/\{companyName\}/g, this.company.name);

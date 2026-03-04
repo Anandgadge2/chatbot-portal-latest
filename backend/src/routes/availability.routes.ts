@@ -121,13 +121,16 @@ export async function getChatbotAvailabilityData(params: {
   const maxDate = new Date();
   maxDate.setDate(maxDate.getDate() + daysToShow);
 
-  let actualCompanyId = companyId;
+  let actualCompanyId: any = companyId;
   if (!mongoose.Types.ObjectId.isValid(companyId)) {
     const company = await Company.findOne({ companyId: companyId });
     if (company) {
-      actualCompanyId = company._id as any;
+      actualCompanyId = company._id;
     } else {
       console.log(`⚠️ Company NOT found for slug: ${companyId}`);
+      // If we can't find by slug and it's not a valid ObjectId, we must avoid querying by it to prevent CastErrors.
+      // We'll use a dummy ObjectId if needed, or better, return default data.
+      return { availableDates: [] };
     }
   }
 
