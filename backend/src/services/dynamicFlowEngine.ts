@@ -1479,10 +1479,26 @@ export async function loadFlowForTrigger(
   flowType?: string
 ): Promise<IChatbotFlow | null> {
   try {
+    let companyObjectId: mongoose.Types.ObjectId;
+
     // Convert to ObjectId if it's a string
-    const companyObjectId = typeof companyId === 'string' 
-      ? (mongoose.Types.ObjectId.isValid(companyId) ? new mongoose.Types.ObjectId(companyId) : companyId)
-      : companyId;
+    if (typeof companyId === 'string') {
+      if (mongoose.Types.ObjectId.isValid(companyId) && companyId.length === 24) {
+        companyObjectId = new mongoose.Types.ObjectId(companyId);
+      } else {
+        // It's likely a custom companyId string like 'CMP000006'
+        const Company = (await import('../models/Company')).default;
+        const companyDoc = await Company.findOne({ companyId }).lean();
+        if (companyDoc) {
+          companyObjectId = companyDoc._id as mongoose.Types.ObjectId;
+        } else {
+          console.error(`❌ Could not resolve companyId string "${companyId}" to an ObjectId`);
+          return null;
+        }
+      }
+    } else {
+      companyObjectId = companyId;
+    }
     
     console.log(`🔍 Searching for flow with trigger "${trigger}" for company: ${companyObjectId}`);
     

@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Company from '../models/Company';
 import CompanyWhatsAppConfig from '../models/CompanyWhatsAppConfig';
 import Department from '../models/Department';
@@ -72,11 +73,22 @@ async function getCompanyWithWhatsAppConfig(companyId: any): Promise<any | null>
   }
 
   try {
-    const company = await Company.findById(finalId);
+    let company: any = null;
+
+    // 1. Try finding by _id if it's a valid ObjectId
+    if (mongoose.Types.ObjectId.isValid(finalId) && finalId.length === 24) {
+      company = await Company.findById(finalId);
+    }
+
+    // 2. Fallback: try finding by custom companyId string field
+    if (!company) {
+      company = await Company.findOne({ companyId: finalId });
+    }
+
     if (!company) return null;
 
     const config = await CompanyWhatsAppConfig.findOne({
-      companyId: company._id,
+      companyId: company._id, // Use the actual document _id
       isActive: true
     });
 

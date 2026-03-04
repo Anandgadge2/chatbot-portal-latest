@@ -111,10 +111,26 @@ export async function processWhatsAppMessage(message: ChatbotMessage): Promise<a
 
 async function findCompany(companyId: string): Promise<any | null> {
   try {
-    let company = await Company.findById(companyId).lean();
+    let company: any = null;
+
+    // 1. Try finding by _id if it's a valid ObjectId
+    if (mongoose.Types.ObjectId.isValid(companyId) && companyId.length === 24) {
+      company = await Company.findById(companyId).lean();
+    }
+
+    // 2. Fallback: try finding by custom companyId string field (e.g., 'CMP000006')
+    if (!company) {
+      company = await Company.findOne({ companyId }).lean();
+    }
+
     if (!company) return null;
 
-    const waConfig = await CompanyWhatsAppConfig.findOne({ companyId }).lean();
+    // 3. Load WhatsApp config using the actual company document _id (which is an ObjectId)
+    const waConfig = await CompanyWhatsAppConfig.findOne({ 
+      companyId: company._id, 
+      isActive: true 
+    }).lean();
+    
     if (waConfig) (company as any).whatsappConfig = waConfig;
 
     return company;
