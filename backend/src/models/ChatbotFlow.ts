@@ -49,7 +49,7 @@ export interface IFlowStep {
   
   // Input configuration
   inputConfig?: {
-    inputType: 'text' | 'number' | 'email' | 'phone' | 'date' | 'image' | 'document' | 'location';
+    inputType: 'text' | 'number' | 'email' | 'phone' | 'date' | 'image' | 'document' | 'location' | 'file';
     validation?: {
       required: boolean;
       minLength?: number;
@@ -202,7 +202,7 @@ const FlowStepSchema = new Schema({
   inputConfig: {
     inputType: { 
       type: String, 
-      enum: ['text', 'number', 'email', 'phone', 'date', 'image', 'document', 'location'] 
+      enum: ['text', 'number', 'email', 'phone', 'date', 'image', 'document', 'location', 'file'] 
     },
     validation: {
       required: Boolean,

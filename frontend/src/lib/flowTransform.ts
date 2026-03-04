@@ -17,14 +17,16 @@ export function transformToBackendFormat(flow: Flow): BackendFlow {
   const startStepId = startNode ? startNode.id : (nodes.length > 0 ? nodes[0].id : 'start');
 
   // Extract triggers from start node or use default
-  const triggers = startNode
-    ? [
-        {
-          triggerType: (startNode.data as any).triggerType || 'keyword',
-          triggerValue: (startNode.data as any).trigger || 'hi',
-          startStepId: startNode.id,
-        },
-      ]
+  // Support comma-separated triggers
+  const triggerString = (startNode?.data as any)?.trigger || 'hi';
+  const triggerValues = triggerString.split(',').map((t: string) => t.trim()).filter(Boolean);
+  
+  const triggers = triggerValues.length > 0 
+    ? triggerValues.map((val: string) => ({
+        triggerType: (startNode?.data as any)?.triggerType || 'keyword',
+        triggerValue: val,
+        startStepId: startNode?.id || startStepId,
+      }))
     : [
         {
           triggerType: 'keyword' as const,
@@ -34,6 +36,7 @@ export function transformToBackendFormat(flow: Flow): BackendFlow {
       ];
 
   return {
+    _id: metadata.id,
     companyId: metadata.companyId,
     flowName: metadata.name,
     name: metadata.name, // Support both formats for backend validation
@@ -57,6 +60,8 @@ export function transformToBackendFormat(flow: Flow): BackendFlow {
     },
     createdBy: metadata.createdBy,
     updatedBy: metadata.updatedBy,
+    nodes: nodes, // Pass original nodes for UI reconstruction
+    edges: edges  // Pass original edges for UI reconstruction
   };
 }
 
@@ -71,8 +76,8 @@ function transformNodeToStep(node: FlowNode, edges: FlowEdge[]): BackendFlowStep
     position: node.position,
   };
 
-  // Find next step from outgoing edges
-  const outgoingEdge = edges.find((e) => e.source === node.id);
+  // Find next step from outgoing edges (general edge without specific handle)
+  const outgoingEdge = edges.find((e) => e.source === node.id && !e.sourceHandle);
   if (outgoingEdge) {
     baseStep.nextStepId = outgoingEdge.target;
   }
@@ -83,6 +88,7 @@ function transformNodeToStep(node: FlowNode, edges: FlowEdge[]): BackendFlowStep
       return {
         ...baseStep,
         messageText: (node.data as any).messageText || '',
+        messageTextTranslations: (node.data as any).messageTextTranslations || {}
       };
 
     case 'buttonMessage':
@@ -91,16 +97,18 @@ function transformNodeToStep(node: FlowNode, edges: FlowEdge[]): BackendFlowStep
         ...baseStep,
         stepType: 'buttons',
         messageText: buttonData.messageText || '',
+        messageTextTranslations: buttonData.messageTextTranslations || {},
         buttons: buttonData.buttons?.map((btn: any, index: number) => {
-          // Find edge for this button
+          // Find edge for this button: try indexed handle first, then named handle (id)
           const buttonEdge = edges.find(
-            (e) => e.source === node.id && e.sourceHandle === `button-${index}`
+            (e) => e.source === node.id && (e.sourceHandle === `button-${index}` || e.sourceHandle === btn.id)
           );
           return {
             id: btn.id,
-            title: btn.text,
-            description: '',
-            nextStepId: buttonEdge?.target,
+            title: btn.text || btn.title,
+            titleTranslations: btn.titleTranslations || {},
+            description: btn.description || '',
+            nextStepId: buttonEdge?.target || btn.nextStepId || (node.data as any).nextStep,
             action: 'next' as const,
           };
         }) || [],
@@ -108,29 +116,51 @@ function transformNodeToStep(node: FlowNode, edges: FlowEdge[]): BackendFlowStep
 
     case 'listMessage':
       const listData = node.data as any;
+      const sections = (listData.sections || []).map((section: any, sIdx: number) => ({
+        ...section,
+        titleTranslations: section.titleTranslations || {},
+        rows: (section.rows || []).map((row: any, rIdx: number) => {
+          // Find edge for this row: try indexed handle first (row-sIdx-rIdx), then named handle (row.id)
+          const rowEdge = edges.find(
+            (e) => e.source === node.id && (e.sourceHandle === `row-${sIdx}-${rIdx}` || e.sourceHandle === row.id)
+          );
+          return {
+            ...row,
+            titleTranslations: row.titleTranslations || {},
+            descriptionTranslations: row.descriptionTranslations || {},
+            nextStepId: rowEdge?.target || row.nextStepId
+          };
+        })
+      }));
+
       return {
         ...baseStep,
         stepType: 'list',
         messageText: listData.messageText || '',
+        messageTextTranslations: listData.messageTextTranslations || {},
         listConfig: {
           listSource: listData.isDynamic ? 'departments' : 'manual',
           buttonText: listData.buttonText || 'Select',
-          sections: listData.sections || [],
+          buttonTextTranslations: listData.buttonTextTranslations || {},
+          sections,
         },
       };
 
     case 'userInput':
       const inputData = node.data as any;
+      // In userInput, the next step usually comes from the default outgoing edge
+      const inputNextEdge = edges.find((e) => e.source === node.id);
       return {
         ...baseStep,
         stepType: 'input',
-        messageText: `Please provide your ${inputData.saveToField}:`,
+        messageText: inputData.messageText || `Please provide your ${inputData.saveToField}:`,
+        messageTextTranslations: inputData.messageTextTranslations || {},
         inputConfig: {
           inputType: inputData.inputType,
           validation: inputData.validation,
           placeholder: inputData.placeholder,
           saveToField: inputData.saveToField,
-          nextStepId: baseStep.nextStepId,
+          nextStepId: inputNextEdge?.target || baseStep.nextStepId,
         },
       };
 
@@ -156,6 +186,7 @@ function transformNodeToStep(node: FlowNode, edges: FlowEdge[]): BackendFlowStep
 
     case 'apiCall':
       const apiData = node.data as any;
+      const apiNextEdge = edges.find((e) => e.source === node.id);
       return {
         ...baseStep,
         stepType: 'api_call',
@@ -165,26 +196,29 @@ function transformNodeToStep(node: FlowNode, edges: FlowEdge[]): BackendFlowStep
           headers: apiData.headers,
           body: apiData.body,
           saveResponseTo: apiData.saveResponseTo,
-          nextStepId: baseStep.nextStepId,
+          nextStepId: apiNextEdge?.target || baseStep.nextStepId,
         },
       };
 
     case 'mediaMessage':
       const mediaData = node.data as any;
+      const mediaNextEdge = edges.find((e) => e.source === node.id);
       return {
         ...baseStep,
         stepType: 'media',
         messageText: mediaData.caption || '',
+        messageTextTranslations: mediaData.messageTextTranslations || {},
         mediaConfig: {
           mediaType: mediaData.mediaType,
           mediaUrl: mediaData.mediaUrl,
           optional: false,
-          nextStepId: baseStep.nextStepId,
+          nextStepId: mediaNextEdge?.target || baseStep.nextStepId,
         },
       };
 
     case 'delay':
       const delayData = node.data as any;
+      const delayNextEdge = edges.find((e) => e.source === node.id);
       return {
         ...baseStep,
         stepType: 'delay',
@@ -192,10 +226,12 @@ function transformNodeToStep(node: FlowNode, edges: FlowEdge[]): BackendFlowStep
           duration: delayData.duration,
           unit: delayData.unit,
         },
+        nextStepId: delayNextEdge?.target || baseStep.nextStepId,
       };
 
     case 'assignDepartment':
       const deptData = node.data as any;
+      const deptNextEdge = edges.find((e) => e.source === node.id);
       return {
         ...baseStep,
         stepType: 'assign_department',
@@ -204,6 +240,7 @@ function transformNodeToStep(node: FlowNode, edges: FlowEdge[]): BackendFlowStep
           isDynamic: deptData.isDynamic,
           conditionField: deptData.conditionField,
         },
+        nextStepId: deptNextEdge?.target || baseStep.nextStepId,
       };
 
     case 'end':
@@ -211,12 +248,24 @@ function transformNodeToStep(node: FlowNode, edges: FlowEdge[]): BackendFlowStep
         ...baseStep,
         stepType: 'end',
         messageText: (node.data as any).endMessage || 'Thank you!',
+        messageTextTranslations: (node.data as any).endMessageTranslations || {}
+      };
+
+    case 'dynamicResponse':
+      const dynData = node.data as any;
+      const dynNextEdge = edges.find((e) => e.source === node.id);
+      return {
+        ...baseStep,
+        stepType: 'dynamic_response',
+        messageText: dynData.template || '',
+        nextStepId: dynNextEdge?.target || baseStep.nextStepId,
       };
 
     default:
       return baseStep;
   }
 }
+
 
 /**
  * Convert backend flow format to React Flow nodes and edges

@@ -1,9 +1,21 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { FlowNode, FlowEdge } from '@/types/flowTypes';
-import { Button } from '@/components/ui/button';
-import { X, Send, Phone, Video, MoreVertical, ArrowLeft } from 'lucide-react';
+import { useState, useRef, useEffect } from "react";
+import { FlowNode, FlowEdge } from "@/types/flowTypes";
+import { Button } from "@/components/ui/button";
+import {
+  X,
+  Send,
+  Phone,
+  Video,
+  MoreVertical,
+  ArrowLeft,
+  Check,
+  CheckCheck,
+  Paperclip,
+  Smile,
+  Mic,
+} from "lucide-react";
 
 interface FlowSimulatorProps {
   nodes: FlowNode[];
@@ -14,7 +26,7 @@ interface FlowSimulatorProps {
 
 interface Message {
   id: string;
-  type: 'bot' | 'user';
+  type: "bot" | "user";
   content: string;
   timestamp: Date;
   buttons?: { text: string; id: string; isList?: boolean }[];
@@ -25,17 +37,50 @@ interface Message {
   isTyping?: boolean;
 }
 
-export default function FlowSimulator({ nodes, edges, flowName, onClose }: FlowSimulatorProps) {
+const WHATSAPP_GREETINGS = [
+  "hi",
+  "hello",
+  "hola",
+  "namaste",
+  "start",
+  "menu",
+  "hey",
+  "restart",
+  "help",
+  "ନମସ୍କାର",
+  "ନମସ୍କାର ସାର",
+  "ନମସ୍କାର୍",
+  "ଶୁଭ ସକାଳ",
+  "नमस्ते",
+  "शुभ प्रभात",
+  "begin",
+];
+
+export default function FlowSimulator({
+  nodes,
+  edges,
+  flowName,
+  onClose,
+}: FlowSimulatorProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentNodeId, setCurrentNodeId] = useState<string | null>(null);
   const [isSimulating, setIsSimulating] = useState(false);
-  const [userInput, setUserInput] = useState('');
-  const [language, setLanguage] = useState<'en' | 'hi' | 'or' | 'mr'>('en');
+  const [userInput, setUserInput] = useState("");
+  const [language, setLanguage] = useState<"en" | "hi" | "or" | "mr">("en");
   const [activeList, setActiveList] = useState<{
     nodeId: string;
     buttonText: string;
     sections: any[];
   } | null>(null);
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
 
   // Helper to get localized text
   const getLocalText = (nodeData: any, field: string) => {
@@ -43,140 +88,140 @@ export default function FlowSimulator({ nodes, edges, flowName, onClose }: FlowS
     if (nodeData[translationsField] && nodeData[translationsField][language]) {
       return nodeData[translationsField][language];
     }
-    return nodeData[field] || '';
+    return nodeData[field] || "";
   };
 
   // Start simulation
   const startSimulation = async () => {
-    setIsSimulating(true);
+    setIsSimulating(false);
     setMessages([]);
-    
-    // Find start node
-    const startNode = nodes.find(n => n.type === 'start');
-    if (!startNode) {
-      addMessage('bot', '❌ No start node found in flow');
-      setIsSimulating(false);
-      return;
-    }
+    setCurrentNodeId(null);
 
-    // Execute flow from start
-    await executeNode(startNode.id);
+    // Initial system message
+    addMessage("bot", `👋 Welcome! Type "hi" or "menu" to begin.`);
   };
 
+  // Effect to automatically restart on first mount
+  useEffect(() => {
+    startSimulation();
+  }, []);
+
   const executeNode = async (nodeId: string) => {
-    const node = nodes.find(n => n.id === nodeId);
+    const node = nodes.find((n) => n.id === nodeId);
     if (!node) return;
 
     setCurrentNodeId(nodeId);
+    setIsSimulating(true);
 
     // Show typing indicator
     const typingId = `typing-${Date.now()}`;
-    setMessages(prev => [...prev, {
-      id: typingId,
-      type: 'bot',
-      content: '',
-      timestamp: new Date(),
-      isTyping: true,
-    }]);
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: typingId,
+        type: "bot",
+        content: "",
+        timestamp: new Date(),
+        isTyping: true,
+      },
+    ]);
 
-    // Simulate typing delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Simulate realistic typing delay
+    await new Promise((resolve) => setTimeout(resolve, 1500));
 
     // Remove typing indicator
-    setMessages(prev => prev.filter(m => m.id !== typingId));
+    setMessages((prev) => prev.filter((m) => m.id !== typingId));
 
     // Process node based on type
     switch (node.type) {
-      case 'start':
-        addMessage('bot', `👋 Welcome! Type "${(node.data as any).trigger}" to begin`);
-        break;
-
-      case 'textMessage':
-        const textMsg = getLocalText(node.data, 'messageText') || 'Hello!';
-        addMessage('bot', textMsg);
-        // Auto-continue to next node
+      case "start":
         await continueToNextNode(nodeId);
         break;
 
-      case 'buttonMessage':
+      case "textMessage":
+        const textMsg = getLocalText(node.data, "messageText") || "Hello!";
+        addMessage("bot", textMsg);
+        setIsSimulating(false);
+        await continueToNextNode(nodeId);
+        break;
+
+      case "buttonMessage":
         const btnData = node.data as any;
-        const buttonMsg = getLocalText(btnData, 'messageText') || 'Please select an option:';
-        const buttons = (btnData.buttons || []).map((btn: any, idx: number) => ({
-          text: (btn.titleTranslations && btn.titleTranslations[language]) || btn.text || btn.title,
-          id: `button-${idx}`,
-        }));
-        addMessage('bot', buttonMsg, buttons);
-        break;
-
-
-      case 'listMessage':
-        const listData = node.data as any;
-        const isDynamic = listData.isDynamic;
-        const dynamicSource = listData.dynamicSource;
-        const listText = getLocalText(listData, 'messageText') || 'Please select from the list:';
-        const buttonText = getLocalText(listData, 'buttonText') || 'View Menu';
-        
-        let sections = (node.data as any).sections || [];
-
-        if (isDynamic && dynamicSource === 'departments') {
-          try {
-            const response = await fetch('/api/departments');
-            if (response.ok) {
-              const departments = await response.json();
-              sections = [{
-                title: 'Departments',
-                rows: departments.map((dept: any) => ({
-                  id: dept._id,
-                  title: language === 'hi' ? (dept.nameHi || dept.name) :
-                         language === 'or' ? (dept.nameOr || dept.name) :
-                         language === 'mr' ? (dept.nameMr || dept.name) : dept.name,
-                  description: language === 'hi' ? (dept.descriptionHi || dept.description) :
-                               language === 'or' ? (dept.descriptionOr || dept.description) :
-                               language === 'mr' ? (dept.descriptionMr || dept.description) : dept.description
-                }))
-              }];
-            }
-          } catch (error) {
-            console.error('Error fetching departments:', error);
-          }
-        }
-        
-        // Add single "View Menu" button message
-        addMessage('bot', listText, [
-          { text: buttonText, id: `list-open-${node.id}`, isList: true }
-        ], { buttonText, sections });
-        break;
-
-      case 'userInput':
-        const inputPrompt = getLocalText(node.data, 'messageText') || 'Please enter your response:';
-        addMessage('bot', inputPrompt);
-        // Wait for user input
-        break;
-
-      case 'delay':
-        const duration = (node.data as any).duration || 5;
-        addMessage('bot', `⏱️ Waiting ${duration} seconds...`);
-        await new Promise(resolve => setTimeout(resolve, duration * 1000));
-        await continueToNextNode(nodeId);
-        break;
-
-      case 'end':
-        const endMsg = getLocalText(node.data, 'endMessage') || '✅ Conversation ended. Thank you!';
-        addMessage('bot', endMsg);
+        const buttonMsg =
+          getLocalText(btnData, "messageText") || "Please select an option:";
+        const buttons = (btnData.buttons || []).map(
+          (btn: any, idx: number) => ({
+            text:
+              (btn.titleTranslations && btn.titleTranslations[language]) ||
+              btn.text ||
+              btn.title,
+            id: btn.id || `button-${idx}`,
+          }),
+        );
+        addMessage("bot", buttonMsg, buttons);
         setIsSimulating(false);
         break;
 
+      case "listMessage":
+        const listData = node.data as any;
+        const listText =
+          getLocalText(listData, "messageText") ||
+          "Please select from the list:";
+        const buttonText = getLocalText(listData, "buttonText") || "View Menu";
+
+        let sections = (node.data as any).sections || [];
+
+        addMessage(
+          "bot",
+          listText,
+          [{ text: buttonText, id: `list-open-${node.id}`, isList: true }],
+          { buttonText, sections },
+        );
+        setIsSimulating(false);
+        break;
+
+      case "userInput":
+        const inputPrompt =
+          getLocalText(node.data, "messageText") ||
+          "Please enter your response:";
+        addMessage("bot", inputPrompt);
+        setIsSimulating(false);
+        break;
+
+      case "delay":
+        const duration = (node.data as any).duration || 2;
+        await new Promise((resolve) => setTimeout(resolve, duration * 1000));
+        await continueToNextNode(nodeId);
+        break;
+
+      case "end":
+        const endMsg =
+          getLocalText(node.data, "endMessage") ||
+          "✅ Conversation ended. Thank you!";
+        addMessage("bot", endMsg);
+        setIsSimulating(false);
+        setCurrentNodeId(null);
+        break;
+
       default:
-        addMessage('bot', `[${node.type}] node executed`);
+        addMessage("bot", `${node.data.label || node.type} node reached`);
+        setIsSimulating(false);
         await continueToNextNode(nodeId);
     }
   };
 
-  const continueToNextNode = async (currentNodeId: string) => {
-    // Find next node
-    const nextEdge = edges.find(e => e.source === currentNodeId);
+  const continueToNextNode = async (sourceId: string, handleId?: string) => {
+    let nextEdge;
+    if (handleId) {
+      nextEdge = edges.find(
+        (e) => e.source === sourceId && e.sourceHandle === handleId,
+      );
+    } else {
+      nextEdge = edges.find((e) => e.source === sourceId);
+    }
+
     if (nextEdge) {
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 800));
       await executeNode(nextEdge.target);
     } else {
       setIsSimulating(false);
@@ -184,186 +229,241 @@ export default function FlowSimulator({ nodes, edges, flowName, onClose }: FlowS
   };
 
   const addMessage = (
-    type: 'bot' | 'user', 
-    content: string, 
+    type: "bot" | "user",
+    content: string,
     buttons?: { text: string; id: string; isList?: boolean }[],
-    listConfig?: { buttonText: string; sections: any[] }
+    listConfig?: { buttonText: string; sections: any[] },
   ) => {
-    setMessages(prev => [...prev, {
-      id: `msg-${Date.now()}`,
-      type,
-      content,
-      timestamp: new Date(),
-      buttons,
-      listConfig
-    }]);
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `msg-${Date.now()}`,
+        type,
+        content,
+        timestamp: new Date(),
+        buttons,
+        listConfig,
+      },
+    ]);
   };
 
   const handleButtonClick = async (buttonText: string, buttonId: string) => {
-    if (buttonId.startsWith('list-open-')) {
-      // Find the message that has the list config
-      const listMsg = messages.find(m => m.buttons?.some(b => b.id === buttonId));
+    if (buttonId.startsWith("list-open-")) {
+      const listMsg = messages.find((m) =>
+        m.buttons?.some((b) => b.id === buttonId),
+      );
       if (listMsg?.listConfig) {
         setActiveList({
-          nodeId: buttonId.replace('list-open-', ''),
+          nodeId: buttonId.replace("list-open-", ""),
           buttonText: listMsg.listConfig.buttonText,
-          sections: listMsg.listConfig.sections
+          sections: listMsg.listConfig.sections,
         });
       }
       return;
     }
 
-    // Add user's button click as message
-    addMessage('user', buttonText);
+    addMessage("user", buttonText);
 
-    // Find the edge for this button or list selection
-    const currentNode = nodes.find(n => n.id === currentNodeId);
-    if (currentNode?.type === 'buttonMessage') {
-      const buttonIndex = parseInt(buttonId.split('-')[1]);
-      const edge = edges.find(e => e.source === currentNodeId && e.sourceHandle === `button-${buttonIndex}`);
-      
-      if (edge) {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        await executeNode(edge.target);
-      } else {
-        await continueToNextNode(currentNodeId!);
-      }
-    } else if (currentNode?.type === 'listMessage') {
-      const parts = buttonId.split('-');
-      const secIdx = parts[1];
-      const rowIdx = parts[2];
-      const handleId = `row-${secIdx}-${rowIdx}`;
-      
-      const edge = edges.find(e => e.source === currentNodeId && e.sourceHandle === handleId);
-      
-      if (edge) {
-        setIsSimulating(true);
-        await new Promise(resolve => setTimeout(resolve, 500));
-        await executeNode(edge.target);
-      } else {
-        await continueToNextNode(currentNodeId!);
-      }
+    if (buttonId.startsWith("list-row-")) {
+      const [_l, _r, secIdx, rowIdx] = buttonId.split("-");
+      await continueToNextNode(currentNodeId!, `row-${secIdx}-${rowIdx}`);
     } else {
-      await continueToNextNode(currentNodeId!);
+      const currentNode = nodes.find((n) => n.id === currentNodeId);
+      if (currentNode?.type === "buttonMessage") {
+        const btnIdx = (currentNode.data as any).buttons?.findIndex(
+          (b: any) => b.id === buttonId,
+        );
+        await continueToNextNode(currentNodeId!, `button-${btnIdx}`);
+      } else {
+        await continueToNextNode(currentNodeId!);
+      }
     }
   };
 
   const handleSendMessage = async () => {
-    if (!userInput.trim()) return;
+    const input = userInput.trim();
+    if (!input) return;
 
-    addMessage('user', userInput);
-    const input = userInput;
-    setUserInput('');
+    addMessage("user", input);
+    setUserInput("");
 
-    // Check if this is the start trigger
-    const startNode = nodes.find(n => n.type === 'start');
-    if (startNode && input.toLowerCase() === (startNode.data as any).trigger?.toLowerCase()) {
-      await continueToNextNode(startNode.id);
-      return;
+    const normalizedInput = input.toLowerCase();
+    const isGreeting = WHATSAPP_GREETINGS.includes(normalizedInput);
+
+    if (!currentNodeId || isGreeting) {
+      const startNode = nodes.find((n) => n.type === "start");
+      if (startNode) {
+        const triggers =
+          (startNode.data as any).trigger
+            ?.split(",")
+            .map((t: string) => t.trim().toLowerCase()) || [];
+        if (triggers.includes(normalizedInput) || isGreeting) {
+          await executeNode(startNode.id);
+          return;
+        }
+      }
     }
 
-    // Handle user input node
     if (currentNodeId) {
-      const currentNode = nodes.find(n => n.id === currentNodeId);
-      if (currentNode?.type === 'userInput') {
+      const node = nodes.find((n) => n.id === currentNodeId);
+      if (node?.type === "userInput") {
         await continueToNextNode(currentNodeId);
       }
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg w-full max-w-md h-[600px] flex flex-col shadow-2xl">
-        {/* WhatsApp-style Header */}
-        <div className="bg-[#075E54] text-white p-3 flex items-center gap-3 rounded-t-lg">
-          <button onClick={onClose} className="hover:bg-white/10 rounded-full p-1">
-            <ArrowLeft className="w-5 h-5" />
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-0 sm:p-4">
+      <style jsx>{`
+        .clip-path-right-tail {
+          clip-path: polygon(0 0, 0 100%, 100% 0);
+        }
+        .clip-path-left-tail {
+          clip-path: polygon(100% 0, 100% 100%, 0 0);
+        }
+      `}</style>
+
+      <div className="bg-[#E5DDD5] w-full sm:w-[400px] h-full sm:h-[85vh] sm:max-h-[820px] flex flex-col shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6)] relative overflow-hidden sm:rounded-[40px] border-[10px] border-[#1a1a1a] transition-all duration-500 scale-100 origin-center">
+        {/* Phone Notch */}
+        <div className="hidden sm:block absolute top-0 left-1/2 -translate-x-1/2 w-40 h-6 bg-[#1a1a1a] rounded-b-2xl z-50"></div>
+
+        {/* WhatsApp Pattern Overlay */}
+        <div
+          className="absolute inset-0 opacity-[0.06] pointer-events-none"
+          style={{
+            backgroundImage:
+              "url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')",
+          }}
+        />
+
+        {/* Header */}
+        <div className="bg-[#075E54] text-white pt-8 pb-3 px-3 flex items-center gap-2 z-10 shadow-md sm:pt-10">
+          <button
+            onClick={onClose}
+            className="hover:bg-white/10 rounded-full p-1 -ml-1"
+          >
+            <ArrowLeft className="w-6 h-6" />
           </button>
-          <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center text-gray-700 font-semibold">
-            {flowName.charAt(0).toUpperCase()}
+          <div className="relative">
+            <div className="w-9 h-9 bg-[#dfe5e7] rounded-full flex items-center justify-center text-gray-500 font-bold overflow-hidden border border-white/20">
+              <span className="text-base">Jh</span>
+            </div>
+            <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#25D366] rounded-full border-2 border-[#075E54]"></div>
           </div>
-          <div className="flex-1">
-            <div className="font-semibold">{flowName}</div>
-            <div className="flex items-center gap-2">
-              <select 
-                value={language} 
+          <div className="flex-1 overflow-hidden">
+            <div className="font-semibold truncate leading-tight tracking-wide">
+              {flowName}
+            </div>
+            <div className="text-[11px] text-white/80 flex items-center gap-1.5 mt-0.5">
+              <span className="capitalize">
+                {isSimulating ? "typing..." : "online"}
+              </span>
+              <span>•</span>
+              <select
+                value={language}
                 onChange={(e) => setLanguage(e.target.value as any)}
-                className="bg-transparent text-[10px] border-none focus:ring-0 text-gray-200 cursor-pointer p-0"
+                className="bg-transparent text-[11px] border-none focus:ring-0 text-white cursor-pointer p-0 font-medium"
               >
-                <option value="en" className="text-black">EN</option>
-                <option value="hi" className="text-black">HI</option>
-                <option value="or" className="text-black">OR</option>
-                <option value="mr" className="text-black">MR</option>
+                <option value="en" className="text-black">
+                  English
+                </option>
+                <option value="hi" className="text-black">
+                  हिंदी (Hindi)
+                </option>
+                <option value="or" className="text-black">
+                  ଓଡ଼ିଆ (Odia)
+                </option>
+                <option value="mr" className="text-black">
+                  मराठी (Marathi)
+                </option>
               </select>
-              <div className="text-[10px] text-gray-200">•</div>
-              <div className="text-[10px] text-gray-200">
-                {isSimulating ? 'typing...' : 'Simulator'}
-              </div>
             </div>
           </div>
-          <Phone className="w-5 h-5" />
-          <Video className="w-5 h-5" />
-          <MoreVertical className="w-5 h-5" />
+          <div className="flex items-center gap-4 px-1">
+            <Video className="w-5 h-5 cursor-pointer hover:text-white/80 transition-transform" />
+            <Phone className="w-5 h-5 cursor-pointer hover:text-white/80 transition-transform" />
+            <MoreVertical className="w-5 h-5 cursor-pointer hover:text-white/80 transition-transform" />
+          </div>
         </div>
 
-        {/* Chat Messages */}
-        <div className="flex-1 overflow-y-auto p-4 bg-[#ECE5DD] space-y-2">
-          {messages.length === 0 && !isSimulating && (
-            <div className="text-center text-gray-500 mt-8">
-              <p className="mb-4">🚀 Ready to test your flow!</p>
-              <Button onClick={startSimulation} className="bg-[#25D366] hover:bg-[#20BA5A]">
-                Start Simulation
-              </Button>
-            </div>
-          )}
-
+        {/* Messages */}
+        <div
+          ref={scrollRef}
+          className="flex-1 overflow-y-auto p-3 space-y-3 z-0 relative scroll-smooth bg-transparent"
+        >
           {messages.map((msg) => (
             <div
               key={msg.id}
-              className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}
+              className={`flex ${msg.type === "user" ? "justify-end" : "justify-start"} animate-in fade-in slide-in-from-bottom-2 duration-300`}
             >
               <div
-                className={`max-w-[75%] rounded-lg p-2 shadow ${
-                  msg.type === 'user'
-                    ? 'bg-[#DCF8C6]'
-                    : 'bg-white'
+                className={`max-w-[85%] relative rounded-lg px-3 py-1.5 shadow-sm mb-1 ${
+                  msg.type === "user"
+                    ? "bg-[#E1FFC7] rounded-tr-none"
+                    : "bg-white rounded-tl-none"
                 }`}
               >
+                {/* Tail */}
+                <div
+                  className={`absolute top-0 w-3 h-3 ${
+                    msg.type === "user"
+                      ? "-right-1.5 bg-[#E1FFC7] clip-path-right-tail"
+                      : "-left-1.5 bg-white clip-path-left-tail"
+                  }`}
+                ></div>
+
                 {msg.isTyping ? (
-                  <div className="flex gap-1 p-2">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                  <div className="flex gap-1.5 p-1.5 items-center">
+                    <div
+                      className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"
+                      style={{ animationDelay: "0ms" }}
+                    ></div>
+                    <div
+                      className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"
+                      style={{ animationDelay: "200ms" }}
+                    ></div>
+                    <div
+                      className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"
+                      style={{ animationDelay: "400ms" }}
+                    ></div>
                   </div>
                 ) : (
                   <>
-                    <p className="text-sm text-gray-800 whitespace-pre-wrap">{msg.content}</p>
-                    
-                    {/* Buttons / List Trigger */}
+                    <div className="text-[14.5px] text-[#111b21] whitespace-pre-wrap leading-relaxed">
+                      {msg.content}
+                    </div>
+
                     {msg.buttons && msg.buttons.length > 0 && (
-                      <div className="mt-2 space-y-2 pt-2 border-t border-gray-100">
+                      <div className="mt-2.5 flex flex-col gap-1 border-t border-gray-100/80 -mx-1 -mb-1 pt-1">
                         {msg.buttons.map((btn) => (
                           <button
                             key={btn.id}
                             onClick={() => handleButtonClick(btn.text, btn.id)}
-                            className={`w-full text-center py-2 px-4 rounded text-sm transition-colors ${
-                              btn.isList 
-                                ? 'text-[#128C7E] font-bold flex items-center justify-center gap-2 hover:bg-gray-50'
-                                : 'text-blue-600 font-medium hover:bg-blue-50'
+                            className={`w-full text-center py-2.5 px-3 rounded-md text-[13.5px] font-semibold transition-all hover:bg-gray-50/50 active:bg-gray-100 ${
+                              btn.isList
+                                ? "text-[#008069] flex items-center justify-center gap-2 uppercase tracking-wide text-xs"
+                                : "text-[#0695FF]"
                             }`}
                           >
-                            {btn.isList && <MoreVertical className="w-4 h-4 rotate-90" />}
+                            {btn.isList && (
+                              <MoreVertical className="w-4 h-4 rotate-90" />
+                            )}
                             {btn.text}
                           </button>
                         ))}
                       </div>
                     )}
-                    
-                    <div className="text-[10px] text-gray-500 mt-1 text-right">
-                      {msg.timestamp.toLocaleTimeString('en-US', { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      })}
+
+                    <div className="flex items-center justify-end gap-1 mt-0.5">
+                      <span className="text-[10px] text-gray-400">
+                        {msg.timestamp.toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                      {msg.type === "user" && (
+                        <CheckCheck className="w-3.5 h-3.5 text-[#53bdeb]" />
+                      )}
                     </div>
                   </>
                 )}
@@ -373,96 +473,96 @@ export default function FlowSimulator({ nodes, edges, flowName, onClose }: FlowS
         </div>
 
         {/* Input Area */}
-        <div className="bg-[#F0F0F0] p-2 flex gap-2 items-center rounded-b-lg">
-          <input
-            type="text"
-            value={userInput}
-            onChange={(e) => setUserInput(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-            placeholder="Type a message..."
-            className="flex-1 px-4 py-2 rounded-full border border-gray-300 focus:outline-none focus:border-[#25D366]"
-            disabled={!isSimulating && messages.length > 0}
-          />
-          <button
-            onClick={handleSendMessage}
-            disabled={!userInput.trim() || (!isSimulating && messages.length > 0)}
-            className="bg-[#25D366] text-white p-2 rounded-full hover:bg-[#20BA5A] disabled:bg-gray-300 disabled:cursor-not-allowed"
-          >
-            <Send className="w-5 h-5" />
-          </button>
+        <div className="bg-[#F0F2F5] p-2 flex gap-2 items-center z-11 border-t border-gray-200">
+          <div className="flex items-center gap-1.5 px-1">
+            <Smile className="w-6 h-6 text-[#8696a0] cursor-pointer" />
+            <Paperclip className="w-6 h-6 text-[#8696a0] cursor-pointer -rotate-45" />
+          </div>
+          <div className="flex-1">
+            <input
+              type="text"
+              value={userInput}
+              onChange={(e) => setUserInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSendMessage();
+              }}
+              placeholder="Type a message..."
+              className="w-full px-4 py-2.5 rounded-lg border-none bg-white text-[15px] focus:outline-none focus:ring-0 shadow-sm"
+            />
+          </div>
+          <div className="flex items-center justify-center w-11 h-11">
+            {userInput.trim() ? (
+              <button
+                onClick={handleSendMessage}
+                className="bg-[#00a884] text-white p-2.5 rounded-full shadow-sm hover:bg-[#008f72] active:scale-90 transition-all"
+              >
+                <Send className="w-5 h-5 fill-current" />
+              </button>
+            ) : (
+              <div className="bg-[#00a884] text-white p-2.5 rounded-full shadow-sm">
+                <Mic className="w-5 h-5 fill-current" />
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Reset Button */}
-        {messages.length > 0 && !isSimulating && (
-          <div className="p-2 bg-gray-100 border-t">
-            <Button
-              onClick={startSimulation}
-              className="w-full bg-[#075E54] hover:bg-[#064E47]"
-              size="sm"
-            >
-              🔄 Restart Simulation
-            </Button>
-          </div>
-        )}
-      </div>
+        {/* List Popup */}
+        {activeList && (
+          <div className="absolute inset-0 z-50 flex flex-col justify-end bg-black/40 animate-in fade-in duration-300">
+            <div className="relative bg-white text-[#111b21] w-full rounded-t-2xl shadow-2xl flex flex-col max-h-[80%] animate-in slide-in-from-bottom duration-300">
+              <div className="px-4 py-4 flex items-center justify-between border-b border-gray-100">
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => setActiveList(null)}
+                    className="p-1 hover:bg-gray-100 rounded-full"
+                  >
+                    <X className="w-5 h-5 text-gray-500" />
+                  </button>
+                  <span className="text-lg font-semibold">
+                    {activeList.buttonText}
+                  </span>
+                </div>
+              </div>
 
-      {/* WhatsApp List Popup */}
-      {activeList && (
-        <div className="fixed inset-0 z-[60] flex flex-col justify-end">
-          <div className="absolute inset-0 bg-black/60" onClick={() => setActiveList(null)} />
-          <div className="relative bg-[#1f2c34] text-[#e9edef] w-full max-w-md mx-auto rounded-t-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-300">
-            {/* Popup Header */}
-            <div className="p-4 flex items-center gap-4 border-b border-[#2a3942]">
-              <button 
-                onClick={() => setActiveList(null)}
-                className="hover:bg-[#2a3942] rounded-full p-1"
-              >
-                <X className="w-5 h-5 text-[#8696a0]" />
-              </button>
-              <h3 className="text-lg font-medium">{activeList.buttonText}</h3>
-            </div>
-
-            {/* List Content */}
-            <div className="overflow-y-auto flex-1 pb-8">
-              {activeList.sections.map((section, secIdx) => (
-                <div key={secIdx} className="mt-4">
-                  {section.title && (
-                    <div className="px-5 py-2 text-[#8696a0] text-sm font-semibold uppercase tracking-wider">
-                      {section.title}
-                    </div>
-                  )}
-                  <div className="space-y-1">
-                    {section.rows?.map((row: any, rowIdx: number) => (
-                      <button
-                        key={row.id || `${secIdx}-${rowIdx}`}
-                        onClick={() => {
-                          handleButtonClick(row.title, `list-${secIdx}-${rowIdx}`);
-                          setActiveList(null);
-                        }}
-                        className="w-full px-5 py-3 flex items-start gap-4 hover:bg-[#2a3942] text-left transition-colors group"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="text-base font-medium text-[#e9edef] group-active:text-white leading-tight">
+              <div className="overflow-y-auto pt-2 pb-6">
+                {activeList.sections.map((section, secIdx) => (
+                  <div key={secIdx} className="mb-4">
+                    {section.title && (
+                      <div className="px-5 py-2 text-[#008069] text-[13px] font-semibold uppercase tracking-widest bg-gray-50/50">
+                        {section.title}
+                      </div>
+                    )}
+                    <div>
+                      {section.rows?.map((row: any, rowIdx: number) => (
+                        <button
+                          key={row.id || `${secIdx}-${rowIdx}`}
+                          onClick={() => {
+                            handleButtonClick(
+                              row.title,
+                              `list-row-${secIdx}-${rowIdx}`,
+                            );
+                            setActiveList(null);
+                          }}
+                          className="w-full px-5 py-3.5 flex flex-col items-start hover:bg-gray-50 active:bg-gray-100 border-b border-gray-50 last:border-0"
+                        >
+                          <div className="text-[16px] text-[#111b21] font-medium leading-tight">
                             {row.title}
                           </div>
                           {row.description && (
-                            <div className="text-sm text-[#8696a0] mt-0.5 leading-snug truncate">
+                            <div className="text-[13px] text-gray-500 mt-1 truncate w-full">
                               {row.description}
                             </div>
                           )}
-                        </div>
-                        <div className="w-5 h-5 rounded-full border-2 border-[#8696a0] flex-shrink-0 mt-0.5 flex items-center justify-center">
-                          <div className="w-2.5 h-2.5 rounded-full bg-transparent group-active:bg-[#00a884]" />
-                        </div>
-                      </button>
-                    ))}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

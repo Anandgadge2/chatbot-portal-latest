@@ -1,10 +1,13 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { FlowNode, FlowEdge, Flow, BackendFlow } from '@/types/flowTypes';
-import { transformToBackendFormat, transformFromBackendFormat } from '@/lib/flowTransform';
-import { validateFlow } from '@/lib/flowValidation';
-import { Button } from '@/components/ui/button';
+import { useState, useEffect, useCallback } from "react";
+import { FlowNode, FlowEdge, Flow, BackendFlow } from "@/types/flowTypes";
+import {
+  transformToBackendFormat,
+  transformFromBackendFormat,
+} from "@/lib/flowTransform";
+import { validateFlow } from "@/lib/flowValidation";
+import { Button } from "@/components/ui/button";
 import {
   Save,
   FolderOpen,
@@ -16,10 +19,10 @@ import {
   Settings,
   CheckCircle2,
   X,
-} from 'lucide-react';
-import { toast } from 'react-hot-toast';
-import axios from 'axios';
-import FlowSimulator from './FlowSimulator';
+} from "lucide-react";
+import { toast } from "react-hot-toast";
+import axios from "axios";
+import FlowSimulator from "./FlowSimulator";
 
 interface FlowToolbarProps {
   nodes: FlowNode[];
@@ -51,18 +54,18 @@ export default function FlowToolbar({
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
-  const [flowName, setFlowName] = useState('Untitled Flow');
+  const [flowName, setFlowName] = useState("Untitled Flow");
   const [showSettings, setShowSettings] = useState(false);
   const [showTestDialog, setShowTestDialog] = useState(false);
-  
+
   // Sync name from props
   useEffect(() => {
     if (name) setFlowName(name);
   }, [name]);
-  
+
   // Settings state
-  const [flowType, setFlowType] = useState('grievance');
-  const [defaultLanguage, setDefaultLanguage] = useState('en');
+  const [flowType, setFlowType] = useState("grievance");
+  const [defaultLanguage, setDefaultLanguage] = useState("en");
   const [enableTypingIndicator, setEnableTypingIndicator] = useState(true);
   const [enableReadReceipts, setEnableReadReceipts] = useState(true);
 
@@ -72,11 +75,11 @@ export default function FlowToolbar({
     if (historyIndex < history.length - 1) {
       history = history.slice(0, historyIndex + 1);
     }
-    
+
     // Add current state
     history.push({ nodes: [...nodes], edges: [...edges] });
     historyIndex = history.length - 1;
-    
+
     // Limit history to 50 states
     if (history.length > 50) {
       history.shift();
@@ -90,9 +93,9 @@ export default function FlowToolbar({
       const state = history[historyIndex];
       onNodesChange(state.nodes);
       onEdgesChange(state.edges);
-      toast.success('Undo');
+      toast.success("Undo");
     } else {
-      toast.error('Nothing to undo');
+      toast.error("Nothing to undo");
     }
   }, [onNodesChange, onEdgesChange]);
 
@@ -102,9 +105,9 @@ export default function FlowToolbar({
       const state = history[historyIndex];
       onNodesChange(state.nodes);
       onEdgesChange(state.edges);
-      toast.success('Redo');
+      toast.success("Redo");
     } else {
-      toast.error('Nothing to redo');
+      toast.error("Nothing to redo");
     }
   }, [onNodesChange, onEdgesChange]);
 
@@ -113,12 +116,12 @@ export default function FlowToolbar({
     const handleUndoEvent = () => handleUndo();
     const handleRedoEvent = () => handleRedo();
 
-    window.addEventListener('flowbuilder:undo', handleUndoEvent);
-    window.addEventListener('flowbuilder:redo', handleRedoEvent);
+    window.addEventListener("flowbuilder:undo", handleUndoEvent);
+    window.addEventListener("flowbuilder:redo", handleRedoEvent);
 
     return () => {
-      window.removeEventListener('flowbuilder:undo', handleUndoEvent);
-      window.removeEventListener('flowbuilder:redo', handleRedoEvent);
+      window.removeEventListener("flowbuilder:undo", handleUndoEvent);
+      window.removeEventListener("flowbuilder:redo", handleRedoEvent);
     };
   }, [nodes, edges, handleUndo, handleRedo]);
 
@@ -126,34 +129,34 @@ export default function FlowToolbar({
     try {
       setIsLoading(true);
       // Try to load from localStorage first as fallback
-      const savedFlow = localStorage.getItem('flowbuilder_current_flow');
-      
+      const savedFlow = localStorage.getItem("flowbuilder_current_flow");
+
       if (savedFlow) {
         const flow: Flow = JSON.parse(savedFlow);
         saveToHistory(); // Save current state before loading
         onNodesChange(flow.nodes || []);
         onEdgesChange(flow.edges || []);
-        setFlowName(flow.metadata?.name || 'Loaded Flow');
-        toast.success('Flow loaded from local storage');
+        setFlowName(flow.metadata?.name || "Loaded Flow");
+        toast.success("Flow loaded from local storage");
         return;
       }
 
       // Try backend API
-      const response = await axios.get('/api/chatbot-flows');
-      
+      const response = await axios.get("/api/chatbot-flows");
+
       if (response.data.success && response.data.flows?.length > 0) {
         const flow = response.data.flows[0];
         saveToHistory();
         onNodesChange(flow.nodes || []);
         onEdgesChange(flow.edges || []);
-        setFlowName(flow.metadata?.name || 'Loaded Flow');
-        toast.success('Flow loaded successfully');
+        setFlowName(flow.metadata?.name || "Loaded Flow");
+        toast.success("Flow loaded successfully");
       } else {
-        toast.error('No saved flows found');
+        toast.error("No saved flows found");
       }
     } catch (error: any) {
-      console.error('Load error:', error);
-      toast.error('No saved flows available. Create and save a flow first.');
+      console.error("Load error:", error);
+      toast.error("No saved flows available. Create and save a flow first.");
     } finally {
       setIsLoading(false);
     }
@@ -164,7 +167,7 @@ export default function FlowToolbar({
     const flow: Flow = {
       metadata: {
         name: flowName,
-        companyId: '',
+        companyId: "",
         version: 1,
         isActive: false,
       },
@@ -175,7 +178,7 @@ export default function FlowToolbar({
     const validation = validateFlow(flow);
 
     if (!validation.isValid) {
-      toast.error('Please fix validation errors before testing');
+      toast.error("Please fix validation errors before testing");
       onValidate();
       return;
     }
@@ -198,7 +201,7 @@ export default function FlowToolbar({
     const flow: Flow = {
       metadata: {
         name: flowName,
-        companyId: '', // Will be set from user context
+        companyId: "", // Will be set from user context
         version: 1,
         isActive: false,
       },
@@ -220,30 +223,41 @@ export default function FlowToolbar({
       setIsSaving(true);
 
       // Save to localStorage as backup
-      localStorage.setItem('flowbuilder_current_flow', JSON.stringify(flow));
+      localStorage.setItem("flowbuilder_current_flow", JSON.stringify(flow));
 
       // Transform to backend format
       const backendFlow = transformToBackendFormat(flow);
 
       // Try to save to backend
       try {
-        const response = await axios.post('/api/chatbot-flows', backendFlow);
+        const response = backendFlow._id
+          ? await axios.put(
+              `/api/chatbot-flows/${backendFlow._id}`,
+              backendFlow,
+            )
+          : await axios.post("/api/chatbot-flows", backendFlow);
 
         if (response.data.success) {
-          toast.success('✅ Flow saved successfully!');
+          toast.success(
+            `✅ Flow saved successfully!${backendFlow._id ? " (Updated)" : " (Created)"}`,
+          );
+          // Update id in metadata if it was a new flow
+          if (!backendFlow._id && response.data.data?._id) {
+            onNodesChange(nodes.map((n) => ({ ...n }))); // Just trigger a refresh of state
+          }
         } else {
-          // Show success for local save only
-          toast.success('✅ Flow saved locally');
+          toast.success("✅ Flow saved locally");
         }
-      } catch (apiError) {
-        // If API fails, we still have localStorage backup
-        // Just show success for local save without warning about server
-        console.log('Backend API not available, flow saved locally');
-        toast.success('✅ Flow saved locally');
+      } catch (apiError: any) {
+        console.error("API Save error:", apiError);
+        const errorMsg =
+          apiError.response?.data?.message || apiError.message || "API error";
+        toast.error(`❌ Failed to save to server: ${errorMsg}`);
+        toast.success("✅ Flow saved locally as backup");
       }
     } catch (error: any) {
-      console.error('Save error:', error);
-      toast.error('Failed to save flow');
+      console.error("Save error:", error);
+      toast.error("Failed to save flow");
     } finally {
       setIsSaving(false);
     }
@@ -253,7 +267,7 @@ export default function FlowToolbar({
     const flow: Flow = {
       metadata: {
         name: flowName,
-        companyId: '',
+        companyId: "",
         version: 1,
         isActive: false,
       },
@@ -262,21 +276,21 @@ export default function FlowToolbar({
     };
 
     const dataStr = JSON.stringify(flow, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const dataBlob = new Blob([dataStr], { type: "application/json" });
     const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
-    link.download = `${flowName.replace(/\s+/g, '_')}.json`;
+    link.download = `${flowName.replace(/\s+/g, "_")}.json`;
     link.click();
     URL.revokeObjectURL(url);
 
-    toast.success('Flow exported successfully');
+    toast.success("Flow exported successfully");
   };
 
   const handleImport = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
     input.onchange = (e: any) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -286,8 +300,8 @@ export default function FlowToolbar({
         try {
           const fileContent = event.target?.result as string;
           let rawData = JSON.parse(fileContent);
-          
-          console.log('📦 Importing flow data:', rawData);
+
+          console.log("📦 Importing flow data:", rawData);
 
           // Support for nested 'data' property if it's a wrapper
           if (!rawData.nodes && !rawData.steps && rawData.data) {
@@ -297,70 +311,90 @@ export default function FlowToolbar({
 
           // Handle case where export is an array (common in DB exports)
           if (Array.isArray(rawData)) {
-            console.log('📁 Detected array of flows, taking the first one');
+            console.log("📁 Detected array of flows, taking the first one");
             rawData = rawData[0];
           }
 
           if (!rawData) {
-            toast.error('File is empty or invalid.');
+            toast.error("File is empty or invalid.");
             return;
           }
 
           let importedNodes: FlowNode[] = [];
           let importedEdges: FlowEdge[] = [];
-          let name = 'Imported Flow';
+          let name = "Imported Flow";
 
           // Case 1: Standard frontend format ({ nodes: [], edges: [], metadata? })
           if (rawData.nodes && Array.isArray(rawData.nodes)) {
-            console.log('✅ Found standard frontend format');
+            console.log("✅ Found standard frontend format");
             importedNodes = rawData.nodes.map((node: any) => {
               const data = { ...node.data };
-              
+
               // Map legacy/external fields
-              if (node.type === 'userInput' && node.data?.promptMessage) {
+              if (node.type === "userInput" && node.data?.promptMessage) {
                 data.messageText = node.data.promptMessage;
               }
-              if (node.type === 'end' && node.data?.message) {
+              if (node.type === "end" && node.data?.message) {
                 data.endMessage = node.data.message;
               }
-              if (node.type === 'textMessage' && node.data?.text) {
+              if (node.type === "textMessage" && node.data?.text) {
                 data.messageText = node.data.text;
               }
-              if (node.type === 'buttonMessage' && node.data?.text) {
+              if (node.type === "buttonMessage" && node.data?.text) {
                 data.messageText = node.data.text;
               }
 
               return { ...node, data };
             });
             importedEdges = rawData.edges || [];
-            name = (rawData.metadata?.name || rawData.name || rawData.flowName || 'Imported Flow').toString();
-          } 
+            name = (
+              rawData.metadata?.name ||
+              rawData.name ||
+              rawData.flowName ||
+              "Imported Flow"
+            ).toString();
+          }
           // Case 2: Backend format ({ steps: [], triggers: [], flowName: '' })
           else if (rawData.steps && Array.isArray(rawData.steps)) {
-            console.log('✅ Found backend step format, transforming...');
-            
-            // Handle MongoDB $oid objects if present
-            const sanitizedData = JSON.parse(JSON.stringify(rawData), (key, value) => {
-               if (value && typeof value === 'object' && value.$oid) return value.$oid;
-               return value;
-            });
+            console.log("✅ Found backend step format, transforming...");
 
-            const transformed = transformFromBackendFormat(sanitizedData as BackendFlow);
+            // Handle MongoDB $oid objects if present
+            const sanitizedData = JSON.parse(
+              JSON.stringify(rawData),
+              (key, value) => {
+                if (value && typeof value === "object" && value.$oid)
+                  return value.$oid;
+                return value;
+              },
+            );
+
+            const transformed = transformFromBackendFormat(
+              sanitizedData as BackendFlow,
+            );
             importedNodes = transformed.nodes;
             importedEdges = transformed.edges;
-            name = (transformed.metadata?.name || 'Imported Backend Flow').toString();
+            name = (
+              transformed.metadata?.name || "Imported Backend Flow"
+            ).toString();
           }
           // Case 3: Invalid format
           else {
-            console.error('❌ Unknown flow format. Keys found:', Object.keys(rawData));
-            toast.error('Unknown flow format. File must contain "nodes" or "steps".');
+            console.error(
+              "❌ Unknown flow format. Keys found:",
+              Object.keys(rawData),
+            );
+            toast.error(
+              'Unknown flow format. File must contain "nodes" or "steps".',
+            );
             return;
           }
 
-          console.log(`🔍 Transformation complete: ${importedNodes.length} nodes, ${importedEdges.length} edges`);
+          console.log(
+            `🔍 Transformation complete: ${importedNodes.length} nodes, ${importedEdges.length} edges`,
+          );
 
           if (importedNodes.length === 0) {
-            toast.error('Imported flow has 0 nodes after transformation.');
+            toast.error("Imported flow has 0 nodes after transformation.");
             return;
           }
 
@@ -369,11 +403,13 @@ export default function FlowToolbar({
           onNodesChange(importedNodes);
           onEdgesChange(importedEdges);
           setFlowName(name);
-          
-          console.log(`✅ State update triggered with ${importedNodes.length} nodes`);
+
+          console.log(
+            `✅ State update triggered with ${importedNodes.length} nodes`,
+          );
           toast.success(`Flow "${name}" imported successfully`);
         } catch (error: any) {
-          console.error('Import error:', error);
+          console.error("Import error:", error);
           toast.error(`Invalid flow file: ${error.message}`);
         }
       };
@@ -398,8 +434,9 @@ export default function FlowToolbar({
               />
             )}
             <span className="text-sm text-gray-500">
-              {nodes.length} node{nodes.length !== 1 ? 's' : ''}, {edges.length} connection
-              {edges.length !== 1 ? 's' : ''}
+              {nodes.length} node{nodes.length !== 1 ? "s" : ""}, {edges.length}{" "}
+              connection
+              {edges.length !== 1 ? "s" : ""}
             </span>
           </div>
 
@@ -439,7 +476,7 @@ export default function FlowToolbar({
               title="Load saved flow"
             >
               <FolderOpen className="w-4 h-4" />
-              {isLoading ? 'Loading...' : 'Load'}
+              {isLoading ? "Loading..." : "Load"}
             </Button>
 
             {/* Test */}
@@ -452,7 +489,7 @@ export default function FlowToolbar({
               title="Test flow"
             >
               <Play className="w-4 h-4" />
-              {isTesting ? 'Testing...' : 'Test'}
+              {isTesting ? "Testing..." : "Test"}
             </Button>
 
             {/* Settings */}
@@ -461,7 +498,7 @@ export default function FlowToolbar({
               size="sm"
               onClick={() => setShowSettings(!showSettings)}
               title="Flow settings"
-              className={showSettings ? 'bg-gray-100' : ''}
+              className={showSettings ? "bg-gray-100" : ""}
             >
               <Settings className="w-4 h-4" />
             </Button>
@@ -511,7 +548,7 @@ export default function FlowToolbar({
                 className="gap-2 bg-purple-600 hover:bg-purple-700"
               >
                 <Save className="w-4 h-4" />
-                {isSaving ? 'Saving...' : 'Save'}
+                {isSaving ? "Saving..." : "Save"}
               </Button>
             )}
           </div>
@@ -532,8 +569,10 @@ export default function FlowToolbar({
             </div>
             <div className="space-y-3 text-sm">
               <div>
-                <label className="block text-gray-700 mb-1 font-medium">Flow Type</label>
-                <select 
+                <label className="block text-gray-700 mb-1 font-medium">
+                  Flow Type
+                </label>
+                <select
                   className="w-full border border-gray-300 rounded px-3 py-1.5"
                   value={flowType}
                   onChange={(e) => setFlowType(e.target.value)}
@@ -545,8 +584,10 @@ export default function FlowToolbar({
                 </select>
               </div>
               <div>
-                <label className="block text-gray-700 mb-1 font-medium">Default Language</label>
-                <select 
+                <label className="block text-gray-700 mb-1 font-medium">
+                  Default Language
+                </label>
+                <select
                   className="w-full border border-gray-300 rounded px-3 py-1.5"
                   value={defaultLanguage}
                   onChange={(e) => setDefaultLanguage(e.target.value)}
@@ -559,8 +600,8 @@ export default function FlowToolbar({
               </div>
               <div>
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input 
-                    type="checkbox" 
+                  <input
+                    type="checkbox"
                     className="rounded"
                     checked={enableTypingIndicator}
                     onChange={(e) => setEnableTypingIndicator(e.target.checked)}
@@ -570,8 +611,8 @@ export default function FlowToolbar({
               </div>
               <div>
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input 
-                    type="checkbox" 
+                  <input
+                    type="checkbox"
                     className="rounded"
                     checked={enableReadReceipts}
                     onChange={(e) => setEnableReadReceipts(e.target.checked)}
@@ -581,7 +622,14 @@ export default function FlowToolbar({
               </div>
               <div className="pt-2 border-t">
                 <p className="text-xs text-gray-600">
-                  <strong>Current settings:</strong> {flowType} flow in {defaultLanguage === 'en' ? 'English' : defaultLanguage === 'hi' ? 'Hindi' : defaultLanguage === 'or' ? 'Odia' : 'Marathi'}
+                  <strong>Current settings:</strong> {flowType} flow in{" "}
+                  {defaultLanguage === "en"
+                    ? "English"
+                    : defaultLanguage === "hi"
+                      ? "Hindi"
+                      : defaultLanguage === "or"
+                        ? "Odia"
+                        : "Marathi"}
                 </p>
               </div>
             </div>
@@ -590,7 +638,8 @@ export default function FlowToolbar({
 
         {/* Keyboard Shortcuts Hint */}
         <div className="mt-2 text-xs text-gray-500">
-          <span className="font-medium">Shortcuts:</span> Ctrl+S to validate • Ctrl+Z undo • Ctrl+Y redo • Delete to remove node
+          <span className="font-medium">Shortcuts:</span> Ctrl+S to validate •
+          Ctrl+Z undo • Ctrl+Y redo • Delete to remove node
         </div>
       </div>
 

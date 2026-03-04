@@ -120,7 +120,7 @@ export interface AssignDepartmentNodeData extends BaseNodeData {
 export interface UserInputNodeData extends BaseNodeData {
   messageText: string;
   messageTextTranslations?: Record<string, string>;
-  inputType: 'text' | 'number' | 'email' | 'phone' | 'date' | 'image' | 'document' | 'location';
+  inputType: 'text' | 'number' | 'email' | 'phone' | 'date' | 'image' | 'document' | 'location' | 'file';
   saveToField: string;
   validation?: {
     required: boolean;
@@ -275,7 +275,7 @@ export interface BackendFlowStep {
     }>;
   };
   inputConfig?: {
-    inputType: 'text' | 'number' | 'email' | 'phone' | 'date' | 'image' | 'document' | 'location';
+    inputType: 'text' | 'number' | 'email' | 'phone' | 'date' | 'image' | 'document' | 'location' | 'file';
     validation?: {
       required: boolean;
       minLength?: number;
@@ -314,11 +314,13 @@ export interface BackendFlowStep {
   delayConfig?: {
     duration: number;
     unit: 'seconds' | 'minutes' | 'hours';
+    nextStepId?: string;
   };
   assignDepartmentConfig?: {
     departmentId?: string;
     isDynamic?: boolean;
     conditionField?: string;
+    nextStepId?: string;
   };
   expectedResponses?: Array<{
     type: 'text' | 'button_click' | 'list_selection' | 'any';
@@ -364,6 +366,8 @@ export interface BackendFlow {
   updatedAt?: Date;
   createdBy?: string;
   updatedBy?: string;
+  nodes?: any[];
+  edges?: any[];
 }
 
 // ============================================================================
