@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 
 export const metadata: Metadata = {
   title: 'WhatsApp Chatbot Platform',
@@ -25,6 +26,7 @@ export default function RootLayout({
           {children}
           <Toaster position="top-right" />
         </AuthProvider>
+        <SpeedInsights />
       </body>
     </html>
   )
