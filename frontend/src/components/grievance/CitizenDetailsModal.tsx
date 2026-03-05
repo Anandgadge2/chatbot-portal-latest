@@ -17,7 +17,8 @@ import {
   FileType,
 } from "lucide-react";
 import Image from "next/image";
-import { format, formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
+import { formatDate, formatDateTime, formatISTTime } from "@/lib/utils";
 
 const isImageMedia = (media: { type?: string; url?: string }) =>
   media.type === "image" ||
@@ -184,7 +185,7 @@ export default function CitizenDetailsModal({
                   </span>
                 </div>
                 <p className="text-base font-bold text-gray-900">
-                  {format(new Date(appointment.appointmentDate), "dd MMM yyyy")}
+                  {formatDate(appointment.appointmentDate)}
                 </p>
               </div>
             )}
@@ -199,7 +200,7 @@ export default function CitizenDetailsModal({
                 </span>
               </div>
               <p className="text-base font-bold text-gray-900">
-                {format(createdDate, "dd MMM yyyy")}
+                {formatDate(createdDate)}
               </p>
             </div>
 
@@ -213,7 +214,7 @@ export default function CitizenDetailsModal({
                 </span>
               </div>
               <p className="text-base font-bold text-gray-900">
-                {format(createdDate, "hh:mm a")}
+                {formatISTTime(createdDate)}
               </p>
             </div>
           </div>
@@ -326,10 +327,7 @@ export default function CitizenDetailsModal({
                       </p>
                       <p className="text-base font-bold text-slate-800 flex items-center gap-2">
                         <Calendar className="w-5 h-5 text-blue-600" />
-                        {format(
-                          new Date(appointment.appointmentDate),
-                          "dd MMM yyyy",
-                        )}
+                        {formatDate(appointment.appointmentDate)}
                       </p>
                     </div>
                     <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
@@ -350,7 +348,7 @@ export default function CitizenDetailsModal({
                     Created At
                   </p>
                   <p className="text-base font-semibold text-slate-800">
-                    {format(createdDate, "dd/MM/yyyy, hh:mm:ss a")}
+                    {formatDateTime(createdDate)}
                   </p>
                 </div>
                 <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
@@ -358,10 +356,7 @@ export default function CitizenDetailsModal({
                     Last Updated
                   </p>
                   <p className="text-base font-semibold text-slate-800">
-                    {format(
-                      new Date(data?.updatedAt || data?.createdAt || ""),
-                      "dd/MM/yyyy, hh:mm:ss a",
-                    )}
+                    {formatDateTime(data?.updatedAt || data?.createdAt || "")}
                   </p>
                 </div>
               </div>
@@ -552,10 +547,7 @@ export default function CitizenDetailsModal({
                             {history.remarks || "Status updated"}
                           </p>
                           <p className="text-[10px] text-slate-400 mt-1">
-                            {format(
-                              new Date(history.changedAt),
-                              "dd/MM/yyyy, hh:mm:ss a",
-                            )}
+                            {formatDateTime(history.changedAt)}
                           </p>
                         </div>
                       </div>

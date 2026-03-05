@@ -1,25 +1,25 @@
-'use client';
+"use client";
 
-import { useEffect, useState, useCallback } from 'react';
-import { apiClient } from '@/lib/api/client';
-import { 
-  Activity, 
-  UserPlus, 
-  FileText, 
-  Calendar, 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  ArrowRight, 
-  User, 
-  Settings, 
+import { useEffect, useState, useCallback } from "react";
+import { apiClient } from "@/lib/api/client";
+import {
+  Activity,
+  UserPlus,
+  FileText,
+  Calendar,
+  CheckCircle,
+  XCircle,
+  Clock,
+  ArrowRight,
+  User,
+  Settings,
   RefreshCw,
   Building,
   Key,
   ShieldCheck,
   ChevronRight,
-  Database
-} from 'lucide-react';
+  Database,
+} from "lucide-react";
 
 interface AuditLog {
   _id: string;
@@ -32,7 +32,11 @@ interface AuditLog {
   createdAt: string;
 }
 
-export default function RecentActivityPanel({ companyId }: { companyId?: string }) {
+export default function RecentActivityPanel({
+  companyId,
+}: {
+  companyId?: string;
+}) {
   const [activities, setActivities] = useState<AuditLog[]>([]);
   const [loadingActivities, setLoadingActivities] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -40,19 +44,21 @@ export default function RecentActivityPanel({ companyId }: { companyId?: string 
   const fetchRecentActivities = useCallback(async () => {
     try {
       if (!loadingActivities) setRefreshing(true);
-      const url = companyId ? `/audit?limit=20&companyId=${companyId}` : '/audit?limit=20';
+      const url = companyId
+        ? `/audit?limit=20&companyId=${companyId}`
+        : "/audit?limit=20";
       const response = await apiClient.get(url);
       if (response.success) {
         const logs = response.data.logs.map((log: any) => ({
           ...log,
           createdAt: log.timestamp,
           resourceType: log.resource,
-          changes: log.details
+          changes: log.details,
         }));
         setActivities(logs || []);
       }
     } catch (error) {
-      console.error('Failed to fetch activities:', error);
+      console.error("Failed to fetch activities:", error);
     } finally {
       setLoadingActivities(false);
       setRefreshing(false);
@@ -65,39 +71,61 @@ export default function RecentActivityPanel({ companyId }: { companyId?: string 
 
   const getActivityIcon = (action: string, resourceType: string) => {
     switch (action) {
-      case 'CREATE':
-        if (resourceType === 'User') return <UserPlus className="w-3.5 h-3.5 text-emerald-600" />;
-        if (resourceType === 'Company') return <Building className="w-3.5 h-3.5 text-blue-600" />;
-        if (resourceType === 'Department') return <Database className="w-3.5 h-3.5 text-purple-600" />;
+      case "CREATE":
+        if (resourceType === "User")
+          return <UserPlus className="w-3.5 h-3.5 text-emerald-600" />;
+        if (resourceType === "Company")
+          return <Building className="w-3.5 h-3.5 text-blue-600" />;
+        if (resourceType === "Department")
+          return <Database className="w-3.5 h-3.5 text-purple-600" />;
         return <Activity className="w-3.5 h-3.5 text-slate-600" />;
-      case 'UPDATE': return <Clock className="w-3.5 h-3.5 text-amber-600" />;
-      case 'DELETE': return <XCircle className="w-3.5 h-3.5 text-rose-600" />;
-      case 'LOGIN': return <Key className="w-3.5 h-3.5 text-cyan-600" />;
-      default: return <Activity className="w-3.5 h-3.5 text-slate-600" />;
+      case "UPDATE":
+        return <Clock className="w-3.5 h-3.5 text-amber-600" />;
+      case "DELETE":
+        return <XCircle className="w-3.5 h-3.5 text-rose-600" />;
+      case "LOGIN":
+        return <Key className="w-3.5 h-3.5 text-cyan-600" />;
+      default:
+        return <Activity className="w-3.5 h-3.5 text-slate-600" />;
     }
   };
 
   const getScheme = (action: string) => {
     switch (action) {
-      case 'CREATE': return { color: 'emerald', bg: 'bg-emerald-500' };
-      case 'UPDATE': return { color: 'amber', bg: 'bg-amber-500' };
-      case 'DELETE': return { color: 'rose', bg: 'bg-rose-500' };
-      case 'LOGIN': return { color: 'cyan', bg: 'bg-cyan-500' };
-      default: return { color: 'slate', bg: 'bg-slate-500' };
+      case "CREATE":
+        return { color: "emerald", bg: "bg-emerald-500" };
+      case "UPDATE":
+        return { color: "amber", bg: "bg-amber-500" };
+      case "DELETE":
+        return { color: "rose", bg: "bg-rose-500" };
+      case "LOGIN":
+        return { color: "cyan", bg: "bg-cyan-500" };
+      default:
+        return { color: "slate", bg: "bg-slate-500" };
     }
   };
 
   const getLogSummary = (log: AuditLog) => {
-    const userName = typeof log.userId === 'object' && log.userId 
-      ? `${log.userId.firstName} ${log.userId.lastName}`
-      : 'System';
-    
+    const userName =
+      typeof log.userId === "object" && log.userId
+        ? `${log.userId.firstName} ${log.userId.lastName}`
+        : "System";
+
     return {
       user: userName,
       action: log.action,
       resource: log.resourceType,
-      time: new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      date: new Date(log.createdAt).toLocaleDateString([], { day: '2-digit', month: 'short' })
+      time: new Date(log.createdAt).toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+        timeZone: "Asia/Kolkata",
+      }),
+      date: new Date(log.createdAt).toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        timeZone: "Asia/Kolkata",
+      }),
     };
   };
 
@@ -106,7 +134,7 @@ export default function RecentActivityPanel({ companyId }: { companyId?: string 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 animate-pulse">
         <div className="h-6 bg-slate-100 rounded w-1/4 mb-8"></div>
         <div className="space-y-6">
-          {[1, 2, 3, 4, 5].map(i => (
+          {[1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="flex gap-4">
               <div className="w-8 h-8 rounded-full bg-slate-100"></div>
               <div className="flex-1 space-y-2">
@@ -129,19 +157,25 @@ export default function RecentActivityPanel({ companyId }: { companyId?: string 
             <ShieldCheck className="w-5 h-5 text-indigo-400" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-white uppercase tracking-tight">System Audit Log</h3>
+            <h3 className="text-sm font-bold text-white uppercase tracking-tight">
+              System Audit Log
+            </h3>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Real-time Stream</span>
+              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                Real-time Stream
+              </span>
             </div>
           </div>
         </div>
-        <button 
+        <button
           onClick={fetchRecentActivities}
           disabled={refreshing}
           className="w-9 h-9 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-lg transition-all"
         >
-          <RefreshCw className={`w-4 h-4 text-white ${refreshing ? 'animate-spin' : ''}`} />
+          <RefreshCw
+            className={`w-4 h-4 text-white ${refreshing ? "animate-spin" : ""}`}
+          />
         </button>
       </div>
 
@@ -150,7 +184,9 @@ export default function RecentActivityPanel({ companyId }: { companyId?: string 
         {activities.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20">
             <Activity className="w-12 h-12 text-slate-200 mb-3" />
-            <p className="text-sm font-bold text-slate-400">No activity recorded</p>
+            <p className="text-sm font-bold text-slate-400">
+              No activity recorded
+            </p>
           </div>
         ) : (
           <div className="relative">
@@ -161,11 +197,13 @@ export default function RecentActivityPanel({ companyId }: { companyId?: string 
               {activities.map((log, idx) => {
                 const summary = getLogSummary(log);
                 const scheme = getScheme(log.action);
-                
+
                 return (
                   <div key={log._id} className="relative pl-10 group">
                     {/* Timeline Node */}
-                    <div className={`absolute left-0 top-1 w-[22px] h-[22px] rounded-full border-4 border-white shadow-sm z-10 ${scheme.bg} flex items-center justify-center`}>
+                    <div
+                      className={`absolute left-0 top-1 w-[22px] h-[22px] rounded-full border-4 border-white shadow-sm z-10 ${scheme.bg} flex items-center justify-center`}
+                    >
                       <div className="w-1 h-1 rounded-full bg-white"></div>
                     </div>
 
@@ -173,57 +211,86 @@ export default function RecentActivityPanel({ companyId }: { companyId?: string 
                     <div className="flex flex-col">
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-2">
-                           <span className="text-xs font-black text-slate-900 leading-none">{summary.user}</span>
-                           <div className="flex items-center gap-1 px-1.5 py-0.5 bg-slate-100 rounded text-[9px] font-black text-slate-500 uppercase">
-                             {idx === 0 ? 'Latest' : summary.date}
-                           </div>
+                          <span className="text-xs font-black text-slate-900 leading-none">
+                            {summary.user}
+                          </span>
+                          <div className="flex items-center gap-1 px-1.5 py-0.5 bg-slate-100 rounded text-[9px] font-black text-slate-500 uppercase">
+                            {idx === 0 ? "Latest" : summary.date}
+                          </div>
                         </div>
-                        <span className="text-[10px] font-bold text-slate-400 font-mono tracking-tighter">{summary.time}</span>
+                        <span className="text-[10px] font-bold text-slate-400 font-mono tracking-tighter">
+                          {summary.time}
+                        </span>
                       </div>
 
                       <div className="flex items-center gap-2 mt-1">
-                        <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-lg border shadow-sm ${
-                          log.action === 'CREATE' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' :
-                          log.action === 'UPDATE' ? 'bg-amber-50 border-amber-100 text-amber-700' :
-                          log.action === 'DELETE' ? 'bg-rose-50 border-rose-100 text-rose-700' :
-                          'bg-slate-50 border-slate-100 text-slate-700'
-                        }`}>
+                        <div
+                          className={`flex items-center gap-1.5 px-2 py-0.5 rounded-lg border shadow-sm ${
+                            log.action === "CREATE"
+                              ? "bg-emerald-50 border-emerald-100 text-emerald-700"
+                              : log.action === "UPDATE"
+                                ? "bg-amber-50 border-amber-100 text-amber-700"
+                                : log.action === "DELETE"
+                                  ? "bg-rose-50 border-rose-100 text-rose-700"
+                                  : "bg-slate-50 border-slate-100 text-slate-700"
+                          }`}
+                        >
                           {getActivityIcon(log.action, log.resourceType)}
-                          <span className="text-[10px] font-black uppercase tracking-wider">{log.action === 'CREATE' ? 'Proceed' : log.action}</span>
+                          <span className="text-[10px] font-black uppercase tracking-wider">
+                            {log.action === "CREATE" ? "Proceed" : log.action}
+                          </span>
                         </div>
-                        
+
                         <ChevronRight className="w-3 h-3 text-slate-300" />
-                        
+
                         <div className="flex items-center gap-1.5 px-2 py-0.5 bg-white border border-slate-200 rounded-lg shadow-sm">
-                           <span className="text-[10px] font-bold text-slate-600">{log.resourceType}</span>
+                          <span className="text-[10px] font-bold text-slate-600">
+                            {log.resourceType}
+                          </span>
                         </div>
                       </div>
 
                       {/* Detail Expansion */}
                       <div className="mt-3 bg-slate-50/50 rounded-xl p-3 border border-slate-100/50 group-hover:bg-slate-50 group-hover:border-slate-200 transition-all">
                         <p className="text-[11px] text-slate-600 font-medium leading-relaxed">
-                          {log.changes?.description || `${summary.action} entry in ${log.resourceType} module`}
+                          {log.changes?.description ||
+                            `${summary.action} entry in ${log.resourceType} module`}
                         </p>
-                        
+
                         {/* Nested Procedure Details */}
                         {log.changes?.updates && (
                           <div className="mt-2 pt-2 border-t border-slate-200/50 space-y-1.5">
-                            {Object.entries(log.changes.updates).map(([key, val]: [string, any]) => (
-                              <div key={key} className="flex items-center gap-2 text-[10px]">
-                                <span className="font-bold text-slate-400 lowercase">{key}:</span>
-                                <div className="flex items-center gap-1.5">
-                                  <span className="font-bold text-slate-700">{String(val).length > 30 ? String(val).substring(0, 30) + '...' : String(val)}</span>
-                                  <ArrowRight className="w-2.5 h-2.5 text-blue-400" />
-                                  <span className="px-1 bg-blue-50 text-blue-600 rounded-sm font-black">Applied</span>
+                            {Object.entries(log.changes.updates).map(
+                              ([key, val]: [string, any]) => (
+                                <div
+                                  key={key}
+                                  className="flex items-center gap-2 text-[10px]"
+                                >
+                                  <span className="font-bold text-slate-400 lowercase">
+                                    {key}:
+                                  </span>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="font-bold text-slate-700">
+                                      {String(val).length > 30
+                                        ? String(val).substring(0, 30) + "..."
+                                        : String(val)}
+                                    </span>
+                                    <ArrowRight className="w-2.5 h-2.5 text-blue-400" />
+                                    <span className="px-1 bg-blue-50 text-blue-600 rounded-sm font-black">
+                                      Applied
+                                    </span>
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
+                              ),
+                            )}
                           </div>
                         )}
-                        
+
                         <div className="mt-2 flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <span className="text-[9px] font-bold text-slate-300 font-mono tracking-tighter">ID: {log.resourceId?.substring(0, 8)}...</span>
+                            <span className="text-[9px] font-bold text-slate-300 font-mono tracking-tighter">
+                              ID: {log.resourceId?.substring(0, 8)}...
+                            </span>
                             {log.ipAddress && (
                               <span className="text-[9px] font-bold text-slate-300 flex items-center gap-1 uppercase">
                                 <Settings className="w-2 h-2" />
@@ -247,7 +314,9 @@ export default function RecentActivityPanel({ companyId }: { companyId?: string 
 
       {/* Footer Info */}
       <div className="px-6 py-3 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between">
-        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">End of Stream • 20 Events</span>
+        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+          End of Stream • 20 Events
+        </span>
         <div className="flex gap-1.5">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
           <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>

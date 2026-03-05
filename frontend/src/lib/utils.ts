@@ -5,23 +5,39 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatDate(date: Date | string): string {
+export function formatDate(date: Date | string, options?: Intl.DateTimeFormatOptions): string {
   const d = new Date(date);
-  return d.toLocaleDateString('en-US', {
+  return d.toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'long',
     year: 'numeric',
-    month: 'short',
-    day: 'numeric'
+    timeZone: 'Asia/Kolkata',
+    ...options
   });
 }
 
-export function formatDateTime(date: Date | string): string {
+export function formatDateTime(date: Date | string, options?: Intl.DateTimeFormatOptions): string {
   const d = new Date(date);
-  return d.toLocaleString('en-US', {
+  return d.toLocaleString('en-IN', {
+    day: '2-digit',
+    month: 'long',
     year: 'numeric',
-    month: 'short',
-    day: 'numeric',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
+    hour12: true,
+    timeZone: 'Asia/Kolkata',
+    ...options
+  });
+}
+
+export function formatISTTime(date: Date | string, options?: Intl.DateTimeFormatOptions): string {
+  const d = new Date(date);
+  return d.toLocaleString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: 'Asia/Kolkata',
+    ...options
   });
 }
 

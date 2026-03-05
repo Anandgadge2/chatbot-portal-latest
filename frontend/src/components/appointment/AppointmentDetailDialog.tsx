@@ -1,14 +1,15 @@
-'use client';
+"use client";
 
-import { format, formatDistanceToNow } from 'date-fns';
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Appointment } from '@/lib/api/appointment';
-import { 
-  Calendar, 
-  User, 
-  RefreshCw, 
-  CheckCircle2, 
+import { formatDistanceToNow } from "date-fns";
+import { formatDate, formatDateTime } from "@/lib/utils";
+import React from "react";
+import { Button } from "@/components/ui/button";
+import { Appointment } from "@/lib/api/appointment";
+import {
+  Calendar,
+  User,
+  RefreshCw,
+  CheckCircle2,
   Clock,
   Building,
   AlertCircle,
@@ -17,8 +18,8 @@ import {
   FileText,
   Tag,
   X,
-  Target
-} from 'lucide-react';
+  Target,
+} from "lucide-react";
 
 interface AppointmentDetailDialogProps {
   isOpen: boolean;
@@ -26,65 +27,69 @@ interface AppointmentDetailDialogProps {
   onClose: () => void;
 }
 
-const AppointmentDetailDialog: React.FC<AppointmentDetailDialogProps> = ({ isOpen, appointment, onClose }) => {
+const AppointmentDetailDialog: React.FC<AppointmentDetailDialogProps> = ({
+  isOpen,
+  appointment,
+  onClose,
+}) => {
   if (!isOpen || !appointment) return null;
 
   const getStatusConfig = (status: string) => {
     switch (status) {
-      case 'COMPLETED':
-        return { 
-          bg: 'bg-emerald-100', 
-          text: 'text-emerald-700', 
-          border: 'border-emerald-200',
+      case "COMPLETED":
+        return {
+          bg: "bg-emerald-100",
+          text: "text-emerald-700",
+          border: "border-emerald-200",
           icon: <CheckCircle2 className="w-4 h-4" />,
-          label: 'Completed',
-          gradient: 'from-emerald-500 to-green-600'
+          label: "Completed",
+          gradient: "from-emerald-500 to-green-600",
         };
-      case 'CONFIRMED':
-        return { 
-          bg: 'bg-blue-100', 
-          text: 'text-blue-700', 
-          border: 'border-blue-200',
+      case "CONFIRMED":
+        return {
+          bg: "bg-blue-100",
+          text: "text-blue-700",
+          border: "border-blue-200",
           icon: <CheckCircle2 className="w-4 h-4" />,
-          label: 'Confirmed',
-          gradient: 'from-blue-500 to-indigo-600'
+          label: "Confirmed",
+          gradient: "from-blue-500 to-indigo-600",
         };
-      case 'SCHEDULED':
-        return { 
-          bg: 'bg-indigo-100', 
-          text: 'text-indigo-700', 
-          border: 'border-indigo-200',
+      case "SCHEDULED":
+        return {
+          bg: "bg-indigo-100",
+          text: "text-indigo-700",
+          border: "border-indigo-200",
           icon: <Calendar className="w-4 h-4" />,
-          label: 'Scheduled',
-          gradient: 'from-indigo-500 to-purple-600'
+          label: "Scheduled",
+          gradient: "from-indigo-500 to-purple-600",
         };
-      case 'REQUESTED':
-        return { 
-          bg: 'bg-amber-100', 
-          text: 'text-amber-700', 
-          border: 'border-amber-200',
+      case "REQUESTED":
+        return {
+          bg: "bg-amber-100",
+          text: "text-amber-700",
+          border: "border-amber-200",
           icon: <Clock className="w-4 h-4" />,
-          label: 'Requested',
-          gradient: 'from-amber-500 to-orange-600'
+          label: "Requested",
+          gradient: "from-amber-500 to-orange-600",
         };
-      case 'CANCELLED':
-      case 'NO_SHOW':
-        return { 
-          bg: 'bg-red-100', 
-          text: 'text-red-700', 
-          border: 'border-red-200',
+      case "CANCELLED":
+      case "NO_SHOW":
+        return {
+          bg: "bg-red-100",
+          text: "text-red-700",
+          border: "border-red-200",
           icon: <AlertCircle className="w-4 h-4" />,
-          label: status === 'CANCELLED' ? 'Cancelled' : 'No Show',
-          gradient: 'from-red-500 to-rose-600'
+          label: status === "CANCELLED" ? "Cancelled" : "No Show",
+          gradient: "from-red-500 to-rose-600",
         };
       default:
-        return { 
-          bg: 'bg-gray-100', 
-          text: 'text-gray-700', 
-          border: 'border-gray-200',
+        return {
+          bg: "bg-gray-100",
+          text: "text-gray-700",
+          border: "border-gray-200",
           icon: <AlertCircle className="w-4 h-4" />,
           label: status,
-          gradient: 'from-gray-500 to-slate-600'
+          gradient: "from-gray-500 to-slate-600",
         };
     }
   };
@@ -100,26 +105,32 @@ const AppointmentDetailDialog: React.FC<AppointmentDetailDialogProps> = ({ isOpe
         {/* Dark Slate Header — consistent with superadmin theme */}
         <div className="bg-slate-900 p-5 flex items-start justify-between gap-4 flex-shrink-0 border-b border-slate-800 relative overflow-hidden">
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-10 pointer-events-none"></div>
-          
+
           <div className="flex items-center gap-3 min-w-0 flex-1 relative z-10">
             <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30 flex-shrink-0">
               <Calendar className="w-5 h-5 text-indigo-400" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-base font-bold text-white uppercase tracking-tight">Appointment Details</h2>
+              <h2 className="text-base font-bold text-white uppercase tracking-tight">
+                Appointment Details
+              </h2>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
                 <span className="px-2 py-0.5 bg-white/10 rounded-md text-[10px] font-bold text-slate-300 tracking-widest uppercase">
                   {appointment.appointmentId}
                 </span>
                 <span className="text-slate-500 text-[10px]">•</span>
-                <span className="text-slate-400 text-[10px] font-medium">{timeAgo}</span>
+                <span className="text-slate-400 text-[10px] font-medium">
+                  {timeAgo}
+                </span>
               </div>
             </div>
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0 relative z-10">
             {/* Status Badge in header */}
-            <div className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold uppercase tracking-wider ${statusConfig.bg} ${statusConfig.border} ${statusConfig.text}`}>
+            <div
+              className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold uppercase tracking-wider ${statusConfig.bg} ${statusConfig.border} ${statusConfig.text}`}
+            >
               {statusConfig.icon}
               {statusConfig.label}
             </div>
@@ -141,9 +152,16 @@ const AppointmentDetailDialog: React.FC<AppointmentDetailDialogProps> = ({ isOpe
                 <div className="w-7 h-7 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
                   <User className="w-3.5 h-3.5 text-blue-600" />
                 </div>
-                <span className="text-[10px] font-bold text-blue-600 uppercase">Citizen</span>
+                <span className="text-[10px] font-bold text-blue-600 uppercase">
+                  Citizen
+                </span>
               </div>
-              <p className="text-sm font-bold text-gray-900 truncate" title={appointment.citizenName}>{appointment.citizenName}</p>
+              <p
+                className="text-sm font-bold text-gray-900 truncate"
+                title={appointment.citizenName}
+              >
+                {appointment.citizenName}
+              </p>
             </div>
 
             <div className="bg-gradient-to-br from-purple-50 to-fuchsia-50 rounded-xl p-3 border border-purple-100 group relative">
@@ -151,9 +169,14 @@ const AppointmentDetailDialog: React.FC<AppointmentDetailDialogProps> = ({ isOpe
                 <div className="w-7 h-7 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
                   <Target className="w-3.5 h-3.5 text-purple-600" />
                 </div>
-                <span className="text-[10px] font-bold text-purple-600 uppercase">Purpose</span>
+                <span className="text-[10px] font-bold text-purple-600 uppercase">
+                  Purpose
+                </span>
               </div>
-              <p className="text-sm font-bold text-gray-900 truncate" title={appointment.purpose}>
+              <p
+                className="text-sm font-bold text-gray-900 truncate"
+                title={appointment.purpose}
+              >
                 {appointment.purpose}
               </p>
               {/* Tooltip for full purpose */}
@@ -170,9 +193,13 @@ const AppointmentDetailDialog: React.FC<AppointmentDetailDialogProps> = ({ isOpe
                 <div className="w-7 h-7 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
                   <Calendar className="w-3.5 h-3.5 text-emerald-600" />
                 </div>
-                <span className="text-[10px] font-bold text-emerald-600 uppercase">Scheduled</span>
+                <span className="text-[10px] font-bold text-emerald-600 uppercase">
+                  Scheduled
+                </span>
               </div>
-              <p className="text-sm font-bold text-gray-900">{format(appointmentDate, 'dd MMM yyyy')}</p>
+              <p className="text-sm font-bold text-gray-900">
+                {formatDate(appointmentDate)}
+              </p>
             </div>
 
             <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-3 border border-amber-100">
@@ -180,9 +207,13 @@ const AppointmentDetailDialog: React.FC<AppointmentDetailDialogProps> = ({ isOpe
                 <div className="w-7 h-7 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
                   <Clock className="w-3.5 h-3.5 text-amber-600" />
                 </div>
-                <span className="text-[10px] font-bold text-amber-600 uppercase">Time</span>
+                <span className="text-[10px] font-bold text-amber-600 uppercase">
+                  Time
+                </span>
               </div>
-              <p className="text-sm font-bold text-gray-900">{appointment.appointmentTime}</p>
+              <p className="text-sm font-bold text-gray-900">
+                {appointment.appointmentTime}
+              </p>
             </div>
           </div>
           {/* Citizen Information */}
@@ -200,8 +231,12 @@ const AppointmentDetailDialog: React.FC<AppointmentDetailDialogProps> = ({ isOpe
                     <User className="w-5 h-5 text-blue-600" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Full Name</p>
-                    <p className="text-sm font-bold text-slate-800 truncate">{appointment.citizenName}</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+                      Full Name
+                    </p>
+                    <p className="text-sm font-bold text-slate-800 truncate">
+                      {appointment.citizenName}
+                    </p>
                   </div>
                 </div>
 
@@ -210,8 +245,12 @@ const AppointmentDetailDialog: React.FC<AppointmentDetailDialogProps> = ({ isOpe
                     <Phone className="w-5 h-5 text-green-600" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Phone Number</p>
-                    <p className="text-sm font-bold text-slate-800">{appointment.citizenPhone}</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+                      Phone Number
+                    </p>
+                    <p className="text-sm font-bold text-slate-800">
+                      {appointment.citizenPhone}
+                    </p>
                   </div>
                 </div>
 
@@ -221,8 +260,12 @@ const AppointmentDetailDialog: React.FC<AppointmentDetailDialogProps> = ({ isOpe
                       <MessageCircle className="w-5 h-5 text-emerald-600" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">WhatsApp</p>
-                      <p className="text-sm font-bold text-slate-800">{appointment.citizenWhatsApp}</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+                        WhatsApp
+                      </p>
+                      <p className="text-sm font-bold text-slate-800">
+                        {appointment.citizenWhatsApp}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -241,7 +284,7 @@ const AppointmentDetailDialog: React.FC<AppointmentDetailDialogProps> = ({ isOpe
             <div className="p-5">
               <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl p-4 border border-slate-100">
                 <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
-                  {appointment.purpose || 'No purpose provided'}
+                  {appointment.purpose || "No purpose provided"}
                 </p>
               </div>
             </div>
@@ -259,7 +302,7 @@ const AppointmentDetailDialog: React.FC<AppointmentDetailDialogProps> = ({ isOpe
               <div className="relative pl-8 space-y-6">
                 {/* Vertical Line */}
                 <div className="absolute left-[11px] top-3 bottom-3 w-0.5 bg-gradient-to-b from-emerald-400 via-blue-400 to-slate-200 rounded-full"></div>
-                
+
                 {/* Creation Entry */}
                 <div className="relative">
                   <div className="absolute -left-8 top-0 w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-200">
@@ -267,104 +310,149 @@ const AppointmentDetailDialog: React.FC<AppointmentDetailDialogProps> = ({ isOpe
                   </div>
                   <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl p-4 border border-emerald-100 ml-2">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-emerald-700 uppercase tracking-wide">Appointment Booked</span>
+                      <span className="text-xs font-bold text-emerald-700 uppercase tracking-wide">
+                        Appointment Booked
+                      </span>
                       <span className="text-[10px] text-emerald-600 font-medium bg-emerald-100 px-2 py-0.5 rounded-full">
-                        {format(new Date(appointment.createdAt), 'MMM dd, yyyy • hh:mm a')}
+                        {formatDateTime(appointment.createdAt)}
                       </span>
                     </div>
-                    <p className="text-sm text-slate-600">Appointment successfully scheduled via WhatsApp Chatbot</p>
+                    <p className="text-sm text-slate-600">
+                      Appointment successfully scheduled via WhatsApp Chatbot
+                    </p>
                   </div>
                 </div>
 
-              {/* Dynamic Timeline Entries */}
-              {appointment.timeline && appointment.timeline.length > 0 ? (
-                appointment.timeline.map((event, index) => {
-                  if (event.action === 'CREATED') return null;
+                {/* Dynamic Timeline Entries */}
+                {appointment.timeline && appointment.timeline.length > 0
+                  ? appointment.timeline.map((event, index) => {
+                      if (event.action === "CREATED") return null;
 
-                  let iconBg = 'bg-blue-500';
-                  let cardBg = 'from-blue-50 to-indigo-50';
-                  let borderColor = 'border-blue-100';
-                  let textColor = 'text-blue-700';
-                  let icon = <RefreshCw className="w-3 h-3 text-white" />;
-                  let title = 'Activity Logged';
-                  let description = '';
+                      let iconBg = "bg-blue-500";
+                      let cardBg = "from-blue-50 to-indigo-50";
+                      let borderColor = "border-blue-100";
+                      let textColor = "text-blue-700";
+                      let icon = <RefreshCw className="w-3 h-3 text-white" />;
+                      let title = "Activity Logged";
+                      let description = "";
 
-                  switch (event.action) {
-                    case 'ASSIGNED':
-                      iconBg = 'bg-orange-500';
-                      cardBg = 'from-orange-50 to-amber-50';
-                      borderColor = 'border-orange-100';
-                      textColor = 'text-orange-700';
-                      icon = <User className="w-3 h-3 text-white" />;
-                      title = 'Officer Assigned';
-                      description = `Assigned to ${event.details?.toUserName || 'an officer'}`;
-                      break;
-                    case 'STATUS_UPDATED':
-                      const isSuccess = event.details?.toStatus === 'COMPLETED' || event.details?.toStatus === 'CONFIRMED' || event.details?.toStatus === 'SCHEDULED';
-                      const isFailure = event.details?.toStatus === 'CANCELLED' || event.details?.toStatus === 'NO_SHOW';
-                      iconBg = isSuccess ? 'bg-emerald-500' : isFailure ? 'bg-red-500' : 'bg-blue-500';
-                      cardBg = isSuccess ? 'from-emerald-50 to-green-50' : isFailure ? 'from-red-50 to-rose-50' : 'from-blue-50 to-indigo-50';
-                      borderColor = isSuccess ? 'border-emerald-100' : isFailure ? 'border-red-100' : 'border-blue-100';
-                      textColor = isSuccess ? 'text-emerald-700' : isFailure ? 'text-red-700' : 'text-blue-700';
-                      icon = isSuccess ? <CheckCircle2 className="w-3 h-3 text-white" /> : 
-                             isFailure ? <AlertCircle className="w-3 h-3 text-white" /> : 
-                             <RefreshCw className="w-3 h-3 text-white" />;
-                      title = `Status: ${event.details?.toStatus?.replace('_', ' ')}`;
-                      description = event.details?.remarks || 'Status updated by administration';
-                      break;
-                    case 'DEPARTMENT_TRANSFER':
-                      iconBg = 'bg-purple-500';
-                      cardBg = 'from-purple-50 to-fuchsia-50';
-                      borderColor = 'border-purple-100';
-                      textColor = 'text-purple-700';
-                      icon = <Building className="w-3 h-3 text-white" />;
-                      title = 'Department Transferred';
-                      description = 'Transferred to another department for resolution';
-                      break;
-                  }
+                      switch (event.action) {
+                        case "ASSIGNED":
+                          iconBg = "bg-orange-500";
+                          cardBg = "from-orange-50 to-amber-50";
+                          borderColor = "border-orange-100";
+                          textColor = "text-orange-700";
+                          icon = <User className="w-3 h-3 text-white" />;
+                          title = "Officer Assigned";
+                          description = `Assigned to ${event.details?.toUserName || "an officer"}`;
+                          break;
+                        case "STATUS_UPDATED":
+                          const isSuccess =
+                            event.details?.toStatus === "COMPLETED" ||
+                            event.details?.toStatus === "CONFIRMED" ||
+                            event.details?.toStatus === "SCHEDULED";
+                          const isFailure =
+                            event.details?.toStatus === "CANCELLED" ||
+                            event.details?.toStatus === "NO_SHOW";
+                          iconBg = isSuccess
+                            ? "bg-emerald-500"
+                            : isFailure
+                              ? "bg-red-500"
+                              : "bg-blue-500";
+                          cardBg = isSuccess
+                            ? "from-emerald-50 to-green-50"
+                            : isFailure
+                              ? "from-red-50 to-rose-50"
+                              : "from-blue-50 to-indigo-50";
+                          borderColor = isSuccess
+                            ? "border-emerald-100"
+                            : isFailure
+                              ? "border-red-100"
+                              : "border-blue-100";
+                          textColor = isSuccess
+                            ? "text-emerald-700"
+                            : isFailure
+                              ? "text-red-700"
+                              : "text-blue-700";
+                          icon = isSuccess ? (
+                            <CheckCircle2 className="w-3 h-3 text-white" />
+                          ) : isFailure ? (
+                            <AlertCircle className="w-3 h-3 text-white" />
+                          ) : (
+                            <RefreshCw className="w-3 h-3 text-white" />
+                          );
+                          title = `Status: ${event.details?.toStatus?.replace("_", " ")}`;
+                          description =
+                            event.details?.remarks ||
+                            "Status updated by administration";
+                          break;
+                        case "DEPARTMENT_TRANSFER":
+                          iconBg = "bg-purple-500";
+                          cardBg = "from-purple-50 to-fuchsia-50";
+                          borderColor = "border-purple-100";
+                          textColor = "text-purple-700";
+                          icon = <Building className="w-3 h-3 text-white" />;
+                          title = "Department Transferred";
+                          description =
+                            "Transferred to another department for resolution";
+                          break;
+                      }
 
-                  const performer = typeof event.performedBy === 'object' 
-                    ? `${event.performedBy.firstName} ${event.performedBy.lastName}` 
-                    : 'System';
+                      const performer =
+                        typeof event.performedBy === "object"
+                          ? `${event.performedBy.firstName} ${event.performedBy.lastName}`
+                          : "System";
 
-                  return (
-                    <div key={index} className="relative">
-                      <div className={`absolute -left-8 top-0 w-6 h-6 rounded-full ${iconBg} flex items-center justify-center shadow-lg`}>
-                        {icon}
-                      </div>
-                      <div className={`bg-gradient-to-r ${cardBg} rounded-xl p-4 border ${borderColor} ml-2`}>
-                        <div className="flex items-center justify-between mb-2">
-                          <span className={`text-xs font-bold ${textColor} uppercase tracking-wide`}>{title}</span>
-                          <span className="text-[10px] text-slate-500 font-medium bg-white/50 px-2 py-0.5 rounded-full">
-                            {format(new Date(event.timestamp), 'MMM dd, yyyy • hh:mm a')}
-                          </span>
+                      return (
+                        <div key={index} className="relative">
+                          <div
+                            className={`absolute -left-8 top-0 w-6 h-6 rounded-full ${iconBg} flex items-center justify-center shadow-lg`}
+                          >
+                            {icon}
+                          </div>
+                          <div
+                            className={`bg-gradient-to-r ${cardBg} rounded-xl p-4 border ${borderColor} ml-2`}
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <span
+                                className={`text-xs font-bold ${textColor} uppercase tracking-wide`}
+                              >
+                                {title}
+                              </span>
+                              <span className="text-[10px] text-slate-500 font-medium bg-white/50 px-2 py-0.5 rounded-full">
+                                {formatDateTime(event.timestamp)}
+                              </span>
+                            </div>
+                            <p className="text-sm text-slate-600">
+                              {description}
+                            </p>
+                            <div className="mt-2 flex items-center gap-2">
+                              <span className="text-[10px] text-slate-400">
+                                By {performer}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                        <p className="text-sm text-slate-600">{description}</p>
-                        <div className="mt-2 flex items-center gap-2">
-                          <span className="text-[10px] text-slate-400">By {performer}</span>
+                      );
+                    })
+                  : // Fallback (for older records)
+                    (appointment as any).completedAt && (
+                      <div className="relative">
+                        <div className="absolute -left-8 top-0 w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-200">
+                          <CheckCircle2 className="w-3 h-3 text-white" />
+                        </div>
+                        <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl p-4 border border-emerald-100 ml-2">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-bold text-emerald-700 uppercase tracking-wide">
+                              Completed
+                            </span>
+                            <span className="text-[10px] text-emerald-600 font-medium bg-emerald-100 px-2 py-0.5 rounded-full">
+                              {formatDateTime((appointment as any).completedAt)}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })
-              ) : (
-                // Fallback (for older records)
-                (appointment as any).completedAt && (
-                   <div className="relative">
-                    <div className="absolute -left-8 top-0 w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-200">
-                      <CheckCircle2 className="w-3 h-3 text-white" />
-                    </div>
-                    <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl p-4 border border-emerald-100 ml-2">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold text-emerald-700 uppercase tracking-wide">Completed</span>
-                        <span className="text-[10px] text-emerald-600 font-medium bg-emerald-100 px-2 py-0.5 rounded-full">
-                          {format(new Date((appointment as any).completedAt), 'MMM dd, yyyy • hh:mm a')}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )
-              )}
+                    )}
               </div>
             </div>
           </div>
@@ -372,7 +460,7 @@ const AppointmentDetailDialog: React.FC<AppointmentDetailDialogProps> = ({ isOpe
 
         {/* Footer */}
         <div className="p-5 border-t border-gray-200 flex justify-end bg-white flex-shrink-0">
-          <Button 
+          <Button
             onClick={onClose}
             className="px-6 py-2 bg-slate-700 hover:bg-slate-800 text-white font-semibold rounded-lg transition-colors"
           >

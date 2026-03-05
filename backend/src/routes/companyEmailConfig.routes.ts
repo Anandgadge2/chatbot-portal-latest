@@ -354,7 +354,7 @@ router.post('/company/:companyId/send-test', authenticate, requireSuperAdmin, as
           <tr><td style="padding: 6px 12px; background: #f5f7fa; font-weight: bold;">From Name</td><td style="padding: 6px 12px;">${config.fromName}</td></tr>
         </table>
         <p style="color: #27ae60;">If you received this email, your SMTP configuration is working correctly and emails will be delivered to department admins when grievances are submitted.</p>
-        <p style="color: #7f8c8d; font-size: 12px;">Sent at: ${new Date().toLocaleString('en-IN')}</p>
+        <p style="color: #7f8c8d; font-size: 12px;">Sent at: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
       </body></html>
     `;
 

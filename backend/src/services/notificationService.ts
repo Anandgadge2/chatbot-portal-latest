@@ -114,7 +114,8 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
   const createdAt = data.createdAt || new Date();
   const formattedDate = new Date(createdAt).toLocaleString('en-IN', {
     day: '2-digit', month: 'long', year: 'numeric',
-    hour: '2-digit', minute: '2-digit', hour12: true
+    hour: '2-digit', minute: '2-digit', hour12: true,
+    timeZone: 'Asia/Kolkata'
   });
 
   const resolvedAt = data.resolvedAt || (data.action === 'resolved' ? new Date() : null);
@@ -124,7 +125,8 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
   if (resolvedAt) {
     formattedResolvedDate = new Date(resolvedAt).toLocaleString('en-IN', {
       day: '2-digit', month: 'long', year: 'numeric',
-      hour: '2-digit', minute: '2-digit', hour12: true
+      hour: '2-digit', minute: '2-digit', hour12: true,
+      timeZone: 'Asia/Kolkata'
     });
     if (!resolutionTimeText) {
       resolutionTimeText = computeResolutionTime(data.createdAt, resolvedAt);
@@ -752,7 +754,8 @@ export async function notifyCitizenOnAppointmentStatusChange(data: {
 
     const appointmentDate = new Date(data.appointmentDate);
     const dateDisplay = appointmentDate.toLocaleDateString('en-IN', {
-      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+      timeZone: 'Asia/Kolkata'
     });
 
     const formatTime12Hr = (time: string) => {

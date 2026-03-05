@@ -95,7 +95,7 @@ export class ActionService {
       // Update session with results for placeholders
       session.data.grievanceId = grievance.grievanceId;
       session.data.id = grievance.grievanceId;
-      session.data.date = new Date(grievance.createdAt).toLocaleDateString('en-IN');
+      session.data.date = new Date(grievance.createdAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
       
       const dept = departmentId ? await Department.findById(departmentId) : null;
       const subDept = session.data.subDepartmentId ? await Department.findById(session.data.subDepartmentId) : null;

@@ -10,7 +10,8 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Grievance } from "@/lib/api/grievance";
-import { format, formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
+import { formatDateTime, formatDate, formatISTTime } from "@/lib/utils";
 import {
   Calendar,
   User,
@@ -263,7 +264,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                 </span>
               </div>
               <p className="text-sm font-bold text-gray-900">
-                {format(createdDate, "dd MMM yyyy")}
+                {formatDate(createdDate)}
               </p>
             </div>
 
@@ -277,7 +278,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                 </span>
               </div>
               <p className="text-sm font-bold text-gray-900">
-                {format(createdDate, "hh:mm a")}
+                {formatISTTime(createdDate)}
               </p>
             </div>
           </div>
@@ -577,7 +578,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                         Grievance Registered
                       </span>
                       <span className="text-[10px] text-emerald-600 font-medium bg-emerald-100 px-2 py-0.5 rounded-full">
-                        {format(createdDate, "MMM dd, yyyy • hh:mm a")}
+                        {formatDateTime(createdDate)}
                       </span>
                     </div>
                     <p className="text-sm text-slate-600">
@@ -670,10 +671,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                                 {title}
                               </span>
                               <span className="text-[10px] text-slate-500 font-medium bg-white/50 px-2 py-0.5 rounded-full">
-                                {format(
-                                  new Date(event.timestamp),
-                                  "MMM dd, yyyy • hh:mm a",
-                                )}
+                                {formatDateTime(event.timestamp)}
                               </span>
                             </div>
                             <p className="text-sm text-slate-600">
@@ -702,10 +700,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                                 Status: {history.status}
                               </span>
                               <span className="text-[10px] text-slate-500 font-medium">
-                                {format(
-                                  new Date(history.changedAt),
-                                  "MMM dd, yyyy • hh:mm a",
-                                )}
+                                {formatDateTime(history.changedAt)}
                               </span>
                             </div>
                             {history.remarks && (

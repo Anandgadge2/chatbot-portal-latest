@@ -197,7 +197,8 @@ function formatDateTime(date: Date | string | undefined): string {
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-    hour12: true
+    hour12: true,
+    timeZone: 'Asia/Kolkata'
   });
 }
 
@@ -210,7 +211,8 @@ function formatDate(date: Date | string | undefined): string {
   return d.toLocaleDateString('en-IN', {
     day: '2-digit',
     month: 'long',
-    year: 'numeric'
+    year: 'numeric',
+    timeZone: 'Asia/Kolkata'
   });
 }
 

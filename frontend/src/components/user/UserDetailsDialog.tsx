@@ -1,8 +1,20 @@
-'use client';
+"use client";
 
-import { User } from '@/lib/api/user';
-import { X, User as UserIcon, Mail, Phone, Shield, Building, Calendar, CheckCircle, XCircle, Clock } from 'lucide-react';
-import { format, formatDistanceToNow } from 'date-fns';
+import { User } from "@/lib/api/user";
+import {
+  X,
+  User as UserIcon,
+  Mail,
+  Phone,
+  Shield,
+  Building,
+  Calendar,
+  CheckCircle,
+  XCircle,
+  Clock,
+} from "lucide-react";
+import { formatDate, formatDateTime } from "@/lib/utils";
+import { formatDistanceToNow } from "date-fns";
 
 interface UserDetailsDialogProps {
   isOpen: boolean;
@@ -13,29 +25,31 @@ interface UserDetailsDialogProps {
 export default function UserDetailsDialog({
   isOpen,
   onClose,
-  user
+  user,
 }: UserDetailsDialogProps) {
   if (!isOpen || !user) return null;
 
-  const createdDate = new Date(user?.createdAt || '');
-  const timeAgo = formatDistanceToNow(createdDate, { addSuffix: true });
-  const updatedDate = user?.updatedAt ? new Date(user.updatedAt) : null;
+  const createdDate = user?.createdAt || "";
+  const timeAgo = formatDistanceToNow(new Date(createdDate), {
+    addSuffix: true,
+  });
+  const updatedDate = user?.updatedAt || null;
 
   // Get role color
   const getRoleColor = (role: string) => {
     switch (role) {
-      case 'SUPER_ADMIN':
-        return 'from-red-500 to-rose-600';
-      case 'COMPANY_ADMIN':
-        return 'from-blue-500 to-indigo-600';
-      case 'DEPARTMENT_ADMIN':
-        return 'from-purple-500 to-fuchsia-600';
-      case 'OPERATOR':
-        return 'from-emerald-500 to-teal-600';
-      case 'ANALYTICS_VIEWER':
-        return 'from-amber-500 to-orange-600';
+      case "SUPER_ADMIN":
+        return "from-red-500 to-rose-600";
+      case "COMPANY_ADMIN":
+        return "from-blue-500 to-indigo-600";
+      case "DEPARTMENT_ADMIN":
+        return "from-purple-500 to-fuchsia-600";
+      case "OPERATOR":
+        return "from-emerald-500 to-teal-600";
+      case "ANALYTICS_VIEWER":
+        return "from-amber-500 to-orange-600";
       default:
-        return 'from-gray-500 to-slate-600';
+        return "from-gray-500 to-slate-600";
     }
   };
 
@@ -48,9 +62,16 @@ export default function UserDetailsDialog({
         <div className="bg-slate-900 p-5 relative overflow-hidden flex-shrink-0 border-b border-slate-800">
           {/* Subtle Background Pattern */}
           <div className="absolute inset-0 bg-white bg-opacity-5">
-             <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
+            <div
+              className="absolute inset-0 opacity-[0.05]"
+              style={{
+                backgroundImage:
+                  "radial-gradient(#ffffff 1px, transparent 1px)",
+                backgroundSize: "24px 24px",
+              }}
+            ></div>
           </div>
-          
+
           <div className="relative">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -58,17 +79,24 @@ export default function UserDetailsDialog({
                   <UserIcon className="w-6 h-6 text-white" />
                 </div>
                 <div className="min-w-0">
-                  <h2 className="text-lg font-bold text-white uppercase tracking-tight">User Profile Details</h2>
+                  <h2 className="text-lg font-bold text-white uppercase tracking-tight">
+                    User Profile Details
+                  </h2>
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
                     <span className="px-2 py-0.5 bg-indigo-500 bg-opacity-20 rounded-md text-[10px] font-black text-indigo-300 border border-indigo-500 border-opacity-20 uppercase tracking-widest">
-                      {user.userId || `USER${user._id.substring(0, 8).toUpperCase()}`}
+                      {user.userId ||
+                        `USER${user._id.substring(0, 8).toUpperCase()}`}
                     </span>
-                    <span className="text-slate-400 text-xs font-bold uppercase tracking-tighter">•</span>
-                    <span className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">{timeAgo}</span>
+                    <span className="text-slate-400 text-xs font-bold uppercase tracking-tighter">
+                      •
+                    </span>
+                    <span className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">
+                      {timeAgo}
+                    </span>
                   </div>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={onClose}
                 className="w-9 h-9 rounded-lg bg-white bg-opacity-10 hover:bg-opacity-20 flex items-center justify-center transition-all border border-white border-opacity-10 backdrop-blur-sm flex-shrink-0"
               >
@@ -87,9 +115,14 @@ export default function UserDetailsDialog({
                 <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
                   <UserIcon className="w-4 h-4 text-blue-600" />
                 </div>
-                <span className="text-xs font-bold text-blue-600 uppercase">Name</span>
+                <span className="text-xs font-bold text-blue-600 uppercase">
+                  Name
+                </span>
               </div>
-              <p className="text-base font-bold text-gray-900 truncate" title={`${user.firstName} ${user.lastName}`}>
+              <p
+                className="text-base font-bold text-gray-900 truncate"
+                title={`${user.firstName} ${user.lastName}`}
+              >
                 {user.firstName} {user.lastName}
               </p>
             </div>
@@ -99,13 +132,22 @@ export default function UserDetailsDialog({
                 <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
                   <Shield className="w-4 h-4 text-purple-600" />
                 </div>
-                <span className="text-xs font-bold text-purple-600 uppercase">Role</span>
+                <span className="text-xs font-bold text-purple-600 uppercase">
+                  Role
+                </span>
               </div>
-              <p className="text-base font-bold text-gray-900 truncate" title={user.role}>
-                {user.role.replace('_', ' ')}
+              <p
+                className="text-base font-bold text-gray-900 truncate"
+                title={user.role}
+              >
+                {user.role.replace("_", " ")}
                 {user.customRoleId && (
                   <span className="ml-1 text-[10px] text-purple-600 block">
-                    (+ Custom: {typeof user.customRoleId === 'object' ? user.customRoleId.name : 'Selected'})
+                    (+ Custom:{" "}
+                    {typeof user.customRoleId === "object"
+                      ? user.customRoleId.name
+                      : "Selected"}
+                    )
                   </span>
                 )}
               </p>
@@ -116,10 +158,12 @@ export default function UserDetailsDialog({
                 <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
                   <Calendar className="w-4 h-4 text-green-600" />
                 </div>
-                <span className="text-xs font-bold text-green-600 uppercase">Created</span>
+                <span className="text-xs font-bold text-green-600 uppercase">
+                  Created
+                </span>
               </div>
               <p className="text-base font-bold text-gray-900">
-                {format(createdDate, 'dd MMM yyyy')}
+                {formatDate(createdDate)}
               </p>
             </div>
 
@@ -132,10 +176,12 @@ export default function UserDetailsDialog({
                     <XCircle className="w-4 h-4 text-amber-600" />
                   )}
                 </div>
-                <span className="text-xs font-bold text-amber-600 uppercase">Status</span>
+                <span className="text-xs font-bold text-amber-600 uppercase">
+                  Status
+                </span>
               </div>
               <p className="text-base font-bold text-gray-900">
-                {user.isActive ? 'Active' : 'Inactive'}
+                {user.isActive ? "Active" : "Inactive"}
               </p>
             </div>
           </div>
@@ -152,23 +198,33 @@ export default function UserDetailsDialog({
               <div className="bg-white rounded-lg p-4 border border-slate-200">
                 <div className="flex items-center gap-2 mb-2">
                   <UserIcon className="w-4 h-4 text-slate-500" />
-                  <span className="text-xs font-semibold text-slate-500 uppercase">Full Name</span>
+                  <span className="text-xs font-semibold text-slate-500 uppercase">
+                    Full Name
+                  </span>
                 </div>
-                <p className="text-sm font-bold text-gray-900">{user.firstName} {user.lastName}</p>
+                <p className="text-sm font-bold text-gray-900">
+                  {user.firstName} {user.lastName}
+                </p>
               </div>
 
               <div className="bg-white rounded-lg p-4 border border-slate-200">
                 <div className="flex items-center gap-2 mb-2">
                   <Mail className="w-4 h-4 text-slate-500" />
-                  <span className="text-xs font-semibold text-slate-500 uppercase">Email Address</span>
+                  <span className="text-xs font-semibold text-slate-500 uppercase">
+                    Email Address
+                  </span>
                 </div>
-                <p className="text-sm font-bold text-gray-900 break-all">{user.email}</p>
+                <p className="text-sm font-bold text-gray-900 break-all">
+                  {user.email}
+                </p>
               </div>
 
               <div className="bg-white rounded-lg p-4 border border-slate-200">
                 <div className="flex items-center gap-2 mb-2">
                   <Phone className="w-4 h-4 text-slate-500" />
-                  <span className="text-xs font-semibold text-slate-500 uppercase">Phone Number</span>
+                  <span className="text-xs font-semibold text-slate-500 uppercase">
+                    Phone Number
+                  </span>
                 </div>
                 <p className="text-sm font-bold text-gray-900">{user.phone}</p>
               </div>
@@ -176,19 +232,27 @@ export default function UserDetailsDialog({
               <div className="bg-white rounded-lg p-4 border border-slate-200">
                 <div className="flex items-center gap-2 mb-2">
                   <Shield className="w-4 h-4 text-slate-500" />
-                  <span className="text-xs font-semibold text-slate-500 uppercase">Role</span>
+                  <span className="text-xs font-semibold text-slate-500 uppercase">
+                    Role
+                  </span>
                 </div>
-                <p className="text-sm font-bold text-gray-900">{user.role.replace('_', ' ')}</p>
+                <p className="text-sm font-bold text-gray-900">
+                  {user.role.replace("_", " ")}
+                </p>
               </div>
 
               {user.customRoleId && (
                 <div className="bg-white rounded-lg p-4 border border-purple-200">
                   <div className="flex items-center gap-2 mb-2">
                     <Shield className="w-4 h-4 text-purple-500" />
-                    <span className="text-xs font-semibold text-purple-500 uppercase">Custom Role</span>
+                    <span className="text-xs font-semibold text-purple-500 uppercase">
+                      Custom Role
+                    </span>
                   </div>
                   <p className="text-sm font-bold text-gray-900">
-                    {typeof user.customRoleId === 'object' ? user.customRoleId.name : 'Unknown Custom Role'}
+                    {typeof user.customRoleId === "object"
+                      ? user.customRoleId.name
+                      : "Unknown Custom Role"}
                   </p>
                 </div>
               )}
@@ -197,12 +261,15 @@ export default function UserDetailsDialog({
                 <div className="bg-white rounded-lg p-4 border border-slate-200">
                   <div className="flex items-center gap-2 mb-2">
                     <Building className="w-4 h-4 text-slate-500" />
-                    <span className="text-xs font-semibold text-slate-500 uppercase">Department</span>
+                    <span className="text-xs font-semibold text-slate-500 uppercase">
+                      Department
+                    </span>
                   </div>
                   <p className="text-sm font-bold text-gray-900">
-                    {typeof user.departmentId === 'object' && user.departmentId !== null
+                    {typeof user.departmentId === "object" &&
+                    user.departmentId !== null
                       ? (user.departmentId as any).name
-                      : 'N/A'}
+                      : "N/A"}
                   </p>
                 </div>
               )}
@@ -210,10 +277,12 @@ export default function UserDetailsDialog({
               <div className="bg-white rounded-lg p-4 border border-slate-200">
                 <div className="flex items-center gap-2 mb-2">
                   <Clock className="w-4 h-4 text-slate-500" />
-                  <span className="text-xs font-semibold text-slate-500 uppercase">Created At</span>
+                  <span className="text-xs font-semibold text-slate-500 uppercase">
+                    Created At
+                  </span>
                 </div>
                 <p className="text-sm font-bold text-gray-900">
-                  {format(createdDate, 'dd MMM yyyy, hh:mm a')}
+                  {formatDateTime(createdDate)}
                 </p>
               </div>
 
@@ -221,10 +290,12 @@ export default function UserDetailsDialog({
                 <div className="bg-white rounded-lg p-4 border border-slate-200">
                   <div className="flex items-center gap-2 mb-2">
                     <Clock className="w-4 h-4 text-slate-500" />
-                    <span className="text-xs font-semibold text-slate-500 uppercase">Last Updated</span>
+                    <span className="text-xs font-semibold text-slate-500 uppercase">
+                      Last Updated
+                    </span>
                   </div>
                   <p className="text-sm font-bold text-gray-900">
-                    {format(updatedDate, 'dd MMM yyyy, hh:mm a')}
+                    {formatDateTime(updatedDate)}
                   </p>
                 </div>
               )}
@@ -236,10 +307,14 @@ export default function UserDetailsDialog({
                   ) : (
                     <XCircle className="w-4 h-4 text-red-500" />
                   )}
-                  <span className="text-xs font-semibold text-slate-500 uppercase">Account Status</span>
+                  <span className="text-xs font-semibold text-slate-500 uppercase">
+                    Account Status
+                  </span>
                 </div>
-                <p className={`text-sm font-bold ${user.isActive ? 'text-emerald-600' : 'text-red-600'}`}>
-                  {user.isActive ? 'Active' : 'Inactive'}
+                <p
+                  className={`text-sm font-bold ${user.isActive ? "text-emerald-600" : "text-red-600"}`}
+                >
+                  {user.isActive ? "Active" : "Inactive"}
                 </p>
               </div>
             </div>

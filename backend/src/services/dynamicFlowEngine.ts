@@ -1616,7 +1616,7 @@ export class DynamicFlowEngine {
           // Enhanced tracking details
           this.session.data.date = new Date(
             grievance.createdAt,
-          ).toLocaleDateString();
+          ).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
           const dept = (grievance as any).departmentId;
           if (dept) {
             let localeDeptName = dept.name;
@@ -1660,7 +1660,7 @@ export class DynamicFlowEngine {
 
           this.session.data.date = new Date(
             appointment.createdAt,
-          ).toLocaleDateString();
+          ).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
           this.session.data.departmentName = "Administration";
           this.session.data.category =
             (appointment as any).purpose || "General";
@@ -1727,11 +1727,11 @@ export class DynamicFlowEngine {
     );
     message = message.replace(
       /\{date\}/g,
-      sessionData.date ?? new Date().toLocaleDateString("en-IN"),
+      sessionData.date ?? new Date().toLocaleDateString("en-IN", { timeZone: 'Asia/Kolkata' }),
     );
     message = message.replace(
       /\{time\}/g,
-      sessionData.time ?? new Date().toLocaleTimeString("en-IN"),
+      sessionData.time ?? new Date().toLocaleTimeString("en-IN", { timeZone: 'Asia/Kolkata' }),
     );
     message = message.replace(/\{companyName\}/g, this.company.name);
     // Extra aliases used in confirmation steps
