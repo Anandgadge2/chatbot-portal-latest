@@ -716,7 +716,7 @@ export default function CompanyDrillDown() {
               <Card onClick={() => setActiveTab('users')} className="group cursor-pointer hover:shadow-2xl transition-all duration-300 border-slate-200 hover:border-blue-300 bg-white overflow-hidden relative">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-bl-full group-hover:bg-blue-500/10 transition-colors"></div>
                 <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 relative">
-                  <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Personnel</CardTitle>
+                  <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Users</CardTitle>
                   <div className="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform"><Users className="w-4 h-4 text-blue-600" /></div>
                 </CardHeader>
                 <CardContent className="relative">
@@ -731,13 +731,13 @@ export default function CompanyDrillDown() {
               <Card onClick={() => setActiveTab('departments')} className="group cursor-pointer hover:shadow-2xl transition-all duration-300 border-slate-200 hover:border-indigo-300 bg-white overflow-hidden relative">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-bl-full group-hover:bg-indigo-500/10 transition-colors"></div>
                 <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 relative">
-                  <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Units</CardTitle>
+                  <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Departments</CardTitle>
                   <div className="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform"><Building className="w-4 h-4 text-indigo-600" /></div>
                 </CardHeader>
                 <CardContent className="relative">
                   <div className="text-3xl font-black text-slate-900 leading-none">{stats.totalDepartments}</div>
                   <p className="text-[10px] text-slate-400 font-bold mt-4 uppercase tracking-widest flex items-center gap-1.5">
-                    <Workflow className="w-3 h-3" /> Organizational Units
+                    <Workflow className="w-3 h-3" /> Organizational Departments
                   </p>
                 </CardContent>
               </Card>
@@ -745,7 +745,7 @@ export default function CompanyDrillDown() {
               <Card onClick={() => setActiveTab('grievances')} className="group cursor-pointer hover:shadow-2xl transition-all duration-300 border-slate-200 hover:border-amber-300 bg-white overflow-hidden relative">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-bl-full group-hover:bg-amber-500/10 transition-colors"></div>
                 <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 relative">
-                  <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-400">Public Issues</CardTitle>
+                  <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-400">Grievances</CardTitle>
                   <div className="w-9 h-9 bg-amber-50 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform"><FileText className="w-4 h-4 text-amber-600" /></div>
                 </CardHeader>
                 <CardContent className="relative">
@@ -766,7 +766,7 @@ export default function CompanyDrillDown() {
               <Card onClick={() => setActiveTab('appointments')} className="group cursor-pointer hover:shadow-2xl transition-all duration-300 border-slate-200 hover:border-emerald-300 bg-white overflow-hidden relative">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-bl-full group-hover:bg-emerald-500/10 transition-colors"></div>
                 <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 relative">
-                  <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-400">Booked Slots</CardTitle>
+                  <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-400">Appointments</CardTitle>
                   <div className="w-9 h-9 bg-emerald-50 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform"><Calendar className="w-4 h-4 text-emerald-600" /></div>
                 </CardHeader>
                 <CardContent className="relative">
