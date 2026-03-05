@@ -270,6 +270,7 @@ router.post(
             email: row.email,
             password: hashedPassword,
             phone: row.phone,
+            designation: row.designation,
             role: row.role,
             companyId,
             departmentId,
@@ -353,6 +354,7 @@ router.get('/template/:type', requirePermission(Permission.IMPORT_DATA), async (
             email: 'john.doe@example.com',
             password: 'TempPassword123!',
             phone: '+1234567890',
+            designation: 'Officer',
             role: 'OPERATOR',
             companyId: 'COMPANY_ID_HERE',
             departmentId: 'DEPARTMENT_ID_HERE'

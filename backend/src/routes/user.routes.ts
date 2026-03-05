@@ -135,7 +135,7 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
       });
     }
     
-    const { firstName, lastName, email, password, phone, role, departmentId, customRoleId } = req.body;
+    const { firstName, lastName, email, password, phone, role, departmentId, customRoleId, designation } = req.body;
     let companyId = req.body.companyId;
 
     // Validation
@@ -327,6 +327,7 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
         password,
         phone: normalizedPhone,
         role,
+        designation,
         customRoleId: customRoleId || undefined,
         companyId: finalCompanyId || undefined,
         departmentId: departmentId || undefined,
