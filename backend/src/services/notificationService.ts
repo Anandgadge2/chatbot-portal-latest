@@ -382,7 +382,7 @@ export async function notifyDepartmentAdminOnCreation(
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
           `📋 *NEW ${typeLabel} RECEIVED*\n\n` +
           `Respected ${fullData.recipientName},\n\n` +
-          `Grievance/Appointment Details:\n` +
+          `Appointment Details:\n` +
           `🎫 *Reference ID:* ${fullData.grievanceId || fullData.appointmentId}\n` +
           `👤 *Citizen Name:* ${fullData.citizenName}\n` +
           `📞 *Contact Number:* ${fullData.citizenPhone}\n` +
