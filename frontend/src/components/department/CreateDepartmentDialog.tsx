@@ -1,17 +1,23 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { departmentAPI, Department } from '@/lib/api/department';
-import { companyAPI, Company } from '@/lib/api/company';
-import { useAuth } from '@/contexts/AuthContext';
-import { Building, Shield, Languages } from 'lucide-react';
-import toast from 'react-hot-toast';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
+import React, { useState, useEffect, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { departmentAPI, Department } from "@/lib/api/department";
+import { companyAPI, Company } from "@/lib/api/company";
+import { useAuth } from "@/contexts/AuthContext";
+import { Building, Shield, Languages } from "lucide-react";
+import toast from "react-hot-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 
 interface CreateDepartmentDialogProps {
   isOpen: boolean;
@@ -20,22 +26,27 @@ interface CreateDepartmentDialogProps {
   editingDepartment?: Department | null;
 }
 
-const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({ isOpen, onClose, onDepartmentCreated, editingDepartment }) => {
+const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
+  isOpen,
+  onClose,
+  onDepartmentCreated,
+  editingDepartment,
+}) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [allDepartments, setAllDepartments] = useState<Department[]>([]);
   const [formData, setFormData] = useState({
-    name: '',
-    nameHi: '',
-    nameOr: '',
-    nameMr: '',
-    description: '',
-    descriptionHi: '',
-    descriptionOr: '',
-    descriptionMr: '',
-    companyId: '',
-    parentDepartmentId: ''
+    name: "",
+    nameHi: "",
+    nameOr: "",
+    nameMr: "",
+    description: "",
+    descriptionHi: "",
+    descriptionOr: "",
+    descriptionMr: "",
+    companyId: "",
+    parentDepartmentId: "",
   });
 
   useEffect(() => {
@@ -43,37 +54,43 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({ isOpen,
       fetchCompanies();
       if (editingDepartment) {
         setFormData({
-          name: editingDepartment.name || '',
-          nameHi: editingDepartment.nameHi || '',
-          nameOr: editingDepartment.nameOr || '',
-          nameMr: editingDepartment.nameMr || '',
-          description: editingDepartment.description || '',
-          descriptionHi: editingDepartment.descriptionHi || '',
-          descriptionOr: editingDepartment.descriptionOr || '',
-          descriptionMr: editingDepartment.descriptionMr || '',
-          companyId: (editingDepartment.companyId && typeof editingDepartment.companyId === 'object') 
-            ? (editingDepartment.companyId as any)._id 
-            : (editingDepartment.companyId as string) || '',
-          parentDepartmentId: (editingDepartment.parentDepartmentId && typeof editingDepartment.parentDepartmentId === 'object')
-            ? (editingDepartment.parentDepartmentId as any)._id
-            : (editingDepartment.parentDepartmentId as string) || ''
+          name: editingDepartment.name || "",
+          nameHi: editingDepartment.nameHi || "",
+          nameOr: editingDepartment.nameOr || "",
+          nameMr: editingDepartment.nameMr || "",
+          description: editingDepartment.description || "",
+          descriptionHi: editingDepartment.descriptionHi || "",
+          descriptionOr: editingDepartment.descriptionOr || "",
+          descriptionMr: editingDepartment.descriptionMr || "",
+          companyId:
+            editingDepartment.companyId &&
+            typeof editingDepartment.companyId === "object"
+              ? (editingDepartment.companyId as any)._id
+              : (editingDepartment.companyId as string) || "",
+          parentDepartmentId:
+            editingDepartment.parentDepartmentId &&
+            typeof editingDepartment.parentDepartmentId === "object"
+              ? (editingDepartment.parentDepartmentId as any)._id
+              : (editingDepartment.parentDepartmentId as string) || "",
         });
       } else {
-        const userCompanyId = user?.companyId 
-          ? (typeof user.companyId === 'object' ? user.companyId._id : user.companyId)
-          : '';
-        
+        const userCompanyId = user?.companyId
+          ? typeof user.companyId === "object"
+            ? user.companyId._id
+            : user.companyId
+          : "";
+
         setFormData({
-          name: '',
-          nameHi: '',
-          nameOr: '',
-          nameMr: '',
-          description: '',
-          descriptionHi: '',
-          descriptionOr: '',
-          descriptionMr: '',
+          name: "",
+          nameHi: "",
+          nameOr: "",
+          nameMr: "",
+          description: "",
+          descriptionHi: "",
+          descriptionOr: "",
+          descriptionMr: "",
           companyId: userCompanyId,
-          parentDepartmentId: ''
+          parentDepartmentId: "",
         });
       }
     }
@@ -81,15 +98,15 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({ isOpen,
 
   const fetchDepartments = useCallback(async () => {
     try {
-      const response = await departmentAPI.getAll({ 
+      const response = await departmentAPI.getAll({
         companyId: formData.companyId,
-        limit: 100 
+        limit: 100,
       });
       if (response.success) {
         setAllDepartments(response.data.departments);
       }
     } catch (error) {
-      console.error('Failed to fetch departments:', error);
+      console.error("Failed to fetch departments:", error);
     }
   }, [formData.companyId]);
 
@@ -100,7 +117,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({ isOpen,
         setCompanies(response.data.companies);
       }
     } catch (error) {
-      console.error('Failed to fetch companies:', error);
+      console.error("Failed to fetch companies:", error);
     }
   };
 
@@ -112,13 +129,13 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({ isOpen,
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.name?.trim()) {
-      toast.error('Please enter department name');
+      toast.error("Please enter department name");
       return;
     }
     if (!formData.companyId) {
-      toast.error('Please select a company');
+      toast.error("Please select a company");
       return;
     }
 
@@ -127,55 +144,67 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({ isOpen,
       let response;
       const dataToSubmit = {
         ...formData,
-        parentDepartmentId: formData.parentDepartmentId || undefined
+        parentDepartmentId: formData.parentDepartmentId || undefined,
       };
 
       if (editingDepartment) {
-        response = await departmentAPI.update(editingDepartment._id, dataToSubmit);
+        response = await departmentAPI.update(
+          editingDepartment._id,
+          dataToSubmit,
+        );
         if (response.success) {
-          toast.success('Department updated successfully!');
+          toast.success("Department updated successfully!");
         } else {
-          toast.error('Failed to update department');
+          toast.error("Failed to update department");
         }
       } else {
         response = await departmentAPI.create(dataToSubmit);
         if (response.success) {
-          toast.success('Department created successfully!');
+          toast.success("Department created successfully!");
         } else {
-          toast.error('Failed to create department');
+          toast.error("Failed to create department");
         }
       }
-      
+
       if (response.success) {
         setFormData({
-          name: '',
-          nameHi: '',
-          nameOr: '',
-          nameMr: '',
-          description: '',
-          descriptionHi: '',
-          descriptionOr: '',
-          descriptionMr: '',
-          companyId: '',
-          parentDepartmentId: ''
+          name: "",
+          nameHi: "",
+          nameOr: "",
+          nameMr: "",
+          description: "",
+          descriptionHi: "",
+          descriptionOr: "",
+          descriptionMr: "",
+          companyId: "",
+          parentDepartmentId: "",
         });
         onClose();
         onDepartmentCreated();
       }
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 
-        (editingDepartment ? 'Failed to update department' : 'Failed to create department');
+      const errorMessage =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        error.message ||
+        (editingDepartment
+          ? "Failed to update department"
+          : "Failed to create department");
       toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
+  ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
@@ -187,56 +216,74 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({ isOpen,
         <CardHeader className="bg-slate-900 px-6 py-4 border-b border-slate-800">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-md border border-white/20 shadow-inner">
-               <Shield className="w-5 h-5 text-indigo-400" />
+              <Shield className="w-5 h-5 text-indigo-400" />
             </div>
             <div>
-              <CardTitle className="text-base font-bold text-white uppercase tracking-tight">{editingDepartment ? 'Modify Department Node' : 'Initialize New Department'}</CardTitle>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Global Infrastructure Registry</p>
+              <CardTitle className="text-base font-bold text-white uppercase tracking-tight">
+                {editingDepartment
+                  ? "Modify Department Node"
+                  : "Initialize New Department"}
+              </CardTitle>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                Global Infrastructure Registry
+              </p>
             </div>
           </div>
         </CardHeader>
         <CardContent className="flex-1 overflow-y-auto p-6 custom-scrollbar">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Hidden company input for COMPANY_ADMIN */}
+            {user?.role === "COMPANY_ADMIN" && (
+              <input
+                type="hidden"
+                name="companyId"
+                value={formData.companyId}
+              />
+            )}
+
+            {/* Company selector - only shown to non-COMPANY_ADMIN roles */}
+            {user?.role !== "COMPANY_ADMIN" && (
               <div>
                 <Label htmlFor="companyId">Company *</Label>
-                {user?.role === 'COMPANY_ADMIN' && !editingDepartment ? (
-                  <>
-                    <Input
-                      id="companyId"
-                      type="text"
-                      value={companies.find(c => c._id === formData.companyId)?.name || 'Loading...'}
-                      disabled
-                      className="bg-gray-50 text-xs font-bold"
-                    />
-                    <input type="hidden" name="companyId" value={formData.companyId} />
-                  </>
-                ) : (
-                  <select
-                    id="companyId"
-                    name="companyId"
-                    value={formData.companyId}
-                    onChange={(e) => setFormData(prev => ({ ...prev, companyId: e.target.value, parentDepartmentId: '' }))}
-                    className="w-full h-10 px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
-                    required
-                  >
-                    <option value="">Select a company</option>
-                    {companies.map((company) => (
-                      <option key={company._id} value={company._id}>
-                        {company.name}
-                      </option>
-                    ))}
-                  </select>
-                )}
+                <select
+                  id="companyId"
+                  name="companyId"
+                  value={formData.companyId}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      companyId: e.target.value,
+                      parentDepartmentId: "",
+                    }))
+                  }
+                  className="w-full h-10 px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
+                  required
+                >
+                  <option value="">Select a company</option>
+                  {companies.map((company) => (
+                    <option key={company._id} value={company._id}>
+                      {company.name}
+                    </option>
+                  ))}
+                </select>
               </div>
+            )}
 
-              {formData.companyId && (() => {
-                const selectedCompany = companies.find(c => c._id === formData.companyId);
-                const hierarchicalEnabled = selectedCompany?.enabledModules?.includes('HIERARCHICAL_DEPARTMENTS');
-                
+            {formData.companyId &&
+              (() => {
+                const selectedCompany = companies.find(
+                  (c) => c._id === formData.companyId,
+                );
+                const hierarchicalEnabled =
+                  selectedCompany?.enabledModules?.includes(
+                    "HIERARCHICAL_DEPARTMENTS",
+                  );
+
                 return hierarchicalEnabled ? (
                   <div>
-                    <Label htmlFor="parentDepartmentId">Parent Department</Label>
+                    <Label htmlFor="parentDepartmentId">
+                      Parent Department
+                    </Label>
                     <select
                       id="parentDepartmentId"
                       name="parentDepartmentId"
@@ -246,47 +293,64 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({ isOpen,
                     >
                       <option value="">Top-level Department</option>
                       {allDepartments
-                        .filter(d => !editingDepartment || d._id !== editingDepartment._id)
-                        .filter(d => !d.parentDepartmentId)
+                        .filter(
+                          (d) =>
+                            !editingDepartment ||
+                            d._id !== editingDepartment._id,
+                        )
+                        .filter((d) => !d.parentDepartmentId)
                         .map((dept) => (
                           <option key={dept._id} value={dept._id}>
                             {dept.name}
                           </option>
                         ))}
                     </select>
-                    <p className="text-[9px] text-slate-500 mt-1 font-bold uppercase tracking-tighter">Hierarchy Level: Sub-Dept</p>
+                    <p className="text-[9px] text-slate-500 mt-1 font-bold uppercase tracking-tighter">
+                      Hierarchy Level: Sub-Dept
+                    </p>
                   </div>
-                ) : (
-                  <div className="flex items-center h-full pt-6">
-                    <p className="text-[10px] text-slate-400 font-bold uppercase italic">Standard flat structure enabled</p>
-                  </div>
-                );
+                ) : null;
               })()}
-            </div>
 
             <div className="pt-4 space-y-4">
               <div className="flex items-center gap-2 mb-2">
                 <Languages className="w-4 h-4 text-indigo-500" />
-                <span className="text-xs font-black text-slate-800 uppercase tracking-widest">Localized Metadata</span>
+                <span className="text-xs font-black text-slate-800 uppercase tracking-widest">
+                  Localized Metadata
+                </span>
               </div>
-              
+
               <Tabs defaultValue="en" className="w-full">
                 <TabsList className="grid w-full grid-cols-4 h-10 bg-slate-100 p-1 rounded-xl">
-                  {['en', 'hi', 'or', 'mr'].map((l) => (
-                    <TabsTrigger 
-                      key={l} 
+                  {["en", "hi", "or", "mr"].map((l) => (
+                    <TabsTrigger
+                      key={l}
                       value={l}
                       className="rounded-lg text-[10px] font-black uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm"
                     >
-                      {l === 'en' ? 'English' : l === 'hi' ? 'Hindi' : l === 'or' ? 'Odia' : 'Marathi'}
+                      {l === "en"
+                        ? "English"
+                        : l === "hi"
+                          ? "Hindi"
+                          : l === "or"
+                            ? "Odia"
+                            : "Marathi"}
                     </TabsTrigger>
                   ))}
                 </TabsList>
 
                 {/* English Content */}
-                <TabsContent value="en" className="space-y-4 mt-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <TabsContent
+                  value="en"
+                  className="space-y-4 mt-4 animate-in fade-in slide-in-from-bottom-2 duration-300"
+                >
                   <div className="space-y-2">
-                    <Label htmlFor="name" className="text-[10px] font-black uppercase tracking-widest text-slate-500">Primary Name (Required)</Label>
+                    <Label
+                      htmlFor="name"
+                      className="text-[10px] font-black uppercase tracking-widest text-slate-500"
+                    >
+                      Primary Name (Required)
+                    </Label>
                     <Input
                       id="name"
                       name="name"
@@ -299,7 +363,12 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({ isOpen,
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="description" className="text-[10px] font-black uppercase tracking-widest text-slate-500">Service Description</Label>
+                    <Label
+                      htmlFor="description"
+                      className="text-[10px] font-black uppercase tracking-widest text-slate-500"
+                    >
+                      Service Description
+                    </Label>
                     <Textarea
                       id="description"
                       name="description"
@@ -313,9 +382,17 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({ isOpen,
                 </TabsContent>
 
                 {/* Hindi Content */}
-                <TabsContent value="hi" className="space-y-4 mt-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <TabsContent
+                  value="hi"
+                  className="space-y-4 mt-4 animate-in fade-in slide-in-from-bottom-2 duration-300"
+                >
                   <div className="space-y-2">
-                    <Label htmlFor="nameHi" className="text-[10px] font-black uppercase tracking-widest text-slate-500">हिंदी नाम (Hindi Name)</Label>
+                    <Label
+                      htmlFor="nameHi"
+                      className="text-[10px] font-black uppercase tracking-widest text-slate-500"
+                    >
+                      हिंदी नाम (Hindi Name)
+                    </Label>
                     <Input
                       id="nameHi"
                       name="nameHi"
@@ -327,7 +404,12 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({ isOpen,
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="descriptionHi" className="text-[10px] font-black uppercase tracking-widest text-slate-500">हिंदी विवरण (Hindi Description)</Label>
+                    <Label
+                      htmlFor="descriptionHi"
+                      className="text-[10px] font-black uppercase tracking-widest text-slate-500"
+                    >
+                      हिंदी विवरण (Hindi Description)
+                    </Label>
                     <Textarea
                       id="descriptionHi"
                       name="descriptionHi"
@@ -341,9 +423,17 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({ isOpen,
                 </TabsContent>
 
                 {/* Odia Content */}
-                <TabsContent value="or" className="space-y-4 mt-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <TabsContent
+                  value="or"
+                  className="space-y-4 mt-4 animate-in fade-in slide-in-from-bottom-2 duration-300"
+                >
                   <div className="space-y-2">
-                    <Label htmlFor="nameOr" className="text-[10px] font-black uppercase tracking-widest text-slate-500">ଓଡ଼ିଆ ନାମ (Odia Name)</Label>
+                    <Label
+                      htmlFor="nameOr"
+                      className="text-[10px] font-black uppercase tracking-widest text-slate-500"
+                    >
+                      ଓଡ଼ିଆ ନାମ (Odia Name)
+                    </Label>
                     <Input
                       id="nameOr"
                       name="nameOr"
@@ -355,7 +445,12 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({ isOpen,
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="descriptionOr" className="text-[10px] font-black uppercase tracking-widest text-slate-500">ଓଡ଼ିଆ ବିବରଣୀ (Odia Description)</Label>
+                    <Label
+                      htmlFor="descriptionOr"
+                      className="text-[10px] font-black uppercase tracking-widest text-slate-500"
+                    >
+                      ଓଡ଼ିଆ ବିବରଣୀ (Odia Description)
+                    </Label>
                     <Textarea
                       id="descriptionOr"
                       name="descriptionOr"
@@ -369,9 +464,17 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({ isOpen,
                 </TabsContent>
 
                 {/* Marathi Content */}
-                <TabsContent value="mr" className="space-y-4 mt-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <TabsContent
+                  value="mr"
+                  className="space-y-4 mt-4 animate-in fade-in slide-in-from-bottom-2 duration-300"
+                >
                   <div className="space-y-2">
-                    <Label htmlFor="nameMr" className="text-[10px] font-black uppercase tracking-widest text-slate-500">मराठी नाव (Marathi Name)</Label>
+                    <Label
+                      htmlFor="nameMr"
+                      className="text-[10px] font-black uppercase tracking-widest text-slate-500"
+                    >
+                      मराठी नाव (Marathi Name)
+                    </Label>
                     <Input
                       id="nameMr"
                       name="nameMr"
@@ -383,7 +486,12 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({ isOpen,
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="descriptionMr" className="text-[10px] font-black uppercase tracking-widest text-slate-500">मराठी विवरण (Marathi Description)</Label>
+                    <Label
+                      htmlFor="descriptionMr"
+                      className="text-[10px] font-black uppercase tracking-widest text-slate-500"
+                    >
+                      मराठी विवरण (Marathi Description)
+                    </Label>
                     <Textarea
                       id="descriptionMr"
                       name="descriptionMr"
@@ -398,31 +506,45 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({ isOpen,
               </Tabs>
             </div>
 
-
-
             <div className="flex justify-end space-x-3 pt-6 border-t border-slate-200">
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={onClose}
                 className="px-6 border-slate-300 hover:bg-slate-100"
               >
                 Cancel
               </Button>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={loading}
                 className="px-6 bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-700 hover:to-fuchsia-700 text-white shadow-lg shadow-purple-500/25"
               >
                 {loading ? (
                   <span className="flex items-center gap-2">
                     <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                        fill="none"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
                     </svg>
-                    {editingDepartment ? 'Updating...' : 'Creating...'}
+                    {editingDepartment ? "Updating..." : "Creating..."}
                   </span>
-                ) : (editingDepartment ? 'Update Department' : 'Create Department')}
+                ) : editingDepartment ? (
+                  "Update Department"
+                ) : (
+                  "Create Department"
+                )}
               </Button>
             </div>
           </form>
