@@ -18,6 +18,7 @@ interface NotificationData {
   action: 'created' | 'assigned' | 'resolved';
   grievanceId?: string;
   appointmentId?: string;
+  recipientName?: string;
   citizenName: string;
   citizenPhone: string;
   citizenWhatsApp?: string;
@@ -41,12 +42,109 @@ interface NotificationData {
   assignedAt?: Date | string;
   appointmentDate?: Date | string;
   appointmentTime?: string;
+  resolutionTimeText?: string;
   timeline?: Array<{
     action: string;
     details?: any;
     performedBy?: any;
     timestamp: Date | string;
   }>;
+}
+
+/* ------------------------------------------------------------------ */
+/* Shared Utility Helpers                                              */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Compute a human-readable resolution time string from two dates.
+ * Returns '' if either date is missing.
+ */
+function computeResolutionTime(createdAt: Date | string | undefined, resolvedAt: Date | string | undefined): string {
+  if (!createdAt || !resolvedAt) return '';
+  const start = new Date(createdAt);
+  const end = new Date(resolvedAt);
+  const diffMs = end.getTime() - start.getTime();
+  if (diffMs <= 0) return '';
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  if (diffDays > 0) return `${diffDays} day${diffDays > 1 ? 's' : ''} and ${diffHours} hour${diffHours !== 1 ? 's' : ''}`;
+  if (diffHours > 0) return `${diffHours} hour${diffHours !== 1 ? 's' : ''}`;
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+  return `${Math.max(1, diffMinutes)} minute${diffMinutes !== 1 ? 's' : ''}`;
+}
+
+/**
+ * Fetches all necessary names (company, department, etc.) to populate placeholder data.
+ * Ensures resolutionTimeText is computed if not provided.
+ */
+async function populateNotificationData(data: NotificationData): Promise<Record<string, any>> {
+  const company = await Company.findById(data.companyId).select('name');
+
+  // Handle populated Mongoose objects — extract _id before calling findById
+  const deptId = data.departmentId
+    ? (typeof data.departmentId === 'object' && data.departmentId._id ? data.departmentId._id : data.departmentId)
+    : null;
+  const subDeptId = data.subDepartmentId
+    ? (typeof data.subDepartmentId === 'object' && data.subDepartmentId._id ? data.subDepartmentId._id : data.subDepartmentId)
+    : null;
+
+  const department = deptId ? await Department.findById(deptId).select('name') : null;
+  const subDept = subDeptId ? await Department.findById(subDeptId).select('name') : null;
+
+  let assignedByName = data.assignedByName || 'Administrator';
+  if (!data.assignedByName && data.assignedTo) {
+    try {
+      const aUser = await User.findById(data.assignedTo._id || data.assignedTo).select('firstName lastName');
+      if (aUser) assignedByName = aUser.getFullName();
+    } catch (e) {}
+  }
+
+  let resolvedByName = 'Assigned Officer';
+  if (data.resolvedBy) {
+    try {
+      const rUser = await User.findById(
+        typeof data.resolvedBy === 'object' && data.resolvedBy !== null
+          ? (data.resolvedBy._id || data.resolvedBy)
+          : data.resolvedBy
+      ).select('firstName lastName');
+      if (rUser) resolvedByName = rUser.getFullName();
+    } catch (e) {}
+  }
+
+  const createdAt = data.createdAt || new Date();
+  const formattedDate = new Date(createdAt).toLocaleString('en-IN', {
+    day: '2-digit', month: 'long', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: true
+  });
+
+  const resolvedAt = data.resolvedAt || (data.action === 'resolved' ? new Date() : null);
+  let formattedResolvedDate = '';
+  let resolutionTimeText = data.resolutionTimeText || '';
+
+  if (resolvedAt) {
+    formattedResolvedDate = new Date(resolvedAt).toLocaleString('en-IN', {
+      day: '2-digit', month: 'long', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: true
+    });
+    if (!resolutionTimeText) {
+      resolutionTimeText = computeResolutionTime(data.createdAt, resolvedAt);
+    }
+  }
+
+  return {
+    ...data,
+    companyName: company?.name || 'Portal Admin',
+    recipientName: data.citizenName || 'Citizen',
+    departmentName: department
+      ? department.name
+      : (data.departmentName || (data.type === 'appointment' ? 'CEO Office' : 'General')),
+    subDepartmentName: subDept ? subDept.name : (data.subDepartmentName || 'N/A'),
+    assignedByName,
+    resolvedByName,
+    formattedDate,
+    formattedResolvedDate,
+    resolutionTimeText
+  };
 }
 
 /* ------------------------------------------------------------------ */
@@ -57,21 +155,17 @@ interface NotificationData {
 async function getCompanyWithWhatsAppConfig(companyId: any): Promise<any | null> {
   if (!companyId) return null;
 
-  // If companyId is already a full object with an _id, extract the ID
   let id = companyId;
   if (typeof companyId === 'object' && companyId !== null) {
     id = companyId._id || id;
   }
 
-  // Ensure we have a string/ObjectId that Mongoose can handle
   const finalId = id?.toString ? id.toString() : id;
-  
-  // If the string is surprisingly long, it's likely a stringified object representation
-  // which will cause a CastError. Try to avoid calling findById if it looks invalid.
+
   if (!finalId || typeof finalId !== 'string' || finalId.length > 30 || finalId.includes('{')) {
-    logger.error('❌ Invalid companyId passed to getCompanyWithWhatsAppConfig:', { 
+    logger.error('❌ Invalid companyId passed to getCompanyWithWhatsAppConfig:', {
       type: typeof companyId,
-      value: typeof companyId === 'object' ? 'Object' : companyId 
+      value: typeof companyId === 'object' ? 'Object' : companyId
     });
     return null;
   }
@@ -79,12 +173,10 @@ async function getCompanyWithWhatsAppConfig(companyId: any): Promise<any | null>
   try {
     let company: any = null;
 
-    // 1. Try finding by _id if it's a valid ObjectId
     if (mongoose.Types.ObjectId.isValid(finalId) && finalId.length === 24) {
       company = await Company.findById(finalId);
     }
 
-    // 2. Fallback: try finding by custom companyId string field
     if (!company) {
       company = await Company.findOne({ companyId: finalId });
     }
@@ -92,7 +184,7 @@ async function getCompanyWithWhatsAppConfig(companyId: any): Promise<any | null>
     if (!company) return null;
 
     const config = await CompanyWhatsAppConfig.findOne({
-      companyId: company._id, // Use the actual document _id
+      companyId: company._id,
       isActive: true
     });
 
@@ -110,27 +202,18 @@ async function getCompanyWithWhatsAppConfig(companyId: any): Promise<any | null>
 }
 
 function isWhatsAppEnabled(company: any): boolean {
-  // Check company config first
-  const hasCompanyConfig = Boolean(
+  return Boolean(
     company?.whatsappConfig &&
     company.whatsappConfig.phoneNumberId &&
     company.whatsappConfig.accessToken
   );
-  
-  // No env fallback: WhatsApp config must be present in DB and attached to company
-  return hasCompanyConfig;
 }
 
 function normalizePhone(phone?: string): string | null {
   if (!phone) return null;
-
-  // Remove all non-digits
   const digits = phone.replace(/\D/g, '');
-
-  // India default handling
   if (digits.length === 10) return `91${digits}`;
   if (digits.length >= 11) return digits;
-
   return null;
 }
 
@@ -166,10 +249,7 @@ async function safeSendWhatsApp(
       logger.info('✅ WhatsApp sent successfully', { to: phone, messageId: result.messageId });
       return { success: true };
     } else {
-      logger.error('❌ WhatsApp send failed', {
-        to: phone,
-        error: result.error
-      });
+      logger.error('❌ WhatsApp send failed', { to: phone, error: result.error });
       return { success: false, error: result.error };
     }
   } catch (error: any) {
@@ -190,7 +270,6 @@ async function safeSendWhatsApp(
  * For a sub-department, we notify:
  *   1. The sub-department's own admin (if exists)
  *   2. The parent department's admin (if exists)
- * This ensures full hierarchy visibility on dashboards.
  */
 async function getHierarchicalDepartmentAdmins(departmentId: any): Promise<any[]> {
   const admins: any[] = [];
@@ -208,7 +287,6 @@ async function getHierarchicalDepartmentAdmins(departmentId: any): Promise<any[]
       const dept = await Department.findById(currentDeptId);
       if (!dept) break;
 
-      // Find admin for this department
       const admin = await User.findOne({
         departmentId: currentDeptId,
         role: UserRole.DEPARTMENT_ADMIN,
@@ -216,14 +294,10 @@ async function getHierarchicalDepartmentAdmins(departmentId: any): Promise<any[]
       });
 
       if (admin) {
-        // Avoid duplicate if same person manages multiple levels
         const alreadyAdded = admins.some(a => a._id.toString() === admin._id.toString());
-        if (!alreadyAdded) {
-          admins.push(admin);
-        }
+        if (!alreadyAdded) admins.push(admin);
       }
 
-      // Move to parent department
       currentDeptId = dept.parentDepartmentId;
       if (currentDeptId) {
         logger.info(`🔍 Traversing up hierarchy: ${dept.name} -> Checking parent admin.`);
@@ -237,13 +311,6 @@ async function getHierarchicalDepartmentAdmins(departmentId: any): Promise<any[]
   }
 }
 
-// Keep for backward compatibility
-async function getDepartmentAdmin(departmentId: any): Promise<any | null> {
-  const admins = await getHierarchicalDepartmentAdmins(departmentId);
-  return admins.length > 0 ? admins[0] : null;
-}
-
-
 /* ------------------------------------------------------------------ */
 /* Creation Notification                                               */
 /* ------------------------------------------------------------------ */
@@ -255,73 +322,37 @@ export async function notifyDepartmentAdminOnCreation(
     const company = await getCompanyWithWhatsAppConfig(data.companyId);
     if (!company) return;
 
-    // ✅ Find ALL relevant admins to notify using full hierarchical lookup:
-    //    1. Sub-department admin (if grievance is for a sub-dept)
-    //    2. Parent department admin 
-    //    3. Company Admins
     const adminsToNotify: any[] = [];
 
-    // 1. Get ALL department admins in the hierarchy (sub-dept + parent dept)
     if (data.departmentId) {
       const deptAdmins = await getHierarchicalDepartmentAdmins(data.departmentId);
-      deptAdmins.forEach(admin => {
-        adminsToNotify.push({ user: admin, type: 'DEPT_ADMIN' });
-      });
+      deptAdmins.forEach(admin => adminsToNotify.push({ user: admin, type: 'DEPT_ADMIN' }));
     }
 
-    // 2. Get ALL Company Admins for this company
     const companyAdmins = await User.find({
       companyId: data.companyId,
       role: UserRole.COMPANY_ADMIN,
       isActive: true
     });
-    
+
     companyAdmins.forEach(admin => {
-      // Avoid duplicates if same user is somehow both (unlikely but safe)
       if (!adminsToNotify.find(a => a.user._id.toString() === admin._id.toString())) {
         adminsToNotify.push({ user: admin, type: 'COMPANY_ADMIN' });
       }
     });
 
-
     if (adminsToNotify.length === 0) {
-      logger.warn(`⚠️ No admins found to notify for company ${company.name} (Grievance/Appointment: ${data.grievanceId || data.appointmentId})`);
+      logger.warn(`⚠️ No admins found to notify for company ${company.name} (${data.grievanceId || data.appointmentId})`);
       return;
     }
 
-    const department = data.departmentId ? await Department.findById(data.departmentId) : null;
-    const createdAt = data.createdAt || new Date();
-    const formattedDate = new Date(createdAt).toLocaleString('en-IN', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    });
-
-    // Notify each identified admin
     for (const { user, type } of adminsToNotify) {
-      const notificationData = {
-        companyName: company.name,
-        recipientName: user.getFullName(),
-        grievanceId: data.grievanceId,
-        appointmentId: data.appointmentId,
-        citizenName: data.citizenName,
-        citizenPhone: data.citizenPhone,
-        departmentName: department ? department.name : (data.type === 'appointment' ? 'CEO Office' : 'General'),
-        category: data.category,
-        description: data.description,
-        purpose: data.purpose,
-        location: data.location,
-        createdAt: data.createdAt,
-        timeline: data.timeline,
-        appointmentDate: data.appointmentDate,
-        appointmentTime: data.appointmentTime,
-        formattedDate
+      const notificationData: NotificationData = {
+        ...data,
+        recipientName: user.getFullName()
       };
 
-      // 📧 Send Email
+      // 📧 Email
       if (user.email) {
         try {
           const email = await getNotificationEmailContent(data.companyId, data.type, 'created', notificationData);
@@ -334,41 +365,32 @@ export async function notifyDepartmentAdminOnCreation(
         }
       }
 
-      // 📱 Send WhatsApp
-      let message = await getNotificationWhatsAppMessage(data.companyId, data.type, 'created', notificationData);
+      // 📱 WhatsApp — use DB template first, then fallback
+      const fullData = await populateNotificationData(notificationData);
+      let message = await getNotificationWhatsAppMessage(data.companyId, data.type, 'created', fullData);
       if (!message) {
         const typeLabel = data.type === 'grievance' ? 'GRIEVANCE' : 'APPOINTMENT';
-        const categoryText = data.category ? `\n📂 *Category:* ${data.category}\n` : '';
-        const locationText = data.location ? `\n📍 *Location:* ${data.location}\n` : '';
-        // Use passed-in dept/subDept names if available, otherwise lookup
-        const mainDeptName = data.departmentName || (department ? department.name : (data.type === 'appointment' ? 'CEO Office' : 'General'));
-        const subDeptName = data.subDepartmentName || '';
-        const deptLine = subDeptName
-          ? `🏢 *Department:* ${mainDeptName}\n🏢 *Sub-Department:* ${subDeptName}`
-          : `🏢 *Department:* ${mainDeptName}`;
-        
-        // Evidence/media
-        const evidenceUrls: string[] = data.evidenceUrls || [];
-        const evidenceText = evidenceUrls.length > 0
-          ? `\n📎 *Uploaded Evidence:*\n${evidenceUrls.join('\n')}`
-          : '';
+        const categoryText = fullData.category ? `\n📂 *Category:* ${fullData.category}\n` : '';
+        const deptLine = fullData.subDepartmentName && fullData.subDepartmentName !== 'N/A'
+          ? `🏢 *Department:* ${fullData.departmentName}\n🏢 *Sub-Dept:* ${fullData.subDepartmentName}`
+          : `🏢 *Department:* ${fullData.departmentName}`;
 
         message =
-          `*${company.name}*\n` +
+          `*${fullData.companyName}*\n` +
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
           `📋 *NEW ${typeLabel} RECEIVED*\n\n` +
-          `Respected ${user.getFullName()},\n\n` +
+          `Respected ${fullData.recipientName},\n\n` +
           `Grievance/Appointment Details:\n` +
-          `🎫 *Reference ID:* ${data.grievanceId || data.appointmentId}\n` +
-          `👤 *Citizen Name:* ${data.citizenName}\n` +
-          `📞 *Contact Number:* ${data.citizenPhone}\n` +
+          `🎫 *Reference ID:* ${fullData.grievanceId || fullData.appointmentId}\n` +
+          `👤 *Citizen Name:* ${fullData.citizenName}\n` +
+          `📞 *Contact Number:* ${fullData.citizenPhone}\n` +
           `${deptLine}\n` +
-          `📝 *Description:*\n${data.description || data.purpose}${evidenceText}${categoryText}${locationText}` +
-          `\n📅 *Received On:* ${formattedDate}\n\n` +
+          `📝 *Description:*\n${fullData.description || fullData.purpose || ''}${categoryText}` +
+          `\n📅 *Received On:* ${fullData.formattedDate}\n\n` +
           `*Action Required:*\n` +
-          `Please review this grievance at your earliest convenience and take appropriate action. Kindly ensure timely resolution as per the service level agreement (SLA) guidelines.\n\n` +
+          `Please review this ${data.type} promptly. Resolution should be provided as per SLA.\n\n` +
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-          `*${company.name}*\n` +
+          `*${fullData.companyName}*\n` +
           `Digital Grievance Redressal System\n` +
           `This is an automated notification.`;
       }
@@ -394,77 +416,43 @@ export async function notifyUserOnAssignment(
     const user = await User.findById(data.assignedTo);
     if (!user) return;
 
-    const department = await Department.findById(data.departmentId);
-    const departmentName = department?.name || 'Unknown';
-
-    const assignedByName = data.assignedByName || 'Administrator';
-    const assignedAt = data.assignedAt || new Date();
-    const formattedDate = new Date(assignedAt).toLocaleString('en-IN', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
+    const fullData = await populateNotificationData({
+      ...data,
+      recipientName: user.getFullName()
     });
 
-    const emailData = {
-      companyName: company.name,
-      recipientName: user.getFullName(),
-      grievanceId: data.grievanceId,
-      appointmentId: data.appointmentId,
-      citizenName: data.citizenName,
-      citizenPhone: data.citizenPhone,
-      departmentName,
-      description: data.description || data.purpose,
-      purpose: data.purpose,
-      assignedByName: assignedByName,
-      assignedAt: data.assignedAt,
-      createdAt: data.createdAt,
-      timeline: data.timeline,
-      appointmentDate: data.appointmentDate,
-      appointmentTime: data.appointmentTime
-    };
-
+    // 📧 Email
     if (user.email) {
       try {
-        const email = await getNotificationEmailContent(data.companyId, data.type, 'assigned', emailData);
-        const result = await sendEmail(user.email, email.subject, email.html, email.text, { companyId: data.companyId });
-        if (result.success) {
-          logger.info(`✅ Email sent to assigned user ${user.getFullName()} (${user.email})`);
-        } else {
-          logger.error(`❌ Failed to send email to ${user.email}:`, result.error);
-        }
-      } catch (error) {
-        logger.error(`❌ Error sending email to ${user.email}:`, error);
-      }
-    } else {
-      logger.warn(`⚠️ Assigned user ${user.getFullName()} has no email address`);
+        const email = await getNotificationEmailContent(data.companyId, data.type, 'assigned', fullData);
+        await sendEmail(user.email, email.subject, email.html, email.text, { companyId: data.companyId });
+      } catch (e) {}
     }
 
-    const waData = { ...emailData, assignedByName, assignedAt: data.assignedAt, formattedDate };
-    let message = await getNotificationWhatsAppMessage(data.companyId, data.type, 'assigned', waData);
+    // 📱 WhatsApp — use DB template first, then fallback
+    let message = await getNotificationWhatsAppMessage(data.companyId, data.type, 'assigned', fullData);
     if (!message) {
+      const typeLabel = data.type === 'grievance' ? 'GRIEVANCE' : 'APPOINTMENT';
+      const deptLine = fullData.subDepartmentName && fullData.subDepartmentName !== 'N/A'
+        ? `🏢 *Department:* ${fullData.departmentName}\n🏢 *Sub-Dept:* ${fullData.subDepartmentName}`
+        : `🏢 *Department:* ${fullData.departmentName}`;
+
       message =
-        `*${company.name}*\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-        `👤 *${data.type === 'grievance' ? 'GRIEVANCE' : 'APPOINTMENT'} ASSIGNED TO YOU*\n\n` +
-        `Respected ${user.getFullName()},\n\n` +
-        `This is to inform you that a ${data.type === 'grievance' ? 'grievance' : 'appointment'} has been assigned to you for resolution. You are requested to review the details and take necessary action at the earliest.\n\n` +
-        `*Assignment Details:*\n` +
-        `🎫 *Reference ID:* ${data.grievanceId || data.appointmentId}\n` +
-        `👤 *Citizen Name:* ${data.citizenName}\n` +
-        `📞 *Contact Number:* ${data.citizenPhone}\n` +
-        `🏢 *Department:* ${departmentName}\n` +
-        `📝 *Description:*\n${data.description || data.purpose}\n\n` +
-        `👨‍💼 *Assigned By:* ${assignedByName}\n` +
-        `📅 *Assigned On:* ${formattedDate}\n\n` +
-        `*Your Action Required:*\n` +
-        `Please contact the citizen, investigate the matter, and provide a resolution. Kindly update the status and add remarks as you progress with the resolution process.\n\n` +
+        `*${fullData.companyName}*\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `*${company.name}*\n` +
-        `Digital Grievance Redressal System\n` +
-        `This is an automated notification.`;
+        `👤 *${typeLabel} ASSIGNED TO YOU*\n\n` +
+        `Respected ${fullData.recipientName},\n\n` +
+        `Details:\n` +
+        `🎫 *Reference ID:* ${fullData.grievanceId || fullData.appointmentId}\n` +
+        `👤 *Citizen:* ${fullData.citizenName}\n` +
+        `${deptLine}\n` +
+        `📝 *Description:*\n${fullData.description || fullData.purpose || ''}\n\n` +
+        `👨‍💼 *Assigned By:* ${fullData.assignedByName}\n` +
+        `📅 *Assigned On:* ${fullData.formattedDate}\n\n` +
+        `Please investigate and take required action.\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `*${fullData.companyName}*\n` +
+        `Digital Grievance Redressal System`;
     }
     await safeSendWhatsApp(company, user.phone, message);
 
@@ -484,72 +472,19 @@ export async function notifyCitizenOnResolution(
     const company = await getCompanyWithWhatsAppConfig(data.companyId);
     if (!company) return;
 
-    const department = await Department.findById(data.departmentId);
-    const departmentName = department?.name || 'Unknown Department';
+    // populateNotificationData handles department lookup, resolvedBy lookup,
+    // date formatting, and resolution time computation — no duplicates here.
+    const fullData = await populateNotificationData(data);
 
-    // Fetch resolvedBy user details if available
-    let resolvedByName = 'Assigned Officer';
-    if (data.resolvedBy) {
-      try {
-        const resolvedByUser = typeof data.resolvedBy === 'object' && data.resolvedBy !== null
-          ? await User.findById(data.resolvedBy._id || data.resolvedBy)
-          : await User.findById(data.resolvedBy);
-        if (resolvedByUser) {
-          resolvedByName = resolvedByUser.getFullName();
-        }
-      } catch (error) {
-        logger.warn('Could not fetch resolvedBy user details');
-      }
-    }
-
-    const resolvedAt = data.resolvedAt || new Date();
-    const formattedResolvedDate = new Date(resolvedAt).toLocaleString('en-IN', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    });
-
-    const createdAt = data.createdAt;
-    let resolutionTimeText = '';
-    if (createdAt && resolvedAt) {
-      const created = typeof createdAt === 'string' ? new Date(createdAt) : createdAt;
-      const resolved = typeof resolvedAt === 'string' ? new Date(resolvedAt) : resolvedAt;
-      const diffMs = resolved.getTime() - created.getTime();
-      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-      const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      if (diffDays > 0) {
-        resolutionTimeText = `${diffDays} day${diffDays > 1 ? 's' : ''} and ${diffHours} hour${diffHours !== 1 ? 's' : ''}`;
-      } else if (diffHours > 0) {
-        resolutionTimeText = `${diffHours} hour${diffHours !== 1 ? 's' : ''}`;
-      } else {
-        const diffMinutes = Math.floor(diffMs / (1000 * 60));
-        resolutionTimeText = `${diffMinutes} minute${diffMinutes !== 1 ? 's' : ''}`;
-      }
-    }
-
-    // Email for appointments if citizen email is available
+    // 📧 Email for appointments if citizen email is available
     if (data.type === 'appointment' && (data as any).citizenEmail) {
       try {
-        const emailData = {
-          companyName: company.name,
-          recipientName: data.citizenName,
-          appointmentId: data.appointmentId,
-          citizenName: data.citizenName,
-          citizenPhone: data.citizenPhone,
-          departmentName: departmentName,
-          remarks: data.remarks,
-          resolvedBy: data.resolvedBy,
-          resolvedAt: data.resolvedAt,
-          createdAt: data.createdAt,
-          assignedAt: data.assignedAt,
-          timeline: data.timeline,
+        const emailPayload = {
+          ...fullData,
           appointmentDate: (data as any).appointmentDate,
           appointmentTime: (data as any).appointmentTime
         };
-        const email = await getNotificationEmailContent(data.companyId, 'appointment', 'resolved', emailData);
+        const email = await getNotificationEmailContent(data.companyId, 'appointment', 'resolved', emailPayload);
         const result = await sendEmail((data as any).citizenEmail, email.subject, email.html, email.text, { companyId: data.companyId });
         if (result.success) {
           logger.info(`✅ Email sent to citizen ${data.citizenName} (${(data as any).citizenEmail})`);
@@ -559,46 +494,31 @@ export async function notifyCitizenOnResolution(
       }
     }
 
-    const resolvedWaData = {
-      companyName: company.name,
-      recipientName: data.citizenName,
-      grievanceId: data.grievanceId,
-      appointmentId: data.appointmentId,
-      citizenName: data.citizenName,
-      citizenPhone: data.citizenPhone,
-      departmentName,
-      remarks: data.remarks,
-      resolvedByName,
-      resolvedAt: data.resolvedAt,
-      createdAt: data.createdAt,
-      assignedAt: data.assignedAt,
-      formattedResolvedDate,
-      resolutionTimeText,
-      timeline: data.timeline
-    };
-    let message = await getNotificationWhatsAppMessage(data.companyId, data.type, 'resolved', resolvedWaData);
+    // 📱 WhatsApp — use DB template first, then fallback
+    let message = await getNotificationWhatsAppMessage(data.companyId, data.type, 'resolved', fullData);
     if (!message) {
+      const typeLabel = data.type === 'grievance' ? 'GRIEVANCE' : 'APPOINTMENT';
+      const deptLine = fullData.subDepartmentName && fullData.subDepartmentName !== 'N/A'
+        ? `🏢 *Department:* ${fullData.departmentName}\n🏢 *Sub-Dept:* ${fullData.subDepartmentName}`
+        : `🏢 *Department:* ${fullData.departmentName}`;
       const remarksText = data.remarks ? `\n\n*Officer's Resolution Remarks:*\n${data.remarks}\n` : '';
-      const resolutionTimeTextFormatted = resolutionTimeText ? `\n⏱️ *Resolution Time:* ${resolutionTimeText}\n` : '';
+      const resolutionTimeLine = fullData.resolutionTimeText ? `\n⏱️ *Resolution Time:* ${fullData.resolutionTimeText}` : '';
+
       message =
-        `*${company.name}*\n` +
+        `*${fullData.companyName}*\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-        `✅ *YOUR ${data.type === 'grievance' ? 'GRIEVANCE' : 'APPOINTMENT'} HAS BEEN RESOLVED*\n\n` +
-        `Respected ${data.citizenName},\n\n` +
-        `This is to inform you that your ${data.type === 'grievance' ? 'grievance' : 'appointment'} has been successfully resolved by our department. We appreciate your patience and cooperation.\n\n` +
+        `✅ *YOUR ${typeLabel} HAS BEEN RESOLVED*\n\n` +
+        `Respected ${fullData.citizenName},\n\n` +
+        `This is to inform you that your ${data.type} has been successfully resolved. We appreciate your patience.\n\n` +
         `*Resolution Details:*\n` +
-        `🎫 *Reference ID:* ${data.grievanceId || data.appointmentId}\n` +
-        `🏢 *Department:* ${departmentName}\n` +
+        `🎫 *Reference ID:* ${fullData.grievanceId || fullData.appointmentId}\n` +
+        `${deptLine}\n` +
         `📊 *Status:* RESOLVED\n` +
-        `👨‍💼 *Resolved By:* ${resolvedByName}\n` +
-        `📅 *Resolved On:* ${formattedResolvedDate}${resolutionTimeTextFormatted}${remarksText}` +
-        `\n*Timeline Summary:*\n` +
-        `${data.createdAt ? `📝 Created: ${new Date(data.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}\n` : ''}` +
-        `${data.assignedAt ? `👤 Assigned: ${new Date(data.assignedAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}\n` : ''}` +
-        `✅ Resolved: ${formattedResolvedDate}\n\n` +
-        `Thank you for using our digital portal. We hope this resolves your concern satisfactorily. If you have any further queries, please feel free to contact us.\n\n` +
+        `👨‍💼 *Resolved By:* ${fullData.resolvedByName}\n` +
+        `📅 *Resolved On:* ${fullData.formattedResolvedDate}${resolutionTimeLine}${remarksText}\n\n` +
+        `Thank you for using our digital portal.\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `*${company.name}*\n` +
+        `*${fullData.companyName}*\n` +
         `Digital Grievance Redressal System\n` +
         `This is an automated notification.`;
     }
@@ -619,32 +539,95 @@ export async function notifyCitizenOnGrievanceStatusChange(data: {
   citizenName: string;
   citizenPhone: string;
   citizenWhatsApp?: string;
+  departmentId?: any;
+  subDepartmentId?: any;
   departmentName?: string;
+  subDepartmentName?: string;
   newStatus: string;
   remarks?: string;
+  createdAt?: Date | string;
 }): Promise<void> {
   try {
     const company = await getCompanyWithWhatsAppConfig(data.companyId);
     if (!company) return;
 
-    const departmentName = data.departmentName || 'Department';
-    const remarksText = data.remarks ? `\n\n📝 *Remarks:*\n${data.remarks}` : '';
-    const statusLabel = data.newStatus === 'ASSIGNED' ? 'Assigned' : data.newStatus === 'REJECTED' ? 'Rejected' : data.newStatus === 'PENDING' ? 'Pending' : data.newStatus;
+    // Look up department/sub-department names if IDs are provided
+    let departmentName = data.departmentName || 'Department';
+    let subDepartmentName = data.subDepartmentName || '';
 
-    const message =
-      `*${company.name}*\n` +
-      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-      `📋 *GRIEVANCE STATUS UPDATE*\n\n` +
-      `Respected ${data.citizenName},\n\n` +
-      `Your grievance status has been updated.\n\n` +
-      `*Details:*\n` +
-      `🎫 *Ref No:* \`${data.grievanceId}\`\n` +
-      `🏢 *Department:* ${departmentName}\n` +
-      `📊 *New Status:* ${statusLabel}${remarksText}\n\n` +
-      `You will receive further updates via WhatsApp.\n\n` +
-      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-      `*${company.name}*\n` +
-      `Digital Grievance Redressal System`;
+    if (data.departmentId) {
+      try {
+        const deptId = typeof data.departmentId === 'object' && data.departmentId._id
+          ? data.departmentId._id : data.departmentId;
+        const dept = await Department.findById(deptId).select('name');
+        if (dept) departmentName = dept.name;
+      } catch (e) {}
+    }
+    if (data.subDepartmentId) {
+      try {
+        const sdId = typeof data.subDepartmentId === 'object' && data.subDepartmentId._id
+          ? data.subDepartmentId._id : data.subDepartmentId;
+        const sdept = await Department.findById(sdId).select('name');
+        if (sdept) subDepartmentName = sdept.name;
+      } catch (e) {}
+    }
+
+    const remarksText = data.remarks ? `\n\n📝 *Remarks:*\n${data.remarks}` : '';
+    const statusLabel =
+      data.newStatus === 'ASSIGNED' ? 'Assigned' :
+      data.newStatus === 'REJECTED' ? 'Rejected' :
+      data.newStatus === 'PENDING'  ? 'Pending'  : data.newStatus;
+
+    // Try DB template for status_update key first (custom key for grievance status changes)
+    const templateData: Record<string, any> = {
+      companyName: company.name,
+      citizenName: data.citizenName,
+      citizenPhone: data.citizenPhone,
+      grievanceId: data.grievanceId,
+      departmentName,
+      subDepartmentName: subDepartmentName || 'N/A',
+      newStatus: statusLabel,
+      remarks: data.remarks || '',
+    };
+
+    let message: string | null = null;
+
+    // Check for a custom DB template keyed 'grievance_status_update'
+    try {
+      const { default: CompanyWhatsAppTemplate } = await import('../models/CompanyWhatsAppTemplate');
+      const { replacePlaceholders } = await import('./emailService');
+      const cid = mongoose.Types.ObjectId.isValid(String(data.companyId))
+        ? new mongoose.Types.ObjectId(String(data.companyId))
+        : data.companyId;
+      const tmpl = await CompanyWhatsAppTemplate.findOne({
+        companyId: cid,
+        templateKey: 'grievance_status_update',
+        isActive: true
+      });
+      if (tmpl && tmpl.message && tmpl.message.trim()) {
+        message = replacePlaceholders(tmpl.message.trim(), templateData);
+      }
+    } catch (e) { /* fallback */ }
+
+    if (!message) {
+      // Hardcoded fallback
+      const subDeptLine = subDepartmentName && subDepartmentName !== 'N/A'
+        ? `\n🏢 *Sub-Dept:* ${subDepartmentName}` : '';
+      message =
+        `*${company.name}*\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+        `📋 *GRIEVANCE STATUS UPDATE*\n\n` +
+        `Respected ${data.citizenName},\n\n` +
+        `Your grievance status has been updated.\n\n` +
+        `*Details:*\n` +
+        `🎫 *Ref No:* \`${data.grievanceId}\`\n` +
+        `🏢 *Department:* ${departmentName}${subDeptLine}\n` +
+        `📊 *New Status:* ${statusLabel}${remarksText}\n\n` +
+        `You will receive further updates via WhatsApp.\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `*${company.name}*\n` +
+        `Digital Grievance Redressal System`;
+    }
 
     const result = await safeSendWhatsApp(company, data.citizenWhatsApp || data.citizenPhone, message);
     if (result.success) {
@@ -670,23 +653,8 @@ export async function notifyHierarchyOnStatusChange(
     const company = await getCompanyWithWhatsAppConfig(data.companyId);
     if (!company) return;
 
-    const department = await Department.findById(data.departmentId);
-    const departmentName = department?.name || 'Unknown Department';
-
-    // Fetch resolvedBy user details if available
-    let resolvedByName = 'Assigned Officer';
-    if (data.resolvedBy) {
-      try {
-        const resolvedByUser = typeof data.resolvedBy === 'object' && data.resolvedBy !== null
-          ? await User.findById(data.resolvedBy._id || data.resolvedBy)
-          : await User.findById(data.resolvedBy);
-        if (resolvedByUser) {
-          resolvedByName = resolvedByUser.getFullName();
-        }
-      } catch (error) {
-        logger.warn('Could not fetch resolvedBy user details');
-      }
-    }
+    // All name lookups, date formatting, and resolution time done centrally
+    const fullData = await populateNotificationData(data);
 
     // Find ALL relevant admins interested in the status change
     const admins = await getHierarchicalDepartmentAdmins(data.departmentId);
@@ -695,85 +663,36 @@ export async function notifyHierarchyOnStatusChange(
     const users = await User.find({
       $or: [
         { role: UserRole.COMPANY_ADMIN, companyId: data.companyId },
-        { _id: { $in: adminIds } }, // Direct admin + all parent department admins
+        { _id: { $in: adminIds } },
         { _id: data.assignedTo }
       ],
       isActive: true
     });
 
-    const resolvedAt = data.resolvedAt || new Date();
-    const formattedResolvedDate = new Date(resolvedAt).toLocaleString('en-IN', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    });
-
-    const createdAt = data.createdAt;
-    let resolutionTimeText = '';
-    if (createdAt && resolvedAt) {
-      const created = typeof createdAt === 'string' ? new Date(createdAt) : createdAt;
-      const resolved = typeof resolvedAt === 'string' ? new Date(resolvedAt) : resolvedAt;
-      const diffMs = resolved.getTime() - created.getTime();
-      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-      const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      if (diffDays > 0) {
-        resolutionTimeText = `${diffDays} day${diffDays > 1 ? 's' : ''} and ${diffHours} hour${diffHours !== 1 ? 's' : ''}`;
-      } else if (diffHours > 0) {
-        resolutionTimeText = `${diffHours} hour${diffHours !== 1 ? 's' : ''}`;
-      } else {
-        const diffMinutes = Math.floor(diffMs / (1000 * 60));
-        resolutionTimeText = `${diffMinutes} minute${diffMinutes !== 1 ? 's' : ''}`;
-      }
-    }
-
-    const hierarchyWaData = {
-      companyName: company.name,
-      grievanceId: data.grievanceId,
-      appointmentId: data.appointmentId,
-      citizenName: data.citizenName,
-      citizenPhone: data.citizenPhone,
-      departmentName,
-      oldStatus,
-      newStatus,
-      resolvedByName,
-      resolvedAt: data.resolvedAt,
-      createdAt: data.createdAt,
-      assignedAt: data.assignedAt,
-      remarks: data.remarks,
-      formattedResolvedDate,
-      resolutionTimeText,
-      timeline: data.timeline
-    };
-    let hierarchyMessage = await getNotificationWhatsAppMessage(data.companyId, data.type, 'resolved', hierarchyWaData);
+    // 📱 WhatsApp — use DB template first, then fallback
+    let hierarchyMessage = await getNotificationWhatsAppMessage(data.companyId, data.type, 'resolved', fullData);
     if (!hierarchyMessage) {
+      const typeLabel = data.type === 'grievance' ? 'GRIEVANCE' : 'APPOINTMENT';
+      const deptLine = fullData.subDepartmentName && fullData.subDepartmentName !== 'N/A'
+        ? `🏢 *Department:* ${fullData.departmentName}\n🏢 *Sub-Dept:* ${fullData.subDepartmentName}`
+        : `🏢 *Department:* ${fullData.departmentName}`;
       const remarksText = data.remarks ? `\n\n*Officer's Remarks:*\n${data.remarks}\n` : '';
-      const resolutionTimeTextFormatted = resolutionTimeText ? `\n⏱️ *Resolution Time:* ${resolutionTimeText}\n` : '';
+      const resolutionTimeLine = fullData.resolutionTimeText ? `\n⏱️ *Resolution Time:* ${fullData.resolutionTimeText}` : '';
+
       hierarchyMessage =
-        `*${company.name}*\n` +
+        `*${fullData.companyName}*\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-        `📊 *STATUS UPDATE - ${data.type === 'grievance' ? 'GRIEVANCE' : 'APPOINTMENT'} RESOLVED*\n\n` +
-        `Respected Sir/Madam,\n\n` +
-        `This is to inform you that the following ${data.type === 'grievance' ? 'grievance' : 'appointment'} has been successfully resolved by the assigned officer.\n\n` +
-        `*${data.type === 'grievance' ? 'Grievance' : 'Appointment'} Details:*\n` +
-        `🎫 *Reference ID:* ${data.grievanceId || data.appointmentId}\n` +
-        `👤 *Citizen Name:* ${data.citizenName}\n` +
-        `📞 *Contact Number:* ${data.citizenPhone}\n` +
-        `🏢 *Department:* ${departmentName}\n` +
+        `📊 *STATUS UPDATE - ${typeLabel} RESOLVED*\n\n` +
+        `Sir/Madam,\n\n` +
+        `The following ${data.type} has been resolved by the assigned officer.\n\n` +
+        `🎫 *ID:* ${fullData.grievanceId || fullData.appointmentId}\n` +
+        `👤 *Citizen:* ${fullData.citizenName}\n` +
+        `${deptLine}\n` +
         `📊 *Status Change:* ${oldStatus} → ${newStatus}\n` +
-        `👨‍💼 *Resolved By:* ${resolvedByName}\n` +
-        `📅 *Resolved On:* ${formattedResolvedDate}${resolutionTimeTextFormatted}${remarksText}` +
-        `\n*Processing Timeline:*\n` +
-        `${data.createdAt ? `📝 Created: ${new Date(data.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}\n` : ''}` +
-        `${data.assignedAt ? `👤 Assigned: ${new Date(data.assignedAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}\n` : ''}` +
-        `✅ Resolved: ${formattedResolvedDate}\n\n` +
-        `The citizen has been notified of the resolution. This notification is for your information and records.\n\n` +
+        `👨‍💼 *Resolved By:* ${fullData.resolvedByName}\n` +
+        `📅 *Resolved On:* ${fullData.formattedResolvedDate}${resolutionTimeLine}${remarksText}\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `*${company.name}*\n` +
-        `Digital Grievance Redressal System\n` +
-        `This is an automated notification.`;
+        `Digital Grievance Redressal System`;
     }
 
     for (const user of users) {
@@ -781,24 +700,13 @@ export async function notifyHierarchyOnStatusChange(
 
       if (user.email) {
         try {
-          const emailData = {
-            companyName: company.name,
+          const emailPayload = {
+            ...fullData,
             recipientName: user.getFullName(),
-            grievanceId: data.grievanceId || data.appointmentId,
-            citizenName: data.citizenName,
-            citizenPhone: data.citizenPhone,
-            departmentName: departmentName,
-            remarks: data.remarks,
-            resolvedBy: data.resolvedBy,
-            resolvedAt: data.resolvedAt,
-            createdAt: data.createdAt,
-            assignedAt: data.assignedAt,
-            timeline: data.timeline,
             appointmentDate: (data as any).appointmentDate,
             appointmentTime: (data as any).appointmentTime
           };
-          const email = await getNotificationEmailContent(data.companyId, data.type, 'resolved', emailData);
-
+          const email = await getNotificationEmailContent(data.companyId, data.type, 'resolved', emailPayload);
           const result = await sendEmail(user.email, email.subject, email.html, email.text, { companyId: data.companyId });
           if (result.success) {
             logger.info(`✅ Email sent to ${user.getFullName()} (${user.email})`);
@@ -841,16 +749,12 @@ export async function notifyCitizenOnAppointmentStatusChange(data: {
     }
 
     const { AppointmentStatus } = await import('../config/constants');
-    
-    // Format date and time
+
     const appointmentDate = new Date(data.appointmentDate);
     const dateDisplay = appointmentDate.toLocaleDateString('en-IN', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
     });
-    
+
     const formatTime12Hr = (time: string) => {
       const [hours, minutes] = time.split(':').map(Number);
       const period = hours >= 12 ? 'PM' : 'AM';
@@ -858,99 +762,134 @@ export async function notifyCitizenOnAppointmentStatusChange(data: {
       return `${displayHours}:${String(minutes || 0).padStart(2, '0')} ${period}`;
     };
     const timeDisplay = formatTime12Hr(data.appointmentTime);
-
-    let message = '';
     const remarksText = data.remarks ? `\n\n📝 *Remarks:*\n${data.remarks}` : '';
 
-    // Different messages based on status
-    if (data.newStatus === AppointmentStatus.SCHEDULED) {
-      // Appointment has been scheduled by admin
-      message = 
-        `*${company.name}*\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-        `📅 *APPOINTMENT SCHEDULED*\n\n` +
-        `Respected ${data.citizenName},\n\n` +
-        `Your appointment request has been scheduled.\n\n` +
-        `*Appointment Details:*\n` +
-        `🎫 *Ref No:* \`${data.appointmentId}\`\n` +
-        `👤 *Name:* ${data.citizenName}\n` +
-        `📅 *Date:* ${dateDisplay}\n` +
-        `⏰ *Time:* ${timeDisplay}\n` +
-        `🎯 *Purpose:* ${data.purpose || 'Meeting with CEO'}\n` +
-        `📊 *Status:* SCHEDULED${remarksText}\n\n` +
-        `Please wait for confirmation.\n\n` +
-        `Thank you for using our services.\n\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `*${company.name}*\n` +
-        `Digital Appointment System`;
+    // Try DB template for this status event
+    const statusKey =
+      data.newStatus === AppointmentStatus.SCHEDULED  ? 'appointment_scheduled'  :
+      data.newStatus === AppointmentStatus.CONFIRMED  ? 'appointment_confirmed'  :
+      data.newStatus === AppointmentStatus.CANCELLED  ? 'appointment_cancelled'  :
+      data.newStatus === AppointmentStatus.COMPLETED  ? 'appointment_completed'  : null;
 
-    } else if (data.newStatus === AppointmentStatus.CONFIRMED) {
-      // Appointment has been confirmed by admin
-      message = 
-        `*${company.name}*\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-        `✅ *APPOINTMENT CONFIRMED*\n\n` +
-        `Respected ${data.citizenName},\n\n` +
-        `Your appointment has been confirmed and is ready.\n\n` +
-        `*Appointment Details:*\n` +
-        `🎫 *Ref No:* \`${data.appointmentId}\`\n` +
-        `👤 *Name:* ${data.citizenName}\n` +
-        `📅 *Date:* ${dateDisplay}\n` +
-        `⏰ *Time:* ${timeDisplay}\n` +
-        `🎯 *Purpose:* ${data.purpose || 'Meeting with CEO'}\n` +
-        `📊 *Status:* CONFIRMED${remarksText}\n\n` +
-        `Please arrive 15 minutes early with valid ID.\n\n` +
-        `Thank you for using our services.\n\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `*${company.name}*\n` +
-        `Digital Appointment System`;
+    const templateData: Record<string, any> = {
+      companyName: company.name,
+      citizenName: data.citizenName,
+      citizenPhone: data.citizenPhone,
+      appointmentId: data.appointmentId,
+      appointmentDate: dateDisplay,
+      appointmentTime: timeDisplay,
+      purpose: data.purpose || 'Meeting with CEO',
+      newStatus: data.newStatus,
+      remarks: data.remarks || '',
+    };
 
-    } else if (data.newStatus === AppointmentStatus.CANCELLED) {
-      // Appointment has been cancelled
-      message = 
-        `*${company.name}*\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-        `❌ *APPOINTMENT CANCELLED*\n\n` +
-        `Respected ${data.citizenName},\n\n` +
-        `We regret to inform you that your appointment request has been cancelled.\n\n` +
-        `*Appointment Details:*\n` +
-        `🎫 *Ref No:* \`${data.appointmentId}\`\n` +
-        `📅 *Date:* ${dateDisplay}\n` +
-        `⏰ *Time:* ${timeDisplay}\n` +
-        `🎯 *Purpose:* ${data.purpose || 'Meeting with CEO'}${remarksText}\n\n` +
-        `If you have any questions or would like to reschedule, please contact us.\n\n` +
-        `We apologize for any inconvenience caused.\n\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `*${company.name}*\n` +
-        `Digital Appointment System`;
+    let message: string | null = null;
 
-    } else if (data.newStatus === AppointmentStatus.COMPLETED) {
-      // Appointment completed
-      message = 
-        `*${company.name}*\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-        `✅ *APPOINTMENT COMPLETED*\n\n` +
-        `Respected ${data.citizenName},\n\n` +
-        `Your appointment has been marked as completed.\n\n` +
-        `*Appointment Details:*\n` +
-        `🎫 *Ref No:* \`${data.appointmentId}\`\n` +
-        `📅 *Date:* ${dateDisplay}\n` +
-        `⏰ *Time:* ${timeDisplay}${remarksText}\n\n` +
-        `Thank you for visiting us. We hope your concern was addressed satisfactorily.\n\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `*${company.name}*\n` +
-        `Digital Appointment System`;
+    if (statusKey) {
+      try {
+        const { default: CompanyWhatsAppTemplate } = await import('../models/CompanyWhatsAppTemplate');
+        const { replacePlaceholders } = await import('./emailService');
+        const cid = mongoose.Types.ObjectId.isValid(String(data.companyId))
+          ? new mongoose.Types.ObjectId(String(data.companyId))
+          : data.companyId;
+        const tmpl = await CompanyWhatsAppTemplate.findOne({
+          companyId: cid,
+          templateKey: statusKey,
+          isActive: true
+        });
+        if (tmpl && tmpl.message && tmpl.message.trim()) {
+          message = replacePlaceholders(tmpl.message.trim(), templateData);
+        }
+      } catch (e) { /* fallback */ }
+    }
+
+    if (!message) {
+      // Hardcoded fallback — keeps same content as before but is only used when no DB template exists
+      if (data.newStatus === AppointmentStatus.SCHEDULED) {
+        message =
+          `*${company.name}*\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+          `📅 *APPOINTMENT SCHEDULED*\n\n` +
+          `Respected ${data.citizenName},\n\n` +
+          `Your appointment request has been scheduled.\n\n` +
+          `*Appointment Details:*\n` +
+          `🎫 *Ref No:* \`${data.appointmentId}\`\n` +
+          `👤 *Name:* ${data.citizenName}\n` +
+          `📅 *Date:* ${dateDisplay}\n` +
+          `⏰ *Time:* ${timeDisplay}\n` +
+          `🎯 *Purpose:* ${data.purpose || 'Meeting with CEO'}\n` +
+          `📊 *Status:* SCHEDULED${remarksText}\n\n` +
+          `Please wait for confirmation.\n\n` +
+          `Thank you for using our services.\n\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+          `*${company.name}*\n` +
+          `Digital Appointment System`;
+
+      } else if (data.newStatus === AppointmentStatus.CONFIRMED) {
+        message =
+          `*${company.name}*\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+          `✅ *APPOINTMENT CONFIRMED*\n\n` +
+          `Respected ${data.citizenName},\n\n` +
+          `Your appointment has been confirmed and is ready.\n\n` +
+          `*Appointment Details:*\n` +
+          `🎫 *Ref No:* \`${data.appointmentId}\`\n` +
+          `👤 *Name:* ${data.citizenName}\n` +
+          `📅 *Date:* ${dateDisplay}\n` +
+          `⏰ *Time:* ${timeDisplay}\n` +
+          `🎯 *Purpose:* ${data.purpose || 'Meeting with CEO'}\n` +
+          `📊 *Status:* CONFIRMED${remarksText}\n\n` +
+          `Please arrive 15 minutes early with valid ID.\n\n` +
+          `Thank you for using our services.\n\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+          `*${company.name}*\n` +
+          `Digital Appointment System`;
+
+      } else if (data.newStatus === AppointmentStatus.CANCELLED) {
+        message =
+          `*${company.name}*\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+          `❌ *APPOINTMENT CANCELLED*\n\n` +
+          `Respected ${data.citizenName},\n\n` +
+          `We regret to inform you that your appointment request has been cancelled.\n\n` +
+          `*Appointment Details:*\n` +
+          `🎫 *Ref No:* \`${data.appointmentId}\`\n` +
+          `📅 *Date:* ${dateDisplay}\n` +
+          `⏰ *Time:* ${timeDisplay}\n` +
+          `🎯 *Purpose:* ${data.purpose || 'Meeting with CEO'}${remarksText}\n\n` +
+          `If you have any questions or would like to reschedule, please contact us.\n\n` +
+          `We apologize for any inconvenience caused.\n\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+          `*${company.name}*\n` +
+          `Digital Appointment System`;
+
+      } else if (data.newStatus === AppointmentStatus.COMPLETED) {
+        message =
+          `*${company.name}*\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+          `✅ *APPOINTMENT COMPLETED*\n\n` +
+          `Respected ${data.citizenName},\n\n` +
+          `Your appointment has been marked as completed.\n\n` +
+          `*Appointment Details:*\n` +
+          `🎫 *Ref No:* \`${data.appointmentId}\`\n` +
+          `📅 *Date:* ${dateDisplay}\n` +
+          `⏰ *Time:* ${timeDisplay}${remarksText}\n\n` +
+          `Thank you for visiting us. We hope your concern was addressed satisfactorily.\n\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+          `*${company.name}*\n` +
+          `Digital Appointment System`;
+      }
     }
 
     if (message) {
       const result = await safeSendWhatsApp(company, data.citizenWhatsApp || data.citizenPhone, message);
       if (result.success) {
-        logger.info(`✅ Appointment status notification sent to ${data.citizenName} (${data.citizenPhone})`);
+        logger.info(`✅ Appointment status notification sent to ${data.citizenName}`);
       } else {
-        logger.error(`❌ Failed to send appointment status notification to ${data.citizenName} (${data.citizenPhone}): ${result.error}`);
+        logger.error(`❌ Failed to send appointment status notification: ${result.error}`);
       }
     } else {
-      logger.warn(`⚠️ No notification message generated for status change: ${data.oldStatus} → ${data.newStatus}`);
+      logger.warn(`⚠️ No notification message generated for status: ${data.oldStatus} → ${data.newStatus}`);
     }
 
   } catch (error) {

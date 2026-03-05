@@ -1035,6 +1035,68 @@ router.post('/:id/activate', authenticate, requireSuperAdmin, async (req: Reques
 });
 
 /**
+ * @route   POST /api/chatbot-flows/:id/set-active-flow
+ * @desc    Atomically: activate this flow, deactivate all others, and replace
+ *          the company's WhatsApp config activeFlows with ONLY this flow.
+ *          Replaces the 3-step (activate + assign + unassign) with 1 click.
+ * @access  Private/SuperAdmin
+ */
+router.post('/:id/set-active-flow', authenticate, requireSuperAdmin, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid chatbot flow ID format' });
+    }
+
+    const flow = await ChatbotFlow.findById(id);
+    if (!flow) {
+      return res.status(404).json({ success: false, message: 'Chatbot flow not found' });
+    }
+
+    // 1. Deactivate ALL other flows for this company
+    await ChatbotFlow.updateMany(
+      { companyId: flow.companyId, _id: { $ne: flow._id } },
+      { isActive: false }
+    );
+
+    // 2. Activate THIS flow
+    flow.isActive = true;
+    await flow.save();
+
+    // 3. Update WhatsApp config — replace activeFlows with ONLY this flow
+    const waConfig = await CompanyWhatsAppConfig.findOne({ companyId: flow.companyId });
+    if (waConfig) {
+      waConfig.activeFlows = [{
+        flowId: flow._id,
+        flowType: flow.flowType || 'custom',
+        isActive: true,
+        priority: 0
+      }] as any;
+      await waConfig.save();
+      logger.info(`✅ WhatsApp config activeFlows updated for company ${flow.companyId}`);
+    } else {
+      logger.warn(`⚠️ No WhatsApp config found for company ${flow.companyId} — skipping activeFlows update`);
+    }
+
+    logger.info(`✅ Flow set as active: ${flow.flowId || id}`);
+
+    res.json({
+      success: true,
+      message: `"${flow.flowName}" is now the active flow`,
+      data: { flow, waConfigUpdated: !!waConfig }
+    });
+  } catch (error: any) {
+    logger.error('❌ Error setting active flow:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to set active flow',
+      error: error.message
+    });
+  }
+});
+
+/**
  * @route   POST /api/chatbot-flows/company/:companyId/generate-defaults
  * @desc    Generate default flows for a company (grievance, appointment, tracking)
  * @access  Private/SuperAdmin

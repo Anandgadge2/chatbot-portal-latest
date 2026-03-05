@@ -3,13 +3,93 @@
     "name": "Collectorate Jharsuguda Official Flow",
     "description": "Standardized trilingual flow for Grievance, Appointment, and tracking with dynamic department selection.",
     "companyId": "6989db83453881ef7ba5c778",
-    "version": 1,
+    "version": 2,
     "isActive": true
   },
   "settings": {
     "sessionTimeout": 30,
     "errorFallbackMessage": "⚠️ I'm sorry, I didn't understand that. Please use the menu buttons or type 'menu' to restart.",
-    "enableTypingIndicator": true
+    "enableTypingIndicator": true,
+
+    "commands": {
+      "stop": {
+        "keywords": ["stop", "exit", "quit", "end", "bye", "goodbye", "रोको", "बंद करो", "ବନ୍ଦ କରନ୍ତୁ"],
+        "clearSession": true,
+        "responses": {
+          "en": "🛑 *Session Ended*\n\nThank you for using Collectorate Jharsuguda services.\n\nType *Hi* anytime to start again. 🙏",
+          "hi": "🛑 *सत्र समाप्त*\n\nकलेक्टरेट झारसुगुडा सेवाओं का उपयोग करने के लिए धन्यवाद।\n\nदोबारा शुरू करने के लिए *Hi* टाइप करें। 🙏",
+          "or": "🛑 *ସେଶନ୍ ସମାପ୍ତ*\n\nଝାରସୁଗୁଡ଼ା କଲେକ୍ଟରେଟ ସେବା ବ୍ୟବହାର କରିଥିବାରୁ ଧନ୍ୟବାଦ।\n\nପୁଣି ଆରମ୍ଭ କରିବାକୁ *Hi* ଟାଇପ୍ କରନ୍ତୁ। 🙏"
+        }
+      },
+      "restart": {
+        "keywords": ["restart", "reset", "start again", "begin again", "पुनः शुरू", "फिर से शुरू", "ପୁଣି ଆରମ୍ଭ"],
+        "clearSession": true,
+        "restartFlow": true,
+        "responses": {
+          "en": "🔄 *Restarting...*\n\nLet's start fresh!",
+          "hi": "🔄 *पुनः शुरुआत...*\n\nचलिए फिर से शुरू करते हैं!",
+          "or": "🔄 *ପୁଣି ଆରମ୍ଭ...*\n\nଆସନ୍ତୁ ନୂଆ ଭାବରେ ଆରମ୍ଭ କରିବା!"
+        }
+      },
+      "menu": {
+        "keywords": ["menu", "main menu", "home", "मेनू", "मुख्य मेनू", "मेन्यू", "ମେନୁ", "ମୁଖ୍ୟ ମେନୁ"],
+        "clearSession": false,
+        "navigateTo": "language_selection",
+        "responses": {
+          "en": "🏠 *Returning to Main Menu...*",
+          "hi": "🏠 *मुख्य मेनू पर वापस...*",
+          "or": "🏠 *ମୁଖ୍ୟ ମେନୁକୁ ଫେରୁଛି...*"
+        }
+      },
+      "back": {
+        "keywords": ["back", "go back", "previous", "undo", "वापस", "पीछे", "ପଛକୁ", "ଆଗର"],
+        "clearSession": false,
+        "navigateToPrevious": true,
+        "responses": {
+          "en": "🔙 *Going back...*",
+          "hi": "🔙 *वापस जा रहे हैं...*",
+          "or": "🔙 *ପଛକୁ ଯାଉଛି...*"
+        }
+      }
+    },
+
+    "fallback": {
+      "button": {
+        "maxAttempts": 3,
+        "resendStepOnFallback": true,
+        "messages": {
+          "en": "⚠️ *Invalid selection.*\n\nPlease tap one of the buttons above to continue.\n\n_Type *menu* to go to the Main Menu or *stop* to exit._",
+          "hi": "⚠️ *अमान्य चयन।*\n\nजारी रखने के लिए ऊपर दिए गए बटनों में से किसी एक पर टैप करें।\n\n_मुख्य मेनू के लिए *menu* या बाहर निकलने के लिए *stop* टाइप करें।_",
+          "or": "⚠️ *ଅବୈଧ ଚୟନ।*\n\nଜାରି ରଖିବା ପାଇଁ ଉପରୋକ୍ତ ବଟନ୍ ଗୁଡ଼ିକ ମଧ୍ୟରୁ ଗୋଟିଏ ଟ୍ୟାପ୍ କରନ୍ତୁ।\n\n_ମୁଖ୍ୟ ମେନୁ ପାଇଁ *menu* ବା ବାହାରିବା ପାଇଁ *stop* ଟାଇପ୍ କରନ୍ତୁ।_"
+        },
+        "maxAttemptsMessage": {
+          "en": "❗ Too many invalid attempts. Returning to Main Menu...",
+          "hi": "❗ बहुत अधिक अमान्य प्रयास। मुख्य मेनू पर वापस जा रहे हैं...",
+          "or": "❗ ଅଧିକ ଅବୈଧ ଚେଷ୍ଟା। ମୁଖ୍ୟ ମେନୁକୁ ଫେରୁଛି..."
+        }
+      },
+      "list": {
+        "maxAttempts": 3,
+        "resendStepOnFallback": true,
+        "messages": {
+          "en": "⚠️ *Invalid selection.*\n\nPlease tap the *Select* button to open the menu and choose an option.\n\n_Type *menu* to go to the Main Menu or *stop* to exit._",
+          "hi": "⚠️ *अमान्य चयन।*\n\nमेनू खोलकर विकल्प चुनने के लिए *चुनें* बटन पर टैप करें।\n\n_मुख्य मेनू के लिए *menu* या बाहर निकलने के लिए *stop* टाइप करें।_",
+          "or": "⚠️ *ଅବୈଧ ଚୟନ।*\n\nମେନୁ ଖୋଲି ବିକଳ୍ପ ଚୟନ କରିବା ପାଇଁ *ବାଛନ୍ତୁ* ବଟନ୍ ଟ୍ୟାପ୍ କରନ୍ତୁ।\n\n_ମୁଖ୍ୟ ମେନୁ ପାଇଁ *menu* ବା ବାହାରିବା ପାଇଁ *stop* ଟାଇପ୍ କରନ୍ତୁ।_"
+        },
+        "maxAttemptsMessage": {
+          "en": "❗ Too many invalid attempts. Returning to Main Menu...",
+          "hi": "❗ बहुत अधिक अमान्य प्रयास। मुख्य मेनू पर वापस जा रहे हैं...",
+          "or": "❗ ଅଧିକ ଅବୈଧ ଚେଷ୍ଟା। ମୁଖ୍ୟ ମେନୁକୁ ଫେରୁଛି..."
+        }
+      },
+      "input": {
+        "messages": {
+          "en": "⚠️ *Invalid input.*\n\nPlease provide the required information to continue.\n\n_Type *menu* for Main Menu or *stop* to exit._",
+          "hi": "⚠️ *अमान्य इनपुट।*\n\nजारी रखने के लिए आवश्यक जानकारी प्रदान करें।\n\n_मुख्य मेनू के लिए *menu* या बाहर निकलने के लिए *stop* टाइप करें।_",
+          "or": "⚠️ *ଅବୈଧ ଇନ୍ପୁଟ।*\n\nଜାରି ରଖିବା ପାଇଁ ଆବଶ୍ୟକ ସୂଚନା ଦିଅନ୍ତୁ।\n\n_ମୁଖ୍ୟ ମେନୁ ପାଇଁ *menu* ବା ବାହାରିବା ପାଇଁ *stop* ଟାଇପ୍ କରନ୍ତୁ।_"
+        }
+      }
+    }
   },
   "translations": {
     "en": {
@@ -59,7 +139,7 @@
       "position": { "x": 0, "y": 600 },
       "data": {
         "label": "Start Trigger",
-        "trigger": "hi, hello, menu, start",
+        "trigger": "start",
         "triggerType": "keyword"
       }
     },
@@ -229,7 +309,7 @@
       "position": { "x": 2900, "y": 0 },
       "data": {
         "label": "Success Message (EN)",
-        "messageText": "✅ *Grievance Registered Successfully!*\n\n*Reference Number:* `{grievanceId}`\n\n👤 *Name:* {citizenName}\n🏢 *Department:* {departmentName}\n📂 *Section:* {subDepartmentName}\n📝 *Issue:* {description}\n\nYou will receive status updates via WhatsApp.\n\n---\nThank you for contacting {companyName}.\n\n📞 *For Support:*\n• Type \"Hi\" anytime for assistance\n• Type \"Help\" for helpdesk information\n• Type \"Menu\" to see all services"
+        "messageText": "✅ *Grievance Registered Successfully!*\n\n*Reference Number:* `{grievanceId}`\n\n👤 *Name:* {citizenName}\n🏢 *Department:* {departmentName}\n📂 *Sub-Department:* {subDepartmentName}\n📝 *Issue:* {description}\n\nYou will receive status updates via WhatsApp.\n\n-----------------------------------\nThank you for contacting {companyName}.\n\n📞 *For Support:*\n• Type \"Hi\" anytime for assistance\n• Type \"Help\" for helpdesk information\n• Type \"Menu\" to see all services"
       }
     },
     {

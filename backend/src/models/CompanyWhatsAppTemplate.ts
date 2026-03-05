@@ -6,18 +6,22 @@ import mongoose, { Schema, Document, Model } from 'mongoose';
  * Message supports placeholders: {citizenName}, {grievanceId}, {departmentName}, etc.
  */
 
+// Built-in system keys — companies may also add custom keys (e.g. 'grievance_escalated')
 export type WhatsAppTemplateKey =
   | 'grievance_created'
   | 'grievance_assigned'
   | 'grievance_resolved'
   | 'appointment_created'
   | 'appointment_assigned'
-  | 'appointment_resolved';
+  | 'appointment_resolved'
+  | string; // custom keys allowed
 
 export interface ICompanyWhatsAppTemplate extends Document {
   companyId: mongoose.Types.ObjectId;
-  templateKey: WhatsAppTemplateKey;
-  message: string;
+  templateKey: string;          // e.g. 'grievance_created', or custom key
+  label?: string;               // Human-readable label
+  message: string;              // Message body
+  keywords?: string[];          // For command templates (stop, restart, etc.)
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -34,17 +38,16 @@ const CompanyWhatsAppTemplateSchema: Schema = new Schema(
     templateKey: {
       type: String,
       required: true,
-      enum: [
-        'grievance_created',
-        'grievance_assigned',
-        'grievance_resolved',
-        'appointment_created',
-        'appointment_assigned',
-        'appointment_resolved'
-      ],
+      trim: true,
       index: true
+      // No enum — companies can create custom notification templates freely
+    },
+    label: {
+      type: String,
+      trim: true
     },
     message: { type: String, required: true },
+    keywords: { type: [String], default: [] },
     isActive: { type: Boolean, default: true }
   },
   { timestamps: true }

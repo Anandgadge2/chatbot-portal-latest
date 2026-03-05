@@ -499,6 +499,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                             className="absolute inset-0 w-full h-full text-left focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-inset rounded-xl"
                             aria-label={`View evidence ${index + 1} in full screen`}
                           >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={media.url}
                               alt={`Evidence ${index + 1}`}
@@ -799,6 +800,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
               className="relative flex items-center justify-center w-full h-full p-16"
               onClick={(e) => e.stopPropagation()}
             >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={fullScreenMedia.url}
                 alt={fullScreenMedia.alt || "Full screen media"}

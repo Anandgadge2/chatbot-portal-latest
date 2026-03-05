@@ -5,9 +5,22 @@ import CompanyWhatsAppTemplate from '../models/CompanyWhatsAppTemplate';
 import { authenticate } from '../middleware/auth';
 import { requireSuperAdmin } from '../middleware/rbac';
 
-const WHATSAPP_TEMPLATE_KEYS = [
-  'grievance_created', 'grievance_assigned', 'grievance_resolved',
-  'appointment_created', 'appointment_assigned', 'appointment_resolved'
+const BUILTIN_TEMPLATE_KEYS = [
+  { key: 'grievance_created',       label: 'Grievance Received (to dept admin)' },
+  { key: 'grievance_assigned',      label: 'Grievance Assigned (to assigned user)' },
+  { key: 'grievance_resolved',      label: 'Grievance Resolved (to citizen + hierarchy)' },
+  { key: 'grievance_status_update', label: 'Grievance Status Update (to citizen)' },
+  { key: 'appointment_created',     label: 'Appointment Received (to admin)' },
+  { key: 'appointment_assigned',    label: 'Appointment Assigned (to assigned user)' },
+  { key: 'appointment_resolved',    label: 'Appointment Resolved (to citizen)' },
+  { key: 'appointment_scheduled',   label: 'Appointment Scheduled (to citizen)' },
+  { key: 'appointment_confirmed',   label: 'Appointment Confirmed (to citizen)' },
+  { key: 'appointment_cancelled',   label: 'Appointment Cancelled (to citizen)' },
+  { key: 'appointment_completed',   label: 'Appointment Completed (to citizen)' },
+  { key: 'cmd_stop',                label: 'Command: Stop Flow (e.g. stop, quit)' },
+  { key: 'cmd_restart',             label: 'Command: Restart Flow (e.g. restart, start over)' },
+  { key: 'cmd_menu',                label: 'Command: Main Menu (e.g. menu, home)' },
+  { key: 'cmd_back',                label: 'Command: Go Back (e.g. back, previous)' },
 ];
 
 const router = express.Router();
@@ -536,11 +549,38 @@ router.get('/company/:companyId/templates', authenticate, async (req: Request, r
       }
       cid = company._id;
     }
-    const templates = await CompanyWhatsAppTemplate.find({ companyId: cid });
-    const byKey: Record<string, { message: string; isActive: boolean }> = {};
-    templates.forEach(t => { byKey[t.templateKey] = { message: t.message, isActive: t.isActive }; });
-    const list = WHATSAPP_TEMPLATE_KEYS.map(key => ({ templateKey: key, ...byKey[key] }));
-    res.json({ success: true, data: list });
+
+    // Fetch all saved templates for this company
+    const saved = await CompanyWhatsAppTemplate.find({ companyId: cid });
+    const byKey: Record<string, { message: string; label?: string; isActive: boolean; keywords: string[] }> = {};
+    saved.forEach(t => { 
+      byKey[t.templateKey] = { 
+        message: t.message, 
+        label: t.label, 
+        isActive: t.isActive,
+        keywords: t.keywords || [] 
+      }; 
+    });
+
+    // Start with the 6 built-in slots (always shown), then append any custom ones on top
+    const builtinKeys = BUILTIN_TEMPLATE_KEYS.map(({ key, label }) => ({
+      templateKey: key,
+      label,
+      ...byKey[key],
+    }));
+
+    // Any saved template not in the built-in list is a custom template
+    const customKeys = saved
+      .filter(t => !BUILTIN_TEMPLATE_KEYS.find(b => b.key === t.templateKey))
+      .map(t => ({ 
+        templateKey: t.templateKey, 
+        label: t.label || t.templateKey, 
+        message: t.message, 
+        keywords: t.keywords || [],
+        isActive: t.isActive 
+      }));
+
+    res.json({ success: true, data: [...builtinKeys, ...customKeys] });
   } catch (error: any) {
     res.status(500).json({
       success: false,
@@ -553,12 +593,20 @@ router.get('/company/:companyId/templates', authenticate, async (req: Request, r
 /**
  * @route   PUT /api/whatsapp-config/company/:companyId/templates
  * @desc    Upsert WhatsApp message templates for a company (superadmin only)
+ *          Accepts built-in keys AND custom keys — no restriction.
  * @access  Private/SuperAdmin
  */
 router.put('/company/:companyId/templates', authenticate, requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const { companyId } = req.params;
-    const { templates } = req.body as { templates: Array<{ templateKey: string; message: string }> };
+    const { templates } = req.body as { 
+      templates: Array<{ 
+        templateKey: string; 
+        label?: string; 
+        message: string;
+        keywords?: string[];
+      }> 
+    };
     let cid: mongoose.Types.ObjectId;
     if (mongoose.Types.ObjectId.isValid(companyId)) {
       cid = new mongoose.Types.ObjectId(companyId);
@@ -572,10 +620,17 @@ router.put('/company/:companyId/templates', authenticate, requireSuperAdmin, asy
       return res.status(400).json({ success: false, message: 'templates array required' });
     }
     for (const t of templates) {
-      if (!t.templateKey || !WHATSAPP_TEMPLATE_KEYS.includes(t.templateKey)) continue;
+      if (!t.templateKey || typeof t.templateKey !== 'string' || !t.templateKey.trim()) continue;
+      const key = t.templateKey.trim().toLowerCase().replace(/\s+/g, '_');
+      const builtinEntry = BUILTIN_TEMPLATE_KEYS.find(b => b.key === key);
       await CompanyWhatsAppTemplate.findOneAndUpdate(
-        { companyId: cid, templateKey: t.templateKey },
-        { message: t.message ?? '', isActive: true },
+        { companyId: cid, templateKey: key },
+        { 
+          message: t.message ?? '', 
+          label: t.label ?? builtinEntry?.label ?? key, 
+          keywords: Array.isArray(t.keywords) ? t.keywords : [],
+          isActive: true 
+        },
         { upsert: true, new: true }
       );
     }
@@ -587,6 +642,52 @@ router.put('/company/:companyId/templates', authenticate, requireSuperAdmin, asy
       message: 'Failed to save WhatsApp templates',
       error: error.message
     });
+  }
+});
+
+/**
+ * @route   DELETE /api/whatsapp-config/company/:companyId/templates/:templateKey
+ * @desc    Delete a custom WhatsApp template (built-in keys cannot be deleted, only cleared)
+ * @access  Private/SuperAdmin
+ */
+router.delete('/company/:companyId/templates/:templateKey', authenticate, requireSuperAdmin, async (req: Request, res: Response) => {
+  try {
+    const { companyId, templateKey } = req.params;
+    const builtinKeys = BUILTIN_TEMPLATE_KEYS.map(b => b.key);
+    if (builtinKeys.includes(templateKey)) {
+      // For built-in templates, just clear the message (don't delete the record)
+      let cid: mongoose.Types.ObjectId;
+      if (mongoose.Types.ObjectId.isValid(companyId)) {
+        cid = new mongoose.Types.ObjectId(companyId);
+      } else {
+        const Company = (await import('../models/Company')).default;
+        const company = await Company.findOne({ companyId });
+        if (!company) return res.status(404).json({ success: false, message: 'Company not found' });
+        cid = company._id;
+      }
+      await CompanyWhatsAppTemplate.findOneAndUpdate(
+        { companyId: cid, templateKey },
+        { message: '', isActive: false },
+        { upsert: false }
+      );
+      return res.json({ success: true, message: 'Built-in template cleared (will use system default)' });
+    }
+
+    // Custom template — fully delete it
+    let cid: mongoose.Types.ObjectId;
+    if (mongoose.Types.ObjectId.isValid(companyId)) {
+      cid = new mongoose.Types.ObjectId(companyId);
+    } else {
+      const Company = (await import('../models/Company')).default;
+      const company = await Company.findOne({ companyId });
+      if (!company) return res.status(404).json({ success: false, message: 'Company not found' });
+      cid = company._id;
+    }
+    const result = await CompanyWhatsAppTemplate.findOneAndDelete({ companyId: cid, templateKey });
+    if (!result) return res.status(404).json({ success: false, message: 'Template not found' });
+    res.json({ success: true, message: 'Custom template deleted' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to delete template', error: error.message });
   }
 });
 

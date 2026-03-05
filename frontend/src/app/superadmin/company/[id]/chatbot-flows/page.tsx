@@ -21,12 +21,11 @@ import {
   Copy,
   Trash2,
   Workflow,
-  PlayCircle,
-  PauseCircle,
   Eye,
   MessageSquare,
   CheckCircle,
   Loader2,
+  Zap,
 } from "lucide-react";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -243,42 +242,34 @@ export default function ChatbotFlowsPage() {
     }
   };
 
-  const handleToggleActiveFlow = async (
-    flowId: string,
-    currentActive: boolean,
-  ) => {
+  /** One-click: activate flow + deactivate others + sync WhatsApp activeFlows */
+  const handleSetActiveFlow = async (flowId: string) => {
     try {
-      setLoadingAction({ flowId, action: "toggle" });
-      if (!currentActive) {
-        const res = await apiClient.post(`/chatbot-flows/${flowId}/activate`);
-        if (res.success) {
-          toast.success(res.message || "Flow activated successfully", {
-            duration: 1500,
-          });
-          fetchData(true);
-        } else {
-          toast.error(res.message || "Failed to activate flow");
-        }
+      setLoadingAction({ flowId, action: "set-active" });
+      const res = await apiClient.post(
+        `/chatbot-flows/${flowId}/set-active-flow`,
+      );
+      if (res?.success) {
+        toast.success(
+          res.message || "Flow activated and assigned successfully",
+          {
+            duration: 2000,
+          },
+        );
+        fetchData(true);
       } else {
-        const res = await apiClient.put(`/chatbot-flows/${flowId}`, {
-          isActive: false,
-        });
-        if (res.success) {
-          toast.success(res.message || "Flow deactivated", { duration: 1500 });
-          fetchData(true);
-        } else {
-          toast.error(res.message || "Failed to deactivate flow");
-        }
+        toast.error(res?.message || "Failed to set active flow");
       }
     } catch (error: any) {
       toast.error(
-        error.response?.data?.message || "Failed to toggle flow status",
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to set active flow",
       );
     } finally {
       setLoadingAction(null);
     }
   };
-
   const handleDeleteFlow = async (flowId: string) => {
     if (!flowId) {
       toast.error("Invalid flow ID");
@@ -329,151 +320,6 @@ export default function ChatbotFlowsPage() {
         }
       },
     });
-  };
-
-  const handleAssignFlow = async (flowId: string) => {
-    try {
-      if (!whatsappConfig?._id) {
-        toast.error("Please configure WhatsApp settings first");
-        router.push(`/superadmin/company/${companyId}/whatsapp-config`);
-        return;
-      }
-
-      const flow = flows.find(
-        (f) =>
-          f._id === flowId || f.flowId === flowId || (f as any).id === flowId,
-      );
-      if (!flow) {
-        toast.error("Flow not found");
-        return;
-      }
-
-      const flowObjectId = flow._id || (flow as any).id || flow.flowId;
-      if (!flowObjectId) {
-        toast.error("Flow ID is missing. Please refresh and try again.");
-        return;
-      }
-
-      const objectIdPattern = /^[0-9a-fA-F]{24}$/;
-      if (!objectIdPattern.test(flowObjectId.toString())) {
-        toast.error(
-          `Invalid flow ID format: ${flowObjectId}. Please contact support.`,
-        );
-        return;
-      }
-
-      setLoadingAction({ flowId: flowObjectId.toString(), action: "assign" });
-
-      const res = await apiClient.post(
-        `/whatsapp-config/${whatsappConfig._id}/assign-flow`,
-        {
-          flowId: flowObjectId.toString(),
-          flowType: flow.flowType || "custom",
-          priority: 0,
-        },
-      );
-
-      if (res?.success === true) {
-        toast.success(res.message || "Flow assigned to WhatsApp successfully", {
-          duration: 1500,
-        });
-        (window as any).__assignedFlowLogged = false;
-        fetchData(true);
-      } else if (res?.data?.success) {
-        toast.success("Flow assigned to WhatsApp successfully", {
-          duration: 1500,
-        });
-        (window as any).__assignedFlowLogged = false;
-        fetchData(true);
-      } else {
-        toast.error(res?.message || "Failed to assign flow");
-      }
-    } catch (error: any) {
-      console.error("❌ Failed to assign flow:", error);
-      if (error.response?.status === 404) {
-        toast.error(
-          error.response?.data?.message || "WhatsApp configuration not found.",
-        );
-      } else if (error.response?.status === 400) {
-        const errorMsg =
-          error.response?.data?.message || "Flow assignment failed";
-        toast.error(
-          errorMsg.includes("already assigned")
-            ? "This flow is already assigned to WhatsApp"
-            : errorMsg,
-        );
-      } else {
-        toast.error(
-          error.response?.data?.message ||
-            error.message ||
-            "Failed to assign flow",
-        );
-      }
-    } finally {
-      setLoadingAction(null);
-    }
-  };
-
-  const handleUnassignFlow = async (flowId: string) => {
-    try {
-      if (!whatsappConfig?._id) {
-        toast.error("Please configure WhatsApp settings first");
-        return;
-      }
-
-      const flow = flows.find(
-        (f) =>
-          f._id === flowId || f.flowId === flowId || (f as any).id === flowId,
-      );
-      if (!flow) {
-        toast.error("Flow not found");
-        return;
-      }
-
-      const flowObjectId = flow._id || (flow as any).id || flow.flowId;
-      if (!flowObjectId) {
-        toast.error("Flow ID is missing. Please refresh and try again.");
-        return;
-      }
-
-      const objectIdPattern = /^[0-9a-fA-F]{24}$/;
-      if (!objectIdPattern.test(flowObjectId.toString())) {
-        toast.error("Invalid flow ID format. Please contact support.");
-        return;
-      }
-
-      setLoadingAction({ flowId: flowObjectId.toString(), action: "unassign" });
-
-      const res = await apiClient.delete(
-        `/whatsapp-config/${whatsappConfig._id}/flow/${flowObjectId}`,
-      );
-
-      if (res?.success === true) {
-        toast.success(
-          res.message || "Flow unassigned from WhatsApp successfully",
-          { duration: 1500 },
-        );
-        (window as any).__assignedFlowLogged = false;
-        fetchData(true);
-      } else if (res?.data?.success) {
-        toast.success("Flow unassigned from WhatsApp successfully", {
-          duration: 1500,
-        });
-        (window as any).__assignedFlowLogged = false;
-        fetchData(true);
-      } else {
-        toast.error(res?.message || "Failed to unassign flow");
-      }
-    } catch (error: any) {
-      console.error("❌ Failed to unassign flow:", error);
-      toast.error(
-        error.response?.data?.message ||
-          error.message ||
-          "Failed to unassign flow",
-      );
-    } finally {
-      setLoadingAction(null);
-    }
   };
 
   if (loading) {
@@ -536,7 +382,7 @@ export default function ChatbotFlowsPage() {
                 className="h-10 px-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all shadow-lg shadow-indigo-900/20 font-bold text-[11px] uppercase tracking-wider border-0"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Initialize Flow
+                Create Flow
               </Button>
             </div>
           </div>
@@ -819,31 +665,6 @@ export default function ChatbotFlowsPage() {
                                 </Button>
                                 <Button
                                   size="sm"
-                                  variant={
-                                    flow.isActive ? "default" : "outline"
-                                  }
-                                  onClick={() =>
-                                    handleToggleActiveFlow(
-                                      flow._id,
-                                      flow.isActive,
-                                    )
-                                  }
-                                  title={
-                                    flow.isActive ? "Deactivate" : "Activate"
-                                  }
-                                  disabled={isActionLoading(flow._id, "toggle")}
-                                  className={`rounded-xl min-w-[2.5rem] ${flow.isActive ? "bg-green-600 hover:bg-green-700 text-white" : "border-gray-200 hover:bg-gray-50"}`}
-                                >
-                                  {isActionLoading(flow._id, "toggle") ? (
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                  ) : flow.isActive ? (
-                                    <PauseCircle className="w-4 h-4" />
-                                  ) : (
-                                    <PlayCircle className="w-4 h-4" />
-                                  )}
-                                </Button>
-                                <Button
-                                  size="sm"
                                   variant="destructive"
                                   onClick={() => handleDeleteFlow(flow._id)}
                                   disabled={isActionLoading(flow._id, "delete")}
@@ -888,123 +709,39 @@ export default function ChatbotFlowsPage() {
                                   </span>
                                 )}
                               </div>
-                              {whatsappConfig &&
-                                whatsappConfig._id &&
-                                whatsappConfig.isActive &&
-                                (() => {
-                                  // Check if this flow is assigned - handle multiple ID formats
-                                  const flowId =
-                                    flow._id || (flow as any).id || flow.flowId;
-                                  const flowIdString = flowId?.toString();
-
-                                  // Check activeFlows array - handle both ObjectId, populated object, and string formats
-                                  const isAssigned =
-                                    whatsappConfig.activeFlows?.some(
-                                      (af: any) => {
-                                        if (!af || !af.flowId) return false;
-
-                                        // Handle different formats:
-                                        // 1. flowId is an ObjectId (has toString method)
-                                        // 2. flowId is a populated object (has _id property)
-                                        // 3. flowId is a string
-                                        let activeFlowId: string;
-                                        if (af.flowId?._id) {
-                                          // Populated object - use _id
-                                          activeFlowId =
-                                            af.flowId._id.toString();
-                                        } else if (af.flowId?.toString) {
-                                          // ObjectId
-                                          activeFlowId = af.flowId.toString();
-                                        } else {
-                                          // String or other
-                                          activeFlowId = String(af.flowId);
-                                        }
-
-                                        const match =
-                                          activeFlowId === flowIdString;
-
-                                        // Debug logging for troubleshooting (only log first time or when match found)
-                                        if (
-                                          match ||
-                                          (!(window as any).__flowCheckLogged &&
-                                            flowIdString)
-                                        ) {
-                                          console.log(
-                                            "🔍 Flow assignment check:",
-                                            {
-                                              flowId: flowIdString,
-                                              activeFlowId,
-                                              match,
-                                              flowIdType: typeof flowId,
-                                              activeFlowIdType:
-                                                typeof af.flowId,
-                                              activeFlowIdHas_id:
-                                                !!af.flowId?._id,
-                                              activeFlowIdHasToString:
-                                                !!af.flowId?.toString,
-                                              activeFlowRaw: af.flowId,
-                                            },
-                                          );
-                                          if (match) {
-                                            (window as any).__flowCheckLogged =
-                                              true;
-                                          }
-                                        }
-
-                                        return match;
-                                      },
-                                    ) || false;
-
-                                  return (
-                                    <div className="flex items-center gap-2">
-                                      {isAssigned ? (
-                                        <Button
-                                          size="sm"
-                                          onClick={() => {
-                                            console.log(
-                                              "🔘 Unassign button clicked for flow:",
-                                              {
-                                                _id: flow._id,
-                                                flowId: flow.flowId,
-                                                id: (flow as any).id,
-                                                flowIdString,
-                                              },
-                                            );
-                                            handleUnassignFlow(flowId);
-                                          }}
-                                          className="bg-green-100 hover:bg-green-200 text-green-700 border border-green-300 rounded-xl font-semibold"
-                                        >
-                                          <CheckCircle className="w-3.5 h-3.5 mr-1.5" />
-                                          Assigned
-                                        </Button>
-                                      ) : (
-                                        <Button
-                                          size="sm"
-                                          onClick={() =>
-                                            handleAssignFlow(flowId)
-                                          }
-                                          disabled={isActionLoading(
-                                            flowId?.toString() || "",
-                                            "assign",
-                                          )}
-                                          className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl min-w-[130px]"
-                                        >
-                                          {isActionLoading(
-                                            flowId?.toString() || "",
-                                            "assign",
-                                          ) ? (
-                                            <>
-                                              <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-                                              Assigning...
-                                            </>
-                                          ) : (
-                                            "Assign to WhatsApp"
-                                          )}
-                                        </Button>
-                                      )}
-                                    </div>
-                                  );
-                                })()}
+                              {/* Single-click flow activation — replaces the old 3-step process */}
+                              <div className="flex items-center gap-2">
+                                {flow.isActive ? (
+                                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 border border-green-200 rounded-xl text-xs font-bold">
+                                    <CheckCircle className="w-3.5 h-3.5" />
+                                    Active &amp; Live
+                                  </span>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    onClick={() =>
+                                      handleSetActiveFlow(flow._id)
+                                    }
+                                    disabled={isActionLoading(
+                                      flow._id,
+                                      "set-active",
+                                    )}
+                                    className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl min-w-[160px] font-semibold text-[11px] uppercase tracking-wider shadow-md shadow-indigo-900/20"
+                                  >
+                                    {isActionLoading(flow._id, "set-active") ? (
+                                      <>
+                                        <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                                        Activating...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Zap className="w-3.5 h-3.5 mr-1.5" />
+                                        Set as Active Flow
+                                      </>
+                                    )}
+                                  </Button>
+                                )}
+                              </div>
                             </div>
                           </CardContent>
                         </Card>

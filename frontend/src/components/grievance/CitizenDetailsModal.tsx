@@ -445,6 +445,7 @@ export default function CitizenDetailsModal({
                             }
                             className="absolute inset-0 w-full h-full text-left focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-inset rounded-xl"
                           >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={media.url}
                               alt={`Evidence ${index + 1}`}
@@ -507,6 +508,7 @@ export default function CitizenDetailsModal({
                 className="relative w-full h-full min-h-[50vh]"
                 onClick={(e) => e.stopPropagation()}
               >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={fullScreenMedia.url}
                   alt={fullScreenMedia.alt || "Full size"}

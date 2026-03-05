@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { FlowNode, FlowEdge } from "@/types/flowTypes";
 import { Button } from "@/components/ui/button";
 import {
@@ -91,20 +91,42 @@ export default function FlowSimulator({
     return nodeData[field] || "";
   };
 
+  const addMessage = useCallback(
+    (
+      type: "bot" | "user",
+      content: string,
+      buttons?: { text: string; id: string; isList?: boolean }[],
+      listConfig?: { buttonText: string; sections: any[] },
+    ) => {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `msg-${Date.now()}`,
+          type,
+          content,
+          timestamp: new Date(),
+          buttons,
+          listConfig,
+        },
+      ]);
+    },
+    [],
+  );
+
   // Start simulation
-  const startSimulation = async () => {
+  const startSimulation = useCallback(async () => {
     setIsSimulating(false);
     setMessages([]);
     setCurrentNodeId(null);
 
     // Initial system message
     addMessage("bot", `👋 Welcome! Type "hi" to begin.`);
-  };
+  }, [addMessage]);
 
   // Effect to automatically restart on first mount
   useEffect(() => {
     startSimulation();
-  }, []);
+  }, [startSimulation]);
 
   const executeNode = async (nodeId: string) => {
     const node = nodes.find((n) => n.id === nodeId);
@@ -233,25 +255,6 @@ export default function FlowSimulator({
     } else {
       setIsSimulating(false);
     }
-  };
-
-  const addMessage = (
-    type: "bot" | "user",
-    content: string,
-    buttons?: { text: string; id: string; isList?: boolean }[],
-    listConfig?: { buttonText: string; sections: any[] },
-  ) => {
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: `msg-${Date.now()}`,
-        type,
-        content,
-        timestamp: new Date(),
-        buttons,
-        listConfig,
-      },
-    ]);
   };
 
   const handleButtonClick = async (buttonText: string, buttonId: string) => {

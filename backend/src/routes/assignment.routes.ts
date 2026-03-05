@@ -207,6 +207,7 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
         citizenName: grievance.citizenName,
         citizenPhone: grievance.citizenPhone,
         departmentId: grievance.departmentId,
+        subDepartmentId: grievance.subDepartmentId,
         companyId: grievance.companyId,
         description: grievance.description,
         category: grievance.category,
