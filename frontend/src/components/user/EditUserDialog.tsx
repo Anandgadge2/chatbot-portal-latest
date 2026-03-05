@@ -47,6 +47,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
     lastName: "",
     email: "",
     phone: "",
+    designation: "",
     role: "OPERATOR",
     customRoleId: "",
     departmentId: "",
@@ -91,6 +92,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
         lastName: user.lastName || "",
         email: user.email || "",
         phone: user.phone || "",
+        designation: user.designation || "",
         role: user.role || "OPERATOR",
         customRoleId:
           typeof user.customRoleId === "object"
@@ -258,6 +260,25 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
                 }
                 required
                 placeholder="+91 98765 43210"
+                className="h-10 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-lg text-sm"
+              />
+            </div>
+
+            {/* Designation */}
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="designation"
+                className="text-[10px] font-black text-slate-500 uppercase tracking-widest"
+              >
+                Designation
+              </Label>
+              <Input
+                id="designation"
+                value={formData.designation}
+                onChange={(e) =>
+                  setFormData({ ...formData, designation: e.target.value })
+                }
+                placeholder="e.g. Collector & DM"
                 className="h-10 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-lg text-sm"
               />
             </div>

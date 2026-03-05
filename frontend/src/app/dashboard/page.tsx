@@ -3216,8 +3216,13 @@ function DashboardContent() {
                                         >
                                           {u.firstName} {u.lastName}
                                         </button>
-                                        <div className="mt-1">
-                                          <span className="text-[10px] font-mono bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border border-gray-200 uppercase tracking-tighter">
+                                        <div className="mt-1 flex flex-col gap-1">
+                                          {u.designation && (
+                                            <span className="text-[10px] font-semibold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100 uppercase tracking-wider w-fit">
+                                              {u.designation}
+                                            </span>
+                                          )}
+                                          <span className="text-[10px] font-mono bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border border-gray-200 uppercase tracking-tighter w-fit">
                                             ID: {u.userId}
                                           </span>
                                         </div>

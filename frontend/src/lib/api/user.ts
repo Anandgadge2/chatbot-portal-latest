@@ -9,6 +9,7 @@ export interface User {
   fullName?: string;
   email: string;
   phone?: string;
+  designation?: string;
   role: string;
   companyId?: string | { _id: string; name: string; companyId: string };
   departmentId?: string | { _id: string; name: string; departmentId: string };
@@ -26,6 +27,7 @@ export interface CreateUserData {
   email: string;
   password: string;
   phone?: string;
+  designation?: string;
   role: string;
   customRoleId?: string;
   companyId?: string;

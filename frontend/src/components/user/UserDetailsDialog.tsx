@@ -233,6 +233,18 @@ export default function UserDetailsDialog({
                 <div className="flex items-center gap-2 mb-2">
                   <Shield className="w-4 h-4 text-slate-500" />
                   <span className="text-xs font-semibold text-slate-500 uppercase">
+                    Designation
+                  </span>
+                </div>
+                <p className="text-sm font-bold text-gray-900">
+                  {user.designation || "N/A"}
+                </p>
+              </div>
+
+              <div className="bg-white rounded-lg p-4 border border-slate-200">
+                <div className="flex items-center gap-2 mb-2">
+                  <Shield className="w-4 h-4 text-slate-500" />
+                  <span className="text-xs font-semibold text-slate-500 uppercase">
                     Role
                   </span>
                 </div>
