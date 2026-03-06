@@ -11,7 +11,7 @@ export interface ICompany extends Document {
   /** Display name in Marathi */
   nameMr?: string;
   companyType: CompanyType;
-  enabledModules: Module[];
+  enabledModules: string[];
   contactEmail?: string;
   contactPhone?: string;
   address?: string;
@@ -50,8 +50,7 @@ const CompanySchema: Schema = new Schema(
       required: true
     },
     enabledModules: [{
-      type: String,
-      enum: Object.values(Module)
+      type: String
     }],
     contactEmail: {
       type: String,

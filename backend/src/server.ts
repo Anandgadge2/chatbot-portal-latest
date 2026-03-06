@@ -37,6 +37,7 @@ import whatsappConfigRoutes from './routes/companyWhatsAppConfig.routes';
 import emailConfigRoutes from './routes/companyEmailConfig.routes';
 import leadRoutes from './routes/lead.routes';
 import roleRoutes from './routes/role.routes';
+import moduleRoutes from './routes/module.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -211,6 +212,7 @@ app.use('/api/whatsapp-config', whatsappConfigRoutes);
 app.use('/api/email-config', emailConfigRoutes);
 app.use('/api/leads', leadRoutes);
 app.use('/api/roles', roleRoutes);
+app.use('/api/modules', moduleRoutes);
 
 // ================================
 // Error Handling

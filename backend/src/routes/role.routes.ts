@@ -50,7 +50,29 @@ router.get('/', async (req: Request, res: Response) => {
     // Attach user count per role
     const enriched = await Promise.all(
       roles.map(async (role: any) => {
-        const userCount = await User.countDocuments({ customRoleId: role._id });
+        // Count users who have this specific role assigned 
+        // OR legacy users who have the string role identifier that matches this role's key
+        // We use the companyId from the role itself or the request query
+        const targetCompanyId = role.companyId || companyId;
+        const countQuery: any = { companyId: targetCompanyId };
+        
+        if (role.key) {
+          const roleRegex = new RegExp(`^${role.key.replace(/_/g, '[\\s_]')}$`, 'i');
+          const nameRegex = new RegExp(`^${role.name.replace(/_/g, '[\\s_]')}$`, 'i');
+          countQuery.$or = [
+            { customRoleId: role._id },
+            { role: roleRegex },
+            { role: nameRegex }
+          ];
+        } else {
+          countQuery.$or = [
+            { customRoleId: role._id },
+            { role: new RegExp(`^${role.name}$`, 'i') }
+          ];
+        }
+
+        const userCount = await User.countDocuments(countQuery);
+        console.log(`[RoleCount] Role: ${role.name}, Key: ${role.key}, Company: ${targetCompanyId}, Query: ${JSON.stringify(countQuery)}, Result: ${userCount}`);
         return { ...role.toObject(), userCount };
       })
     );
@@ -73,7 +95,17 @@ router.get('/:id', async (req: Request, res: Response) => {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
-    const userCount = await User.countDocuments({ customRoleId: role._id });
+    const countQuery: any = { companyId: role.companyId };
+    if (role.key) {
+      countQuery.$or = [
+        { customRoleId: role._id },
+        { role: role.key }
+      ];
+    } else {
+      countQuery.customRoleId = role._id;
+    }
+
+    const userCount = await User.countDocuments(countQuery);
     res.json({ success: true, data: { role: { ...role.toObject(), userCount } } });
   } catch (err: any) {
     console.error('❌ GET /roles/:id error:', err);
@@ -92,7 +124,28 @@ router.get('/:id/users', async (req: Request, res: Response) => {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
-    const users = await User.find({ customRoleId: role._id }).select('-password -rawPassword').sort({ firstName: 1 });
+    const query: any = { companyId: role.companyId };
+    
+    if (role.key) {
+      const roleRegex = new RegExp(`^${role.key.replace(/_/g, '[\\s_]')}$`, 'i');
+      const nameRegex = new RegExp(`^${role.name.replace(/_/g, '[\\s_]')}$`, 'i');
+      query.$or = [
+        { customRoleId: role._id },
+        { role: roleRegex },
+        { role: nameRegex }
+      ];
+    } else {
+      query.$or = [
+        { customRoleId: role._id },
+        { role: new RegExp(`^${role.name}$`, 'i') }
+      ];
+    }
+
+    const users = await User.find(query)
+      .select('-password -rawPassword')
+      .populate('departmentId', 'name')
+      .sort({ firstName: 1 });
+
     res.json({ success: true, data: users });
   } catch (err: any) {
     console.error('❌ GET /roles/:id/users error:', err);
@@ -235,6 +288,36 @@ router.post('/:id/assign-user', async (req: Request, res: Response) => {
     res.json({ success: true, message: `Role "${role.name}" assigned to user` });
   } catch (err: any) {
     console.error('❌ POST /roles/:id/assign-user error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ─── POST /roles/seed ──────────────────────────────────────────────────────────
+
+router.post('/seed', async (req: Request, res: Response) => {
+  try {
+    const user = req.user!;
+    const { companyId } = req.body;
+
+    const targetCompanyId = companyId || user.companyId?.toString();
+    if (!targetCompanyId) {
+      return res.status(400).json({ success: false, message: 'companyId is required' });
+    }
+
+    if (!isOwnOrSuperAdmin(req, targetCompanyId)) {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+
+    const { roleService } = await import('../services/roleService');
+    const results = await roleService.seedDefaultRoles(targetCompanyId, user._id.toString());
+
+    res.json({ 
+      success: true, 
+      message: 'Default roles seeded successfully', 
+      data: { results } 
+    });
+  } catch (err: any) {
+    console.error('❌ POST /roles/seed error:', err);
     res.status(500).json({ success: false, message: err.message });
   }
 });

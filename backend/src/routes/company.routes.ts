@@ -178,7 +178,7 @@ router.post('/', requireSuperAdmin, async (req: Request, res: Response) => {
     console.log('Company created successfully:', company._id);
 
     // Create company admin if admin data is provided
-    let adminUser = null;
+    let adminUser: any = null;
     if (admin && admin.email && admin.password && admin.firstName && admin.lastName) {
       console.log('Creating admin user for company:', admin.email);
 
@@ -192,8 +192,7 @@ router.post('/', requireSuperAdmin, async (req: Request, res: Response) => {
           phone: normalizedAdminPhone || normalizedContactPhone || undefined,
           role: UserRole.COMPANY_ADMIN,
           companyId: company._id,
-          isActive: true,
-          isEmailVerified: true
+          isActive: true
         });
 
         console.log('Admin user created successfully:', adminUser._id);
@@ -202,6 +201,16 @@ router.post('/', requireSuperAdmin, async (req: Request, res: Response) => {
         // Don't fail the whole company creation if admin creation fails
         console.warn('Company created but admin user creation failed');
       }
+    }
+
+    // 5. Seed default roles for the company
+    let seededRoles = [];
+    try {
+      const { roleService } = await import('../services/roleService');
+      seededRoles = await roleService.seedDefaultRoles(company._id.toString(), req.user!._id.toString());
+      console.log(`Snapshot: Seeded ${seededRoles.length} default roles for company: ${company.name}`);
+    } catch (seedError) {
+      console.error('Failed to seed default roles:', seedError);
     }
 
     // Log company creation
@@ -214,7 +223,8 @@ router.post('/', requireSuperAdmin, async (req: Request, res: Response) => {
         { 
           companyName: company.name,
           companyType: company.companyType,
-          adminCreated: !!adminUser
+          adminCreated: !!adminUser,
+          rolesSeeded: seededRoles.length
         }
       );
     } catch (logError) {

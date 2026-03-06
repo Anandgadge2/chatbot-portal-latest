@@ -23,6 +23,7 @@ import AppointmentDetailDialog from "@/components/appointment/AppointmentDetailD
 import UserDetailsDialog from "@/components/user/UserDetailsDialog";
 import StatusUpdateModal from "@/components/grievance/StatusUpdateModal";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import RoleManagement from "@/components/roles/RoleManagement";
 import toast from "react-hot-toast";
 import {
   LineChart,
@@ -69,6 +70,7 @@ import {
   ChevronRight,
   Menu,
   X,
+  Shield,
 } from "lucide-react";
 import { Module } from "@/lib/permissions";
 import * as XLSX from "xlsx";
@@ -1019,6 +1021,12 @@ export default function CompanyDrillDown() {
             >
               Analytics
             </TabsTrigger>
+            <TabsTrigger
+              value="roles"
+              className="px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-700 transition-all"
+            >
+              Roles
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -1677,6 +1685,10 @@ export default function CompanyDrillDown() {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          <TabsContent value="roles" className="mt-0">
+            <RoleManagement companyId={companyId} />
           </TabsContent>
         </Tabs>
       </main>

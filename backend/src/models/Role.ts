@@ -15,6 +15,7 @@ export interface IPermission {
 
 export interface IRole extends Document {
   roleId: string;
+  key?: string;              // legacy identifier for system roles (e.g. 'COMPANY_ADMIN')
   companyId: mongoose.Types.ObjectId;
   name: string;
   description?: string;
@@ -34,6 +35,10 @@ const PermissionSchema = new Schema({
 const RoleSchema: Schema = new Schema(
   {
     roleId: {
+      type: String,
+      index: true
+    },
+    key: {
       type: String,
       index: true
     },
