@@ -373,6 +373,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
       }
     } else if (
       formData.role === UserRole.DEPARTMENT_ADMIN ||
+      formData.role === UserRole.SUB_DEPARTMENT_ADMIN ||
       formData.role === UserRole.OPERATOR ||
       formData.role === UserRole.ANALYTICS_VIEWER
     ) {
@@ -727,6 +728,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
 
               {/* Department field - required for DEPARTMENT_ADMIN, OPERATOR, ANALYTICS_VIEWER */}
               {(formData.role === UserRole.DEPARTMENT_ADMIN ||
+                formData.role === UserRole.SUB_DEPARTMENT_ADMIN ||
                 formData.role === UserRole.OPERATOR ||
                 formData.role === UserRole.ANALYTICS_VIEWER) && (
                 <div>
