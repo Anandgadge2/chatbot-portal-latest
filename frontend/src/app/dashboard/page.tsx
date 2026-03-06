@@ -1406,7 +1406,7 @@ function DashboardContent() {
                       </div>
                       <div className="flex items-baseline space-x-2">
                         <span className="text-2xl font-black text-slate-900 tracking-tighter leading-none">
-                          {users.length}
+                          {stats?.users ?? users.length}
                         </span>
                         <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 uppercase tracking-tighter">
                           Live
@@ -1422,7 +1422,7 @@ function DashboardContent() {
                       </div>
                       <div className="flex items-baseline space-x-2">
                         <span className="text-2xl font-black text-slate-900 tracking-tighter leading-none">
-                          {departments.length}
+                          {stats?.departments ?? departments.length}
                         </span>
                         <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 uppercase tracking-tighter">
                           Verified
