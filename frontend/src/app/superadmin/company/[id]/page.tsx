@@ -474,66 +474,49 @@ export default function CompanyDrillDown() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch company
-      const companyRes = await companyAPI.getById(companyId);
+      // Parallelize fetching to reduce total TTFB (Time To First Byte)
+      const [companyRes, deptRes, usersRes, grievancesRes, appointmentsRes] =
+        await Promise.all([
+          companyAPI.getById(companyId),
+          departmentAPI.getAll({ companyId }),
+          userAPI.getAll({ companyId }),
+          grievanceAPI.getAll({ companyId, limit: 100 }),
+          appointmentAPI.getAll({ companyId, limit: 100 }),
+        ]);
+
       if (companyRes.success) {
         setCompany(companyRes.data.company);
+        // Fetch leads if module enabled (conditional parallel)
+        if (
+          companyRes.data.company.enabledModules?.includes(Module.LEAD_CAPTURE)
+        ) {
+          fetchLeads(companyId);
+        }
+
+        // Fetch WhatsApp config (don't await it to block the main UI)
+        apiClient
+          .get(`/whatsapp-config/company/${companyId}`)
+          .then((res) => res.success && setWhatsappConfig(res.data))
+          .catch(() => {});
       }
 
-      // Fetch departments for this company
-      const deptRes = await departmentAPI.getAll({ companyId });
       if (deptRes.success) {
         setDepartments(deptRes.data.departments || []);
       }
 
-      // Fetch users for this company
-      const usersRes = await userAPI.getAll({ companyId });
       if (usersRes.success) {
         setUsers(usersRes.data.users || []);
       }
 
-      // Fetch leads if module enabled
-      if (
-        companyRes.data.company.enabledModules?.includes(Module.LEAD_CAPTURE)
-      ) {
-        await fetchLeads(companyId);
-      }
-
-      // Fetch grievances
-      const grievancesRes = await grievanceAPI.getAll({
-        companyId,
-        limit: 100,
-      });
       if (grievancesRes.success) {
         setGrievances(grievancesRes.data.grievances || []);
       }
 
-      // Fetch appointments
-      const appointmentsRes = await appointmentAPI.getAll({
-        companyId,
-        limit: 100,
-      });
       if (appointmentsRes.success) {
         setAppointments(appointmentsRes.data.appointments || []);
       }
 
-      // Fetch WhatsApp config
-      try {
-        const configRes = await apiClient.get(
-          `/whatsapp-config/company/${companyId}`,
-        );
-        if (configRes.success && configRes.data) {
-          setWhatsappConfig(configRes.data);
-        } else if (configRes.data) {
-          setWhatsappConfig(configRes.data);
-        }
-      } catch (configError: any) {
-        if (configError.response?.status !== 404) {
-          console.error("Failed to load WhatsApp config:", configError);
-        }
-      }
-
-      // Calculate stats
+      // Calculate stats using available data
       setStats({
         totalUsers: usersRes.success ? usersRes.data.users?.length || 0 : 0,
         totalDepartments: deptRes.success

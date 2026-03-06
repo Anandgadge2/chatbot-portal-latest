@@ -276,45 +276,48 @@ export default function SuperAdminDashboard() {
   );
 
   const fetchStats = async () => {
-    // Fetch each stat independently so one 403/failure doesn't block others (e.g. Users tab still loads)
-    let companies: Company[] = [];
-    let usersList: User[] = [];
-    let departmentsList: Department[] = [];
     try {
-      const companiesResponse = await companyAPI.getAll({ limit: 1000 });
-      if (companiesResponse.success) {
-        companies = companiesResponse.data.companies;
+      // Parallelize to avoid the sequential fetch bottleneck
+      const [companiesResponse, usersResponse, departmentsResponse] =
+        await Promise.all([
+          companyAPI.getAll({ limit: 1000 }).catch((e) => {
+            console.warn("Stats: companies fetch failed", e);
+            return null;
+          }),
+          userAPI.getAll({ limit: 1000 }).catch((e) => {
+            console.warn("Stats: users fetch failed", e);
+            return null;
+          }),
+          departmentAPI.getAll({ limit: 1000 }).catch((e) => {
+            console.warn("Stats: depts fetch failed", e);
+            return null;
+          }),
+        ]);
+
+      const companies = companiesResponse?.success
+        ? companiesResponse.data.companies
+        : [];
+      const usersList = usersResponse?.success ? usersResponse.data.users : [];
+      const departmentsList = departmentsResponse?.success
+        ? departmentsResponse.data.departments
+        : [];
+
+      if (companiesResponse?.success) {
         setAllCompanies(companies);
       }
-    } catch (e) {
-      console.warn("Stats: companies fetch failed", e);
-    }
-    try {
-      const usersResponse = await userAPI.getAll({ limit: 1000 });
-      if (usersResponse.success) usersList = usersResponse.data.users;
-    } catch (e) {
-      console.warn("Stats: users fetch failed", e);
-    }
-    try {
-      const departmentsResponse = await departmentAPI.getAll({ limit: 1000 });
-      if (departmentsResponse.success)
-        departmentsList = departmentsResponse.data.departments;
-    } catch (e) {
-      console.warn("Stats: departments fetch failed", e);
-    }
 
-    const activeCompanies = companies.filter((c) => c.isActive).length;
-    const activeUsers = usersList.filter((u) => u.isActive).length;
-
-    setStats({
-      companies: companies.length,
-      users: usersList.length,
-      departments: departmentsList.length,
-      activeCompanies,
-      activeUsers,
-      totalSessions: Math.floor(Math.random() * 100) + 50, // Mock data for now
-      systemStatus: "operational",
-    });
+      setStats({
+        companies: companies.length,
+        users: usersList.length,
+        departments: departmentsList.length,
+        activeCompanies: companies.filter((c: Company) => c.isActive).length,
+        activeUsers: usersList.filter((u: User) => u.isActive).length,
+        totalSessions: Math.floor(Math.random() * 100) + 50, // Mock data for now
+        systemStatus: "operational",
+      });
+    } catch (e) {
+      console.error("Critical error in fetchStats", e);
+    }
   };
 
   const handleDeleteCompany = (company: Company) => {
