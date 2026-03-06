@@ -92,11 +92,15 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
           : "",
       });
 
-      const companyId = currentUser?.companyId
-        ? typeof currentUser.companyId === "object"
-          ? (currentUser.companyId as any)._id
-          : currentUser.companyId
-        : "";
+      const companyId = user?.companyId
+        ? typeof user.companyId === "object"
+          ? (user.companyId as any)._id
+          : user.companyId
+        : currentUser?.companyId
+          ? typeof currentUser.companyId === "object"
+            ? (currentUser.companyId as any)._id
+            : currentUser.companyId
+          : "";
 
       if (companyId) {
         fetchCustomRoles(companyId);
@@ -123,7 +127,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
       const submissionData = {
         ...formData,
         role: submissionRole,
-        customRoleId: submissionCustomRoleId || undefined,
+        customRoleId: submissionCustomRoleId || null,
       };
 
       await userAPI.update(user._id, submissionData);
@@ -326,11 +330,26 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
                   required
                 >
                   <option value="" disabled>Select a role</option>
-                  {getAllPossibleRoles().map((role: { value: string; label: string }) => (
-                    <option key={role.value} value={role.value}>
-                      {role.label}
-                    </option>
-                  ))}
+                  <optgroup label="Standard Roles">
+                    {getAllPossibleRoles()
+                      .filter((r: any) => !r.value.startsWith("CUSTOM:"))
+                      .map((role: { value: string; label: string }) => (
+                        <option key={role.value} value={role.value}>
+                          {role.label}
+                        </option>
+                      ))}
+                  </optgroup>
+                  {getAllPossibleRoles().some((r: any) => r.value.startsWith("CUSTOM:")) && (
+                    <optgroup label="Custom Roles">
+                      {getAllPossibleRoles()
+                        .filter((r: any) => r.value.startsWith("CUSTOM:"))
+                        .map((role: { value: string; label: string }) => (
+                          <option key={role.value} value={role.value}>
+                            {role.label}
+                          </option>
+                        ))}
+                    </optgroup>
+                  )}
                 </select>
               </div>
 

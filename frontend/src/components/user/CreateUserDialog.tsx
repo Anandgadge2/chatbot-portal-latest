@@ -185,7 +185,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
             );
           }
         } else if (user?.role === UserRole.DEPARTMENT_ADMIN) {
-          // DepartmentAdmin: only show their department
+          // DepartmentAdmin: show their department and all its sub-departments
           const userDepartmentId = user?.departmentId
             ? typeof user.departmentId === "object"
               ? user.departmentId._id
@@ -194,7 +194,14 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
           if (userDepartmentId) {
             filteredDepartments = response.data.departments.filter(
               (dept: Department) => {
-                return dept._id === userDepartmentId;
+                const deptId = dept._id?.toString() || dept._id;
+                const parentId =
+                  typeof dept.parentDepartmentId === "object"
+                    ? dept.parentDepartmentId?._id
+                    : dept.parentDepartmentId;
+                const parentIdStr = parentId?.toString() || parentId;
+
+                return deptId === userDepartmentId || parentIdStr === userDepartmentId;
               },
             );
           }
@@ -404,7 +411,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
       const submissionData = {
         ...formData,
         role: submissionRole,
-        customRoleId: submissionCustomRoleId || undefined,
+        customRoleId: submissionCustomRoleId || null,
         companyId: formData.companyId || undefined,
         departmentId: formData.departmentId || undefined,
       };
@@ -664,11 +671,26 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
                   required
                 >
                   <option value="" disabled>Select a role</option>
-                  {getAllPossibleRoles().map((role: { value: string; label: string }) => (
-                    <option key={role.value} value={role.value}>
-                      {role.label}
-                    </option>
-                  ))}
+                  <optgroup label="Standard Roles">
+                    {getAllPossibleRoles()
+                      .filter((r: any) => !r.value.startsWith("CUSTOM:"))
+                      .map((role: { value: string; label: string }) => (
+                        <option key={role.value} value={role.value}>
+                          {role.label}
+                        </option>
+                      ))}
+                  </optgroup>
+                  {getAllPossibleRoles().some((r: any) => r.value.startsWith("CUSTOM:")) && (
+                    <optgroup label="Custom Roles">
+                      {getAllPossibleRoles()
+                        .filter((r: any) => r.value.startsWith("CUSTOM:"))
+                        .map((role: { value: string; label: string }) => (
+                          <option key={role.value} value={role.value}>
+                            {role.label}
+                          </option>
+                        ))}
+                    </optgroup>
+                  )}
                 </select>
               </div>
 
@@ -734,7 +756,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
                 <div>
                   <Label htmlFor="departmentId">Department *</Label>
                   {/* For Department Admin - show auto-selected department */}
-                  {user?.role === UserRole.DEPARTMENT_ADMIN ? (
+                  {user?.role === UserRole.DEPARTMENT_ADMIN && departments.length <= 1 ? (
                     <div className="w-full p-2 border rounded-md bg-gradient-to-r from-slate-50 to-purple-50 text-slate-700 font-medium flex items-center gap-2">
                       <Building className="w-4 h-4 text-purple-500" />
                       {departments.find((d) => d._id === formData.departmentId)

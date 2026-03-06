@@ -3374,13 +3374,15 @@ function DashboardContent() {
                                           className={`px-2.5 py-0.5 inline-flex items-center text-[10px] font-bold rounded-full border shadow-sm ${
                                             u.role === "COMPANY_ADMIN"
                                               ? "bg-red-50 text-red-700 border-red-100 ring-1 ring-red-200"
-                                              : (u.role === "DEPARTMENT_ADMIN" && typeof u.departmentId === "object" && (u.departmentId as any)?.parentDepartmentId) || u.role === "SUB_DEPARTMENT_ADMIN"
-                                                ? "bg-purple-50 text-purple-700 border-purple-100 ring-1 ring-purple-200"
-                                                : u.role === "DEPARTMENT_ADMIN"
-                                                  ? "bg-blue-50 text-blue-700 border-blue-100 ring-1 ring-blue-200"
-                                                  : u.role === "OPERATOR"
-                                                    ? "bg-emerald-50 text-emerald-700 border-emerald-100 ring-1 ring-emerald-200"
-                                                    : "bg-slate-50 text-slate-700 border-slate-200"
+                                              : (typeof u.customRoleId === "object" && u.customRoleId)
+                                                ? "bg-indigo-50 text-indigo-700 border-indigo-100 ring-1 ring-indigo-200"
+                                                : (u.role === "DEPARTMENT_ADMIN" && typeof u.departmentId === "object" && (u.departmentId as any)?.parentDepartmentId) || u.role === "SUB_DEPARTMENT_ADMIN"
+                                                  ? "bg-purple-50 text-purple-700 border-purple-100 ring-1 ring-purple-200 shadow-purple-900/5"
+                                                  : u.role === "DEPARTMENT_ADMIN"
+                                                    ? "bg-blue-50 text-blue-700 border-blue-100 ring-1 ring-blue-200"
+                                                    : u.role === "OPERATOR"
+                                                      ? "bg-emerald-50 text-emerald-700 border-emerald-100 ring-1 ring-emerald-200"
+                                                      : "bg-slate-50 text-slate-700 border-slate-200"
                                           }`}
                                         >
                                           <Shield className="w-2.5 h-2.5 mr-1" />
@@ -3396,12 +3398,26 @@ function DashboardContent() {
                                               : (u.role || "").replace(/_/g, " ")}
                                         </span>
                                       </div>
-                                      <div className="flex items-center text-xs text-gray-500 font-medium ml-1">
-                                        <Building className="w-3.5 h-3.5 mr-1.5 text-gray-400" />
-                                        {typeof u.departmentId === "object" &&
-                                        u.departmentId
-                                          ? u.departmentId.name
-                                          : "All Company Access"}
+                                      <div className="flex flex-col gap-1 ml-1">
+                                        <div className="flex items-center text-xs text-slate-600 font-bold group-hover/row:text-indigo-900 transition-colors">
+                                          <Building className="w-3.5 h-3.5 mr-1.5 text-slate-400 group-hover/row:text-indigo-400 transition-colors" />
+                                          {typeof u.departmentId === "object" && u.departmentId
+                                            ? u.departmentId.name
+                                            : "All Company Access"}
+                                        </div>
+                                        {/* Show permissions summary for custom roles */}
+                                        {typeof u.customRoleId === "object" && u.customRoleId && (u.customRoleId as any).permissions?.length > 0 && (
+                                          <div className="flex flex-wrap gap-1 mt-0.5">
+                                            {(u.customRoleId as any).permissions.slice(0, 3).map((p: any, i: number) => (
+                                              <span key={i} className="text-[8px] font-black text-indigo-400 bg-indigo-50/50 px-1 py-px rounded uppercase tracking-tighter border border-indigo-100/50">
+                                                {p.module?.replace(/_/g, ' ')}
+                                              </span>
+                                            ))}
+                                            {(u.customRoleId as any).permissions.length > 3 && (
+                                              <span className="text-[8px] font-black text-slate-300">+{ (u.customRoleId as any).permissions.length - 3 } more</span>
+                                            )}
+                                          </div>
+                                        )}
                                       </div>
                                     </div>
                                   </td>

@@ -89,6 +89,7 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
     const users = await User.find(query)
       .populate('companyId', 'name companyId')
       .populate('departmentId', 'name departmentId')
+      .populate('customRoleId', 'name')
       .limit(Number(limit))
       .skip((Number(page) - 1) * Number(limit))
       .sort({ createdAt: -1 });
@@ -384,7 +385,22 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
       );
       console.log('✅ Audit log created');
     } catch (auditError: any) {
-      console.error('⚠️  Audit logging failed (non-critical):', auditError.message);
+      console.error('⚠️ Audit logging failed (non-critical):', auditError.message);
+    }
+
+    // Automatically update department contact info if role is Admin
+    if ((role === UserRole.DEPARTMENT_ADMIN || role === UserRole.SUB_DEPARTMENT_ADMIN) && departmentId) {
+      try {
+        const Department = (await import('../models/Department')).default;
+        await Department.findByIdAndUpdate(departmentId, {
+          contactPerson: `${firstName} ${lastName}`,
+          contactEmail: email.toLowerCase().trim(),
+          contactPhone: normalizedPhone
+        });
+        console.log(`✅ Updated department ${departmentId} contact info with admin details`);
+      } catch (deptUpdateError: any) {
+        console.error('⚠️ Failed to update department contact info (non-critical):', deptUpdateError.message);
+      }
     }
 
     return res.status(201).json({
@@ -424,6 +440,7 @@ router.get('/:id', requirePermission(Permission.READ_USER), async (req: Request,
     const user = await User.findById(req.params.id)
       .populate('companyId', 'name companyId')
       .populate('departmentId', 'name departmentId')
+      .populate('customRoleId', 'name')
       .select('-password');
 
     if (!user) {
@@ -519,13 +536,13 @@ router.put('/:id', requirePermission(Permission.UPDATE_USER), async (req: Reques
 
     // Clean up empty strings for ID fields
     if (req.body.companyId === '') {
-      req.body.companyId = undefined;
+      req.body.companyId = null;
     }
     if (req.body.departmentId === '') {
-      req.body.departmentId = undefined;
+      req.body.departmentId = null;
     }
     if (req.body.customRoleId === '') {
-      req.body.customRoleId = undefined;
+      req.body.customRoleId = null;
     }
 
     // Check access based on company/department
@@ -725,11 +742,14 @@ router.put('/:id', requirePermission(Permission.UPDATE_USER), async (req: Reques
       req.body.phone = normalizedPhone;
     }
 
-    const user = await User.findByIdAndUpdate(
+    let user = await User.findByIdAndUpdate(
       req.params.id,
       req.body,
       { new: true, runValidators: true }
-    ).select('-password');
+    ).select('-password')
+     .populate('companyId', 'name companyId')
+     .populate('departmentId', 'name departmentId')
+     .populate('customRoleId', 'name');
 
     await logUserAction(
       req,
@@ -738,6 +758,21 @@ router.put('/:id', requirePermission(Permission.UPDATE_USER), async (req: Reques
       user!._id.toString(),
       { updates: req.body }
     );
+
+    // Automatically update department contact info if role is/changed to Admin or department changed
+    if (user && (user.role === UserRole.DEPARTMENT_ADMIN || user.role === UserRole.SUB_DEPARTMENT_ADMIN) && user.departmentId) {
+      try {
+        const Department = (await import('../models/Department')).default;
+        await Department.findByIdAndUpdate(user.departmentId, {
+          contactPerson: `${user.firstName} ${user.lastName}`,
+          contactEmail: user.email,
+          contactPhone: user.phone
+        });
+        console.log(`✅ Updated department ${user.departmentId} contact info with admin details`);
+      } catch (deptUpdateError: any) {
+        console.error('⚠️ Failed to update department contact info (non-critical):', deptUpdateError.message);
+      }
+    }
 
     res.json({
       success: true,

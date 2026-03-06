@@ -29,9 +29,13 @@ export interface CreateUserData {
   phone?: string;
   designation?: string;
   role: string;
-  customRoleId?: string;
+  customRoleId?: string | null;
   companyId?: string;
   departmentId?: string;
+}
+
+export interface UpdateUserData extends Omit<Partial<CreateUserData>, 'customRoleId'> {
+  customRoleId?: string | null;
 }
 
 export interface UsersResponse {
@@ -75,7 +79,7 @@ export const userAPI = {
     return apiClient.post('/users', data);
   },
 
-  update: async (id: string, data: Partial<CreateUserData>): Promise<{ success: boolean; data: { user: User } }> => {
+  update: async (id: string, data: UpdateUserData): Promise<{ success: boolean; data: { user: User } }> => {
     return apiClient.put(`/users/${id}`, data);
   },
 
