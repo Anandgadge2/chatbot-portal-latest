@@ -1242,7 +1242,7 @@ function DashboardContent() {
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
               {!isOperator && !isAnalyticsViewer ? (
                 <>
-                  {hasModule(Module.GRIEVANCE) && (
+                  {hasModule(Module.GRIEVANCE) && hasPermission(user, Permission.READ_GRIEVANCE) && (
                     <Card
                       className="group relative overflow-hidden bg-white border border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer rounded-xl h-[85px]"
                       onClick={() => setActiveTab("grievances")}
@@ -1270,7 +1270,7 @@ function DashboardContent() {
                     </Card>
                   )}
 
-                  {hasModule(Module.GRIEVANCE) && (
+                  {hasModule(Module.GRIEVANCE) && hasPermission(user, Permission.READ_GRIEVANCE) && (
                     <Card
                       className="group relative overflow-hidden bg-white border border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer rounded-xl h-[85px]"
                       onClick={() => {
@@ -1304,7 +1304,7 @@ function DashboardContent() {
                     </Card>
                   )}
 
-                  {hasModule(Module.GRIEVANCE) && (
+                  {hasModule(Module.GRIEVANCE) && hasPermission(user, Permission.READ_GRIEVANCE) && (
                     <Card
                       className="group relative overflow-hidden bg-white border border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer rounded-xl h-[85px]"
                       onClick={() => {
@@ -1339,7 +1339,7 @@ function DashboardContent() {
                   )}
 
                   {hasModule(Module.APPOINTMENT) &&
-                    (isCompanyAdmin || isDepartmentAdmin) && (
+                    hasPermission(user, Permission.READ_APPOINTMENT) && (
                       <Card
                         className="group relative overflow-hidden bg-white border border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer rounded-xl h-[85px]"
                         onClick={() => setActiveTab("appointments")}
@@ -1455,32 +1455,36 @@ function DashboardContent() {
                   <div className="bg-slate-50/50 p-4 border-t border-slate-100">
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
                       <div className="flex items-center space-x-4">
-                        <div className="flex flex-col bg-white border border-slate-200/60 rounded-xl p-3 shadow-sm min-w-[140px]">
-                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
-                            Grievances
-                          </span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xl font-black text-slate-900 tracking-tighter">
-                              {stats?.grievances.total || 0}
+                        {hasModule(Module.GRIEVANCE) && hasPermission(user, Permission.READ_GRIEVANCE) && (
+                          <div className="flex flex-col bg-white border border-slate-200/60 rounded-xl p-3 shadow-sm min-w-[140px]">
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                              Grievances
                             </span>
-                            <span className="text-[9px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">
-                              {stats?.grievances.pending || 0} Open
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xl font-black text-slate-900 tracking-tighter">
+                                {stats?.grievances.total || 0}
+                              </span>
+                              <span className="text-[9px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">
+                                {stats?.grievances.pending || 0} Open
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex flex-col bg-white border border-slate-200/60 rounded-xl p-3 shadow-sm min-w-[140px]">
-                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
-                            Appointments
-                          </span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xl font-black text-slate-900 tracking-tighter">
-                              {stats?.appointments.total || 0}
+                        )}
+                        {hasModule(Module.APPOINTMENT) && hasPermission(user, Permission.READ_APPOINTMENT) && (
+                          <div className="flex flex-col bg-white border border-slate-200/60 rounded-xl p-3 shadow-sm min-w-[140px]">
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                              Appointments
                             </span>
-                            <span className="text-[9px] font-bold text-violet-600 bg-violet-50 px-1.5 py-0.5 rounded border border-violet-100">
-                              {stats?.appointments.confirmed || 0} High
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xl font-black text-slate-900 tracking-tighter">
+                                {stats?.appointments.total || 0}
+                              </span>
+                              <span className="text-[9px] font-bold text-violet-600 bg-violet-50 px-1.5 py-0.5 rounded border border-violet-100">
+                                {stats?.appointments.confirmed || 0} High
+                              </span>
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </div>
                       <div className="flex items-center space-x-2 bg-white px-3 py-1.5 rounded-lg border border-slate-200/60 shadow-sm">
                         <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
@@ -1658,36 +1662,41 @@ function DashboardContent() {
 
                           {/* Department Stats */}
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-                            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm group hover:shadow-md transition-all">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">
-                                    Inundations
-                                  </p>
-                                  <p className="text-2xl font-black text-slate-900 tracking-tighter mt-1">
-                                    {stats?.grievances.total || 0}
-                                  </p>
-                                </div>
-                                <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform">
-                                  <FileText className="w-5 h-5" />
-                                </div>
-                              </div>
-                            </div>
-                            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm group hover:shadow-md transition-all">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">
-                                    Bookings
-                                  </p>
-                                  <p className="text-2xl font-black text-slate-900 tracking-tighter mt-1">
-                                    {stats?.appointments.total || 0}
-                                  </p>
-                                </div>
-                                <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center text-purple-600 group-hover:scale-110 transition-transform">
-                                  <CalendarClock className="w-5 h-5" />
+                            {hasModule(Module.GRIEVANCE) && hasPermission(user, Permission.READ_GRIEVANCE) && (
+                              <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm group hover:shadow-md transition-all">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">
+                                      {/* Inundations changed to Grievances for clarity, or kept if preferred */}
+                                      Grievances
+                                    </p>
+                                    <p className="text-2xl font-black text-slate-900 tracking-tighter mt-1">
+                                      {stats?.grievances.total || 0}
+                                    </p>
+                                  </div>
+                                  <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform">
+                                    <FileText className="w-5 h-5" />
+                                  </div>
                                 </div>
                               </div>
-                            </div>
+                            )}
+                            {hasModule(Module.APPOINTMENT) && hasPermission(user, Permission.READ_APPOINTMENT) && (
+                              <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm group hover:shadow-md transition-all">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">
+                                      Bookings
+                                    </p>
+                                    <p className="text-2xl font-black text-slate-900 tracking-tighter mt-1">
+                                      {stats?.appointments.total || 0}
+                                    </p>
+                                  </div>
+                                  <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center text-purple-600 group-hover:scale-110 transition-transform">
+                                    <CalendarClock className="w-5 h-5" />
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                             <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm group hover:shadow-md transition-all">
                               <div className="flex items-center justify-between">
                                 <div>
