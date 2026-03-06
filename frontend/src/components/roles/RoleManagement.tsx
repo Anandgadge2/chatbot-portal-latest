@@ -80,6 +80,11 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
   );
   const [fetchingUsers, setFetchingUsers] = useState(false);
 
+  // -- Bulk Select State --
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [showBulkConfirm, setShowBulkConfirm] = useState(false);
+
   // ─── Form State ─────────────────────────────────────────────────────────────
 
   const emptyForm = {
@@ -121,8 +126,10 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
     try {
       setLoading(true);
       const data = await apiClient.get(`/roles?companyId=${companyId}`);
-      if (data.success) setRoles(data.data.roles);
-      else toast.error(data.message || "Failed to fetch roles");
+      if (data.success) {
+        setRoles(data.data.roles);
+        setSelectedIds(new Set()); // Clear selection on refresh
+      } else toast.error(data.message || "Failed to fetch roles");
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Error fetching roles");
     } finally {
@@ -134,6 +141,67 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
     fetchRoles();
     fetchModules();
   }, [fetchRoles, fetchModules]);
+
+  // -- Bulk Selection Helpers --
+  const filtered = roles.filter((r) =>
+    r.name.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  const allSelected = filtered.length > 0 && selectedIds.size === filtered.length;
+  const someSelected = selectedIds.size > 0 && !allSelected;
+
+  const toggleAll = () => {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filtered.map(r => r._id)));
+    }
+  };
+
+  const toggleOne = (id: string) => {
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedIds(next);
+  };
+
+  const handleBulkDelete = async () => {
+    const idsToDelete = Array.from(selectedIds);
+    const roleObjects = roles.filter(r => selectedIds.has(r._id));
+    
+    // Safety check for system roles
+    if (roleObjects.some(r => r.isSystem)) {
+      toast.error("Some selected items are system roles and cannot be deleted");
+      return;
+    }
+
+    try {
+      setBulkDeleting(true);
+      let successCount = 0;
+      let failCount = 0;
+
+      for (const id of idsToDelete) {
+        try {
+          const res = await apiClient.delete(`/roles/${id}`);
+          if (res.success) successCount++;
+          else failCount++;
+        } catch {
+          failCount++;
+        }
+      }
+
+      if (successCount > 0) toast.success(`Successfully deleted ${successCount} roles`);
+      if (failCount > 0) toast.error(`Failed to delete ${failCount} roles`);
+      
+      setShowBulkConfirm(false);
+      setSelectedIds(new Set());
+      fetchRoles();
+    } catch (err) {
+      toast.error("Bulk delete failed");
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
 
   // ─── Permissions Helpers ──────────────────────────────────────────────────────
 
@@ -265,10 +333,6 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
     setShowForm(true);
   };
 
-  const filtered = roles.filter((r) =>
-    r.name.toLowerCase().includes(search.toLowerCase()),
-  );
-
   // ─── Render ───────────────────────────────────────────────────────────────────
 
   return (
@@ -286,16 +350,25 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
             </p>
           </div>
         </div>
-        <button
-          onClick={() => {
-            setShowForm(true);
-            setEditingRole(null);
-            setForm(emptyForm);
-          }}
-          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-        >
-          <Plus className="w-4 h-4" /> New Role
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => fetchRoles()}
+            className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+            title="Refresh Data"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+          </button>
+          <button
+            onClick={() => {
+              setShowForm(true);
+              setEditingRole(null);
+              setForm(emptyForm);
+            }}
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            <Plus className="w-4 h-4" /> New Role
+          </button>
+        </div>
       </div>
 
       {/* Search */}
@@ -307,22 +380,88 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
           placeholder="Search roles..."
           className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
         />
-        <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
       </div>
 
+      {/* Bulk Action Bar */}
+      {selectedIds.size > 0 && (
+        <div className="px-5 py-3 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center justify-between animate-in slide-in-from-top-2 duration-300 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-xs shadow-md">
+              {selectedIds.size}
+            </div>
+            <div>
+              <p className="text-xs font-black text-indigo-900 uppercase tracking-tighter">
+                Authority Units Selected
+              </p>
+              <p className="text-[10px] text-indigo-600 font-bold uppercase tracking-widest">
+                Prepare for mass execution
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 px-4 py-2 transition-colors"
+            >
+              Cancel Selection
+            </button>
+            {showBulkConfirm ? (
+              <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-2">
+                <span className="text-[10px] font-black text-red-600 uppercase tracking-widest bg-red-50 px-3 py-2 rounded-lg border border-red-100">
+                  Are you absolutely sure?
+                </span>
+                <button
+                  onClick={handleBulkDelete}
+                  disabled={bulkDeleting}
+                  className="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-lg text-xs font-black uppercase tracking-widest shadow-lg shadow-red-200 transition-all active:scale-95 disabled:opacity-50"
+                >
+                  {bulkDeleting ? "Executing..." : "Confirm Delete"}
+                </button>
+                <button
+                  onClick={() => setShowBulkConfirm(false)}
+                  className="text-slate-400 hover:text-slate-600 p-2"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowBulkConfirm(true)}
+                className="bg-red-50 hover:bg-red-600 text-red-600 hover:text-white border border-red-200 px-5 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all active:scale-95 flex items-center gap-2"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Mass Delete
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* List */}
-      {loading ? (
+      {loading && roles.length === 0 ? (
         <div className="text-center py-12 text-slate-500">Loading roles…</div>
       ) : (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
           <table className="w-full">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase w-12">
+                <th className="px-4 py-3 w-12 text-center">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    ref={(el) => {
+                      if (el) el.indeterminate = someSelected;
+                    }}
+                    onChange={toggleAll}
+                    className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                  />
+                </th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase w-12 text-center">
                   SR
                 </th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">
-                  Name
+                  Name & Description
                 </th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">
                   Users
@@ -335,7 +474,7 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="text-center py-20 text-slate-400">
+                  <td colSpan={5} className="text-center py-20 text-slate-400">
                     <div className="flex flex-col items-center gap-3">
                       <Shield className="w-10 h-10 text-slate-200" />
                       <div>
@@ -381,15 +520,23 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
                 filtered.map((role, i) => (
                   <tr
                     key={role._id}
-                    className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
+                    className={`border-b border-slate-100 hover:bg-slate-50 transition-colors ${selectedIds.has(role._id) ? "bg-indigo-50/40" : ""}`}
                   >
-                    <td className="px-4 py-3">
-                      <div className="w-7 h-7 rounded-lg bg-slate-800 text-white text-xs font-bold flex items-center justify-center">
+                    <td className="px-4 py-3 text-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(role._id)}
+                        onChange={() => toggleOne(role._id)}
+                        className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                      />
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <div className="text-[11px] font-black text-slate-400">
                         {i + 1}
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="font-medium text-slate-800 flex items-center gap-2">
+                      <div className="font-bold text-slate-800 flex items-center gap-2">
                         {role.name}
                         {role.isSystem && (
                           <span className="px-1.5 py-0.5 bg-indigo-100 text-indigo-600 text-[9px] font-black uppercase rounded border border-indigo-200">
@@ -397,7 +544,7 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
                           </span>
                         )}
                       </div>
-                      <div className="text-xs text-slate-500 max-w-xs truncate">
+                      <div className="text-[11px] text-slate-500 max-w-xs truncate font-medium">
                         {role.description ||
                           (role.isSystem
                             ? "Default system role"
@@ -405,11 +552,11 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
                       </div>
 
                       {/* Permission Badges */}
-                      <div className="flex flex-wrap gap-1 mt-1.5">
+                      <div className="flex flex-wrap gap-1 mt-2">
                         {role.permissions.map((p) => (
                           <span
                             key={p.module}
-                            className="px-1.5 py-0.5 bg-slate-100 rounded text-[8px] font-bold text-slate-500 border border-slate-200 uppercase"
+                            className="px-1.5 py-0.5 bg-slate-50 rounded text-[8px] font-black text-slate-400 border border-slate-200 uppercase tracking-tighter"
                             title={p.actions.join(", ")}
                           >
                             {p.module}
@@ -461,18 +608,18 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => openEdit(role)}
-                          className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors"
+                          className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-white hover:shadow-sm transition-all border border-transparent hover:border-slate-200"
                           title="Edit"
                         >
-                          <Pencil className="w-4 h-4" />
+                          <Pencil className="w-3.5 h-3.5" />
                         </button>
                         {!role.isSystem && (
                           <button
                             onClick={() => handleDelete(role)}
-                            className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                            className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-white hover:shadow-sm transition-all border border-transparent hover:border-slate-200"
                             title="Delete"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         )}
                       </div>

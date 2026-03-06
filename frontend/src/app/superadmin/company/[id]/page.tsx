@@ -92,6 +92,7 @@ export default function CompanyDrillDown() {
     pendingGrievances: 0,
     resolvedGrievances: 0,
   });
+  const [deptUserCounts, setDeptUserCounts] = useState<Record<string, number>>({});
   const [leads, setLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingLeads, setLoadingLeads] = useState(false);
@@ -212,6 +213,23 @@ export default function CompanyDrillDown() {
           pendingGrievances: 0,
           resolvedGrievances: 0,
         });
+      }
+
+      // Fetch all users for this company to calculate accurate department counts (Super Admin view)
+      try {
+        const companyUsersRes = await userAPI.getAll({ companyId, limit: 1000 });
+        if (companyUsersRes.success) {
+          const counts: Record<string, number> = {};
+          for (const u of companyUsersRes.data.users) {
+            const dId = typeof u.departmentId === "object" && u.departmentId
+              ? (u.departmentId as any)._id || (u.departmentId as any).toString()
+              : u.departmentId;
+            if (dId) counts[dId] = (counts[dId] || 0) + 1;
+          }
+          setDeptUserCounts(counts);
+        }
+      } catch (err) {
+        console.error("Failed to fetch all users for department counts", err);
       }
     } catch (error: any) {
       toast.error("Failed to load company data");
@@ -598,8 +616,11 @@ export default function CompanyDrillDown() {
           <TabsContent value="departments" className="mt-0">
             <DepartmentList
               departments={departments}
+              deptUserCounts={deptUserCounts}
               setIsImportModalOpen={setIsImportModalOpen}
               exportToCSV={exportToCSV}
+              onRefresh={fetchData}
+              refreshing={loading}
             />
           </TabsContent>
 
@@ -610,6 +631,8 @@ export default function CompanyDrillDown() {
               exportToCSV={exportToCSV}
               setSelectedUserForDetails={setSelectedUserForDetails}
               setShowUserDetailsDialog={setShowUserDetailsDialog}
+              onRefresh={fetchData}
+              refreshing={loading}
             />
           </TabsContent>
 
@@ -620,6 +643,8 @@ export default function CompanyDrillDown() {
               exportToCSV={exportToCSV}
               setSelectedGrievance={setSelectedGrievance}
               setShowGrievanceDetail={setShowGrievanceDetail}
+              onRefresh={fetchData}
+              refreshing={loading}
             />
           </TabsContent>
 
@@ -630,11 +655,18 @@ export default function CompanyDrillDown() {
               exportToCSV={exportToCSV}
               setSelectedAppointment={setSelectedAppointment}
               setShowAppointmentDetail={setShowAppointmentDetail}
+              onRefresh={fetchData}
+              refreshing={loading}
             />
           </TabsContent>
 
           <TabsContent value="leads" className="mt-0">
-            <LeadList leads={leads} exportToCSV={exportToCSV} />
+            <LeadList 
+              leads={leads} 
+              exportToCSV={exportToCSV} 
+              onRefresh={() => fetchLeads(companyId)}
+              refreshing={loadingLeads}
+            />
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-6">

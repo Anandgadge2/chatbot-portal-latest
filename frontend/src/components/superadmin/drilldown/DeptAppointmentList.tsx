@@ -6,7 +6,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Calendar, Search, Download } from "lucide-react";
+import { Calendar, Search, Download, RefreshCw } from "lucide-react";
 import { Appointment, appointmentAPI } from "@/lib/api/appointment";
 
 interface DeptAppointmentListProps {
@@ -18,6 +18,8 @@ interface DeptAppointmentListProps {
   setSelectedAppointment: (a: Appointment) => void;
   setShowAppointmentDetail: (val: boolean) => void;
   exportToCSV: (data: any[], filename: string) => void;
+  onRefresh?: () => void;
+  refreshing?: boolean;
 }
 
 const DeptAppointmentList: React.FC<DeptAppointmentListProps> = ({
@@ -29,9 +31,11 @@ const DeptAppointmentList: React.FC<DeptAppointmentListProps> = ({
   setSelectedAppointment,
   setShowAppointmentDetail,
   exportToCSV,
+  onRefresh,
+  refreshing,
 }) => {
   return (
-    <Card className="rounded-2xl border-0 shadow-xl overflow-hidden bg-white/80 backdrop-blur-sm">
+    <Card className="rounded-2xl border-0 shadow-xl overflow-hidden bg-white/80 backdrop-blur-sm text-left">
       <CardHeader className="bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 text-white px-6 py-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -42,18 +46,30 @@ const DeptAppointmentList: React.FC<DeptAppointmentListProps> = ({
               <CardTitle className="text-xl font-bold text-white">
                 Appointments ({filteredAppointments.length})
               </CardTitle>
-              <CardDescription className="text-purple-100">
-                All appointments in this department
+              <CardDescription className="text-purple-100 font-medium">
+                Scheduled consultation and meeting metrics
               </CardDescription>
             </div>
           </div>
-          <button
-            onClick={() => exportToCSV(filteredAppointments, "appointments")}
-            className="flex items-center gap-2 px-4 py-2 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all border border-white/30"
-          >
-            <Download className="w-4 h-4" />
-            Export
-          </button>
+          <div className="flex items-center gap-2">
+            {onRefresh && (
+              <button
+                onClick={onRefresh}
+                disabled={refreshing}
+                className="p-2.5 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all border border-white/30 disabled:opacity-50"
+                title="Refresh Appointment Data"
+              >
+                <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
+              </button>
+            )}
+            <button
+              onClick={() => exportToCSV(filteredAppointments, "appointments")}
+              className="flex items-center gap-2 px-4 py-2 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all border border-white/30"
+            >
+              <Download className="w-4 h-4" />
+              Export
+            </button>
+          </div>
         </div>
       </CardHeader>
 

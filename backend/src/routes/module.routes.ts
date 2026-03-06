@@ -110,14 +110,13 @@ router.delete('/:id', requireSuperAdmin, async (req: Request, res: Response) => 
  */
 router.post('/sync-all', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
-    const { seedModules } = await import('../scripts/seedModules');
     const { roleService } = await import('../services/roleService');
     const Company = (await import('../models/Company')).default;
 
     console.log('🚀 Manual System Sync Triggered');
     
     // 1. Sync Modules
-    await seedModules();
+   
 
     // 2. Sync Roles for all companies
     const companies = await Company.find({});

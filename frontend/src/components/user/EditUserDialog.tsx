@@ -4,13 +4,6 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { userAPI, User } from "@/lib/api/user";
 import { departmentAPI, Department } from "@/lib/api/department";
 import { roleAPI, Role } from "@/lib/api/role";
@@ -21,7 +14,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -49,17 +41,15 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
     phone: "",
     designation: "",
     role: "OPERATOR",
-    customRoleId: "",
     departmentId: "",
   });
   const [customRoles, setCustomRoles] = useState<Role[]>([]);
 
-  // Define fetchDepartments BEFORE useEffect that uses it
   const fetchDepartments = useCallback(async () => {
     try {
       const companyId = currentUser?.companyId
         ? typeof currentUser.companyId === "object"
-          ? currentUser.companyId._id
+          ? (currentUser.companyId as any)._id
           : currentUser.companyId
         : "";
 
@@ -86,28 +76,25 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
 
   useEffect(() => {
     if (isOpen && user) {
-      // Populate form with user data
       setFormData({
         firstName: user.firstName || "",
         lastName: user.lastName || "",
         email: user.email || "",
         phone: user.phone || "",
         designation: user.designation || "",
-        role: user.role || "OPERATOR",
-        customRoleId:
-          typeof user.customRoleId === "object"
-            ? user.customRoleId?._id
-            : user.customRoleId || "",
+        role: user.customRoleId
+          ? `CUSTOM:${typeof user.customRoleId === "object" ? (user.customRoleId as any)._id : user.customRoleId}`
+          : user.role || "OPERATOR",
         departmentId: user.departmentId
           ? typeof user.departmentId === "object"
-            ? user.departmentId._id
+            ? (user.departmentId as any)._id
             : user.departmentId
           : "",
       });
 
       const companyId = currentUser?.companyId
         ? typeof currentUser.companyId === "object"
-          ? currentUser.companyId._id
+          ? (currentUser.companyId as any)._id
           : currentUser.companyId
         : "";
 
@@ -125,7 +112,21 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
 
     setLoading(true);
     try {
-      await userAPI.update(user._id, formData);
+      let submissionRole = formData.role;
+      let submissionCustomRoleId = "";
+
+      if (formData.role.startsWith("CUSTOM:")) {
+        submissionRole = "OPERATOR"; // Default base role for custom roles
+        submissionCustomRoleId = formData.role.split(":")[1];
+      }
+
+      const submissionData = {
+        ...formData,
+        role: submissionRole,
+        customRoleId: submissionCustomRoleId || undefined,
+      };
+
+      await userAPI.update(user._id, submissionData);
       toast.success("User updated successfully");
       onUserUpdated();
       onClose();
@@ -136,21 +137,42 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
     }
   };
 
-  const getAvailableRoles = () => {
+  const getAllPossibleRoles = () => {
+    let roles: { value: string; label: string }[] = [];
+    
+    // Add Standard Roles
     if (currentUser?.role === "SUPER_ADMIN") {
-      return [
-        "SUPER_ADMIN",
-        "COMPANY_ADMIN",
-        "DEPARTMENT_ADMIN",
-        "OPERATOR",
-        "ANALYTICS_VIEWER",
-      ];
+      roles.push(
+        { value: "SUPER_ADMIN", label: "Super Admin" },
+        { value: "COMPANY_ADMIN", label: "Company Admin" },
+        { value: "DEPARTMENT_ADMIN", label: "Department Admin" },
+        { value: "SUB_DEPARTMENT_ADMIN", label: "Sub Department Admin" },
+        { value: "OPERATOR", label: "Operator" },
+        { value: "ANALYTICS_VIEWER", label: "Analytics Viewer" }
+      );
     } else if (currentUser?.role === "COMPANY_ADMIN") {
-      return ["DEPARTMENT_ADMIN", "OPERATOR", "ANALYTICS_VIEWER"];
+      roles.push(
+        { value: "DEPARTMENT_ADMIN", label: "Department Admin" },
+        { value: "SUB_DEPARTMENT_ADMIN", label: "Sub Department Admin" },
+        { value: "OPERATOR", label: "Operator" },
+        { value: "ANALYTICS_VIEWER", label: "Analytics Viewer" }
+      );
     } else if (currentUser?.role === "DEPARTMENT_ADMIN") {
-      return ["OPERATOR"];
+      roles.push(
+        { value: "DEPARTMENT_ADMIN", label: "Department Admin" },
+        { value: "SUB_DEPARTMENT_ADMIN", label: "Sub Department Admin" },
+        { value: "OPERATOR", label: "Operator" },
+        { value: "ANALYTICS_VIEWER", label: "Analytics Viewer" }
+      );
     }
-    return [];
+
+    // Add Custom Roles
+    const customRoleOptions = customRoles.map((r) => ({
+      value: `CUSTOM:${r._id}`,
+      label: r.name,
+    }));
+
+    return [...roles, ...customRoleOptions];
   };
 
   if (!user) return null;
@@ -158,9 +180,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[650px] max-h-[90vh] overflow-hidden rounded-2xl shadow-2xl bg-white p-0 border-0 flex flex-col">
-        {/* Dark Slate Header — matches dashboard theme */}
         <div className="bg-slate-900 px-6 py-5 relative overflow-hidden flex-shrink-0 border-b border-slate-800">
-          {/* Subtle dot pattern */}
           <div
             className="absolute inset-0 opacity-[0.03] pointer-events-none"
             style={{
@@ -182,7 +202,6 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5 custom-scrollbar">
-            {/* Name row */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label
@@ -222,7 +241,6 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
               </div>
             </div>
 
-            {/* Email */}
             <div className="space-y-1.5">
               <Label
                 htmlFor="email"
@@ -243,7 +261,6 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
               />
             </div>
 
-            {/* Phone */}
             <div className="space-y-1.5">
               <Label
                 htmlFor="phone"
@@ -264,7 +281,6 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
               />
             </div>
 
-            {/* Designation */}
             <div className="space-y-1.5">
               <Label
                 htmlFor="designation"
@@ -283,7 +299,6 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
               />
             </div>
 
-            {/* Divider */}
             <div className="flex items-center gap-2 pt-1">
               <div className="flex-1 h-px bg-slate-100"></div>
               <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
@@ -292,14 +307,13 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
               <div className="flex-1 h-px bg-slate-100"></div>
             </div>
 
-            {/* Role + Department — 2-column row */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-5">
               <div className="space-y-1.5">
                 <Label
                   htmlFor="role"
                   className="text-[10px] font-black text-slate-500 uppercase tracking-widest"
                 >
-                  Role *
+                  Role & Permissions *
                 </Label>
                 <select
                   id="role"
@@ -308,12 +322,13 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
                   onChange={(e) =>
                     setFormData({ ...formData, role: e.target.value })
                   }
-                  className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                  className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold"
                   required
                 >
-                  {getAvailableRoles().map((role) => (
-                    <option key={role} value={role}>
-                      {role.replace(/_/g, " ")}
+                  <option value="" disabled>Select a role</option>
+                  {getAllPossibleRoles().map((role: { value: string; label: string }) => (
+                    <option key={role.value} value={role.value}>
+                      {role.label}
                     </option>
                   ))}
                 </select>
@@ -333,7 +348,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
                   onChange={(e) =>
                     setFormData({ ...formData, departmentId: e.target.value })
                   }
-                  className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                  className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold"
                 >
                   <option value="">No Department</option>
                   {departments.map((dept) => (
@@ -344,38 +359,8 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
                 </select>
               </div>
             </div>
-
-            {/* Custom Role — full-width */}
-            <div className="space-y-1.5">
-              <Label
-                htmlFor="customRoleId"
-                className="text-[10px] font-black text-slate-500 uppercase tracking-widest"
-              >
-                Custom Role{" "}
-                <span className="font-normal text-slate-400 normal-case">
-                  (Optional)
-                </span>
-              </Label>
-              <select
-                id="customRoleId"
-                name="customRoleId"
-                value={formData.customRoleId}
-                onChange={(e) =>
-                  setFormData({ ...formData, customRoleId: e.target.value })
-                }
-                className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
-              >
-                <option value="">No Custom Role</option>
-                {customRoles.map((role) => (
-                  <option key={role._id} value={role._id}>
-                    {role.name}
-                  </option>
-                ))}
-              </select>
-            </div>
           </div>
 
-          {/* Footer */}
           <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex-shrink-0 flex items-center justify-end gap-3">
             <Button
               type="button"

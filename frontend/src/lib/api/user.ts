@@ -12,7 +12,7 @@ export interface User {
   designation?: string;
   role: string;
   companyId?: string | { _id: string; name: string; companyId: string };
-  departmentId?: string | { _id: string; name: string; departmentId: string };
+  departmentId?: string | { _id: string; name: string; departmentId: string; parentDepartmentId?: string | { _id: string; name: string } };
   isActive: boolean;
   customRoleId?: string | { _id: string; name: string };
   rawPassword?: string;

@@ -229,7 +229,7 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
       });
     }
     
-    if ((role === UserRole.DEPARTMENT_ADMIN || role === UserRole.OPERATOR || role === UserRole.ANALYTICS_VIEWER) && (!companyId || !departmentId)) {
+    if ((role === UserRole.DEPARTMENT_ADMIN || role === UserRole.SUB_DEPARTMENT_ADMIN || role === UserRole.OPERATOR || role === UserRole.ANALYTICS_VIEWER) && (!companyId || !departmentId)) {
       return res.status(400).json({
         success: false,
         message: 'Both Company ID and Department ID are required for this role'
@@ -618,7 +618,7 @@ router.put('/:id', requirePermission(Permission.UPDATE_USER), async (req: Reques
       
       // Company Admin can only assign: COMPANY_ADMIN, DEPARTMENT_ADMIN, OPERATOR, ANALYTICS_VIEWER
       if (currentUser.role === UserRole.COMPANY_ADMIN) {
-        const allowedRoles = [UserRole.COMPANY_ADMIN, UserRole.DEPARTMENT_ADMIN, UserRole.OPERATOR, UserRole.ANALYTICS_VIEWER];
+        const allowedRoles = [UserRole.COMPANY_ADMIN, UserRole.DEPARTMENT_ADMIN, UserRole.SUB_DEPARTMENT_ADMIN, UserRole.OPERATOR, UserRole.ANALYTICS_VIEWER];
         if (!allowedRoles.includes(newRole)) {
           res.status(403).json({
             success: false,
@@ -630,7 +630,7 @@ router.put('/:id', requirePermission(Permission.UPDATE_USER), async (req: Reques
       
       // Department Admin can only assign: DEPARTMENT_ADMIN, OPERATOR
       if (currentUser.role === UserRole.DEPARTMENT_ADMIN) {
-        const allowedRoles = [UserRole.DEPARTMENT_ADMIN, UserRole.OPERATOR, UserRole.ANALYTICS_VIEWER];
+        const allowedRoles = [UserRole.DEPARTMENT_ADMIN, UserRole.SUB_DEPARTMENT_ADMIN, UserRole.OPERATOR, UserRole.ANALYTICS_VIEWER];
         if (!allowedRoles.includes(newRole)) {
           res.status(403).json({
             success: false,

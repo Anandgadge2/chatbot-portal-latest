@@ -54,8 +54,12 @@ import MetricInfoDialog, {
   MetricInfo,
 } from "@/components/analytics/MetricInfoDialog";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import { StatsSkeleton, TableSkeleton } from "@/components/ui/GeneralSkeleton";
 import { Pagination } from "@/components/ui/Pagination";
 import AvailabilityCalendar from "@/components/availability/AvailabilityCalendar";
+
+import { Skeleton } from "@/components/ui/Skeleton";
+import { cn } from "@/lib/utils";
 
 import {
   ArrowUpDown,
@@ -164,6 +168,8 @@ function DashboardContent() {
   const [previousTab, setPreviousTab] = useState<string>("overview");
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [deptUserCounts, setDeptUserCounts] = useState<Record<string, number>>({});
+  const [deptSearch, setDeptSearch] = useState("");
   const [users, setUsers] = useState<User[]>([]);
   const [grievances, setGrievances] = useState<Grievance[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -198,6 +204,8 @@ function DashboardContent() {
   const [loadingGrievances, setLoadingGrievances] = useState(false);
   const [loadingAppointments, setLoadingAppointments] = useState(false);
   const [loadingLeads, setLoadingLeads] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [loadingDepartments, setLoadingDepartments] = useState(false);
   const [updatingGrievanceStatus, setUpdatingGrievanceStatus] = useState<
@@ -272,7 +280,7 @@ function DashboardContent() {
   const [departmentPagination, setDepartmentPagination] = useState({
     total: 0,
     pages: 1,
-    limit: 20,
+    limit: 50,
   });
 
   const [userPage, setUserPage] = useState(1);
@@ -384,9 +392,13 @@ function DashboardContent() {
       );
       if (response.success) {
         toast.success(response.message);
+        const deletedIds = Array.from(selectedGrievances);
+        setGrievances((prev) =>
+          prev.filter((g) => !deletedIds.includes(g._id)),
+        );
         setSelectedGrievances(new Set());
-        await fetchGrievances();
-        await fetchDashboardData();
+        fetchGrievances(grievancePage, true);
+        fetchDashboardData(true);
       } else {
         toast.error("Failed to delete grievances");
       }
@@ -419,9 +431,13 @@ function DashboardContent() {
       );
       if (response.success) {
         toast.success(response.message);
+        const deletedIds = Array.from(selectedAppointments);
+        setAppointments((prev) =>
+          prev.filter((a) => !deletedIds.includes(a._id)),
+        );
         setSelectedAppointments(new Set());
-        await fetchAppointments();
-        await fetchDashboardData();
+        fetchAppointments(appointmentPage, true);
+        fetchDashboardData(true);
       } else {
         toast.error("Failed to delete appointments");
       }
@@ -513,8 +529,8 @@ function DashboardContent() {
     }
   }, []);
 
-  const fetchDashboardData = useCallback(async () => {
-    setLoadingStats(true);
+  const fetchDashboardData = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoadingStats(true);
     try {
       const response = await apiClient.get<{
         success: boolean;
@@ -527,7 +543,7 @@ function DashboardContent() {
       console.error("Failed to fetch dashboard stats:", error);
       toast.error("Failed to load dashboard statistics");
     } finally {
-      setLoadingStats(false);
+      if (!isSilent) setLoadingStats(false);
     }
   }, []);
 
@@ -546,12 +562,14 @@ function DashboardContent() {
   }, [user]);
 
   const fetchDepartments = useCallback(
-    async (page = departmentPage) => {
-      setLoadingDepartments(true);
+    async (page = departmentPage, isSilent = false) => {
+      if (!isSilent) setLoadingDepartments(true);
       try {
+        // For company admin, fetch ALL departments (no pagination limit)
+        const fetchLimit = isCompanyAdmin ? 500 : departmentPagination.limit;
         const response = await departmentAPI.getAll({
-          page,
-          limit: departmentPagination.limit,
+          page: isCompanyAdmin ? 1 : page,
+          limit: fetchLimit,
         });
         if (response.success) {
           let filteredDepartments = response.data.departments;
@@ -577,28 +595,48 @@ function DashboardContent() {
           setDepartments(filteredDepartments);
           setDepartmentPagination((prev) => ({
             ...prev,
-            total: response.data.pagination.total,
-            pages: response.data.pagination.pages,
+            total: isCompanyAdmin ? filteredDepartments.length : response.data.pagination.total,
+            pages: isCompanyAdmin ? 1 : response.data.pagination.pages,
           }));
+
+          // Fetch user counts per department (company admin only)
+          if (isCompanyAdmin && filteredDepartments.length > 0) {
+            try {
+              const userRes = await userAPI.getAll({ limit: 1000 });
+              if (userRes.success) {
+                const counts: Record<string, number> = {};
+                for (const u of userRes.data.users) {
+                  const dId = typeof u.departmentId === "object" && u.departmentId
+                    ? (u.departmentId as any)._id
+                    : u.departmentId;
+                  if (dId) counts[dId] = (counts[dId] || 0) + 1;
+                }
+                setDeptUserCounts(counts);
+              }
+            } catch {
+              // user count fetch failed silently
+            }
+          }
         }
       } catch (error: any) {
         console.error("Failed to fetch departments:", error);
         toast.error("Failed to load departments");
       } finally {
-        setLoadingDepartments(false);
+        if (!isSilent) setLoadingDepartments(false);
       }
     },
     [
       departmentPage,
       departmentPagination.limit,
       isDepartmentAdmin,
+      isCompanyAdmin,
       user?.departmentId,
     ],
   );
 
   const fetchUsers = useCallback(
-    async (page = userPage) => {
-      setLoadingUsers(true);
+    async (page = userPage, isSilent = false) => {
+      if (!isSilent) setLoadingUsers(true);
       try {
         const response = await userAPI.getAll({
           page,
@@ -635,15 +673,15 @@ function DashboardContent() {
         console.error("Failed to fetch users:", error);
         toast.error("Failed to load users");
       } finally {
-        setLoadingUsers(false);
+        if (!isSilent) setLoadingUsers(false);
       }
     },
     [userPage, userPagination.limit, isDepartmentAdmin, user?.departmentId],
   );
 
   const fetchGrievances = useCallback(
-    async (page = grievancePage) => {
-      setLoadingGrievances(true);
+    async (page = grievancePage, isSilent = false) => {
+      if (!isSilent) setLoadingGrievances(true);
       try {
         const response = await grievanceAPI.getAll({
           page,
@@ -661,15 +699,15 @@ function DashboardContent() {
         console.error("Failed to fetch grievances:", error);
         toast.error("Failed to load grievances");
       } finally {
-        setLoadingGrievances(false);
+        if (!isSilent) setLoadingGrievances(false);
       }
     },
     [grievancePage, grievancePagination.limit],
   );
 
   const fetchAppointments = useCallback(
-    async (page = appointmentPage) => {
-      setLoadingAppointments(true);
+    async (page = appointmentPage, isSilent = false) => {
+      if (!isSilent) setLoadingAppointments(true);
       try {
         const response = await appointmentAPI.getAll({
           page,
@@ -687,7 +725,7 @@ function DashboardContent() {
         console.error("Failed to fetch appointments:", error);
         toast.error("Failed to load appointments");
       } finally {
-        setLoadingAppointments(false);
+        if (!isSilent) setLoadingAppointments(false);
       }
     },
     [appointmentPage, appointmentPagination.limit],
@@ -712,6 +750,45 @@ function DashboardContent() {
       setLoadingLeads(false);
     }
   }, [user?.companyId]);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      if (activeTab === "overview") {
+        await fetchDashboardData();
+      } else if (activeTab === "analytics") {
+        await Promise.all([fetchHourlyData(), fetchCategoryData(), fetchDashboardData()]);
+      } else if (activeTab === "grievances") {
+        await fetchGrievances(grievancePage);
+      } else if (activeTab === "appointments") {
+        await fetchAppointments(appointmentPage);
+      } else if (activeTab === "departments") {
+        await fetchDepartments();
+      } else if (activeTab === "users") {
+        await fetchUsers(userPage);
+      } else if (activeTab === "leads") {
+        await fetchLeads();
+      }
+      toast.success("Data refreshed");
+    } catch (error) {
+      toast.error("Failed to refresh data");
+    } finally {
+      setRefreshing(false);
+    }
+  }, [
+    activeTab,
+    fetchDashboardData,
+    fetchHourlyData,
+    fetchCategoryData,
+    fetchGrievances,
+    grievancePage,
+    fetchAppointments,
+    appointmentPage,
+    fetchDepartments,
+    fetchUsers,
+    userPage,
+    fetchLeads,
+  ]);
 
   // 1. Initial Dashboard Stats & Page-independent data
   useEffect(() => {
@@ -769,7 +846,7 @@ function DashboardContent() {
             if (newCount > prevGrievanceCount) {
               toast.success(
                 `📋 New grievance received! (${newCount - prevGrievanceCount} new)`,
-                { duration: 4000 },
+                { duration: 2000 },
               );
               fetchDashboardData();
             }
@@ -1052,7 +1129,12 @@ function DashboardContent() {
         toast.success(
           `User ${!currentStatus ? "activated" : "deactivated"} successfully`,
         );
-        fetchUsers();
+        setUsers((prev) =>
+          prev.map((u) =>
+            u._id === userId ? { ...u, isActive: !currentStatus } : u,
+          ),
+        );
+        fetchUsers(userPage, true);
       }
     } catch (error: any) {
       const errorMessage =
@@ -1063,10 +1145,10 @@ function DashboardContent() {
     }
   };
 
-  if (loading || !mounted) {
+  if (!mounted) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <LoadingSpinner text="Loading dashboard..." />
+      <div className="flex min-h-screen items-center justify-center bg-slate-900">
+        <LoadingSpinner text="Initializing Dashboard..." />
       </div>
     );
   }
@@ -1155,8 +1237,7 @@ function DashboardContent() {
           }}
           className="space-y-4 sm:space-y-6"
         >
-          {/* Dashboard Navigation in Header */}
-          <div className="mb-4 sticky top-[64px] z-40 bg-slate-50/95 backdrop-blur-sm py-4 -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div className="mb-4 sticky top-[64px] z-40 bg-slate-50/95 backdrop-blur-sm py-4 -mx-4 px-4 sm:mx-0 sm:px-0 flex items-center justify-between gap-4">
             <TabsList className="bg-slate-200/50 p-1 border border-slate-300/50 h-10 shadow-sm overflow-x-auto no-scrollbar max-w-full">
               {!isOperator && (
                 <TabsTrigger
@@ -1234,6 +1315,16 @@ function DashboardContent() {
                 </TabsTrigger>
               )}
             </TabsList>
+            <Button
+              onClick={handleRefresh}
+              variant="outline"
+              size="sm"
+              disabled={refreshing}
+              className="h-10 px-4 bg-white border-slate-200 text-slate-600 hover:text-indigo-600 hover:border-indigo-200 transition-all rounded-xl shadow-sm font-bold text-[11px] uppercase tracking-widest gap-2 flex"
+            >
+              <RefreshCw className={cn("w-3.5 h-3.5", refreshing && "animate-spin")} />
+              <span className="hidden sm:inline">Refresh Data</span>
+            </Button>
           </div>
 
           {/* Overview Tab */}
@@ -1259,9 +1350,13 @@ function DashboardContent() {
                       </CardHeader>
                       <CardContent className="p-3 pt-1">
                         <div className="flex items-baseline gap-1.5">
-                          <p className="text-2xl font-black text-slate-900 tracking-tighter leading-none">
-                            {stats?.grievances.total || 0}
-                          </p>
+                          {loadingStats ? (
+                            <Skeleton className="h-8 w-16" />
+                          ) : (
+                            <p className="text-2xl font-black text-slate-900 tracking-tighter leading-none">
+                              {stats?.grievances.total || 0}
+                            </p>
+                          )}
                           <span className="text-[10px] font-bold text-slate-400">
                             pending
                           </span>
@@ -1293,9 +1388,13 @@ function DashboardContent() {
                       </CardHeader>
                       <CardContent className="p-3 pt-1">
                         <div className="flex items-baseline gap-1.5">
-                          <p className="text-2xl font-black text-slate-900 tracking-tighter leading-none">
-                            {stats?.grievances.pending || 0}
-                          </p>
+                          {loadingStats ? (
+                            <Skeleton className="h-8 w-16" />
+                          ) : (
+                            <p className="text-2xl font-black text-slate-900 tracking-tighter leading-none">
+                              {stats?.grievances.pending || 0}
+                            </p>
+                          )}
                           <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-1.5 rounded uppercase">
                             Action
                           </span>
@@ -1327,9 +1426,13 @@ function DashboardContent() {
                       </CardHeader>
                       <CardContent className="p-3 pt-1">
                         <div className="flex items-baseline gap-1.5">
-                          <p className="text-2xl font-black text-slate-900 tracking-tighter leading-none">
-                            {stats?.grievances.resolved || 0}
-                          </p>
+                          {loadingStats ? (
+                            <Skeleton className="h-8 w-16" />
+                          ) : (
+                            <p className="text-2xl font-black text-slate-900 tracking-tighter leading-none">
+                              {stats?.grievances.resolved || 0}
+                            </p>
+                          )}
                           <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-1.5 rounded uppercase">
                             Fixed
                           </span>
@@ -1356,11 +1459,15 @@ function DashboardContent() {
                         </CardHeader>
                         <CardContent className="p-3 pt-1">
                           <div className="flex items-baseline gap-1.5">
-                            <p className="text-2xl font-black text-slate-900 tracking-tighter leading-none">
-                              {stats?.appointments.total || 0}
-                            </p>
+                            {loadingStats ? (
+                              <Skeleton className="h-8 w-16" />
+                            ) : (
+                              <p className="text-2xl font-black text-slate-900 tracking-tighter leading-none">
+                                {stats?.appointments.total || 0}
+                              </p>
+                            )}
                             <span className="text-[10px] font-bold text-purple-600">
-                              {stats?.appointments.confirmed || 0} Live
+                              {loadingStats ? <Skeleton className="h-3 w-10" /> : (stats?.appointments.confirmed || 0)} Live
                             </span>
                           </div>
                         </CardContent>
@@ -1422,7 +1529,7 @@ function DashboardContent() {
                       </div>
                       <div className="flex items-baseline space-x-2">
                         <span className="text-2xl font-black text-slate-900 tracking-tighter leading-none">
-                          {stats?.departments ?? departments.length}
+                          {departmentPagination.total || stats?.departments || departments.length}
                         </span>
                         <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 uppercase tracking-tighter">
                           Verified
@@ -2382,7 +2489,7 @@ function DashboardContent() {
               </div>
 
               {/* Department Table - Company Admin only */}
-              {isCompanyAdmin && departments.length > 0 && (
+              {/* {isCompanyAdmin && departments.length > 0 && (
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                   <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -2501,7 +2608,7 @@ function DashboardContent() {
                     </table>
                   </div>
                 </div>
-              )}
+              )} */}
 
               {/* 30-Day Summary Cards — muted, dashboard-matched style */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -2604,9 +2711,9 @@ function DashboardContent() {
 
           {/* Departments Tab - Only for Company Admin */}
           {isCompanyAdmin && (
-            <TabsContent value="departments" className="space-y-6">
-              {/* Company Admin View - Show all departments */}
+            <TabsContent value="departments" className="space-y-4">
               <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
+                {/* Header */}
                 <CardHeader className="bg-slate-900 px-6 py-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -2614,290 +2721,300 @@ function DashboardContent() {
                         <Building className="w-4 h-4 text-indigo-400" />
                       </div>
                       <div>
-                        <CardTitle className="text-base font-bold text-white">
+                        <CardTitle className="text-base font-bold text-white flex items-center gap-2">
                           Department Management
+                          <span className="text-[10px] font-black bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full">
+                            {departments.length} total
+                          </span>
                         </CardTitle>
                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
                           Manage all departments in your company
                         </p>
                       </div>
                     </div>
-                    <ProtectedButton
-                      permission={Permission.CREATE_DEPARTMENT}
-                      onClick={() => setShowDepartmentDialog(true)}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-8 text-[10px] font-bold uppercase tracking-widest rounded-lg px-4 shadow-md"
-                    >
-                      <Building className="w-3.5 h-3.5 mr-1.5" />
-                      Add Department
-                    </ProtectedButton>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => fetchDepartments(1, false)}
+                        className="h-8 w-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all border border-white/10"
+                        title="Refresh departments"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                      </button>
+                      <ProtectedButton
+                        permission={Permission.CREATE_DEPARTMENT}
+                        onClick={() => setShowDepartmentDialog(true)}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-8 text-[10px] font-bold uppercase tracking-widest rounded-lg px-4 shadow-md"
+                      >
+                        <Building className="w-3.5 h-3.5 mr-1.5" />
+                        Add Department
+                      </ProtectedButton>
+                    </div>
                   </div>
                 </CardHeader>
+
                 <CardContent className="p-0">
-                  {departments.length === 0 ? (
+                  {/* Search bar */}
+                  <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/40 flex flex-wrap items-center gap-3">
+                    <div className="relative flex-1 min-w-[240px]">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                      <input
+                        type="text"
+                        placeholder="Search departments by name or ID..."
+                        value={deptSearch}
+                        onChange={(e) => setDeptSearch(e.target.value)}
+                        className="w-full pl-9 pr-4 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                      <span className="px-2 py-1 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-lg">
+                        {departments.filter(d => !d.parentDepartmentId).length} Main
+                      </span>
+                      <span className="px-2 py-1 bg-slate-100 text-slate-600 border border-slate-200 rounded-lg">
+                        {departments.filter(d => !!d.parentDepartmentId).length} Sub
+                      </span>
+                    </div>
+                  </div>
+
+                  {loadingDepartments ? (
+                    <TableSkeleton rows={8} cols={5} />
+                  ) : departments.length === 0 ? (
                     <div className="text-center py-16">
                       <div className="w-20 h-20 bg-gradient-to-br from-cyan-100 to-teal-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
                         <Building className="w-10 h-10 text-cyan-500" />
                       </div>
-                      <p className="text-gray-500 text-lg font-medium">
-                        No departments found
-                      </p>
-                      <p className="text-gray-400 text-sm mt-1">
-                        Add a department to get started
-                      </p>
+                      <p className="text-gray-500 text-lg font-medium">No departments found</p>
+                      <p className="text-gray-400 text-sm mt-1">Add a department to get started</p>
                     </div>
                   ) : (
-                    <div className="overflow-hidden rounded-2xl border border-slate-200">
-                      <div className="overflow-x-auto">
-                        <div className="max-h-[600px] overflow-y-auto custom-scrollbar">
-                          <table className="w-full relative border-collapse min-w-[800px]">
-                            <thead className="sticky top-0 z-20 bg-[#fcfdfe] border-b border-slate-200">
-                              <tr>
-                                <th className="px-3 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                  Sr.
-                                </th>
-                                <th className="px-6 py-3 text-left">
-                                  <button
-                                    onClick={() =>
-                                      handleSort("name", "departments")
-                                    }
-                                    className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
-                                  >
-                                    <span>Department Name</span>
-                                    <ArrowUpDown
-                                      className={`w-3 h-3 transition-colors ${sortConfig.key === "name" ? "text-indigo-500" : "text-slate-300 group-hover:text-slate-400"}`}
-                                    />
-                                  </button>
-                                </th>
-                                <th className="px-6 py-3 text-left">
-                                  <button
-                                    onClick={() =>
-                                      handleSort("departmentId", "departments")
-                                    }
-                                    className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
-                                  >
-                                    <span>Dept ID</span>
-                                    <ArrowUpDown
-                                      className={`w-3 h-3 transition-colors ${sortConfig.key === "departmentId" ? "text-indigo-500" : "text-slate-300 group-hover:text-slate-400"}`}
-                                    />
-                                  </button>
-                                </th>
-                                <th className="px-6 py-3 text-left font-black text-[9px] text-slate-400 uppercase tracking-widest">
-                                  Description
-                                </th>
-                                <th className="px-6 py-3 text-left font-black text-[9px] text-slate-400 uppercase tracking-widest">
-                                  Status
-                                </th>
-                                <th className="px-6 py-3 text-right font-black text-[9px] text-slate-400 uppercase tracking-widest">
-                                  Actions
-                                </th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 bg-white">
-                              {getSortedData(departments, "departments").map(
-                                (dept, index) => (
-                                  <tr
-                                    key={dept._id}
-                                    className="hover:bg-gradient-to-r hover:from-cyan-50/50 hover:to-teal-50/50 transition-all duration-200 group/row"
-                                  >
-                                    <td className="px-3 py-5 text-center">
-                                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-100 to-teal-100 text-teal-700 text-xs font-bold shadow-sm">
-                                        {(departmentPage - 1) *
-                                          departmentPagination.limit +
-                                          index +
-                                          1}
-                                      </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                      <div className="flex items-center">
-                                        <div className="flex-shrink-0 h-8 w-8 bg-slate-100 text-slate-600 rounded-lg flex items-center justify-center">
-                                          <Building className="w-4 h-4" />
+                    <div className="overflow-x-auto">
+                      <div className="max-h-[640px] overflow-y-auto">
+                        <table className="w-full relative border-collapse min-w-[900px]">
+                          <thead className="sticky top-0 z-20 bg-[#fcfdfe] border-b border-slate-200">
+                            <tr>
+                              <th className="px-3 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest w-12">Sr.</th>
+                              <th className="px-4 py-3 text-left">
+                                <button
+                                  onClick={() => handleSort("name", "departments")}
+                                  className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
+                                >
+                                  <span>Department Name</span>
+                                  <ArrowUpDown className={`w-3 h-3 transition-colors ${sortConfig.key === "name" ? "text-indigo-500" : "text-slate-300 group-hover:text-slate-400"}`} />
+                                </button>
+                              </th>
+                              <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">Dept ID</th>
+                              <th className="px-4 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">Type</th>
+                              <th className="px-4 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">Users</th>
+                              <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">Head / Contact</th>
+                              <th className="px-4 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                              <th className="px-4 py-3 text-right text-[9px] font-black text-slate-400 uppercase tracking-widest">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 bg-white">
+                            {getSortedData(
+                              departments.filter(d =>
+                                !deptSearch ||
+                                d.name.toLowerCase().includes(deptSearch.toLowerCase()) ||
+                                d.departmentId?.toLowerCase().includes(deptSearch.toLowerCase())
+                              ),
+                              "departments"
+                            ).map((dept, index) => {
+                              const isMain = !dept.parentDepartmentId;
+                              const userCount = deptUserCounts[dept._id] || 0;
+                              const parentName = typeof dept.parentDepartmentId === "object" && dept.parentDepartmentId
+                                ? (dept.parentDepartmentId as any).name
+                                : null;
+                              return (
+                                <tr
+                                  key={dept._id}
+                                  className="hover:bg-indigo-50/30 transition-all duration-150 group/row"
+                                >
+                                  {/* # */}
+                                  <td className="px-3 py-4 text-center">
+                                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-slate-100 text-slate-500 text-[10px] font-black group-hover/row:bg-indigo-100 group-hover/row:text-indigo-700 transition-colors">
+                                      {index + 1}
+                                    </span>
+                                  </td>
+
+                                  {/* Department Name */}
+                                  <td className="px-4 py-4">
+                                    <div className="flex items-center gap-3">
+                                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                                        isMain
+                                          ? "bg-indigo-50 text-indigo-600 border border-indigo-100"
+                                          : "bg-slate-100 text-slate-500 border border-slate-200"
+                                      }`}>
+                                        <Building className="w-3.5 h-3.5" />
+                                      </div>
+                                      <div>
+                                        <div
+                                          className="text-sm font-bold text-slate-900 group-hover/row:text-indigo-600 cursor-pointer hover:underline transition-colors flex items-center gap-1.5"
+                                          onClick={() => {
+                                            setNavigatingToDepartment(dept._id);
+                                            setSelectedDepartmentId(dept._id);
+                                            router.push(`/dashboard/department/${dept._id}`);
+                                          }}
+                                        >
+                                          {navigatingToDepartment === dept._id ? (
+                                            <><LoadingSpinner /><span className="ml-2">Loading...</span></>
+                                          ) : dept.name}
                                         </div>
-                                        <div className="ml-3">
-                                          <div
-                                            className="text-sm font-bold text-slate-900 group-hover/row:text-indigo-600 cursor-pointer hover:underline transition-colors duration-200 flex items-center gap-2"
-                                            onClick={() => {
-                                              setNavigatingToDepartment(
-                                                dept._id,
-                                              );
-                                              setSelectedDepartmentId(dept._id);
-                                              router.push(
-                                                `/dashboard/department/${dept._id}`,
-                                              );
-                                            }}
-                                          >
-                                            {navigatingToDepartment ===
-                                            dept._id ? (
-                                              <>
-                                                <LoadingSpinner />
-                                                <span className="ml-2">
-                                                  Loading...
-                                                </span>
-                                              </>
-                                            ) : (
-                                              dept.name
-                                            )}
-                                          </div>
-                                        </div>
+                                        {!isMain && parentName && (
+                                          <p className="text-[10px] text-slate-400 mt-0.5">↳ {parentName}</p>
+                                        )}
                                       </div>
-                                    </td>
-                                    <td className="px-6 py-5 whitespace-nowrap">
-                                      <span className="text-[10px] font-mono bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border border-gray-200 uppercase">
-                                        {dept.departmentId}
+                                    </div>
+                                  </td>
+
+                                  {/* Dept ID */}
+                                  <td className="px-4 py-4 whitespace-nowrap">
+                                    <span className="text-[10px] font-mono bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border border-gray-200 uppercase">
+                                      {dept.departmentId}
+                                    </span>
+                                  </td>
+
+                                  {/* Type */}
+                                  <td className="px-4 py-4 text-center whitespace-nowrap">
+                                    {isMain ? (
+                                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-100">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                                        Main
                                       </span>
-                                    </td>
-                                    <td className="px-6 py-5">
-                                      <p className="text-sm text-gray-500 truncate max-w-xs">
-                                        {dept.description ||
-                                          "No description provided"}
-                                      </p>
-                                    </td>
-                                    <td className="px-6 py-5 whitespace-nowrap">
-                                      <div className="flex items-center gap-3">
-                                        <button
-                                          onClick={() => {
-                                            setConfirmDialog({
-                                              isOpen: true,
-                                              title: dept.isActive
-                                                ? "Deactivate Department"
-                                                : "Activate Department",
-                                              message: dept.isActive
-                                                ? `Are you sure you want to deactivate "${dept.name}"? Users in this department may lose access to certain features.`
-                                                : `Are you sure you want to activate "${dept.name}"? This will restore access for users in this department.`,
-                                              onConfirm: async () => {
-                                                try {
-                                                  const response =
-                                                    await departmentAPI.update(
-                                                      dept._id,
-                                                      {
-                                                        isActive:
-                                                          !dept.isActive,
-                                                      },
-                                                    );
-                                                  if (response.success) {
-                                                    toast.success(
-                                                      `Department ${!dept.isActive ? "activated" : "deactivated"} successfully`,
-                                                    );
-                                                    fetchDepartments();
-                                                  }
-                                                } catch (error: any) {
-                                                  toast.error(
-                                                    error.message ||
-                                                      "Failed to update department status",
-                                                  );
-                                                } finally {
-                                                  setConfirmDialog((p) => ({
-                                                    ...p,
-                                                    isOpen: false,
-                                                  }));
-                                                }
-                                              },
-                                              variant: dept.isActive
-                                                ? "warning"
-                                                : "default",
-                                            } as any);
-                                          }}
-                                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                                            dept.isActive
-                                              ? "bg-emerald-500 focus:ring-emerald-500"
-                                              : "bg-gray-300 focus:ring-gray-400"
-                                          }`}
-                                          title={
-                                            dept.isActive
-                                              ? "Click to deactivate"
-                                              : "Click to activate"
-                                          }
-                                        >
-                                          <span
-                                            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-lg transition-transform duration-200 ${
-                                              dept.isActive
-                                                ? "translate-x-6"
-                                                : "translate-x-1"
-                                            }`}
-                                          />
-                                        </button>
-                                        <span
-                                          className={`text-[10px] font-bold uppercase tracking-wider ${
-                                            dept.isActive
-                                              ? "text-emerald-600"
-                                              : "text-gray-400"
-                                          }`}
-                                        >
-                                          {dept.isActive
-                                            ? "Active"
-                                            : "Inactive"}
-                                        </span>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                                        Sub
+                                      </span>
+                                    )}
+                                  </td>
+
+                                  {/* User Count */}
+                                  <td className="px-4 py-4 text-center">
+                                    <div className="inline-flex items-center gap-1.5">
+                                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-black ${
+                                        userCount > 0
+                                          ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
+                                          : "bg-slate-50 text-slate-400 border border-slate-200"
+                                      }`}>
+                                        {userCount}
                                       </div>
-                                    </td>
-                                    <td className="px-6 py-5 whitespace-nowrap text-right text-sm font-medium">
-                                      <div className="flex justify-end items-center space-x-2">
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="h-8 w-8 p-0 text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                                          onClick={() => {
-                                            setEditingDepartment(dept);
-                                            setShowDepartmentDialog(true);
-                                          }}
-                                        >
-                                          <Edit2 className="w-4 h-4" />
-                                        </Button>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="h-8 w-8 p-0 text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                                          onClick={() => {
-                                            setConfirmDialog({
-                                              isOpen: true,
-                                              title: "Delete Department",
-                                              message: `Are you sure you want to delete "${dept.name}"? This action cannot be undone and will delete all associated users, grievances, and appointments.`,
-                                              onConfirm: async () => {
-                                                try {
-                                                  const response =
-                                                    await departmentAPI.delete(
-                                                      dept._id,
-                                                    );
-                                                  if (response.success) {
-                                                    toast.success(
-                                                      "Department deleted successfully",
-                                                    );
-                                                    fetchDepartments();
-                                                  }
-                                                } catch (error: any) {
-                                                  toast.error(
-                                                    error.message ||
-                                                      "Failed to delete department",
-                                                  );
-                                                } finally {
-                                                  setConfirmDialog((p) => ({
-                                                    ...p,
-                                                    isOpen: false,
-                                                  }));
+                                    </div>
+                                  </td>
+
+                                  {/* Head / Contact */}
+                                  <td className="px-4 py-4">
+                                    <div className="text-xs font-bold text-slate-700 uppercase">
+                                      {dept.contactPerson || <span className="text-slate-300 font-medium">Not assigned</span>}
+                                    </div>
+                                    {dept.contactEmail && (
+                                      <div className="text-[10px] text-slate-400 mt-0.5 font-medium">{dept.contactEmail}</div>
+                                    )}
+                                  </td>
+
+                                  {/* Status */}
+                                  <td className="px-4 py-4 text-center whitespace-nowrap">
+                                    <div className="flex items-center justify-center gap-2">
+                                      <button
+                                        onClick={() => {
+                                          setConfirmDialog({
+                                            isOpen: true,
+                                            title: dept.isActive ? "Deactivate Department" : "Activate Department",
+                                            message: dept.isActive
+                                              ? `Are you sure you want to deactivate "${dept.name}"?`
+                                              : `Are you sure you want to activate "${dept.name}"?`,
+                                            onConfirm: async () => {
+                                              try {
+                                                const response = await departmentAPI.update(dept._id, { isActive: !dept.isActive });
+                                                if (response.success) {
+                                                  toast.success(`Department ${!dept.isActive ? "activated" : "deactivated"} successfully`);
+                                                  fetchDepartments(1, true);
                                                 }
-                                              },
-                                              variant: "danger",
-                                            } as any);
-                                          }}
-                                        >
-                                          <Trash2 className="w-4 h-4" />
-                                        </Button>
-                                      </div>
-                                    </td>
-                                  </tr>
-                                ),
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
+                                              } catch (error: any) {
+                                                toast.error(error.message || "Failed to update department status");
+                                              } finally {
+                                                setConfirmDialog((p) => ({ ...p, isOpen: false }));
+                                              }
+                                            },
+                                            variant: dept.isActive ? "warning" : "default",
+                                          } as any);
+                                        }}
+                                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 focus:outline-none ${
+                                          dept.isActive ? "bg-emerald-500" : "bg-gray-300"
+                                        }`}
+                                      >
+                                        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform duration-200 ${
+                                          dept.isActive ? "translate-x-[18px]" : "translate-x-0.5"
+                                        }`} />
+                                      </button>
+                                      <span className={`text-[9px] font-black uppercase tracking-wider ${
+                                        dept.isActive ? "text-emerald-600" : "text-gray-400"
+                                      }`}>
+                                        {dept.isActive ? "Active" : "Inactive"}
+                                      </span>
+                                    </div>
+                                  </td>
+
+                                  {/* Actions */}
+                                  <td className="px-4 py-4 whitespace-nowrap text-right">
+                                    <div className="flex justify-end items-center gap-1 opacity-0 group-hover/row:opacity-100 transition-opacity">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 w-8 p-0 text-slate-400 hover:text-blue-600 hover:bg-blue-50"
+                                        onClick={() => {
+                                          setEditingDepartment(dept);
+                                          setShowDepartmentDialog(true);
+                                        }}
+                                      >
+                                        <Edit2 className="w-3.5 h-3.5" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 w-8 p-0 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                                        onClick={() => {
+                                          setConfirmDialog({
+                                            isOpen: true,
+                                            title: "Delete Department",
+                                            message: `Are you sure you want to delete "${dept.name}"? This action cannot be undone.`,
+                                            onConfirm: async () => {
+                                              try {
+                                                const response = await departmentAPI.delete(dept._id);
+                                                if (response.success) {
+                                                  toast.success("Department deleted successfully");
+                                                  fetchDepartments(1, false);
+                                                }
+                                              } catch (error: any) {
+                                                toast.error(error.message || "Failed to delete department");
+                                              } finally {
+                                                setConfirmDialog((p) => ({ ...p, isOpen: false }));
+                                              }
+                                            },
+                                            variant: "danger",
+                                          } as any);
+                                        }}
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </Button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
                       </div>
 
-                      <Pagination
-                        currentPage={departmentPage}
-                        totalPages={departmentPagination.pages}
-                        totalItems={departmentPagination.total}
-                        itemsPerPage={departmentPagination.limit}
-                        onPageChange={setDepartmentPage}
-                        className="mt-6 shadow-none border-t border-slate-100 rounded-none bg-slate-50/30"
-                      />
+                      {/* Footer info */}
+                      <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/30 flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                        <span>
+                          Showing {departments.filter(d =>
+                            !deptSearch ||
+                            d.name.toLowerCase().includes(deptSearch.toLowerCase()) ||
+                            d.departmentId?.toLowerCase().includes(deptSearch.toLowerCase())
+                          ).length} of {departments.length} departments
+                        </span>
+                        <span>{departments.filter(d => d.isActive).length} active · {departments.filter(d => !d.isActive).length} inactive</span>
+                      </div>
                     </div>
                   )}
                 </CardContent>
@@ -3101,9 +3218,7 @@ function DashboardContent() {
                 </CardHeader>
                 <CardContent className="p-0">
                   {loadingUsers ? (
-                    <div className="text-center py-16">
-                      <LoadingSpinner text="Loading users..." />
-                    </div>
+                    <TableSkeleton rows={8} cols={6} />
                   ) : users.length === 0 ? (
                     <div className="text-center py-16">
                       <div className="w-20 h-20 bg-gradient-to-br from-emerald-100 to-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -3259,13 +3374,26 @@ function DashboardContent() {
                                           className={`px-2.5 py-0.5 inline-flex items-center text-[10px] font-bold rounded-full border shadow-sm ${
                                             u.role === "COMPANY_ADMIN"
                                               ? "bg-red-50 text-red-700 border-red-100 ring-1 ring-red-200"
-                                              : u.role === "DEPARTMENT_ADMIN"
-                                                ? "bg-blue-50 text-blue-700 border-blue-100 ring-1 ring-blue-200"
-                                                : "bg-emerald-50 text-emerald-700 border-emerald-100 ring-1 ring-emerald-200"
+                                              : (u.role === "DEPARTMENT_ADMIN" && typeof u.departmentId === "object" && (u.departmentId as any)?.parentDepartmentId) || u.role === "SUB_DEPARTMENT_ADMIN"
+                                                ? "bg-purple-50 text-purple-700 border-purple-100 ring-1 ring-purple-200"
+                                                : u.role === "DEPARTMENT_ADMIN"
+                                                  ? "bg-blue-50 text-blue-700 border-blue-100 ring-1 ring-blue-200"
+                                                  : u.role === "OPERATOR"
+                                                    ? "bg-emerald-50 text-emerald-700 border-emerald-100 ring-1 ring-emerald-200"
+                                                    : "bg-slate-50 text-slate-700 border-slate-200"
                                           }`}
                                         >
                                           <Shield className="w-2.5 h-2.5 mr-1" />
-                                          {u.role.replace("_", " ")}
+                                          {typeof u.customRoleId === "object" && u.customRoleId
+                                            ? (u.customRoleId as any).name
+                                            : (u.role === "DEPARTMENT_ADMIN" && typeof u.departmentId === "object" && (u.departmentId as any)?.parentDepartmentId) || u.role === "SUB_DEPARTMENT_ADMIN"
+                                              ? "Sub Department Admin"
+                                              : u.role === "SUPER_ADMIN" ? "Super Admin"
+                                              : u.role === "COMPANY_ADMIN" ? "Company Admin"
+                                              : u.role === "DEPARTMENT_ADMIN" ? "Department Admin"
+                                              : u.role === "OPERATOR" ? "Operator"
+                                              : u.role === "ANALYTICS_VIEWER" ? "Analytics Viewer"
+                                              : (u.role || "").replace(/_/g, " ")}
                                         </span>
                                       </div>
                                       <div className="flex items-center text-xs text-gray-500 font-medium ml-1">
@@ -3408,7 +3536,14 @@ function DashboardContent() {
                                                     toast.success(
                                                       "User deleted successfully",
                                                     );
-                                                    fetchUsers();
+                                                    setUsers((prev) =>
+                                                      prev.filter(
+                                                        (user) =>
+                                                          user._id !== u._id,
+                                                      ),
+                                                    );
+                                                    fetchUsers(userPage, true);
+                                                    fetchDashboardData(true);
                                                   }
                                                 } catch (error: any) {
                                                   const errorMessage =
@@ -3720,11 +3855,9 @@ function DashboardContent() {
                     </div>
                   </div>
 
-                  <CardContent>
+                  <CardContent className="p-0">
                     {loadingGrievances ? (
-                      <div className="text-center py-16">
-                        <LoadingSpinner text="Loading grievances..." />
-                      </div>
+                      <TableSkeleton rows={8} cols={6} />
                     ) : grievances.length === 0 ? (
                       <div className="text-center py-16 bg-gradient-to-b from-slate-50 to-white rounded-2xl border border-slate-200">
                         <div className="w-16 h-16 bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -4401,11 +4534,9 @@ function DashboardContent() {
                     </div>
                   </div>
 
-                  <CardContent>
+                  <CardContent className="p-0">
                     {loadingAppointments ? (
-                      <div className="text-center py-16">
-                        <LoadingSpinner text="Loading appointments..." />
-                      </div>
+                      <TableSkeleton rows={8} cols={6} />
                     ) : appointments.length === 0 ? (
                       <div className="text-center py-16 bg-gradient-to-b from-slate-50 to-white rounded-2xl border border-slate-200">
                         <div className="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -4795,9 +4926,7 @@ function DashboardContent() {
                   </CardHeader>
                   <CardContent className="p-0">
                     {loadingLeads ? (
-                      <div className="py-20">
-                        <LoadingSpinner text="Loading leads..." />
-                      </div>
+                      <TableSkeleton rows={8} cols={6} />
                     ) : leads.length === 0 ? (
                       <div className="text-center py-20">
                         <div className="w-20 h-20 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -4922,7 +5051,7 @@ function DashboardContent() {
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-white text-sm font-bold flex items-center gap-2">
                       <BarChart2 className="w-4 h-4 text-indigo-400" />
-                      Incident Velocity
+                      Grievance Velocity
                     </CardTitle>
                     <select className="bg-white/10 text-white text-[10px] border-white/20 rounded px-2 py-1 outline-none">
                       <option className="text-slate-900">Last 7 Days</option>
@@ -5586,8 +5715,8 @@ function DashboardContent() {
                   setEditingDepartment(null);
                 }}
                 onDepartmentCreated={() => {
-                  fetchDepartments();
-                  fetchDashboardData();
+                  fetchDepartments(departmentPage, true);
+                  fetchDashboardData(true);
                   setEditingDepartment(null);
                 }}
                 editingDepartment={editingDepartment}
@@ -5607,8 +5736,8 @@ function DashboardContent() {
               isOpen={showUserDialog}
               onClose={() => setShowUserDialog(false)}
               onUserCreated={() => {
-                fetchUsers();
-                fetchDashboardData();
+                fetchUsers(userPage, true);
+                fetchDashboardData(true);
               }}
             />
             <EditUserDialog
@@ -5618,8 +5747,8 @@ function DashboardContent() {
                 setEditingUser(null);
               }}
               onUserUpdated={() => {
-                fetchUsers();
-                fetchDashboardData();
+                fetchUsers(userPage, true);
+                fetchDashboardData(true);
               }}
               user={editingUser}
             />
@@ -5630,8 +5759,8 @@ function DashboardContent() {
                 setEditingUser(null);
               }}
               onPermissionsUpdated={() => {
-                fetchUsers();
-                fetchDashboardData();
+                fetchUsers(userPage, true);
+                fetchDashboardData(true);
               }}
               user={editingUser}
             />
@@ -5671,8 +5800,8 @@ function DashboardContent() {
                 userId,
                 departmentId,
               );
-              await fetchGrievances();
-              await fetchDashboardData();
+              fetchGrievances(grievancePage, true);
+              fetchDashboardData(true);
             }}
             itemType="grievance"
             itemId={selectedGrievanceForAssignment._id}
@@ -5712,8 +5841,8 @@ function DashboardContent() {
                 userId,
                 departmentId,
               );
-              await fetchAppointments();
-              await fetchDashboardData();
+              fetchAppointments(appointmentPage, true);
+              fetchDashboardData(true);
             }}
             itemType="appointment"
             itemId={selectedAppointmentForAssignment._id}
@@ -5781,8 +5910,8 @@ function DashboardContent() {
           itemType="appointment"
           currentStatus={selectedAppointmentForStatus?.status || ""}
           onSuccess={() => {
-            fetchAppointments();
-            fetchDashboardData();
+            fetchAppointments(appointmentPage, true);
+            fetchDashboardData(true);
             setShowAppointmentStatusModal(false);
             setSelectedAppointmentForStatus(null);
           }}
@@ -5798,8 +5927,8 @@ function DashboardContent() {
           itemType="grievance"
           currentStatus={selectedGrievanceForStatus?.status || ""}
           onSuccess={() => {
-            fetchGrievances();
-            fetchDashboardData();
+            fetchGrievances(grievancePage, true);
+            fetchDashboardData(true);
           }}
           grievanceVariant={
             user?.role === "OPERATOR" ? "operator" : "department-admin"

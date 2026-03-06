@@ -51,49 +51,67 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
     password: "",
     phone: "",
     designation: "",
-    role: "OPERATOR",
-    customRoleId: "",
+    role: "OPERATOR", // Now stores "STATIC:ROLE" or "CUSTOM:ID"
     companyId: "",
     departmentId: "",
   });
 
   // Get available roles based on current user's role
-  const getAvailableRoles = (): UserRole[] => {
+  const getAllPossibleRoles = () => {
     if (!user) return [];
 
+    let roles: { value: string; label: string }[] = [];
     const currentRole = user.role as UserRole;
+
+    const standardRoles = (baseRoles: UserRole[]) => {
+      return baseRoles.map((r) => {
+        let label = r.replace(/_/g, " ");
+        if (r === UserRole.SUPER_ADMIN) label = "Super Admin";
+        if (r === UserRole.COMPANY_ADMIN) label = "Company Admin";
+        if (r === UserRole.DEPARTMENT_ADMIN) label = "Department Admin";
+        if (r === UserRole.SUB_DEPARTMENT_ADMIN) label = "Sub Department Admin";
+        if (r === UserRole.OPERATOR) label = "Operator";
+        if (r === UserRole.ANALYTICS_VIEWER) label = "Analytics Viewer";
+        return { value: r, label };
+      });
+    };
 
     switch (currentRole) {
       case UserRole.SUPER_ADMIN:
-        // SuperAdmin can create all roles
-        return [
+        roles = standardRoles([
           UserRole.SUPER_ADMIN,
           UserRole.COMPANY_ADMIN,
           UserRole.DEPARTMENT_ADMIN,
+          UserRole.SUB_DEPARTMENT_ADMIN,
           UserRole.OPERATOR,
           UserRole.ANALYTICS_VIEWER,
-        ];
+        ]);
+        break;
       case UserRole.COMPANY_ADMIN:
-        // CompanyAdmin can create: COMPANY_ADMIN, DEPARTMENT_ADMIN, OPERATOR, ANALYTICS_VIEWER
-        return [
+        roles = standardRoles([
           UserRole.COMPANY_ADMIN,
           UserRole.DEPARTMENT_ADMIN,
+          UserRole.SUB_DEPARTMENT_ADMIN,
           UserRole.OPERATOR,
           UserRole.ANALYTICS_VIEWER,
-        ];
+        ]);
+        break;
       case UserRole.DEPARTMENT_ADMIN:
-        // DepartmentAdmin can create: DEPARTMENT_ADMIN, OPERATOR, ANALYTICS_VIEWER
-        return [
+        roles = standardRoles([
           UserRole.DEPARTMENT_ADMIN,
+          UserRole.SUB_DEPARTMENT_ADMIN,
           UserRole.OPERATOR,
           UserRole.ANALYTICS_VIEWER,
-        ];
-      case UserRole.OPERATOR:
-        // Operators cannot create any users
-        return [];
-      default:
-        return [];
+        ]);
+        break;
     }
+
+    const customRoleOptions = customRoles.map((r) => ({
+      value: `CUSTOM:${r._id}`,
+      label: r.name,
+    }));
+
+    return [...roles, ...customRoleOptions];
   };
 
   // Check if current user can create users
@@ -219,11 +237,9 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
             ? denormalizePhoneNumber(editingUser.phone)
             : "",
           designation: editingUser.designation || "",
-          role: editingUser.role || "OPERATOR",
-          customRoleId:
-            typeof editingUser.customRoleId === "object"
-              ? editingUser.customRoleId?._id
-              : editingUser.customRoleId || "",
+          role: editingUser.customRoleId
+            ? `CUSTOM:${typeof editingUser.customRoleId === "object" ? (editingUser.customRoleId as any)._id : editingUser.customRoleId}`
+            : editingUser.role || "OPERATOR",
           companyId:
             typeof editingUser.companyId === "object"
               ? editingUser.companyId?._id
@@ -255,7 +271,6 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
             phone: "",
             designation: "",
             role: "OPERATOR",
-            customRoleId: "",
             companyId: userCompanyId,
             departmentId: "",
           });
@@ -272,7 +287,6 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
             phone: "",
             designation: "",
             role: "OPERATOR",
-            customRoleId: "",
             companyId: userCompanyId,
             departmentId: userDepartmentId,
           });
@@ -285,7 +299,6 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
             phone: "",
             designation: "",
             role: "OPERATOR",
-            customRoleId: "",
             companyId: "",
             departmentId: "",
           });
@@ -299,7 +312,9 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
       fetchCustomRoles(formData.companyId);
     } else {
       setCustomRoles([]);
-      setFormData((prev) => ({ ...prev, customRoleId: "" }));
+      if (formData.role.startsWith("CUSTOM:")) {
+        setFormData((prev) => ({ ...prev, role: "OPERATOR" }));
+      }
     }
   }, [formData.companyId, fetchCustomRoles]);
 
@@ -368,8 +383,8 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
     }
 
     // RBAC validation
-    const availableRoles = getAvailableRoles();
-    if (!availableRoles.includes(formData.role as UserRole)) {
+    const allPossibleRoles = getAllPossibleRoles();
+    if (!allPossibleRoles.find((r) => r.value === formData.role)) {
       toast.error("You do not have permission for this role");
       return;
     }
@@ -377,8 +392,18 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
     setLoading(true);
     try {
       let response;
+      let submissionRole = formData.role;
+      let submissionCustomRoleId = "";
+
+      if (formData.role.startsWith("CUSTOM:")) {
+        submissionRole = "OPERATOR"; // Default base role for custom roles
+        submissionCustomRoleId = formData.role.split(":")[1];
+      }
+
       const submissionData = {
         ...formData,
+        role: submissionRole,
+        customRoleId: submissionCustomRoleId || undefined,
         companyId: formData.companyId || undefined,
         departmentId: formData.departmentId || undefined,
       };
@@ -408,7 +433,6 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
             phone: "",
             designation: "",
             role: "OPERATOR",
-            customRoleId: "",
             companyId: "",
             departmentId: "",
           });
@@ -635,41 +659,18 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
                   name="role"
                   value={formData.role}
                   onChange={handleChange}
-                  className="w-full p-2 border rounded-md"
+                  className="w-full p-2 border rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-medium"
                   required
                 >
-                  {getAvailableRoles().map((role) => (
-                    <option key={role} value={role}>
-                      {role === UserRole.SUPER_ADMIN && "Super Admin"}
-                      {role === UserRole.COMPANY_ADMIN && "Company Admin"}
-                      {role === UserRole.DEPARTMENT_ADMIN && "Department Admin"}
-                      {role === UserRole.OPERATOR && "Operator"}
-                      {role === UserRole.ANALYTICS_VIEWER && "Analytics Viewer"}
+                  <option value="" disabled>Select a role</option>
+                  {getAllPossibleRoles().map((role: { value: string; label: string }) => (
+                    <option key={role.value} value={role.value}>
+                      {role.label}
                     </option>
                   ))}
                 </select>
               </div>
-              <div>
-                <Label htmlFor="customRoleId">Custom Role (Optional)</Label>
-                <select
-                  id="customRoleId"
-                  name="customRoleId"
-                  value={formData.customRoleId}
-                  onChange={handleChange}
-                  className="w-full p-2 border rounded-md"
-                  disabled={!formData.companyId}
-                >
-                  <option value="">No Custom Role</option>
-                  {customRoles.map((role) => (
-                    <option key={role._id} value={role._id}>
-                      {role.name}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-[10px] text-slate-500 mt-1">
-                  If selected, this role provides additional custom permissions.
-                </p>
-              </div>
+
             </div>
 
             {/* Company field - only visible for SUPER_ADMIN */}

@@ -482,6 +482,8 @@ export default function DepartmentDrillDown() {
               setStatusFilter={setStatusFilter}
               handleSort={handleSort}
               exportToCSV={exportToCSV}
+              onRefresh={fetchData}
+              refreshing={loading}
             />
           </TabsContent>
 
@@ -494,9 +496,11 @@ export default function DepartmentDrillDown() {
               statusFilter={statusFilter}
               setStatusFilter={setStatusFilter}
               setSelectedGrievance={setSelectedGrievance}
-              setShowGrievanceDetail={setShowGrievanceDetail}
-              exportToCSV={exportToCSV}
-            />
+               setShowGrievanceDetail={setShowGrievanceDetail}
+               exportToCSV={exportToCSV}
+               onRefresh={fetchData}
+               refreshing={loading}
+             />
           </TabsContent>
 
           {/* Appointments Tab */}
@@ -508,9 +512,11 @@ export default function DepartmentDrillDown() {
               statusFilter={statusFilter}
               setStatusFilter={setStatusFilter}
               setSelectedAppointment={setSelectedAppointment}
-              setShowAppointmentDetail={setShowAppointmentDetail}
-              exportToCSV={exportToCSV}
-            />
+               setShowAppointmentDetail={setShowAppointmentDetail}
+               exportToCSV={exportToCSV}
+               onRefresh={fetchData}
+               refreshing={loading}
+             />
           </TabsContent>
 
           {/* Analytics Tab */}

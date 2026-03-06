@@ -3,30 +3,50 @@
 import React from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, Download } from "lucide-react";
+import { RefreshCw, TrendingUp, Download } from "lucide-react";
 
 interface LeadListProps {
   leads: any[];
   exportToCSV: (data: any[], filename: string) => void;
+  onRefresh?: () => void;
+  refreshing?: boolean;
 }
 
-export default function LeadList({ leads, exportToCSV }: LeadListProps) {
+export default function LeadList({
+  leads,
+  exportToCSV,
+  onRefresh,
+  refreshing,
+}: LeadListProps) {
   return (
-    <Card className="rounded-2xl border-slate-200 shadow-xl overflow-hidden bg-white">
+    <Card className="rounded-2xl border-slate-200 shadow-xl overflow-hidden bg-white text-left">
       <CardHeader className="flex flex-row items-center justify-between border-b bg-slate-50/50 px-6 py-4">
         <CardTitle className="text-xs font-black uppercase tracking-widest text-slate-600 flex items-center gap-2">
           <TrendingUp className="w-4 h-4 text-blue-500" />
           Commercial Opportunities
         </CardTitle>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => exportToCSV(leads, "leads")}
-          className="text-[10px] font-black uppercase tracking-wider"
-        >
-          <Download className="w-3.5 h-3.5 mr-2" />
-          Export
-        </Button>
+        <div className="flex items-center gap-2">
+          {onRefresh && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onRefresh}
+              disabled={refreshing}
+              className="h-8 w-8 p-0 border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-200"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => exportToCSV(leads, "leads")}
+            className="text-[10px] font-black uppercase tracking-wider"
+          >
+            <Download className="w-3.5 h-3.5 mr-2" />
+            Export
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="p-0 overflow-x-auto">
         <table className="w-full text-left">

@@ -58,6 +58,7 @@ export enum UserRole {
   SUPER_ADMIN = 'SUPER_ADMIN',
   COMPANY_ADMIN = 'COMPANY_ADMIN',
   DEPARTMENT_ADMIN = 'DEPARTMENT_ADMIN',
+  SUB_DEPARTMENT_ADMIN = 'SUB_DEPARTMENT_ADMIN',
   OPERATOR = 'OPERATOR',
   ANALYTICS_VIEWER = 'ANALYTICS_VIEWER'
 }
@@ -117,6 +118,22 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   ],
   
   [UserRole.DEPARTMENT_ADMIN]: [
+    Permission.READ_DEPARTMENT,
+    Permission.UPDATE_DEPARTMENT,
+    Permission.CREATE_USER,
+    Permission.READ_USER,
+    Permission.UPDATE_USER,
+    Permission.DELETE_USER,
+    Permission.READ_GRIEVANCE,
+    Permission.UPDATE_GRIEVANCE,
+    Permission.ASSIGN_GRIEVANCE,
+    Permission.READ_APPOINTMENT,
+    Permission.UPDATE_APPOINTMENT,
+    Permission.VIEW_ANALYTICS,
+    Permission.EXPORT_DATA
+  ],
+  
+  [UserRole.SUB_DEPARTMENT_ADMIN]: [
     Permission.READ_DEPARTMENT,
     Permission.UPDATE_DEPARTMENT,
     Permission.CREATE_USER,

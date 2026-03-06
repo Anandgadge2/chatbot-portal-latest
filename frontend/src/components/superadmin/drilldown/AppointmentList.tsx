@@ -3,7 +3,7 @@
 import React from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar as CalendarIcon, Download } from "lucide-react";
+import { RefreshCw, Calendar as CalendarIcon, Download } from "lucide-react";
 import { Appointment } from "@/lib/api/appointment";
 
 interface AppointmentListProps {
@@ -12,6 +12,8 @@ interface AppointmentListProps {
   exportToCSV: (data: any[], filename: string) => void;
   setSelectedAppointment: (a: Appointment) => void;
   setShowAppointmentDetail: (open: boolean) => void;
+  onRefresh?: () => void;
+  refreshing?: boolean;
 }
 
 export default function AppointmentList({
@@ -20,23 +22,38 @@ export default function AppointmentList({
   exportToCSV,
   setSelectedAppointment,
   setShowAppointmentDetail,
+  onRefresh,
+  refreshing,
 }: AppointmentListProps) {
   return (
-    <Card className="rounded-2xl border-slate-200 shadow-xl overflow-hidden bg-white">
+    <Card className="rounded-2xl border-slate-200 shadow-xl overflow-hidden bg-white text-left">
       <CardHeader className="flex flex-row items-center justify-between border-b bg-slate-50/50 px-6 py-4">
         <CardTitle className="text-xs font-black uppercase tracking-widest text-slate-600 flex items-center gap-2">
           <CalendarIcon className="w-4 h-4 text-emerald-500" />
           Appointment Calendar
         </CardTitle>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => exportToCSV(appointments, "appointments")}
-          className="text-[10px] font-black uppercase tracking-wider"
-        >
-          <Download className="w-3.5 h-3.5 mr-2" />
-          Export
-        </Button>
+        <div className="flex items-center gap-2">
+          {onRefresh && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onRefresh}
+              disabled={refreshing}
+              className="h-8 w-8 p-0 border-slate-200 text-slate-400 hover:text-emerald-600 hover:border-emerald-200"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => exportToCSV(appointments, "appointments")}
+            className="text-[10px] font-black uppercase tracking-wider"
+          >
+            <Download className="w-3.5 h-3.5 mr-2" />
+            Export
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="p-0 overflow-x-auto">
         <table className="w-full text-left">

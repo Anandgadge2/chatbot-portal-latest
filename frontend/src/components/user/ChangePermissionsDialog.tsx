@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { userAPI, User } from '@/lib/api/user';
+import { roleAPI, Role } from '@/lib/api/role';
 import { useAuth } from '@/contexts/AuthContext';
 import toast from 'react-hot-toast';
 import {
@@ -33,25 +34,57 @@ const ChangePermissionsDialog: React.FC<ChangePermissionsDialogProps> = ({
   const { user: currentUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState<string>('');
+  const [customRoles, setCustomRoles] = useState<Role[]>([]);
+
+  const fetchCustomRoles = useCallback(async (companyId: string) => {
+    if (!companyId) return;
+    try {
+      const response = await roleAPI.getRoles(companyId);
+      if (response.success) {
+        setCustomRoles(response.data.roles || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch custom roles:", error);
+    }
+  }, []);
 
   useEffect(() => {
     if (isOpen && user) {
-      setSelectedRole(user.role || 'OPERATOR');
+      const initialRole = user.customRoleId
+        ? `CUSTOM:${typeof user.customRoleId === 'object' ? (user.customRoleId as any)._id : user.customRoleId}`
+        : user.role || 'OPERATOR';
+      setSelectedRole(initialRole);
+
+      const companyId = currentUser?.companyId
+        ? typeof currentUser.companyId === 'object'
+          ? (currentUser.companyId as any)._id
+          : currentUser.companyId
+        : '';
+      
+      if (companyId) {
+        fetchCustomRoles(companyId);
+      }
     }
-  }, [isOpen, user]);
+  }, [isOpen, user, currentUser, fetchCustomRoles]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
-    if (selectedRole === user.role) {
-      toast.error('User already has this role');
-      return;
+    let submissionRole = selectedRole;
+    let submissionCustomRoleId = '';
+
+    if (selectedRole.startsWith('CUSTOM:')) {
+      submissionRole = 'OPERATOR';
+      submissionCustomRoleId = selectedRole.split(':')[1];
     }
 
     setLoading(true);
     try {
-      await userAPI.update(user._id, { role: selectedRole });
+      await userAPI.update(user._id, { 
+        role: submissionRole, 
+        customRoleId: submissionCustomRoleId || undefined 
+      });
       toast.success('User permissions updated successfully');
       onPermissionsUpdated();
       onClose();
@@ -62,36 +95,56 @@ const ChangePermissionsDialog: React.FC<ChangePermissionsDialogProps> = ({
     }
   };
 
-  const getAvailableRoles = () => {
+  const getAllPossibleRoles = () => {
+    let roles: { value: string; label: string }[] = [];
+    
+    // 1. Add Standard Roles based on permissions
     if (currentUser?.role === 'SUPER_ADMIN') {
-      return [
+      roles.push(
         { value: 'SUPER_ADMIN', label: 'Super Admin' },
         { value: 'COMPANY_ADMIN', label: 'Company Admin' },
         { value: 'DEPARTMENT_ADMIN', label: 'Department Admin' },
+        { value: 'SUB_DEPARTMENT_ADMIN', label: 'Sub Department Admin' },
         { value: 'OPERATOR', label: 'Operator' },
         { value: 'ANALYTICS_VIEWER', label: 'Analytics Viewer' }
-      ];
+      );
     } else if (currentUser?.role === 'COMPANY_ADMIN') {
-      return [
+      roles.push(
         { value: 'DEPARTMENT_ADMIN', label: 'Department Admin' },
+        { value: 'SUB_DEPARTMENT_ADMIN', label: 'Sub Department Admin' },
         { value: 'OPERATOR', label: 'Operator' },
         { value: 'ANALYTICS_VIEWER', label: 'Analytics Viewer' }
-      ];
+      );
     } else if (currentUser?.role === 'DEPARTMENT_ADMIN') {
-      return [
+      roles.push(
         { value: 'DEPARTMENT_ADMIN', label: 'Department Admin' },
+        { value: 'SUB_DEPARTMENT_ADMIN', label: 'Sub Department Admin' },
         { value: 'OPERATOR', label: 'Operator' },
         { value: 'ANALYTICS_VIEWER', label: 'Analytics Viewer' }
-      ];
+      );
     }
-    return [];
+
+    // 2. Add Custom Roles
+    const customRoleOptions = customRoles.map(r => ({
+      value: `CUSTOM:${r._id}`,
+      label: r.name
+    }));
+
+    return [...roles, ...customRoleOptions];
   };
 
   const getRoleDescription = (role: string) => {
+    if (role.startsWith('CUSTOM:')) {
+      const roleId = role.split(':')[1];
+      const customRole = customRoles.find((r: Role) => r._id === roleId);
+      return customRole?.description || 'Custom role with specific permissions defined for your company.';
+    }
+
     const descriptions: Record<string, string> = {
       'SUPER_ADMIN': 'Full system access with all permissions',
       'COMPANY_ADMIN': 'Manage company, departments, users, grievances, and appointments',
       'DEPARTMENT_ADMIN': 'Manage department, users, and assigned grievances/appointments',
+      'SUB_DEPARTMENT_ADMIN': 'Manage sub-department, users, and assigned tasks',
       'OPERATOR': 'Can only update status and add comments to assigned items',
       'ANALYTICS_VIEWER': 'View-only access to analytics and reports'
     };
@@ -100,9 +153,10 @@ const ChangePermissionsDialog: React.FC<ChangePermissionsDialogProps> = ({
 
   if (!user) return null;
 
-  const availableRoles = getAvailableRoles();
-  const currentRoleInfo = availableRoles.find(r => r.value === user.role);
-  const selectedRoleInfo = availableRoles.find(r => r.value === selectedRole);
+  const allPossibleRoles = getAllPossibleRoles();
+  const currentRoleValue = user.customRoleId
+    ? `CUSTOM:${typeof user.customRoleId === 'object' ? (user.customRoleId as any)._id : user.customRoleId}`
+    : user.role;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -125,31 +179,34 @@ const ChangePermissionsDialog: React.FC<ChangePermissionsDialogProps> = ({
               <Label className="text-base font-semibold text-gray-700">Current Role</Label>
               <div className="p-4 bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl border-2 border-slate-200">
                 <div className="font-bold text-lg text-gray-900">
-                  {currentRoleInfo?.label || user.role}
+                  {user.customRoleId 
+                    ? (typeof user.customRoleId === 'object' ? (user.customRoleId as any).name : 'Custom Role')
+                    : (allPossibleRoles.find((r: { value: string; label: string }) => r.value === user.role)?.label || user.role)}
                 </div>
                 <div className="text-sm text-gray-600 mt-2">
-                  {getRoleDescription(user.role)}
+                  {getRoleDescription(currentRoleValue)}
                 </div>
               </div>
             </div>
 
             <div className="space-y-3">
-              <Label htmlFor="role" className="text-base font-semibold text-gray-700">New Role *</Label>
+              <Label htmlFor="role" className="text-base font-semibold text-gray-700">New Role & Permissions *</Label>
               <select
                 id="role"
                 name="role"
                 value={selectedRole}
                 onChange={(e) => setSelectedRole(e.target.value)}
-                className="flex h-12 w-full rounded-xl border-2 border-slate-300 bg-white px-4 py-3 text-base font-medium ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2 focus-visible:border-purple-500 disabled:cursor-not-allowed disabled:opacity-50 transition-all"
+                className="flex h-12 w-full rounded-xl border-2 border-slate-300 bg-white px-4 py-3 text-base font-bold text-gray-900 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2 focus-visible:border-purple-500 disabled:cursor-not-allowed disabled:opacity-50 transition-all"
                 required
               >
-                {availableRoles.map((role) => (
+                <option value="" disabled>Select a role</option>
+                {allPossibleRoles.map((role: { value: string; label: string }) => (
                   <option key={role.value} value={role.value}>
                     {role.label}
                   </option>
                 ))}
               </select>
-              {selectedRoleInfo && (
+              {selectedRole && (
                 <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
                   <p className="text-sm text-purple-800 font-medium">
                     {getRoleDescription(selectedRole)}
@@ -158,7 +215,7 @@ const ChangePermissionsDialog: React.FC<ChangePermissionsDialogProps> = ({
               )}
             </div>
 
-            {selectedRole !== user.role && selectedRole && (
+            {selectedRole !== currentRoleValue && selectedRole && (
               <div className="p-4 bg-amber-50 border-2 border-amber-200 rounded-xl">
                 <p className="text-sm text-amber-800 font-medium">
                   <strong>⚠️ Note:</strong> Changing the role will update all permissions for this user. 
@@ -180,7 +237,7 @@ const ChangePermissionsDialog: React.FC<ChangePermissionsDialogProps> = ({
             </Button>
             <Button 
               type="submit" 
-              disabled={loading || selectedRole === user.role}
+              disabled={loading || selectedRole === currentRoleValue}
               className="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold shadow-lg"
             >
               {loading ? 'Updating...' : 'Update Permissions'}

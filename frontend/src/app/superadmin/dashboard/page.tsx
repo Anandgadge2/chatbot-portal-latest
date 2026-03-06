@@ -22,6 +22,7 @@ import CreateDepartmentDialog from "@/components/department/CreateDepartmentDial
 import CreateUserDialog from "@/components/user/CreateUserDialog";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import { StatsSkeleton, TableSkeleton } from "@/components/ui/GeneralSkeleton";
 import { Pagination } from "@/components/ui/Pagination";
 import RecentActivityPanel from "@/components/dashboard/RecentActivityPanel";
 import TerminalLogs from "@/components/dashboard/TerminalLogs";
@@ -300,10 +301,7 @@ export default function SuperAdminDashboard() {
 
   const fetchStats = async () => {
     try {
-      // 🚀 Optimization: Use the dedicated dashboard aggregation endpoint
-      // This performs atomic counts on the DB instead of fetching 1000s of records
       const response = await apiClient.get("/dashboard/superadmin");
-
       if (response.success && response.data.stats) {
         const { stats } = response.data;
         setStats({
@@ -312,7 +310,7 @@ export default function SuperAdminDashboard() {
           departments: stats.departments,
           activeCompanies: stats.activeCompanies,
           activeUsers: stats.activeUsers,
-          totalSessions: Math.floor(Math.random() * 100) + 50, // Mock data
+          totalSessions: Math.floor(Math.random() * 100) + 50,
           systemStatus: "operational",
         });
       }
@@ -536,10 +534,10 @@ export default function SuperAdminDashboard() {
     }
   }, [mounted, user]);
 
-  if (loading || !mounted) {
+  if (!mounted) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <LoadingSpinner text="Loading Dashboard..." />
+        <LoadingSpinner text="Initializing Dashboard..." />
       </div>
     );
   }
@@ -547,6 +545,7 @@ export default function SuperAdminDashboard() {
   if (!user || user.role !== "SUPER_ADMIN") {
     return null;
   }
+
   return (
     <div className="min-h-screen bg-[#f8fafc]">
       {navigatingCompanyId && (
@@ -556,9 +555,7 @@ export default function SuperAdminDashboard() {
           </div>
         </div>
       )}
-      {/* Header with Gradient */}
-      {/* Classic White Header */}
-      {/* Header with Dark Slate Theme */}
+      
       <header className="bg-slate-900 sticky top-0 z-50 shadow-2xl border-b border-slate-800">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-10 pointer-events-none"></div>
         <div className="relative max-w-[1600px] mx-auto px-4 lg:px-6">
@@ -586,11 +583,7 @@ export default function SuperAdminDashboard() {
                   {[
                     { val: "overview", label: "Overview", icon: BarChart2 },
                     { val: "companies", label: "Companies", icon: Building },
-                    {
-                      val: "departments",
-                      label: "Departments",
-                      icon: Settings,
-                    },
+                    { val: "departments", label: "Departments", icon: Settings },
                     { val: "users", label: "Users", icon: Users },
                     { val: "roles", label: "Roles", icon: Shield },
                     { val: "features", label: "Features", icon: Box },
@@ -616,6 +609,22 @@ export default function SuperAdminDashboard() {
                 </span>
               </div>
               <Button
+                onClick={() => {
+                  fetchAllInitialData();
+                  fetchStats();
+                  fetchCompanies();
+                  fetchDepartments();
+                  fetchUsers();
+                }}
+                disabled={loading || companiesLoading}
+                variant="ghost"
+                size="sm"
+                className="hidden md:flex h-10 w-10 p-0 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white rounded-xl transition-all border border-white/10 items-center justify-center"
+                title="Refresh All Data"
+              >
+                <RefreshCw className={`w-4 h-4 ${(loading || companiesLoading) ? "animate-spin" : ""}`} />
+              </Button>
+              <Button
                 onClick={logout}
                 variant="ghost"
                 size="sm"
@@ -637,7 +646,6 @@ export default function SuperAdminDashboard() {
           </div>
         </div>
 
-        {/* Mobile Menu Overlay */}
         {isMobileMenuOpen && (
           <div className="md:hidden absolute top-16 left-0 w-full bg-slate-900 border-b border-slate-800 z-50 animate-in slide-in-from-top-4 duration-300">
             <div className="p-4 space-y-2">
@@ -686,8 +694,6 @@ export default function SuperAdminDashboard() {
           onValueChange={setActiveTab}
           className="space-y-4"
         >
-          {/* Main Content Areas */}
-
           <TabsContent value="overview" className="space-y-6 outline-none">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
               <div>
@@ -713,18 +719,15 @@ export default function SuperAdminDashboard() {
               </div>
             </div>
 
-            <DashboardStats stats={stats} setActiveTab={setActiveTab} />
+            {loading ? <StatsSkeleton /> : <DashboardStats stats={stats} setActiveTab={setActiveTab} />}
 
-            {/* Main Stats Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Left Column: Recent Activity (Taking more space) */}
               <div className="lg:col-span-2">
-                <RecentActivityPanel />
+                {loading ? <TableSkeleton rows={8} cols={4} /> : <RecentActivityPanel />}
               </div>
 
-              {/* Right Column: Account Info and Stats Summary */}
               <div className="space-y-6">
-                <Card className="border border-slate-200 shadow-sm overflow-hidden bg-white">
+                <Card className="border border-slate-200 shadow-sm overflow-hidden bg-white text-left">
                   <CardHeader className="bg-slate-50/50 border-b border-slate-100 p-4">
                     <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2">
                       <UserIcon className="w-4 h-4 text-blue-600" />
@@ -733,8 +736,8 @@ export default function SuperAdminDashboard() {
                   </CardHeader>
                   <CardContent className="p-5">
                     <div className="space-y-4">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-gradient-to-br from-primary to-blue-600 rounded-full flex items-center justify-center text-white font-black text-lg shadow-md">
+                      <div className="flex items-center gap-4 text-left">
+                        <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-blue-600 rounded-full flex items-center justify-center text-white font-black text-lg shadow-md">
                           {user.firstName[0]}
                           {user.lastName[0]}
                         </div>
@@ -749,35 +752,23 @@ export default function SuperAdminDashboard() {
                       </div>
                       <div className="pt-4 border-t border-slate-100 space-y-3">
                         <div className="flex justify-between items-center text-[11px]">
-                          <span className="font-bold text-slate-500 uppercase">
-                            User ID
-                          </span>
-                          <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">
-                            {user.userId}
-                          </span>
+                          <span className="font-bold text-slate-500 uppercase">User ID</span>
+                          <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">{user.userId}</span>
                         </div>
                         <div className="flex justify-between items-center text-[11px]">
-                          <span className="font-bold text-slate-500 uppercase">
-                            Email
-                          </span>
-                          <span className="text-slate-700 font-medium">
-                            {user.email}
-                          </span>
+                          <span className="font-bold text-slate-500 uppercase">Email</span>
+                          <span className="text-slate-700 font-medium">{user.email}</span>
                         </div>
                         <div className="flex justify-between items-center text-[11px]">
-                          <span className="font-bold text-slate-500 uppercase">
-                            Access Level
-                          </span>
-                          <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full font-bold">
-                            Unrestricted
-                          </span>
+                          <span className="font-bold text-slate-500 uppercase">Access</span>
+                          <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full font-bold">Unrestricted</span>
                         </div>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="border border-slate-200 shadow-sm overflow-hidden bg-white">
+                <Card className="border border-slate-200 shadow-sm overflow-hidden bg-white text-left">
                   <CardHeader className="bg-slate-50/50 border-b border-slate-100 p-4">
                     <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2">
                       <RefreshCw className="w-4 h-4 text-emerald-600" />
@@ -785,10 +776,8 @@ export default function SuperAdminDashboard() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-5">
-                    <div className="flex items-center justify-between mb-4">
-                      <span className="text-xs font-bold text-slate-500 uppercase">
-                        API Status
-                      </span>
+                    <div className="flex items-center justify-between mb-4 text-left">
+                      <span className="text-xs font-bold text-slate-500 uppercase">API Status</span>
                       <span className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-bold">
                         <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
                         Healthy
@@ -798,12 +787,8 @@ export default function SuperAdminDashboard() {
                       <div className="bg-indigo-600 h-1.5 rounded-full w-[98%] shadow-[0_0_8px_rgba(79,70,229,0.3)]" />
                     </div>
                     <div className="flex justify-between items-center mt-2">
-                      <span className="text-[10px] font-bold text-slate-400">
-                        UPTIME
-                      </span>
-                      <span className="text-[10px] font-bold text-slate-900 uppercase">
-                        99.9%
-                      </span>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">Uptime</span>
+                      <span className="text-[10px] font-bold text-slate-900 uppercase">99.9%</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -811,74 +796,89 @@ export default function SuperAdminDashboard() {
             </div>
           </TabsContent>
 
-          <TabsContent value="companies" className="space-y-4">
-            <CompanyTabContent
-              companies={companies}
-              companiesLoading={companiesLoading}
-              companySearchTerm={companySearchTerm}
-              setCompanySearchTerm={setCompanySearchTerm}
-              companyStatusFilter={companyStatusFilter}
-              setCompanyStatusFilter={setCompanyStatusFilter}
-              companyTypeFilter={companyTypeFilter}
-              setCompanyTypeFilter={setCompanyTypeFilter}
-              companyPage={companyPage}
-              setCompanyPage={setCompanyPage}
-              companyPagination={companyPagination}
-              navigatingCompanyId={navigatingCompanyId}
-              setShowCreateDialog={setShowCreateDialog}
-              handleOpenCompanyDashboard={handleOpenCompanyDashboard}
-              handleEditCompany={handleEditCompany}
-              handleDeleteCompany={handleDeleteCompany}
-              toggleCompanyStatus={toggleCompanyStatus}
-            />
+          <TabsContent value="companies" className="space-y-4 outline-none">
+            {companiesLoading ? (
+              <TableSkeleton rows={10} cols={5} />
+            ) : (
+              <CompanyTabContent
+                companies={companies}
+                companiesLoading={companiesLoading}
+                companySearchTerm={companySearchTerm}
+                setCompanySearchTerm={setCompanySearchTerm}
+                companyStatusFilter={companyStatusFilter}
+                setCompanyStatusFilter={setCompanyStatusFilter}
+                companyTypeFilter={companyTypeFilter}
+                setCompanyTypeFilter={setCompanyTypeFilter}
+                companyPage={companyPage}
+                setCompanyPage={setCompanyPage}
+                companyPagination={companyPagination}
+                navigatingCompanyId={navigatingCompanyId}
+                setShowCreateDialog={setShowCreateDialog}
+                handleOpenCompanyDashboard={handleOpenCompanyDashboard}
+                handleEditCompany={handleEditCompany}
+                handleDeleteCompany={handleDeleteCompany}
+                toggleCompanyStatus={toggleCompanyStatus}
+                onRefresh={() => { fetchCompanies(); fetchStats(); }}
+              />
+            )}
           </TabsContent>
 
-          <TabsContent value="departments" className="space-y-4">
-            <DepartmentTabContent
-              departments={departments}
-              deptSearchTerm={deptSearchTerm}
-              setDeptSearchTerm={setDeptSearchTerm}
-              deptCompanyFilter={deptCompanyFilter}
-              setDeptCompanyFilter={setDeptCompanyFilter}
-              allCompanies={allCompanies}
-              departmentPage={departmentPage}
-              setDepartmentPage={setDepartmentPage}
-              departmentPagination={departmentPagination}
-              setEditingDepartment={setEditingDepartment}
-              setShowDepartmentDialog={setShowDepartmentDialog}
-              handleEditDepartment={handleEditDepartment}
-              handleDeleteDepartment={handleDeleteDepartment}
-              toggleDepartmentStatus={toggleDepartmentStatus}
-              getCompanyDisplay={getCompanyDisplay}
-              router={router}
-            />
+          <TabsContent value="departments" className="space-y-4 outline-none">
+            {loading ? (
+              <TableSkeleton rows={10} cols={5} />
+            ) : (
+              <DepartmentTabContent
+                departments={departments}
+                deptSearchTerm={deptSearchTerm}
+                setDeptSearchTerm={setDeptSearchTerm}
+                deptCompanyFilter={deptCompanyFilter}
+                setDeptCompanyFilter={setDeptCompanyFilter}
+                allCompanies={allCompanies}
+                departmentPage={departmentPage}
+                setDepartmentPage={setDepartmentPage}
+                departmentPagination={departmentPagination}
+                setEditingDepartment={setEditingDepartment}
+                setShowDepartmentDialog={setShowDepartmentDialog}
+                handleEditDepartment={handleEditDepartment}
+                handleDeleteDepartment={handleDeleteDepartment}
+                toggleDepartmentStatus={toggleDepartmentStatus}
+                getCompanyDisplay={getCompanyDisplay}
+                router={router}
+                onRefresh={() => { fetchDepartments(); fetchStats(); }}
+              />
+            )}
           </TabsContent>
 
-          {/* Users Tab */}
-          <TabsContent value="users" className="space-y-4">
-            <UserTabContent
-              users={users}
-              userSearchTerm={userSearchTerm}
-              setUserSearchTerm={setUserSearchTerm}
-              userCompanyFilter={userCompanyFilter}
-              setUserCompanyFilter={setUserCompanyFilter}
-              userRoleFilter={userRoleFilter}
-              setUserRoleFilter={setUserRoleFilter}
-              allCompanies={allCompanies}
-              userPage={userPage}
-              setUserPage={setUserPage}
-              userPagination={userPagination}
-              visiblePasswords={visiblePasswords}
-              togglePasswordVisibility={togglePasswordVisibility}
-              setShowUserDialog={setShowUserDialog}
-              setEditingUser={setEditingUser}
-              handleEditUser={handleEditUser}
-              handleDeleteUser={handleDeleteUser}
-              toggleUserStatus={toggleUserStatus}
-            />
+          <TabsContent value="users" className="space-y-4 outline-none">
+            {loading ? (
+              <TableSkeleton rows={10} cols={5} />
+            ) : (
+              <UserTabContent
+                users={users}
+                userSearchTerm={userSearchTerm}
+                setUserSearchTerm={setUserSearchTerm}
+                userCompanyFilter={userCompanyFilter}
+                setUserCompanyFilter={setUserCompanyFilter}
+                userRoleFilter={userRoleFilter}
+                setUserRoleFilter={setUserRoleFilter}
+                allCompanies={allCompanies}
+                userPage={userPage}
+                setUserPage={setUserPage}
+                userPagination={userPagination}
+                visiblePasswords={visiblePasswords}
+                togglePasswordVisibility={togglePasswordVisibility}
+                setShowUserDialog={setShowUserDialog}
+                setEditingUser={setEditingUser}
+                handleEditUser={handleEditUser}
+                handleDeleteUser={handleDeleteUser}
+                toggleUserStatus={toggleUserStatus}
+                onRefresh={fetchUsers}
+              />
+            )}
           </TabsContent>
+
           <TabsContent value="roles" className="space-y-4 outline-none">
-            <Card className="border-0 shadow-xl rounded-2xl overflow-hidden bg-white">
+            <Card className="border-0 shadow-xl rounded-2xl overflow-hidden bg-white text-left">
               <CardHeader className="bg-slate-50 border-b border-slate-100 p-6">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div>
@@ -891,9 +891,7 @@ export default function SuperAdminDashboard() {
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
-                      Select
-                      <br />
-                      Entity
+                      Select<br />Entity
                     </span>
                     <select
                       className="bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700 shadow-sm min-w-[200px]"
@@ -923,8 +921,7 @@ export default function SuperAdminDashboard() {
                         No Entity Selected
                       </h3>
                       <p className="text-slate-400 text-sm max-w-[280px] font-medium">
-                        Please select a company from the dropdown above to
-                        manage its roles and permissions.
+                        Please select a company from the dropdown above to manage its roles and permissions.
                       </p>
                     </div>
                   </div>
@@ -941,6 +938,7 @@ export default function SuperAdminDashboard() {
             <TerminalLogs />
           </TabsContent>
         </Tabs>
+
         <CreateCompanyDialog
           isOpen={showCreateDialog}
           onClose={() => {

@@ -6,8 +6,9 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Users, Search, Download, ArrowUpDown } from "lucide-react";
-import { User } from "@/lib/api/user";
+import { User, userAPI } from "@/lib/api/user";
+import { Users, Search, Download, ArrowUpDown, RefreshCw, CheckSquare, Square, Trash2, AlertTriangle } from "lucide-react";
+import toast from "react-hot-toast";
 
 interface DeptUserListProps {
   filteredUsers: User[];
@@ -19,6 +20,8 @@ interface DeptUserListProps {
   setStatusFilter: (val: string) => void;
   handleSort: (key: string) => void;
   exportToCSV: (data: any[], filename: string) => void;
+  onRefresh?: () => void;
+  refreshing?: boolean;
 }
 
 const DeptUserList: React.FC<DeptUserListProps> = ({
@@ -31,7 +34,50 @@ const DeptUserList: React.FC<DeptUserListProps> = ({
   setStatusFilter,
   handleSort,
   exportToCSV,
+  onRefresh,
+  refreshing,
 }) => {
+  const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = React.useState(false);
+  const [showBulkConfirm, setShowBulkConfirm] = React.useState(false);
+
+  const allSelected = filteredUsers.length > 0 && selectedIds.size === filteredUsers.length;
+  const someSelected = selectedIds.size > 0 && !allSelected;
+
+  const toggleAll = React.useCallback(() => {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredUsers.map((u) => u._id)));
+    }
+  }, [allSelected, filteredUsers]);
+
+  const toggleOne = React.useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const handleBulkDelete = async () => {
+    setBulkDeleting(true);
+    setShowBulkConfirm(false);
+    let ok = 0, fail = 0;
+    for (const id of Array.from(selectedIds)) {
+      try {
+        const res = await userAPI.delete(id);
+        if (res.success) ok++;
+        else fail++;
+      } catch { fail++; }
+    }
+    setBulkDeleting(false);
+    setSelectedIds(new Set());
+    if (ok > 0) toast.success(`${ok} user(s) removed`);
+    if (fail > 0) toast.error(`${fail} user(s) could not be removed`);
+    onRefresh?.();
+  };
   return (
     <Card className="rounded-2xl border-0 shadow-xl overflow-hidden bg-white/80 backdrop-blur-sm">
       <CardHeader className="bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 text-white px-6 py-5">
@@ -44,18 +90,30 @@ const DeptUserList: React.FC<DeptUserListProps> = ({
               <CardTitle className="text-xl font-bold text-white">
                 Users ({filteredUsers.length})
               </CardTitle>
-              <CardDescription className="text-emerald-100">
-                All users in this department
+              <CardDescription className="text-emerald-100 font-medium">
+                Team directory and synchronization status
               </CardDescription>
             </div>
           </div>
-          <button
-            onClick={() => exportToCSV(filteredUsers, "users")}
-            className="flex items-center gap-2 px-4 py-2 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all border border-white/30"
-          >
-            <Download className="w-4 h-4" />
-            Export
-          </button>
+          <div className="flex items-center gap-2">
+            {onRefresh && (
+              <button
+                onClick={onRefresh}
+                disabled={refreshing}
+                className="p-2.5 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all border border-white/30 disabled:opacity-50"
+                title="Refresh Team Data"
+              >
+                <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
+              </button>
+            )}
+            <button
+              onClick={() => exportToCSV(filteredUsers, "users")}
+              className="flex items-center gap-2 px-4 py-2 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all border border-white/30"
+            >
+              <Download className="w-4 h-4" />
+              Export
+            </button>
+          </div>
         </div>
       </CardHeader>
 
@@ -93,6 +151,53 @@ const DeptUserList: React.FC<DeptUserListProps> = ({
         </div>
       </div>
 
+      {/* Bulk Action Bar */}
+      {selectedIds.size > 0 && (
+        <div className="px-6 py-2.5 bg-emerald-50 border-b border-emerald-100 flex items-center justify-between animate-in slide-in-from-top-2 duration-300">
+          <div className="flex items-center gap-3">
+            <CheckSquare className="w-5 h-5 text-emerald-600" />
+            <span className="text-sm font-black text-emerald-900 uppercase tracking-tighter">
+              {selectedIds.size} selection(s) active
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="h-8 px-4 text-[10px] font-bold uppercase tracking-widest border border-emerald-200 text-emerald-700 hover:bg-emerald-100 rounded-xl transition-all"
+            >
+              Clear
+            </button>
+            {showBulkConfirm ? (
+              <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-1.5 shadow-sm">
+                <AlertTriangle className="w-4 h-4 text-red-600" />
+                <span className="text-[10px] text-red-700 font-black uppercase tracking-widest">Perform Mass Removal?</span>
+                <button
+                  onClick={handleBulkDelete}
+                  disabled={bulkDeleting}
+                  className="h-7 px-4 text-[10px] bg-red-600 hover:bg-red-700 text-white rounded-lg font-black uppercase tracking-widest shadow-lg shadow-red-200 disabled:opacity-50"
+                >
+                  {bulkDeleting ? "Executing..." : "Confirm"}
+                </button>
+                <button
+                  onClick={() => setShowBulkConfirm(false)}
+                  className="h-7 px-3 text-[10px] text-slate-500 font-bold uppercase"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowBulkConfirm(true)}
+                className="h-8 px-4 text-[10px] font-black uppercase tracking-widest bg-red-600 hover:bg-red-700 text-white rounded-xl flex items-center gap-2 shadow-lg shadow-red-200 transition-all"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Mass Delete
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       <CardContent className="p-0">
         {filteredUsers.length === 0 ? (
           <div className="text-center py-16">
@@ -104,6 +209,23 @@ const DeptUserList: React.FC<DeptUserListProps> = ({
             <table className="w-full">
               <thead className="bg-gradient-to-r from-emerald-50 via-green-50 to-teal-50 border-b border-emerald-100">
                 <tr>
+                  <th className="pl-6 pr-2 py-4 w-10">
+                    <button
+                      onClick={toggleAll}
+                      className="text-emerald-400 hover:text-emerald-600 transition-colors"
+                      title={allSelected ? "Deselect all" : "Select all"}
+                    >
+                      {allSelected ? (
+                        <CheckSquare className="w-5 h-5 text-emerald-600" />
+                      ) : someSelected ? (
+                        <div className="w-5 h-5 border-2 border-emerald-300 rounded-lg flex items-center justify-center bg-white">
+                          <div className="w-2.5 h-0.5 bg-emerald-400 rounded-full" />
+                        </div>
+                      ) : (
+                        <Square className="w-5 h-5" />
+                      )}
+                    </button>
+                  </th>
                   <th className="px-3 py-4 text-center text-[11px] font-bold text-emerald-700 uppercase">
                     Sr. No.
                   </th>
@@ -130,8 +252,20 @@ const DeptUserList: React.FC<DeptUserListProps> = ({
                 {filteredUsers.map((u, index) => (
                   <tr
                     key={u._id}
-                    className="hover:bg-gradient-to-r hover:from-emerald-50/50 hover:to-green-50/50 transition-all"
+                    className={`hover:bg-gradient-to-r hover:from-emerald-50/50 hover:to-green-50/50 transition-all ${selectedIds.has(u._id) ? "bg-emerald-50/60" : ""}`}
                   >
+                    <td className="pl-6 pr-2 py-4">
+                      <button
+                        onClick={() => toggleOne(u._id)}
+                        className="text-emerald-400 hover:text-emerald-600 transition-colors"
+                      >
+                        {selectedIds.has(u._id) ? (
+                          <CheckSquare className="w-5 h-5 text-emerald-600" />
+                        ) : (
+                          <Square className="w-5 h-5" />
+                        )}
+                      </button>
+                    </td>
                     <td className="px-3 py-4 text-center">
                       <span className="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-100 to-green-100 text-emerald-700 text-xs font-bold">
                         {index + 1}
@@ -155,9 +289,32 @@ const DeptUserList: React.FC<DeptUserListProps> = ({
                       {u.email}
                     </td>
                     <td className="px-6 py-4">
-                      <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700">
-                        {u.role}
-                      </span>
+                      {(() => {
+                        const roleLabel =
+                          typeof u.customRoleId === "object" && u.customRoleId
+                            ? (u.customRoleId as any).name
+                            : (u.role || "").replace(/_/g, " ");
+
+                        return (
+                          <span
+                            className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                              u.role === "SUPER_ADMIN"
+                                ? "bg-red-50 text-red-700 border-red-100"
+                                : u.role === "COMPANY_ADMIN"
+                                  ? "bg-blue-50 text-blue-700 border-blue-100"
+                                  : (u.role === "DEPARTMENT_ADMIN" && typeof u.departmentId === "object" && (u.departmentId as any)?.parentDepartmentId)
+                                    ? "bg-purple-50 text-purple-700 border-purple-100"
+                                    : u.role === "DEPARTMENT_ADMIN"
+                                      ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                                      : u.role === "SUB_DEPARTMENT_ADMIN"
+                                        ? "bg-purple-50 text-purple-700 border-purple-100"
+                                        : "bg-slate-50 text-slate-700 border-slate-200"
+                            }`}
+                          >
+                            {(u.role === "DEPARTMENT_ADMIN" && typeof u.departmentId === "object" && (u.departmentId as any)?.parentDepartmentId) ? "Sub Department Admin" : roleLabel}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="px-6 py-4">
                       <span

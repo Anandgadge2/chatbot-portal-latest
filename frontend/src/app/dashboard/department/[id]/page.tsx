@@ -688,8 +688,16 @@ export default function DepartmentDetail() {
                             {u.email}
                           </td>
                           <td className="px-4 py-3">
-                            <span className="px-2.5 py-1 rounded-full text-[9px] font-bold bg-indigo-50 text-indigo-700 uppercase tracking-wide">
-                              {u.role?.replace(/_/g, " ")}
+                            <span
+                              className={`px-2.5 py-1 rounded-full text-[9px] font-bold border shadow-sm ${
+                                (u.role === "DEPARTMENT_ADMIN" && department?.parentDepartmentId) || u.role === "SUB_DEPARTMENT_ADMIN"
+                                  ? "bg-purple-50 text-purple-700 border-purple-100 ring-1 ring-purple-200"
+                                  : "bg-indigo-50 text-indigo-700 border-indigo-100 uppercase tracking-wide"
+                              }`}
+                            >
+                              {(u.role === "DEPARTMENT_ADMIN" && department?.parentDepartmentId) || u.role === "SUB_DEPARTMENT_ADMIN"
+                                ? "Sub Department Admin"
+                                : u.role?.replace(/_/g, " ")}
                             </span>
                           </td>
                           <td className="px-4 py-3 text-center">
