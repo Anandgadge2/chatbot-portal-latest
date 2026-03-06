@@ -124,8 +124,12 @@ router.post('/sso/login', async (req: Request, res: Response) => {
       phone: user.phone,
       email: user.email,
       role: user.role,
-      companyId: user.companyId?.toString(),
-      departmentId: user.departmentId?.toString(),
+      companyId: user.companyId instanceof mongoose.Types.ObjectId 
+        ? user.companyId.toString() 
+        : (user.companyId as any)?._id?.toString() || (user.companyId as any)?.toString(),
+      departmentId: user.departmentId instanceof mongoose.Types.ObjectId
+        ? user.departmentId.toString()
+        : (user.departmentId as any)?._id?.toString() || (user.departmentId as any)?.toString(),
       loginType: 'SSO' // Track login method
     };
 
@@ -267,8 +271,12 @@ router.post('/login', async (req: Request, res: Response) => {
       phone: user.phone,
       email: user.email,
       role: user.role,
-      companyId: user.companyId?.toString(),
-      departmentId: user.departmentId?.toString(),
+      companyId: user.companyId instanceof mongoose.Types.ObjectId 
+        ? user.companyId.toString() 
+        : (user.companyId as any)?._id?.toString() || (user.companyId as any)?.toString(),
+      departmentId: user.departmentId instanceof mongoose.Types.ObjectId
+        ? user.departmentId.toString()
+        : (user.departmentId as any)?._id?.toString() || (user.departmentId as any)?.toString(),
       loginType: 'PASSWORD' // Track login method
     };
 

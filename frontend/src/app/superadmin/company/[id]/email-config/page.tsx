@@ -86,35 +86,35 @@ export default function EmailConfigPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const companyRes = await apiClient.get(`/companies/${companyId}`);
+
+      const [companyRes, configRes, templatesRes] = await Promise.all([
+        apiClient.get(`/companies/${companyId}`),
+        apiClient
+          .get(`/email-config/company/${companyId}`)
+          .catch(() => ({ success: false })),
+        apiClient
+          .get(`/email-config/company/${companyId}/templates`)
+          .catch(() => ({ success: false })),
+      ]);
+
+      // Process Company
       const co = companyRes.data?.company || companyRes.data;
       if (co) setCompany(co);
 
-      try {
-        const configRes = await apiClient.get(
-          `/email-config/company/${companyId}`,
-        );
-        if (configRes.success && configRes.data) {
-          setConfig(configRes.data);
-          setIsEditing(false);
-        } else {
-          initEmptyConfig(co?.name);
-        }
-      } catch (err: any) {
-        if (err.response?.status === 404) initEmptyConfig(co?.name);
-        else throw err;
+      // Process Config
+      if (configRes.success && configRes.data) {
+        setConfig(configRes.data);
+        setIsEditing(false);
+      } else {
+        initEmptyConfig(co?.name);
       }
 
-      try {
-        const templatesRes = await apiClient.get(
-          `/email-config/company/${companyId}/templates`,
-        );
-        if (templatesRes.success && Array.isArray(templatesRes.data)) {
-          setTemplates(templatesRes.data);
-        } else {
-          setTemplates(TEMPLATE_KEYS.map((t) => ({ templateKey: t.key })));
-        }
-      } catch (_) {
+      // Process Templates
+      if (templatesRes.success && Array.isArray(templatesRes.data)) {
+        setTemplates(templatesRes.data);
+      } else if (Array.isArray(templatesRes.data)) {
+        setTemplates(templatesRes.data);
+      } else {
         setTemplates(TEMPLATE_KEYS.map((t) => ({ templateKey: t.key })));
       }
     } catch (error: any) {
@@ -325,14 +325,6 @@ export default function EmailConfigPage() {
     }, 0);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner />
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-slate-50/50">
       {/* Header */}
@@ -358,344 +350,356 @@ export default function EmailConfigPage() {
                 <div className="flex items-center gap-2 mt-1.5">
                   <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
                     Mailing Node:{" "}
-                    <span className="text-indigo-400">{company?.name}</span>
+                    <span className="text-indigo-400">
+                      {company?.name || "Loading..."}
+                    </span>
                   </p>
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2.5">
-              {config?._id && (
-                <>
+            {!loading && (
+              <div className="flex items-center gap-2.5">
+                {config?._id && (
+                  <>
+                    <Button
+                      onClick={handleTest}
+                      disabled={testing}
+                      variant="ghost"
+                      className="h-10 px-4 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-all border border-white/10 font-bold text-[11px] uppercase tracking-wider"
+                    >
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      {testing ? "Verifying..." : "Test Connection"}
+                    </Button>
+                    <Button
+                      onClick={() => setShowTestInput((v) => !v)}
+                      variant="ghost"
+                      className="h-10 px-4 bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 rounded-xl transition-all border border-emerald-600/30 font-bold text-[11px] uppercase tracking-wider"
+                    >
+                      <Send className="w-4 h-4 mr-2" />
+                      Send Test Email
+                    </Button>
+                  </>
+                )}
+                {isEditing ? (
+                  <>
+                    <Button
+                      onClick={handleSave}
+                      disabled={saving}
+                      className="h-10 px-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all shadow-lg shadow-indigo-900/20 font-bold text-[11px] uppercase tracking-wider border-0"
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      {saving ? "Processing..." : "Deploy Changes"}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        setIsEditing(false);
+                        fetchData();
+                      }}
+                      className="h-10 px-4 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-all border border-white/10 font-bold text-[11px] uppercase tracking-wider"
+                    >
+                      Cancel
+                    </Button>
+                  </>
+                ) : (
                   <Button
-                    onClick={handleTest}
-                    disabled={testing}
-                    variant="ghost"
-                    className="h-10 px-4 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-all border border-white/10 font-bold text-[11px] uppercase tracking-wider"
+                    onClick={() => setIsEditing(true)}
+                    className="h-10 px-6 bg-slate-800 hover:bg-slate-700 text-white rounded-xl transition-all border border-slate-700 font-bold text-[11px] uppercase tracking-wider"
                   >
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    {testing ? "Verifying..." : "Test Connection"}
+                    Modify Config
                   </Button>
-                  <Button
-                    onClick={() => setShowTestInput((v) => !v)}
-                    variant="ghost"
-                    className="h-10 px-4 bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 rounded-xl transition-all border border-emerald-600/30 font-bold text-[11px] uppercase tracking-wider"
-                  >
-                    <Send className="w-4 h-4 mr-2" />
-                    Send Test Email
-                  </Button>
-                </>
-              )}
-              {isEditing ? (
-                <>
-                  <Button
-                    onClick={handleSave}
-                    disabled={saving}
-                    className="h-10 px-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all shadow-lg shadow-indigo-900/20 font-bold text-[11px] uppercase tracking-wider border-0"
-                  >
-                    <Save className="w-4 h-4 mr-2" />
-                    {saving ? "Processing..." : "Deploy Changes"}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    onClick={() => {
-                      setIsEditing(false);
-                      fetchData();
-                    }}
-                    className="h-10 px-4 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-all border border-white/10 font-bold text-[11px] uppercase tracking-wider"
-                  >
-                    Cancel
-                  </Button>
-                </>
-              ) : (
-                <Button
-                  onClick={() => setIsEditing(true)}
-                  className="h-10 px-6 bg-slate-800 hover:bg-slate-700 text-white rounded-xl transition-all border border-slate-700 font-bold text-[11px] uppercase tracking-wider"
-                >
-                  Modify Config
-                </Button>
-              )}
-            </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </header>
 
-      <main className="max-w-[1600px] mx-auto w-full px-4 py-6 space-y-6">
-        {/* Send Test Email Panel */}
-        {showTestInput && (
-          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center gap-3">
-            <div className="flex-1">
-              <Label className="text-sm font-semibold text-emerald-800 mb-1 block">
-                Send a test email to verify SMTP is working
-              </Label>
-              <Input
-                placeholder="your@email.com"
-                value={testEmailAddr}
-                onChange={(e) => setTestEmailAddr(e.target.value)}
-                className="border-emerald-300 focus:ring-emerald-500"
-                type="email"
-              />
-            </div>
-            <div className="flex gap-2 pt-5">
-              <Button
-                onClick={handleSendTestEmail}
-                disabled={sendingTest}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-5"
-              >
-                <Send className="w-4 h-4 mr-2" />
-                {sendingTest ? "Sending..." : "Send"}
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => setShowTestInput(false)}
-                className="text-slate-500"
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* SMTP Settings */}
-        <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
-          <CardHeader className="bg-slate-900 px-6 py-4 border-b border-slate-800">
-            <CardTitle className="text-base font-bold text-white uppercase tracking-tight flex items-center gap-2">
-              <Shield className="w-4 h-4 text-blue-400" />
-              SMTP Relay Infrastructure Settings
-            </CardTitle>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-              Custom Outbound Mailing Services
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-4 pt-5">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="host">SMTP Host *</Label>
-                <Input
-                  id="host"
-                  placeholder="smtp.gmail.com"
-                  value={config?.host || ""}
-                  onChange={(e) => updateConfig("host", e.target.value)}
-                  disabled={!isEditing}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="port">Port *</Label>
-                <Input
-                  id="port"
-                  type="number"
-                  placeholder="465"
-                  value={config?.port ?? 465}
-                  onChange={(e) => updateConfig("port", e.target.value)}
-                  disabled={!isEditing}
-                />
-                <p className="text-xs text-muted-foreground">
-                  465 (SSL) or 587 (STARTTLS)
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="auth.user">SMTP User (email) *</Label>
-                <Input
-                  id="auth.user"
-                  type="email"
-                  placeholder="noreply@example.com"
-                  value={config?.auth?.user || ""}
-                  onChange={(e) => updateConfig("auth.user", e.target.value)}
-                  disabled={!isEditing}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="auth.pass">SMTP Password *</Label>
-                <Input
-                  id="auth.pass"
-                  type="password"
-                  placeholder="••••••••"
-                  value={config?.auth?.pass || ""}
-                  onChange={(e) => updateConfig("auth.pass", e.target.value)}
-                  disabled={!isEditing}
-                />
-                {config?.auth?.pass && !isEditing && (
-                  <p className="text-xs text-muted-foreground">
-                    Password is hidden
-                  </p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="fromEmail">From Email *</Label>
-                <Input
-                  id="fromEmail"
-                  type="email"
-                  placeholder="noreply@company.com"
-                  value={config?.fromEmail || ""}
-                  onChange={(e) => updateConfig("fromEmail", e.target.value)}
-                  disabled={!isEditing}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="fromName">From Name *</Label>
-                <Input
-                  id="fromName"
-                  placeholder="Collectorate Jharsuguda"
-                  value={config?.fromName || ""}
-                  onChange={(e) => updateConfig("fromName", e.target.value)}
-                  disabled={!isEditing}
-                />
-              </div>
-              <div className="flex items-center space-x-2 pt-4">
-                <Switch
-                  id="isActive"
-                  checked={config?.isActive !== false}
-                  onCheckedChange={(checked) =>
-                    updateConfig("isActive", checked)
-                  }
-                  disabled={!isEditing}
-                />
-                <Label htmlFor="isActive">
-                  Active (use this config for sending)
+      {loading ? (
+        <div className="flex-1 flex items-center justify-center p-20">
+          <LoadingSpinner text="Retrieving matrix configuration..." />
+        </div>
+      ) : (
+        <main className="max-w-[1600px] mx-auto w-full px-4 py-6 space-y-6">
+          {/* Send Test Email Panel */}
+          {showTestInput && (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center gap-3">
+              <div className="flex-1">
+                <Label className="text-sm font-semibold text-emerald-800 mb-1 block">
+                  Send a test email to verify SMTP is working
                 </Label>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Email Template Editor */}
-        <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
-          <CardHeader className="bg-slate-900 px-6 py-4 border-b border-slate-800">
-            <CardTitle className="text-base font-bold text-white uppercase tracking-tight flex items-center gap-2">
-              <Mail className="w-4 h-4 text-emerald-400" />
-              Mailing Payload Templates
-            </CardTitle>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-              Customize email subject and HTML content for each notification
-              event
-            </p>
-          </CardHeader>
-          <CardContent className="pt-5 space-y-4">
-            {/* Template selector + actions */}
-            <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
-              <div className="flex-1 space-y-1">
-                <Label className="text-sm font-semibold">Template</Label>
-                <select
-                  value={selectedTemplateKey}
-                  onChange={(e) => {
-                    setSelectedTemplateKey(e.target.value);
-                    setEditorTab("code");
-                  }}
-                  className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                >
-                  {TEMPLATE_KEYS.map((t) => (
-                    <option key={t.key} value={t.key}>
-                      {t.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <Button
-                onClick={handleLoadDefault}
-                variant="ghost"
-                className="h-10 px-4 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg font-semibold text-xs gap-2"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                Load System Default
-              </Button>
-            </div>
-
-            {/* Subject */}
-            <div className="space-y-1">
-              <Label className="text-sm font-semibold">Subject</Label>
-              <Input
-                placeholder="e.g. New Grievance - {grievanceId} | {companyName}"
-                value={selectedTemplate?.subject || ""}
-                onChange={(e) => updateTemplateField("subject", e.target.value)}
-                className="font-mono text-sm"
-              />
-            </div>
-
-            {/* HTML editor with tabs */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm font-semibold">HTML Body</Label>
-                <div className="flex rounded-lg border border-slate-200 overflow-hidden">
-                  <button
-                    onClick={() => setEditorTab("code")}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${editorTab === "code" ? "bg-slate-900 text-white" : "bg-white text-slate-600 hover:bg-slate-50"}`}
-                  >
-                    <Code className="w-3 h-3" /> Code
-                  </button>
-                  <button
-                    onClick={() => setEditorTab("preview")}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${editorTab === "preview" ? "bg-slate-900 text-white" : "bg-white text-slate-600 hover:bg-slate-50"}`}
-                  >
-                    <Eye className="w-3 h-3" /> Preview
-                  </button>
-                </div>
-              </div>
-
-              {editorTab === "code" ? (
-                <textarea
-                  id="htmlBodyEditor"
-                  placeholder="Enter HTML content here, or click 'Load System Default' to start from the built-in template."
-                  value={selectedTemplate?.htmlBody || ""}
-                  onChange={(e) =>
-                    updateTemplateField("htmlBody", e.target.value)
-                  }
-                  rows={18}
-                  className="flex w-full rounded-lg border border-input bg-slate-950 text-green-300 px-4 py-3 text-sm font-mono leading-relaxed resize-y focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 placeholder:text-slate-500"
-                  spellCheck={false}
+                <Input
+                  placeholder="your@email.com"
+                  value={testEmailAddr}
+                  onChange={(e) => setTestEmailAddr(e.target.value)}
+                  className="border-emerald-300 focus:ring-emerald-500"
+                  type="email"
                 />
-              ) : (
-                <div className="w-full rounded-lg border border-slate-200 bg-white overflow-auto min-h-[280px] max-h-[500px]">
-                  {selectedTemplate?.htmlBody ? (
-                    <iframe
-                      srcDoc={selectedTemplate.htmlBody}
-                      className="w-full min-h-[450px]"
-                      title="Email Preview"
-                      sandbox="allow-same-origin"
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center h-48 text-slate-400 text-sm">
-                      No HTML content yet. Switch to Code tab and enter your
-                      HTML.
-                    </div>
+              </div>
+              <div className="flex gap-2 pt-5">
+                <Button
+                  onClick={handleSendTestEmail}
+                  disabled={sendingTest}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-5"
+                >
+                  <Send className="w-4 h-4 mr-2" />
+                  {sendingTest ? "Sending..." : "Send"}
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => setShowTestInput(false)}
+                  className="text-slate-500"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* SMTP Settings */}
+          <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
+            <CardHeader className="bg-slate-900 px-6 py-4 border-b border-slate-800">
+              <CardTitle className="text-base font-bold text-white uppercase tracking-tight flex items-center gap-2">
+                <Shield className="w-4 h-4 text-blue-400" />
+                SMTP Relay Infrastructure Settings
+              </CardTitle>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                Custom Outbound Mailing Services
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="host">SMTP Host *</Label>
+                  <Input
+                    id="host"
+                    placeholder="smtp.gmail.com"
+                    value={config?.host || ""}
+                    onChange={(e) => updateConfig("host", e.target.value)}
+                    disabled={!isEditing}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="port">Port *</Label>
+                  <Input
+                    id="port"
+                    type="number"
+                    placeholder="465"
+                    value={config?.port ?? 465}
+                    onChange={(e) => updateConfig("port", e.target.value)}
+                    disabled={!isEditing}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    465 (SSL) or 587 (STARTTLS)
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="auth.user">SMTP User (email) *</Label>
+                  <Input
+                    id="auth.user"
+                    type="email"
+                    placeholder="noreply@example.com"
+                    value={config?.auth?.user || ""}
+                    onChange={(e) => updateConfig("auth.user", e.target.value)}
+                    disabled={!isEditing}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="auth.pass">SMTP Password *</Label>
+                  <Input
+                    id="auth.pass"
+                    type="password"
+                    placeholder="••••••••"
+                    value={config?.auth?.pass || ""}
+                    onChange={(e) => updateConfig("auth.pass", e.target.value)}
+                    disabled={!isEditing}
+                  />
+                  {config?.auth?.pass && !isEditing && (
+                    <p className="text-xs text-muted-foreground">
+                      Password is hidden
+                    </p>
                   )}
                 </div>
-              )}
-            </div>
-
-            {/* Placeholder chip toolbar */}
-            <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
-              <p className="text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wider">
-                Click to insert placeholder
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {PLACEHOLDERS.map((ph) => (
-                  <button
-                    key={ph}
-                    onClick={() => insertPlaceholder(ph)}
-                    className="px-2 py-1 text-xs bg-white border border-indigo-200 text-indigo-700 rounded font-mono hover:bg-indigo-50 hover:border-indigo-400 transition-colors"
-                  >
-                    {ph}
-                  </button>
-                ))}
+                <div className="space-y-2">
+                  <Label htmlFor="fromEmail">From Email *</Label>
+                  <Input
+                    id="fromEmail"
+                    type="email"
+                    placeholder="noreply@company.com"
+                    value={config?.fromEmail || ""}
+                    onChange={(e) => updateConfig("fromEmail", e.target.value)}
+                    disabled={!isEditing}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="fromName">From Name *</Label>
+                  <Input
+                    id="fromName"
+                    placeholder="Collectorate Jharsuguda"
+                    value={config?.fromName || ""}
+                    onChange={(e) => updateConfig("fromName", e.target.value)}
+                    disabled={!isEditing}
+                  />
+                </div>
+                <div className="flex items-center space-x-2 pt-4">
+                  <Switch
+                    id="isActive"
+                    checked={config?.isActive !== false}
+                    onCheckedChange={(checked) =>
+                      updateConfig("isActive", checked)
+                    }
+                    disabled={!isEditing}
+                  />
+                  <Label htmlFor="isActive">
+                    Active (use this config for sending)
+                  </Label>
+                </div>
               </div>
-            </div>
+            </CardContent>
+          </Card>
 
-            <div className="pt-2 border-t border-slate-100 flex justify-between items-center">
-              <p className="text-xs text-slate-400">
-                Leave Subject and HTML blank to use the system default template
-                for this event.
+          {/* Email Template Editor */}
+          <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
+            <CardHeader className="bg-slate-900 px-6 py-4 border-b border-slate-800">
+              <CardTitle className="text-base font-bold text-white uppercase tracking-tight flex items-center gap-2">
+                <Mail className="w-4 h-4 text-emerald-400" />
+                Mailing Payload Templates
+              </CardTitle>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                Customize email subject and HTML content for each notification
+                event
               </p>
-              <Button
-                onClick={handleSaveTemplates}
-                disabled={savingTemplates}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg h-9 text-[11px] font-bold uppercase tracking-wider px-6 border-0 shadow-lg shadow-indigo-900/20"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                {savingTemplates ? "Saving..." : "Commit Templates"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </main>
+            </CardHeader>
+            <CardContent className="pt-5 space-y-4">
+              {/* Template selector + actions */}
+              <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
+                <div className="flex-1 space-y-1">
+                  <Label className="text-sm font-semibold">Template</Label>
+                  <select
+                    value={selectedTemplateKey}
+                    onChange={(e) => {
+                      setSelectedTemplateKey(e.target.value);
+                      setEditorTab("code");
+                    }}
+                    className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  >
+                    {TEMPLATE_KEYS.map((t) => (
+                      <option key={t.key} value={t.key}>
+                        {t.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <Button
+                  onClick={handleLoadDefault}
+                  variant="ghost"
+                  className="h-10 px-4 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg font-semibold text-xs gap-2"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  Load System Default
+                </Button>
+              </div>
+
+              {/* Subject */}
+              <div className="space-y-1">
+                <Label className="text-sm font-semibold">Subject</Label>
+                <Input
+                  placeholder="e.g. New Grievance - {grievanceId} | {companyName}"
+                  value={selectedTemplate?.subject || ""}
+                  onChange={(e) =>
+                    updateTemplateField("subject", e.target.value)
+                  }
+                  className="font-mono text-sm"
+                />
+              </div>
+
+              {/* HTML editor with tabs */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-semibold">HTML Body</Label>
+                  <div className="flex rounded-lg border border-slate-200 overflow-hidden">
+                    <button
+                      onClick={() => setEditorTab("code")}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${editorTab === "code" ? "bg-slate-900 text-white" : "bg-white text-slate-600 hover:bg-slate-50"}`}
+                    >
+                      <Code className="w-3 h-3" /> Code
+                    </button>
+                    <button
+                      onClick={() => setEditorTab("preview")}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${editorTab === "preview" ? "bg-slate-900 text-white" : "bg-white text-slate-600 hover:bg-slate-50"}`}
+                    >
+                      <Eye className="w-3 h-3" /> Preview
+                    </button>
+                  </div>
+                </div>
+
+                {editorTab === "code" ? (
+                  <textarea
+                    id="htmlBodyEditor"
+                    placeholder="Enter HTML content here, or click 'Load System Default' to start from the built-in template."
+                    value={selectedTemplate?.htmlBody || ""}
+                    onChange={(e) =>
+                      updateTemplateField("htmlBody", e.target.value)
+                    }
+                    rows={18}
+                    className="flex w-full rounded-lg border border-input bg-slate-950 text-green-300 px-4 py-3 text-sm font-mono leading-relaxed resize-y focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 placeholder:text-slate-500"
+                    spellCheck={false}
+                  />
+                ) : (
+                  <div className="w-full rounded-lg border border-slate-200 bg-white overflow-auto min-h-[280px] max-h-[500px]">
+                    {selectedTemplate?.htmlBody ? (
+                      <iframe
+                        srcDoc={selectedTemplate.htmlBody}
+                        className="w-full min-h-[450px]"
+                        title="Email Preview"
+                        sandbox="allow-same-origin"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-48 text-slate-400 text-sm">
+                        No HTML content yet. Switch to Code tab and enter your
+                        HTML.
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Placeholder chip toolbar */}
+              <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+                <p className="text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wider">
+                  Click to insert placeholder
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {PLACEHOLDERS.map((ph) => (
+                    <button
+                      key={ph}
+                      onClick={() => insertPlaceholder(ph)}
+                      className="px-2 py-1 text-xs bg-white border border-indigo-200 text-indigo-700 rounded font-mono hover:bg-indigo-50 hover:border-indigo-400 transition-colors"
+                    >
+                      {ph}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-slate-100 flex justify-between items-center">
+                <p className="text-xs text-slate-400">
+                  Leave Subject and HTML blank to use the system default
+                  template for this event.
+                </p>
+                <Button
+                  onClick={handleSaveTemplates}
+                  disabled={savingTemplates}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg h-9 text-[11px] font-bold uppercase tracking-wider px-6 border-0 shadow-lg shadow-indigo-900/20"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  {savingTemplates ? "Saving..." : "Commit Templates"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </main>
+      )}
     </div>
   );
 }

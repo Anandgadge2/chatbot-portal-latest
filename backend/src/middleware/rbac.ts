@@ -63,18 +63,35 @@ export const requirePermission = (...permissions: string[]) => {
       return;
     }
 
-    // 1. SuperAdmin bypass
+    // 1. SuperAdmin & CompanyAdmin bypass
+    // These roles have full access within their scope and don't need restriction by dynamic roles.
     const userRole = req.user.role?.toUpperCase();
-    if (userRole === UserRole.SUPER_ADMIN) {
+    if (userRole === UserRole.SUPER_ADMIN || userRole === UserRole.COMPANY_ADMIN) {
       next();
       return;
     }
 
     // 2. Dynamic Permission Check (MongoDB Roles)
     // We prioritize the customRoleId assigned to the user
-    if (req.user.customRoleId) {
+    let roleToFind = req.user.customRoleId;
+
+    // If no customRoleId, attempt to find a system-defined role for this user's role string
+    // This provides backward compatibility for users who haven't been assigned a dynamic role yet.
+    if (!roleToFind && req.user.role && req.user.companyId) {
       try {
-        const role = await Role.findById(req.user.customRoleId);
+        const systemRole = await Role.findOne({ 
+          companyId: req.user.companyId, 
+          key: req.user.role.toUpperCase() 
+        });
+        if (systemRole) roleToFind = systemRole._id;
+      } catch (e) {
+        console.warn('Fallback role lookup failed:', e);
+      }
+    }
+
+    if (roleToFind) {
+      try {
+        const role = await Role.findById(roleToFind);
         if (role) {
           const hasPermission = permissions.some(p => {
             // Resolve legacy string to {module, action}
@@ -99,8 +116,36 @@ export const requirePermission = (...permissions: string[]) => {
       }
     }
 
-    // If no custom role match, and it's not a SuperAdmin, deny by default.
-    // This removes the "Hardcoded fallback" that was in ROLE_PERMISSIONS.
+    // 3. Legacy Static Fallback (Hardcoded)
+    // If no dynamic role match and no custom role found, check against standard role definitions.
+    // This handles cases where roles haven't been seeded yet.
+    const isDepartmentAdmin = userRole === UserRole.DEPARTMENT_ADMIN;
+    const isOperator = userRole === UserRole.OPERATOR;
+    const isAnalyst = userRole === UserRole.ANALYTICS_VIEWER;
+
+    const hasStaticPermission = permissions.some(p => {
+      if (isDepartmentAdmin) {
+        return [
+          'READ_GRIEVANCE', 'READ_APPOINTMENT', 'VIEW_ANALYTICS', 
+          'UPDATE_GRIEVANCE', 'ASSIGN_GRIEVANCE', 'STATUS_CHANGE_GRIEVANCE',
+          'READ_USER', 'READ_DEPARTMENT', 'CREATE_USER', 'UPDATE_USER'
+        ].includes(p);
+      }
+      if (isOperator) {
+        return ['READ_GRIEVANCE', 'READ_APPOINTMENT', 'STATUS_CHANGE_GRIEVANCE'].includes(p);
+      }
+      if (isAnalyst) {
+        return ['VIEW_ANALYTICS', 'EXPORT_DATA'].includes(p);
+      }
+      return false;
+    });
+
+    if (hasStaticPermission) {
+      next();
+      return;
+    }
+
+    // If no custom role match, and it's not a legacy match, deny by default.
     res.status(403).json({
       success: false,
       message: 'Access denied. Dynamic role permissions not found for this action.'

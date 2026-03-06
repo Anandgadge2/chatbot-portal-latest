@@ -48,8 +48,12 @@ export const logUserAction = async (
       action,
       resource,
       resourceId,
-      companyId: user?.companyId?.toString(),
-      departmentId: user?.departmentId?.toString(),
+      companyId: user?.companyId instanceof Object && '_id' in user.companyId 
+        ? (user.companyId as any)._id.toString() 
+        : (user?.companyId as any)?.toString(),
+      departmentId: user?.departmentId instanceof Object && '_id' in user.departmentId
+        ? (user.departmentId as any)._id.toString()
+        : (user?.departmentId as any)?.toString(),
       details,
       ipAddress: req.ip,
       userAgent: req.get('user-agent')

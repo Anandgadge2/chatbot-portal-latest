@@ -27,36 +27,24 @@ import RecentActivityPanel from "@/components/dashboard/RecentActivityPanel";
 import TerminalLogs from "@/components/dashboard/TerminalLogs";
 import RoleManagement from "@/components/roles/RoleManagement";
 import ModuleManagement from "@/components/superadmin/ModuleManagement";
+import DashboardStats from "@/components/superadmin/DashboardStats";
+import CompanyTabContent from "@/components/superadmin/CompanyTabContent";
+import DepartmentTabContent from "@/components/superadmin/DepartmentTabContent";
+import UserTabContent from "@/components/superadmin/UserTabContent";
 import {
-  Building,
-  Users,
   Shield,
-  Settings,
-  FileText,
-  BarChart2,
   RefreshCw,
-  Search,
-  Download,
-  Trash2,
-  Edit2,
   Plus,
-  History,
-  Terminal,
-  ChevronRight,
   Menu,
   X,
-  User as UserIcon,
+  BarChart2,
+  Building,
+  Settings,
+  Users,
   Box,
+  Terminal,
+  User as UserIcon,
 } from "lucide-react";
-
-const CHART_COLORS = [
-  "#0088FE",
-  "#00C49F",
-  "#FFBB28",
-  "#FF8042",
-  "#8884d8",
-  "#82ca9d",
-];
 
 // Helper function to get company display text
 const getCompanyDisplay = (
@@ -137,6 +125,41 @@ export default function SuperAdminDashboard() {
   const [navigatingCompanyId, setNavigatingCompanyId] = useState<string | null>(
     null,
   );
+
+  const fetchAllInitialData = useCallback(async () => {
+    // Initial fetch for companies dropdown and stats
+    try {
+      const [statsRes, companiesRes] = await Promise.all([
+        apiClient.get("/dashboard/superadmin"),
+        companyAPI.getAll({ limit: 100 }), // Fetch more for dropdowns
+      ]);
+
+      if (statsRes.success) {
+        const { stats: s } = statsRes.data;
+        setStats({
+          companies: s.companies,
+          users: s.users,
+          departments: s.departments,
+          activeCompanies: s.activeCompanies,
+          activeUsers: s.activeUsers,
+          totalSessions: Math.floor(Math.random() * 100) + 50,
+          systemStatus: "operational",
+        });
+      }
+
+      if (companiesRes.success) {
+        setAllCompanies(companiesRes.data.companies);
+      }
+    } catch (e) {
+      console.error("Error fetching initial data", e);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (mounted && user && user.role === "SUPER_ADMIN") {
+      fetchAllInitialData();
+    }
+  }, [mounted, user, fetchAllInitialData]);
 
   const togglePasswordVisibility = (userId: string) => {
     setVisiblePasswords((prev) =>
@@ -277,44 +300,22 @@ export default function SuperAdminDashboard() {
 
   const fetchStats = async () => {
     try {
-      // Parallelize to avoid the sequential fetch bottleneck
-      const [companiesResponse, usersResponse, departmentsResponse] =
-        await Promise.all([
-          companyAPI.getAll({ limit: 1000 }).catch((e) => {
-            console.warn("Stats: companies fetch failed", e);
-            return null;
-          }),
-          userAPI.getAll({ limit: 1000 }).catch((e) => {
-            console.warn("Stats: users fetch failed", e);
-            return null;
-          }),
-          departmentAPI.getAll({ limit: 1000 }).catch((e) => {
-            console.warn("Stats: depts fetch failed", e);
-            return null;
-          }),
-        ]);
+      // 🚀 Optimization: Use the dedicated dashboard aggregation endpoint
+      // This performs atomic counts on the DB instead of fetching 1000s of records
+      const response = await apiClient.get("/dashboard/superadmin");
 
-      const companies = companiesResponse?.success
-        ? companiesResponse.data.companies
-        : [];
-      const usersList = usersResponse?.success ? usersResponse.data.users : [];
-      const departmentsList = departmentsResponse?.success
-        ? departmentsResponse.data.departments
-        : [];
-
-      if (companiesResponse?.success) {
-        setAllCompanies(companies);
+      if (response.success && response.data.stats) {
+        const { stats } = response.data;
+        setStats({
+          companies: stats.companies,
+          users: stats.users,
+          departments: stats.departments,
+          activeCompanies: stats.activeCompanies,
+          activeUsers: stats.activeUsers,
+          totalSessions: Math.floor(Math.random() * 100) + 50, // Mock data
+          systemStatus: "operational",
+        });
       }
-
-      setStats({
-        companies: companies.length,
-        users: usersList.length,
-        departments: departmentsList.length,
-        activeCompanies: companies.filter((c: Company) => c.isActive).length,
-        activeUsers: usersList.filter((u: User) => u.isActive).length,
-        totalSessions: Math.floor(Math.random() * 100) + 50, // Mock data for now
-        systemStatus: "operational",
-      });
     } catch (e) {
       console.error("Critical error in fetchStats", e);
     }
@@ -546,7 +547,6 @@ export default function SuperAdminDashboard() {
   if (!user || user.role !== "SUPER_ADMIN") {
     return null;
   }
-
   return (
     <div className="min-h-screen bg-[#f8fafc]">
       {navigatingCompanyId && (
@@ -713,160 +713,7 @@ export default function SuperAdminDashboard() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Total Companies */}
-              <Card
-                className="group relative overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer rounded-2xl"
-                onClick={() => setActiveTab("companies")}
-              >
-                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                  <Building className="w-24 h-24 text-blue-600 -mr-8 -mt-8 rotate-12" />
-                </div>
-                <CardHeader className="p-4 pb-2">
-                  <CardTitle className="text-slate-500 text-[10px] font-black uppercase tracking-widest flex items-center justify-between">
-                    <span className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center text-blue-600">
-                        <Building className="w-4 h-4" />
-                      </div>
-                      Organizations
-                    </span>
-                    <ChevronRight className="w-3 h-3 text-slate-300 group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  <div className="flex items-baseline gap-2">
-                    <p className="text-3xl font-black text-slate-900 tracking-tighter">
-                      {stats.companies}
-                    </p>
-                    <span className="text-[10px] font-bold text-slate-400">
-                      Entities
-                    </span>
-                  </div>
-                  <div className="mt-3 flex items-center gap-2">
-                    <div className="flex-1 h-1 bg-slate-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-blue-500 rounded-full"
-                        style={{
-                          width: `${(stats.activeCompanies / stats.companies) * 100}%`,
-                        }}
-                      />
-                    </div>
-                    <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100 uppercase">
-                      {stats.activeCompanies} Active
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Total Users */}
-              <Card
-                className="group relative overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer rounded-2xl"
-                onClick={() => setActiveTab("users")}
-              >
-                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                  <Users className="w-24 h-24 text-emerald-600 -mr-8 -mt-8 -rotate-12" />
-                </div>
-                <CardHeader className="p-4 pb-2">
-                  <CardTitle className="text-slate-500 text-[10px] font-black uppercase tracking-widest flex items-center justify-between">
-                    <span className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center text-emerald-600">
-                        <Users className="w-4 h-4" />
-                      </div>
-                      Total Users
-                    </span>
-                    <ChevronRight className="w-3 h-3 text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" />
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  <div className="flex items-baseline gap-2">
-                    <p className="text-3xl font-black text-slate-900 tracking-tighter">
-                      {stats.users}
-                    </p>
-                    <span className="text-[10px] font-bold text-slate-400">
-                      Total
-                    </span>
-                  </div>
-                  <div className="mt-3 flex items-center gap-2">
-                    <div className="flex-1 h-1 bg-slate-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-emerald-500 rounded-full"
-                        style={{
-                          width: `${(stats.activeUsers / stats.users) * 100}%`,
-                        }}
-                      />
-                    </div>
-                    <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100 uppercase">
-                      {stats.activeUsers} Live
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Departments */}
-              <Card
-                className="group relative overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer rounded-2xl"
-                onClick={() => setActiveTab("departments")}
-              >
-                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                  <Settings className="w-24 h-24 text-purple-600 -mr-8 -mt-8 rotate-45" />
-                </div>
-                <CardHeader className="p-4 pb-2">
-                  <CardTitle className="text-slate-500 text-[10px] font-black uppercase tracking-widest flex items-center justify-between">
-                    <span className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-purple-500/10 rounded-lg flex items-center justify-center text-purple-600">
-                        <Settings className="w-4 h-4" />
-                      </div>
-                      Departments
-                    </span>
-                    <ChevronRight className="w-3 h-3 text-slate-300 group-hover:text-purple-500 group-hover:translate-x-1 transition-all" />
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  <div className="flex items-baseline gap-2">
-                    <p className="text-3xl font-black text-slate-900 tracking-tighter">
-                      {stats.departments}
-                    </p>
-                    <span className="text-[10px] font-bold text-slate-400">
-                      Nodes
-                    </span>
-                  </div>
-                  <div className="mt-3">
-                    <span className="text-[9px] font-black text-purple-600 bg-purple-50 px-2 py-1 rounded-md border border-purple-100 uppercase tracking-widest">
-                      Multi-Company Coverage
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* System Status */}
-              <Card className="group relative overflow-hidden bg-slate-900 border-0 shadow-lg rounded-2xl">
-                <div className="absolute top-0 right-0 p-4 opacity-10">
-                  <Shield className="w-24 h-24 text-emerald-500 -mr-8 -mt-8" />
-                </div>
-                <CardHeader className="p-4 pb-2 relative z-10">
-                  <CardTitle className="text-slate-400 text-[10px] font-black uppercase tracking-widest">
-                    <span className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
-                      Infrastructure
-                    </span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 pt-0 relative z-10">
-                  <p className="text-2xl font-black text-white tracking-tight uppercase italic">
-                    {stats.systemStatus}
-                  </p>
-                  <div className="mt-4 flex flex-col gap-1">
-                    <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
-                      Global Runtime
-                    </div>
-                    <div className="text-[10px] font-bold text-emerald-400 flex items-center gap-1.5">
-                      <RefreshCw className="w-3 h-3 animate-spin [animation-duration:4s]" />
-                      All clusters responding
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <DashboardStats stats={stats} setActiveTab={setActiveTab} />
 
             {/* Main Stats Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -964,742 +811,71 @@ export default function SuperAdminDashboard() {
             </div>
           </TabsContent>
 
-          {/* Companies Tab */}
           <TabsContent value="companies" className="space-y-4">
-            <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
-              <CardHeader className="bg-slate-900 border-0 px-5 py-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center backdrop-blur-md border border-white/20">
-                      <Building className="w-4.5 h-4.5 text-white" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-sm font-bold text-white">
-                        Organization Registry
-                      </CardTitle>
-                      <CardDescription className="text-slate-400 text-[10px] font-medium leading-none mt-1">
-                        Manage global corporate entities
-                      </CardDescription>
-                    </div>
-                  </div>
-                  <Button
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg h-8 shadow-md shadow-indigo-900/20 font-bold text-[10px] uppercase tracking-wider px-4 border-0 transition-all"
-                    onClick={() => setShowCreateDialog(true)}
-                  >
-                    <Plus className="w-3 h-3 mr-1.5" />
-                    Add Organization
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/30 flex flex-wrap items-center gap-3">
-                  <div className="relative flex-1 min-w-[280px]">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                    <input
-                      type="text"
-                      placeholder="Find by name or ID..."
-                      value={companySearchTerm}
-                      onChange={(e) => {
-                        setCompanySearchTerm(e.target.value);
-                        setCompanyPage(1);
-                      }}
-                      className="w-full pl-9 pr-4 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                      Status
-                    </span>
-                    <select
-                      value={companyStatusFilter}
-                      onChange={(e) => {
-                        setCompanyStatusFilter(e.target.value);
-                        setCompanyPage(1);
-                      }}
-                      className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-600 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all cursor-pointer"
-                    >
-                      <option value="">All Status</option>
-                      <option value="active">Active</option>
-                      <option value="inactive">Inactive</option>
-                    </select>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                      Type
-                    </span>
-                    <select
-                      value={companyTypeFilter}
-                      onChange={(e) => {
-                        setCompanyTypeFilter(e.target.value);
-                        setCompanyPage(1);
-                      }}
-                      className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-600 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all cursor-pointer"
-                    >
-                      <option value="">All Types</option>
-                      <option value="SOCIETY">Society</option>
-                      <option value="GOVERNMENT">Government</option>
-                      <option value="CORPORATE">Corporate</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-[#fcfdfe] border-b border-slate-100">
-                      <tr>
-                        <th className="px-4 py-2.5 text-center text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                          #
-                        </th>
-                        <th className="px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                          Organization
-                        </th>
-                        <th className="px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                          ID
-                        </th>
-                        <th className="px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                          Head
-                        </th>
-                        <th className="px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                          Contact
-                        </th>
-                        <th className="px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                          Type
-                        </th>
-                        <th className="px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                          Status
-                        </th>
-                        <th className="px-5 py-2.5 text-right text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-slate-100">
-                      {companiesLoading ? (
-                        <tr>
-                          <td colSpan={8} className="py-20 text-center">
-                            <LoadingSpinner text="Refreshing database..." />
-                          </td>
-                        </tr>
-                      ) : companies.length === 0 ? (
-                        <tr>
-                          <td colSpan={8} className="py-20 text-center">
-                            <div className="flex flex-col items-center justify-center">
-                              <Building className="w-12 h-12 text-slate-200 mb-3" />
-                              <p className="text-slate-500 font-medium">
-                                No organizations matching your criteria
-                              </p>
-                            </div>
-                          </td>
-                        </tr>
-                      ) : (
-                        companies.map((company, index) => (
-                          <tr
-                            key={company._id}
-                            className="hover:bg-slate-50 transition-colors group"
-                          >
-                            <td className="px-4 py-4 text-center">
-                              <span className="text-xs font-bold text-slate-400">
-                                {(companyPage - 1) * companyPagination.limit +
-                                  index +
-                                  1}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div
-                                className={`cursor-pointer ${navigatingCompanyId ? "pointer-events-none" : ""}`}
-                                onClick={() =>
-                                  handleOpenCompanyDashboard(company._id)
-                                }
-                              >
-                                <div className="text-sm font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-2">
-                                  {company.name}
-                                  {navigatingCompanyId === company._id && (
-                                    <LoadingSpinner className="scale-50 origin-left" />
-                                  )}
-                                </div>
-                                <div className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-tighter">
-                                  System Entry:{" "}
-                                  {new Date(
-                                    company.createdAt,
-                                  ).toLocaleDateString()}
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className="text-xs font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 border border-slate-200">
-                                {company.companyId}
-                              </span>
-                            </td>
-                            <td className="px-5 py-3 whitespace-nowrap">
-                              <div className="text-[11px] font-bold text-slate-700">
-                                {(company as any).companyHead?.name ||
-                                  "Not Assigned"}
-                              </div>
-                              <div className="text-[9px] font-medium text-slate-400 mt-0.5">
-                                {(company as any).companyHead?.email || "-"}
-                              </div>
-                            </td>
-                            <td className="px-5 py-3 whitespace-nowrap">
-                              <div className="text-[11px] font-bold text-indigo-600">
-                                {(() => {
-                                  const phone =
-                                    (company as any).companyHead?.phone ||
-                                    company.contactPhone;
-                                  if (!phone) return "-";
-                                  const digitsOnly = phone.replace(/\D/g, "");
-                                  return digitsOnly.length >= 10
-                                    ? digitsOnly.slice(-10)
-                                    : digitsOnly;
-                                })()}
-                              </div>
-                            </td>
-                            <td className="px-5 py-3 whitespace-nowrap">
-                              <span className="px-1.5 py-0.5 bg-indigo-50 text-indigo-600 rounded text-[9px] font-bold border border-indigo-100 uppercase tracking-wider">
-                                {company.companyType}
-                              </span>
-                            </td>
-                            <td className="px-5 py-3 whitespace-nowrap">
-                              <button
-                                onClick={() => toggleCompanyStatus(company)}
-                                className={`px-2 py-0.5 rounded-md text-[9px] font-bold border uppercase tracking-widest transition-all hover:scale-105 active:scale-95 ${
-                                  company.isActive
-                                    ? "bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100"
-                                    : "bg-rose-50 text-rose-600 border-rose-100 hover:bg-rose-100"
-                                }`}
-                              >
-                                {company.isActive ? "Active" : "Suspended"}
-                              </button>
-                            </td>
-                            <td className="px-5 py-3 whitespace-nowrap text-right">
-                              <div className="flex items-center justify-end gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-7 w-7 p-0 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
-                                  onClick={() => handleEditCompany(company)}
-                                >
-                                  <Edit2 className="w-3.5 h-3.5" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-7 w-7 p-0 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                                  onClick={() => handleDeleteCompany(company)}
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </Button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/20">
-                  <Pagination
-                    currentPage={companyPage}
-                    totalPages={companyPagination.pages}
-                    totalItems={companyPagination.total}
-                    itemsPerPage={companyPagination.limit}
-                    onPageChange={setCompanyPage}
-                    className="shadow-none"
-                  />
-                </div>
-              </CardContent>
-            </Card>
+            <CompanyTabContent
+              companies={companies}
+              companiesLoading={companiesLoading}
+              companySearchTerm={companySearchTerm}
+              setCompanySearchTerm={setCompanySearchTerm}
+              companyStatusFilter={companyStatusFilter}
+              setCompanyStatusFilter={setCompanyStatusFilter}
+              companyTypeFilter={companyTypeFilter}
+              setCompanyTypeFilter={setCompanyTypeFilter}
+              companyPage={companyPage}
+              setCompanyPage={setCompanyPage}
+              companyPagination={companyPagination}
+              navigatingCompanyId={navigatingCompanyId}
+              setShowCreateDialog={setShowCreateDialog}
+              handleOpenCompanyDashboard={handleOpenCompanyDashboard}
+              handleEditCompany={handleEditCompany}
+              handleDeleteCompany={handleDeleteCompany}
+              toggleCompanyStatus={toggleCompanyStatus}
+            />
           </TabsContent>
 
-          {/* Departments Tab */}
           <TabsContent value="departments" className="space-y-4">
-            <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
-              <CardHeader className="bg-slate-900 border-0 px-5 py-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center backdrop-blur-md border border-white/20">
-                      <Settings className="w-4.5 h-4.5 text-white" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-sm font-bold text-white">
-                        Department Ecosystem
-                      </CardTitle>
-                      <CardDescription className="text-slate-400 text-[10px] font-medium leading-none mt-1">
-                        Hierarchical organization structure
-                      </CardDescription>
-                    </div>
-                  </div>
-                  <Button
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg h-8 shadow-md shadow-indigo-900/20 font-bold text-[10px] uppercase tracking-wider px-4 border-0 transition-all"
-                    onClick={() => {
-                      setEditingDepartment(null);
-                      setShowDepartmentDialog(true);
-                    }}
-                  >
-                    <Plus className="w-3 h-3 mr-1.5" />
-                    Add Department
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/30 flex flex-wrap items-center gap-3">
-                  <div className="relative flex-1 min-w-[280px]">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                    <input
-                      placeholder="Find department..."
-                      value={deptSearchTerm}
-                      onChange={(e) => {
-                        setDeptSearchTerm(e.target.value);
-                        setDepartmentPage(1);
-                      }}
-                      className="w-full pl-9 pr-4 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                      Filter By Company
-                    </span>
-                    <select
-                      value={deptCompanyFilter}
-                      onChange={(e) => {
-                        setDeptCompanyFilter(e.target.value);
-                        setDepartmentPage(1);
-                      }}
-                      className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-600 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all cursor-pointer min-w-[150px]"
-                    >
-                      <option value="">All Companies</option>
-                      {allCompanies.map((c) => (
-                        <option key={c._id} value={c._id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-[#fcfdfe] border-b border-slate-100">
-                      <tr>
-                        <th className="px-4 py-2.5 text-center text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                          #
-                        </th>
-                        <th className="px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                          Department
-                        </th>
-                        <th className="px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                          Company
-                        </th>
-                        <th className="px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                          Head
-                        </th>
-                        <th className="px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                          Status
-                        </th>
-                        <th className="px-5 py-2.5 text-right text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-slate-100">
-                      {departments.length === 0 ? (
-                        <tr>
-                          <td colSpan={6} className="py-20 text-center">
-                            <div className="flex flex-col items-center justify-center">
-                              <Settings className="w-12 h-12 text-slate-200 mb-3" />
-                              <p className="text-slate-500 font-medium">
-                                No departments matching your criteria
-                              </p>
-                            </div>
-                          </td>
-                        </tr>
-                      ) : (
-                        departments.map((department, index) => (
-                          <tr
-                            key={department._id}
-                            className="hover:bg-slate-50 transition-colors group"
-                          >
-                            <td className="px-4 py-4 text-center">
-                              <span className="text-xs font-bold text-slate-400">
-                                {(departmentPage - 1) *
-                                  departmentPagination.limit +
-                                  index +
-                                  1}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div
-                                className="cursor-pointer"
-                                onClick={() => {
-                                  const companyId =
-                                    typeof department.companyId === "object"
-                                      ? department.companyId?._id
-                                      : department.companyId;
-                                  router.push(
-                                    `/superadmin/department/${department._id}?companyId=${companyId}`,
-                                  );
-                                }}
-                              >
-                                <div className="text-sm font-bold text-blue-600 hover:text-blue-800 hover:underline">
-                                  {department.name}
-                                </div>
-                                <div className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-tighter">
-                                  ID: {department.departmentId}
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className="text-xs font-bold text-slate-700">
-                                {getCompanyDisplay(department.companyId)}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-xs font-bold text-slate-700 uppercase">
-                                {department.contactPerson || "Not Assigned"}
-                              </div>
-                              <div className="text-[10px] font-medium text-slate-400 mt-0.5">
-                                {(() => {
-                                  const phone = department.contactPhone;
-                                  if (!phone) return "-";
-                                  const digitsOnly = phone.replace(/\D/g, "");
-                                  return digitsOnly.length >= 10
-                                    ? digitsOnly.slice(-10)
-                                    : digitsOnly;
-                                })()}
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <button
-                                onClick={() =>
-                                  toggleDepartmentStatus(department)
-                                }
-                                className={`px-2 py-0.5 rounded-md text-[10px] font-bold border uppercase tracking-widest transition-all hover:scale-105 active:scale-95 ${
-                                  department.isActive
-                                    ? "bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100"
-                                    : "bg-rose-50 text-rose-600 border-rose-100 hover:bg-rose-100"
-                                }`}
-                              >
-                                {department.isActive ? "Active" : "Suspended"}
-                              </button>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right">
-                              <div className="flex items-center justify-end gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                  onClick={() =>
-                                    handleEditDepartment(department)
-                                  }
-                                >
-                                  <Edit2 className="w-3.5 h-3.5" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 w-8 p-0 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
-                                  onClick={() =>
-                                    handleDeleteDepartment(department)
-                                  }
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </Button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/20">
-                  <Pagination
-                    currentPage={departmentPage}
-                    totalPages={departmentPagination.pages}
-                    totalItems={departmentPagination.total}
-                    itemsPerPage={departmentPagination.limit}
-                    onPageChange={setDepartmentPage}
-                    className="shadow-none"
-                  />
-                </div>
-              </CardContent>
-            </Card>
+            <DepartmentTabContent
+              departments={departments}
+              deptSearchTerm={deptSearchTerm}
+              setDeptSearchTerm={setDeptSearchTerm}
+              deptCompanyFilter={deptCompanyFilter}
+              setDeptCompanyFilter={setDeptCompanyFilter}
+              allCompanies={allCompanies}
+              departmentPage={departmentPage}
+              setDepartmentPage={setDepartmentPage}
+              departmentPagination={departmentPagination}
+              setEditingDepartment={setEditingDepartment}
+              setShowDepartmentDialog={setShowDepartmentDialog}
+              handleEditDepartment={handleEditDepartment}
+              handleDeleteDepartment={handleDeleteDepartment}
+              toggleDepartmentStatus={toggleDepartmentStatus}
+              getCompanyDisplay={getCompanyDisplay}
+              router={router}
+            />
           </TabsContent>
 
           {/* Users Tab */}
           <TabsContent value="users" className="space-y-4">
-            <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
-              <CardHeader className="bg-slate-900 border-0 px-5 py-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center backdrop-blur-md border border-white/20">
-                      <Users className="w-4.5 h-4.5 text-white" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-sm font-bold text-white">
-                        Platform Users
-                      </CardTitle>
-                      <CardDescription className="text-slate-400 text-[10px] font-medium leading-none mt-1">
-                        Access control and identity management
-                      </CardDescription>
-                    </div>
-                  </div>
-                  <Button
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg h-8 shadow-md shadow-indigo-900/20 font-bold text-[10px] uppercase tracking-wider px-4 border-0 transition-all"
-                    onClick={() => {
-                      setEditingUser(null);
-                      setShowUserDialog(true);
-                    }}
-                  >
-                    <Plus className="w-3 h-3 mr-1.5" />
-                    Add User
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/30 flex flex-wrap items-center gap-3">
-                  <div className="relative flex-1 min-w-[280px]">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                    <input
-                      placeholder="Find user by name or ID..."
-                      value={userSearchTerm}
-                      onChange={(e) => {
-                        setUserSearchTerm(e.target.value);
-                        setUserPage(1);
-                      }}
-                      className="w-full pl-9 pr-4 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                      Company
-                    </span>
-                    <select
-                      value={userCompanyFilter}
-                      onChange={(e) => {
-                        setUserCompanyFilter(e.target.value);
-                        setUserPage(1);
-                      }}
-                      className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-600 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all cursor-pointer min-w-[120px]"
-                    >
-                      <option value="">All Companies</option>
-                      {allCompanies.map((c) => (
-                        <option key={c._id} value={c._id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                      Role
-                    </span>
-                    <select
-                      value={userRoleFilter}
-                      onChange={(e) => {
-                        setUserRoleFilter(e.target.value);
-                        setUserPage(1);
-                      }}
-                      className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-600 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all cursor-pointer min-w-[120px]"
-                    >
-                      <option value="">All Roles</option>
-                      <option value="SUPER_ADMIN">Super Admin</option>
-                      <option value="COMPANY_ADMIN">Company Admin</option>
-                      <option value="DEPARTMENT_ADMIN">Department Admin</option>
-                      <option value="OPERATOR">Operator</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="overflow-x-auto">
-                  {(() => {
-                    const filtered = users; // Filtering is now done on the backend
-                    return filtered.length === 0 ? (
-                      <div className="p-8 text-center text-gray-500">
-                        <Users className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                        <p>
-                          {userRoleFilter
-                            ? `No users with role ${userRoleFilter}.`
-                            : "No users yet. Add users or ensure you have Company Admins and other roles."}
-                        </p>
-                      </div>
-                    ) : (
-                      <table className="w-full">
-                        <thead className="bg-[#fcfdfe] border-b border-slate-100">
-                          <tr>
-                            <th className="px-4 py-2.5 text-center text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                              #
-                            </th>
-                            <th className="px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                              User
-                            </th>
-                            <th className="px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                              Email
-                            </th>
-                            <th className="px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                              Credentials
-                            </th>
-                            <th className="px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                              Role
-                            </th>
-                            <th className="px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                              Company
-                            </th>
-                            <th className="px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                              Status
-                            </th>
-                            <th className="px-5 py-2.5 text-right text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                              Actions
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-slate-100">
-                          {filtered.map((u, idx) => (
-                            <tr
-                              key={u._id}
-                              className="hover:bg-slate-50 transition-colors group"
-                            >
-                              <td className="px-3 py-4 text-center">
-                                <span className="text-[10px] font-bold text-slate-400">
-                                  {(userPage - 1) * userPagination.limit +
-                                    idx +
-                                    1}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="flex items-center">
-                                  <div className="flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center text-white font-bold bg-indigo-600 text-[11px] shadow-md shadow-indigo-100">
-                                    {u.firstName?.[0] || ""}
-                                    {u.lastName?.[0] || ""}
-                                  </div>
-                                  <div className="ml-3">
-                                    <div className="text-[11px] font-bold text-slate-800 leading-none">
-                                      {u.firstName} {u.lastName}
-                                    </div>
-                                    <div className="text-[9px] font-bold text-slate-400 mt-0.5 uppercase tracking-tighter">
-                                      {u.userId || u._id}
-                                    </div>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-[11px] font-medium text-slate-600">
-                                {u.email}
-                              </td>
-                              <td className="px-6 py-3 whitespace-nowrap">
-                                <div className="flex flex-col">
-                                  <div className="text-[11px] font-bold text-indigo-600 tabular-nums">
-                                    {(() => {
-                                      const phone = u.phone;
-                                      if (!phone) return "-";
-                                      const digitsOnly = phone.replace(
-                                        /\D/g,
-                                        "",
-                                      );
-                                      return digitsOnly.length >= 10
-                                        ? digitsOnly.slice(-10)
-                                        : digitsOnly;
-                                    })()}
-                                  </div>
-                                  <div
-                                    className="flex items-center gap-1.5 cursor-pointer group/pass"
-                                    onClick={() =>
-                                      togglePasswordVisibility(u._id)
-                                    }
-                                  >
-                                    <div className="text-[10px] font-mono text-slate-400 font-bold tracking-tight">
-                                      {u.rawPassword
-                                        ? visiblePasswords.includes(u._id)
-                                          ? u.rawPassword
-                                          : "••••••••"
-                                        : visiblePasswords.includes(u._id)
-                                          ? u.email ===
-                                            "superadmin@platform.com"
-                                            ? "1111111"
-                                            : "••••••••"
-                                          : "••••••••"}
-                                    </div>
-                                    <div className="w-1.5 h-1.5 rounded-full bg-slate-200 group-hover/pass:bg-indigo-400 transition-colors"></div>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap">
-                                <span
-                                  className={`px-1.5 py-0.5 inline-flex text-[9px] leading-none font-black rounded uppercase tracking-widest ${
-                                    u.role === "SUPER_ADMIN"
-                                      ? "bg-amber-50 text-amber-600 border border-amber-100"
-                                      : u.role === "COMPANY_ADMIN"
-                                        ? "bg-indigo-50 text-indigo-600 border border-indigo-100"
-                                        : u.role === "DEPARTMENT_ADMIN"
-                                          ? "bg-purple-50 text-purple-600 border border-purple-100"
-                                          : "bg-slate-50 text-slate-600 border border-slate-100"
-                                  }`}
-                                >
-                                  {u.role.replace("_", " ")}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-[11px] font-bold text-slate-500">
-                                {typeof u.companyId === "object" &&
-                                u.companyId?.name
-                                  ? u.companyId.name
-                                  : u.companyId
-                                    ? String(u.companyId)
-                                    : "—"}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap">
-                                <button
-                                  onClick={() => toggleUserStatus(u)}
-                                  className={`px-2 py-0.5 inline-flex text-[9px] uppercase tracking-widest leading-none font-black rounded-md transition-all hover:scale-105 active:scale-95 border ${
-                                    u.isActive
-                                      ? "bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100"
-                                      : "bg-rose-50 text-rose-600 border-rose-100 hover:bg-rose-100"
-                                  }`}
-                                >
-                                  {u.isActive ? "Active" : "Suspended"}
-                                </button>
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-right">
-                                <div className="flex items-center justify-end gap-1">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-7 w-7 p-0 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
-                                    onClick={() => handleEditUser(u)}
-                                  >
-                                    <Edit2 className="w-3.5 h-3.5" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-7 w-7 p-0 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                                    onClick={() => handleDeleteUser(u)}
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </Button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    );
-                  })()}
-                </div>
-
-                <Pagination
-                  currentPage={userPage}
-                  totalPages={userPagination.pages}
-                  totalItems={userPagination.total}
-                  itemsPerPage={userPagination.limit}
-                  onPageChange={setUserPage}
-                  className="mt-6 shadow-none border-t border-slate-100 rounded-none bg-slate-50/30"
-                />
-              </CardContent>
-            </Card>
+            <UserTabContent
+              users={users}
+              userSearchTerm={userSearchTerm}
+              setUserSearchTerm={setUserSearchTerm}
+              userCompanyFilter={userCompanyFilter}
+              setUserCompanyFilter={setUserCompanyFilter}
+              userRoleFilter={userRoleFilter}
+              setUserRoleFilter={setUserRoleFilter}
+              allCompanies={allCompanies}
+              userPage={userPage}
+              setUserPage={setUserPage}
+              userPagination={userPagination}
+              visiblePasswords={visiblePasswords}
+              togglePasswordVisibility={togglePasswordVisibility}
+              setShowUserDialog={setShowUserDialog}
+              setEditingUser={setEditingUser}
+              handleEditUser={handleEditUser}
+              handleDeleteUser={handleDeleteUser}
+              toggleUserStatus={toggleUserStatus}
+            />
           </TabsContent>
           <TabsContent value="roles" className="space-y-4 outline-none">
             <Card className="border-0 shadow-xl rounded-2xl overflow-hidden bg-white">
