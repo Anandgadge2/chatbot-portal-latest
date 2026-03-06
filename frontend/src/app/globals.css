@@ -63,8 +63,9 @@
       Inter,
       -apple-system,
       BlinkMacSystemFont,
-      'Segoe UI',
+      "Segoe UI",
       sans-serif;
+    zoom: 0.9;
   }
 }
 
