@@ -37,12 +37,12 @@ export const ProtectedLink: React.FC<ProtectedLinkProps> = ({
 
   if (Array.isArray(permission)) {
     if (requireAll) {
-      hasAccess = permission.every(p => hasPermission(userRole, p));
+      hasAccess = permission.every(p => hasPermission(user, p));
     } else {
-      hasAccess = permission.some(p => hasPermission(userRole, p));
+      hasAccess = permission.some(p => hasPermission(user, p));
     }
   } else {
-    hasAccess = hasPermission(userRole, permission);
+    hasAccess = hasPermission(user, permission);
   }
 
   if (!hasAccess) {

@@ -1179,7 +1179,7 @@ function DashboardContent() {
               )}
 
               {hasModule(Module.GRIEVANCE) &&
-                hasPermission(user.role, Permission.READ_GRIEVANCE) && (
+                hasPermission(user, Permission.READ_GRIEVANCE) && (
                   <TabsTrigger
                     value="grievances"
                     className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
@@ -1189,7 +1189,7 @@ function DashboardContent() {
                 )}
 
               {hasModule(Module.APPOINTMENT) &&
-                (isCompanyAdmin || isDepartmentAdmin) && (
+                hasPermission(user, Permission.READ_APPOINTMENT) && (
                   <TabsTrigger
                     value="appointments"
                     className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
@@ -3072,7 +3072,7 @@ function DashboardContent() {
                       </div>
                     </div>
                     {hasPermission(
-                      user?.role || "",
+                      user,
                       Permission.CREATE_USER,
                     ) && (
                       <Button
@@ -3325,7 +3325,7 @@ function DashboardContent() {
                                   <td className="px-6 py-5 whitespace-nowrap text-right sticky right-0 bg-white group-hover/row:bg-slate-50/50">
                                     <div className="flex justify-end items-center gap-1.5">
                                       {hasPermission(
-                                        user?.role || "",
+                                        user,
                                         Permission.UPDATE_USER,
                                       ) && (
                                         <Button
@@ -3342,7 +3342,7 @@ function DashboardContent() {
                                         </Button>
                                       )}
                                       {hasPermission(
-                                        user?.role || "",
+                                        user,
                                         Permission.UPDATE_USER,
                                       ) && (
                                         <Button
@@ -3361,7 +3361,7 @@ function DashboardContent() {
                                         </Button>
                                       )}
                                       {hasPermission(
-                                        user?.role || "",
+                                        user,
                                         Permission.DELETE_USER,
                                       ) && (
                                         <Button

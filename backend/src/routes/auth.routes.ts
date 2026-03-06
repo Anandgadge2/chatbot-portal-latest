@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express';
 import User from '../models/User';
+import Role from '../models/Role';
 import { generateToken, generateRefreshToken } from '../utils/jwt';
 import { logUserAction } from '../utils/auditLogger';
 import { AuditAction } from '../config/constants';
@@ -147,6 +148,20 @@ router.post('/sso/login', async (req: Request, res: Response) => {
 
     console.log('✅ SSO login completed for:', user.userId);
 
+    // Fetch permissions for the user's role
+    let permissions: any[] = [];
+    const roleToFind = user.customRoleId || null;
+    if (roleToFind) {
+      const roleDoc = await Role.findById(roleToFind);
+      if (roleDoc) permissions = roleDoc.permissions;
+    } else if (user.companyId) {
+      const systemRole = await Role.findOne({ 
+        companyId: user.companyId instanceof mongoose.Types.ObjectId ? user.companyId : (user.companyId as any)._id, 
+        key: user.role.toUpperCase() 
+      });
+      if (systemRole) permissions = systemRole.permissions;
+    }
+
     res.json({
       success: true,
       message: 'SSO login successful',
@@ -163,7 +178,9 @@ router.post('/sso/login', async (req: Request, res: Response) => {
           departmentId: user.departmentId,
           enabledModules: (user.companyId as any)?.enabledModules || [],
           isActive: user.isActive,
-          loginType: 'SSO'
+          loginType: 'SSO',
+          customRoleId: user.customRoleId,
+          permissions: permissions
         },
         accessToken,
         refreshToken
@@ -292,6 +309,20 @@ router.post('/login', async (req: Request, res: Response) => {
       { loginMethod: 'PASSWORD' }
     );
 
+    // Fetch permissions for the user's role
+    let permissions: any[] = [];
+    const roleToFind = user.customRoleId || null;
+    if (roleToFind) {
+      const roleDoc = await Role.findById(roleToFind);
+      if (roleDoc) permissions = roleDoc.permissions;
+    } else if (user.companyId) {
+      const systemRole = await Role.findOne({ 
+        companyId: user.companyId instanceof mongoose.Types.ObjectId ? user.companyId : (user.companyId as any)._id, 
+        key: user.role.toUpperCase() 
+      });
+      if (systemRole) permissions = systemRole.permissions;
+    }
+
     return res.json({
       success: true,
       message: 'Login successful',
@@ -308,7 +339,9 @@ router.post('/login', async (req: Request, res: Response) => {
           departmentId: user.departmentId,
           enabledModules: (user.companyId as any)?.enabledModules || [],
           isActive: user.isActive,
-          loginType: 'PASSWORD'
+          loginType: 'PASSWORD',
+          customRoleId: user.customRoleId,
+          permissions: permissions
         },
         accessToken,
         refreshToken

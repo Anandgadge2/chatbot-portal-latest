@@ -18,6 +18,8 @@ interface User {
   departmentId?: string | { _id: string; name: string };
   isActive: boolean;
   enabledModules?: string[];
+  customRoleId?: string;
+  permissions?: { module: string; actions: string[] }[];
 }
 
 interface AuthContextType {
