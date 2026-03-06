@@ -55,90 +55,86 @@ router.get('/dashboard', requirePermission(Permission.VIEW_ANALYTICS), async (re
 
     const baseQuery = getAnalyticsBaseQuery(currentUser, companyId, departmentId);
 
-
-    // Get grievance statistics (exclude deleted)
-    const totalGrievances = await Grievance.countDocuments({ ...baseQuery });
-    const pendingGrievances = await Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.PENDING });
-    const resolvedGrievances = await Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.RESOLVED });
-    const assignedGrievancesCount = await Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.ASSIGNED });
-
-    // Get appointment statistics (exclude deleted)
-    const totalAppointments = await Appointment.countDocuments({ ...baseQuery });
-    const requestedAppointments = await Appointment.countDocuments({ ...baseQuery, status: AppointmentStatus.REQUESTED });
-    const scheduledAppointments = await Appointment.countDocuments({ ...baseQuery, status: AppointmentStatus.SCHEDULED });
-    const confirmedAppointments = await Appointment.countDocuments({ ...baseQuery, status: AppointmentStatus.CONFIRMED });
-    const completedAppointments = await Appointment.countDocuments({ ...baseQuery, status: AppointmentStatus.COMPLETED });
-    const cancelledAppointments = await Appointment.countDocuments({ ...baseQuery, status: AppointmentStatus.CANCELLED });
-
-    // Get department count (if applicable)
-    let departmentCount = 0;
-    if (currentUser.role === UserRole.SUPER_ADMIN || currentUser.role === UserRole.COMPANY_ADMIN) {
-      const deptQuery: any = {};
-      if (currentUser.role === UserRole.COMPANY_ADMIN) {
-        deptQuery.companyId = currentUser.companyId;
-      } else if (companyId) {
-        deptQuery.companyId = companyId;
-      }
-      departmentCount = await Department.countDocuments(deptQuery);
-    }
-
-    // Get user count (if applicable)
-    let userCount = 0;
-    if (currentUser.role === UserRole.SUPER_ADMIN || currentUser.role === UserRole.COMPANY_ADMIN) {
-      const userQuery: any = {};
-      if (currentUser.role === UserRole.COMPANY_ADMIN) {
-        userQuery.companyId = currentUser.companyId;
-      } else if (companyId) {
-        userQuery.companyId = companyId;
-      }
-      userCount = await User.countDocuments(userQuery);
-    }
-
     // Get time-based statistics (last 7 days, 30 days)
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const grievancesLast7Days = await Grievance.countDocuments({
-      ...baseQuery,
-      createdAt: { $gte: sevenDaysAgo }
-    });
-    const grievancesLast30Days = await Grievance.countDocuments({
-      ...baseQuery,
-      createdAt: { $gte: thirtyDaysAgo }
-    });
-
-    const appointmentsLast7Days = await Appointment.countDocuments({
-      ...baseQuery,
-      createdAt: { $gte: sevenDaysAgo }
-    });
-    const appointmentsLast30Days = await Appointment.countDocuments({
-      ...baseQuery,
-      createdAt: { $gte: thirtyDaysAgo }
-    });
-
-    // Get daily statistics for last 7 days
-    const dailyGrievances = await Grievance.aggregate([
-      { $match: { ...baseQuery, createdAt: { $gte: sevenDaysAgo } } },
-      {
-        $group: {
-          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-          count: { $sum: 1 }
-        }
-      },
-      { $sort: { _id: 1 } }
-    ]);
-
-    const dailyAppointments = await Appointment.aggregate([
-      { $match: { ...baseQuery, createdAt: { $gte: sevenDaysAgo } } },
-      {
-        $group: {
-          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-          count: { $sum: 1 }
-        }
-      },
-      { $sort: { _id: 1 } }
+    // 🚀 Performance Optimization: Parallelize all database queries
+    const [
+      totalGrievances,
+      pendingGrievances,
+      resolvedGrievances,
+      assignedGrievancesCount,
+      totalAppointments,
+      requestedAppointments,
+      scheduledAppointments,
+      confirmedAppointments,
+      completedAppointments,
+      cancelledAppointments,
+      grievancesLast7Days,
+      grievancesLast30Days,
+      appointmentsLast7Days,
+      appointmentsLast30Days,
+      dailyGrievances,
+      dailyAppointments,
+      slaBreachedGrievances,
+      assignedGrievances,
+      departmentCount,
+      userCount
+    ] = await Promise.all([
+      Grievance.countDocuments({ ...baseQuery }),
+      Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.PENDING }),
+      Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.RESOLVED }),
+      Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.ASSIGNED }),
+      
+      Appointment.countDocuments({ ...baseQuery }),
+      Appointment.countDocuments({ ...baseQuery, status: AppointmentStatus.REQUESTED }),
+      Appointment.countDocuments({ ...baseQuery, status: AppointmentStatus.SCHEDULED }),
+      Appointment.countDocuments({ ...baseQuery, status: AppointmentStatus.CONFIRMED }),
+      Appointment.countDocuments({ ...baseQuery, status: AppointmentStatus.COMPLETED }),
+      Appointment.countDocuments({ ...baseQuery, status: AppointmentStatus.CANCELLED }),
+      
+      Grievance.countDocuments({ ...baseQuery, createdAt: { $gte: sevenDaysAgo } }),
+      Grievance.countDocuments({ ...baseQuery, createdAt: { $gte: thirtyDaysAgo } }),
+      
+      Appointment.countDocuments({ ...baseQuery, createdAt: { $gte: sevenDaysAgo } }),
+      Appointment.countDocuments({ ...baseQuery, createdAt: { $gte: thirtyDaysAgo } }),
+      
+      Grievance.aggregate([
+        { $match: { ...baseQuery, createdAt: { $gte: sevenDaysAgo } } },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]),
+      
+      Appointment.aggregate([
+        { $match: { ...baseQuery, createdAt: { $gte: sevenDaysAgo } } },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]),
+      
+      Grievance.countDocuments({ ...baseQuery, slaBreached: true }),
+      Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.ASSIGNED }),
+      
+      // Hierarchy based counts
+      (currentUser.role === UserRole.SUPER_ADMIN || currentUser.role === UserRole.COMPANY_ADMIN) 
+        ? Department.countDocuments({ companyId: currentUser.role === UserRole.COMPANY_ADMIN ? currentUser.companyId : (companyId || { $exists: true }) })
+        : Promise.resolve(0),
+        
+      (currentUser.role === UserRole.SUPER_ADMIN || currentUser.role === UserRole.COMPANY_ADMIN)
+        ? User.countDocuments({ companyId: currentUser.role === UserRole.COMPANY_ADMIN ? currentUser.companyId : (companyId || { $exists: true }) })
+        : Promise.resolve(0)
     ]);
 
     // Calculate resolution rate
@@ -151,11 +147,7 @@ router.get('/dashboard', requirePermission(Permission.VIEW_ANALYTICS), async (re
       ? ((completedAppointments / totalAppointments) * 100).toFixed(1)
       : '0';
 
-    // Additional metrics (exclude deleted)
-    const assignedGrievances = await Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.ASSIGNED });
-    
-    // SLA breach statistics (exclude deleted)
-    const slaBreachedGrievances = await Grievance.countDocuments({ ...baseQuery, slaBreached: true });
+    // SLA compliance rate
     const slaComplianceRate = totalGrievances > 0
       ? (((totalGrievances - slaBreachedGrievances) / totalGrievances) * 100).toFixed(1)
       : '100';
