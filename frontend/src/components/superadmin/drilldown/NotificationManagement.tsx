@@ -14,6 +14,7 @@ import {
 import toast from "react-hot-toast";
 import { apiClient } from "@/lib/api/client";
 import { userAPI, User } from "@/lib/api/user";
+import { formatRoleLabel } from "@/lib/utils/roleLabel";
 import {
   Card,
   CardContent,
@@ -388,7 +389,7 @@ const NotificationManagement: React.FC<NotificationManagementProps> = ({
                         </td>
                         <td className="px-8 py-6 text-right">
                           <span className="text-[10px] font-black text-slate-400 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 uppercase tracking-widest">
-                            {u.role?.replace(/_/g, ' ')}
+                            {formatRoleLabel(u.role)}
                           </span>
                         </td>
                       </tr>

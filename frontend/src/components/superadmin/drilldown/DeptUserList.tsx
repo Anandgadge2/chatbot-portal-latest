@@ -7,6 +7,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { User, userAPI } from "@/lib/api/user";
+import { formatRoleLabel } from "@/lib/utils/roleLabel";
 import { Users, Search, Download, ArrowUpDown, RefreshCw, CheckSquare, Square, Trash2, AlertTriangle } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -291,7 +292,7 @@ const DeptUserList: React.FC<DeptUserListProps> = ({
                         const roleLabel =
                           typeof u.customRoleId === "object" && u.customRoleId
                             ? (u.customRoleId as any).name
-                            : (u.role || "").replace(/_/g, " ");
+                            : formatRoleLabel(u.role);
 
                         return (
                           <span
