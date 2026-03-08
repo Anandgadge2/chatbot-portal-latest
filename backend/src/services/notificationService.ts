@@ -386,7 +386,9 @@ export async function notifyDepartmentAdminOnCreation(
       deptAdmins.forEach(admin => adminsToNotify.push({ user: admin, type: 'DEPT_ADMIN' }));
     }
 
-    // 1. Identify roles that represent "Company Admins" (high-level rights, no department)
+    // 1. Identify roles that represent "Company Admins".
+    // Keep the permission-based lookup, but do not rely on it exclusively because
+    // many deployments use custom role names without SETTINGS/manage action mapping.
     const Role = (await import('../models/Role')).default;
     const companyAdminRoles = await Role.find({
       companyId: data.companyId,
@@ -396,13 +398,25 @@ export async function notifyDepartmentAdminOnCreation(
     const companyAdminRoleIds = companyAdminRoles.map(r => r._id);
     const companyAdminRoleNames = companyAdminRoles.map(r => r.name);
 
-    // 2. Find company-level users with those roles
+    const fallbackAdminRoleNames = [
+      'Admin',
+      'COMPANY_ADMIN',
+      'COMPANY_HEAD',
+      'HEAD',
+      'MANAGER',
+      'SUPERVISOR'
+    ];
+
+    // 2. Find company admins using both permission-mapped roles and role-name fallbacks.
+    // Do NOT force departmentId:null; in many setups the company admin may be attached
+    // to a default department but should still receive company-level notifications.
     const companyAdmins = await User.find({
       companyId: data.companyId,
-      departmentId: null, // Scoped to company level
       $or: [
-        { customRoleId: { $in: companyAdminRoleIds } },
-        { role: { $in: companyAdminRoleNames } }
+        ...(companyAdminRoleIds.length > 0 ? [{ customRoleId: { $in: companyAdminRoleIds } }] : []),
+        ...(companyAdminRoleNames.length > 0 ? [{ role: { $in: companyAdminRoleNames } }] : []),
+        { role: { $in: fallbackAdminRoleNames } },
+        { role: { $regex: /admin|head|manager|supervisor/i } }
       ],
       isActive: true
     }).populate('customRoleId');
