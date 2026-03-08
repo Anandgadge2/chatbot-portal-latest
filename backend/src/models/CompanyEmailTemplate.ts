@@ -36,14 +36,7 @@ const CompanyEmailTemplateSchema: Schema = new Schema(
     templateKey: {
       type: String,
       required: true,
-      enum: [
-        'grievance_created',
-        'grievance_assigned',
-        'grievance_resolved',
-        'appointment_created',
-        'appointment_assigned',
-        'appointment_resolved'
-      ],
+      trim: true,
       index: true
     },
     subject: { type: String, required: true, trim: true },

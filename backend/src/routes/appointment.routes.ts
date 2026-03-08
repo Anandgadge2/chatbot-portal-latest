@@ -331,7 +331,26 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_APPOINTMENT
 
     // Notify citizen on status change (if status changed)
     if (oldStatus !== status) {
-      const { notifyCitizenOnAppointmentStatusChange } = await import('../services/notificationService');
+      const { notifyCitizenOnAppointmentStatusChange, notifyHierarchyOnStatusChange } = await import('../services/notificationService');
+      
+      const notificationPayload = {
+        type: 'appointment' as const,
+        action: 'resolved' as any, // generic action, used for status lookups
+        appointmentId: appointment.appointmentId,
+        citizenName: appointment.citizenName,
+        citizenPhone: appointment.citizenPhone,
+        citizenWhatsApp: appointment.citizenWhatsApp,
+        citizenEmail: appointment.citizenEmail,
+        companyId: appointment.companyId,
+        departmentId: appointment.departmentId,
+        purpose: appointment.purpose,
+        appointmentDate: appointment.appointmentDate,
+        appointmentTime: appointment.appointmentTime,
+        remarks: remarks || '',
+        createdAt: appointment.createdAt,
+        timeline: appointment.timeline
+      };
+
       try {
         await notifyCitizenOnAppointmentStatusChange({
           appointmentId: appointment.appointmentId,
@@ -346,6 +365,10 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_APPOINTMENT
           appointmentTime: appointment.appointmentTime,
           purpose: appointment.purpose
         });
+
+        // ✅ Also notify Admins/Hierarchy about the status change
+        await notifyHierarchyOnStatusChange(notificationPayload, oldStatus, status);
+
       } catch (notifError) {
         console.error('Failed to send notification:', notifError);
         // Don't fail the request if notification fails

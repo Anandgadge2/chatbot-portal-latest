@@ -24,12 +24,15 @@ import {
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 const TEMPLATE_KEYS = [
-  { key: "grievance_created", label: "Grievance – New (to dept admin)" },
+  { key: "grievance_created", label: "Grievance – New (to admins)" },
   { key: "grievance_assigned", label: "Grievance – Assigned to you" },
   { key: "grievance_resolved", label: "Grievance – Resolved" },
-  { key: "appointment_created", label: "Appointment – New" },
+  { key: "appointment_created", label: "Appointment – New (to admins)" },
   { key: "appointment_assigned", label: "Appointment – Assigned to you" },
-  { key: "appointment_resolved", label: "Appointment – Resolved" },
+  { key: "appointment_scheduled", label: "Appointment – Scheduled" },
+  { key: "appointment_confirmed", label: "Appointment – Confirmed" },
+  { key: "appointment_cancelled", label: "Appointment – Cancelled" },
+  { key: "appointment_completed", label: "Appointment – Resolved / Completed" },
 ];
 
 const PLACEHOLDERS = [

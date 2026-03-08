@@ -412,10 +412,10 @@ export function replacePlaceholders(str: string, data: Record<string, any>): str
 export async function getNotificationEmailContent(
   companyId: string | mongoose.Types.ObjectId,
   type: 'grievance' | 'appointment',
-  action: 'created' | 'assigned' | 'resolved',
+  action: string,
   data: any
-): Promise<{ subject: string; html: string; text: string }> {
-  const key = `${type}_${action}` as 'grievance_created' | 'grievance_assigned' | 'grievance_resolved' | 'appointment_created' | 'appointment_assigned' | 'appointment_resolved';
+): Promise<{ subject: string; html: string; text: string } | null> {
+  const key = `${type}_${action}`;
   const cid = typeof companyId === 'string' && mongoose.Types.ObjectId.isValid(companyId)
     ? new mongoose.Types.ObjectId(companyId)
     : companyId;
@@ -426,7 +426,13 @@ export async function getNotificationEmailContent(
     const text = template.textBody ? replacePlaceholders(template.textBody, data) : subject;
     return { subject, html, text };
   }
-  return generateNotificationEmail(type, action, data);
+  
+  // Only use default for the core three actions
+  if (['created', 'assigned', 'resolved'].includes(action)) {
+    return generateNotificationEmail(type, action as any, data);
+  }
+  
+  return null;
 }
 
 /**
@@ -435,7 +441,7 @@ export async function getNotificationEmailContent(
 export async function getNotificationWhatsAppMessage(
   companyId: string | mongoose.Types.ObjectId,
   type: 'grievance' | 'appointment',
-  action: 'created' | 'assigned' | 'resolved',
+  action: string,
   data: Record<string, any>
 ): Promise<string | null> {
   const key = `${type}_${action}`;

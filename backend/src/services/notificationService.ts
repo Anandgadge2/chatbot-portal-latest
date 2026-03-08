@@ -428,9 +428,11 @@ export async function notifyDepartmentAdminOnCreation(
       if (user.email && canNotify(company, user, 'email')) {
         try {
           const email = await getNotificationEmailContent(data.companyId, data.type, 'created', notificationData);
-          const result = await sendEmail(user.email, email.subject, email.html, email.text, { companyId: data.companyId });
-          if (result.success) {
-            logger.info(`✅ Email sent to ${type} ${user.getFullName()} (${user.email})`);
+          if (email) {
+            const result = await sendEmail(user.email, email.subject, email.html, email.text, { companyId: data.companyId });
+            if (result.success) {
+              logger.info(`✅ Email sent to ${type} ${user.getFullName()} (${user.email})`);
+            }
           }
         } catch (error) {
           logger.error(`❌ Error sending email to ${user.email}:`, error);
@@ -499,7 +501,9 @@ export async function notifyUserOnAssignment(
     if (user.email && canNotify(company, user, 'email')) {
       try {
         const email = await getNotificationEmailContent(data.companyId, data.type, 'assigned', fullData);
-        await sendEmail(user.email, email.subject, email.html, email.text, { companyId: data.companyId });
+        if (email) {
+          await sendEmail(user.email, email.subject, email.html, email.text, { companyId: data.companyId });
+        }
       } catch (e) {}
     }
 
@@ -561,9 +565,11 @@ export async function notifyCitizenOnResolution(
           appointmentTime: (data as any).appointmentTime
         };
         const email = await getNotificationEmailContent(data.companyId, 'appointment', 'resolved', emailPayload);
-        const result = await sendEmail((data as any).citizenEmail, email.subject, email.html, email.text, { companyId: data.companyId });
-        if (result.success) {
-          logger.info(`✅ Email sent to citizen ${data.citizenName} (${(data as any).citizenEmail})`);
+        if (email) {
+          const result = await sendEmail((data as any).citizenEmail, email.subject, email.html, email.text, { companyId: data.companyId });
+          if (result.success) {
+            logger.info(`✅ Email sent to citizen ${data.citizenName} (${(data as any).citizenEmail})`);
+          }
         }
       } catch (error) {
         logger.error(`❌ Error sending email to citizen:`, error);
@@ -764,10 +770,18 @@ export async function notifyHierarchyOnStatusChange(
         { _id: data.assignedTo }
       ],
       isActive: true
-    });
+    }).populate('customRoleId');
 
-    // 📱 WhatsApp — use DB template first, then fallback
-    let hierarchyMessage = await getNotificationWhatsAppMessage(data.companyId, data.type, 'resolved', fullData);
+    // Dynamically choose status key based on newStatus
+    // e.g., 'confirmed' -> 'appointment_confirmed' or 'grievance_confirmed'
+    const statusAction = newStatus.toLowerCase();
+    
+    // 📱 WhatsApp — use DB template first (try status-specific, then fallback to 'resolved')
+    let hierarchyMessage = await getNotificationWhatsAppMessage(data.companyId, data.type, statusAction as any, fullData);
+    if (!hierarchyMessage && (newStatus === 'RESOLVED' || newStatus === 'COMPLETED')) {
+      hierarchyMessage = await getNotificationWhatsAppMessage(data.companyId, data.type, 'resolved', fullData);
+    }
+    
     if (!hierarchyMessage) {
       const typeLabel = data.type === 'grievance' ? 'GRIEVANCE' : 'APPOINTMENT';
       const deptLine = fullData.subDepartmentName && fullData.subDepartmentName !== 'N/A'
@@ -779,38 +793,47 @@ export async function notifyHierarchyOnStatusChange(
       hierarchyMessage =
         `*${fullData.companyName}*\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-        `📊 *STATUS UPDATE - ${typeLabel} RESOLVED*\n\n` +
+        `📊 *STATUS UPDATE - ${typeLabel} ${newStatus}*\n\n` +
         `Sir/Madam,\n\n` +
-        `The following ${data.type} has been resolved by the assigned officer.\n\n` +
+        `The following ${data.type} status has been updated.\n\n` +
         `🎫 *ID:* ${fullData.grievanceId || fullData.appointmentId}\n` +
         `👤 *Citizen:* ${fullData.citizenName}\n` +
         `${deptLine}\n` +
         `📊 *Status Change:* ${oldStatus} → ${newStatus}\n` +
-        `👨‍💼 *Resolved By:* ${fullData.resolvedByName}\n` +
-        `📅 *Resolved On:* ${fullData.formattedResolvedDate}${resolutionTimeLine}${remarksText}\n\n` +
+        `👨‍💼 *Updated By:* ${fullData.resolvedByName || 'Administrator'}\n` +
+        `📅 *Updated On:* ${fullData.formattedResolvedDate || fullData.formattedDate}${resolutionTimeLine}${remarksText}\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `Digital Grievance Redressal System`;
+        `Digital System`;
     }
 
     for (const user of users) {
+      // 📱 WhatsApp
       if (canNotify(company, user, 'whatsapp')) {
         await safeSendWhatsApp(company, user.phone, hierarchyMessage);
       }
 
+      // 📧 Email
       if (user.email && canNotify(company, user, 'email')) {
         try {
           const emailPayload = {
             ...fullData,
             recipientName: user.getFullName(),
             appointmentDate: (data as any).appointmentDate,
-            appointmentTime: (data as any).appointmentTime
+            appointmentTime: (data as any).appointmentTime,
+            newStatus,
+            oldStatus
           };
-          const email = await getNotificationEmailContent(data.companyId, data.type, 'resolved', emailPayload);
-          const result = await sendEmail(user.email, email.subject, email.html, email.text, { companyId: data.companyId });
-          if (result.success) {
-            logger.info(`✅ Email sent to ${user.getFullName()} (${user.email})`);
-          } else {
-            logger.error(`❌ Failed to send email to ${user.email}:`, result.error);
+          
+          let email = await getNotificationEmailContent(data.companyId, data.type, statusAction as any, emailPayload);
+          if (!email && (newStatus === 'RESOLVED' || newStatus === 'COMPLETED')) {
+             email = await getNotificationEmailContent(data.companyId, data.type, 'resolved', emailPayload);
+          }
+
+          if (email) {
+            const result = await sendEmail(user.email, email.subject, email.html, email.text, { companyId: data.companyId });
+            if (result.success) {
+              logger.info(`✅ Email sent to ${user.getFullName()} (${user.email})`);
+            }
           }
         } catch (error) {
           logger.error(`❌ Error sending email to ${user.email}:`, error);

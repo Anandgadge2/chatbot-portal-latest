@@ -321,13 +321,16 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_GRIEVANCE, 
 
     await grievance.save();
 
-    // Notify citizen if status changed to RESOLVED
-    if (oldStatus !== GrievanceStatus.RESOLVED && status === GrievanceStatus.RESOLVED) {
-      const { notifyCitizenOnResolution, notifyHierarchyOnStatusChange } = await import('../services/notificationService');
+    if (oldStatus !== status) {
+      const { 
+        notifyCitizenOnResolution, 
+        notifyHierarchyOnStatusChange, 
+        notifyCitizenOnGrievanceStatusChange 
+      } = await import('../services/notificationService');
 
-      const resolutionPayload = {
+      const payload = {
         type: 'grievance' as const,
-        action: 'resolved' as const,
+        action: 'resolved' as any,
         grievanceId: grievance.grievanceId,
         citizenName: grievance.citizenName,
         citizenPhone: grievance.citizenPhone,
@@ -341,27 +344,30 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_GRIEVANCE, 
         createdAt: grievance.createdAt,
         assignedAt: grievance.assignedAt,
         timeline: grievance.timeline,
-        remarks
+        remarks: remarks || ''
       };
 
-      await notifyCitizenOnResolution(resolutionPayload);
-      await notifyHierarchyOnStatusChange(resolutionPayload, oldStatus, status);
-    } else if (oldStatus !== status) {
-      // Notify citizen for other status updates
-      const { notifyCitizenOnGrievanceStatusChange } = await import('../services/notificationService');
-      const dept = grievance.departmentId ? await Department.findById(grievance.departmentId) : null;
-      await notifyCitizenOnGrievanceStatusChange({
-        companyId: grievance.companyId,
-        grievanceId: grievance.grievanceId,
-        citizenName: grievance.citizenName,
-        citizenPhone: grievance.citizenPhone,
-        citizenWhatsApp: grievance.citizenWhatsApp,
-        departmentId: grievance.departmentId,
-        subDepartmentId: grievance.subDepartmentId,
-        departmentName: dept ? dept.name : undefined,
-        newStatus: status,
-        remarks
-      });
+      // 1. Notify Hierarchy (Admins) for ANY status change
+      await notifyHierarchyOnStatusChange(payload, oldStatus, status).catch(e => console.error('Admin notification failed:', e));
+
+      // 2. Notify Citizen
+      if (status === GrievanceStatus.RESOLVED) {
+        await notifyCitizenOnResolution(payload).catch(e => console.error('Citizen resolution notification failed:', e));
+      } else {
+        const dept = grievance.departmentId ? await Department.findById(grievance.departmentId) : null;
+        await notifyCitizenOnGrievanceStatusChange({
+          companyId: grievance.companyId,
+          grievanceId: grievance.grievanceId,
+          citizenName: grievance.citizenName,
+          citizenPhone: grievance.citizenPhone,
+          citizenWhatsApp: grievance.citizenWhatsApp,
+          departmentId: grievance.departmentId,
+          subDepartmentId: grievance.subDepartmentId,
+          departmentName: dept ? dept.name : undefined,
+          newStatus: status,
+          remarks
+        }).catch(e => console.error('Citizen status notification failed:', e));
+      }
     }
 
     await logUserAction(
