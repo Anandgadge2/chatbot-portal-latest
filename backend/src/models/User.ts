@@ -18,6 +18,10 @@ export interface IUser extends Document {
   lastLogin?: Date;
   createdBy?: mongoose.Types.ObjectId; // Track who created this user for hierarchical rights
   customRoleId?: mongoose.Types.ObjectId; // Optional: points to a company-defined Role for custom permissions
+  notificationSettings?: {
+    email: boolean;
+    whatsapp: boolean;
+  };
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -103,6 +107,10 @@ const UserSchema: Schema = new Schema(
       ref: 'Role',
       index: true,
       default: null
+    },
+    notificationSettings: {
+      email: { type: Boolean, default: true },
+      whatsapp: { type: Boolean, default: true }
     }
   },
   {

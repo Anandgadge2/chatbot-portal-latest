@@ -178,6 +178,7 @@ router.post('/', async (req: Request, res: Response) => {
       name: name.trim(),
       description: description?.trim(),
       permissions: permissions || [],
+      notificationSettings: req.body.notificationSettings || { email: true, whatsapp: true },
       isSystem: false,
       createdBy: user._id
     });
@@ -213,6 +214,7 @@ router.put('/:id', async (req: Request, res: Response) => {
     if (name) role.name = name.trim();
     if (description !== undefined) role.description = description?.trim();
     if (permissions !== undefined) role.permissions = permissions;
+    if (req.body.notificationSettings !== undefined) role.notificationSettings = req.body.notificationSettings;
     role.updatedBy = user._id;
 
     await role.save();

@@ -21,6 +21,10 @@ export interface IRole extends Document {
   description?: string;
   isSystem: boolean;         // true = cannot be deleted (e.g. default Company Admin role)
   permissions: IPermission[];
+  notificationSettings?: {
+    email: boolean;
+    whatsapp: boolean;
+  };
   createdBy: mongoose.Types.ObjectId;
   updatedBy?: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -64,6 +68,10 @@ const RoleSchema: Schema = new Schema(
     permissions: {
       type: [PermissionSchema],
       default: []
+    },
+    notificationSettings: {
+      email: { type: Boolean, default: true },
+      whatsapp: { type: Boolean, default: true }
     },
     createdBy: {
       type: Schema.Types.ObjectId,

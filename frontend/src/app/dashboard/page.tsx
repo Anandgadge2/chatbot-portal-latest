@@ -105,6 +105,7 @@ import {
   RefreshCw,
   Download,
   Calendar,
+  Bell,
 } from "lucide-react";
 
 interface DashboardStats {
@@ -562,7 +563,7 @@ function DashboardContent() {
       // CompanyAdmin might not have company associated
       console.log("Company details not available:", error.message);
     }
-  }, [user]);
+  }, [user, isCompanyLevel]);
 
   const fetchDepartments = useCallback(
     async (page = departmentPage, isSilent = false) => {
@@ -714,7 +715,7 @@ function DashboardContent() {
         if (!isSilent) setLoadingGrievances(false);
       }
     },
-    [grievancePage, grievancePagination.limit, user, hasPermission, hasModule],
+    [grievancePage, grievancePagination.limit, user, hasModule],
   );
 
   const fetchAppointments = useCallback(
@@ -746,7 +747,7 @@ function DashboardContent() {
         if (!isSilent) setLoadingAppointments(false);
       }
     },
-    [appointmentPage, appointmentPagination.limit, user, hasPermission, hasModule],
+    [appointmentPage, appointmentPagination.limit, user, hasModule],
   );
 
   const fetchLeads = useCallback(async () => {
@@ -820,7 +821,7 @@ function DashboardContent() {
         fetchCompany();
       }
     }
-  }, [mounted, user, fetchDashboardData, fetchCompany]);
+  }, [mounted, user, fetchDashboardData, fetchCompany, isCompanyLevel]);
 
   // 2. Specialized effects for each paginated module
   useEffect(() => {
@@ -839,19 +840,19 @@ function DashboardContent() {
     if (mounted && user && user.role !== "SUPER_ADMIN" && hasModule(Module.GRIEVANCE) && hasPermission(user, Permission.READ_GRIEVANCE)) {
       fetchGrievances(grievancePage);
     }
-  }, [mounted, user, grievancePage, fetchGrievances, hasModule, hasPermission]);
+  }, [mounted, user, grievancePage, fetchGrievances, hasModule]);
 
   useEffect(() => {
     if (mounted && user && user.role !== "SUPER_ADMIN" && hasModule(Module.APPOINTMENT) && hasPermission(user, Permission.READ_APPOINTMENT)) {
       fetchAppointments(appointmentPage);
     }
-  }, [mounted, user, appointmentPage, fetchAppointments, hasModule, hasPermission]);
+  }, [mounted, user, appointmentPage, fetchAppointments, hasModule]);
 
   useEffect(() => {
     if (mounted && user && hasModule(Module.LEAD_CAPTURE)) {
       fetchLeads();
     }
-  }, [mounted, user, hasModule, fetchLeads]);
+  }, [mounted, user, fetchLeads, hasModule]);
 
   // 3. Polling isolated from initial load triggers
   useEffect(() => {
@@ -932,6 +933,7 @@ function DashboardContent() {
     fetchDashboardData,
     prevGrievanceCount,
     prevAppointmentCount,
+    hasModule,
   ]);
 
   useEffect(() => {
@@ -1365,223 +1367,117 @@ function DashboardContent() {
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
             {/* Dashboard Headers & Quick Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {/* Statistical KPI Cards */}
               <>
-                  {hasModule(Module.GRIEVANCE) &&
-                    hasPermission(user, Permission.READ_GRIEVANCE) && (
-                      <Card
-                        className="group relative overflow-hidden bg-white border border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer rounded-xl h-[85px]"
-                        onClick={() => setActiveTab("grievances")}
-                      >
-                        <CardHeader className="p-3 pb-0.5 space-y-0">
-                          <CardTitle className="text-slate-500 text-[10px] font-black uppercase tracking-widest flex items-center justify-between">
-                            <span className="flex items-center gap-2">
-                              <div className="w-6 h-6 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600">
-                                <FileText className="w-3.5 h-3.5" />
-                              </div>
-                              Total
-                            </span>
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-3 pt-1">
-                          <div className="flex items-baseline gap-1.5">
-                            {loadingStats ? (
-                              <Skeleton className="h-8 w-16" />
-                            ) : (
-                              <p className="text-2xl font-black text-slate-900 tracking-tighter leading-none">
-                                {stats?.grievances.total || 0}
-                              </p>
-                            )}
-                            <span className="text-[10px] font-bold text-slate-400">
-                              pending
-                            </span>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
+                {/* Total Grievances */}
+                {hasPermission(user, Permission.READ_GRIEVANCE) && (
+                  <Card className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300">
+                    <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
+                      <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        Total Grievances
+                      </CardTitle>
+                      <div className="p-1.5 bg-indigo-50 rounded-lg">
+                        <FileText className="w-3.5 h-3.5 text-indigo-500" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-black text-slate-800 tabular-nums">
+                        {loadingStats ? "..." : (stats?.grievances.total || 0)}
+                      </div>
+                      <div className="flex items-center gap-1 mt-1">
+                        <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-full">
+                          {stats?.grievances.last7Days || 0} New
+                        </span>
+                        <span className="text-[9px] text-slate-400 font-medium">this week</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
-                  {hasModule(Module.GRIEVANCE) &&
-                    hasPermission(user, Permission.READ_GRIEVANCE) && (
-                      <Card
-                        className="group relative overflow-hidden bg-white border border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer rounded-xl h-[85px]"
-                        onClick={() => {
-                          setActiveTab("grievances");
-                          setGrievanceFilters((prev) => ({
-                            ...prev,
-                            status: "PENDING",
-                          }));
-                        }}
-                      >
-                        <CardHeader className="p-3 pb-0.5 space-y-0">
-                          <CardTitle className="text-slate-500 text-[10px] font-black uppercase tracking-widest flex items-center justify-between">
-                            <span className="flex items-center gap-2">
-                              <div className="w-6 h-6 bg-amber-50 rounded-lg flex items-center justify-center text-amber-600">
-                                <Clock className="w-3.5 h-3.5" />
-                              </div>
-                              Pending
-                            </span>
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-3 pt-1">
-                          <div className="flex items-baseline gap-1.5">
-                            {loadingStats ? (
-                              <Skeleton className="h-8 w-16" />
-                            ) : (
-                              <p className="text-2xl font-black text-slate-900 tracking-tighter leading-none">
-                                {stats?.grievances.pending || 0}
-                              </p>
-                            )}
-                            <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-1.5 rounded uppercase">
-                              Action
-                            </span>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
+                {/* Pending Grievances */}
+                {hasPermission(user, Permission.READ_GRIEVANCE) && (
+                  <Card className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 border-l-4 border-l-amber-400">
+                    <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
+                      <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        Pending Actions
+                      </CardTitle>
+                      <div className="p-1.5 bg-amber-50 rounded-lg">
+                        <Clock className="w-3.5 h-3.5 text-amber-500" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-black text-amber-600 tabular-nums">
+                        {loadingStats ? "..." : (stats?.grievances.pending || 0)}
+                      </div>
+                      <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">Requiring Response</p>
+                    </CardContent>
+                  </Card>
+                )}
 
-                  {hasModule(Module.GRIEVANCE) &&
-                    hasPermission(user, Permission.READ_GRIEVANCE) && (
-                      <Card
-                        className="group relative overflow-hidden bg-white border border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer rounded-xl h-[85px]"
-                        onClick={() => {
-                          setActiveTab("grievances");
-                          setGrievanceFilters((prev) => ({
-                            ...prev,
-                            status: "RESOLVED",
-                          }));
-                        }}
-                      >
-                        <CardHeader className="p-3 pb-0.5 space-y-0">
-                          <CardTitle className="text-slate-500 text-[10px] font-black uppercase tracking-widest flex items-center justify-between">
-                            <span className="flex items-center gap-2">
-                              <div className="w-6 h-6 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600">
-                                <CheckCircle className="w-3.5 h-3.5" />
-                              </div>
-                              Resolved
-                            </span>
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-3 pt-1">
-                          <div className="flex items-baseline gap-1.5">
-                            {loadingStats ? (
-                              <Skeleton className="h-8 w-16" />
-                            ) : (
-                              <p className="text-2xl font-black text-slate-900 tracking-tighter leading-none">
-                                {stats?.grievances.resolved || 0}
-                              </p>
-                            )}
-                            <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-1.5 rounded uppercase">
-                              Fixed
-                            </span>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
+                {/* Total Appointments */}
+                {hasModule(Module.APPOINTMENT) && hasPermission(user, Permission.READ_APPOINTMENT) && (
+                  <Card className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300">
+                    <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
+                      <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        Appointments
+                      </CardTitle>
+                      <div className="p-1.5 bg-emerald-50 rounded-lg">
+                        <CalendarCheck className="w-3.5 h-3.5 text-emerald-500" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-black text-slate-800 tabular-nums">
+                        {loadingStats ? "..." : (stats?.appointments.total || 0)}
+                      </div>
+                      <div className="flex items-center gap-1 mt-1">
+                        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
+                          {stats?.appointments.confirmed || 0} Confirmed
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
-                  {hasModule(Module.APPOINTMENT) &&
-                    hasPermission(user, Permission.READ_APPOINTMENT) && (
-                      <Card
-                        className="group relative overflow-hidden bg-white border border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer rounded-xl h-[85px]"
-                        onClick={() => setActiveTab("appointments")}
-                      >
-                        <CardHeader className="p-3 pb-0.5 space-y-0">
-                          <CardTitle className="text-slate-500 text-[10px] font-black uppercase tracking-widest flex items-center justify-between">
-                            <span className="flex items-center gap-2">
-                              <div className="w-6 h-6 bg-purple-50 rounded-lg flex items-center justify-center text-purple-600">
-                                <CalendarClock className="w-3.5 h-3.5" />
-                              </div>
-                              Booking
-                            </span>
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-3 pt-1">
-                          <div className="flex items-baseline gap-1.5">
-                            {loadingStats ? (
-                              <Skeleton className="h-8 w-16" />
-                            ) : (
-                              <p className="text-2xl font-black text-slate-900 tracking-tighter leading-none">
-                                {stats?.appointments.total || 0}
-                              </p>
-                            )}
-                            <span className="text-[10px] font-bold text-purple-600">
-                              {loadingStats ? (
-                                <Skeleton className="h-3 w-10" />
-                              ) : (
-                                stats?.appointments.confirmed || 0
-                              )}{" "}
-                              Live
-                            </span>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
+                {/* Total Staff (Company Level) */}
+                {isCompanyLevel && (
+                  <Card className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300">
+                    <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
+                      <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        Active Personnel
+                      </CardTitle>
+                      <div className="p-1.5 bg-purple-50 rounded-lg">
+                        <Users className="w-3.5 h-3.5 text-purple-500" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-black text-slate-800 tabular-nums">
+                        {loadingStats ? "..." : (stats?.users || 0)}
+                      </div>
+                      <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">Authorized Access</p>
+                    </CardContent>
+                  </Card>
+                )}
 
-                  {isCompanyLevel && (
-                    <>
-                      {/* Staff KPI Card */}
-                      <Card
-                        className="group relative overflow-hidden bg-white border border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer rounded-xl h-[85px]"
-                        onClick={() => setActiveTab("users")}
-                      >
-                        <CardHeader className="p-3 pb-0.5 space-y-0">
-                          <CardTitle className="text-slate-500 text-[10px] font-black uppercase tracking-widest flex items-center justify-between">
-                            <span className="flex items-center gap-2">
-                              <div className="w-6 h-6 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600">
-                                <Users className="w-3.5 h-3.5" />
-                              </div>
-                              Staff
-                            </span>
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-3 pt-1">
-                          <div className="flex items-baseline gap-1.5">
-                            {loadingStats ? (
-                              <Skeleton className="h-8 w-16" />
-                            ) : (
-                              <p className="text-2xl font-black text-slate-900 tracking-tighter leading-none">
-                                {stats?.users || users.length || 0}
-                              </p>
-                            )}
-                            <span className="text-[10px] font-bold text-emerald-600 px-1 border border-emerald-100 rounded bg-emerald-50">
-                              Active
-                            </span>
-                          </div>
-                        </CardContent>
-                      </Card>
-
-                      {/* Units KPI Card */}
-                      <Card
-                        className="group relative overflow-hidden bg-white border border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer rounded-xl h-[85px]"
-                        onClick={() => setActiveTab("departments")}
-                      >
-                        <CardHeader className="p-3 pb-0.5 space-y-0">
-                          <CardTitle className="text-slate-500 text-[10px] font-black uppercase tracking-widest flex items-center justify-between">
-                            <span className="flex items-center gap-2">
-                              <div className="w-6 h-6 bg-cyan-50 rounded-lg flex items-center justify-center text-cyan-600">
-                                <Building className="w-3.5 h-3.5" />
-                              </div>
-                              Units
-                            </span>
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-3 pt-1">
-                          <div className="flex items-baseline gap-1.5">
-                            {loadingStats ? (
-                              <Skeleton className="h-8 w-16" />
-                            ) : (
-                              <p className="text-2xl font-black text-slate-900 tracking-tighter leading-none">
-                                {stats?.departments || departments.length || 0}
-                              </p>
-                            )}
-                            <span className="text-[10px] font-bold text-cyan-600 px-1 border border-cyan-100 rounded bg-cyan-50">
-                              Depts
-                            </span>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </>
-                  )}
+                {/* Departments (Company Level) */}
+                {isCompanyLevel && (
+                  <Card className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300">
+                    <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
+                      <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        Working Units
+                      </CardTitle>
+                      <div className="p-1.5 bg-blue-50 rounded-lg">
+                        <Building className="w-3.5 h-3.5 text-blue-500" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-black text-slate-800 tabular-nums">
+                        {loadingStats ? "..." : (stats?.departments || 0)}
+                      </div>
+                      <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">Functional Depts</p>
+                    </CardContent>
+                  </Card>
+                )}
               </>
             </div>
 
@@ -2032,7 +1928,27 @@ function DashboardContent() {
                       </svg>
                       Manage Users
                     </ProtectedButton>
+                    <ProtectedButton
+                      permission={Permission.READ_APPOINTMENT}
+                      className="w-full justify-start hover:border-indigo-200 hover:text-indigo-600 transition-all"
+                      variant="outline"
+                      onClick={() => setShowAvailabilityCalendar(true)}
+                    >
+                      <CalendarCheck className="w-5 h-5 mr-3" />
+                      Manage Availability
+                    </ProtectedButton>
                   </>
+                )}
+                {isDepartmentLevel && (
+                  <ProtectedButton
+                    permission={Permission.READ_APPOINTMENT}
+                    className="w-full justify-start hover:border-indigo-200 hover:text-indigo-600 transition-all font-bold"
+                    variant="outline"
+                    onClick={() => setShowAvailabilityCalendar(true)}
+                  >
+                    <CalendarClock className="w-5 h-5 mr-3" />
+                    Dept. Availability
+                  </ProtectedButton>
                 )}
                 <ProtectedButton
                   permission={Permission.VIEW_ANALYTICS}
@@ -3593,7 +3509,33 @@ function DashboardContent() {
                                           {u.phone}
                                         </div>
                                       )}
+                                  {isSuperAdmin && u.notificationSettings && (
+                                    <div className="flex items-center gap-2 mt-2">
+                                      <div 
+                                        title={`Email Notifications: ${u.notificationSettings.email ? 'Enabled' : 'Disabled'}`}
+                                        className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter border flex items-center gap-1 ${
+                                          u.notificationSettings.email 
+                                            ? 'bg-blue-50 text-blue-600 border-blue-100' 
+                                            : 'bg-slate-50 text-slate-300 border-slate-100'
+                                        }`}
+                                      >
+                                        <Mail className={`w-2.5 h-2.5 ${u.notificationSettings.email ? 'text-blue-500' : 'text-slate-300'}`} />
+                                        Email
+                                      </div>
+                                      <div 
+                                        title={`WhatsApp Notifications: ${u.notificationSettings.whatsapp ? 'Enabled' : 'Disabled'}`}
+                                        className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter border flex items-center gap-1 ${
+                                          u.notificationSettings.whatsapp 
+                                            ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
+                                            : 'bg-slate-50 text-slate-300 border-slate-100'
+                                        }`}
+                                      >
+                                        <TrendingUp className={`w-2.5 h-2.5 ${u.notificationSettings.whatsapp ? 'text-emerald-500' : 'text-slate-300'}`} />
+                                        WhatsApp
+                                      </div>
                                     </div>
+                                  )}
+                                </div>
                                   </td>
                                   <td className="px-6 py-5 whitespace-nowrap">
                                     <div className="flex flex-col space-y-2">
@@ -4654,8 +4596,7 @@ function DashboardContent() {
                           <CheckCircle className="w-3.5 h-3.5" />
                           Completed
                         </Link>
-                        {(user?.role === "COMPANY_ADMIN" ||
-                          user?.role === "DEPARTMENT_ADMIN") && (
+                        {(isCompanyLevel || isDepartmentLevel) && (
                           <Button
                             onClick={() => setShowAvailabilityCalendar(true)}
                             className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-8 text-[10px] font-bold uppercase tracking-widest rounded-lg px-4 shadow-md"

@@ -22,6 +22,7 @@ interface NotificationData {
   citizenName: string;
   citizenPhone: string;
   citizenWhatsApp?: string;
+  citizenEmail?: string;
   departmentId?: any;
   parentDepartmentId?: any;
   subDepartmentId?: any;
@@ -215,14 +216,31 @@ function isWhatsAppEnabled(company: any): boolean {
  * Checks if a notification type (email or whatsapp) is enabled for a specific role in a company.
  * Defaults to true if settings are missing.
  */
-function canNotify(company: any, role: string | undefined, type: 'email' | 'whatsapp'): boolean {
-  if (!role) return true; // Default to notify if role is not set (e.g. custom roles that don't use legacy role string)
+function canNotify(company: any, user: any, type: 'email' | 'whatsapp'): boolean {
+  // 1. Individual User Setting (Highest Priority Override)
+  if (user?.notificationSettings && typeof (user.notificationSettings as any)[type] === 'boolean') {
+    return (user.notificationSettings as any)[type];
+  }
+
+  // 2. Role Based Setting (from the Populated customRoleId if available)
+  const populatedRole = user?.customRoleId;
+  if (
+    populatedRole && 
+    typeof populatedRole === 'object' && 
+    populatedRole.notificationSettings && 
+    typeof populatedRole.notificationSettings[type] === 'boolean'
+  ) {
+    return populatedRole.notificationSettings[type];
+  }
+
+  // 3. Company Default / Legacy Role Map
+  const role = user?.role;
+  if (!role) return true; 
   if (!company?.notificationSettings?.roles) return true;
 
   const rolesMap = company.notificationSettings.roles;
   let roleSettings;
 
-  // Handle both Mongoose Map and plain Object (if accessed from lean or different context)
   if (typeof rolesMap.get === 'function') {
     roleSettings = rolesMap.get(role);
   } else {
@@ -323,13 +341,13 @@ async function getHierarchicalDepartmentAdmins(departmentId: any): Promise<any[]
 
       // Find any admins for this level
       const levelAdmins = await User.find({
-        departmentId: currentDeptId,
+        departmentId: currentIdStr,
         $or: [
           { customRoleId: { $in: adminRoleIds } },
           { role: { $in: adminRoleNames } }
         ],
         isActive: true
-      });
+      }).populate('customRoleId');
 
       for (const admin of levelAdmins) {
         const alreadyAdded = admins.some(a => a._id.toString() === admin._id.toString());
@@ -387,7 +405,7 @@ export async function notifyDepartmentAdminOnCreation(
         { role: { $in: companyAdminRoleNames } }
       ],
       isActive: true
-    });
+    }).populate('customRoleId');
 
     companyAdmins.forEach(admin => {
       if (!adminsToNotify.find(a => a.user._id.toString() === admin._id.toString())) {
@@ -407,7 +425,7 @@ export async function notifyDepartmentAdminOnCreation(
       };
 
       // 📧 Email - Everyone in the list gets an email
-      if (user.email && canNotify(company, user.role, 'email')) {
+      if (user.email && canNotify(company, user, 'email')) {
         try {
           const email = await getNotificationEmailContent(data.companyId, data.type, 'created', notificationData);
           const result = await sendEmail(user.email, email.subject, email.html, email.text, { companyId: data.companyId });
@@ -419,9 +437,8 @@ export async function notifyDepartmentAdminOnCreation(
         }
       }
 
-      // 📱 WhatsApp - Everyone in the department hirearchy (Sub + Parent Admins) gets a WhatsApp.
-      // Company admins only get Email to avoid spam.
-      if (type === 'DEPT_ADMIN' && canNotify(company, user.role, 'whatsapp')) {
+      // 📱 WhatsApp - Everyone in the list (Company Admins + Dept Admins) gets a WhatsApp if enabled.
+      if (canNotify(company, user, 'whatsapp')) {
         const fullData = await populateNotificationData(notificationData);
         let message = await getNotificationWhatsAppMessage(data.companyId, data.type, 'created', fullData);
         if (!message) {
@@ -479,7 +496,7 @@ export async function notifyUserOnAssignment(
     });
 
     // 📧 Email
-    if (user.email && canNotify(company, user.role, 'email')) {
+    if (user.email && canNotify(company, user, 'email')) {
       try {
         const email = await getNotificationEmailContent(data.companyId, data.type, 'assigned', fullData);
         await sendEmail(user.email, email.subject, email.html, email.text, { companyId: data.companyId });
@@ -487,7 +504,7 @@ export async function notifyUserOnAssignment(
     }
 
     // 📱 WhatsApp — use DB template first, then fallback
-    if (canNotify(company, user.role, 'whatsapp')) {
+    if (canNotify(company, user, 'whatsapp')) {
       let message = await getNotificationWhatsAppMessage(data.companyId, data.type, 'assigned', fullData);
       if (!message) {
         const typeLabel = data.type === 'grievance' ? 'GRIEVANCE' : 'APPOINTMENT';
@@ -776,11 +793,11 @@ export async function notifyHierarchyOnStatusChange(
     }
 
     for (const user of users) {
-      if (canNotify(company, user.role, 'whatsapp')) {
+      if (canNotify(company, user, 'whatsapp')) {
         await safeSendWhatsApp(company, user.phone, hierarchyMessage);
       }
 
-      if (user.email && canNotify(company, user.role, 'email')) {
+      if (user.email && canNotify(company, user, 'email')) {
         try {
           const emailPayload = {
             ...fullData,

@@ -20,6 +20,10 @@ interface User {
   enabledModules?: string[];
   customRoleId?: string;
   permissions?: { module: string; actions: string[] }[];
+  notificationSettings?: {
+    email: boolean;
+    whatsapp: boolean;
+  };
 }
 
 interface AuthContextType {

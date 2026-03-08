@@ -130,6 +130,25 @@ router.post('/', async (req: Request, res: Response) => {
       location,
       status: AppointmentStatus.SCHEDULED
     });
+    
+    // ✅ Notify Admins about the new appointment creation
+    const { notifyDepartmentAdminOnCreation } = await import('../services/notificationService');
+    await notifyDepartmentAdminOnCreation({
+      type: 'appointment',
+      action: 'created',
+      appointmentId: appointment.appointmentId,
+      citizenName: appointment.citizenName,
+      citizenPhone: appointment.citizenPhone,
+      citizenWhatsApp: appointment.citizenWhatsApp,
+      citizenEmail: appointment.citizenEmail,
+      companyId: appointment.companyId,
+      departmentId: appointment.departmentId,
+      purpose: appointment.purpose,
+      appointmentDate: appointment.appointmentDate,
+      appointmentTime: appointment.appointmentTime,
+      createdAt: appointment.createdAt,
+      timeline: appointment.timeline
+    }).catch(err => console.error('❌ Appointment Notification failed:', err));
 
     res.status(201).json({
       success: true,

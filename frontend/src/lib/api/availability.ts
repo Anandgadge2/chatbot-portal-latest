@@ -39,10 +39,11 @@ export interface AppointmentAvailability {
   departmentId?: string;
   weeklySchedule: WeeklySchedule;
   specialDates: SpecialDate[];
-  slotDurationMinutes: number;
+  slotDuration: number;
   bufferMinutes: number;
-  maxAdvanceBookingDays: number;
+  maxAdvanceDays: number;
   minAdvanceBookingHours: number;
+  maxConcurrentAppointments: number;
   defaultMorningStart: string;
   defaultMorningEnd: string;
   defaultAfternoonStart: string;

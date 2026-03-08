@@ -24,7 +24,8 @@ import {
   normalizePhoneNumber,
   denormalizePhoneNumber,
 } from "@/lib/utils/phoneUtils";
-import { Building, Users } from "lucide-react";
+import { Building, Users, Mail, MessageSquare } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
 interface CreateUserDialogProps {
   isOpen: boolean;
@@ -54,6 +55,10 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
     role: "Select Role", // Now stores "STATIC:ROLE" or "CUSTOM:ID"
     companyId: "",
     departmentId: "",
+    notificationSettings: {
+      email: true,
+      whatsapp: true
+    }
   });
 
   // Get available roles based on current user's role
@@ -195,6 +200,10 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
             typeof editingUser.departmentId === "object"
               ? editingUser.departmentId?._id
               : editingUser.departmentId || "",
+          notificationSettings: {
+            email: editingUser.notificationSettings?.email ?? true,
+            whatsapp: editingUser.notificationSettings?.whatsapp ?? true
+          }
         });
       } else {
         // Auto-select and lock company/department based on user's role
@@ -220,6 +229,10 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
             role: "",
             companyId: userCompanyId,
             departmentId: userDepartmentId || "",
+            notificationSettings: {
+              email: true,
+              whatsapp: true
+            }
           });
         } else {
           setFormData({
@@ -232,6 +245,10 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
             role: "",
             companyId: "",
             departmentId: "",
+            notificationSettings: {
+              email: true,
+              whatsapp: true
+            }
           });
         }
       }
@@ -354,6 +371,10 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
             role: "",
             companyId: "",
             departmentId: "",
+            notificationSettings: {
+              email: true,
+              whatsapp: true
+            }
           });
         }
         onClose();
@@ -586,6 +607,57 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
                     </option>
                   ))}
                 </select>
+              </div>
+            </div>
+
+            {/* Notification Controls */}
+            <div className="flex items-center gap-2 py-1">
+              <div className="flex-1 h-px bg-slate-100"></div>
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Notification Preferences</span>
+              <div className="flex-1 h-px bg-slate-100"></div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-500">
+                    <Mail className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-slate-700 uppercase tracking-tight">Email</p>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Alerts</p>
+                  </div>
+                </div>
+                <Switch
+                  checked={formData.notificationSettings.email}
+                  onCheckedChange={(checked) => 
+                    setFormData({
+                      ...formData,
+                      notificationSettings: { ...formData.notificationSettings, email: checked }
+                    })
+                  }
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-500">
+                    <MessageSquare className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-slate-700 uppercase tracking-tight">WhatsApp</p>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Alerts</p>
+                  </div>
+                </div>
+                <Switch
+                  checked={formData.notificationSettings.whatsapp}
+                  onCheckedChange={(checked) => 
+                    setFormData({
+                      ...formData,
+                      notificationSettings: { ...formData.notificationSettings, whatsapp: checked }
+                    })
+                  }
+                />
               </div>
             </div>
 

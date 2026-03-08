@@ -9,7 +9,8 @@ import { departmentAPI, Department } from "@/lib/api/department";
 import { roleAPI, Role } from "@/lib/api/role";
 import { useAuth } from "@/contexts/AuthContext";
 import toast from "react-hot-toast";
-import { User as UserIcon } from "lucide-react";
+import { User as UserIcon, Mail, MessageSquare } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -42,6 +43,10 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
     designation: "",
     role: "OPERATOR",
     departmentId: "",
+    notificationSettings: {
+      email: true,
+      whatsapp: true
+    }
   });
   const [customRoles, setCustomRoles] = useState<Role[]>([]);
 
@@ -90,6 +95,10 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
             ? (user.departmentId as any)._id
             : user.departmentId
           : "",
+        notificationSettings: {
+          email: user.notificationSettings?.email ?? true,
+          whatsapp: user.notificationSettings?.whatsapp ?? true
+        }
       });
 
       const companyId = user?.companyId
@@ -353,6 +362,51 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
                     </option>
                   ))}
                 </select>
+              </div>
+
+              {/* Notification Controls */}
+              <div className="grid grid-cols-2 gap-4 pt-2">
+                <div className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
+                      <Mail className="w-4 h-4 text-indigo-500" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-slate-700 uppercase tracking-tight">Email</p>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Alerts</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={formData.notificationSettings.email}
+                    onCheckedChange={(checked) => 
+                      setFormData({
+                        ...formData,
+                        notificationSettings: { ...formData.notificationSettings, email: checked }
+                      })
+                    }
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
+                      <MessageSquare className="w-4 h-4 text-emerald-500" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-slate-700 uppercase tracking-tight">WhatsApp</p>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Alerts</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={formData.notificationSettings.whatsapp}
+                    onCheckedChange={(checked) => 
+                      setFormData({
+                        ...formData,
+                        notificationSettings: { ...formData.notificationSettings, whatsapp: checked }
+                      })
+                    }
+                  />
+                </div>
               </div>
             </div>
           </div>

@@ -46,13 +46,11 @@ export interface IAppointmentAvailability extends Document {
   specialDates: ISpecialDate[];
   
   // Settings
-  slotDurationMinutes: number; // Duration of each appointment slot
+  slotDuration: number; // Duration of each appointment slot
   bufferMinutes: number;       // Buffer time between appointments
-  maxAdvanceBookingDays: number; // How far in advance can book
+  maxAdvanceDays: number; // How far in advance can book
   minAdvanceBookingHours: number; // Minimum hours before appointment
-  
-  // Removed: defaultMorningStart/End, defaultAfternoonStart/End, defaultEveningStart/End
-  // These can be derived from weeklySchedule if needed
+  maxConcurrentAppointments: number; // How many appointments at once
   
   isActive: boolean;
   createdAt: Date;
@@ -105,12 +103,11 @@ const AppointmentAvailabilitySchema = new Schema<IAppointmentAvailability>({
   
   specialDates: [SpecialDateSchema],
   
-  slotDurationMinutes: { type: Number, default: 30 },
+  slotDuration: { type: Number, default: 30 },
   bufferMinutes: { type: Number, default: 10 },
-  maxAdvanceBookingDays: { type: Number, default: 30 },
+  maxAdvanceDays: { type: Number, default: 30 },
   minAdvanceBookingHours: { type: Number, default: 24 },
-  
-  // Removed redundant default time fields - can be derived from weeklySchedule
+  maxConcurrentAppointments: { type: Number, default: 1 },
   
   isActive: { type: Boolean, default: true }
 }, {

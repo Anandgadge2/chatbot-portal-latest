@@ -87,8 +87,9 @@ router.get('/public/:companyId', async (req: Request, res: Response) => {
               saturday: { isAvailable: false }
             },
             specialDates: [],
-            slotDurationMinutes: 30,
-            maxAdvanceBookingDays: 30
+            slotDuration: 30,
+            maxAdvanceDays: 30,
+            maxConcurrentAppointments: 1
           }
         }
       });
@@ -158,7 +159,8 @@ export async function getChatbotAvailabilityData(params: {
         sunday: { isAvailable: false }
       },
       specialDates: [],
-      maxAdvanceBookingDays: 30
+      maxAdvanceDays: 30,
+      maxConcurrentAppointments: 1
     } as any;
   }
 
@@ -338,7 +340,7 @@ router.get('/available-dates/:companyId', async (req: Request, res: Response) =>
       
       // Skip dates beyond max advance booking
       const maxDate = new Date();
-      maxDate.setDate(maxDate.getDate() + (availability?.maxAdvanceBookingDays || 30));
+      maxDate.setDate(maxDate.getDate() + (availability?.maxAdvanceDays || 30));
       if (date > maxDate) continue;
 
       const dayOfWeek = date.getDay();

@@ -223,7 +223,7 @@ export class ActionService {
         citizenName: session.data.citizenName,
         citizenPhone: userPhone,
         citizenWhatsApp: userPhone,
-        departmentId: undefined,
+        departmentId: appointment.departmentId as any,
         companyId: company._id,
         purpose: session.data.purpose,
         appointmentDate: appointment.appointmentDate,

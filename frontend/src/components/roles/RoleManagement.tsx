@@ -95,6 +95,10 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
     name: "",
     description: "",
     permissions: [] as Permission[],
+    notificationSettings: {
+      email: true,
+      whatsapp: true,
+    },
   };
   const [form, setForm] = useState(emptyForm);
 
@@ -338,6 +342,10 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
       name: role.name,
       description: role.description || "",
       permissions: JSON.parse(JSON.stringify(role.permissions)),
+      notificationSettings: (role as any).notificationSettings || {
+        email: true,
+        whatsapp: true,
+      },
     });
     setShowForm(true);
   };
@@ -691,6 +699,69 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
                   </div>
                 </div>
 
+                {/* Notification Settings - Super Admin and Company Admin */}
+                {(currentUser?.role === "SUPER_ADMIN" || currentUser?.role === "COMPANY_ADMIN") && (
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+                      <div className="w-1 h-4 bg-amber-500 rounded-full"></div>
+                      <h4 className="font-black text-slate-800 text-[10px] uppercase tracking-widest">
+                        Communication Defaults
+                      </h4>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <label className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-200 cursor-pointer hover:bg-white hover:border-indigo-200 transition-all group shadow-sm">
+                        <input
+                          type="checkbox"
+                          checked={form.notificationSettings?.whatsapp ?? true}
+                          onChange={(e) =>
+                            setForm((p) => ({
+                              ...p,
+                              notificationSettings: {
+                                ...p.notificationSettings,
+                                whatsapp: e.target.checked,
+                              },
+                            }))
+                          }
+                          className="w-5 h-5 text-indigo-600 rounded-lg border-slate-300 focus:ring-indigo-500"
+                        />
+                        <div className="flex-1">
+                          <p className="text-[11px] font-black text-slate-900 uppercase">
+                            WhatsApp Notifications
+                          </p>
+                          <p className="text-[9px] text-slate-500 font-medium">
+                            Auto-trigger updates via WhatsApp
+                          </p>
+                        </div>
+                      </label>
+ 
+                      <label className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-200 cursor-pointer hover:bg-white hover:border-indigo-200 transition-all group shadow-sm">
+                        <input
+                          type="checkbox"
+                          checked={form.notificationSettings?.email ?? true}
+                          onChange={(e) =>
+                            setForm((p) => ({
+                              ...p,
+                              notificationSettings: {
+                                ...p.notificationSettings,
+                                email: e.target.checked,
+                              },
+                            }))
+                          }
+                          className="w-5 h-5 text-indigo-600 rounded-lg border-slate-300 focus:ring-indigo-500"
+                        />
+                        <div className="flex-1">
+                          <p className="text-[11px] font-black text-slate-900 uppercase">
+                            Email Notifications
+                          </p>
+                          <p className="text-[9px] text-slate-500 font-medium">
+                            Send status reports via Email
+                          </p>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+                )}
+ 
                 {/* Permissions */}
                 <div className="space-y-6">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-2">

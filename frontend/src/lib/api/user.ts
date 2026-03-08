@@ -16,7 +16,10 @@ export interface User {
   isActive: boolean;
   customRoleId?: string | { _id: string; name: string };
   rawPassword?: string;
-  isEmailVerified: boolean;
+  notificationSettings?: {
+    email: boolean;
+    whatsapp: boolean;
+  };
   createdAt: string;
   updatedAt: string;
 }
@@ -32,10 +35,18 @@ export interface CreateUserData {
   customRoleId?: string | null;
   companyId?: string;
   departmentId?: string;
+  notificationSettings?: {
+    email: boolean;
+    whatsapp: boolean;
+  };
 }
 
 export interface UpdateUserData extends Omit<Partial<CreateUserData>, 'customRoleId'> {
   customRoleId?: string | null;
+  notificationSettings?: {
+    email: boolean;
+    whatsapp: boolean;
+  };
 }
 
 export interface UsersResponse {

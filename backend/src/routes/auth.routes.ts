@@ -182,7 +182,8 @@ router.post('/sso/login', async (req: Request, res: Response) => {
           isActive: user.isActive,
           loginType: 'SSO',
           customRoleId: user.customRoleId,
-          permissions: permissions
+          permissions: permissions,
+          notificationSettings: user.notificationSettings
         },
         accessToken,
         refreshToken
@@ -343,7 +344,8 @@ router.post('/login', async (req: Request, res: Response) => {
           isActive: user.isActive,
           loginType: 'PASSWORD',
           customRoleId: user.customRoleId,
-          permissions: permissions
+          permissions: permissions,
+          notificationSettings: user.notificationSettings
         },
         accessToken,
         refreshToken
@@ -404,7 +406,8 @@ router.get('/me', authenticate, async (req: Request, res: Response) => {
           enabledModules: (user.companyId as any)?.enabledModules || [],
           isActive: user.isActive,
           customRoleId: user.customRoleId,
-          permissions: permissions
+          permissions: permissions,
+          notificationSettings: user.notificationSettings
         }
       }
     });
