@@ -367,6 +367,40 @@ async function getHierarchicalDepartmentAdmins(departmentId: any): Promise<any[]
   }
 }
 
+async function getCompanyAdminUsers(companyId: any): Promise<any[]> {
+  const Role = (await import('../models/Role')).default;
+  const companyAdminRoles = await Role.find({
+    companyId,
+    'permissions.module': 'SETTINGS',
+    'permissions.actions': { $in: ['update', 'all', 'manage'] }
+  }).select('_id name');
+
+  const companyAdminRoleIds = companyAdminRoles.map(r => r._id);
+  const companyAdminRoleNames = companyAdminRoles.map(r => r.name);
+
+  const fallbackAdminRoleNames = [
+    'Admin',
+    'COMPANY_ADMIN',
+    'COMPANY_HEAD',
+    'HEAD',
+    'MANAGER',
+    'SUPERVISOR'
+  ];
+
+  const admins = await User.find({
+    companyId,
+    isActive: true,
+    $or: [
+      ...(companyAdminRoleIds.length > 0 ? [{ customRoleId: { $in: companyAdminRoleIds } }] : []),
+      ...(companyAdminRoleNames.length > 0 ? [{ role: { $in: companyAdminRoleNames } }] : []),
+      { role: { $in: fallbackAdminRoleNames } },
+      { role: { $regex: /admin|head|manager|supervisor/i } }
+    ]
+  }).populate('customRoleId');
+
+  return admins;
+}
+
 /* ------------------------------------------------------------------ */
 /* Creation Notification                                               */
 /* ------------------------------------------------------------------ */
@@ -386,26 +420,8 @@ export async function notifyDepartmentAdminOnCreation(
       deptAdmins.forEach(admin => adminsToNotify.push({ user: admin, type: 'DEPT_ADMIN' }));
     }
 
-    // 1. Identify roles that represent "Company Admins" (high-level rights, no department)
-    const Role = (await import('../models/Role')).default;
-    const companyAdminRoles = await Role.find({
-      companyId: data.companyId,
-      'permissions.module': 'SETTINGS',
-      'permissions.actions': { $in: ['update', 'all', 'manage'] }
-    }).select('_id name');
-    const companyAdminRoleIds = companyAdminRoles.map(r => r._id);
-    const companyAdminRoleNames = companyAdminRoles.map(r => r.name);
-
-    // 2. Find company-level users with those roles
-    const companyAdmins = await User.find({
-      companyId: data.companyId,
-      departmentId: null, // Scoped to company level
-      $or: [
-        { customRoleId: { $in: companyAdminRoleIds } },
-        { role: { $in: companyAdminRoleNames } }
-      ],
-      isActive: true
-    }).populate('customRoleId');
+    // Find company admins with robust fallback rules (works for custom role setups).
+    const companyAdmins = await getCompanyAdminUsers(data.companyId);
 
     companyAdmins.forEach(admin => {
       if (!adminsToNotify.find(a => a.user._id.toString() === admin._id.toString())) {
@@ -742,28 +758,13 @@ export async function notifyHierarchyOnStatusChange(
     const admins = await getHierarchicalDepartmentAdmins(data.departmentId);
     const adminIds = admins.map(a => a._id.toString());
 
-    // 1. Identify roles that represent "Company Admins"
-    const Role = (await import('../models/Role')).default;
-    const companyAdminRoles = await Role.find({
-      companyId: data.companyId,
-      'permissions.module': 'SETTINGS',
-      'permissions.actions': { $in: ['update', 'all', 'manage'] }
-    }).select('_id name');
-    const companyAdminRoleIds = companyAdminRoles.map(r => r._id);
-    const companyAdminRoleNames = companyAdminRoles.map(r => r.name);
+    const companyAdmins = await getCompanyAdminUsers(data.companyId);
+    const companyAdminIds = companyAdmins.map((u: any) => u._id);
 
-    // 2. Find ALL relevant admins interested in the status change
+    // Find ALL relevant admins interested in the status change
     const users = await User.find({
       $or: [
-        // Company admins (no department)
-        { 
-          companyId: data.companyId, 
-          departmentId: null,
-          $or: [
-            { customRoleId: { $in: companyAdminRoleIds } },
-            { role: { $in: companyAdminRoleNames } }
-          ]
-        },
+        { _id: { $in: companyAdminIds } },
         // Department hierarchy admins
         { _id: { $in: adminIds } },
         // Specifically assigned user

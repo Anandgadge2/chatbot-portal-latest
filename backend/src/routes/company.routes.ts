@@ -64,15 +64,38 @@ router.get('/', requireSuperAdmin, async (req: Request, res: Response) => {
       isActive: true,
       $or: [
         { customRoleId: { $in: adminRoleIds } },
-        { role: { $in: [...adminRoleNames, 'Admin', 'COMPANY_ADMIN', 'COMPANY_HEAD', 'HEAD'] } },
-        { role: { $regex: /admin|head/i } }
+        { role: { $in: [...adminRoleNames, 'Admin', 'COMPANY_ADMIN', 'COMPANY_HEAD', 'HEAD', 'MANAGER', 'SUPERVISOR'] } },
+        { role: { $regex: /admin|head|manager|supervisor|collector|official/i } }
       ]
-    }).select('firstName lastName email phone companyId role customRoleId').sort({ createdAt: 1 });
+    }).select('firstName lastName email phone companyId departmentId role customRoleId createdAt').sort({ createdAt: 1 });
 
     const companiesWithHead = companies.map(c => {
-      const admin = admins.find(a => a.companyId?.toString() === c._id.toString());
       const companyObj = c.toObject();
-      
+      const companyAdmins = admins.filter(a => a.companyId?.toString() === c._id.toString());
+
+      const pickBestAdmin = (list: any[]) => {
+        if (!list.length) return null;
+
+        const score = (u: any) => {
+          let points = 0;
+          // Prefer true company-level admins first for alignment with user listings
+          if (!u.departmentId) points += 4;
+          const roleName = String(u.role || '').toUpperCase();
+          if (['COMPANY_ADMIN', 'COMPANY_HEAD', 'HEAD', 'ADMIN'].includes(roleName)) points += 3;
+          if (/ADMIN|HEAD|MANAGER|SUPERVISOR|COLLECTOR|OFFICIAL/.test(roleName)) points += 1;
+          if (u.customRoleId) points += 1;
+          return points;
+        };
+
+        return [...list].sort((a, b) => {
+          const diff = score(b) - score(a);
+          if (diff !== 0) return diff;
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        })[0];
+      };
+
+      const admin = pickBestAdmin(companyAdmins);
+
       // Attach admin info as 'companyHead'
       if (admin) {
         (companyObj as any).companyHead = {
@@ -81,7 +104,7 @@ router.get('/', requireSuperAdmin, async (req: Request, res: Response) => {
           phone: admin.phone
         };
       }
-      
+
       return companyObj;
     });
 
