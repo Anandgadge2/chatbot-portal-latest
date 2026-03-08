@@ -211,6 +211,28 @@ function isWhatsAppEnabled(company: any): boolean {
   );
 }
 
+/**
+ * Checks if a notification type (email or whatsapp) is enabled for a specific role in a company.
+ * Defaults to true if settings are missing.
+ */
+function canNotify(company: any, role: string | undefined, type: 'email' | 'whatsapp'): boolean {
+  if (!role) return true; // Default to notify if role is not set (e.g. custom roles that don't use legacy role string)
+  if (!company?.notificationSettings?.roles) return true;
+
+  const rolesMap = company.notificationSettings.roles;
+  let roleSettings;
+
+  // Handle both Mongoose Map and plain Object (if accessed from lean or different context)
+  if (typeof rolesMap.get === 'function') {
+    roleSettings = rolesMap.get(role);
+  } else {
+    roleSettings = rolesMap[role];
+  }
+
+  if (!roleSettings) return true;
+  return roleSettings[type] !== false;
+}
+
 function normalizePhone(phone?: string): string | null {
   if (!phone) return null;
   const digits = phone.replace(/\D/g, '');
@@ -289,13 +311,27 @@ async function getHierarchicalDepartmentAdmins(departmentId: any): Promise<any[]
       const dept = await Department.findById(currentDeptId);
       if (!dept) break;
 
-      const admin = await User.findOne({
+      // Dynamically identify roles that have department management permissions
+      const Role = (await import('../models/Role')).default;
+      const adminRoles = await Role.find({
+        companyId: dept.companyId,
+        'permissions.module': 'DEPARTMENTS',
+        'permissions.actions': { $in: ['update', 'all', 'manage'] }
+      }).select('_id name');
+      const adminRoleIds = adminRoles.map(r => r._id);
+      const adminRoleNames = adminRoles.map(r => r.name);
+
+      // Find any admins for this level
+      const levelAdmins = await User.find({
         departmentId: currentDeptId,
-        role: UserRole.DEPARTMENT_ADMIN,
+        $or: [
+          { customRoleId: { $in: adminRoleIds } },
+          { role: { $in: adminRoleNames } }
+        ],
         isActive: true
       });
 
-      if (admin) {
+      for (const admin of levelAdmins) {
         const alreadyAdded = admins.some(a => a._id.toString() === admin._id.toString());
         if (!alreadyAdded) admins.push(admin);
       }
@@ -326,14 +362,30 @@ export async function notifyDepartmentAdminOnCreation(
 
     const adminsToNotify: any[] = [];
 
-    if (data.departmentId) {
-      const deptAdmins = await getHierarchicalDepartmentAdmins(data.departmentId);
+    const targetChainId = data.subDepartmentId || data.departmentId;
+    if (targetChainId) {
+      const deptAdmins = await getHierarchicalDepartmentAdmins(targetChainId);
       deptAdmins.forEach(admin => adminsToNotify.push({ user: admin, type: 'DEPT_ADMIN' }));
     }
 
+    // 1. Identify roles that represent "Company Admins" (high-level rights, no department)
+    const Role = (await import('../models/Role')).default;
+    const companyAdminRoles = await Role.find({
+      companyId: data.companyId,
+      'permissions.module': 'SETTINGS',
+      'permissions.actions': { $in: ['update', 'all', 'manage'] }
+    }).select('_id name');
+    const companyAdminRoleIds = companyAdminRoles.map(r => r._id);
+    const companyAdminRoleNames = companyAdminRoles.map(r => r.name);
+
+    // 2. Find company-level users with those roles
     const companyAdmins = await User.find({
       companyId: data.companyId,
-      role: UserRole.COMPANY_ADMIN,
+      departmentId: null, // Scoped to company level
+      $or: [
+        { customRoleId: { $in: companyAdminRoleIds } },
+        { role: { $in: companyAdminRoleNames } }
+      ],
       isActive: true
     });
 
@@ -354,8 +406,8 @@ export async function notifyDepartmentAdminOnCreation(
         recipientName: user.getFullName()
       };
 
-      // 📧 Email
-      if (user.email) {
+      // 📧 Email - Everyone in the list gets an email
+      if (user.email && canNotify(company, user.role, 'email')) {
         try {
           const email = await getNotificationEmailContent(data.companyId, data.type, 'created', notificationData);
           const result = await sendEmail(user.email, email.subject, email.html, email.text, { companyId: data.companyId });
@@ -367,36 +419,39 @@ export async function notifyDepartmentAdminOnCreation(
         }
       }
 
-      // 📱 WhatsApp — use DB template first, then fallback
-      const fullData = await populateNotificationData(notificationData);
-      let message = await getNotificationWhatsAppMessage(data.companyId, data.type, 'created', fullData);
-      if (!message) {
-        const typeLabel = data.type === 'grievance' ? 'GRIEVANCE' : 'APPOINTMENT';
-        const categoryText = fullData.category ? `\n📂 *Category:* ${fullData.category}\n` : '';
-        const deptLine = fullData.subDepartmentName && fullData.subDepartmentName !== 'N/A'
-          ? `🏢 *Department:* ${fullData.departmentName}\n🏢 *Sub-Dept:* ${fullData.subDepartmentName}`
-          : `🏢 *Department:* ${fullData.departmentName}`;
+      // 📱 WhatsApp - Everyone in the department hirearchy (Sub + Parent Admins) gets a WhatsApp.
+      // Company admins only get Email to avoid spam.
+      if (type === 'DEPT_ADMIN' && canNotify(company, user.role, 'whatsapp')) {
+        const fullData = await populateNotificationData(notificationData);
+        let message = await getNotificationWhatsAppMessage(data.companyId, data.type, 'created', fullData);
+        if (!message) {
+          const typeLabel = data.type === 'grievance' ? 'GRIEVANCE' : 'APPOINTMENT';
+          const categoryText = fullData.category ? `\n📂 *Category:* ${fullData.category}\n` : '';
+          const deptLine = fullData.subDepartmentName && fullData.subDepartmentName !== 'N/A'
+            ? `🏢 *Department:* ${fullData.departmentName}\n🏢 *Sub-Dept:* ${fullData.subDepartmentName}`
+            : `🏢 *Department:* ${fullData.departmentName}`;
 
-        message =
-          `*${fullData.companyName}*\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-          `📋 *NEW ${typeLabel} RECEIVED*\n\n` +
-          `Respected ${fullData.recipientName},\n\n` +
-          `Appointment Details:\n` +
-          `🎫 *Reference ID:* ${fullData.grievanceId || fullData.appointmentId}\n` +
-          `👤 *Citizen Name:* ${fullData.citizenName}\n` +
-          `📞 *Contact Number:* ${fullData.citizenPhone}\n` +
-          `${deptLine}\n` +
-          `📝 *Description:*\n${fullData.description || fullData.purpose || ''}${categoryText}` +
-          `\n📅 *Received On:* ${fullData.formattedDate}\n\n` +
-          `*Action Required:*\n` +
-          `Please review this ${data.type} promptly. Resolution should be provided as per SLA.\n\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-          `*${fullData.companyName}*\n` +
-          `Digital Grievance Redressal System\n` +
-          `This is an automated notification.`;
+          message =
+            `*${fullData.companyName}*\n` +
+            `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+            `📋 *NEW ${typeLabel} RECEIVED*\n\n` +
+            `Respected ${fullData.recipientName},\n\n` +
+            `Details:\n` +
+            `🎫 *Reference ID:* ${fullData.grievanceId || fullData.appointmentId}\n` +
+            `👤 *Citizen Name:* ${fullData.citizenName}\n` +
+            `📞 *Contact Number:* ${fullData.citizenPhone}\n` +
+            `${deptLine}\n` +
+            `📝 *Description:*\n${fullData.description || fullData.purpose || ''}${categoryText}` +
+            `\n📅 *Received On:* ${fullData.formattedDate}\n\n` +
+            `*Action Required:*\n` +
+            `Please review this ${data.type} promptly. Resolution should be provided as per SLA.\n\n` +
+            `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+            `*${fullData.companyName}*\n` +
+            `Digital Grievance Redressal System\n` +
+            `This is an automated notification.`;
+        }
+        await safeSendWhatsApp(company, user.phone, message);
       }
-      await safeSendWhatsApp(company, user.phone, message);
     }
 
   } catch (error) {
@@ -424,7 +479,7 @@ export async function notifyUserOnAssignment(
     });
 
     // 📧 Email
-    if (user.email) {
+    if (user.email && canNotify(company, user.role, 'email')) {
       try {
         const email = await getNotificationEmailContent(data.companyId, data.type, 'assigned', fullData);
         await sendEmail(user.email, email.subject, email.html, email.text, { companyId: data.companyId });
@@ -432,31 +487,33 @@ export async function notifyUserOnAssignment(
     }
 
     // 📱 WhatsApp — use DB template first, then fallback
-    let message = await getNotificationWhatsAppMessage(data.companyId, data.type, 'assigned', fullData);
-    if (!message) {
-      const typeLabel = data.type === 'grievance' ? 'GRIEVANCE' : 'APPOINTMENT';
-      const deptLine = fullData.subDepartmentName && fullData.subDepartmentName !== 'N/A'
-        ? `🏢 *Department:* ${fullData.departmentName}\n🏢 *Sub-Dept:* ${fullData.subDepartmentName}`
-        : `🏢 *Department:* ${fullData.departmentName}`;
+    if (canNotify(company, user.role, 'whatsapp')) {
+      let message = await getNotificationWhatsAppMessage(data.companyId, data.type, 'assigned', fullData);
+      if (!message) {
+        const typeLabel = data.type === 'grievance' ? 'GRIEVANCE' : 'APPOINTMENT';
+        const deptLine = fullData.subDepartmentName && fullData.subDepartmentName !== 'N/A'
+          ? `🏢 *Department:* ${fullData.departmentName}\n🏢 *Sub-Dept:* ${fullData.subDepartmentName}`
+          : `🏢 *Department:* ${fullData.departmentName}`;
 
-      message =
-        `*${fullData.companyName}*\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `👤 *${typeLabel} ASSIGNED TO YOU*\n\n` +
-        `Respected ${fullData.recipientName},\n\n` +
-        `Details:\n` +
-        `🎫 *Reference ID:* ${fullData.grievanceId || fullData.appointmentId}\n` +
-        `👤 *Citizen:* ${fullData.citizenName}\n` +
-        `${deptLine}\n` +
-        `📝 *Description:*\n${fullData.description || fullData.purpose || ''}\n\n` +
-        `👨‍💼 *Assigned By:* ${fullData.assignedByName}\n` +
-        `📅 *Assigned On:* ${fullData.formattedDate}\n\n` +
-        `Please investigate and take required action.\n\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `*${fullData.companyName}*\n` +
-        `Digital Grievance Redressal System`;
+        message =
+          `*${fullData.companyName}*\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+          `👤 *${typeLabel} ASSIGNED TO YOU*\n\n` +
+          `Respected ${fullData.recipientName},\n\n` +
+          `Details:\n` +
+          `🎫 *Reference ID:* ${fullData.grievanceId || fullData.appointmentId}\n` +
+          `👤 *Citizen:* ${fullData.citizenName}\n` +
+          `${deptLine}\n` +
+          `📝 *Description:*\n${fullData.description || fullData.purpose || ''}\n\n` +
+          `👨‍💼 *Assigned By:* ${fullData.assignedByName}\n` +
+          `📅 *Assigned On:* ${fullData.formattedDate}\n\n` +
+          `Please investigate and take required action.\n\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+          `*${fullData.companyName}*\n` +
+          `Digital Grievance Redressal System`;
+      }
+      await safeSendWhatsApp(company, user.phone, message);
     }
-    await safeSendWhatsApp(company, user.phone, message);
 
   } catch (error) {
     logger.error('❌ notifyUserOnAssignment failed:', error);
@@ -662,10 +719,31 @@ export async function notifyHierarchyOnStatusChange(
     const admins = await getHierarchicalDepartmentAdmins(data.departmentId);
     const adminIds = admins.map(a => a._id.toString());
 
+    // 1. Identify roles that represent "Company Admins"
+    const Role = (await import('../models/Role')).default;
+    const companyAdminRoles = await Role.find({
+      companyId: data.companyId,
+      'permissions.module': 'SETTINGS',
+      'permissions.actions': { $in: ['update', 'all', 'manage'] }
+    }).select('_id name');
+    const companyAdminRoleIds = companyAdminRoles.map(r => r._id);
+    const companyAdminRoleNames = companyAdminRoles.map(r => r.name);
+
+    // 2. Find ALL relevant admins interested in the status change
     const users = await User.find({
       $or: [
-        { role: UserRole.COMPANY_ADMIN, companyId: data.companyId },
+        // Company admins (no department)
+        { 
+          companyId: data.companyId, 
+          departmentId: null,
+          $or: [
+            { customRoleId: { $in: companyAdminRoleIds } },
+            { role: { $in: companyAdminRoleNames } }
+          ]
+        },
+        // Department hierarchy admins
         { _id: { $in: adminIds } },
+        // Specifically assigned user
         { _id: data.assignedTo }
       ],
       isActive: true
@@ -698,9 +776,11 @@ export async function notifyHierarchyOnStatusChange(
     }
 
     for (const user of users) {
-      await safeSendWhatsApp(company, user.phone, hierarchyMessage);
+      if (canNotify(company, user.role, 'whatsapp')) {
+        await safeSendWhatsApp(company, user.phone, hierarchyMessage);
+      }
 
-      if (user.email) {
+      if (user.email && canNotify(company, user.role, 'email')) {
         try {
           const emailPayload = {
             ...fullData,

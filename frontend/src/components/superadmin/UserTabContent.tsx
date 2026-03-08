@@ -26,29 +26,17 @@ import { User, userAPI } from "@/lib/api/user";
 import { Company } from "@/lib/api/company";
 import toast from "react-hot-toast";
 
-/** Returns a readable label for a role string (handles multi-underscore roles and custom roles) */
 function getRoleLabel(u: User): string {
   if (u.customRoleId && typeof u.customRoleId === "object" && (u.customRoleId as any).name) {
     return (u.customRoleId as any).name;
   }
   
-  // If role is DEPARTMENT_ADMIN but department is a sub-department, show "Sub Department Admin"
-  const isSubDept = u.departmentId && typeof u.departmentId === "object" && (u.departmentId as any).parentDepartmentId;
-  if (u.role === "DEPARTMENT_ADMIN" && isSubDept) {
-    return "Sub Department Admin";
-  }
-
   return (u.role || "").replace(/_/g, " ");
 }
 
 function getRoleColor(role: string) {
   switch (role) {
     case "SUPER_ADMIN": return "bg-amber-50 text-amber-700 border-amber-100";
-    case "COMPANY_ADMIN": return "bg-red-50 text-red-700 border-red-100";
-    case "DEPARTMENT_ADMIN": return "bg-indigo-50 text-indigo-700 border-indigo-100";
-    case "SUB_DEPARTMENT_ADMIN": return "bg-purple-50 text-purple-700 border-purple-100";
-    case "OPERATOR": return "bg-emerald-50 text-emerald-700 border-emerald-100";
-    case "ANALYTICS_VIEWER": return "bg-sky-50 text-sky-700 border-sky-100";
     default: return "bg-slate-50 text-slate-700 border-slate-200";
   }
 }
@@ -204,11 +192,6 @@ const UserTabContent: React.FC<UserTabContentProps> = ({
             >
               <option value="">All Roles</option>
               <option value="SUPER_ADMIN">Super Admin</option>
-              <option value="COMPANY_ADMIN">Company Admin</option>
-              <option value="DEPARTMENT_ADMIN">Department Admin</option>
-              <option value="SUB_DEPARTMENT_ADMIN">Sub Dept Admin</option>
-              <option value="OPERATOR">Operator</option>
-              <option value="ANALYTICS_VIEWER">Analytics Viewer</option>
             </select>
           </div>
         </div>
@@ -280,7 +263,7 @@ const UserTabContent: React.FC<UserTabContentProps> = ({
                 {users.map((u, idx) => {
                   const isSelected = selectedIds.has(u._id);
                   const roleLabel = getRoleLabel(u);
-                  const roleColor = getRoleColor(u.role);
+                  const roleColor = getRoleColor(u.role || "");
                   return (
                     <tr key={u._id} className={`hover:bg-slate-50 transition-colors group ${isSelected ? "bg-indigo-50/40" : ""}`}>
                       {/* Checkbox */}

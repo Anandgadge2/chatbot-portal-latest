@@ -20,6 +20,14 @@ export interface ICompany extends Document {
     secondaryColor: string;
     logoUrl?: string;
   };
+  notificationSettings?: {
+    roles: {
+      [role: string]: {
+        email: boolean;
+        whatsapp: boolean;
+      };
+    };
+  };
   // Note: whatsappConfig moved to CompanyWhatsAppConfig model
   // Note: chatbotConfig moved to ChatbotFlow model
   isActive: boolean;
@@ -77,6 +85,16 @@ const CompanySchema: Schema = new Schema(
       },
       logoUrl: {
         type: String
+      }
+    },
+    notificationSettings: {
+      roles: {
+        type: Map,
+        of: {
+          email: { type: Boolean, default: true },
+          whatsapp: { type: Boolean, default: true }
+        },
+        default: {}
       }
     },
     // Removed: whatsappConfig - now in CompanyWhatsAppConfig model

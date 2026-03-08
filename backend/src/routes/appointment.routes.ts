@@ -27,30 +27,18 @@ router.get('/', requirePermission(Permission.READ_APPOINTMENT), async (req: Requ
     if (currentUser.role === UserRole.SUPER_ADMIN) {
       // SuperAdmin can see all appointments, but can filter by companyId if provided
       if (companyId) query.companyId = companyId;
-    } else if (currentUser.role === UserRole.COMPANY_ADMIN) {
-      // CompanyAdmin can see all appointments in their company (including CEO appointments with null departmentId)
+    } else {
+      // All other roles are scoped by their company
       query.companyId = currentUser.companyId;
-      // Don't filter by departmentId - this allows CEO appointments (null departmentId) to show
-    } else if (currentUser.role === UserRole.DEPARTMENT_ADMIN) {
-      // DepartmentAdmin can see appointments in their department
-      query.departmentId = currentUser.departmentId;
-    } else if (currentUser.role === UserRole.OPERATOR) {
-      // Operator can only see assigned appointments
-      query.assignedTo = currentUser._id;
-    } else if (currentUser.role === UserRole.ANALYTICS_VIEWER) {
-      // Analytics Viewer can see appointments in their department
+
       if (currentUser.departmentId) {
-        query.departmentId = currentUser.departmentId;
-      } else {
-        // If analytics viewer has no department, return empty
-        res.json({
-          success: true,
-          data: {
-            appointments: [],
-            pagination: { page: 1, limit: Number(limit), total: 0, pages: 0 }
-          }
-        });
-        return;
+        // Dynamic check: Users without status change permission (like basic Operators) only see their own items
+        const canManage = req.checkPermission(Permission.STATUS_CHANGE_APPOINTMENT);
+        if (!canManage) {
+          query.assignedTo = currentUser._id;
+        } else {
+          query.departmentId = currentUser.departmentId;
+        }
       }
     }
 
@@ -180,26 +168,27 @@ router.get('/:id', requirePermission(Permission.READ_APPOINTMENT), async (req: R
 
     // Check access
     if (currentUser.role !== UserRole.SUPER_ADMIN) {
-      if (currentUser.role === UserRole.COMPANY_ADMIN && appointment.companyId._id.toString() !== currentUser.companyId?.toString()) {
-        res.status(403).json({
-          success: false,
-          message: 'Access denied'
-        });
+      const apptCompanyId = appointment.companyId?._id?.toString() || appointment.companyId?.toString();
+      if (apptCompanyId && apptCompanyId !== currentUser.companyId?.toString()) {
+        res.status(403).json({ success: false, message: 'Access denied' });
         return;
       }
-      if (currentUser.role === UserRole.DEPARTMENT_ADMIN && appointment.departmentId?._id.toString() !== currentUser.departmentId?.toString()) {
-        res.status(403).json({
-          success: false,
-          message: 'Access denied'
-        });
-        return;
-      }
-      if (currentUser.role === UserRole.OPERATOR && appointment.assignedTo?._id.toString() !== currentUser._id.toString()) {
-        res.status(403).json({
-          success: false,
-          message: 'Access denied'
-        });
-        return;
+      
+      if (currentUser.departmentId) {
+        // Dynamic check: Users without status change permission only see their own items
+        const canManage = req.checkPermission(Permission.STATUS_CHANGE_APPOINTMENT);
+        if (!canManage) {
+          if (appointment.assignedTo?._id?.toString() !== currentUser._id.toString()) {
+            res.status(403).json({ success: false, message: 'Access denied' });
+            return;
+          }
+        } else {
+          // Dept-level scoping
+          if (appointment.departmentId?._id?.toString() !== currentUser.departmentId?.toString()) {
+            res.status(403).json({ success: false, message: 'Access denied' });
+            return;
+          }
+        }
       }
     }
 
@@ -232,16 +221,18 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_APPOINTMENT
       return;
     }
 
-    // Operators can only update status and remarks - validate request body
-    if (currentUser.role === UserRole.OPERATOR) {
+    // Operators (by common key) can only update status and remarks
+    // Restricted Update: If user has 'change status' but NOT full 'update' permission, limit fields
+    // Replaces old 'OPERATOR' check
+    if (!req.checkPermission(Permission.UPDATE_APPOINTMENT)) {
       const allowedFields = ['status', 'remarks'];
       const providedFields = Object.keys(req.body);
       const invalidFields = providedFields.filter(field => !allowedFields.includes(field));
       
       if (invalidFields.length > 0) {
-        return res.status(403).json({
-          success: false,
-          message: `Operators can only update status and remarks. Invalid fields: ${invalidFields.join(', ')}`
+        return res.status(403).json({ 
+          success: false, 
+          message: 'Your role only allows updating status and remarks.' 
         });
       }
     }
@@ -255,21 +246,23 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_APPOINTMENT
     // ✅ Multi-Tenant Scoping Check
     if (currentUser.role !== UserRole.SUPER_ADMIN) {
       if (appointment.companyId.toString() !== currentUser.companyId?.toString()) {
-        res.status(403).json({ success: false, message: 'Access denied - cross-company access prohibited' });
+        res.status(403).json({ success: false, message: 'Access denied' });
         return;
       }
 
-      if (currentUser.role === UserRole.DEPARTMENT_ADMIN) {
-        if (appointment.departmentId?.toString() !== currentUser.departmentId?.toString()) {
-          res.status(403).json({ success: false, message: 'Access denied - appointment not in your department' });
-          return;
-        }
-      }
-
-      if (currentUser.role === UserRole.OPERATOR) {
-        if (appointment.assignedTo?.toString() !== currentUser._id.toString()) {
-          res.status(403).json({ success: false, message: 'Access denied - not assigned to you' });
-          return;
+      if (currentUser.departmentId) {
+        // Dynamic check: restricted to assigned items if lacks high-level management rights
+        const canManage = req.checkPermission(Permission.STATUS_CHANGE_APPOINTMENT);
+        if (!canManage) {
+          if (appointment.assignedTo?.toString() !== currentUser._id.toString()) {
+            res.status(403).json({ success: false, message: 'Access denied' });
+            return;
+          }
+        } else {
+          if (appointment.departmentId?.toString() !== currentUser.departmentId?.toString()) {
+            res.status(403).json({ success: false, message: 'Access denied' });
+            return;
+          }
         }
       }
     }
@@ -369,11 +362,12 @@ router.put('/:id', requirePermission(Permission.UPDATE_APPOINTMENT), async (req:
   try {
     const currentUser = req.user!;
 
-    // Operators can only update status/comments via /status endpoint, not full updates
-    if (currentUser.role === UserRole.OPERATOR) {
+    // Check for fine-grained update permission
+    // Users with only status_change rights must use the /status route
+    if (!req.checkPermission(Permission.UPDATE_APPOINTMENT)) {
       return res.status(403).json({
         success: false,
-        message: 'Operators can only update status and remarks. Please use the status update endpoint.'
+        message: 'Your role only allows updating status and remarks.'
       });
     }
 
@@ -394,10 +388,8 @@ router.put('/:id', requirePermission(Permission.UPDATE_APPOINTMENT), async (req:
         return res.status(403).json({ success: false, message: 'Access denied - cross-company access prohibited' });
       }
 
-      if (currentUser.role === UserRole.DEPARTMENT_ADMIN) {
-        if (appointment.departmentId?.toString() !== currentUser.departmentId?.toString()) {
-          return res.status(403).json({ success: false, message: 'Access denied - appointment not in your department' });
-        }
+      if (currentUser.departmentId && appointment.departmentId?.toString() !== currentUser.departmentId?.toString()) {
+        return res.status(403).json({ success: false, message: 'Access denied' });
       }
     }
 

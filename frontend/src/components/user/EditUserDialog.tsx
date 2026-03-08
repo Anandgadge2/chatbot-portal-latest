@@ -142,41 +142,14 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
   };
 
   const getAllPossibleRoles = () => {
-    let roles: { value: string; label: string }[] = [];
-    
-    // Add Standard Roles
-    if (currentUser?.role === "SUPER_ADMIN") {
-      roles.push(
-        { value: "SUPER_ADMIN", label: "Super Admin" },
-        { value: "COMPANY_ADMIN", label: "Company Admin" },
-        { value: "DEPARTMENT_ADMIN", label: "Department Admin" },
-        { value: "SUB_DEPARTMENT_ADMIN", label: "Sub Department Admin" },
-        { value: "OPERATOR", label: "Operator" },
-        { value: "ANALYTICS_VIEWER", label: "Analytics Viewer" }
-      );
-    } else if (currentUser?.role === "COMPANY_ADMIN") {
-      roles.push(
-        { value: "DEPARTMENT_ADMIN", label: "Department Admin" },
-        { value: "SUB_DEPARTMENT_ADMIN", label: "Sub Department Admin" },
-        { value: "OPERATOR", label: "Operator" },
-        { value: "ANALYTICS_VIEWER", label: "Analytics Viewer" }
-      );
-    } else if (currentUser?.role === "DEPARTMENT_ADMIN") {
-      roles.push(
-        { value: "DEPARTMENT_ADMIN", label: "Department Admin" },
-        { value: "SUB_DEPARTMENT_ADMIN", label: "Sub Department Admin" },
-        { value: "OPERATOR", label: "Operator" },
-        { value: "ANALYTICS_VIEWER", label: "Analytics Viewer" }
-      );
-    }
-
-    // Add Custom Roles
+    // ONLY SHOW CUSTOM ROLES created by the Admin
+    // Standard roles are deprecated in favor of dynamic roles.
     const customRoleOptions = customRoles.map((r) => ({
       value: `CUSTOM:${r._id}`,
       label: r.name,
     }));
 
-    return [...roles, ...customRoleOptions];
+    return customRoleOptions;
   };
 
   if (!user) return null;
@@ -329,7 +302,9 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
                   className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold"
                   required
                 >
-                  <option value="" disabled>Select a role</option>
+                  <option value="" disabled>
+                    Select a role
+                  </option>
                   <optgroup label="Standard Roles">
                     {getAllPossibleRoles()
                       .filter((r: any) => !r.value.startsWith("CUSTOM:"))
@@ -339,7 +314,9 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
                         </option>
                       ))}
                   </optgroup>
-                  {getAllPossibleRoles().some((r: any) => r.value.startsWith("CUSTOM:")) && (
+                  {getAllPossibleRoles().some((r: any) =>
+                    r.value.startsWith("CUSTOM:"),
+                  ) && (
                     <optgroup label="Custom Roles">
                       {getAllPossibleRoles()
                         .filter((r: any) => r.value.startsWith("CUSTOM:"))

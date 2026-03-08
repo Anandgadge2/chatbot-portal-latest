@@ -3,12 +3,7 @@
 // ================================
 
 export const UserRole = {
-  SUPER_ADMIN: 'SUPER_ADMIN',
-  COMPANY_ADMIN: 'COMPANY_ADMIN',
-  DEPARTMENT_ADMIN: 'DEPARTMENT_ADMIN',
-  SUB_DEPARTMENT_ADMIN: 'SUB_DEPARTMENT_ADMIN',
-  OPERATOR: 'OPERATOR',
-  ANALYTICS_VIEWER: 'ANALYTICS_VIEWER'
+  SUPER_ADMIN: 'SUPER_ADMIN'
 };
 
 export type UserRoleType = typeof UserRole[keyof typeof UserRole] | string;

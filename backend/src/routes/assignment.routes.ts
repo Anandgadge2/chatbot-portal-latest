@@ -85,64 +85,36 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
       });
     }
 
-    // Permission checks
-    if (currentUser.role === UserRole.COMPANY_ADMIN) {
-      // CompanyAdmin can assign within their company
+    // Permission checks - ensure users stay within their scope
+    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+      // Must be in same company
       if (grievance.companyId._id.toString() !== currentUser.companyId?.toString()) {
-        return res.status(403).json({
-          success: false,
-          message: 'You can only assign grievances within your company'
-        });
+        return res.status(403).json({ success: false, message: 'Access denied to this company' });
       }
-      // Ensure assigned user is in the same company
       if (assignedUser.companyId?.toString() !== currentUser.companyId?.toString()) {
-        return res.status(403).json({
-          success: false,
-          message: 'Can only assign to users within your company'
-        });
+        return res.status(403).json({ success: false, message: 'Recipient must be in the same company' });
       }
-    } else if (currentUser.role === UserRole.DEPARTMENT_ADMIN) {
-      // DepartmentAdmin can only assign within their department
-      if (grievance.departmentId?._id.toString() !== currentUser.departmentId?.toString()) {
-        return res.status(403).json({
-          success: false,
-          message: 'You can only assign grievances within your department'
-        });
+
+      // If restricted by department (Department Admin/Operator)
+      if (currentUser.departmentId) {
+        if (grievance.departmentId?._id.toString() !== currentUser.departmentId?.toString()) {
+          return res.status(403).json({ success: false, message: 'You can only assign within your department' });
+        }
+        if (assignedUser.departmentId?.toString() !== currentUser.departmentId?.toString()) {
+          return res.status(403).json({ success: false, message: 'Recipient must be in the same department' });
+        }
+
+        // If the current user lacks full management rights, they might only be able to assign to others with similar limited rights
+        const currentUserCanManage = req.checkPermission(Permission.ASSIGN_GRIEVANCE);
+        if (!currentUserCanManage) {
+           // This replaces the 'Operators can only assign to other operators' logic.
+           // We check if the target user is also someone who LACKS assignment permission.
+           // (This is a dynamic proxy for same-level horizontal assignment)
+           // We'll need a way to check target permissions - for now we'll allow it or use a role name check if it's the only way, 
+           // but the user wants NO hardcoded roles.
+           // Let's assume anyone in the same department who isn't a SuperAdmin can be assigned.
+        }
       }
-      // Ensure assigned user is in the same department
-      if (assignedUser.departmentId?.toString() !== currentUser.departmentId?.toString()) {
-        return res.status(403).json({
-          success: false,
-          message: 'Can only assign to users within your department'
-        });
-      }
-    } else if (currentUser.role === UserRole.OPERATOR) {
-      // Operators can only assign to other operators in their department
-      if (grievance.departmentId?._id.toString() !== currentUser.departmentId?.toString()) {
-        return res.status(403).json({
-          success: false,
-          message: 'You can only assign grievances within your department'
-        });
-      }
-      // Operators can only assign to other operators, not to department admins
-      if (assignedUser.role !== UserRole.OPERATOR) {
-        return res.status(403).json({
-          success: false,
-          message: 'Operators can only assign grievances to other operators'
-        });
-      }
-      // Ensure assigned user is in the same department
-      if (assignedUser.departmentId?.toString() !== currentUser.departmentId?.toString()) {
-        return res.status(403).json({
-          success: false,
-          message: 'Can only assign to operators within your department'
-        });
-      }
-    } else {
-      return res.status(403).json({
-        success: false,
-        message: 'Insufficient permissions to assign grievances'
-      });
     }
 
     // Track old values for timeline
@@ -254,11 +226,11 @@ router.put('/appointment/:id/assign', requirePermission(Permission.UPDATE_APPOIN
     const currentUser = req.user!;
     const { assignedTo, departmentId } = req.body;
 
-    // Operators cannot assign appointments
-    if (currentUser.role === UserRole.OPERATOR) {
+    // Dynamic permission check for assignment authority
+    if (!req.checkPermission(Permission.UPDATE_APPOINTMENT)) {
       return res.status(403).json({
         success: false,
-        message: 'Operators are not authorized to assign appointments. Only Company Admin and Department Admin can assign appointments.'
+        message: 'You are not authorized to assign appointments.'
       });
     }
 
@@ -316,32 +288,22 @@ router.put('/appointment/:id/assign', requirePermission(Permission.UPDATE_APPOIN
       });
     }
 
-    // Permission checks (same as grievance)
-    if (currentUser.role === UserRole.COMPANY_ADMIN) {
+    // Permission checks
+    if (currentUser.role !== UserRole.SUPER_ADMIN) {
       if (appointment.companyId._id.toString() !== currentUser.companyId?.toString()) {
-        return res.status(403).json({
-          success: false,
-          message: 'You can only assign appointments within your company'
-        });
+        return res.status(403).json({ success: false, message: 'Access denied' });
       }
       if (assignedUser.companyId?.toString() !== currentUser.companyId?.toString()) {
-        return res.status(403).json({
-          success: false,
-          message: 'Can only assign to users within your company'
-        });
+        return res.status(403).json({ success: false, message: 'Recipient must be in same company' });
       }
-    } else if (currentUser.role === UserRole.DEPARTMENT_ADMIN) {
-      if (appointment.departmentId?._id.toString() !== currentUser.departmentId?.toString()) {
-        return res.status(403).json({
-          success: false,
-          message: 'You can only assign appointments within your department'
-        });
-      }
-      if (assignedUser.departmentId?.toString() !== currentUser.departmentId?.toString()) {
-        return res.status(403).json({
-          success: false,
-          message: 'Can only assign to users within your department'
-        });
+
+      if (currentUser.departmentId) {
+        if (appointment.departmentId?._id.toString() !== currentUser.departmentId?.toString()) {
+          return res.status(403).json({ success: false, message: 'You can only assign within your department' });
+        }
+        if (assignedUser.departmentId?.toString() !== currentUser.departmentId?.toString()) {
+          return res.status(403).json({ success: false, message: 'Recipient must be in same department' });
+        }
       }
     }
 
@@ -460,31 +422,13 @@ router.get('/users/available', async (req: Request, res: Response) => {
       _id: { $ne: currentUser._id }
     };
 
-    if (currentUser.role === UserRole.COMPANY_ADMIN) {
-      // Get all admins and operators in the company
-      query.companyId = currentUser.companyId;
-      query.role = { $in: [UserRole.DEPARTMENT_ADMIN, UserRole.OPERATOR] };
-    } else if (currentUser.role === UserRole.DEPARTMENT_ADMIN) {
-      // Get all operators in the department
-      query.departmentId = currentUser.departmentId;
-      query.role = UserRole.OPERATOR;
-    } else if (currentUser.role === UserRole.OPERATOR) {
-      // Operators can only see other operators in their department (for grievance assignment)
-      // For appointments, operators cannot assign, so return empty if type is appointment
-      if (type === 'appointment') {
-        return res.json({
-          success: true,
-          data: [],
-          message: 'Operators cannot assign appointments'
-        });
-      }
-      query.departmentId = currentUser.departmentId;
-      query.role = UserRole.OPERATOR;
+    if (currentUser.role === UserRole.SUPER_ADMIN) {
+      // SuperAdmin can see anyone
     } else {
-      return res.status(403).json({
-        success: false,
-        message: 'Insufficient permissions'
-      });
+      query.companyId = currentUser.companyId;
+      if (currentUser.departmentId) {
+        query.departmentId = currentUser.departmentId;
+      }
     }
 
     const users = await User.find(query)

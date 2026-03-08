@@ -10,7 +10,7 @@ export interface IUser extends Document {
   password?: string;
   phone: string;
   designation?: string; // 🏢 Added designation field
-  role: string;
+  role?: string;
   companyId?: mongoose.Types.ObjectId;
   departmentId?: mongoose.Types.ObjectId;
   isActive: boolean;
@@ -67,9 +67,11 @@ const UserSchema: Schema = new Schema(
     },
     role: {
       type: String,
-      required: true,
+      required: false,
+      default: 'CUSTOM',
       index: true
     },
+
     companyId: {
       type: Schema.Types.ObjectId,
       ref: 'Company',

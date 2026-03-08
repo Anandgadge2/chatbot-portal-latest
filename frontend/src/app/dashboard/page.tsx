@@ -149,18 +149,18 @@ interface DashboardStats {
 
 function DashboardContent() {
   const { user, loading, logout } = useAuth();
-  const isCompanyAdmin = user?.role === "COMPANY_ADMIN";
-  const isDepartmentAdmin = user?.role === "DEPARTMENT_ADMIN";
-  const isOperator = user?.role === "OPERATOR";
-  const isAnalyticsViewer = user?.role === "ANALYTICS_VIEWER";
+  const isCompanyLevel = user && !user.departmentId && user.role !== "SUPER_ADMIN";
+  const isDepartmentLevel = user && !!user.departmentId && user.role !== "SUPER_ADMIN";
   const isSuperAdmin = user?.role === "SUPER_ADMIN";
   const router = useRouter();
   const searchParams = useSearchParams();
   const [mounted, setMounted] = useState(false);
   // Get initial tab from URL search params, default based on role
   const getDefaultTab = () => {
-    if (user?.role === "OPERATOR") return "profile";
-    if (user?.role === "ANALYTICS_VIEWER") return "grievances";
+    if (!hasPermission(user, Permission.VIEW_ANALYTICS) && !isSuperAdmin) {
+      if (hasPermission(user, Permission.READ_GRIEVANCE)) return "grievances";
+      return "profile";
+    }
     return "overview";
   };
   const initialTab = searchParams?.get("tab") || getDefaultTab();
@@ -168,7 +168,9 @@ function DashboardContent() {
   const [previousTab, setPreviousTab] = useState<string>("overview");
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [departments, setDepartments] = useState<Department[]>([]);
-  const [deptUserCounts, setDeptUserCounts] = useState<Record<string, number>>({});
+  const [deptUserCounts, setDeptUserCounts] = useState<Record<string, number>>(
+    {},
+  );
   const [deptSearch, setDeptSearch] = useState("");
   const [users, setUsers] = useState<User[]>([]);
   const [grievances, setGrievances] = useState<Grievance[]>([]);
@@ -472,12 +474,13 @@ function DashboardContent() {
     }
   }, [user, loading, router]);
 
-  // Set default tab to grievances for operators (they don't have access to overview)
+  // Redirect away from overview if no analytics permission
   useEffect(() => {
-    if (user && user.role === "OPERATOR" && activeTab === "overview") {
-      setActiveTab("grievances");
+    if (user && !hasPermission(user, Permission.VIEW_ANALYTICS) && !isSuperAdmin && activeTab === "overview") {
+      const nextTab = hasPermission(user, Permission.READ_GRIEVANCE) ? "grievances" : "profile";
+      setActiveTab(nextTab);
     }
-  }, [user, activeTab]);
+  }, [user, activeTab, isSuperAdmin]);
 
   // Update URL when tab changes to persist state
   useEffect(() => {
@@ -548,7 +551,7 @@ function DashboardContent() {
   }, []);
 
   const fetchCompany = useCallback(async () => {
-    if (!user || user.role !== "COMPANY_ADMIN") return;
+    if (!user || !isCompanyLevel) return;
 
     try {
       const response = await companyAPI.getMyCompany();
@@ -566,16 +569,16 @@ function DashboardContent() {
       if (!isSilent) setLoadingDepartments(true);
       try {
         // For company admin, fetch ALL departments (no pagination limit)
-        const fetchLimit = isCompanyAdmin ? 500 : departmentPagination.limit;
+        const fetchLimit = isCompanyLevel ? 500 : departmentPagination.limit;
         const response = await departmentAPI.getAll({
-          page: isCompanyAdmin ? 1 : page,
+          page: isCompanyLevel ? 1 : page,
           limit: fetchLimit,
         });
         if (response.success) {
           let filteredDepartments = response.data.departments;
 
           // For department admin, only show their own department
-          if (isDepartmentAdmin && user?.departmentId) {
+          if (isDepartmentLevel && user?.departmentId) {
             const userDeptId =
               typeof user.departmentId === "object" &&
               user.departmentId !== null
@@ -595,20 +598,23 @@ function DashboardContent() {
           setDepartments(filteredDepartments);
           setDepartmentPagination((prev) => ({
             ...prev,
-            total: isCompanyAdmin ? filteredDepartments.length : response.data.pagination.total,
-            pages: isCompanyAdmin ? 1 : response.data.pagination.pages,
+            total: isCompanyLevel
+              ? filteredDepartments.length
+              : response.data.pagination.total,
+            pages: isCompanyLevel ? 1 : response.data.pagination.pages,
           }));
 
           // Fetch user counts per department (company admin only)
-          if (isCompanyAdmin && filteredDepartments.length > 0) {
+          if (isCompanyLevel && filteredDepartments.length > 0) {
             try {
               const userRes = await userAPI.getAll({ limit: 1000 });
               if (userRes.success) {
                 const counts: Record<string, number> = {};
                 for (const u of userRes.data.users) {
-                  const dId = typeof u.departmentId === "object" && u.departmentId
-                    ? (u.departmentId as any)._id
-                    : u.departmentId;
+                  const dId =
+                    typeof u.departmentId === "object" && u.departmentId
+                      ? (u.departmentId as any)._id
+                      : u.departmentId;
                   if (dId) counts[dId] = (counts[dId] || 0) + 1;
                 }
                 setDeptUserCounts(counts);
@@ -628,8 +634,8 @@ function DashboardContent() {
     [
       departmentPage,
       departmentPagination.limit,
-      isDepartmentAdmin,
-      isCompanyAdmin,
+      isDepartmentLevel,
+      isCompanyLevel,
       user?.departmentId,
     ],
   );
@@ -646,7 +652,7 @@ function DashboardContent() {
           let filteredUsers = response.data.users;
 
           // Filter users by department for department admins
-          if (isDepartmentAdmin && user?.departmentId) {
+          if (isDepartmentLevel && user?.departmentId) {
             const userDeptId =
               typeof user.departmentId === "object" &&
               user.departmentId !== null
@@ -676,11 +682,15 @@ function DashboardContent() {
         if (!isSilent) setLoadingUsers(false);
       }
     },
-    [userPage, userPagination.limit, isDepartmentAdmin, user?.departmentId],
+    [userPage, userPagination.limit, isDepartmentLevel, user?.departmentId],
   );
 
   const fetchGrievances = useCallback(
     async (page = grievancePage, isSilent = false) => {
+      if (!hasModule(Module.GRIEVANCE) || !hasPermission(user, Permission.READ_GRIEVANCE)) {
+        return;
+      }
+
       if (!isSilent) setLoadingGrievances(true);
       try {
         const response = await grievanceAPI.getAll({
@@ -696,17 +706,23 @@ function DashboardContent() {
           }));
         }
       } catch (error: any) {
-        console.error("Failed to fetch grievances:", error);
-        toast.error("Failed to load grievances");
+        if (error.response?.status !== 403) {
+          console.error("Failed to fetch grievances:", error);
+          toast.error("Failed to load grievances");
+        }
       } finally {
         if (!isSilent) setLoadingGrievances(false);
       }
     },
-    [grievancePage, grievancePagination.limit],
+    [grievancePage, grievancePagination.limit, user, hasPermission, hasModule],
   );
 
   const fetchAppointments = useCallback(
     async (page = appointmentPage, isSilent = false) => {
+      if (!hasModule(Module.APPOINTMENT) || !hasPermission(user, Permission.READ_APPOINTMENT)) {
+        return;
+      }
+      
       if (!isSilent) setLoadingAppointments(true);
       try {
         const response = await appointmentAPI.getAll({
@@ -722,13 +738,15 @@ function DashboardContent() {
           }));
         }
       } catch (error: any) {
-        console.error("Failed to fetch appointments:", error);
-        toast.error("Failed to load appointments");
+        if (error.response?.status !== 403) {
+          console.error("Failed to fetch appointments:", error);
+          toast.error("Failed to load appointments");
+        }
       } finally {
         if (!isSilent) setLoadingAppointments(false);
       }
     },
-    [appointmentPage, appointmentPagination.limit],
+    [appointmentPage, appointmentPagination.limit, user, hasPermission, hasModule],
   );
 
   const fetchLeads = useCallback(async () => {
@@ -757,7 +775,11 @@ function DashboardContent() {
       if (activeTab === "overview") {
         await fetchDashboardData();
       } else if (activeTab === "analytics") {
-        await Promise.all([fetchHourlyData(), fetchCategoryData(), fetchDashboardData()]);
+        await Promise.all([
+          fetchHourlyData(),
+          fetchCategoryData(),
+          fetchDashboardData(),
+        ]);
       } else if (activeTab === "grievances") {
         await fetchGrievances(grievancePage);
       } else if (activeTab === "appointments") {
@@ -794,7 +816,7 @@ function DashboardContent() {
   useEffect(() => {
     if (mounted && user && user.role !== "SUPER_ADMIN") {
       fetchDashboardData();
-      if (user.companyId && user.role === "COMPANY_ADMIN") {
+      if (user.companyId && isCompanyLevel) {
         fetchCompany();
       }
     }
@@ -814,16 +836,16 @@ function DashboardContent() {
   }, [mounted, user, userPage, fetchUsers]);
 
   useEffect(() => {
-    if (mounted && user && user.role !== "SUPER_ADMIN") {
+    if (mounted && user && user.role !== "SUPER_ADMIN" && hasModule(Module.GRIEVANCE) && hasPermission(user, Permission.READ_GRIEVANCE)) {
       fetchGrievances(grievancePage);
     }
-  }, [mounted, user, grievancePage, fetchGrievances]);
+  }, [mounted, user, grievancePage, fetchGrievances, hasModule, hasPermission]);
 
   useEffect(() => {
-    if (mounted && user && user.role !== "SUPER_ADMIN") {
+    if (mounted && user && user.role !== "SUPER_ADMIN" && hasModule(Module.APPOINTMENT) && hasPermission(user, Permission.READ_APPOINTMENT)) {
       fetchAppointments(appointmentPage);
     }
-  }, [mounted, user, appointmentPage, fetchAppointments]);
+  }, [mounted, user, appointmentPage, fetchAppointments, hasModule, hasPermission]);
 
   useEffect(() => {
     if (mounted && user && hasModule(Module.LEAD_CAPTURE)) {
@@ -836,10 +858,21 @@ function DashboardContent() {
     if (mounted && user && user.role !== "SUPER_ADMIN") {
       const pollInterval = setInterval(async () => {
         try {
-          const [grievanceRes, appointmentRes] = await Promise.all([
-            grievanceAPI.getAll({ page: 1, limit: 10 }),
-            appointmentAPI.getAll({ page: 1, limit: 10 }),
-          ]);
+          const promises = [];
+          
+          if (hasModule(Module.GRIEVANCE) && hasPermission(user, Permission.READ_GRIEVANCE)) {
+            promises.push(grievanceAPI.getAll({ page: 1, limit: 10 }));
+          } else {
+            promises.push(Promise.resolve({ success: false, data: null }));
+          }
+          
+          if (hasModule(Module.APPOINTMENT) && hasPermission(user, Permission.READ_APPOINTMENT)) {
+            promises.push(appointmentAPI.getAll({ page: 1, limit: 10 }));
+          } else {
+            promises.push(Promise.resolve({ success: false, data: null }));
+          }
+
+          const [grievanceRes, appointmentRes] = await Promise.all(promises) as any;
 
           if (grievanceRes.success && prevGrievanceCount !== null) {
             const newCount = grievanceRes.data.pagination.total;
@@ -1182,10 +1215,10 @@ function DashboardContent() {
                 </div>
                 <div className="hidden sm:block">
                   <h1 className="text-sm font-black text-white tracking-tight leading-none uppercase">
-                    {isCompanyAdmin && (company?.name || "Company Admin")}
-                    {isDepartmentAdmin && "Department Hub"}
-                    {isOperator && "Operator Center"}
-                    {isAnalyticsViewer && "Analytics Portal"}
+                    {isCompanyLevel && (company?.name || "Company Level")}
+                    {isDepartmentLevel && "Department Hub"}
+                    {!hasPermission(user, Permission.VIEW_ANALYTICS) && !isSuperAdmin && "Operator/Operations Center"}
+                    {hasPermission(user, Permission.VIEW_ANALYTICS) && !isCompanyLevel && !isSuperAdmin && "Intelligence Portal"}
                   </h1>
                   <div className="flex items-center gap-2 mt-1">
                     <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">
@@ -1205,7 +1238,7 @@ function DashboardContent() {
                   {user.firstName} {user.lastName}
                 </span>
                 <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-tighter mt-1 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20">
-                  {user.role.replace("_", " ")}
+                  {(user.role || "CUSTOM").replace("_", " ")}
                 </span>
               </div>
 
@@ -1239,7 +1272,7 @@ function DashboardContent() {
         >
           <div className="mb-4 sticky top-[64px] z-40 bg-slate-50/95 backdrop-blur-sm py-4 -mx-4 px-4 sm:mx-0 sm:px-0 flex items-center justify-between gap-4">
             <TabsList className="bg-slate-200/50 p-1 border border-slate-300/50 h-10 shadow-sm overflow-x-auto no-scrollbar max-w-full">
-              {!isOperator && (
+              {hasPermission(user, Permission.VIEW_ANALYTICS) && (
                 <TabsTrigger
                   value="overview"
                   className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
@@ -1279,7 +1312,7 @@ function DashboardContent() {
                   </TabsTrigger>
                 )}
 
-              {isCompanyAdmin && (
+              {isCompanyLevel && (
                 <TabsTrigger
                   value="departments"
                   className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
@@ -1288,7 +1321,7 @@ function DashboardContent() {
                 </TabsTrigger>
               )}
 
-              {(isCompanyAdmin || isDepartmentAdmin) && (
+              {(isCompanyLevel || isDepartmentLevel) && (
                 <TabsTrigger
                   value="users"
                   className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
@@ -1297,7 +1330,7 @@ function DashboardContent() {
                 </TabsTrigger>
               )}
 
-              {hasModule(Module.LEAD_CAPTURE) && isCompanyAdmin && (
+              {hasModule(Module.LEAD_CAPTURE) && isCompanyLevel && (
                 <TabsTrigger
                   value="leads"
                   className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
@@ -1306,7 +1339,7 @@ function DashboardContent() {
                 </TabsTrigger>
               )}
 
-              {isOperator && (
+              {!hasPermission(user, Permission.VIEW_ANALYTICS) && !isSuperAdmin && (
                 <TabsTrigger
                   value="profile"
                   className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
@@ -1322,7 +1355,9 @@ function DashboardContent() {
               disabled={refreshing}
               className="h-10 px-4 bg-white border-slate-200 text-slate-600 hover:text-indigo-600 hover:border-indigo-200 transition-all rounded-xl shadow-sm font-bold text-[11px] uppercase tracking-widest gap-2 flex"
             >
-              <RefreshCw className={cn("w-3.5 h-3.5", refreshing && "animate-spin")} />
+              <RefreshCw
+                className={cn("w-3.5 h-3.5", refreshing && "animate-spin")}
+              />
               <span className="hidden sm:inline">Refresh Data</span>
             </Button>
           </div>
@@ -1331,115 +1366,118 @@ function DashboardContent() {
           <TabsContent value="overview" className="space-y-6">
             {/* Dashboard Headers & Quick Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-              {!isOperator && !isAnalyticsViewer ? (
-                <>
-                  {hasModule(Module.GRIEVANCE) && hasPermission(user, Permission.READ_GRIEVANCE) && (
-                    <Card
-                      className="group relative overflow-hidden bg-white border border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer rounded-xl h-[85px]"
-                      onClick={() => setActiveTab("grievances")}
-                    >
-                      <CardHeader className="p-3 pb-0.5 space-y-0">
-                        <CardTitle className="text-slate-500 text-[10px] font-black uppercase tracking-widest flex items-center justify-between">
-                          <span className="flex items-center gap-2">
-                            <div className="w-6 h-6 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600">
-                              <FileText className="w-3.5 h-3.5" />
-                            </div>
-                            Total
-                          </span>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="p-3 pt-1">
-                        <div className="flex items-baseline gap-1.5">
-                          {loadingStats ? (
-                            <Skeleton className="h-8 w-16" />
-                          ) : (
-                            <p className="text-2xl font-black text-slate-900 tracking-tighter leading-none">
-                              {stats?.grievances.total || 0}
-                            </p>
-                          )}
-                          <span className="text-[10px] font-bold text-slate-400">
-                            pending
-                          </span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
+              {/* Statistical KPI Cards */}
+              <>
+                  {hasModule(Module.GRIEVANCE) &&
+                    hasPermission(user, Permission.READ_GRIEVANCE) && (
+                      <Card
+                        className="group relative overflow-hidden bg-white border border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer rounded-xl h-[85px]"
+                        onClick={() => setActiveTab("grievances")}
+                      >
+                        <CardHeader className="p-3 pb-0.5 space-y-0">
+                          <CardTitle className="text-slate-500 text-[10px] font-black uppercase tracking-widest flex items-center justify-between">
+                            <span className="flex items-center gap-2">
+                              <div className="w-6 h-6 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600">
+                                <FileText className="w-3.5 h-3.5" />
+                              </div>
+                              Total
+                            </span>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-3 pt-1">
+                          <div className="flex items-baseline gap-1.5">
+                            {loadingStats ? (
+                              <Skeleton className="h-8 w-16" />
+                            ) : (
+                              <p className="text-2xl font-black text-slate-900 tracking-tighter leading-none">
+                                {stats?.grievances.total || 0}
+                              </p>
+                            )}
+                            <span className="text-[10px] font-bold text-slate-400">
+                              pending
+                            </span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
 
-                  {hasModule(Module.GRIEVANCE) && hasPermission(user, Permission.READ_GRIEVANCE) && (
-                    <Card
-                      className="group relative overflow-hidden bg-white border border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer rounded-xl h-[85px]"
-                      onClick={() => {
-                        setActiveTab("grievances");
-                        setGrievanceFilters((prev) => ({
-                          ...prev,
-                          status: "PENDING",
-                        }));
-                      }}
-                    >
-                      <CardHeader className="p-3 pb-0.5 space-y-0">
-                        <CardTitle className="text-slate-500 text-[10px] font-black uppercase tracking-widest flex items-center justify-between">
-                          <span className="flex items-center gap-2">
-                            <div className="w-6 h-6 bg-amber-50 rounded-lg flex items-center justify-center text-amber-600">
-                              <Clock className="w-3.5 h-3.5" />
-                            </div>
-                            Pending
-                          </span>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="p-3 pt-1">
-                        <div className="flex items-baseline gap-1.5">
-                          {loadingStats ? (
-                            <Skeleton className="h-8 w-16" />
-                          ) : (
-                            <p className="text-2xl font-black text-slate-900 tracking-tighter leading-none">
-                              {stats?.grievances.pending || 0}
-                            </p>
-                          )}
-                          <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-1.5 rounded uppercase">
-                            Action
-                          </span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
+                  {hasModule(Module.GRIEVANCE) &&
+                    hasPermission(user, Permission.READ_GRIEVANCE) && (
+                      <Card
+                        className="group relative overflow-hidden bg-white border border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer rounded-xl h-[85px]"
+                        onClick={() => {
+                          setActiveTab("grievances");
+                          setGrievanceFilters((prev) => ({
+                            ...prev,
+                            status: "PENDING",
+                          }));
+                        }}
+                      >
+                        <CardHeader className="p-3 pb-0.5 space-y-0">
+                          <CardTitle className="text-slate-500 text-[10px] font-black uppercase tracking-widest flex items-center justify-between">
+                            <span className="flex items-center gap-2">
+                              <div className="w-6 h-6 bg-amber-50 rounded-lg flex items-center justify-center text-amber-600">
+                                <Clock className="w-3.5 h-3.5" />
+                              </div>
+                              Pending
+                            </span>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-3 pt-1">
+                          <div className="flex items-baseline gap-1.5">
+                            {loadingStats ? (
+                              <Skeleton className="h-8 w-16" />
+                            ) : (
+                              <p className="text-2xl font-black text-slate-900 tracking-tighter leading-none">
+                                {stats?.grievances.pending || 0}
+                              </p>
+                            )}
+                            <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-1.5 rounded uppercase">
+                              Action
+                            </span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
 
-                  {hasModule(Module.GRIEVANCE) && hasPermission(user, Permission.READ_GRIEVANCE) && (
-                    <Card
-                      className="group relative overflow-hidden bg-white border border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer rounded-xl h-[85px]"
-                      onClick={() => {
-                        setActiveTab("grievances");
-                        setGrievanceFilters((prev) => ({
-                          ...prev,
-                          status: "RESOLVED",
-                        }));
-                      }}
-                    >
-                      <CardHeader className="p-3 pb-0.5 space-y-0">
-                        <CardTitle className="text-slate-500 text-[10px] font-black uppercase tracking-widest flex items-center justify-between">
-                          <span className="flex items-center gap-2">
-                            <div className="w-6 h-6 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600">
-                              <CheckCircle className="w-3.5 h-3.5" />
-                            </div>
-                            Resolved
-                          </span>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="p-3 pt-1">
-                        <div className="flex items-baseline gap-1.5">
-                          {loadingStats ? (
-                            <Skeleton className="h-8 w-16" />
-                          ) : (
-                            <p className="text-2xl font-black text-slate-900 tracking-tighter leading-none">
-                              {stats?.grievances.resolved || 0}
-                            </p>
-                          )}
-                          <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-1.5 rounded uppercase">
-                            Fixed
-                          </span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
+                  {hasModule(Module.GRIEVANCE) &&
+                    hasPermission(user, Permission.READ_GRIEVANCE) && (
+                      <Card
+                        className="group relative overflow-hidden bg-white border border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer rounded-xl h-[85px]"
+                        onClick={() => {
+                          setActiveTab("grievances");
+                          setGrievanceFilters((prev) => ({
+                            ...prev,
+                            status: "RESOLVED",
+                          }));
+                        }}
+                      >
+                        <CardHeader className="p-3 pb-0.5 space-y-0">
+                          <CardTitle className="text-slate-500 text-[10px] font-black uppercase tracking-widest flex items-center justify-between">
+                            <span className="flex items-center gap-2">
+                              <div className="w-6 h-6 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600">
+                                <CheckCircle className="w-3.5 h-3.5" />
+                              </div>
+                              Resolved
+                            </span>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-3 pt-1">
+                          <div className="flex items-baseline gap-1.5">
+                            {loadingStats ? (
+                              <Skeleton className="h-8 w-16" />
+                            ) : (
+                              <p className="text-2xl font-black text-slate-900 tracking-tighter leading-none">
+                                {stats?.grievances.resolved || 0}
+                              </p>
+                            )}
+                            <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-1.5 rounded uppercase">
+                              Fixed
+                            </span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
 
                   {hasModule(Module.APPOINTMENT) &&
                     hasPermission(user, Permission.READ_APPOINTMENT) && (
@@ -1467,18 +1505,88 @@ function DashboardContent() {
                               </p>
                             )}
                             <span className="text-[10px] font-bold text-purple-600">
-                              {loadingStats ? <Skeleton className="h-3 w-10" /> : (stats?.appointments.confirmed || 0)} Live
+                              {loadingStats ? (
+                                <Skeleton className="h-3 w-10" />
+                              ) : (
+                                stats?.appointments.confirmed || 0
+                              )}{" "}
+                              Live
                             </span>
                           </div>
                         </CardContent>
                       </Card>
                     )}
-                </>
-              ) : null}
+
+                  {isCompanyLevel && (
+                    <>
+                      {/* Staff KPI Card */}
+                      <Card
+                        className="group relative overflow-hidden bg-white border border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer rounded-xl h-[85px]"
+                        onClick={() => setActiveTab("users")}
+                      >
+                        <CardHeader className="p-3 pb-0.5 space-y-0">
+                          <CardTitle className="text-slate-500 text-[10px] font-black uppercase tracking-widest flex items-center justify-between">
+                            <span className="flex items-center gap-2">
+                              <div className="w-6 h-6 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600">
+                                <Users className="w-3.5 h-3.5" />
+                              </div>
+                              Staff
+                            </span>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-3 pt-1">
+                          <div className="flex items-baseline gap-1.5">
+                            {loadingStats ? (
+                              <Skeleton className="h-8 w-16" />
+                            ) : (
+                              <p className="text-2xl font-black text-slate-900 tracking-tighter leading-none">
+                                {stats?.users || users.length || 0}
+                              </p>
+                            )}
+                            <span className="text-[10px] font-bold text-emerald-600 px-1 border border-emerald-100 rounded bg-emerald-50">
+                              Active
+                            </span>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Units KPI Card */}
+                      <Card
+                        className="group relative overflow-hidden bg-white border border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer rounded-xl h-[85px]"
+                        onClick={() => setActiveTab("departments")}
+                      >
+                        <CardHeader className="p-3 pb-0.5 space-y-0">
+                          <CardTitle className="text-slate-500 text-[10px] font-black uppercase tracking-widest flex items-center justify-between">
+                            <span className="flex items-center gap-2">
+                              <div className="w-6 h-6 bg-cyan-50 rounded-lg flex items-center justify-center text-cyan-600">
+                                <Building className="w-3.5 h-3.5" />
+                              </div>
+                              Units
+                            </span>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-3 pt-1">
+                          <div className="flex items-baseline gap-1.5">
+                            {loadingStats ? (
+                              <Skeleton className="h-8 w-16" />
+                            ) : (
+                              <p className="text-2xl font-black text-slate-900 tracking-tighter leading-none">
+                                {stats?.departments || departments.length || 0}
+                              </p>
+                            )}
+                            <span className="text-[10px] font-bold text-cyan-600 px-1 border border-cyan-100 rounded bg-cyan-50">
+                              Depts
+                            </span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </>
+                  )}
+              </>
             </div>
 
             {/* Company Info (for Company Admin) - Beautified Modern Design */}
-            {isCompanyAdmin && company && (
+            {isCompanyLevel && company && (
               <Card className="overflow-hidden border border-slate-200 shadow-sm bg-white rounded-xl">
                 <div className="bg-slate-900 px-6 py-5">
                   <div className="relative flex items-center justify-between">
@@ -1529,7 +1637,9 @@ function DashboardContent() {
                       </div>
                       <div className="flex items-baseline space-x-2">
                         <span className="text-2xl font-black text-slate-900 tracking-tighter leading-none">
-                          {departmentPagination.total || stats?.departments || departments.length}
+                          {departmentPagination.total ||
+                            stats?.departments ||
+                            departments.length}
                         </span>
                         <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 uppercase tracking-tighter">
                           Verified
@@ -1562,36 +1672,38 @@ function DashboardContent() {
                   <div className="bg-slate-50/50 p-4 border-t border-slate-100">
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
                       <div className="flex items-center space-x-4">
-                        {hasModule(Module.GRIEVANCE) && hasPermission(user, Permission.READ_GRIEVANCE) && (
-                          <div className="flex flex-col bg-white border border-slate-200/60 rounded-xl p-3 shadow-sm min-w-[140px]">
-                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
-                              Grievances
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xl font-black text-slate-900 tracking-tighter">
-                                {stats?.grievances.total || 0}
+                        {hasModule(Module.GRIEVANCE) &&
+                          hasPermission(user, Permission.READ_GRIEVANCE) && (
+                            <div className="flex flex-col bg-white border border-slate-200/60 rounded-xl p-3 shadow-sm min-w-[140px]">
+                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                                Grievances
                               </span>
-                              <span className="text-[9px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">
-                                {stats?.grievances.pending || 0} Open
-                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xl font-black text-slate-900 tracking-tighter">
+                                  {stats?.grievances.total || 0}
+                                </span>
+                                <span className="text-[9px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">
+                                  {stats?.grievances.pending || 0} Open
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                        )}
-                        {hasModule(Module.APPOINTMENT) && hasPermission(user, Permission.READ_APPOINTMENT) && (
-                          <div className="flex flex-col bg-white border border-slate-200/60 rounded-xl p-3 shadow-sm min-w-[140px]">
-                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
-                              Appointments
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xl font-black text-slate-900 tracking-tighter">
-                                {stats?.appointments.total || 0}
+                          )}
+                        {hasModule(Module.APPOINTMENT) &&
+                          hasPermission(user, Permission.READ_APPOINTMENT) && (
+                            <div className="flex flex-col bg-white border border-slate-200/60 rounded-xl p-3 shadow-sm min-w-[140px]">
+                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                                Appointments
                               </span>
-                              <span className="text-[9px] font-bold text-violet-600 bg-violet-50 px-1.5 py-0.5 rounded border border-violet-100">
-                                {stats?.appointments.confirmed || 0} High
-                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xl font-black text-slate-900 tracking-tighter">
+                                  {stats?.appointments.total || 0}
+                                </span>
+                                <span className="text-[9px] font-bold text-violet-600 bg-violet-50 px-1.5 py-0.5 rounded border border-violet-100">
+                                  {stats?.appointments.confirmed || 0} High
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          )}
                       </div>
                       <div className="flex items-center space-x-2 bg-white px-3 py-1.5 rounded-lg border border-slate-200/60 shadow-sm">
                         <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
@@ -1606,7 +1718,7 @@ function DashboardContent() {
             )}
 
             {/* Department Admin - Profile & Department Info in Overview */}
-            {isDepartmentAdmin && (
+            {isDepartmentLevel && (
               <div className="space-y-6">
                 {/* Department Admin Profile Card */}
                 <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
@@ -1769,41 +1881,49 @@ function DashboardContent() {
 
                           {/* Department Stats */}
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-                            {hasModule(Module.GRIEVANCE) && hasPermission(user, Permission.READ_GRIEVANCE) && (
-                              <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm group hover:shadow-md transition-all">
-                                <div className="flex items-center justify-between">
-                                  <div>
-                                    <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">
-                                      {/* Inundations changed to Grievances for clarity, or kept if preferred */}
-                                      Grievances
-                                    </p>
-                                    <p className="text-2xl font-black text-slate-900 tracking-tighter mt-1">
-                                      {stats?.grievances.total || 0}
-                                    </p>
-                                  </div>
-                                  <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform">
-                                    <FileText className="w-5 h-5" />
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                            {hasModule(Module.APPOINTMENT) && hasPermission(user, Permission.READ_APPOINTMENT) && (
-                              <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm group hover:shadow-md transition-all">
-                                <div className="flex items-center justify-between">
-                                  <div>
-                                    <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">
-                                      Bookings
-                                    </p>
-                                    <p className="text-2xl font-black text-slate-900 tracking-tighter mt-1">
-                                      {stats?.appointments.total || 0}
-                                    </p>
-                                  </div>
-                                  <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center text-purple-600 group-hover:scale-110 transition-transform">
-                                    <CalendarClock className="w-5 h-5" />
+                            {hasModule(Module.GRIEVANCE) &&
+                              hasPermission(
+                                user,
+                                Permission.READ_GRIEVANCE,
+                              ) && (
+                                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm group hover:shadow-md transition-all">
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">
+                                        {/* Inundations changed to Grievances for clarity, or kept if preferred */}
+                                        Grievances
+                                      </p>
+                                      <p className="text-2xl font-black text-slate-900 tracking-tighter mt-1">
+                                        {stats?.grievances.total || 0}
+                                      </p>
+                                    </div>
+                                    <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform">
+                                      <FileText className="w-5 h-5" />
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            )}
+                              )}
+                            {hasModule(Module.APPOINTMENT) &&
+                              hasPermission(
+                                user,
+                                Permission.READ_APPOINTMENT,
+                              ) && (
+                                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm group hover:shadow-md transition-all">
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">
+                                        Bookings
+                                      </p>
+                                      <p className="text-2xl font-black text-slate-900 tracking-tighter mt-1">
+                                        {stats?.appointments.total || 0}
+                                      </p>
+                                    </div>
+                                    <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center text-purple-600 group-hover:scale-110 transition-transform">
+                                      <CalendarClock className="w-5 h-5" />
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
                             <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm group hover:shadow-md transition-all">
                               <div className="flex items-center justify-between">
                                 <div>
@@ -1868,7 +1988,7 @@ function DashboardContent() {
                 </div>
               </CardHeader>
               <CardContent className="p-4 space-y-2">
-                {isCompanyAdmin && (
+                {isCompanyLevel && (
                   <>
                     <ProtectedButton
                       permission={Permission.CREATE_DEPARTMENT}
@@ -1957,14 +2077,14 @@ function DashboardContent() {
                     </div>
                     <div>
                       <h2 className="text-xl font-bold text-white">
-                        {isCompanyAdmin
+                        {isCompanyLevel
                           ? "Company Analytics Dashboard"
-                          : isDepartmentAdmin
+                          : isDepartmentLevel
                             ? "Department Analytics"
                             : "Operations Analytics"}
                       </h2>
                       <p className="text-slate-400 text-xs mt-0.5">
-                        {isCompanyAdmin
+                        {isCompanyLevel
                           ? `Live data across all departments · ${departments.length} departments · ${users.length} staff`
                           : `Live data for your department · ${users.length} staff members`}
                       </p>
@@ -1981,7 +2101,7 @@ function DashboardContent() {
 
               {/* KPI Cards - 5 columns for company admin, 4 for dept admin */}
               <div
-                className={`grid gap-4 ${isCompanyAdmin ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-5" : "grid-cols-2 md:grid-cols-4"}`}
+                className={`grid gap-4 ${isCompanyLevel ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-5" : "grid-cols-2 md:grid-cols-4"}`}
               >
                 {/* Total Grievances */}
                 {hasModule(Module.GRIEVANCE) && (
@@ -2061,7 +2181,7 @@ function DashboardContent() {
                 )}
 
                 {/* Appointments */}
-                {hasModule(Module.APPOINTMENT) && isCompanyAdmin && (
+                {hasModule(Module.APPOINTMENT) && isCompanyLevel && (
                   <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 hover:shadow-md transition-all group">
                     <div className="flex items-center justify-between mb-3">
                       <div className="w-9 h-9 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600 group-hover:scale-110 transition-transform">
@@ -2099,10 +2219,10 @@ function DashboardContent() {
                     {stats?.users || users.length || 0}
                   </p>
                   <p className="text-xs font-semibold text-slate-500 mt-1">
-                    {isCompanyAdmin ? "Total Staff" : "Dept Staff"}
+                    {isCompanyLevel ? "Total Staff" : "Dept Staff"}
                   </p>
                   <p className="text-[10px] text-slate-400 mt-1">
-                    {isCompanyAdmin
+                    {isCompanyLevel
                       ? `${departments.length} departments`
                       : `${users.filter((u) => u.role === "OPERATOR").length} operators`}
                   </p>
@@ -2299,7 +2419,7 @@ function DashboardContent() {
               {/* Second Charts Row */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Appointments by Status - Company Admin only */}
-                {hasModule(Module.APPOINTMENT) && isCompanyAdmin && (
+                {hasModule(Module.APPOINTMENT) && isCompanyLevel && (
                   <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                     <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
                       <div className="w-8 h-8 bg-violet-50 rounded-lg flex items-center justify-center">
@@ -2419,7 +2539,7 @@ function DashboardContent() {
                         Staff by Role
                       </h3>
                       <p className="text-[10px] text-slate-400">
-                        {isCompanyAdmin
+                        {isCompanyLevel
                           ? "Across all departments"
                           : "In your department"}
                       </p>
@@ -2489,7 +2609,7 @@ function DashboardContent() {
               </div>
 
               {/* Department Table - Company Admin only */}
-              {/* {isCompanyAdmin && departments.length > 0 && (
+              {/* {isCompanyLevel && departments.length > 0 && (
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                   <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -2643,7 +2763,7 @@ function DashboardContent() {
                     </div>
                   </div>
                 )}
-                {hasModule(Module.APPOINTMENT) && isCompanyAdmin && (
+                {hasModule(Module.APPOINTMENT) && isCompanyLevel && (
                   <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 hover:shadow-md transition-all">
                     <div className="flex items-center justify-between mb-4">
                       <div className="w-9 h-9 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600">
@@ -2692,7 +2812,7 @@ function DashboardContent() {
                     Active Staff
                   </p>
                   <p className="text-[10px] text-slate-400 mt-1">
-                    {isCompanyAdmin
+                    {isCompanyLevel
                       ? `${departments.length} departments total`
                       : `${users.filter((u) => u.role === "OPERATOR").length} operators`}
                   </p>
@@ -2710,7 +2830,7 @@ function DashboardContent() {
           )}
 
           {/* Departments Tab - Only for Company Admin */}
-          {isCompanyAdmin && (
+          {isCompanyLevel && (
             <TabsContent value="departments" className="space-y-4">
               <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
                 {/* Header */}
@@ -2767,10 +2887,18 @@ function DashboardContent() {
                     </div>
                     <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                       <span className="px-2 py-1 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-lg">
-                        {departments.filter(d => !d.parentDepartmentId).length} Main
+                        {
+                          departments.filter((d) => !d.parentDepartmentId)
+                            .length
+                        }{" "}
+                        Main
                       </span>
                       <span className="px-2 py-1 bg-slate-100 text-slate-600 border border-slate-200 rounded-lg">
-                        {departments.filter(d => !!d.parentDepartmentId).length} Sub
+                        {
+                          departments.filter((d) => !!d.parentDepartmentId)
+                            .length
+                        }{" "}
+                        Sub
                       </span>
                     </div>
                   </div>
@@ -2782,8 +2910,12 @@ function DashboardContent() {
                       <div className="w-20 h-20 bg-gradient-to-br from-cyan-100 to-teal-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
                         <Building className="w-10 h-10 text-cyan-500" />
                       </div>
-                      <p className="text-gray-500 text-lg font-medium">No departments found</p>
-                      <p className="text-gray-400 text-sm mt-1">Add a department to get started</p>
+                      <p className="text-gray-500 text-lg font-medium">
+                        No departments found
+                      </p>
+                      <p className="text-gray-400 text-sm mt-1">
+                        Add a department to get started
+                      </p>
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
@@ -2791,38 +2923,63 @@ function DashboardContent() {
                         <table className="w-full relative border-collapse min-w-[900px]">
                           <thead className="sticky top-0 z-20 bg-[#fcfdfe] border-b border-slate-200">
                             <tr>
-                              <th className="px-3 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest w-12">Sr.</th>
+                              <th className="px-3 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest w-12">
+                                Sr.
+                              </th>
                               <th className="px-4 py-3 text-left">
                                 <button
-                                  onClick={() => handleSort("name", "departments")}
+                                  onClick={() =>
+                                    handleSort("name", "departments")
+                                  }
                                   className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                                 >
                                   <span>Department Name</span>
-                                  <ArrowUpDown className={`w-3 h-3 transition-colors ${sortConfig.key === "name" ? "text-indigo-500" : "text-slate-300 group-hover:text-slate-400"}`} />
+                                  <ArrowUpDown
+                                    className={`w-3 h-3 transition-colors ${sortConfig.key === "name" ? "text-indigo-500" : "text-slate-300 group-hover:text-slate-400"}`}
+                                  />
                                 </button>
                               </th>
-                              <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">Dept ID</th>
-                              <th className="px-4 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">Type</th>
-                              <th className="px-4 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">Users</th>
-                              <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">Head / Contact</th>
-                              <th className="px-4 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-                              <th className="px-4 py-3 text-right text-[9px] font-black text-slate-400 uppercase tracking-widest">Actions</th>
+                              <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                Dept ID
+                              </th>
+                              <th className="px-4 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                Type
+                              </th>
+                              <th className="px-4 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                Users
+                              </th>
+                              <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                Head / Contact
+                              </th>
+                              <th className="px-4 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                Status
+                              </th>
+                              <th className="px-4 py-3 text-right text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                Actions
+                              </th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100 bg-white">
                             {getSortedData(
-                              departments.filter(d =>
-                                !deptSearch ||
-                                d.name.toLowerCase().includes(deptSearch.toLowerCase()) ||
-                                d.departmentId?.toLowerCase().includes(deptSearch.toLowerCase())
+                              departments.filter(
+                                (d) =>
+                                  !deptSearch ||
+                                  d.name
+                                    .toLowerCase()
+                                    .includes(deptSearch.toLowerCase()) ||
+                                  d.departmentId
+                                    ?.toLowerCase()
+                                    .includes(deptSearch.toLowerCase()),
                               ),
-                              "departments"
+                              "departments",
                             ).map((dept, index) => {
                               const isMain = !dept.parentDepartmentId;
                               const userCount = deptUserCounts[dept._id] || 0;
-                              const parentName = typeof dept.parentDepartmentId === "object" && dept.parentDepartmentId
-                                ? (dept.parentDepartmentId as any).name
-                                : null;
+                              const parentName =
+                                typeof dept.parentDepartmentId === "object" &&
+                                dept.parentDepartmentId
+                                  ? (dept.parentDepartmentId as any).name
+                                  : null;
                               return (
                                 <tr
                                   key={dept._id}
@@ -2838,11 +2995,13 @@ function DashboardContent() {
                                   {/* Department Name */}
                                   <td className="px-4 py-4">
                                     <div className="flex items-center gap-3">
-                                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                                        isMain
-                                          ? "bg-indigo-50 text-indigo-600 border border-indigo-100"
-                                          : "bg-slate-100 text-slate-500 border border-slate-200"
-                                      }`}>
+                                      <div
+                                        className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                                          isMain
+                                            ? "bg-indigo-50 text-indigo-600 border border-indigo-100"
+                                            : "bg-slate-100 text-slate-500 border border-slate-200"
+                                        }`}
+                                      >
                                         <Building className="w-3.5 h-3.5" />
                                       </div>
                                       <div>
@@ -2851,15 +3010,27 @@ function DashboardContent() {
                                           onClick={() => {
                                             setNavigatingToDepartment(dept._id);
                                             setSelectedDepartmentId(dept._id);
-                                            router.push(`/dashboard/department/${dept._id}`);
+                                            router.push(
+                                              `/dashboard/department/${dept._id}`,
+                                            );
                                           }}
                                         >
-                                          {navigatingToDepartment === dept._id ? (
-                                            <><LoadingSpinner /><span className="ml-2">Loading...</span></>
-                                          ) : dept.name}
+                                          {navigatingToDepartment ===
+                                          dept._id ? (
+                                            <>
+                                              <LoadingSpinner />
+                                              <span className="ml-2">
+                                                Loading...
+                                              </span>
+                                            </>
+                                          ) : (
+                                            dept.name
+                                          )}
                                         </div>
                                         {!isMain && parentName && (
-                                          <p className="text-[10px] text-slate-400 mt-0.5">↳ {parentName}</p>
+                                          <p className="text-[10px] text-slate-400 mt-0.5">
+                                            ↳ {parentName}
+                                          </p>
                                         )}
                                       </div>
                                     </div>
@@ -2890,11 +3061,13 @@ function DashboardContent() {
                                   {/* User Count */}
                                   <td className="px-4 py-4 text-center">
                                     <div className="inline-flex items-center gap-1.5">
-                                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-black ${
-                                        userCount > 0
-                                          ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
-                                          : "bg-slate-50 text-slate-400 border border-slate-200"
-                                      }`}>
+                                      <div
+                                        className={`w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-black ${
+                                          userCount > 0
+                                            ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
+                                            : "bg-slate-50 text-slate-400 border border-slate-200"
+                                        }`}
+                                      >
                                         {userCount}
                                       </div>
                                     </div>
@@ -2903,10 +3076,16 @@ function DashboardContent() {
                                   {/* Head / Contact */}
                                   <td className="px-4 py-4">
                                     <div className="text-xs font-bold text-slate-700 uppercase">
-                                      {dept.contactPerson || <span className="text-slate-300 font-medium">Not assigned</span>}
+                                      {dept.contactPerson || (
+                                        <span className="text-slate-300 font-medium">
+                                          Not assigned
+                                        </span>
+                                      )}
                                     </div>
                                     {dept.contactEmail && (
-                                      <div className="text-[10px] text-slate-400 mt-0.5 font-medium">{dept.contactEmail}</div>
+                                      <div className="text-[10px] text-slate-400 mt-0.5 font-medium">
+                                        {dept.contactEmail}
+                                      </div>
                                     )}
                                   </td>
 
@@ -2917,37 +3096,65 @@ function DashboardContent() {
                                         onClick={() => {
                                           setConfirmDialog({
                                             isOpen: true,
-                                            title: dept.isActive ? "Deactivate Department" : "Activate Department",
+                                            title: dept.isActive
+                                              ? "Deactivate Department"
+                                              : "Activate Department",
                                             message: dept.isActive
                                               ? `Are you sure you want to deactivate "${dept.name}"?`
                                               : `Are you sure you want to activate "${dept.name}"?`,
                                             onConfirm: async () => {
                                               try {
-                                                const response = await departmentAPI.update(dept._id, { isActive: !dept.isActive });
+                                                const response =
+                                                  await departmentAPI.update(
+                                                    dept._id,
+                                                    {
+                                                      isActive: !dept.isActive,
+                                                    },
+                                                  );
                                                 if (response.success) {
-                                                  toast.success(`Department ${!dept.isActive ? "activated" : "deactivated"} successfully`);
+                                                  toast.success(
+                                                    `Department ${!dept.isActive ? "activated" : "deactivated"} successfully`,
+                                                  );
                                                   fetchDepartments(1, true);
                                                 }
                                               } catch (error: any) {
-                                                toast.error(error.message || "Failed to update department status");
+                                                toast.error(
+                                                  error.message ||
+                                                    "Failed to update department status",
+                                                );
                                               } finally {
-                                                setConfirmDialog((p) => ({ ...p, isOpen: false }));
+                                                setConfirmDialog((p) => ({
+                                                  ...p,
+                                                  isOpen: false,
+                                                }));
                                               }
                                             },
-                                            variant: dept.isActive ? "warning" : "default",
+                                            variant: dept.isActive
+                                              ? "warning"
+                                              : "default",
                                           } as any);
                                         }}
                                         className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 focus:outline-none ${
-                                          dept.isActive ? "bg-emerald-500" : "bg-gray-300"
+                                          dept.isActive
+                                            ? "bg-emerald-500"
+                                            : "bg-gray-300"
                                         }`}
                                       >
-                                        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform duration-200 ${
-                                          dept.isActive ? "translate-x-[18px]" : "translate-x-0.5"
-                                        }`} />
+                                        <span
+                                          className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform duration-200 ${
+                                            dept.isActive
+                                              ? "translate-x-[18px]"
+                                              : "translate-x-0.5"
+                                          }`}
+                                        />
                                       </button>
-                                      <span className={`text-[9px] font-black uppercase tracking-wider ${
-                                        dept.isActive ? "text-emerald-600" : "text-gray-400"
-                                      }`}>
+                                      <span
+                                        className={`text-[9px] font-black uppercase tracking-wider ${
+                                          dept.isActive
+                                            ? "text-emerald-600"
+                                            : "text-gray-400"
+                                        }`}
+                                      >
                                         {dept.isActive ? "Active" : "Inactive"}
                                       </span>
                                     </div>
@@ -2978,15 +3185,26 @@ function DashboardContent() {
                                             message: `Are you sure you want to delete "${dept.name}"? This action cannot be undone.`,
                                             onConfirm: async () => {
                                               try {
-                                                const response = await departmentAPI.delete(dept._id);
+                                                const response =
+                                                  await departmentAPI.delete(
+                                                    dept._id,
+                                                  );
                                                 if (response.success) {
-                                                  toast.success("Department deleted successfully");
+                                                  toast.success(
+                                                    "Department deleted successfully",
+                                                  );
                                                   fetchDepartments(1, false);
                                                 }
                                               } catch (error: any) {
-                                                toast.error(error.message || "Failed to delete department");
+                                                toast.error(
+                                                  error.message ||
+                                                    "Failed to delete department",
+                                                );
                                               } finally {
-                                                setConfirmDialog((p) => ({ ...p, isOpen: false }));
+                                                setConfirmDialog((p) => ({
+                                                  ...p,
+                                                  isOpen: false,
+                                                }));
                                               }
                                             },
                                             variant: "danger",
@@ -3007,13 +3225,26 @@ function DashboardContent() {
                       {/* Footer info */}
                       <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/30 flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                         <span>
-                          Showing {departments.filter(d =>
-                            !deptSearch ||
-                            d.name.toLowerCase().includes(deptSearch.toLowerCase()) ||
-                            d.departmentId?.toLowerCase().includes(deptSearch.toLowerCase())
-                          ).length} of {departments.length} departments
+                          Showing{" "}
+                          {
+                            departments.filter(
+                              (d) =>
+                                !deptSearch ||
+                                d.name
+                                  .toLowerCase()
+                                  .includes(deptSearch.toLowerCase()) ||
+                                d.departmentId
+                                  ?.toLowerCase()
+                                  .includes(deptSearch.toLowerCase()),
+                            ).length
+                          }{" "}
+                          of {departments.length} departments
                         </span>
-                        <span>{departments.filter(d => d.isActive).length} active · {departments.filter(d => !d.isActive).length} inactive</span>
+                        <span>
+                          {departments.filter((d) => d.isActive).length} active
+                          · {departments.filter((d) => !d.isActive).length}{" "}
+                          inactive
+                        </span>
                       </div>
                     </div>
                   )}
@@ -3023,7 +3254,7 @@ function DashboardContent() {
           )}
 
           {/* Leads Tab Content */}
-          {hasModule(Module.LEAD_CAPTURE) && isCompanyAdmin && (
+          {hasModule(Module.LEAD_CAPTURE) && isCompanyLevel && (
             <TabsContent value="leads" className="space-y-6">
               <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
                 <CardHeader className="bg-slate-900 px-6 py-4">
@@ -3177,7 +3408,7 @@ function DashboardContent() {
           )}
 
           {/* Users Tab Content (existing) */}
-          {(isCompanyAdmin || isDepartmentAdmin) && (
+          {(isCompanyLevel || isDepartmentLevel) && (
             <TabsContent value="users" className="space-y-6">
               <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
                 <CardHeader className="bg-slate-900 px-6 py-4">
@@ -3191,16 +3422,13 @@ function DashboardContent() {
                           User Management
                         </CardTitle>
                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-                          {isCompanyAdmin
+                          {isCompanyLevel
                             ? "Manage users in your company"
                             : "Manage users in your department"}
                         </p>
                       </div>
                     </div>
-                    {hasPermission(
-                      user,
-                      Permission.CREATE_USER,
-                    ) && (
+                    {hasPermission(user, Permission.CREATE_USER) && (
                       <Button
                         type="button"
                         onClick={(e) => {
@@ -3374,11 +3602,20 @@ function DashboardContent() {
                                           className={`px-2.5 py-0.5 inline-flex items-center text-[10px] font-bold rounded-full border shadow-sm ${
                                             u.role === "COMPANY_ADMIN"
                                               ? "bg-red-50 text-red-700 border-red-100 ring-1 ring-red-200"
-                                              : (typeof u.customRoleId === "object" && u.customRoleId)
+                                              : typeof u.customRoleId ===
+                                                    "object" && u.customRoleId
                                                 ? "bg-indigo-50 text-indigo-700 border-indigo-100 ring-1 ring-indigo-200"
-                                                : (u.role === "DEPARTMENT_ADMIN" && typeof u.departmentId === "object" && (u.departmentId as any)?.parentDepartmentId) || u.role === "SUB_DEPARTMENT_ADMIN"
+                                                : (u.role ===
+                                                      "DEPARTMENT_ADMIN" &&
+                                                      typeof u.departmentId ===
+                                                        "object" &&
+                                                      (u.departmentId as any)
+                                                        ?.parentDepartmentId) ||
+                                                    u.role ===
+                                                      "SUB_DEPARTMENT_ADMIN"
                                                   ? "bg-purple-50 text-purple-700 border-purple-100 ring-1 ring-purple-200 shadow-purple-900/5"
-                                                  : u.role === "DEPARTMENT_ADMIN"
+                                                  : u.role ===
+                                                      "DEPARTMENT_ADMIN"
                                                     ? "bg-blue-50 text-blue-700 border-blue-100 ring-1 ring-blue-200"
                                                     : u.role === "OPERATOR"
                                                       ? "bg-emerald-50 text-emerald-700 border-emerald-100 ring-1 ring-emerald-200"
@@ -3386,38 +3623,75 @@ function DashboardContent() {
                                           }`}
                                         >
                                           <Shield className="w-2.5 h-2.5 mr-1" />
-                                          {typeof u.customRoleId === "object" && u.customRoleId
+                                          {typeof u.customRoleId === "object" &&
+                                          u.customRoleId
                                             ? (u.customRoleId as any).name
-                                            : (u.role === "DEPARTMENT_ADMIN" && typeof u.departmentId === "object" && (u.departmentId as any)?.parentDepartmentId) || u.role === "SUB_DEPARTMENT_ADMIN"
+                                            : (u.role === "DEPARTMENT_ADMIN" &&
+                                                  typeof u.departmentId ===
+                                                    "object" &&
+                                                  (u.departmentId as any)
+                                                    ?.parentDepartmentId) ||
+                                                u.role ===
+                                                  "SUB_DEPARTMENT_ADMIN"
                                               ? "Sub Department Admin"
-                                              : u.role === "SUPER_ADMIN" ? "Super Admin"
-                                              : u.role === "COMPANY_ADMIN" ? "Company Admin"
-                                              : u.role === "DEPARTMENT_ADMIN" ? "Department Admin"
-                                              : u.role === "OPERATOR" ? "Operator"
-                                              : u.role === "ANALYTICS_VIEWER" ? "Analytics Viewer"
-                                              : (u.role || "").replace(/_/g, " ")}
+                                              : u.role === "SUPER_ADMIN"
+                                                ? "Super Admin"
+                                                : u.role === "COMPANY_ADMIN"
+                                                  ? "Company Admin"
+                                                  : u.role ===
+                                                      "DEPARTMENT_ADMIN"
+                                                    ? "Department Admin"
+                                                    : u.role === "OPERATOR"
+                                                      ? "Operator"
+                                                      : u.role ===
+                                                          "ANALYTICS_VIEWER"
+                                                        ? "Analytics Viewer"
+                                                        : (
+                                                            u.role || ""
+                                                          ).replace(/_/g, " ")}
                                         </span>
                                       </div>
                                       <div className="flex flex-col gap-1 ml-1">
                                         <div className="flex items-center text-xs text-slate-600 font-bold group-hover/row:text-indigo-900 transition-colors">
                                           <Building className="w-3.5 h-3.5 mr-1.5 text-slate-400 group-hover/row:text-indigo-400 transition-colors" />
-                                          {typeof u.departmentId === "object" && u.departmentId
+                                          {typeof u.departmentId === "object" &&
+                                          u.departmentId
                                             ? u.departmentId.name
                                             : "All Company Access"}
                                         </div>
                                         {/* Show permissions summary for custom roles */}
-                                        {typeof u.customRoleId === "object" && u.customRoleId && (u.customRoleId as any).permissions?.length > 0 && (
-                                          <div className="flex flex-wrap gap-1 mt-0.5">
-                                            {(u.customRoleId as any).permissions.slice(0, 3).map((p: any, i: number) => (
-                                              <span key={i} className="text-[8px] font-black text-indigo-400 bg-indigo-50/50 px-1 py-px rounded uppercase tracking-tighter border border-indigo-100/50">
-                                                {p.module?.replace(/_/g, ' ')}
-                                              </span>
-                                            ))}
-                                            {(u.customRoleId as any).permissions.length > 3 && (
-                                              <span className="text-[8px] font-black text-slate-300">+{ (u.customRoleId as any).permissions.length - 3 } more</span>
-                                            )}
-                                          </div>
-                                        )}
+                                        {typeof u.customRoleId === "object" &&
+                                          u.customRoleId &&
+                                          (u.customRoleId as any).permissions
+                                            ?.length > 0 && (
+                                            <div className="flex flex-wrap gap-1 mt-0.5">
+                                              {(
+                                                u.customRoleId as any
+                                              ).permissions
+                                                .slice(0, 3)
+                                                .map((p: any, i: number) => (
+                                                  <span
+                                                    key={i}
+                                                    className="text-[8px] font-black text-indigo-400 bg-indigo-50/50 px-1 py-px rounded uppercase tracking-tighter border border-indigo-100/50"
+                                                  >
+                                                    {p.module?.replace(
+                                                      /_/g,
+                                                      " ",
+                                                    )}
+                                                  </span>
+                                                ))}
+                                              {(u.customRoleId as any)
+                                                .permissions.length > 3 && (
+                                                <span className="text-[8px] font-black text-slate-300">
+                                                  +
+                                                  {(u.customRoleId as any)
+                                                    .permissions.length -
+                                                    3}{" "}
+                                                  more
+                                                </span>
+                                              )}
+                                            </div>
+                                          )}
                                       </div>
                                     </div>
                                   </td>
@@ -3611,7 +3885,7 @@ function DashboardContent() {
               !user.companyId) && (
               <TabsContent value="grievances" className="space-y-6">
                 {/* Back Button - Show when coming from overview (not for operators) */}
-                {previousTab === "overview" && !isOperator && (
+                {previousTab === "overview" && hasPermission(user, Permission.VIEW_ANALYTICS) && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -4249,8 +4523,7 @@ function DashboardContent() {
                                     </td>
                                     <td className="px-4 py-4">
                                       <div className="flex items-center justify-center space-x-1">
-                                        {/* Hide assign button for operators and for resolved/closed grievances */}
-                                        {!isOperator &&
+                                        {hasPermission(user, Permission.ASSIGN_GRIEVANCE) &&
                                           grievance.status !== "RESOLVED" &&
                                           grievance.status !== "CLOSED" &&
                                           grievance.status !== "REJECTED" && (
@@ -4355,7 +4628,7 @@ function DashboardContent() {
           {user &&
             (user.enabledModules?.includes(Module.APPOINTMENT) ||
               !user.companyId) &&
-            (isCompanyAdmin || isDepartmentAdmin) && (
+            (isCompanyLevel || isDepartmentLevel) && (
               <TabsContent value="appointments" className="space-y-6">
                 <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
                   <CardHeader className="bg-slate-900 px-6 py-4">
@@ -4910,7 +5183,7 @@ function DashboardContent() {
           {user &&
             (user.enabledModules?.includes(Module.LEAD_CAPTURE) ||
               !user.companyId) &&
-            isCompanyAdmin && (
+            isCompanyLevel && (
               <TabsContent value="leads" className="space-y-6">
                 <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
                   <CardHeader className="bg-slate-900 px-6 py-4">
@@ -5721,9 +5994,9 @@ function DashboardContent() {
         </Tabs>
 
         {/* Dialogs */}
-        {(isCompanyAdmin || isDepartmentAdmin) && (
+        {(isCompanyLevel || isDepartmentLevel) && (
           <>
-            {isCompanyAdmin && (
+            {isCompanyLevel && (
               <CreateDepartmentDialog
                 isOpen={showDepartmentDialog}
                 onClose={() => {

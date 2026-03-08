@@ -54,14 +54,11 @@ export enum Permission {
   RECOVER_DELETED = 'RECOVER_DELETED'
 }
 
-export enum UserRole {
-  SUPER_ADMIN = 'SUPER_ADMIN',
-  COMPANY_ADMIN = 'COMPANY_ADMIN',
-  DEPARTMENT_ADMIN = 'DEPARTMENT_ADMIN',
-  SUB_DEPARTMENT_ADMIN = 'SUB_DEPARTMENT_ADMIN',
-  OPERATOR = 'OPERATOR',
-  ANALYTICS_VIEWER = 'ANALYTICS_VIEWER'
-}
+export const UserRole = {
+  SUPER_ADMIN: 'SUPER_ADMIN'
+};
+
+export type UserRoleType = typeof UserRole[keyof typeof UserRole] | string;
 
 export enum Module {
   // Core Service Modules
@@ -91,78 +88,8 @@ export enum Module {
 }
 
 // Role permissions mapping - must match backend
-export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
-  [UserRole.SUPER_ADMIN]: Object.values(Permission), // All permissions
-  
-  [UserRole.COMPANY_ADMIN]: [
-    Permission.READ_COMPANY,
-    Permission.UPDATE_COMPANY,
-    Permission.CREATE_DEPARTMENT,
-    Permission.READ_DEPARTMENT,
-    Permission.UPDATE_DEPARTMENT,
-    Permission.DELETE_DEPARTMENT,
-    Permission.CREATE_USER,
-    Permission.READ_USER,
-    Permission.UPDATE_USER,
-    Permission.DELETE_USER,
-    Permission.READ_GRIEVANCE,
-    Permission.UPDATE_GRIEVANCE,
-    Permission.ASSIGN_GRIEVANCE,
-    Permission.READ_APPOINTMENT,
-    Permission.UPDATE_APPOINTMENT,
-    Permission.VIEW_ANALYTICS,
-    Permission.EXPORT_DATA,
-    Permission.IMPORT_DATA,
-    Permission.CONFIGURE_CHATBOT,
-    Permission.MANAGE_SETTINGS
-  ],
-  
-  [UserRole.DEPARTMENT_ADMIN]: [
-    Permission.READ_DEPARTMENT,
-    Permission.UPDATE_DEPARTMENT,
-    Permission.CREATE_USER,
-    Permission.READ_USER,
-    Permission.UPDATE_USER,
-    Permission.DELETE_USER,
-    Permission.READ_GRIEVANCE,
-    Permission.UPDATE_GRIEVANCE,
-    Permission.ASSIGN_GRIEVANCE,
-    Permission.READ_APPOINTMENT,
-    Permission.UPDATE_APPOINTMENT,
-    Permission.VIEW_ANALYTICS,
-    Permission.EXPORT_DATA
-  ],
-  
-  [UserRole.SUB_DEPARTMENT_ADMIN]: [
-    Permission.READ_DEPARTMENT,
-    Permission.UPDATE_DEPARTMENT,
-    Permission.CREATE_USER,
-    Permission.READ_USER,
-    Permission.UPDATE_USER,
-    Permission.DELETE_USER,
-    Permission.READ_GRIEVANCE,
-    Permission.UPDATE_GRIEVANCE,
-    Permission.ASSIGN_GRIEVANCE,
-    Permission.READ_APPOINTMENT,
-    Permission.UPDATE_APPOINTMENT,
-    Permission.VIEW_ANALYTICS,
-    Permission.EXPORT_DATA
-  ],
-  
-  [UserRole.OPERATOR]: [
-    Permission.READ_GRIEVANCE,
-    Permission.UPDATE_GRIEVANCE,
-    Permission.READ_APPOINTMENT,
-    Permission.UPDATE_APPOINTMENT,
-    Permission.VIEW_ANALYTICS, // For viewing dashboard statistics
-    Permission.READ_DEPARTMENT, // For viewing department information
-    Permission.READ_USER // For viewing users in their department
-  ],
-  
-  [UserRole.ANALYTICS_VIEWER]: [
-    Permission.VIEW_ANALYTICS,
-    Permission.EXPORT_DATA
-  ]
+export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
+  [UserRole.SUPER_ADMIN]: Object.values(Permission)
 };
 
 // Mapping of legacy Permission identifiers to new Module/Action structure.
@@ -228,12 +155,12 @@ export function hasPermission(user: any, permission: Permission): boolean {
     }
   }
   
-  // 2. Fallback to Static Permissions
-  if (userRole === UserRole.COMPANY_ADMIN) {
-    return true; // CompanyAdmin typically bypasses most checks in their company
+  // 2. Fallback to Static Permissions (SUPER_ADMIN only)
+  if (userRole === UserRole.SUPER_ADMIN) {
+    return true;
   }
 
-  const rolePermissions = ROLE_PERMISSIONS[userRole as UserRole] || [];
+  const rolePermissions = ROLE_PERMISSIONS[userRole as string] || [];
   return rolePermissions.includes(permission);
 }
 
@@ -256,22 +183,20 @@ export function hasAllPermissions(user: any, permissions: Permission[]): boolean
 /**
  * Check if user is SuperAdmin
  */
-export function isSuperAdmin(userRole: UserRole | string): boolean {
-  return userRole === UserRole.SUPER_ADMIN;
+export function isSuperAdmin(userRole: string): boolean {
+  return userRole === 'SUPER_ADMIN';
 }
 
 /**
  * Check if user is CompanyAdmin or higher
  */
-export function isCompanyAdminOrHigher(userRole: UserRole | string): boolean {
-  return userRole === UserRole.SUPER_ADMIN || userRole === UserRole.COMPANY_ADMIN;
+export function isCompanyAdminOrHigher(userRole: string): boolean {
+  return userRole === UserRole.SUPER_ADMIN;
 }
 
 /**
  * Check if user is DepartmentAdmin or higher
  */
-export function isDepartmentAdminOrHigher(userRole: UserRole | string): boolean {
-  return userRole === UserRole.SUPER_ADMIN || 
-         userRole === UserRole.COMPANY_ADMIN || 
-         userRole === UserRole.DEPARTMENT_ADMIN;
+export function isDepartmentAdminOrHigher(userRole: string): boolean {
+  return userRole === UserRole.SUPER_ADMIN;
 }

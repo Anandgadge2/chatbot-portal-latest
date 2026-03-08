@@ -28,21 +28,24 @@ router.get('/', requirePermission(Permission.READ_GRIEVANCE), async (req: Reques
     if (currentUser.role === UserRole.SUPER_ADMIN) {
       // SuperAdmin can see all grievances, but can filter by companyId if provided
       if (companyId) query.companyId = companyId;
-    } else if (currentUser.role === UserRole.COMPANY_ADMIN) {
-      // CompanyAdmin can see all grievances in THEIR company only
+    } else {
+      // All other users are scoped by their company
       query.companyId = currentUser.companyId;
-    } else if (currentUser.role === UserRole.DEPARTMENT_ADMIN) {
-      // 🏢 HIERARCHICAL: DeptAdmin sees grievances where their dept is the parent OR sub-department
-      // Company scoping is mandatory to prevent cross-company data leakage
-      query.companyId = currentUser.companyId;
-      query.$or = [
-        { departmentId: currentUser.departmentId },
-        { subDepartmentId: currentUser.departmentId }
-      ];
-    } else if (currentUser.role === UserRole.OPERATOR) {
-      // Operator can only see grievances assigned to them, scoped to their company
-      query.companyId = currentUser.companyId;
-      query.assignedTo = currentUser._id;
+
+      if (currentUser.departmentId) {
+        // Dynamic check: If they don't have assignment permission, they can only see their own assigned grievances
+        const canAssign = req.checkPermission(Permission.ASSIGN_GRIEVANCE);
+        
+        if (!canAssign) {
+          query.assignedTo = currentUser._id;
+        } else {
+          // Dept-level management: sees where their dept is parent OR sub-dept
+          query.$or = [
+            { departmentId: currentUser.departmentId },
+            { subDepartmentId: currentUser.departmentId }
+          ];
+        }
+      }
     }
 
     // Apply filters
@@ -188,23 +191,25 @@ router.get('/:id', requirePermission(Permission.READ_GRIEVANCE), async (req: Req
         return;
       }
 
-      if (currentUser.role === UserRole.DEPARTMENT_ADMIN) {
-        // 🏢 HIERARCHICAL: Allow access if admin's dept is the parent OR sub-department of the grievance
-        const grievanceDeptId = (grievance.departmentId as any)?._id?.toString() || grievance.departmentId?.toString();
-        const grievanceSubDeptId = (grievance.subDepartmentId as any)?._id?.toString() || grievance.subDepartmentId?.toString();
-        const adminDeptId = currentUser.departmentId?.toString();
-        const hasAccess = grievanceDeptId === adminDeptId || grievanceSubDeptId === adminDeptId;
-        if (!hasAccess) {
-          res.status(403).json({ success: false, message: 'Access denied - grievance not in your department' });
-          return;
-        }
-      }
-
-      if (currentUser.role === UserRole.OPERATOR) {
-        const assignedToId = (grievance.assignedTo as any)?._id?.toString() || grievance.assignedTo?.toString();
-        if (assignedToId !== currentUser._id.toString()) {
-          res.status(403).json({ success: false, message: 'Access denied - not assigned to you' });
-          return;
+      if (currentUser.departmentId) {
+        // Dynamic check: Users without assignment permission (like basic Operators) only see their own items
+        const canAssign = req.checkPermission(Permission.ASSIGN_GRIEVANCE);
+        if (!canAssign) {
+          const assignedToId = (grievance.assignedTo as any)?._id?.toString() || grievance.assignedTo?.toString();
+          if (assignedToId !== currentUser._id.toString()) {
+            res.status(403).json({ success: false, message: 'Access denied - not assigned to you' });
+            return;
+          }
+        } else {
+          // Dept-level scoping
+          const grievanceDeptId = (grievance.departmentId as any)?._id?.toString() || grievance.departmentId?.toString();
+          const grievanceSubDeptId = (grievance.subDepartmentId as any)?._id?.toString() || grievance.subDepartmentId?.toString();
+          const adminDeptId = currentUser.departmentId?.toString();
+          const hasAccess = grievanceDeptId === adminDeptId || grievanceSubDeptId === adminDeptId;
+          if (!hasAccess) {
+            res.status(403).json({ success: false, message: 'Access denied - grievance not in your department' });
+            return;
+          }
         }
       }
     }
@@ -238,8 +243,8 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_GRIEVANCE, 
       return;
     }
 
-    // Operators can only update status and remarks - validate request body
-    if (currentUser.role === UserRole.OPERATOR) {
+    // Restricted Update: If user lacks full update rights, they can only change status/remarks
+    if (!req.checkPermission(Permission.UPDATE_GRIEVANCE)) {
       const allowedFields = ['status', 'remarks'];
       const providedFields = Object.keys(req.body);
       const invalidFields = providedFields.filter(field => !allowedFields.includes(field));
@@ -247,7 +252,7 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_GRIEVANCE, 
       if (invalidFields.length > 0) {
         return res.status(403).json({
           success: false,
-          message: `Operators can only update status and remarks. Invalid fields: ${invalidFields.join(', ')}`
+          message: `Your role only allows updating status and remarks.`
         });
       }
     }
@@ -260,26 +265,27 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_GRIEVANCE, 
 
     // ✅ Multi-Tenant Scoping Check
     if (currentUser.role !== UserRole.SUPER_ADMIN) {
-      const grievanceCompanyId = grievance.companyId?.toString();
-      if (grievanceCompanyId !== currentUser.companyId?.toString()) {
-        res.status(403).json({ success: false, message: 'Access denied - cross-company access prohibited' });
+      if (grievance.companyId?.toString() !== currentUser.companyId?.toString()) {
+        res.status(403).json({ success: false, message: 'Access denied' });
         return;
       }
 
-      if (currentUser.role === UserRole.DEPARTMENT_ADMIN) {
-        const grievanceDeptId = grievance.departmentId?.toString();
-        const grievanceSubDeptId = grievance.subDepartmentId?.toString();
-        const adminDeptId = currentUser.departmentId?.toString();
-        if (grievanceDeptId !== adminDeptId && grievanceSubDeptId !== adminDeptId) {
-          res.status(403).json({ success: false, message: 'Access denied - grievance not in your department' });
-          return;
-        }
-      }
-
-      if (currentUser.role === UserRole.OPERATOR) {
-        if (grievance.assignedTo?.toString() !== currentUser._id.toString()) {
-          res.status(403).json({ success: false, message: 'Access denied - not assigned to you' });
-          return;
+      if (currentUser.departmentId) {
+        // Dynamic check for restricted users
+        const canManage = req.checkPermission(Permission.ASSIGN_GRIEVANCE);
+        if (!canManage) {
+          if (grievance.assignedTo?.toString() !== currentUser._id.toString()) {
+            res.status(403).json({ success: false, message: 'Access denied - not assigned to you' });
+            return;
+          }
+        } else {
+          const grievanceDeptId = grievance.departmentId?.toString();
+          const grievanceSubDeptId = grievance.subDepartmentId?.toString();
+          const adminDeptId = currentUser.departmentId?.toString();
+          if (grievanceDeptId !== adminDeptId && grievanceSubDeptId !== adminDeptId) {
+            res.status(403).json({ success: false, message: 'Access denied - grievance not in your department' });
+            return;
+          }
         }
       }
     }
@@ -404,13 +410,12 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
     // ✅ Multi-Tenant Scoping Check
     const currentUser = req.user!;
     if (currentUser.role !== UserRole.SUPER_ADMIN) {
-      const grievanceCompanyId = grievance.companyId?.toString();
-      if (grievanceCompanyId !== currentUser.companyId?.toString()) {
-        res.status(403).json({ success: false, message: 'Access denied - cross-company access prohibited' });
+      if (grievance.companyId?.toString() !== currentUser.companyId?.toString()) {
+        res.status(403).json({ success: false, message: 'Access denied' });
         return;
       }
 
-      if (currentUser.role === UserRole.DEPARTMENT_ADMIN) {
+      if (currentUser.departmentId) {
         const grievanceDeptId = grievance.departmentId?.toString();
         const grievanceSubDeptId = grievance.subDepartmentId?.toString();
         const adminDeptId = currentUser.departmentId?.toString();
@@ -546,11 +551,11 @@ router.put('/:id', requirePermission(Permission.UPDATE_GRIEVANCE), async (req: R
   try {
     const currentUser = req.user!;
 
-    // Operators can only update status/comments via /status endpoint, not full updates
-    if (currentUser.role === UserRole.OPERATOR) {
+    // Users without full update permission must use the /status endpoint instead
+    if (!req.checkPermission(Permission.UPDATE_GRIEVANCE)) {
       return res.status(403).json({
         success: false,
-        message: 'Operators can only update status and remarks. Please use the status update endpoint.'
+        message: 'Your role only allows updating status and remarks.'
       });
     }
 
@@ -565,13 +570,12 @@ router.put('/:id', requirePermission(Permission.UPDATE_GRIEVANCE), async (req: R
 
     // ✅ Multi-Tenant Scoping Check
     if (currentUser.role !== UserRole.SUPER_ADMIN) {
-      const grievanceCompanyId = grievance.companyId?.toString();
-      if (grievanceCompanyId !== currentUser.companyId?.toString()) {
-        res.status(403).json({ success: false, message: 'Access denied - cross-company access prohibited' });
+      if (grievance.companyId?.toString() !== currentUser.companyId?.toString()) {
+        res.status(403).json({ success: false, message: 'Access denied' });
         return;
       }
 
-      if (currentUser.role === UserRole.DEPARTMENT_ADMIN) {
+      if (currentUser.departmentId) {
         const grievanceDeptId = grievance.departmentId?.toString();
         const grievanceSubDeptId = grievance.subDepartmentId?.toString();
         const adminDeptId = currentUser.departmentId?.toString();

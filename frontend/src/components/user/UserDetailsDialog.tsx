@@ -40,31 +40,19 @@ export default function UserDetailsDialog({
     switch (role) {
       case "SUPER_ADMIN":
         return "from-red-500 to-rose-600";
-      case "COMPANY_ADMIN":
-        return "from-blue-500 to-indigo-600";
-      case "DEPARTMENT_ADMIN":
-        return "from-purple-500 to-fuchsia-600";
-      case "OPERATOR":
-        return "from-emerald-500 to-teal-600";
-      case "ANALYTICS_VIEWER":
-        return "from-amber-500 to-orange-600";
       default:
-        return "from-gray-500 to-slate-600";
+        return "from-slate-500 to-slate-600";
     }
   };
+
 
   const roleName = user.customRoleId
     ? typeof user.customRoleId === "object"
       ? (user.customRoleId as any).name
       : "Custom Role"
-    : (user.role === "DEPARTMENT_ADMIN" &&
-        typeof user.departmentId === "object" &&
-        (user.departmentId as any)?.parentDepartmentId) ||
-      user.role === "SUB_DEPARTMENT_ADMIN"
-      ? "Sub Department Admin"
-      : user.role.replace(/_/g, " ");
+    : (user.role || "CUSTOM").replace(/_/g, " ");
 
-  const roleGradient = getRoleColor(user.role);
+  const roleGradient = getRoleColor(user.role || "");
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">

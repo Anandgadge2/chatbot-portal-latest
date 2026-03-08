@@ -1,9 +1,14 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { Button, ButtonProps } from './button';
-import { Permission, hasPermission, UserRole } from '@/lib/permissions';
-import { useAuth } from '@/contexts/AuthContext';
+import React from "react";
+import { Button, ButtonProps } from "./button";
+import {
+  Permission,
+  hasPermission,
+  UserRole,
+  UserRoleType,
+} from "@/lib/permissions";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ProtectedButtonProps extends ButtonProps {
   permission: Permission | Permission[];
@@ -30,14 +35,14 @@ export const ProtectedButton: React.FC<ProtectedButtonProps> = ({
     return <>{fallback}</>;
   }
 
-  const userRole = user.role as UserRole;
+  const userRole = user.role as UserRoleType;
   let hasAccess = false;
 
   if (Array.isArray(permission)) {
     if (requireAll) {
-      hasAccess = permission.every(p => hasPermission(user, p));
+      hasAccess = permission.every((p) => hasPermission(user, p));
     } else {
-      hasAccess = permission.some(p => hasPermission(user, p));
+      hasAccess = permission.some((p) => hasPermission(user, p));
     }
   } else {
     hasAccess = hasPermission(user, permission);
@@ -69,17 +74,17 @@ export const ProtectedComponent: React.FC<{
     return <>{fallback}</>;
   }
 
-  const userRole = user.role as UserRole;
+  const userRole = user.role as UserRoleType;
   let hasAccess = false;
 
   if (Array.isArray(permission)) {
     if (requireAll) {
-      hasAccess = permission.every(p => hasPermission(userRole, p));
+      hasAccess = permission.every((p) => hasPermission(user, p));
     } else {
-      hasAccess = permission.some(p => hasPermission(userRole, p));
+      hasAccess = permission.some((p) => hasPermission(user, p));
     }
   } else {
-    hasAccess = hasPermission(userRole, permission);
+    hasAccess = hasPermission(user, permission);
   }
 
   if (!hasAccess) {

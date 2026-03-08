@@ -10,7 +10,7 @@ export interface User {
   email: string;
   phone?: string;
   designation?: string;
-  role: string;
+  role?: string;
   companyId?: string | { _id: string; name: string; companyId: string };
   departmentId?: string | { _id: string; name: string; departmentId: string; parentDepartmentId?: string | { _id: string; name: string } };
   isActive: boolean;
@@ -28,7 +28,7 @@ export interface CreateUserData {
   password: string;
   phone?: string;
   designation?: string;
-  role: string;
+  role?: string;
   customRoleId?: string | null;
   companyId?: string;
   departmentId?: string;

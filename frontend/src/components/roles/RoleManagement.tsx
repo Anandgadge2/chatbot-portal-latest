@@ -15,6 +15,8 @@ import {
   Search,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { useAuth } from "@/contexts/AuthContext";
+
 
 import { apiClient } from "@/lib/api/client";
 import {
@@ -36,6 +38,7 @@ interface Role {
   roleId: string;
   name: string;
   description?: string;
+  key?: string;
   isSystem: boolean;
   permissions: Permission[];
   userCount?: number;
@@ -66,6 +69,7 @@ const ACTION_LABELS: Record<string, string> = {
 // ─── Role Management Component ────────────────────────────────────────────────
 
 const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
+  const { user: currentUser, refreshUser } = useAuth();
   const [roles, setRoles] = useState<Role[]>([]);
   const [modules, setModules] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -277,6 +281,11 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
         setEditingRole(null);
         setForm(emptyForm);
         fetchRoles();
+        
+        // If we edited current user's role, refresh the session
+        if (editingRole && currentUser && (currentUser.customRoleId === editingRole._id || currentUser.role === editingRole.key)) {
+          refreshUser();
+        }
       } else {
         toast.error(data.message || "Failed to save role");
       }
@@ -485,34 +494,6 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
                           Create a new role or initialize default ones
                         </p>
                       </div>
-                      <button
-                        onClick={async () => {
-                          try {
-                            setLoading(true);
-                            const data = await apiClient.post(`/roles/seed`, {
-                              companyId,
-                            });
-                            if (data.success) {
-                              toast.success("Default roles initialized!");
-                              fetchRoles();
-                            } else {
-                              toast.error(
-                                data.message || "Failed to seed roles",
-                              );
-                            }
-                          } catch (err: any) {
-                            toast.error(
-                              err.response?.data?.message ||
-                                "Error seeding roles",
-                            );
-                          } finally {
-                            setLoading(false);
-                          }
-                        }}
-                        className="mt-2 text-indigo-600 hover:text-indigo-700 text-sm font-bold uppercase tracking-wider bg-indigo-50 px-4 py-2 rounded-lg border border-indigo-100 transition-all hover:bg-indigo-100"
-                      >
-                        Initialize Default Roles
-                      </button>
                     </div>
                   </td>
                 </tr>

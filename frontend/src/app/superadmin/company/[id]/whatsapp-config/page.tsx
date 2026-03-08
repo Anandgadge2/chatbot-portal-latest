@@ -24,6 +24,7 @@ import {
   Info,
   ChevronDown,
   ChevronRight,
+  X,
 } from "lucide-react";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import {
@@ -542,6 +543,9 @@ export default function WhatsAppConfigPage() {
   const [newTemplateLabel, setNewTemplateLabel] = useState("");
   const [isAddingTemplate, setIsAddingTemplate] = useState(false);
 
+  // Keywords input state (local to avoid typing issues with arrays)
+  const [keywordsInput, setKeywordsInput] = useState("");
+
   // Group collapse state
   const [collapsedGroups, setCollapsedGroups] = useState<
     Record<string, boolean>
@@ -812,6 +816,11 @@ export default function WhatsAppConfigPage() {
     (t) => t.templateKey === selectedWaTemplate,
   );
   const isCustom = !BUILTIN_KEYS.includes(selectedWaTemplate);
+
+  // Sync keywords input when selected template changes
+  useEffect(() => {
+    setKeywordsInput("");
+  }, [selectedWaTemplate]);
 
   return (
     <div className="min-h-screen bg-slate-50/50">
@@ -1120,7 +1129,7 @@ export default function WhatsAppConfigPage() {
                   </div>
                 </div>
 
-                <div className="flex h-[calc(100vh-280px)] min-h-[600px]">
+                <div className="flex min-h-[1000px]">
                   {/* ---- Left sidebar: template browser ---- */}
                   <div className="w-72 shrink-0 border-r border-slate-200 overflow-y-auto bg-slate-50/60">
                     {/* Add custom template */}
@@ -1366,9 +1375,9 @@ export default function WhatsAppConfigPage() {
                     <div className="px-6 pt-3 pb-2 border-b border-slate-100 bg-white">
                       <div className="flex items-center gap-2 mb-1.5">
                         <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                          Trigger Keywords{" "}
+                          Bot Trigger Keywords{" "}
                           <span className="text-slate-400 font-normal">
-                            (comma-separated, mainly for command templates)
+                             (Press Enter or Comma to add)
                           </span>
                         </Label>
                         <div className="group relative">
@@ -1380,40 +1389,84 @@ export default function WhatsAppConfigPage() {
                           </div>
                         </div>
                       </div>
-                      <Input
-                        placeholder="e.g. stop, quit, exit..."
-                        value={(
-                          waTemplates.find(
-                            (t) => t.templateKey === selectedWaTemplate,
-                          )?.keywords || []
-                        ).join(", ")}
-                        onChange={(e) => {
-                          const key = selectedWaTemplate;
-                          const val = e.target.value
-                            .split(",")
-                            .map((k) => k.trim())
-                            .filter((k) => k);
-                          setWaTemplates((prev) => {
-                            const next = prev.map((t) =>
-                              t.templateKey === key
-                                ? { ...t, keywords: val }
-                                : t,
-                            );
-                            if (!next.find((t) => t.templateKey === key))
-                              next.push({
-                                templateKey: key,
-                                message: "",
-                                keywords: val,
+                      <div className="min-h-[42px] p-1.5 border border-slate-200 rounded-lg bg-white flex flex-wrap gap-2 items-center focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 transition-all">
+                        {(waTemplates.find((t) => t.templateKey === selectedWaTemplate)?.keywords || []).map((kw, i) => (
+                          <span 
+                            key={`${kw}-${i}`}
+                            className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-50 text-emerald-700 text-[11px] font-bold rounded-md border border-emerald-100 group animate-in fade-in zoom-in duration-200"
+                          >
+                            {kw}
+                            <button
+                              onClick={() => {
+                                const key = selectedWaTemplate;
+                                setWaTemplates((prev) => prev.map((t) => {
+                                  if (t.templateKey !== key) return t;
+                                  const newKws = (t.keywords || []).filter((_, idx) => idx !== i);
+                                  return { ...t, keywords: newKws };
+                                }));
+                              }}
+                              className="hover:bg-emerald-200/50 rounded p-0.5 transition-colors"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        ))}
+                        <input
+                          placeholder={
+                            (waTemplates.find((t) => t.templateKey === selectedWaTemplate)?.keywords || []).length === 0 
+                              ? "Type keyword and press Enter or Comma..." 
+                              : "Add word..."
+                          }
+                          value={keywordsInput}
+                          onChange={(e) => setKeywordsInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ',') {
+                              e.preventDefault();
+                              const val = keywordsInput.trim().replace(/,/g, '');
+                              if (!val) return;
+                              
+                              const key = selectedWaTemplate;
+                              setWaTemplates((prev) => {
+                                const current = prev.find(t => t.templateKey === key);
+                                const existing = current?.keywords || [];
+                                if (existing.includes(val)) {
+                                  setKeywordsInput("");
+                                  return prev;
+                                }
+                                
+                                const next = prev.map((t) =>
+                                  t.templateKey === key
+                                    ? { ...t, keywords: [...existing, val] }
+                                    : t,
+                                );
+                                if (!next.find((t) => t.templateKey === key)) {
+                                  next.push({
+                                    templateKey: key,
+                                    message: "",
+                                    keywords: [val],
+                                  });
+                                }
+                                return next;
                               });
-                            return next;
-                          });
-                        }}
-                        className="h-8 text-xs border-slate-200 focus:ring-emerald-500"
-                      />
+                              setKeywordsInput("");
+                            } else if (e.key === 'Backspace' && !keywordsInput) {
+                              // Delete last keyword on backspace if input is empty
+                              const key = selectedWaTemplate;
+                              setWaTemplates((prev) => prev.map((t) => {
+                                if (t.templateKey !== key) return t;
+                                const newKws = [...(t.keywords || [])];
+                                newKws.pop();
+                                return { ...t, keywords: newKws };
+                              }));
+                            }
+                          }}
+                          className="flex-1 min-w-[120px] h-7 bg-transparent border-0 focus:ring-0 text-xs text-slate-900 placeholder:text-slate-400"
+                        />
+                      </div>
                     </div>
 
                     {/* Message editor */}
-                    <div className="flex-1 px-6 pt-3 pb-3 flex flex-col gap-3 overflow-y-auto bg-slate-950/[0.02]">
+                    <div className="flex-1 px-6 pt-3 pb-3 flex flex-col gap-3 bg-slate-950/[0.02]">
                       <div className="flex items-center justify-between">
                         <Label className="text-xs font-semibold text-slate-700">
                           Message Body{" "}
@@ -1427,7 +1480,7 @@ export default function WhatsAppConfigPage() {
                       </div>
 
                       <textarea
-                        rows={18}
+                        rows={35}
                         placeholder={
                           DEFAULT_WA_MESSAGES[selectedWaTemplate]
                             ? 'Click "Load Default" to start from the system template...'

@@ -66,16 +66,17 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
       });
     }
 
-    // Operators can only update status and remarks - validate request body
-    if (currentUser.role === UserRole.OPERATOR) {
+    // Restricted Update: If user has 'change status' but NOT full 'update' permission, limit fields
+    // This replaces the old hardcoded 'OPERATOR' check.
+    if (!req.checkPermission(Permission.UPDATE_GRIEVANCE)) {
       const allowedFields = ['status', 'remarks'];
       const providedFields = Object.keys(req.body);
       const invalidFields = providedFields.filter(field => !allowedFields.includes(field));
       
       if (invalidFields.length > 0) {
-        return res.status(403).json({
-          success: false,
-          message: `Operators can only update status and remarks. Invalid fields: ${invalidFields.join(', ')}`
+        return res.status(403).json({ 
+          success: false, 
+          message: 'Your role only allows updating status and remarks.' 
         });
       }
     }
@@ -101,19 +102,16 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
     }
 
     // Permission checks
-    if (currentUser.role === UserRole.DEPARTMENT_ADMIN || currentUser.role === UserRole.OPERATOR) {
-      if (grievance.departmentId?._id.toString() !== currentUser.departmentId?.toString()) {
-        return res.status(403).json({
-          success: false,
-          message: 'You can only update grievances in your department'
-        });
-      }
-    } else if (currentUser.role === UserRole.COMPANY_ADMIN) {
+    // Permission checks
+    if (currentUser.role !== UserRole.SUPER_ADMIN) {
       if (grievance.companyId._id.toString() !== currentUser.companyId?.toString()) {
-        return res.status(403).json({
-          success: false,
-          message: 'You can only update grievances in your company'
-        });
+        return res.status(403).json({ success: false, message: 'Access denied to this company' });
+      }
+
+      if (currentUser.departmentId) {
+        if (grievance.departmentId?._id.toString() !== currentUser.departmentId?.toString()) {
+          return res.status(403).json({ success: false, message: 'Access denied to this department' });
+        }
       }
     }
 
@@ -274,19 +272,16 @@ router.put('/appointment/:id', requirePermission(Permission.STATUS_CHANGE_APPOIN
     }
 
     // Permission checks
-    if (currentUser.role === UserRole.DEPARTMENT_ADMIN || currentUser.role === UserRole.OPERATOR) {
-      if (appointment.departmentId?._id.toString() !== currentUser.departmentId?.toString()) {
-        return res.status(403).json({
-          success: false,
-          message: 'You can only update appointments in your department'
-        });
-      }
-    } else if (currentUser.role === UserRole.COMPANY_ADMIN) {
+    // Permission checks
+    if (currentUser.role !== UserRole.SUPER_ADMIN) {
       if (appointment.companyId._id.toString() !== currentUser.companyId?.toString()) {
-        return res.status(403).json({
-          success: false,
-          message: 'You can only update appointments in your company'
-        });
+        return res.status(403).json({ success: false, message: 'Access denied to this company' });
+      }
+
+      if (currentUser.departmentId) {
+        if (appointment.departmentId?._id.toString() !== currentUser.departmentId?.toString()) {
+          return res.status(403).json({ success: false, message: 'Access denied to this department' });
+        }
       }
     }
 

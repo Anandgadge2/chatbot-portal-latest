@@ -130,17 +130,13 @@ router.get('/users', requirePermission(Permission.EXPORT_DATA), async (req: Requ
     if (currentUser.role === UserRole.SUPER_ADMIN) {
       if (companyId) query.companyId = companyId;
       if (departmentId) query.departmentId = departmentId;
-    } else if (currentUser.role === UserRole.COMPANY_ADMIN) {
-      query.companyId = currentUser.companyId;
-      if (departmentId) query.departmentId = departmentId;
-    } else if (currentUser.role === UserRole.DEPARTMENT_ADMIN) {
-      query.departmentId = currentUser.departmentId;
     } else {
-      res.status(403).json({
-        success: false,
-        message: 'Access denied'
-      });
-      return;
+      query.companyId = currentUser.companyId;
+      if (currentUser.departmentId) {
+        query.departmentId = currentUser.departmentId;
+      } else if (departmentId) {
+        query.departmentId = departmentId;
+      }
     }
 
     const users = await User.find(query)
@@ -195,13 +191,19 @@ router.get('/grievances', requirePermission(Permission.EXPORT_DATA), async (req:
     if (currentUser.role === UserRole.SUPER_ADMIN) {
       if (companyId) query.companyId = companyId;
       if (departmentId) query.departmentId = departmentId;
-    } else if (currentUser.role === UserRole.COMPANY_ADMIN) {
+    } else {
       query.companyId = currentUser.companyId;
-      if (departmentId) query.departmentId = departmentId;
-    } else if (currentUser.role === UserRole.DEPARTMENT_ADMIN) {
-      query.departmentId = currentUser.departmentId;
-    } else if (currentUser.role === UserRole.OPERATOR) {
-      query.assignedTo = currentUser._id;
+      if (currentUser.departmentId) {
+        // Dynamic check: Users without assignment permission (like basic Operators) only export their own items
+        const canAssign = req.checkPermission(Permission.ASSIGN_GRIEVANCE);
+        if (!canAssign) {
+          query.assignedTo = currentUser._id;
+        } else {
+          query.departmentId = currentUser.departmentId;
+        }
+      } else if (departmentId) {
+        query.departmentId = departmentId;
+      }
     }
 
     if (status) query.status = status;
@@ -260,13 +262,19 @@ router.get('/appointments', requirePermission(Permission.EXPORT_DATA), async (re
     if (currentUser.role === UserRole.SUPER_ADMIN) {
       if (companyId) query.companyId = companyId;
       if (departmentId) query.departmentId = departmentId;
-    } else if (currentUser.role === UserRole.COMPANY_ADMIN) {
+    } else {
       query.companyId = currentUser.companyId;
-      if (departmentId) query.departmentId = departmentId;
-    } else if (currentUser.role === UserRole.DEPARTMENT_ADMIN) {
-      query.departmentId = currentUser.departmentId;
-    } else if (currentUser.role === UserRole.OPERATOR) {
-      query.assignedTo = currentUser._id;
+      if (currentUser.departmentId) {
+        // Dynamic check: restricted to assigned items if lacks high-level management rights
+        const canManage = req.checkPermission(Permission.STATUS_CHANGE_APPOINTMENT);
+        if (!canManage) {
+          query.assignedTo = currentUser._id;
+        } else {
+          query.departmentId = currentUser.departmentId;
+        }
+      } else if (departmentId) {
+        query.departmentId = departmentId;
+      }
     }
 
     if (status) query.status = status;

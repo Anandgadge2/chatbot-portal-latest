@@ -32,8 +32,8 @@ export const requireCompanyAdminDashboard = (
     return;
   }
 
-  // CompanyAdmin can access their own dashboard
-  if (req.user?.role === UserRole.COMPANY_ADMIN) {
+  // Accessible if user has companyId but no departmentId (effectively Company-wide access)
+  if (req.user?.companyId && !req.user?.departmentId) {
     next();
     return;
   }
@@ -55,14 +55,14 @@ export const requireDepartmentAdminDashboard = (
     return;
   }
 
-  // CompanyAdmin can access department admin dashboard
-  if (req.user?.role === UserRole.COMPANY_ADMIN) {
+  // Anyone with company-wide access (no departmentId) can access department dashboards
+  if (req.user?.companyId && !req.user?.departmentId) {
     next();
     return;
   }
 
-  // DepartmentAdmin can access their own dashboard
-  if (req.user?.role === UserRole.DEPARTMENT_ADMIN) {
+  // Anyone with a departmentId can access their own department dashboard
+  if (req.user?.departmentId) {
     next();
     return;
   }

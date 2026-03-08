@@ -28,6 +28,7 @@ interface AuthContextType {
   login: (credentials: LoginCredentials) => Promise<void>;
   ssoLogin: (token: string) => Promise<void>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
   isAuthenticated: boolean;
 }
 
@@ -148,6 +149,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const refreshUser = async () => {
+    try {
+      const response = await authAPI.getCurrentProfile();
+      if (response.success && response.data.user) {
+        const updatedUser = {
+          ...response.data.user,
+          isActive: response.data.user.isActive ?? true
+        };
+        authAPI.saveUser(updatedUser);
+        setUser(updatedUser);
+      }
+    } catch (error) {
+      console.error('Failed to refresh user profile:', error);
+    }
+  };
+
   const logout = () => {
     authAPI.logout();
     setUser(null);
@@ -162,6 +179,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         ssoLogin,
         logout,
+        refreshUser,
         isAuthenticated: !!user
       }}
     >

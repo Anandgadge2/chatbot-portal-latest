@@ -316,9 +316,9 @@ export default function AssignmentDialog({
                             <span className="text-[10px] text-slate-400 font-mono bg-slate-100 px-1.5 py-0.5 rounded">
                               {user.userId}
                             </span>
-                            <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full border ${getRoleColor(user.role)}`}>
-                              {user.role.replace('_', ' ')}
-                            </span>
+                             <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full border ${getRoleColor(user.role || "")}`}>
+                               {(user.role || "CUSTOM").replace('_', ' ')}
+                             </span>
                             {userDept && (
                               <span className="flex items-center gap-1 text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
                                 <Building2 className="w-3 h-3" />

@@ -5,6 +5,8 @@ import { generateToken, generateRefreshToken } from '../utils/jwt';
 import { logUserAction } from '../utils/auditLogger';
 import { AuditAction } from '../config/constants';
 import mongoose from 'mongoose';
+import { authenticate } from '../middleware/auth';
+
 
 const router = express.Router();
 
@@ -124,7 +126,7 @@ router.post('/sso/login', async (req: Request, res: Response) => {
       userId: user._id.toString(),
       phone: user.phone,
       email: user.email,
-      role: user.role,
+      role: user.role || 'CUSTOM',
       companyId: user.companyId instanceof mongoose.Types.ObjectId 
         ? user.companyId.toString() 
         : (user.companyId as any)?._id?.toString() || (user.companyId as any)?.toString(),
@@ -157,7 +159,7 @@ router.post('/sso/login', async (req: Request, res: Response) => {
     } else if (user.companyId) {
       const systemRole = await Role.findOne({ 
         companyId: user.companyId instanceof mongoose.Types.ObjectId ? user.companyId : (user.companyId as any)._id, 
-        key: user.role.toUpperCase() 
+        key: (user.role || 'CUSTOM').toUpperCase() 
       });
       if (systemRole) permissions = systemRole.permissions;
     }
@@ -287,7 +289,7 @@ router.post('/login', async (req: Request, res: Response) => {
       userId: user._id.toString(),
       phone: user.phone,
       email: user.email,
-      role: user.role,
+      role: user.role || 'CUSTOM',
       companyId: user.companyId instanceof mongoose.Types.ObjectId 
         ? user.companyId.toString() 
         : (user.companyId as any)?._id?.toString() || (user.companyId as any)?.toString(),
@@ -318,7 +320,7 @@ router.post('/login', async (req: Request, res: Response) => {
     } else if (user.companyId) {
       const systemRole = await Role.findOne({ 
         companyId: user.companyId instanceof mongoose.Types.ObjectId ? user.companyId : (user.companyId as any)._id, 
-        key: user.role.toUpperCase() 
+        key: (user.role || 'CUSTOM').toUpperCase() 
       });
       if (systemRole) permissions = systemRole.permissions;
     }
@@ -357,6 +359,59 @@ router.post('/login', async (req: Request, res: Response) => {
   }
 });
 
+// @route   GET /api/auth/me
+// @desc    Get current user profile & permissions
+// @access  Private
+router.get('/me', authenticate, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?._id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Not authenticated' });
+    }
+
+    const user = await User.findById(userId).populate('companyId');
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Fetch permissions for the user's role
+    let permissions: any[] = [];
+    const roleToFind = user.customRoleId || null;
+    if (roleToFind) {
+      const roleDoc = await Role.findById(roleToFind);
+      if (roleDoc) permissions = roleDoc.permissions;
+    } else if (user.companyId) {
+      const systemRole = await Role.findOne({ 
+        companyId: user.companyId instanceof mongoose.Types.ObjectId ? user.companyId : (user.companyId as any)._id, 
+        key: (user.role || 'CUSTOM').toUpperCase() 
+      });
+      if (systemRole) permissions = systemRole.permissions;
+    }
+
+    res.json({
+      success: true,
+      data: {
+        user: {
+          id: user._id,
+          userId: user.userId,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          phone: user.phone,
+          role: user.role,
+          companyId: user.companyId?._id || user.companyId,
+          departmentId: user.departmentId,
+          enabledModules: (user.companyId as any)?.enabledModules || [],
+          isActive: user.isActive,
+          customRoleId: user.customRoleId,
+          permissions: permissions
+        }
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+});
 
 
 // @route   POST /api/auth/register

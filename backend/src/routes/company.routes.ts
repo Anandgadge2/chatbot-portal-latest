@@ -42,12 +42,32 @@ router.get('/', requireSuperAdmin, async (req: Request, res: Response) => {
       .skip((Number(page) - 1) * Number(limit))
       .sort({ createdAt: -1 });
 
-    // Fetch all admins for these companies to dynamically set the head
+    // Dynamically identify company administrators based on their permissions or role names
     const companyIds = companies.map(c => c._id);
+    const Role = (await import('../models/Role')).default;
+    const companyAdminRoles = await Role.find({
+      companyId: { $in: companyIds },
+      $or: [
+        { name: { $regex: /admin|head|manager|supervisor|collector|official/i } },
+        { 
+          'permissions.module': { $in: ['SETTINGS', 'USER_MANAGEMENT', 'DEPARTMENTS'] },
+          'permissions.actions': { $in: ['update', 'all', 'manage'] }
+        }
+      ]
+    }).select('_id name');
+
+    const adminRoleIds = companyAdminRoles.map(r => r._id);
+    const adminRoleNames = companyAdminRoles.map(r => r.name);
+
     const admins = await User.find({
       companyId: { $in: companyIds },
-      role: UserRole.COMPANY_ADMIN
-    }).select('firstName lastName email phone companyId');
+      isActive: true,
+      $or: [
+        { customRoleId: { $in: adminRoleIds } },
+        { role: { $in: [...adminRoleNames, 'Admin', 'COMPANY_ADMIN', 'COMPANY_HEAD', 'HEAD'] } },
+        { role: { $regex: /admin|head/i } }
+      ]
+    }).select('firstName lastName email phone companyId role customRoleId').sort({ createdAt: 1 });
 
     const companiesWithHead = companies.map(c => {
       const admin = admins.find(a => a.companyId?.toString() === c._id.toString());
@@ -177,6 +197,9 @@ router.post('/', requireSuperAdmin, async (req: Request, res: Response) => {
 
     console.log('Company created successfully:', company._id);
 
+    // Seeding logic removed per user request. 
+    // SuperAdmin will manually create roles for the company from the dashboard.
+
     // Create company admin if admin data is provided
     let adminUser: any = null;
     if (admin && admin.email && admin.password && admin.firstName && admin.lastName) {
@@ -190,7 +213,7 @@ router.post('/', requireSuperAdmin, async (req: Request, res: Response) => {
           email: admin.email,
           password: admin.password, // Pre-save hook will hash this
           phone: normalizedAdminPhone || normalizedContactPhone || undefined,
-          role: UserRole.COMPANY_ADMIN,
+          role: 'Admin', // General legacy fallback
           companyId: company._id,
           isActive: true
         });
@@ -203,16 +226,6 @@ router.post('/', requireSuperAdmin, async (req: Request, res: Response) => {
       }
     }
 
-    // 5. Seed default roles for the company
-    let seededRoles = [];
-    try {
-      const { roleService } = await import('../services/roleService');
-      seededRoles = await roleService.seedDefaultRoles(company._id.toString(), req.user!._id.toString());
-      console.log(`Snapshot: Seeded ${seededRoles.length} default roles for company: ${company.name}`);
-    } catch (seedError) {
-      console.error('Failed to seed default roles:', seedError);
-    }
-
     // Log company creation
     try {
       await logUserAction(
@@ -223,8 +236,7 @@ router.post('/', requireSuperAdmin, async (req: Request, res: Response) => {
         { 
           companyName: company.name,
           companyType: company.companyType,
-          adminCreated: !!adminUser,
-          rolesSeeded: seededRoles.length
+          adminCreated: !!adminUser
         }
       );
     } catch (logError) {

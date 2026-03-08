@@ -235,18 +235,10 @@ export default function UserList({
                         className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest border ${
                           u.role === "SUPER_ADMIN"
                             ? "bg-red-50 text-red-700 border-red-100"
-                            : u.role === "COMPANY_ADMIN"
-                              ? "bg-blue-50 text-blue-700 border-blue-100"
-                              : (u.role === "DEPARTMENT_ADMIN" && typeof u.departmentId === "object" && (u.departmentId as any)?.parentDepartmentId)
-                                ? "bg-purple-50 text-purple-700 border-purple-100"
-                                : u.role === "DEPARTMENT_ADMIN"
-                                  ? "bg-indigo-50 text-indigo-700 border-indigo-100"
-                                  : u.role === "SUB_DEPARTMENT_ADMIN"
-                                    ? "bg-purple-50 text-purple-700 border-purple-100"
-                                    : "bg-slate-50 text-slate-700 border-slate-200"
+                            : "bg-indigo-50 text-indigo-700 border-indigo-100"
                         }`}
                       >
-                        {(u.role === "DEPARTMENT_ADMIN" && typeof u.departmentId === "object" && (u.departmentId as any)?.parentDepartmentId) ? "Sub Department Admin" : roleLabel}
+                        {u.role === "SUPER_ADMIN" ? "Super Admin" : roleLabel}
                       </span>
                     </td>
                     <td className="px-6 py-4">

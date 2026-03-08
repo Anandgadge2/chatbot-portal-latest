@@ -110,33 +110,21 @@ router.delete('/:id', requireSuperAdmin, async (req: Request, res: Response) => 
  */
 router.post('/sync-all', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
-    const { roleService } = await import('../services/roleService');
     const Company = (await import('../models/Company')).default;
 
     console.log('🚀 Manual System Sync Triggered');
     
-    // 1. Sync Modules
-   
+    // 1. Sync Modules (Already global in Module collection)
+    console.log('Syncing modules...');
 
-    // 2. Sync Roles for all companies
+    // 2. Sync Roles for all companies (REMOVED: roles are now fully dynamic and manual)
+    // Seeding is no longer supported per system requirements.
     const companies = await Company.find({});
-    const stats: any[] = [];
-
-    for (const company of companies) {
-      const results = await roleService.seedDefaultRoles(company._id.toString(), (req as any).user._id);
-      stats.push({
-        company: company.name,
-        created: results.filter(r => r.status === 'created').length,
-        updated: results.filter(r => r.status === 'updated').length,
-        exists: results.filter(r => r.status === 'exists').length
-      });
-    }
-
+    
     res.json({ 
       success: true, 
       message: 'System-wide synchronization complete',
-      processedCompanies: companies.length,
-      details: stats
+      processedCompanies: companies.length
     });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });

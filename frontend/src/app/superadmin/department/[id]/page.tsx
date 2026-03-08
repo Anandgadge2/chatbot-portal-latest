@@ -298,9 +298,10 @@ export default function DepartmentDrillDown() {
   ].filter((item) => item.value > 0);
 
   const userRoleData = users.reduce((acc: any[], user) => {
-    const existing = acc.find((item) => item.name === user.role);
+    const roleForMap = user.role || "CUSTOM";
+    const existing = acc.find((item) => item.name === roleForMap);
     if (existing) existing.value++;
-    else acc.push({ name: user.role, value: 1 });
+    else acc.push({ name: roleForMap, value: 1 });
     return acc;
   }, []);
 

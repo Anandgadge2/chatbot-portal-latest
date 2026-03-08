@@ -292,34 +292,4 @@ router.post('/:id/assign-user', async (req: Request, res: Response) => {
   }
 });
 
-// ─── POST /roles/seed ──────────────────────────────────────────────────────────
-
-router.post('/seed', async (req: Request, res: Response) => {
-  try {
-    const user = req.user!;
-    const { companyId } = req.body;
-
-    const targetCompanyId = companyId || user.companyId?.toString();
-    if (!targetCompanyId) {
-      return res.status(400).json({ success: false, message: 'companyId is required' });
-    }
-
-    if (!isOwnOrSuperAdmin(req, targetCompanyId)) {
-      return res.status(403).json({ success: false, message: 'Access denied' });
-    }
-
-    const { roleService } = await import('../services/roleService');
-    const results = await roleService.seedDefaultRoles(targetCompanyId, user._id.toString());
-
-    res.json({ 
-      success: true, 
-      message: 'Default roles seeded successfully', 
-      data: { results } 
-    });
-  } catch (err: any) {
-    console.error('❌ POST /roles/seed error:', err);
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
-
 export default router;

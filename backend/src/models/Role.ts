@@ -5,7 +5,7 @@ import mongoose, { Schema, Document, Model } from 'mongoose';
  *
  * Company-scoped custom roles with granular permissions.
  * Each company can define their own roles (e.g. "Finance Supervisor", "Field Officer").
- * System roles (COMPANY_ADMIN, SUPER_ADMIN) remain as static enums in UserRole.
+ * Only SUPER_ADMIN remains a static platform-wide system role.
  */
 
 export interface IPermission {

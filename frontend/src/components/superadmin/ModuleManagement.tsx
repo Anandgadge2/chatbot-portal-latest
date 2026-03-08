@@ -197,7 +197,7 @@ export default function ModuleManagement() {
               <List className="w-4 h-4" />
             </button>
           </div>
-          <button
+          {/* <button
             onClick={async () => {
               try {
                 setSyncing(true);
@@ -219,7 +219,7 @@ export default function ModuleManagement() {
               className={`w-3.5 h-3.5 ${syncing ? "animate-spin" : ""}`}
             />
             Global Sync
-          </button>
+          </button> */}
           <Button
             onClick={() => {
               setEditingModule(null);

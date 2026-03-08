@@ -16,7 +16,7 @@ import { companyAPI, Company } from "@/lib/api/company";
 import { departmentAPI, Department } from "@/lib/api/department";
 import { roleAPI, Role } from "@/lib/api/role";
 import { useAuth } from "@/contexts/AuthContext";
-import { UserRole } from "@/lib/permissions";
+import { UserRole, UserRoleType, Permission, hasPermission } from "@/lib/permissions";
 import toast from "react-hot-toast";
 import {
   validatePhoneNumber,
@@ -51,7 +51,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
     password: "",
     phone: "",
     designation: "",
-    role: "OPERATOR", // Now stores "STATIC:ROLE" or "CUSTOM:ID"
+    role: "Select Role", // Now stores "STATIC:ROLE" or "CUSTOM:ID"
     companyId: "",
     departmentId: "",
   });
@@ -60,82 +60,31 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
   const getAllPossibleRoles = () => {
     if (!user) return [];
 
-    let roles: { value: string; label: string }[] = [];
-    const currentRole = user.role as UserRole;
-
-    const standardRoles = (baseRoles: UserRole[]) => {
-      return baseRoles.map((r) => {
-        let label = r.replace(/_/g, " ");
-        if (r === UserRole.SUPER_ADMIN) label = "Super Admin";
-        if (r === UserRole.COMPANY_ADMIN) label = "Company Admin";
-        if (r === UserRole.DEPARTMENT_ADMIN) label = "Department Admin";
-        if (r === UserRole.SUB_DEPARTMENT_ADMIN) label = "Sub Department Admin";
-        if (r === UserRole.OPERATOR) label = "Operator";
-        if (r === UserRole.ANALYTICS_VIEWER) label = "Analytics Viewer";
-        return { value: r, label };
-      });
-    };
-
-    switch (currentRole) {
-      case UserRole.SUPER_ADMIN:
-        roles = standardRoles([
-          UserRole.SUPER_ADMIN,
-          UserRole.COMPANY_ADMIN,
-          UserRole.DEPARTMENT_ADMIN,
-          UserRole.SUB_DEPARTMENT_ADMIN,
-          UserRole.OPERATOR,
-          UserRole.ANALYTICS_VIEWER,
-        ]);
-        break;
-      case UserRole.COMPANY_ADMIN:
-        roles = standardRoles([
-          UserRole.COMPANY_ADMIN,
-          UserRole.DEPARTMENT_ADMIN,
-          UserRole.SUB_DEPARTMENT_ADMIN,
-          UserRole.OPERATOR,
-          UserRole.ANALYTICS_VIEWER,
-        ]);
-        break;
-      case UserRole.DEPARTMENT_ADMIN:
-        roles = standardRoles([
-          UserRole.DEPARTMENT_ADMIN,
-          UserRole.SUB_DEPARTMENT_ADMIN,
-          UserRole.OPERATOR,
-          UserRole.ANALYTICS_VIEWER,
-        ]);
-        break;
-    }
-
+    // ONLY SHOW CUSTOM ROLES created by the Admin
+    // Standard roles (except SUPER_ADMIN) are deprecated in favor of dynamic roles.
     const customRoleOptions = customRoles.map((r) => ({
       value: `CUSTOM:${r._id}`,
       label: r.name,
     }));
 
-    return [...roles, ...customRoleOptions];
+    return customRoleOptions;
   };
 
-  // Check if current user can create users
   const canCreateUsers = (): boolean => {
     if (!user) return false;
-    const currentRole = user.role as UserRole;
-    // Only SUPER_ADMIN, COMPANY_ADMIN, and DEPARTMENT_ADMIN can create users
-    return [
-      UserRole.SUPER_ADMIN,
-      UserRole.COMPANY_ADMIN,
-      UserRole.DEPARTMENT_ADMIN,
-    ].includes(currentRole);
+    // Only SUPER_ADMIN and users with specific CREATE_USER permission can create users
+    return user.role === UserRole.SUPER_ADMIN || hasPermission(user, Permission.CREATE_USER);
   };
-
-  // Define fetchCompanies and fetchDepartments BEFORE useEffect that uses them
   const fetchCompanies = useCallback(async () => {
     try {
       const response = await companyAPI.getAll();
       if (response.success) {
         // Filter companies based on user's scope
         let filteredCompanies = response.data.companies;
+        const currentRole = user?.role as string;
 
-        if (user?.role === UserRole.COMPANY_ADMIN) {
-          // CompanyAdmin: only show their company
+        if (currentRole !== UserRole.SUPER_ADMIN) {
+          // Non-SuperAdmin: only show their company
           const userCompanyId = user?.companyId
             ? typeof user.companyId === "object"
               ? user.companyId._id
@@ -165,45 +114,36 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
       if (response.success) {
         // Filter departments based on user's scope
         let filteredDepartments = response.data.departments;
+        const currentRole = user?.role as string;
 
-        if (user?.role === UserRole.COMPANY_ADMIN) {
-          // CompanyAdmin: only show departments in their company
+        if (currentRole !== UserRole.SUPER_ADMIN) {
           const userCompanyId = user?.companyId
             ? typeof user.companyId === "object"
-              ? user.companyId._id
+              ? (user.companyId as any)._id
               : user.companyId
             : "";
+          
           if (userCompanyId) {
+            // Filter by company
             filteredDepartments = response.data.departments.filter(
               (dept: Department) => {
-                const deptCompanyId =
-                  typeof dept.companyId === "object"
-                    ? dept.companyId?._id
-                    : dept.companyId;
+                const deptCompanyId = typeof dept.companyId === "object" ? (dept.companyId as any)?._id : dept.companyId;
                 return deptCompanyId === userCompanyId;
-              },
+              }
             );
-          }
-        } else if (user?.role === UserRole.DEPARTMENT_ADMIN) {
-          // DepartmentAdmin: show their department and all its sub-departments
-          const userDepartmentId = user?.departmentId
-            ? typeof user.departmentId === "object"
-              ? user.departmentId._id
-              : user.departmentId
-            : "";
-          if (userDepartmentId) {
-            filteredDepartments = response.data.departments.filter(
-              (dept: Department) => {
-                const deptId = dept._id?.toString() || dept._id;
-                const parentId =
-                  typeof dept.parentDepartmentId === "object"
-                    ? dept.parentDepartmentId?._id
-                    : dept.parentDepartmentId;
-                const parentIdStr = parentId?.toString() || parentId;
 
-                return deptId === userDepartmentId || parentIdStr === userDepartmentId;
-              },
-            );
+            // If user is scoped to a specific department (e.g. from local storage or context)
+            const userDeptId = user?.departmentId ? (typeof user.departmentId === "object" ? (user.departmentId as any)._id : user.departmentId) : "";
+            if (userDeptId) {
+              filteredDepartments = filteredDepartments.filter(
+                (dept: Department) => {
+                  const deptId = dept._id?.toString() || dept._id;
+                  const parentId = typeof dept.parentDepartmentId === "object" ? (dept.parentDepartmentId as any)?._id : dept.parentDepartmentId;
+                  const parentIdStr = parentId?.toString() || parentId;
+                  return deptId === userDeptId || parentIdStr === userDeptId;
+                }
+              );
+            }
           }
         }
 
@@ -246,7 +186,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
           designation: editingUser.designation || "",
           role: editingUser.customRoleId
             ? `CUSTOM:${typeof editingUser.customRoleId === "object" ? (editingUser.customRoleId as any)._id : editingUser.customRoleId}`
-            : editingUser.role || "OPERATOR",
+            : editingUser.role || "",
           companyId:
             typeof editingUser.companyId === "object"
               ? editingUser.companyId?._id
@@ -269,7 +209,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
             : user.departmentId
           : "";
 
-        if (user?.role === UserRole.COMPANY_ADMIN && userCompanyId) {
+        if (userCompanyId) {
           setFormData({
             firstName: "",
             lastName: "",
@@ -277,25 +217,9 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
             password: "",
             phone: "",
             designation: "",
-            role: "OPERATOR",
+            role: "",
             companyId: userCompanyId,
-            departmentId: "",
-          });
-        } else if (
-          user?.role === UserRole.DEPARTMENT_ADMIN &&
-          userCompanyId &&
-          userDepartmentId
-        ) {
-          setFormData({
-            firstName: "",
-            lastName: "",
-            email: "",
-            password: "",
-            phone: "",
-            designation: "",
-            role: "OPERATOR",
-            companyId: userCompanyId,
-            departmentId: userDepartmentId,
+            departmentId: userDepartmentId || "",
           });
         } else {
           setFormData({
@@ -305,7 +229,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
             password: "",
             phone: "",
             designation: "",
-            role: "OPERATOR",
+            role: "",
             companyId: "",
             departmentId: "",
           });
@@ -320,15 +244,14 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
     } else {
       setCustomRoles([]);
       if (formData.role.startsWith("CUSTOM:")) {
-        setFormData((prev) => ({ ...prev, role: "OPERATOR" }));
+        setFormData((prev) => ({ ...prev, role: "" }));
       }
     }
-  }, [formData.companyId, fetchCustomRoles]);
+  }, [formData.companyId, formData.role, fetchCustomRoles]);
 
   useEffect(() => {
     // Reset dependent fields when role changes
     if (
-      formData.role === UserRole.COMPANY_ADMIN ||
       formData.role === UserRole.SUPER_ADMIN
     ) {
       setFormData((prev) => ({ ...prev, departmentId: "" }));
@@ -371,21 +294,9 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
     }
 
     // Role-specific validation
-    if (formData.role === UserRole.SUPER_ADMIN) {
-      // SuperAdmin doesn't need companyId or departmentId
-    } else if (formData.role === UserRole.COMPANY_ADMIN) {
+    if (formData.role !== UserRole.SUPER_ADMIN) {
       if (!formData.companyId) {
         toast.error("Please select a company");
-        return;
-      }
-    } else if (
-      formData.role === UserRole.DEPARTMENT_ADMIN ||
-      formData.role === UserRole.SUB_DEPARTMENT_ADMIN ||
-      formData.role === UserRole.OPERATOR ||
-      formData.role === UserRole.ANALYTICS_VIEWER
-    ) {
-      if (!formData.companyId || !formData.departmentId) {
-        toast.error("Please select a company and department");
         return;
       }
     }
@@ -404,13 +315,13 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
       let submissionCustomRoleId = "";
 
       if (formData.role.startsWith("CUSTOM:")) {
-        submissionRole = "OPERATOR"; // Default base role for custom roles
+        submissionRole = ""; // Clear base role, backend handles CUSTOM default or uses customRoleId
         submissionCustomRoleId = formData.role.split(":")[1];
       }
 
       const submissionData = {
         ...formData,
-        role: submissionRole,
+        role: submissionRole || undefined,
         customRoleId: submissionCustomRoleId || null,
         companyId: formData.companyId || undefined,
         departmentId: formData.departmentId || undefined,
@@ -440,7 +351,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
             password: "",
             phone: "",
             designation: "",
-            role: "OPERATOR",
+            role: "",
             companyId: "",
             departmentId: "",
           });
@@ -468,11 +379,8 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
   ) => {
     const { name, value } = e.target;
 
-    // Clear department if role changes to Company Admin or SuperAdmin
-    if (
-      name === "role" &&
-      (value === UserRole.COMPANY_ADMIN || value === UserRole.SUPER_ADMIN)
-    ) {
+    // Clear department if role changes to SuperAdmin
+    if (name === "role" && value === UserRole.SUPER_ADMIN) {
       setFormData((prev) => ({
         ...prev,
         [name]: value,
@@ -481,7 +389,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
       return;
     }
 
-    // Clear department if company changes (for DEPARTMENT_ADMIN, OPERATOR, ANALYTICS_VIEWER)
+    // Clear department if company changes
     if (name === "companyId") {
       setFormData((prev) => ({
         ...prev,
@@ -527,8 +435,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
               </svg>
             </div>
             <p className="text-gray-600 mb-6">
-              Operators are not authorized to create users. Only Super Admin,
-              Company Admin, and Department Admin can create new users.
+              You are not authorized to create users. Please contact your system administrator.
             </p>
             <Button
               onClick={onClose}
@@ -670,30 +577,16 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
                   className="w-full p-2 border rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-medium"
                   required
                 >
-                  <option value="" disabled>Select a role</option>
-                  <optgroup label="Standard Roles">
-                    {getAllPossibleRoles()
-                      .filter((r: any) => !r.value.startsWith("CUSTOM:"))
-                      .map((role: { value: string; label: string }) => (
-                        <option key={role.value} value={role.value}>
-                          {role.label}
-                        </option>
-                      ))}
-                  </optgroup>
-                  {getAllPossibleRoles().some((r: any) => r.value.startsWith("CUSTOM:")) && (
-                    <optgroup label="Custom Roles">
-                      {getAllPossibleRoles()
-                        .filter((r: any) => r.value.startsWith("CUSTOM:"))
-                        .map((role: { value: string; label: string }) => (
-                          <option key={role.value} value={role.value}>
-                            {role.label}
-                          </option>
-                        ))}
-                    </optgroup>
-                  )}
+                  <option value="" disabled>
+                    Select a role
+                  </option>
+                  {getAllPossibleRoles().map((role: { value: string; label: string }) => (
+                    <option key={role.value} value={role.value}>
+                      {role.label}
+                    </option>
+                  ))}
                 </select>
               </div>
-
             </div>
 
             {/* Company field - only visible for SUPER_ADMIN */}
@@ -725,9 +618,8 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
                   </div>
                 )}
 
-              {/* Show auto-selected company info for Company Admin and Department Admin (read-only display) */}
-              {(user?.role === UserRole.COMPANY_ADMIN ||
-                user?.role === UserRole.DEPARTMENT_ADMIN) &&
+              {/* Show auto-selected company info for users with a companyId (read-only display) */}
+              {user?.role !== UserRole.SUPER_ADMIN && user?.companyId &&
                 formData.role !== UserRole.SUPER_ADMIN && (
                   <div>
                     <Label htmlFor="companyDisplay">Company</Label>
@@ -748,62 +640,38 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
                   </div>
                 )}
 
-              {/* Department field - required for DEPARTMENT_ADMIN, OPERATOR, ANALYTICS_VIEWER */}
-              {(formData.role === UserRole.DEPARTMENT_ADMIN ||
-                formData.role === UserRole.SUB_DEPARTMENT_ADMIN ||
-                formData.role === UserRole.OPERATOR ||
-                formData.role === UserRole.ANALYTICS_VIEWER) && (
+              {/* Department field - visible for non-Super Admin roles */}
+              {formData.role !== UserRole.SUPER_ADMIN && (
                 <div>
-                  <Label htmlFor="departmentId">Department *</Label>
-                  {/* For Department Admin - show auto-selected department */}
-                  {user?.role === UserRole.DEPARTMENT_ADMIN && departments.length <= 1 ? (
-                    <div className="w-full p-2 border rounded-md bg-gradient-to-r from-slate-50 to-purple-50 text-slate-700 font-medium flex items-center gap-2">
-                      <Building className="w-4 h-4 text-purple-500" />
-                      {departments.find((d) => d._id === formData.departmentId)
-                        ?.name || "Your Department"}
-                      <span className="ml-auto text-xs text-purple-500 bg-purple-100 px-2 py-0.5 rounded-full">
-                        Auto-selected
-                      </span>
-                    </div>
-                  ) : (
-                    <select
-                      id="departmentId"
-                      name="departmentId"
-                      value={formData.departmentId}
-                      onChange={handleChange}
-                      className="w-full p-2 border rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                      required
-                      disabled={!formData.companyId}
-                    >
-                      <option value="">
-                        {formData.companyId
-                          ? "Select a department"
-                          : "Select a company first"}
-                      </option>
-                      {departments
-                        .filter((dept) => {
-                          if (!formData.companyId) return false;
-                          const deptCompanyId =
-                            typeof dept.companyId === "object"
-                              ? dept.companyId?._id
-                              : dept.companyId;
-                          return deptCompanyId === formData.companyId;
-                        })
-                        .map((department) => (
-                          <option key={department._id} value={department._id}>
-                            {department.name}
-                          </option>
-                        ))}
-                    </select>
-                  )}
-                  {/* Hidden input for department admin */}
-                  {user?.role === UserRole.DEPARTMENT_ADMIN && (
-                    <input
-                      type="hidden"
-                      name="departmentId"
-                      value={formData.departmentId}
-                    />
-                  )}
+                  <Label htmlFor="departmentId">Department</Label>
+                  <select
+                    id="departmentId"
+                    name="departmentId"
+                    value={formData.departmentId}
+                    onChange={handleChange}
+                    className="w-full p-2 border rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    disabled={!formData.companyId}
+                  >
+                    <option value="">
+                      {formData.companyId
+                        ? "Optional: Select a department"
+                        : "Select a company first"}
+                    </option>
+                    {departments
+                      .filter((dept) => {
+                        if (!formData.companyId) return false;
+                        const deptCompanyId =
+                          typeof dept.companyId === "object"
+                            ? dept.companyId?._id
+                            : dept.companyId;
+                        return deptCompanyId === formData.companyId;
+                      })
+                      .map((department) => (
+                        <option key={department._id} value={department._id}>
+                          {department.name}
+                        </option>
+                      ))}
+                  </select>
                 </div>
               )}
             </div>

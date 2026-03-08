@@ -252,14 +252,19 @@ router.post(
           let departmentId = row.departmentId;
 
           // Scope validation
-          if (currentUser.role === UserRole.COMPANY_ADMIN) {
-            companyId = currentUser.companyId?.toString();
-            if (row.departmentId) {
-              departmentId = row.departmentId;
-            }
-          } else if (currentUser.role === UserRole.DEPARTMENT_ADMIN) {
-            companyId = currentUser.companyId?.toString();
-            departmentId = currentUser.departmentId?.toString();
+          if (currentUser.departmentId) {
+             // Department-level user: strictly bound to their department
+             companyId = currentUser.companyId?.toString();
+             departmentId = currentUser.departmentId?.toString();
+          } else {
+             // Company-level user or SuperAdmin
+             if (currentUser.role !== UserRole.SUPER_ADMIN) {
+               companyId = currentUser.companyId?.toString();
+             }
+             // They can specify departmentId in the row if they are company-level
+             if (row.departmentId) {
+               departmentId = row.departmentId;
+             }
           }
 
           const hashedPassword = await bcrypt.hash(row.password || 'TempPassword123!', 10);
@@ -355,7 +360,7 @@ router.get('/template/:type', requirePermission(Permission.IMPORT_DATA), async (
             password: 'TempPassword123!',
             phone: '+1234567890',
             designation: 'Officer',
-            role: 'OPERATOR',
+            role: 'Staff',
             companyId: 'COMPANY_ID_HERE',
             departmentId: 'DEPARTMENT_ID_HERE'
           }

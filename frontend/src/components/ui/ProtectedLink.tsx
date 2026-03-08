@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import React from 'react';
-import Link from 'next/link';
-import { Permission, hasPermission, UserRole } from '@/lib/permissions';
-import { useAuth } from '@/contexts/AuthContext';
-import { cn } from '@/lib/utils';
+import React from "react";
+import Link from "next/link";
+import { Permission, hasPermission, UserRole } from "@/lib/permissions";
+import { useAuth } from "@/contexts/AuthContext";
+import { cn } from "@/lib/utils";
 
 interface ProtectedLinkProps {
   permission: Permission | Permission[];
@@ -24,7 +24,7 @@ export const ProtectedLink: React.FC<ProtectedLinkProps> = ({
   href,
   className,
   children,
-  fallback = null
+  fallback = null,
 }) => {
   const { user } = useAuth();
 
@@ -32,14 +32,14 @@ export const ProtectedLink: React.FC<ProtectedLinkProps> = ({
     return <>{fallback}</>;
   }
 
-  const userRole = user.role as UserRole;
+
   let hasAccess = false;
 
   if (Array.isArray(permission)) {
     if (requireAll) {
-      hasAccess = permission.every(p => hasPermission(user, p));
+      hasAccess = permission.every((p) => hasPermission(user, p));
     } else {
-      hasAccess = permission.some(p => hasPermission(user, p));
+      hasAccess = permission.some((p) => hasPermission(user, p));
     }
   } else {
     hasAccess = hasPermission(user, permission);

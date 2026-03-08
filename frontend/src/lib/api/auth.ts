@@ -73,4 +73,8 @@ export const authAPI = {
       localStorage.setItem('user', JSON.stringify(user));
     }
   },
+  
+  getCurrentProfile: async (): Promise<any> => {
+    return apiClient.get('/auth/me');
+  },
 };

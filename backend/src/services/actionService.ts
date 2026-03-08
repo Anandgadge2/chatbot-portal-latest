@@ -122,7 +122,8 @@ export class ActionService {
           citizenName: session.data.citizenName,
           citizenPhone: userPhone,
           citizenWhatsApp: userPhone,
-          departmentId: notifyTargetId as any,
+          departmentId: departmentId as any, // Parent Dept
+          subDepartmentId: session.data.subDepartmentId ? (session.data.subDepartmentId as any) : undefined, // Sub-Dept
           companyId: company._id,
           description: session.data.description,
           category: session.data.category,
@@ -134,15 +135,34 @@ export class ActionService {
         });
 
         // Auto-assign to admin
-        const targetAdmin = await User.findOne({
-          departmentId: notifyTargetId,
-          role: UserRole.DEPARTMENT_ADMIN,
+        // Dynamically find the admin for (sub)department based on permissions
+        const Role = (await import('../models/Role')).default;
+        
+        // 1. Identify roles that represent management authority over departments
+        const adminRoles = await Role.find({
+          companyId: company._id,
+          'permissions.module': 'DEPARTMENTS',
+          'permissions.actions': { $in: ['update', 'all', 'manage'] }
+        }).select('_id name');
+        const adminRoleIds = adminRoles.map(r => r._id);
+        const adminRoleNames = adminRoles.map(r => r.name);
+
+        const targetDeptId = session.data.subDepartmentId || departmentId;
+
+        let targetAdmin = await User.findOne({
+          departmentId: targetDeptId,
+          $or: [
+            { customRoleId: { $in: adminRoleIds } },
+            { role: { $in: adminRoleNames } }
+          ],
           isActive: true
         });
 
         if (targetAdmin) {
           grievance.assignedTo = targetAdmin._id;
+          grievance.status = GrievanceStatus.ASSIGNED;
           await grievance.save();
+          
           await notifyUserOnAssignment({
             type: 'grievance',
             action: 'assigned',
@@ -150,7 +170,8 @@ export class ActionService {
             citizenName: session.data.citizenName,
             citizenPhone: userPhone,
             citizenWhatsApp: userPhone,
-            departmentId: notifyTargetId as any,
+            departmentId: departmentId as any,
+            subDepartmentId: session.data.subDepartmentId ? (session.data.subDepartmentId as any) : undefined,
             companyId: company._id,
             assignedTo: targetAdmin._id,
             assignedByName: 'System (Auto-assign)',

@@ -47,7 +47,7 @@ export const requireRole = (...roles: string[]) => {
       return;
     }
 
-    if (!roles.includes(req.user.role)) {
+    if (!roles.includes(req.user.role || '')) {
       res.status(403).json({ success: false, message: 'Access denied.' });
       return;
     }
@@ -63,95 +63,80 @@ export const requirePermission = (...permissions: string[]) => {
       return;
     }
 
-    // 1. SuperAdmin & CompanyAdmin bypass
-    // These roles have full access within their scope and don't need restriction by dynamic roles.
-    const userRole = req.user.role?.toUpperCase();
-    if (userRole === UserRole.SUPER_ADMIN || userRole === UserRole.COMPANY_ADMIN) {
+    // Attach a helper function to the request to check permissions dynamically
+    const user = req.user as any;
+    
+    // 1. SuperAdmin bypass
+    if (user.role?.toUpperCase() === UserRole.SUPER_ADMIN) {
+      req.checkPermission = () => true;
       next();
       return;
     }
 
-    // 2. Dynamic Permission Check (MongoDB Roles)
-    // We prioritize the customRoleId assigned to the user
-    let roleToFind = req.user.customRoleId;
-
-    // If no customRoleId, attempt to find a system-defined role for this user's role string
-    // This provides backward compatibility for users who haven't been assigned a dynamic role yet.
-    if (!roleToFind && req.user.role && req.user.companyId) {
-      try {
-        const systemRole = await Role.findOne({ 
-          companyId: req.user.companyId, 
-          key: req.user.role.toUpperCase() 
-        });
-        if (systemRole) roleToFind = systemRole._id;
-      } catch (e) {
-        console.warn('Fallback role lookup failed:', e);
-      }
-    }
-
-    if (roleToFind) {
-      try {
-        const role = await Role.findById(roleToFind);
-        if (role) {
-          const hasPermission = permissions.some(p => {
-            // Resolve legacy string to {module, action}
-            const mapped = LEGACY_PERMISSIONS[p] || (p.includes(':') ? { module: p.split(':')[0], action: p.split(':')[1] } : null);
-            if (!mapped) return false;
-
-            const modPerm = role.permissions.find(perm => perm.module === mapped.module);
-            if (!modPerm) return false;
-
-            return modPerm.actions.includes(mapped.action) || 
-                   modPerm.actions.includes('manage') || 
-                   modPerm.actions.includes('all');
+    // 2. Dynamic Permission Check
+    // We'll cache the role metadata on the request to avoid multiple lookups in the same request
+    if (!req.resolvedRole) {
+      let roleToFind = user.customRoleId;
+      
+      if (!roleToFind && user.role && user.companyId) {
+        try {
+          const systemRole = await Role.findOne({ 
+            companyId: user.companyId, 
+            $or: [
+              { key: user.role.toUpperCase() },
+              { name: user.role }
+            ]
           });
-
-          if (hasPermission) {
-            next();
-            return;
-          }
+          if (systemRole) roleToFind = systemRole._id;
+        } catch (e) {
+          console.warn('Fallback role lookup failed:', e);
         }
-      } catch (err) {
-        console.error('RBAC Error:', err);
+      }
+
+      if (roleToFind) {
+        req.resolvedRole = await Role.findById(roleToFind);
       }
     }
 
-    // 3. Legacy Static Fallback (Hardcoded)
-    // If no dynamic role match and no custom role found, check against standard role definitions.
-    // This handles cases where roles haven't been seeded yet.
-    const isDepartmentAdmin = userRole === UserRole.DEPARTMENT_ADMIN;
-    const isOperator = userRole === UserRole.OPERATOR;
-    const isAnalyst = userRole === UserRole.ANALYTICS_VIEWER;
+    const checkPerm = (p: string): boolean => {
+      if (!req.resolvedRole) return false;
+      
+      const mapped = LEGACY_PERMISSIONS[p] || (p.includes(':') ? { module: p.split(':')[0], action: p.split(':')[1] } : null);
+      if (!mapped) return false;
 
-    const hasStaticPermission = permissions.some(p => {
-      if (isDepartmentAdmin) {
-        return [
-          'READ_GRIEVANCE', 'READ_APPOINTMENT', 'VIEW_ANALYTICS', 
-          'UPDATE_GRIEVANCE', 'ASSIGN_GRIEVANCE', 'STATUS_CHANGE_GRIEVANCE',
-          'READ_USER', 'READ_DEPARTMENT', 'CREATE_USER', 'UPDATE_USER'
-        ].includes(p);
-      }
-      if (isOperator) {
-        return ['READ_GRIEVANCE', 'READ_APPOINTMENT', 'STATUS_CHANGE_GRIEVANCE'].includes(p);
-      }
-      if (isAnalyst) {
-        return ['VIEW_ANALYTICS', 'EXPORT_DATA'].includes(p);
-      }
-      return false;
-    });
+      const modPerm = req.resolvedRole.permissions.find((perm: any) => perm.module === mapped.module);
+      if (!modPerm) return false;
 
-    if (hasStaticPermission) {
+      return modPerm.actions.includes(mapped.action) || 
+             modPerm.actions.includes('manage') || 
+             modPerm.actions.includes('all');
+    };
+
+    req.checkPermission = checkPerm;
+
+    const authorized = permissions.some(p => checkPerm(p));
+
+    if (authorized) {
       next();
       return;
     }
 
-    // If no custom role match, and it's not a legacy match, deny by default.
     res.status(403).json({
       success: false,
-      message: 'Access denied. Dynamic role permissions not found for this action.'
+      message: 'Access denied. You do not have the required permissions for this action.'
     });
   };
 };
+
+// Add checkPermission to Request interface
+declare global {
+  namespace Express {
+    interface Request {
+      checkPermission: (permission: string) => boolean;
+      resolvedRole?: any;
+    }
+  }
+}
 
 export const requireSuperAdmin = (req: Request, res: Response, next: NextFunction) => {
   const userRole = req.user?.role?.toUpperCase();
@@ -174,10 +159,19 @@ export const requireCompanyAccess = (req: Request, res: Response, next: NextFunc
 
 export const requireDepartmentAccess = (req: Request, res: Response, next: NextFunction) => {
   if (!req.user) return res.status(401).json({ success: false, message: 'Auth required.' });
-  if (req.user.role === UserRole.SUPER_ADMIN || req.user.role === UserRole.COMPANY_ADMIN) return next();
+  
+  // SuperAdmin bypass
+  if (req.user.role?.toUpperCase() === UserRole.SUPER_ADMIN) return next();
 
-  const departmentId = req.params.departmentId || req.body.departmentId;
-  if (req.user.departmentId?.toString() !== departmentId) {
+  // If the user has no department assigned, we assume they are at the Company level
+  // and have access to all departments in their company.
+  if (!req.user.departmentId && req.user.companyId) {
+    return next();
+  }
+
+  // Otherwise, restrict to their assigned department
+  const departmentId = req.params.departmentId || req.body.departmentId || req.query.departmentId;
+  if (req.user.departmentId?.toString() !== departmentId?.toString()) {
     return res.status(403).json({ success: false, message: 'Access denied to this department.' });
   }
   next();

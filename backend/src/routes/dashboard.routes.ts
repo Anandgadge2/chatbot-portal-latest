@@ -10,6 +10,7 @@ import {
 import Company from '../models/Company';
 import User from '../models/User';
 import Department from '../models/Department';
+import { UserRole } from '../config/constants';
 
 const router = express.Router();
 
@@ -55,7 +56,7 @@ router.get('/superadmin', authenticate, requireSuperAdminDashboard, async (req: 
 router.get('/company-admin', authenticate, requireCompanyAdminDashboard, async (req: Request, res: Response) => {
   try {
     let companyFilter = {};
-    if (req.user?.role !== 'SUPER_ADMIN') {
+    if (req.user?.role !== UserRole.SUPER_ADMIN) {
       companyFilter = { companyId: req.user?.companyId };
     }
 
@@ -67,7 +68,7 @@ router.get('/company-admin', authenticate, requireCompanyAdminDashboard, async (
 
     // Get company info if not SuperAdmin
     let company = null;
-    if (req.user?.role !== 'SUPER_ADMIN' && req.user?.companyId) {
+    if (req.user?.role !== UserRole.SUPER_ADMIN && req.user?.companyId) {
       company = await Company.findById(req.user.companyId);
     }
 
@@ -100,10 +101,14 @@ router.get('/company-admin', authenticate, requireCompanyAdminDashboard, async (
 // Department Admin Dashboard - SuperAdmin, CompanyAdmin, and DepartmentAdmin can access
 router.get('/department-admin', authenticate, requireDepartmentAdminDashboard, async (req: Request, res: Response) => {
   try {
-    let filter = {};
-    if (req.user?.role === 'DEPARTMENT_ADMIN') {
+    let filter: any = {};
+    if (req.user?.role === UserRole.SUPER_ADMIN) {
+       // No mandatory filter for SuperAdmin, but can filter by query params if needed
+    } else if (req.user?.departmentId) {
+      // Scoped to specific department
       filter = { departmentId: req.user?.departmentId };
-    } else if (req.user?.role === 'COMPANY_ADMIN') {
+    } else if (req.user?.companyId) {
+      // Scoped to whole company
       filter = { companyId: req.user?.companyId };
     }
 
@@ -112,9 +117,9 @@ router.get('/department-admin', authenticate, requireDepartmentAdminDashboard, a
       activeUsers: await User.countDocuments({ ...filter, isActive: true })
     };
 
-    // Get department info if Department Admin
+    // Get department info if restricted to a department
     let department = null;
-    if (req.user?.role === 'DEPARTMENT_ADMIN' && req.user?.departmentId) {
+    if (req.user?.departmentId) {
       department = await Department.findById(req.user.departmentId);
     }
 
@@ -181,7 +186,7 @@ router.get('/any/:dashboardType', canAccessAnyDashboard, async (req: Request, re
           email: req.user?.email,
           role: req.user?.role
         },
-        accessLevel: req.user?.role === 'SUPER_ADMIN' ? 'full' : 'limited'
+        accessLevel: req.user?.role === UserRole.SUPER_ADMIN ? 'full' : 'limited'
       }
     });
   } catch (error: any) {

@@ -25,24 +25,19 @@ router.get('/', requirePermission(Permission.READ_DEPARTMENT), async (req: Reque
     // SuperAdmin can see all departments
     if (user.role === UserRole.SUPER_ADMIN) {
       if (companyId) query.companyId = companyId;
-    } else if (user.role === UserRole.OPERATOR) {
-      // Operators can only see their own department
-      if (user.departmentId) {
-        query._id = user.departmentId;
-      } else {
-        // If operator has no department, return empty
-        res.json({
-          success: true,
-          data: {
-            departments: [],
-            pagination: { page: 1, limit: 20, total: 0, pages: 0 }
-          }
-        });
-        return;
-      }
     } else {
-      // Other roles can only see their company's departments
+      // All other users are scoped by their company
       query.companyId = user.companyId;
+
+      // If restricted to a department, only show that department
+      if (user.departmentId) {
+        // Anyone with a departmentId is restricted to it by default,
+        // unless they have a specific high-level permission (bypass).
+        const hasCompanyBypass = req.checkPermission(Permission.CREATE_DEPARTMENT);
+        if (!hasCompanyBypass) {
+          query._id = user.departmentId;
+        }
+      }
     }
 
     if (search) {
@@ -58,12 +53,29 @@ router.get('/', requirePermission(Permission.READ_DEPARTMENT), async (req: Reque
       .skip((Number(page) - 1) * Number(limit))
       .sort({ createdAt: -1 });
 
-    // Fetch all admins for these departments to dynamically set the head
+    // Dynamically identify department heads/admins based on their permissions
+    // We look for users who have management permissions for these departments
     const User = (await import('../models/User')).default;
+    const Role = (await import('../models/Role')).default;
     const deptIds = departments.map(d => d._id);
+
+    // 1. Identify roles that represent "Department Admins" (manage permissions)
+    const adminRoles = await Role.find({
+      companyId: user.companyId || { $exists: true },
+      'permissions.module': 'DEPARTMENTS',
+      'permissions.actions': { $in: ['update', 'all', 'manage'] }
+    }).select('_id name');
+    const adminRoleIds = adminRoles.map(r => r._id);
+    const adminRoleNames = adminRoles.map(r => r.name);
+
+    // 2. Find users with those roles in the relevant departments
     const admins = await User.find({
+      companyId: user.companyId || { $exists: true }, // Ensure company match
       departmentId: { $in: deptIds },
-      role: UserRole.DEPARTMENT_ADMIN
+      $or: [
+        { customRoleId: { $in: adminRoleIds } },
+        { role: { $in: adminRoleNames } }
+      ]
     }).select('firstName lastName email phone departmentId');
 
     const departmentsWithHead = departments.map(d => {
@@ -219,10 +231,23 @@ router.get('/:id', requirePermission(Permission.READ_DEPARTMENT), async (req: Re
       return;
     }
 
+    // Dynamically identify department head based on permissions
+    const Role = (await import('../models/Role')).default;
+    const adminRoles = await Role.find({
+      companyId: department.companyId._id,
+      'permissions.module': 'DEPARTMENTS',
+      'permissions.actions': { $in: ['update', 'all', 'manage'] }
+    }).select('_id name');
+    const adminRoleIds = adminRoles.map(r => r._id);
+    const adminRoleNames = adminRoles.map(r => r.name);
+
     const User = (await import('../models/User')).default;
     const admin = await User.findOne({
       departmentId: department._id,
-      role: UserRole.DEPARTMENT_ADMIN
+      $or: [
+        { customRoleId: { $in: adminRoleIds } },
+        { role: { $in: adminRoleNames } }
+      ]
     }).select('firstName lastName email phone');
 
     const deptObj = department.toObject();

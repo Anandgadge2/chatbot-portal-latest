@@ -175,20 +175,27 @@ async function handleFlowCommand(
         return true;
 
       case 'BACK':
-        const prevId = session.data.previousStepId || session.data.currentStepId;
-        if (prevId) {
-          session.data.awaitingInput = undefined;
-          session.data.awaitingMedia = undefined;
-          session.data.buttonMapping = {};
-          session.data.listMapping = {};
-          session.data.fallbackAttempts = 0;
-          await updateSession(session);
-          const backEngine = new DynamicFlowEngine(flow, session, company, from);
-          await backEngine.executeStep(prevId);
-        } else {
-          const startEngine = new DynamicFlowEngine(flow, session, company, from);
-          await startEngine.executeStep(flow.startStepId);
-        }
+        const currentId = session.data.currentStepId;
+        const prevId = session.data.previousStepId;
+        
+        // If we have a previous step that isn't the current one, go there.
+        // Otherwise, if we're stuck, go to the start of the flow.
+        const targetId = (prevId && prevId !== currentId) ? prevId : flow.startStepId;
+        
+        console.log(`🔙 Back command: current=${currentId}, prev=${prevId} -> Target=${targetId}`);
+        
+        session.data.awaitingInput = undefined;
+        session.data.awaitingMedia = undefined;
+        session.data.buttonMapping = {};
+        session.data.listMapping = {};
+        session.data.fallbackAttempts = 0;
+        
+        // Important: clear currentStepId so executeStep doesn't think it's a repeat
+        session.data.currentStepId = undefined;
+        
+        await updateSession(session);
+        const backEngine = new DynamicFlowEngine(flow, session, company, from);
+        await backEngine.executeStep(targetId);
         return true;
 
       default:
@@ -313,11 +320,14 @@ export class DynamicFlowEngine {
     }
     if (!step) {
       console.error(`❌ Step ${stepId} not found in flow ${this.flow.flowId}`);
-      console.error(
-        `   Available steps: ${this.flow.steps.map((s) => s.stepId).join(", ")}`,
-      );
       await this.sendErrorMessage();
       return;
+    }
+
+    // SESSION TRACKING: Update previousStepId before changing currentStepId
+    const oldStepId = this.session.data.currentStepId;
+    if (oldStepId && oldStepId !== stepId) {
+      this.session.data.previousStepId = oldStepId;
     }
 
     // FIX: Force stepType for misconfigured nodes (e.g. start nodes saved as message by old builder versions)
@@ -2323,11 +2333,18 @@ export class DynamicFlowEngine {
             }
           }
 
-          const subDepartments = await Department.find({
-            parentDepartmentId: departmentId,
-            _id: { $ne: departmentId },
-            isActive: true,
-          });
+          // Check if hierarchical departments module is enabled
+          const hierarchicalEnabled = this.company.enabledModules?.includes(
+            "HIERARCHICAL_DEPARTMENTS",
+          );
+
+          const subDepartments = hierarchicalEnabled
+            ? await Department.find({
+                parentDepartmentId: departmentId,
+                _id: { $ne: departmentId },
+                isActive: true,
+              })
+            : [];
 
           if (subDepartments.length > 0) {
             console.log(
@@ -2894,12 +2911,7 @@ async function continueFlow(
   }
 
   // ── 1. Track previous step for 'back' command navigation
-  if (
-    session.data.currentStepId &&
-    session.data.currentStepId !== session.data.previousStepId
-  ) {
-    session.data.previousStepId = session.data.currentStepId;
-  }
+  // Handled inside executeStep now for more accuracy
 
   // ── 2. Date/Time selections (Special handlers)
   if (buttonId?.startsWith("date_") && session.data.dateMapping) {

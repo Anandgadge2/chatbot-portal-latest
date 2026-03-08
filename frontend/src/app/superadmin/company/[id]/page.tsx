@@ -24,6 +24,13 @@ import UserDetailsDialog from "@/components/user/UserDetailsDialog";
 import StatusUpdateModal from "@/components/grievance/StatusUpdateModal";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import RoleManagement from "@/components/roles/RoleManagement";
+import NotificationManagement from "@/components/superadmin/drilldown/NotificationManagement";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import toast from "react-hot-toast";
 import dynamic from "next/dynamic";
 import {
@@ -607,6 +614,12 @@ export default function CompanyDrillDown() {
             >
               Roles
             </TabsTrigger>
+            <TabsTrigger
+              value="notifications"
+              className="px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-700 transition-all border border-transparent data-[state=active]:border-indigo-100"
+            >
+              Notifications
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -678,6 +691,10 @@ export default function CompanyDrillDown() {
 
           <TabsContent value="roles" className="mt-0">
             <RoleManagement companyId={companyId} />
+          </TabsContent>
+
+          <TabsContent value="notifications" className="mt-0">
+            <NotificationManagement companyId={companyId} />
           </TabsContent>
         </Tabs>
       </main>

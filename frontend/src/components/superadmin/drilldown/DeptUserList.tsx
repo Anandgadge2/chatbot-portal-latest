@@ -136,8 +136,6 @@ const DeptUserList: React.FC<DeptUserListProps> = ({
             className="px-4 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
           >
             <option value="all">All Roles</option>
-            <option value="DEPARTMENT_ADMIN">Department Admin</option>
-            <option value="OPERATOR">Operator</option>
           </select>
           <select
             value={statusFilter}
@@ -300,18 +298,10 @@ const DeptUserList: React.FC<DeptUserListProps> = ({
                             className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
                               u.role === "SUPER_ADMIN"
                                 ? "bg-red-50 text-red-700 border-red-100"
-                                : u.role === "COMPANY_ADMIN"
-                                  ? "bg-blue-50 text-blue-700 border-blue-100"
-                                  : (u.role === "DEPARTMENT_ADMIN" && typeof u.departmentId === "object" && (u.departmentId as any)?.parentDepartmentId)
-                                    ? "bg-purple-50 text-purple-700 border-purple-100"
-                                    : u.role === "DEPARTMENT_ADMIN"
-                                      ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-                                      : u.role === "SUB_DEPARTMENT_ADMIN"
-                                        ? "bg-purple-50 text-purple-700 border-purple-100"
-                                        : "bg-slate-50 text-slate-700 border-slate-200"
+                                : "bg-emerald-50 text-emerald-700 border-emerald-100"
                             }`}
                           >
-                            {(u.role === "DEPARTMENT_ADMIN" && typeof u.departmentId === "object" && (u.departmentId as any)?.parentDepartmentId) ? "Sub Department Admin" : roleLabel}
+                            {u.role === "SUPER_ADMIN" ? "Super Admin" : roleLabel}
                           </span>
                         );
                       })()}

@@ -11,7 +11,7 @@ interface User {
   firstName: string;
   lastName: string;
   email: string;
-  role: string;
+  role?: string;
   departmentId?: {
     name: string;
   };
@@ -163,7 +163,7 @@ export default function AssignmentModal({
                         <p className="text-xs text-slate-500">{user.email}</p>
                         <div className="flex items-center gap-1.5 mt-0.5">
                           <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">
-                            {user.role.replace('_', ' ')}
+                            {(user.role || "CUSTOM").replace('_', ' ')}
                           </span>
                           {user.departmentId && (
                             <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
