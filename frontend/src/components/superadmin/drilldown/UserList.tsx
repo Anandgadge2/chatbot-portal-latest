@@ -5,6 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, Download } from "lucide-react";
 import { User, userAPI } from "@/lib/api/user";
+import { formatRoleLabel } from "@/lib/utils/roleLabel";
 import { RefreshCw, CheckSquare, Square, Trash2, AlertTriangle } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -196,7 +197,7 @@ export default function UserList({
                 const roleLabel =
                   typeof u.customRoleId === "object" && u.customRoleId
                     ? (u.customRoleId as any).name
-                    : (u.role || "").replace(/_/g, " ");
+                    : formatRoleLabel(u.role);
 
                 return (
                   <tr

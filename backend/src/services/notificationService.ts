@@ -330,11 +330,16 @@ async function getHierarchicalDepartmentAdmins(departmentId: any): Promise<any[]
       if (!dept) break;
 
       // Dynamically identify roles that have department management permissions
+      // NOTE: permission values are not consistently cased across deployments.
       const Role = (await import('../models/Role')).default;
       const adminRoles = await Role.find({
         companyId: dept.companyId,
-        'permissions.module': 'DEPARTMENTS',
-        'permissions.actions': { $in: ['update', 'all', 'manage'] }
+        permissions: {
+          $elemMatch: {
+            module: { $regex: /^departments$/i },
+            actions: { $in: ['update', 'all', 'manage', 'UPDATE', 'ALL', 'MANAGE'] }
+          }
+        }
       }).select('_id name');
       const adminRoleIds = adminRoles.map(r => r._id);
       const adminRoleNames = adminRoles.map(r => r.name);
@@ -392,8 +397,18 @@ export async function notifyDepartmentAdminOnCreation(
     const Role = (await import('../models/Role')).default;
     const companyAdminRoles = await Role.find({
       companyId: data.companyId,
-      'permissions.module': 'SETTINGS',
-      'permissions.actions': { $in: ['update', 'all', 'manage'] }
+      $or: [
+        {
+          permissions: {
+            $elemMatch: {
+              module: { $regex: /^settings$/i },
+              actions: { $in: ['update', 'all', 'manage', 'UPDATE', 'ALL', 'MANAGE'] }
+            }
+          }
+        },
+        { key: { $in: ['COMPANY_ADMIN', 'ADMIN', 'COMPANY_HEAD'] } },
+        { name: { $regex: /company\s*admin|admin|head|manager|supervisor/i } }
+      ]
     }).select('_id name');
     const companyAdminRoleIds = companyAdminRoles.map(r => r._id);
     const companyAdminRoleNames = companyAdminRoles.map(r => r.name);

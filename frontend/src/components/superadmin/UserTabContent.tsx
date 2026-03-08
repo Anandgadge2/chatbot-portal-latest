@@ -24,6 +24,7 @@ import {
 import { Pagination } from "@/components/ui/Pagination";
 import { User, userAPI } from "@/lib/api/user";
 import { Company } from "@/lib/api/company";
+import { formatRoleLabel } from "@/lib/utils/roleLabel";
 import toast from "react-hot-toast";
 
 function getRoleLabel(u: User): string {
@@ -31,7 +32,7 @@ function getRoleLabel(u: User): string {
     return (u.customRoleId as any).name;
   }
   
-  return (u.role || "").replace(/_/g, " ");
+  return formatRoleLabel(u.role);
 }
 
 function getRoleColor(role: string) {
