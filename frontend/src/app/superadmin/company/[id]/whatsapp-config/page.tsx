@@ -280,7 +280,6 @@ Grievance Details:
 🏢 *Sub-Dept:* {subDepartmentName}
 📝 *Description:*
 {description}
-
 📅 *Received On:* {formattedDate}
 
 *Action Required:*
@@ -305,12 +304,10 @@ Assignment Details:
 🏢 *Sub-Dept:* {subDepartmentName}
 📝 *Description:*
 {description}
-
 👨‍💼 *Assigned By:* {assignedByName}
 📅 *Assigned On:* {formattedDate}
 
 Please investigate and take required action.
-
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 *{companyName}*
 Digital Grievance Redressal System`,
@@ -328,11 +325,9 @@ Respected {citizenName},
 👨‍💼 *Resolved By:* {resolvedByName}
 📅 *Resolved On:* {formattedResolvedDate}
 ⏱️ *Resolution Time:* {resolutionTimeText}
-
 📝 *Remarks:* {remarks}
 
 Thank you for your patience.
-
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 *{companyName}*
 Digital Grievance Redressal System`,
@@ -350,11 +345,9 @@ Your grievance status has been updated.
 🏢 *Department:* {departmentName}
 🏢 *Sub-Dept:* {subDepartmentName}
 📊 *New Status:* {newStatus}
-
 📝 *Remarks:* {remarks}
 
 You will receive further updates via WhatsApp.
-
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 *{companyName}*
 Digital Grievance Redressal System`,
@@ -370,48 +363,44 @@ Appointment Details:
 👤 *Citizen Name:* {citizenName}
 📞 *Contact Number:* {citizenPhone}
 🎯 *Purpose:* {purpose}
-
 📅 *Received On:* {formattedDate}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 *{companyName}*
 Digital Appointment System`,
 
-  appointment_assigned: `*{companyName}*
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-👤 *APPOINTMENT ASSIGNED TO YOU*
+//   appointment_assigned: `*{companyName}*
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 👤 *APPOINTMENT ASSIGNED TO YOU*
 
-Respected {recipientName},
+// Respected {recipientName},
 
-🎫 *Reference ID:* {appointmentId}
-👤 *Citizen Name:* {citizenName}
-📞 *Contact Number:* {citizenPhone}
-🎯 *Purpose:* {purpose}
+// 🎫 *Reference ID:* {appointmentId}
+// 👤 *Citizen Name:* {citizenName}
+// 📞 *Contact Number:* {citizenPhone}
+// 🎯 *Purpose:* {purpose}
 
-👨‍💼 *Assigned By:* {assignedByName}
-📅 *Assigned On:* {formattedDate}
+// 👨‍💼 *Assigned By:* {assignedByName}
+// 📅 *Assigned On:* {formattedDate}
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-*{companyName}*
-Digital Appointment System`,
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// *{companyName}*
+// Digital Appointment System`,
 
-  appointment_resolved: `*{companyName}*
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✅ *APPOINTMENT COMPLETED*
+//   appointment_resolved: `*{companyName}*
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ✅ *APPOINTMENT COMPLETED*
 
-Respected {citizenName},
+// Respected {citizenName},
 
-🎫 *Reference ID:* {appointmentId}
-📊 *Status:* COMPLETED
-👨‍💼 *Completed By:* {resolvedByName}
-📅 *Completed On:* {formattedResolvedDate}
-⏱️ *Time Taken:* {resolutionTimeText}
-
-📝 *Remarks:* {remarks}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-*{companyName}*
-Digital Appointment System`,
+// 🎫 *Reference ID:* {appointmentId}
+// 📊 *Status:* COMPLETED
+// 👨‍💼 *Completed By:* {resolvedByName}
+// 📅 *Completed On:* {formattedResolvedDate}
+// 📝 *Remarks:* {remarks}
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// *{companyName}*
+// Digital Appointment System`,
 
   appointment_scheduled: `*{companyName}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -428,11 +417,9 @@ Your appointment has been scheduled.
 ⏰ *Time:* {appointmentTime}
 🎯 *Purpose:* {purpose}
 📊 *Status:* SCHEDULED
-
 📝 *Remarks:* {remarks}
 
 Please wait for final confirmation.
-
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 *{companyName}*
 Digital Appointment System`,
@@ -451,11 +438,9 @@ Your appointment has been confirmed.
 ⏰ *Time:* {appointmentTime}
 🎯 *Purpose:* {purpose}
 📊 *Status:* CONFIRMED
-
 📝 *Remarks:* {remarks}
 
 Please arrive 15 minutes early with valid ID.
-
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 *{companyName}*
 Digital Appointment System`,
@@ -473,11 +458,8 @@ We regret to inform you that your appointment has been cancelled.
 📅 *Date:* {appointmentDate}
 ⏰ *Time:* {appointmentTime}
 🎯 *Purpose:* {purpose}
-
 📝 *Remarks:* {remarks}
-
 We apologize for any inconvenience caused.
-
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 *{companyName}*
 Digital Appointment System`,
@@ -489,16 +471,13 @@ Digital Appointment System`,
 Respected {citizenName},
 
 Your appointment has been marked as completed.
-
 *Appointment Details:*
 🎫 *Ref No:* {appointmentId}
 📅 *Date:* {appointmentDate}
 ⏰ *Time:* {appointmentTime}
-
 📝 *Remarks:* {remarks}
 
 Thank you for visiting us. We hope your concern was addressed satisfactorily.
-
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 *{companyName}*
 Digital Appointment System`,
