@@ -170,9 +170,16 @@ UserSchema.pre('save', async function (next) {
     return next();
   }
 
+  // 🚀 Optimization: Skip hashing if the password already looks like a bcrypt hash
+  // This is particularly useful for bulk imports where we pre-hash common default passwords
+  const password = this.password as string;
+  if (password && (password.startsWith('$2a$') || password.startsWith('$2b$') || password.startsWith('$2y$'))) {
+    return next();
+  }
+
   try {
     const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password as string, salt);
+    this.password = await bcrypt.hash(password, salt);
     next();
   } catch (error: any) {
     next(error);

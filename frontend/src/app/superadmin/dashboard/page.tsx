@@ -110,14 +110,14 @@ export default function SuperAdminDashboard() {
   const [departmentPagination, setDepartmentPagination] = useState({
     total: 0,
     pages: 1,
-    limit: 10,
+    limit: 25,
   });
 
   const [userPage, setUserPage] = useState(1);
   const [userPagination, setUserPagination] = useState({
     total: 0,
     pages: 1,
-    limit: 10,
+    limit: 25,
   });
   const [visiblePasswords, setVisiblePasswords] = useState<string[]>([]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);

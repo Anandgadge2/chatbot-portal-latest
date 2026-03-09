@@ -155,11 +155,11 @@ export default function CompanyDrillDown() {
         waRes,
       ] = await Promise.all([
         companyAPI.getById(companyId),
-        departmentAPI.getAll({ companyId, limit: 15 }),
-        userAPI.getAll({ companyId, limit: 15 }),
+        departmentAPI.getAll({ companyId, limit: 25 }),
+        userAPI.getAll({ companyId, limit: 25 }),
         apiClient.get(`/analytics/dashboard?companyId=${companyId}`),
-        grievanceAPI.getAll({ companyId, limit: 15 }),
-        appointmentAPI.getAll({ companyId, limit: 15 }),
+        grievanceAPI.getAll({ companyId, limit: 25 }),
+        appointmentAPI.getAll({ companyId, limit: 25 }),
         apiClient.get(`/whatsapp-config/company/${companyId}`).catch(() => ({ success: false })),
       ]);
 
