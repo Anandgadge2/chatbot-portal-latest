@@ -61,9 +61,26 @@ export const importAPI = {
   },
 
   /**
+   * Import drilldown hierarchy (departments, sub-departments, admins, users)
+   */
+  importDrilldownHierarchy: async (file: File, companyId: string): Promise<ImportResult> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('companyId', companyId);
+
+    const response = await apiClient.post<ImportResult>('/import/drilldown-hierarchy', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    return response;
+  },
+
+  /**
    * Download import template
    */
-  downloadTemplate: async (type: 'companies' | 'departments' | 'users'): Promise<void> => {
+  downloadTemplate: async (type: 'companies' | 'departments' | 'users' | 'drilldown-hierarchy'): Promise<void> => {
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/import/template/${type}`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
