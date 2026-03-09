@@ -143,25 +143,23 @@ router.post(
         return 'DEPARTMENT_ADMIN';
       };
 
+      const newUsersToCreate: any[] = [];
+      const userUpdateOps: any[] = [];
+
+      // Step 1: Process Departments sequentially (cached) to resolve hierarchy
+      // and prepare User data for bulk processing
       for (let i = 0; i < data.length; i++) {
         const row = data[i] as Record<string, any>;
 
         try {
           const mainDepartmentName = getCellValue(row, [
-            'Department Name',
-            'Main Department',
-            'mainDepartment',
-            'Department'
+            'Department Name', 'Main Department', 'mainDepartment', 'Department'
           ]);
           const subDepartmentName = getCellValue(row, [
-            'Sub- Department Name',
-            'Sub Department Name',
-            'Sub Department',
-            'subDepartment'
+            'Sub- Department Name', 'Sub Department Name', 'Sub Department', 'subDepartment'
           ]);
           const departmentDescription = getCellValue(row, [
-            'Department Description',
-            'description'
+            'Department Description', 'description'
           ]);
           const officerName = getCellValue(row, ['Officer Name']);
           const designation = getCellValue(row, ['Designation']);
@@ -169,19 +167,11 @@ router.post(
           const phone = getCellValue(row, ['Whatsapp Number', 'WhatsApp Number', 'Admin WhatsApp', 'Phone']);
           const rowRole = getCellValue(row, ['Role ( Department Admin / Sub-Department Admin)', 'Role', 'User Role']);
 
-          if (!mainDepartmentName) {
-            throw new Error('Department Name is required');
-          }
+          if (!mainDepartmentName) throw new Error('Department Name is required');
+          if (!officerName) throw new Error('Officer Name is required');
+          if (!email && !phone) throw new Error('Either Email ID or Whatsapp Number is required');
 
-          if (!officerName) {
-            throw new Error('Officer Name is required');
-          }
-
-          if (!email && !phone) {
-            throw new Error('Either Email ID or Whatsapp Number is required');
-          }
-
-          // Use cache instead of findOne
+          // Process Main Department
           const mainKey = `main:${mainDepartmentName.toLowerCase()}`;
           let mainDepartment = deptCache.get(mainKey);
 
@@ -213,6 +203,7 @@ router.post(
 
           let targetDepartment = mainDepartment;
 
+          // Process Sub Department
           if (subDepartmentName) {
             const subKey = `sub:${mainDepartment._id}:${subDepartmentName.toLowerCase()}`;
             let subDepartment = deptCache.get(subKey);
@@ -245,20 +236,19 @@ router.post(
                 deptCache.set(subKey, subDepartment);
               }
             }
-
             targetDepartment = subDepartment;
           }
 
+          // Prepare User Data
           const { firstName, lastName } = splitOfficerName(officerName);
           const role = mapRole(rowRole, Boolean(subDepartmentName));
 
-          // Use cache instead of findOne for users
           let existingUser = null;
           if (email) existingUser = userCache.get(`email:${email.toLowerCase()}`);
           if (!existingUser && phone) existingUser = userCache.get(`phone:${phone}`);
 
           if (!existingUser) {
-            const newUser = await User.create({
+            newUsersToCreate.push({
               firstName,
               lastName,
               email: email ? email.toLowerCase() : undefined,
@@ -266,36 +256,68 @@ router.post(
               designation: designation || undefined,
               role,
               companyId,
-              departmentId: targetDepartment._id,
-              password: defaultPasswordHash,
-              rawPassword: '111111',
-              isActive: true
+              departmentId: targetDepartment._id
             });
-            if (email) userCache.set(`email:${email.toLowerCase()}`, newUser);
-            if (phone) userCache.set(`phone:${phone}`, newUser);
           } else {
-            let changed = false;
-            if (firstName && existingUser.firstName !== firstName) { existingUser.firstName = firstName; changed = true; }
-            if (lastName && existingUser.lastName !== lastName) { existingUser.lastName = lastName; changed = true; }
-            if (phone && existingUser.phone !== phone) { existingUser.phone = phone; changed = true; }
-            if (designation && existingUser.designation !== designation) { existingUser.designation = designation; changed = true; }
-            if (existingUser.role !== role) { existingUser.role = role; changed = true; }
-            if (String(existingUser.departmentId) !== String(targetDepartment._id)) { existingUser.departmentId = targetDepartment._id; changed = true; }
+            const changes: any = {};
+            if (firstName && existingUser.firstName !== firstName) changes.firstName = firstName;
+            if (lastName && existingUser.lastName !== lastName) changes.lastName = lastName;
+            if (phone && existingUser.phone !== phone) changes.phone = phone;
+            if (designation && existingUser.designation !== designation) changes.designation = designation;
+            if (existingUser.role !== role) changes.role = role;
+            if (String(existingUser.departmentId) !== String(targetDepartment._id)) changes.departmentId = targetDepartment._id;
             
-            if (changed) {
-              await existingUser.save();
-              if (email) userCache.set(`email:${email.toLowerCase()}`, existingUser);
-              if (phone) userCache.set(`phone:${phone}`, existingUser);
+            if (Object.keys(changes).length > 0) {
+              changes.updatedAt = new Date();
+              userUpdateOps.push({
+                updateOne: {
+                  filter: { _id: existingUser._id },
+                  update: { $set: changes }
+                }
+              });
+            } else {
+              results.success++; // No changes needed, still counts as success
             }
           }
-
-          results.success++;
         } catch (error: any) {
           results.failed++;
-          results.errors.push({
-            row: i + 2,
-            error: error.message
-          });
+          results.errors.push({ row: i + 2, error: error.message });
+        }
+      }
+
+      // Step 2: Bulk Create Users
+      if (newUsersToCreate.length > 0) {
+        try {
+          const { getNextUserIdBatch } = await import('../utils/idGenerator');
+          let currentIdNum = await getNextUserIdBatch(newUsersToCreate.length, companyId as any);
+          
+          const now = new Date();
+          const userDocs = newUsersToCreate.map(u => ({
+            ...u,
+            userId: `USER${String(currentIdNum++).padStart(6, '0')}`,
+            password: defaultPasswordHash,
+            rawPassword: '111111',
+            isActive: true,
+            createdAt: now,
+            updatedAt: now
+          }));
+
+          await User.insertMany(userDocs, { ordered: false });
+          results.success += userDocs.length;
+        } catch (error: any) {
+          results.failed += newUsersToCreate.length;
+          results.errors.push({ row: 0, error: `Bulk create failed: ${error.message}` });
+        }
+      }
+
+      // Step 3: Bulk Update Users
+      if (userUpdateOps.length > 0) {
+        try {
+          await User.bulkWrite(userUpdateOps, { ordered: false });
+          results.success += userUpdateOps.length;
+        } catch (error: any) {
+          results.failed += userUpdateOps.length;
+          results.errors.push({ row: 0, error: `Bulk update failed: ${error.message}` });
         }
       }
 
@@ -448,49 +470,68 @@ router.post(
         errors: [] as Array<{ row: number; error: string }>
       };
 
+      const deptOps: any[] = [];
+      const newDepts: any[] = [];
+      
       for (let i = 0; i < data.length; i++) {
         const row = data[i] as any;
         try {
           let targetCompanyId = row.companyId;
 
-          // Non-SuperAdmin can only import for their company
           if (currentUser.role !== UserRole.SUPER_ADMIN) {
             targetCompanyId = currentUser.companyId?.toString();
           }
 
-          if (!targetCompanyId) {
-            throw new Error('Company ID is required');
-          }
+          if (!targetCompanyId) throw new Error('Company ID is required');
 
-          const deptKey = `${targetCompanyId}:${(row.name || row.departmentName || '').toLowerCase()}`;
+          const deptName = row.name || row.departmentName || '';
+          const deptKey = `${targetCompanyId}:${deptName.toLowerCase()}`;
           const existingDept = deptCache.get(deptKey);
 
           if (existingDept) {
-            existingDept.description = row.description || existingDept.description;
-            existingDept.contactPerson = row.contactPerson || existingDept.contactPerson;
-            existingDept.contactEmail = row.contactEmail || existingDept.contactEmail;
-            existingDept.contactPhone = row.contactPhone || existingDept.contactPhone;
-            await existingDept.save();
+            const changes: any = {};
+            if (row.description) changes.description = row.description;
+            if (row.contactPerson) changes.contactPerson = row.contactPerson;
+            if (row.contactEmail) changes.contactEmail = row.contactEmail;
+            if (row.contactPhone) changes.contactPhone = row.contactPhone;
+            
+            if (Object.keys(changes).length > 0) {
+              changes.updatedAt = new Date();
+              deptOps.push({
+                updateOne: {
+                  filter: { _id: existingDept._id },
+                  update: { $set: changes }
+                }
+              });
+            } else {
+              results.success++;
+            }
           } else {
-            const newDept = await Department.create({
+            newDepts.push({
               companyId: targetCompanyId,
-              name: row.name || row.departmentName,
+              name: deptName,
               description: row.description,
               contactPerson: row.contactPerson,
               contactEmail: row.contactEmail,
-              contactPhone: row.contactPhone
+              contactPhone: row.contactPhone,
+              isActive: true,
+              createdAt: new Date(),
+              updatedAt: new Date()
             });
-            deptCache.set(deptKey, newDept);
           }
-
-          results.success++;
         } catch (error: any) {
           results.failed++;
-          results.errors.push({
-            row: i + 2,
-            error: error.message
-          });
+          results.errors.push({ row: i + 2, error: error.message });
         }
+      }
+
+      if (newDepts.length > 0) {
+        await Department.insertMany(newDepts, { ordered: false });
+        results.success += newDepts.length;
+      }
+      if (deptOps.length > 0) {
+        await Department.bulkWrite(deptOps, { ordered: false });
+        results.success += deptOps.length;
       }
 
       await logUserAction(
@@ -567,13 +608,15 @@ router.post(
         errors: [] as Array<{ row: number; error: string }>
       };
 
+      const newUsersToCreate: any[] = [];
+      const userUpdateOps: any[] = [];
+
       for (let i = 0; i < data.length; i++) {
         const row = data[i] as any;
         try {
           let companyId = row.companyId;
           let departmentId = row.departmentId;
 
-          // Scope validation
           if (currentUser.departmentId) {
              companyId = currentUser.companyId?.toString();
              departmentId = currentUser.departmentId?.toString();
@@ -583,14 +626,12 @@ router.post(
 
           if (!companyId) throw new Error('Company ID is required');
 
-          // Resolve departmentId if name is provided
           if (!departmentId && (row.department || row.departmentName)) {
             const deptName = row.department || row.departmentName;
             const dept = deptCache.get(`${companyId}:${deptName.toLowerCase()}`);
             if (dept) departmentId = dept._id;
           }
 
-          // Check for existing user
           let existingUser = null;
           if (row.email) existingUser = userCache.get(`${companyId}:email:${row.email.toLowerCase()}`);
           if (!existingUser && row.phone) existingUser = userCache.get(`${companyId}:phone:${row.phone}`);
@@ -603,40 +644,60 @@ router.post(
           }
 
           if (existingUser) {
-            existingUser.firstName = row.firstName || row.first_name || existingUser.firstName;
-            existingUser.lastName = row.lastName || row.last_name || existingUser.lastName;
-            existingUser.designation = row.designation || existingUser.designation;
-            existingUser.role = row.role || existingUser.role;
-            existingUser.departmentId = departmentId || existingUser.departmentId;
-            existingUser.password = hashedPassword;
-            existingUser.rawPassword = rawPassword;
-            await existingUser.save();
+            const changes: any = {};
+            if (row.firstName || row.first_name) changes.firstName = row.firstName || row.first_name;
+            if (row.lastName || row.last_name) changes.lastName = row.lastName || row.last_name;
+            if (row.designation) changes.designation = row.designation;
+            if (row.role) changes.role = row.role;
+            if (departmentId && String(existingUser.departmentId) !== String(departmentId)) changes.departmentId = departmentId;
+            changes.password = hashedPassword;
+            changes.rawPassword = rawPassword;
+            changes.updatedAt = new Date();
+
+            userUpdateOps.push({
+              updateOne: {
+                filter: { _id: existingUser._id },
+                update: { $set: changes }
+              }
+            });
           } else {
-            const newUser = await User.create({
+            newUsersToCreate.push({
               firstName: row.firstName || row.first_name,
               lastName: row.lastName || row.last_name,
-              email: row.email,
-              password: hashedPassword,
-              rawPassword: rawPassword,
+              email: row.email ? row.email.toLowerCase() : undefined,
               phone: row.phone,
               designation: row.designation,
-              role: row.role,
+              role: row.role || 'CUSTOM',
               companyId,
               departmentId,
+              password: hashedPassword,
+              rawPassword: rawPassword,
               isActive: row.isActive !== false
             });
-            if (row.email) userCache.set(`${companyId}:email:${row.email.toLowerCase()}`, newUser);
-            if (row.phone) userCache.set(`${companyId}:phone:${row.phone}`, newUser);
           }
-
-          results.success++;
         } catch (error: any) {
           results.failed++;
-          results.errors.push({
-            row: i + 2,
-            error: error.message
-          });
+          results.errors.push({ row: i + 2, error: error.message });
         }
+      }
+
+      if (newUsersToCreate.length > 0) {
+        const { getNextUserIdBatch } = await import('../utils/idGenerator');
+        let currentIdNum = await getNextUserIdBatch(newUsersToCreate.length, searchCompanyId as any);
+        const now = new Date();
+        const docs = newUsersToCreate.map(u => ({
+          ...u,
+          userId: `USER${String(currentIdNum++).padStart(6, '0')}`,
+          createdAt: now,
+          updatedAt: now
+        }));
+        await User.insertMany(docs, { ordered: false });
+        results.success += docs.length;
+      }
+
+      if (userUpdateOps.length > 0) {
+        await User.bulkWrite(userUpdateOps, { ordered: false });
+        results.success += userUpdateOps.length;
       }
 
       await logUserAction(

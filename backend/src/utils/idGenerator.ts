@@ -56,6 +56,26 @@ export async function getNextUserId(companyId?: mongoose.Types.ObjectId): Promis
 }
 
 /**
+ * Atomically generate a batch of sequential IDs for users (per-company)
+ * Returns the starting number of the reserved range
+ */
+export async function getNextUserIdBatch(count: number, companyId?: mongoose.Types.ObjectId): Promise<number> {
+  if (count <= 0) return 0;
+  
+  const query = companyId 
+    ? { name: 'user', companyId }
+    : { name: 'user', companyId: { $exists: false } };
+  
+  const result = await Counter.findOneAndUpdate(
+    query,
+    { $inc: { value: count } },
+    { upsert: true, new: true }
+  );
+
+  return result.value - (count - 1);
+}
+
+/**
  * Initialize counters from existing data (migration helper)
  * Now supports per-company counters
  */
