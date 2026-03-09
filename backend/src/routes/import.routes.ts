@@ -13,6 +13,16 @@ import bcrypt from 'bcryptjs';
 
 const router = express.Router();
 
+const getCellValue = (row: Record<string, any>, keys: string[]): string => {
+  for (const key of keys) {
+    const value = row[key];
+    if (value !== undefined && value !== null && String(value).trim() !== '') {
+      return String(value).trim();
+    }
+  }
+  return '';
+};
+
 // Configure multer for file uploads
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -40,6 +50,215 @@ router.use(authenticate);
 // @route   POST /api/import/companies
 // @desc    Import companies from Excel (SuperAdmin only)
 // @access  Private/SuperAdmin
+router.post(
+  '/drilldown-hierarchy',
+  requirePermission(Permission.IMPORT_DATA),
+  upload.single('file'),
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const currentUser = req.user!;
+
+      if (currentUser.role === UserRole.SUPER_ADMIN && !req.body.companyId) {
+        res.status(400).json({
+          success: false,
+          message: 'companyId is required for SuperAdmin imports'
+        });
+        return;
+      }
+
+      if (!req.file) {
+        res.status(400).json({
+          success: false,
+          message: 'No file uploaded'
+        });
+        return;
+      }
+
+      const companyId = currentUser.role === UserRole.SUPER_ADMIN
+        ? req.body.companyId
+        : currentUser.companyId?.toString();
+
+      if (!companyId) {
+        res.status(400).json({
+          success: false,
+          message: 'Unable to resolve company for import'
+        });
+        return;
+      }
+
+      const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const data = XLSX.utils.sheet_to_json(worksheet);
+
+      const results = {
+        total: data.length,
+        success: 0,
+        failed: 0,
+        errors: [] as Array<{ row: number; error: string }>
+      };
+
+      for (let i = 0; i < data.length; i++) {
+        const row = data[i] as Record<string, any>;
+
+        try {
+          const mainDepartmentName = getCellValue(row, ['Main Department', 'mainDepartment', 'Department']);
+          const subDepartmentName = getCellValue(row, ['Sub Department', 'subDepartment']);
+          const departmentDescription = getCellValue(row, ['Department Description', 'description']);
+
+          if (!mainDepartmentName) {
+            throw new Error('Main Department is required');
+          }
+
+          let mainDepartment = await Department.findOne({
+            companyId,
+            parentDepartmentId: null,
+            name: new RegExp(`^${mainDepartmentName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i')
+          });
+
+          if (!mainDepartment) {
+            mainDepartment = await Department.create({
+              companyId,
+              name: mainDepartmentName,
+              description: departmentDescription || undefined,
+              isActive: true
+            });
+          } else if (departmentDescription && !mainDepartment.description) {
+            mainDepartment.description = departmentDescription;
+            await mainDepartment.save();
+          }
+
+          let targetDepartment = mainDepartment;
+
+          if (subDepartmentName) {
+            let subDepartment = await Department.findOne({
+              companyId,
+              parentDepartmentId: mainDepartment._id,
+              name: new RegExp(`^${subDepartmentName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i')
+            });
+
+            if (!subDepartment) {
+              subDepartment = await Department.create({
+                companyId,
+                parentDepartmentId: mainDepartment._id,
+                name: subDepartmentName,
+                description: departmentDescription || undefined,
+                isActive: true
+              });
+            } else if (departmentDescription && !subDepartment.description) {
+              subDepartment.description = departmentDescription;
+              await subDepartment.save();
+            }
+
+            targetDepartment = subDepartment;
+          }
+
+          const upsertUser = async (params: {
+            firstName: string;
+            lastName: string;
+            email: string;
+            phone: string;
+            designation: string;
+            role: string;
+            defaultPassword: string;
+          }) => {
+            const { firstName, lastName, email, phone, designation, role, defaultPassword } = params;
+
+            if (!firstName || (!email && !phone)) {
+              return;
+            }
+
+            const userQuery: any = { companyId };
+            if (email) {
+              userQuery.email = email.toLowerCase();
+            } else {
+              userQuery.phone = phone;
+            }
+
+            const existingUser = await User.findOne(userQuery).select('+password');
+
+            if (!existingUser) {
+              await User.create({
+                firstName,
+                lastName: lastName || '-',
+                email: email || undefined,
+                phone,
+                designation: designation || undefined,
+                role,
+                companyId,
+                departmentId: targetDepartment._id,
+                password: defaultPassword,
+                rawPassword: defaultPassword,
+                isActive: true
+              });
+              return;
+            }
+
+            existingUser.firstName = firstName || existingUser.firstName;
+            existingUser.lastName = lastName || existingUser.lastName;
+            existingUser.phone = phone || existingUser.phone;
+            existingUser.designation = designation || existingUser.designation;
+            existingUser.role = role || existingUser.role;
+            existingUser.departmentId = targetDepartment._id;
+            if (email) {
+              existingUser.email = email.toLowerCase();
+            }
+            await existingUser.save();
+          };
+
+          await upsertUser({
+            firstName: getCellValue(row, ['Admin First Name', 'adminFirstName']),
+            lastName: getCellValue(row, ['Admin Last Name', 'adminLastName']),
+            email: getCellValue(row, ['Admin Email', 'adminEmail']),
+            phone: getCellValue(row, ['Admin WhatsApp', 'Admin Phone', 'adminPhone']),
+            designation: getCellValue(row, ['Admin Designation', 'adminDesignation']),
+            role: 'DEPARTMENT_ADMIN',
+            defaultPassword: 'TempAdmin123!'
+          });
+
+          await upsertUser({
+            firstName: getCellValue(row, ['User First Name', 'userFirstName']),
+            lastName: getCellValue(row, ['User Last Name', 'userLastName']),
+            email: getCellValue(row, ['User Email', 'userEmail']),
+            phone: getCellValue(row, ['User WhatsApp', 'User Phone', 'userPhone']),
+            designation: getCellValue(row, ['User Designation', 'userDesignation']),
+            role: getCellValue(row, ['User Role', 'userRole']) || 'STAFF',
+            defaultPassword: 'TempUser123!'
+          });
+
+          results.success++;
+        } catch (error: any) {
+          results.failed++;
+          results.errors.push({
+            row: i + 2,
+            error: error.message
+          });
+        }
+      }
+
+      await logUserAction(
+        req,
+        AuditAction.IMPORT,
+        'DrilldownHierarchy',
+        'bulk',
+        { total: results.total, success: results.success, failed: results.failed, companyId }
+      );
+
+      res.json({
+        success: true,
+        message: `Import completed: ${results.success} succeeded, ${results.failed} failed`,
+        data: results
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to import hierarchy data',
+        error: error.message
+      });
+    }
+  }
+);
+
 router.post(
   '/companies',
   requirePermission(Permission.IMPORT_DATA),
@@ -363,6 +582,44 @@ router.get('/template/:type', requirePermission(Permission.IMPORT_DATA), async (
             role: 'Staff',
             companyId: 'COMPANY_ID_HERE',
             departmentId: 'DEPARTMENT_ID_HERE'
+          }
+        ];
+        break;
+      case 'drilldown-hierarchy':
+        template = [
+          {
+            'Sr.No': 1,
+            'Main Department': 'Finance',
+            'Sub Department': 'Accounts Receivable',
+            'Department Description': 'Handles all receivable accounting and ledger verification',
+            'Admin First Name': 'John',
+            'Admin Last Name': 'Doe',
+            'Admin Email': 'john.doe@example.com',
+            'Admin WhatsApp': '919876543210',
+            'Admin Designation': 'Finance Manager',
+            'User First Name': 'Amit',
+            'User Last Name': 'Shah',
+            'User Email': 'amit.shah@example.com',
+            'User WhatsApp': '919000001111',
+            'User Designation': 'Executive',
+            'User Role': 'STAFF'
+          },
+          {
+            'Sr.No': 2,
+            'Main Department': 'Operations',
+            'Sub Department': 'Field Unit',
+            'Department Description': 'On-ground execution and regional support',
+            'Admin First Name': 'Jane',
+            'Admin Last Name': 'Smith',
+            'Admin Email': 'jane.smith@example.com',
+            'Admin WhatsApp': '919123456789',
+            'Admin Designation': 'Operations Head',
+            'User First Name': 'Ravi',
+            'User Last Name': 'Kumar',
+            'User Email': 'ravi.kumar@example.com',
+            'User WhatsApp': '919222334455',
+            'User Designation': 'Field Officer',
+            'User Role': 'STAFF'
           }
         ];
         break;

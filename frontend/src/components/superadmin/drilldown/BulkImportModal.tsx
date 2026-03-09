@@ -9,10 +9,8 @@ import {
   Download,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
-import { departmentAPI } from "@/lib/api/department";
-import { userAPI } from "@/lib/api/user";
+import { importAPI } from "@/lib/api/import";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 interface BulkImportModalProps {
@@ -37,31 +35,9 @@ export default function BulkImportModal({
   if (!isOpen) return null;
 
   const downloadTemplate = () => {
-    const templateData = [
-      {
-        "Main Department": "Finance",
-        "Sub Department": "Accounts Receivable",
-        "Admin First Name": "John",
-        "Admin Last Name": "Doe",
-        "Admin Email": "john.doe@example.com",
-        "Admin WhatsApp": "911234567890",
-        "Admin Designation": "Finance Manager",
-      },
-      {
-        "Main Department": "Operations",
-        "Sub Department": "",
-        "Admin First Name": "Jane",
-        "Admin Last Name": "Smith",
-        "Admin Email": "jane.smith@example.com",
-        "Admin WhatsApp": "910987654321",
-        "Admin Designation": "Operations Head",
-      },
-    ];
-
-    const ws = XLSX.utils.json_to_sheet(templateData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Import Template");
-    XLSX.writeFile(wb, "department_import_template.xlsx");
+    importAPI
+      .downloadTemplate("drilldown-hierarchy")
+      .catch(() => toast.error("Failed to download sample template"));
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -77,124 +53,29 @@ export default function BulkImportModal({
     }
 
     setImporting(true);
-    setProgress(0);
+    setProgress(30);
+    setCurrentRow(0);
+    setTotalRows(0);
 
     try {
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: "array" });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+      const response = await importAPI.importDrilldownHierarchy(file, companyId);
+      setProgress(100);
+      setTotalRows(response.data.total);
+      setCurrentRow(response.data.total);
 
-        if (jsonData.length === 0) {
-          toast.error("Excel file is empty");
-          setImporting(false);
-          return;
-        }
+      toast.success(
+        `Import complete! ${response.data.success} successful, ${response.data.failed} failed.`,
+      );
 
-        setTotalRows(jsonData.length);
-        let successCount = 0;
-        let failCount = 0;
+      if (response.data.failed > 0) {
+        console.warn("Import row errors:", response.data.errors);
+      }
 
-        for (let i = 0; i < jsonData.length; i++) {
-          setCurrentRow(i + 1);
-          const row: any = jsonData[i];
-          const mainDeptName = row["Main Department"];
-          const subDeptName = row["Sub Department"];
-          const firstName = row["Admin First Name"];
-          const lastName = row["Admin Last Name"];
-          const email = row["Admin Email"];
-          const phone = row["Admin WhatsApp"];
-          const designation = row["Admin Designation"];
-          const password = "111111";
-
-          if (!mainDeptName || !firstName || !email) {
-            failCount++;
-            continue;
-          }
-
-          try {
-            const deptSearch = await departmentAPI.getAll({
-              companyId,
-              search: mainDeptName,
-            });
-            let mainDeptId = "";
-
-            const existingMain = deptSearch.data.departments.find(
-              (d: any) =>
-                d.name.toLowerCase() === mainDeptName.toLowerCase() &&
-                !d.parentDepartmentId,
-            );
-
-            if (existingMain) {
-              mainDeptId = existingMain._id;
-            } else {
-              const newMain = await departmentAPI.create({
-                name: mainDeptName,
-                companyId: companyId,
-              });
-              mainDeptId = newMain.data.department._id;
-            }
-
-            let finalDeptId = mainDeptId;
-            if (subDeptName && subDeptName.trim()) {
-              const subDeptSearch = await departmentAPI.getAll({
-                companyId,
-                search: subDeptName,
-              });
-              const existingSub = subDeptSearch.data.departments.find(
-                (d: any) =>
-                  d.name.toLowerCase() === subDeptName.toLowerCase() &&
-                  (typeof d.parentDepartmentId === "string"
-                    ? d.parentDepartmentId
-                    : (d.parentDepartmentId as any)?._id) === mainDeptId,
-              );
-
-              if (existingSub) {
-                finalDeptId = existingSub._id;
-              } else {
-                const newSub = await departmentAPI.create({
-                  name: subDeptName,
-                  companyId: companyId,
-                  parentDepartmentId: mainDeptId,
-                });
-                finalDeptId = newSub.data.department._id;
-              }
-            }
-
-            await userAPI.create({
-              firstName,
-              lastName,
-              email,
-              password,
-              phone: phone?.toString(),
-              designation: designation?.toString(),
-              role: "DEPARTMENT_ADMIN",
-              companyId,
-              departmentId: finalDeptId,
-            });
-
-            successCount++;
-          } catch (err) {
-            console.error(`Row ${i + 1} failed:`, err);
-            failCount++;
-          }
-
-          setProgress(Math.round(((i + 1) / jsonData.length) * 100));
-        }
-
-        toast.success(
-          `Import complete! ${successCount} successful, ${failCount} failed.`,
-        );
-        setImporting(false);
-        onSuccess();
-        onClose();
-      };
-      reader.readAsArrayBuffer(file);
+      setImporting(false);
+      onSuccess();
+      onClose();
     } catch (error) {
-      toast.error("Failed to parse Excel file");
+      toast.error("Import failed. Please check the template and try again.");
       setImporting(false);
     }
   };
@@ -266,9 +147,9 @@ export default function BulkImportModal({
                     Pro Tip
                   </p>
                   <p className="text-xs text-indigo-700 leading-relaxed">
-                    Download our sample template to ensure your headers match.
-                    The system will automatically link admins to their
-                    departments.
+                    Download the sample sheet to import main/sub departments,
+                    their admins and users with email, phone, designation,
+                    serial number and description in one upload.
                   </p>
                   <button
                     onClick={downloadTemplate}
