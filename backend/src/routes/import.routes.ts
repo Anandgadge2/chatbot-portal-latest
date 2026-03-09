@@ -98,22 +98,74 @@ router.post(
         errors: [] as Array<{ row: number; error: string }>
       };
 
+      const splitOfficerName = (fullName: string) => {
+        const normalized = String(fullName || '').trim().replace(/\s+/g, ' ');
+        if (!normalized) return { firstName: '', lastName: '-' };
+        const parts = normalized.split(' ');
+        if (parts.length === 1) return { firstName: parts[0], lastName: '-' };
+        return { firstName: parts.slice(0, -1).join(' '), lastName: parts[parts.length - 1] };
+      };
+
+      const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+      const mapRole = (rawRole: string, hasSubDepartment: boolean) => {
+        const normalized = String(rawRole || '').toLowerCase();
+        if (normalized.includes('sub') && normalized.includes('admin')) {
+          return 'SUB_DEPARTMENT_ADMIN';
+        }
+        if (normalized.includes('dept') && normalized.includes('admin')) {
+          return 'DEPARTMENT_ADMIN';
+        }
+        if (normalized.includes('admin')) {
+          return hasSubDepartment ? 'SUB_DEPARTMENT_ADMIN' : 'DEPARTMENT_ADMIN';
+        }
+        return 'DEPARTMENT_ADMIN';
+      };
+
       for (let i = 0; i < data.length; i++) {
         const row = data[i] as Record<string, any>;
 
         try {
-          const mainDepartmentName = getCellValue(row, ['Main Department', 'mainDepartment', 'Department']);
-          const subDepartmentName = getCellValue(row, ['Sub Department', 'subDepartment']);
-          const departmentDescription = getCellValue(row, ['Department Description', 'description']);
+          const mainDepartmentName = getCellValue(row, [
+            'Department Name',
+            'Main Department',
+            'mainDepartment',
+            'Department'
+          ]);
+          const subDepartmentName = getCellValue(row, [
+            'Sub- Department Name',
+            'Sub Department Name',
+            'Sub Department',
+            'subDepartment'
+          ]);
+          const departmentDescription = getCellValue(row, [
+            'Department Description',
+            'description'
+          ]);
+          const officerName = getCellValue(row, ['Officer Name']);
+          const designation = getCellValue(row, ['Designation']);
+          const email = getCellValue(row, ['Email ID', 'Email', 'email']);
+          const phone = getCellValue(row, ['Whatsapp Number', 'WhatsApp Number', 'Admin WhatsApp', 'Phone']);
+          const rowRole = getCellValue(row, ['Role ( Department Admin / Sub-Department Admin)', 'Role', 'User Role']);
 
           if (!mainDepartmentName) {
-            throw new Error('Main Department is required');
+            throw new Error('Department Name is required');
           }
+
+          if (!officerName) {
+            throw new Error('Officer Name is required');
+          }
+
+          if (!email && !phone) {
+            throw new Error('Either Email ID or Whatsapp Number is required');
+          }
+
+          const mainNameRegex = new RegExp(`^${escapeRegExp(mainDepartmentName)}$`, 'i');
 
           let mainDepartment = await Department.findOne({
             companyId,
             parentDepartmentId: null,
-            name: new RegExp(`^${mainDepartmentName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i')
+            name: mainNameRegex
           });
 
           if (!mainDepartment) {
@@ -123,18 +175,26 @@ router.post(
               description: departmentDescription || undefined,
               isActive: true
             });
-          } else if (departmentDescription && !mainDepartment.description) {
-            mainDepartment.description = departmentDescription;
+          } else {
+            if (departmentDescription && !mainDepartment.description) {
+              mainDepartment.description = departmentDescription;
+            }
+            if (!subDepartmentName) {
+              mainDepartment.contactPerson = officerName;
+              mainDepartment.contactEmail = email || mainDepartment.contactEmail;
+              mainDepartment.contactPhone = phone || mainDepartment.contactPhone;
+            }
             await mainDepartment.save();
           }
 
           let targetDepartment = mainDepartment;
 
           if (subDepartmentName) {
+            const subNameRegex = new RegExp(`^${escapeRegExp(subDepartmentName)}$`, 'i');
             let subDepartment = await Department.findOne({
               companyId,
               parentDepartmentId: mainDepartment._id,
-              name: new RegExp(`^${subDepartmentName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i')
+              name: subNameRegex
             });
 
             if (!subDepartment) {
@@ -143,88 +203,67 @@ router.post(
                 parentDepartmentId: mainDepartment._id,
                 name: subDepartmentName,
                 description: departmentDescription || undefined,
+                contactPerson: officerName,
+                contactEmail: email || undefined,
+                contactPhone: phone || undefined,
                 isActive: true
               });
-            } else if (departmentDescription && !subDepartment.description) {
-              subDepartment.description = departmentDescription;
+            } else {
+              if (departmentDescription && !subDepartment.description) {
+                subDepartment.description = departmentDescription;
+              }
+              subDepartment.contactPerson = officerName;
+              subDepartment.contactEmail = email || subDepartment.contactEmail;
+              subDepartment.contactPhone = phone || subDepartment.contactPhone;
               await subDepartment.save();
             }
 
             targetDepartment = subDepartment;
+          } else if (!mainDepartment.contactPerson || !mainDepartment.contactEmail || !mainDepartment.contactPhone) {
+            mainDepartment.contactPerson = officerName;
+            mainDepartment.contactEmail = email || mainDepartment.contactEmail;
+            mainDepartment.contactPhone = phone || mainDepartment.contactPhone;
+            await mainDepartment.save();
           }
 
-          const upsertUser = async (params: {
-            firstName: string;
-            lastName: string;
-            email: string;
-            phone: string;
-            designation: string;
-            role: string;
-            defaultPassword: string;
-          }) => {
-            const { firstName, lastName, email, phone, designation, role, defaultPassword } = params;
+          const { firstName, lastName } = splitOfficerName(officerName);
+          const role = mapRole(rowRole, Boolean(subDepartmentName));
 
-            if (!firstName || (!email && !phone)) {
-              return;
-            }
+          const userQuery: any = { companyId };
+          if (email) {
+            userQuery.email = email.toLowerCase();
+          } else {
+            userQuery.phone = phone;
+          }
 
-            const userQuery: any = { companyId };
-            if (email) {
-              userQuery.email = email.toLowerCase();
-            } else {
-              userQuery.phone = phone;
-            }
+          const existingUser = await User.findOne(userQuery).select('+password');
 
-            const existingUser = await User.findOne(userQuery).select('+password');
-
-            if (!existingUser) {
-              await User.create({
-                firstName,
-                lastName: lastName || '-',
-                email: email || undefined,
-                phone,
-                designation: designation || undefined,
-                role,
-                companyId,
-                departmentId: targetDepartment._id,
-                password: defaultPassword,
-                rawPassword: defaultPassword,
-                isActive: true
-              });
-              return;
-            }
-
+          if (!existingUser) {
+            await User.create({
+              firstName,
+              lastName,
+              email: email ? email.toLowerCase() : undefined,
+              phone,
+              designation: designation || undefined,
+              role,
+              companyId,
+              departmentId: targetDepartment._id,
+              password: 'TempAdmin123!',
+              rawPassword: 'TempAdmin123!',
+              isActive: true
+            });
+          } else {
             existingUser.firstName = firstName || existingUser.firstName;
             existingUser.lastName = lastName || existingUser.lastName;
             existingUser.phone = phone || existingUser.phone;
             existingUser.designation = designation || existingUser.designation;
-            existingUser.role = role || existingUser.role;
+            existingUser.role = role;
             existingUser.departmentId = targetDepartment._id;
             if (email) {
               existingUser.email = email.toLowerCase();
             }
             await existingUser.save();
-          };
-
-          await upsertUser({
-            firstName: getCellValue(row, ['Admin First Name', 'adminFirstName']),
-            lastName: getCellValue(row, ['Admin Last Name', 'adminLastName']),
-            email: getCellValue(row, ['Admin Email', 'adminEmail']),
-            phone: getCellValue(row, ['Admin WhatsApp', 'Admin Phone', 'adminPhone']),
-            designation: getCellValue(row, ['Admin Designation', 'adminDesignation']),
-            role: 'DEPARTMENT_ADMIN',
-            defaultPassword: 'TempAdmin123!'
-          });
-
-          await upsertUser({
-            firstName: getCellValue(row, ['User First Name', 'userFirstName']),
-            lastName: getCellValue(row, ['User Last Name', 'userLastName']),
-            email: getCellValue(row, ['User Email', 'userEmail']),
-            phone: getCellValue(row, ['User WhatsApp', 'User Phone', 'userPhone']),
-            designation: getCellValue(row, ['User Designation', 'userDesignation']),
-            role: getCellValue(row, ['User Role', 'userRole']) || 'STAFF',
-            defaultPassword: 'TempUser123!'
-          });
+          }
 
           results.success++;
         } catch (error: any) {
@@ -589,37 +628,25 @@ router.get('/template/:type', requirePermission(Permission.IMPORT_DATA), async (
         template = [
           {
             'Sr.No': 1,
-            'Main Department': 'Finance',
-            'Sub Department': 'Accounts Receivable',
-            'Department Description': 'Handles all receivable accounting and ledger verification',
-            'Admin First Name': 'John',
-            'Admin Last Name': 'Doe',
-            'Admin Email': 'john.doe@example.com',
-            'Admin WhatsApp': '919876543210',
-            'Admin Designation': 'Finance Manager',
-            'User First Name': 'Amit',
-            'User Last Name': 'Shah',
-            'User Email': 'amit.shah@example.com',
-            'User WhatsApp': '919000001111',
-            'User Designation': 'Executive',
-            'User Role': 'STAFF'
+            'Department Name': 'Revenue & Disaster Management',
+            'Sub- Department Name': '',
+            'Officer Name': 'Sri Sabyasachi Panda',
+            'Designation': 'Sub- Collector, Jharsuguda',
+            'Whatsapp Number': '919876543210',
+            'Email ID': 'sabyasachi.panda@example.com',
+            'Role ( Department Admin / Sub-Department Admin)': 'Deptt Admin',
+            'Department Description': 'Department level leadership entry'
           },
           {
             'Sr.No': 2,
-            'Main Department': 'Operations',
-            'Sub Department': 'Field Unit',
-            'Department Description': 'On-ground execution and regional support',
-            'Admin First Name': 'Jane',
-            'Admin Last Name': 'Smith',
-            'Admin Email': 'jane.smith@example.com',
-            'Admin WhatsApp': '919123456789',
-            'Admin Designation': 'Operations Head',
-            'User First Name': 'Ravi',
-            'User Last Name': 'Kumar',
-            'User Email': 'ravi.kumar@example.com',
-            'User WhatsApp': '919222334455',
-            'User Designation': 'Field Officer',
-            'User Role': 'STAFF'
+            'Department Name': 'Revenue & Disaster Management',
+            'Sub- Department Name': 'Tahasili Office, Jharsuguda',
+            'Officer Name': 'Sri Sadakar Kumbhar',
+            'Designation': 'Tahasildar',
+            'Whatsapp Number': '919123456789',
+            'Email ID': 'sadakar.kumbhar@example.com',
+            'Role ( Department Admin / Sub-Department Admin)': 'Sub-Deptt Admin',
+            'Department Description': 'Sub-department level leadership entry'
           }
         ];
         break;

@@ -5,7 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   Building,
-  Plus,
+  Upload,
   Download,
   ChevronRight,
   ArrowLeft,
@@ -115,9 +115,10 @@ export default function DepartmentList({
             size="sm"
             onClick={() => setIsImportModalOpen(true)}
             className="bg-indigo-50 border-indigo-100 text-indigo-700 hover:bg-indigo-100 text-[10px] font-black uppercase tracking-wider"
+            title="Upload Excel to create hierarchy"
           >
-            <Plus className="w-3.5 h-3.5 mr-2" />
-            Export
+            <Upload className="w-3.5 h-3.5 mr-2" />
+            Import
           </Button>
         </div>
       </CardHeader>
