@@ -106,7 +106,6 @@ router.post(
         return { firstName: parts.slice(0, -1).join(' '), lastName: parts[parts.length - 1] };
       };
 
-
       const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
       const mapRole = (rawRole: string, hasSubDepartment: boolean) => {

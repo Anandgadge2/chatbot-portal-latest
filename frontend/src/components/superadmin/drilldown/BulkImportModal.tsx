@@ -9,9 +9,9 @@ import {
   Download,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { importAPI } from "@/lib/api/import";
+import * as XLSX from "xlsx";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 interface BulkImportModalProps {
@@ -36,39 +36,35 @@ export default function BulkImportModal({
   if (!isOpen) return null;
 
   const downloadTemplate = () => {
-    try {
-      const templateData = [
-        {
-          "Sr.No": 1,
-          "Department Name": "Revenue & Disaster Management",
-          "Sub- Department Name": "",
-          "Officer Name": "Sri Sabyasachi Panda",
-          Designation: "Sub- Collector, Jharsuguda",
-          "Whatsapp Number": "919876543210",
-          "Email ID": "sabyasachi.panda@example.com",
-          "Role ( Department Admin / Sub-Department Admin)": "Deptt Admin",
-          "Department Description": "Department level leadership entry",
-        },
-        {
-          "Sr.No": 2,
-          "Department Name": "Revenue & Disaster Management",
-          "Sub- Department Name": "Tahasili Office, Jharsuguda",
-          "Officer Name": "Sri Sadakar Kumbhar",
-          Designation: "Tahasildar",
-          "Whatsapp Number": "919123456789",
-          "Email ID": "sadakar.kumbhar@example.com",
-          "Role ( Department Admin / Sub-Department Admin)": "Sub-Deptt Admin",
-          "Department Description": "Sub-department level leadership entry",
-        },
-      ];
+    const templateData = [
+      {
+        "Sr.No": 1,
+        "Department Name": "Revenue & Disaster Management",
+        "Sub- Department Name": "",
+        "Officer Name": "Sri Sabyasachi Panda",
+        "Designation": "Sub- Collector, Jharsuguda",
+        "Whatsapp Number": "919876543210",
+        "Email ID": "sabyasachi.panda@example.com",
+        "Role ( Department Admin / Sub-Department Admin)": "Deptt Admin",
+        "Department Description": "Department level leadership entry",
+      },
+      {
+        "Sr.No": 2,
+        "Department Name": "Revenue & Disaster Management",
+        "Sub- Department Name": "Tahasili Office, Jharsuguda",
+        "Officer Name": "Sri Sadakar Kumbhar",
+        "Designation": "Tahasildar",
+        "Whatsapp Number": "919123456789",
+        "Email ID": "sadakar.kumbhar@example.com",
+        "Role ( Department Admin / Sub-Department Admin)": "Sub-Deptt Admin",
+        "Department Description": "Sub-department level leadership entry",
+      },
+    ];
 
-      const ws = XLSX.utils.json_to_sheet(templateData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Import Template");
-      XLSX.writeFile(wb, "drilldown-hierarchy-template.xlsx");
-    } catch (_error) {
-      toast.error("Failed to download sample template");
-    }
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Import Template");
+    XLSX.writeFile(wb, "department_import_template.xlsx");
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -89,7 +85,10 @@ export default function BulkImportModal({
     setTotalRows(0);
 
     try {
-      const response = await importAPI.importDrilldownHierarchy(file, companyId);
+      const response = await importAPI.importDrilldownHierarchy(
+        file,
+        companyId,
+      );
       setProgress(100);
       setTotalRows(response.data.total);
       setCurrentRow(response.data.total);
@@ -178,7 +177,9 @@ export default function BulkImportModal({
                     Pro Tip
                   </p>
                   <p className="text-xs text-indigo-700 leading-relaxed">
-                    Download the sample sheet with your required columns. If Sub- Department Name is empty, officer is mapped as Department head; if present, officer is mapped as Sub-Department head.
+                    Download our sample template to ensure your headers match.
+                    The system will automatically link admins to their
+                    departments.
                   </p>
                   <button
                     onClick={downloadTemplate}
