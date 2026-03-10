@@ -35,6 +35,14 @@ const appointmentStatuses = [
   { value: 'CANCELLED', label: 'Cancelled', iconBg: 'bg-rose-100', iconColor: 'text-rose-600', badge: 'bg-rose-50 border-rose-200 text-rose-700', activeBadge: 'bg-rose-600 text-white border-rose-600', Icon: Ban },
 ];
 
+const CLOCK_HOURS_12 = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+
+const to24Hour = (hour12: number, minute: number, period: 'AM' | 'PM') => {
+  let hour24 = hour12 % 12;
+  if (period === 'PM') hour24 += 12;
+  return `${String(hour24).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+};
+
 export default function StatusUpdateModal({
   isOpen,
   onClose,
@@ -48,6 +56,9 @@ export default function StatusUpdateModal({
   const [remarks, setRemarks] = useState('');
   const [appointmentDate, setAppointmentDate] = useState('');
   const [appointmentTime, setAppointmentTime] = useState('');
+  const [clockHour, setClockHour] = useState(9);
+  const [clockMinute, setClockMinute] = useState(0);
+  const [clockPeriod, setClockPeriod] = useState<'AM' | 'PM'>('AM');
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -63,6 +74,9 @@ export default function StatusUpdateModal({
       setRemarks('');
       setAppointmentDate('');
       setAppointmentTime('');
+      setClockHour(9);
+      setClockMinute(0);
+      setClockPeriod('AM');
       setDescription('');
     }
   }, [isOpen, currentStatus]);
@@ -71,6 +85,17 @@ export default function StatusUpdateModal({
     if (selectedStatus === currentStatus) {
       toast.error('Please select a different status');
       return;
+    }
+
+    if (itemType === 'appointment' && selectedStatus === 'CONFIRMED') {
+      if (!appointmentDate) {
+        toast.error('Please select confirmation date');
+        return;
+      }
+      if (!appointmentTime) {
+        toast.error('Please select confirmation time from the clock');
+        return;
+      }
     }
 
     try {
@@ -106,7 +131,7 @@ export default function StatusUpdateModal({
   const currentStatusInfo = statuses.find(s => s.value === currentStatus) || statuses[0];
   const typeLabel = itemType === 'grievance' ? 'Grievance' : 'Appointment';
 
-  const clockTimes = ['09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00'];
+  const computedClockTime = to24Hour(clockHour, clockMinute, clockPeriod);
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-150">
@@ -198,25 +223,25 @@ export default function StatusUpdateModal({
                 <div className="rounded-2xl border border-indigo-100 bg-white p-4 shadow-sm">
                 <div className="flex items-center justify-center mb-3">
                   <span className="inline-flex items-center px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold border border-indigo-100">
-                    Selected: {appointmentTime || 'Choose time'}
+                    Selected: {appointmentTime || `${computedClockTime} (tap Apply)`}
                   </span>
                 </div>
                 <div className="relative w-64 h-64 mx-auto rounded-full border-[5px] border-indigo-200/90 bg-gradient-to-b from-indigo-50 to-white shadow-inner">
-                  {clockTimes.map((time, idx) => {
-                    const angle = (idx / clockTimes.length) * 2 * Math.PI - Math.PI / 2;
+                  {CLOCK_HOURS_12.map((hour, idx) => {
+                    const angle = (idx / CLOCK_HOURS_12.length) * 2 * Math.PI - Math.PI / 2;
                     const radius = 102;
                     const x = 128 + radius * Math.cos(angle);
                     const y = 128 + radius * Math.sin(angle);
-                    const active = appointmentTime === time;
+                    const active = clockHour === hour;
                     return (
                       <button
-                        key={time}
+                        key={hour}
                         type="button"
-                        onClick={() => setAppointmentTime(time)}
+                        onClick={() => setClockHour(hour)}
                         className={`absolute -translate-x-1/2 -translate-y-1/2 text-[11px] px-2.5 py-1.5 rounded-full border font-semibold transition-all duration-200 ${active ? 'bg-indigo-600 text-white border-indigo-600 scale-110 shadow-md' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-600'}`}
                         style={{ left: `${x}px`, top: `${y}px` }}
                       >
-                        {time}
+                        {hour}
                       </button>
                     );
                   })}
@@ -227,6 +252,39 @@ export default function StatusUpdateModal({
                     </div>
                   </div>
                 </div>
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <div className="flex gap-2">
+                    {(['AM', 'PM'] as const).map((period) => (
+                      <button
+                        key={period}
+                        type="button"
+                        onClick={() => setClockPeriod(period)}
+                        className={`flex-1 py-2 rounded-lg text-xs font-bold border ${clockPeriod === period ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-700 border-slate-200'}`}
+                      >
+                        {period}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {[0, 15, 30, 45].map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => setClockMinute(m)}
+                        className={`py-2 rounded-lg text-xs font-bold border ${clockMinute === m ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-700 border-slate-200'}`}
+                      >
+                        :{String(m).padStart(2, '0')}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAppointmentTime(computedClockTime)}
+                  className="mt-3 w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold"
+                >
+                  Apply {computedClockTime}
+                </button>
                 </div>
               </div>
               <div>

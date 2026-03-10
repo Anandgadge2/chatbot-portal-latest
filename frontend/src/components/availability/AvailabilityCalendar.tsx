@@ -437,7 +437,7 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
                       return (
                         <div
                           key={day.key}
-                          className={`rounded-3xl border transition-all duration-300 overflow-hidden ${
+                          className={`rounded-3xl border transition-all duration-300 ${
                             dayAvailability.isAvailable
                               ? 'border-emerald-200 bg-white shadow-md hover:shadow-lg'
                               : 'border-slate-200 bg-slate-100/50 opacity-80'
@@ -625,7 +625,7 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
                   </div>
 
                   {/* Calendar Grid */}
-                  <div className="bg-white rounded-[2.5rem] border border-slate-200/60 overflow-hidden shadow-2xl mx-auto backdrop-blur-xl">
+                  <div className="bg-white rounded-[2.5rem] border border-slate-200/60 overflow-hidden shadow-2xl mx-auto backdrop-blur-xl md:[zoom:0.9]">
                     {/* Week Headers */}
                     <div className="grid grid-cols-7 bg-slate-50/50 border-b border-slate-100">
                       {DAYS_OF_WEEK.map((day) => (
@@ -646,7 +646,7 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
                     <div className="grid grid-cols-7 divide-x divide-y divide-slate-50">
                       {getCalendarDays().map((date, index) => {
                         if (!date) {
-                          return <div key={`empty-${index}`} className="aspect-square sm:h-24 bg-slate-50/30" />;
+                          return <div key={`empty-${index}`} className="aspect-square sm:h-20 bg-slate-50/30" />;
                         }
 
                         const isToday = date.toDateString() === new Date().toDateString();
@@ -661,7 +661,7 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
                             key={date.toISOString()}
                             onClick={() => setSelectedDate(isSelected ? null : date)}
                             disabled={isPast}
-                            className={`aspect-square sm:h-24 p-2 transition-all duration-300 text-left relative group flex flex-col ${
+                            className={`aspect-square sm:h-20 p-1.5 transition-all duration-300 text-left relative group flex flex-col ${
                               isPast
                                 ? 'bg-slate-50/50 text-slate-300 grayscale cursor-not-allowed'
                                 : isSelected
@@ -674,7 +674,7 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
                             }`}
                           >
                             <span
-                              className={`inline-flex items-center justify-center w-8 h-8 rounded-2xl text-sm font-black transition-all ${
+                              className={`inline-flex items-center justify-center w-7 h-7 rounded-xl text-xs font-black transition-all ${
                                 isToday && !isSelected
                                   ? 'bg-indigo-100 text-indigo-700 shadow-sm'
                                   : isSelected
@@ -790,10 +790,10 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
                                   <Button
                                     variant="outline"
                                     onClick={() => removeSpecialDate(selectedDate.toISOString().split('T')[0])}
-                                    className="bg-red-500/20 hover:bg-red-500 border-red-500/50 text-white font-bold rounded-2xl px-6 h-12 flex-1"
+                                    className="bg-red-500/20 hover:bg-red-500 border-red-500/50 text-white font-bold rounded-xl px-4 h-9 text-xs"
                                   >
-                                    <X className="w-5 h-5 mr-3" />
-                                    Restore Regular Schedule
+                                    <X className="w-4 h-4 mr-2" />
+                                    Restore Default
                                   </Button>
                                 </div>
                               </div>
@@ -814,24 +814,24 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
                                 </div>
                               </div>
                               
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <button
                                   onClick={() => addHoliday({ date: selectedDate.toISOString().split('T')[0], name: 'Custom Holiday', type: 'holiday' })}
-                                  className="group bg-rose-500 hover:bg-rose-600 text-white p-6 rounded-3xl transition-all duration-300 shadow-xl border border-rose-400/30 text-left"
+                                  className="group bg-rose-500 hover:bg-rose-600 text-white p-3 rounded-xl transition-all duration-300 shadow-lg border border-rose-400/30 text-left"
                                   disabled={markingHolidayForDate === selectedDate.toISOString().split('T')[0]}
                                 >
-                                  <PartyPopper className="w-8 h-8 mb-4 group-hover:rotate-12 transition-transform" />
-                                  <p className="font-black text-xs uppercase tracking-widest mb-1 opacity-80">Action Required</p>
-                                  <h4 className="font-bold text-lg">Mark as Holiday</h4>
+                                  <PartyPopper className="w-4 h-4 mb-2 group-hover:rotate-12 transition-transform" />
+                                  <p className="font-black text-[10px] uppercase tracking-widest mb-1 opacity-80">Toggle</p>
+                                  <h4 className="font-bold text-sm">Mark Holiday</h4>
                                 </button>
                                 
                                 <button
                                   onClick={() => toast.success('Time slots for this date are being loaded...')}
-                                  className="group bg-indigo-500 hover:bg-indigo-600 text-white p-6 rounded-3xl transition-all duration-300 shadow-xl border border-indigo-400/30 text-left"
+                                  className="group bg-indigo-500 hover:bg-indigo-600 text-white p-3 rounded-xl transition-all duration-300 shadow-lg border border-indigo-400/30 text-left"
                                 >
-                                  <Settings className="w-8 h-8 mb-4 group-hover:rotate-45 transition-transform" />
-                                  <p className="font-black text-xs uppercase tracking-widest mb-1 opacity-80">Custom Schedule</p>
-                                  <h4 className="font-bold text-lg">Edit Specific Slots</h4>
+                                  <Settings className="w-4 h-4 mb-2 group-hover:rotate-45 transition-transform" />
+                                  <p className="font-black text-[10px] uppercase tracking-widest mb-1 opacity-80">Toggle</p>
+                                  <h4 className="font-bold text-sm">Edit Slots</h4>
                                 </button>
                               </div>
                             </div>
