@@ -119,7 +119,7 @@ export default function UserDetailsDialog({
                 </span>
               </div>
               <p
-                className="text-base font-bold text-gray-900 truncate"
+                className="text-base font-bold text-gray-900 break-words whitespace-normal"
                 title={`${user.firstName} ${user.lastName}`}
               >
                 {user.firstName} {user.lastName}
@@ -136,7 +136,7 @@ export default function UserDetailsDialog({
                 </span>
               </div>
               <p
-                className="text-base font-bold text-gray-900 truncate"
+                className="text-base font-bold text-gray-900 break-words whitespace-normal"
                 title={roleName}
               >
                 {roleName}
@@ -192,7 +192,7 @@ export default function UserDetailsDialog({
                     Full Name
                   </span>
                 </div>
-                <p className="text-sm font-bold text-gray-900">
+                <p className="text-sm font-bold text-gray-900 break-words whitespace-normal">
                   {user.firstName} {user.lastName}
                 </p>
               </div>
@@ -216,7 +216,7 @@ export default function UserDetailsDialog({
                     Phone Number
                   </span>
                 </div>
-                <p className="text-sm font-bold text-gray-900">{user.phone}</p>
+                <p className="text-sm font-bold text-gray-900 break-all">{user.phone}</p>
               </div>
 
               <div className="bg-white rounded-lg p-4 border border-slate-200">
@@ -226,7 +226,7 @@ export default function UserDetailsDialog({
                     Designation
                   </span>
                 </div>
-                <p className="text-sm font-bold text-gray-900">
+                <p className="text-sm font-bold text-gray-900 break-words whitespace-normal">
                   {user.designation || "N/A"}
                 </p>
               </div>
@@ -238,7 +238,7 @@ export default function UserDetailsDialog({
                     Role & Permissions
                   </span>
                 </div>
-                <p className="text-sm font-bold text-gray-900">{roleName}</p>
+                <p className="text-sm font-bold text-gray-900 break-words whitespace-normal">{roleName}</p>
               </div>
 
               {user.departmentId && (
@@ -249,7 +249,7 @@ export default function UserDetailsDialog({
                       Department
                     </span>
                   </div>
-                  <p className="text-sm font-bold text-gray-900">
+                  <p className="text-sm font-bold text-gray-900 break-words whitespace-normal">
                     {typeof user.departmentId === "object" &&
                     user.departmentId !== null
                       ? (user.departmentId as any).name

@@ -148,7 +148,7 @@ export default function CitizenDetailsModal({
                 </span>
               </div>
               <p
-                className="text-base font-bold text-gray-900 truncate"
+                className="text-base font-bold text-gray-900 break-words whitespace-normal"
                 title={data?.citizenName}
               >
                 {data?.citizenName}
@@ -166,7 +166,7 @@ export default function CitizenDetailsModal({
                   </span>
                 </div>
                 <p
-                  className="text-base font-bold text-gray-900 truncate"
+                  className="text-base font-bold text-gray-900 break-words whitespace-normal"
                   title={grievance.category || "General"}
                 >
                   {grievance.category || "General"}
@@ -237,7 +237,7 @@ export default function CitizenDetailsModal({
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">
                       Full Name
                     </p>
-                    <p className="text-base font-bold text-slate-800 truncate">
+                    <p className="text-base font-bold text-slate-800 break-words whitespace-normal">
                       {data?.citizenName}
                     </p>
                   </div>

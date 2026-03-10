@@ -157,7 +157,7 @@ const AppointmentDetailDialog: React.FC<AppointmentDetailDialogProps> = ({
                 </span>
               </div>
               <p
-                className="text-sm font-bold text-gray-900 truncate"
+                className="text-sm font-bold text-gray-900 break-words whitespace-normal"
                 title={appointment.citizenName}
               >
                 {appointment.citizenName}
@@ -174,7 +174,7 @@ const AppointmentDetailDialog: React.FC<AppointmentDetailDialogProps> = ({
                 </span>
               </div>
               <p
-                className="text-sm font-bold text-gray-900 truncate"
+                className="text-sm font-bold text-gray-900 break-words whitespace-normal"
                 title={appointment.purpose}
               >
                 {appointment.purpose}
@@ -234,7 +234,7 @@ const AppointmentDetailDialog: React.FC<AppointmentDetailDialogProps> = ({
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
                       Full Name
                     </p>
-                    <p className="text-sm font-bold text-slate-800 truncate">
+                    <p className="text-sm font-bold text-slate-800 break-words whitespace-normal">
                       {appointment.citizenName}
                     </p>
                   </div>

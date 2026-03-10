@@ -443,20 +443,23 @@ export default function AppointmentsPage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
-                          <span className="font-bold text-sm text-purple-700">
+                          <button
+                            onClick={() => handleViewDetails(appointment)}
+                            className="font-bold text-sm text-purple-700 text-left hover:underline break-all"
+                          >
                             {appointment.appointmentId}
-                          </span>
+                          </button>
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
                           <button
                             onClick={() => handleViewDetails(appointment)}
-                            className="text-purple-600 hover:text-purple-800 font-bold text-left hover:underline"
+                            className="text-purple-600 hover:text-purple-800 font-bold text-left hover:underline break-words whitespace-normal"
                           >
                             {appointment.citizenName}
                           </button>
-                          <div className="flex items-center text-sm text-gray-500 mt-1">
+                          <div className="flex items-center text-sm text-gray-500 mt-1 break-all">
                             <Phone className="w-3.5 h-3.5 mr-1 text-gray-400" />
                             {appointment.citizenPhone}
                           </div>
@@ -464,13 +467,13 @@ export default function AppointmentsPage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col space-y-1">
-                          <span className="text-sm font-semibold text-gray-900 line-clamp-1">
+                          <span className="text-sm font-semibold text-gray-900 break-words whitespace-normal">
                             {appointment.departmentId &&
                             typeof appointment.departmentId === "object"
                               ? (appointment.departmentId as any).name
                               : "General Department"}
                           </span>
-                          <p className="text-[11px] text-gray-600 line-clamp-1 italic">
+                          <p className="text-[11px] text-gray-600 italic break-words whitespace-normal">
                             {appointment.purpose}
                           </p>
                         </div>
