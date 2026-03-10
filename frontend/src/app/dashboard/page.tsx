@@ -173,6 +173,7 @@ function DashboardContent() {
     {},
   );
   const [deptSearch, setDeptSearch] = useState("");
+  const [userSearch, setUserSearch] = useState("");
   const [users, setUsers] = useState<User[]>([]);
   const [grievances, setGrievances] = useState<Grievance[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -648,6 +649,7 @@ function DashboardContent() {
         const response = await userAPI.getAll({
           page,
           limit: userPagination.limit,
+          search: userSearch,
         });
         if (response.success) {
           let filteredUsers = response.data.users;
@@ -683,8 +685,14 @@ function DashboardContent() {
         if (!isSilent) setLoadingUsers(false);
       }
     },
-    [userPage, userPagination.limit, isDepartmentLevel, user?.departmentId],
+    [userPage, userPagination.limit, isDepartmentLevel, user?.departmentId, userSearch],
   );
+
+  // Reset user page when search changes
+  useEffect(() => {
+    setUserPage(1);
+  }, [userSearch]);
+
 
   const fetchGrievances = useCallback(
     async (page = grievancePage, isSilent = false) => {
@@ -3361,6 +3369,20 @@ function DashboardContent() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
+                  {/* Search bar for Users */}
+                  <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/40 flex flex-wrap items-center gap-3">
+                    <div className="relative flex-1 min-w-[240px]">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                      <input
+                        type="text"
+                        placeholder="Search users by name, email or ID..."
+                        value={userSearch}
+                        onChange={(e) => setUserSearch(e.target.value)}
+                        className="w-full pl-9 pr-4 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+                      />
+                    </div>
+                  </div>
+
                   {loadingUsers ? (
                     <TableSkeleton rows={8} cols={6} />
                   ) : users.length === 0 ? (
