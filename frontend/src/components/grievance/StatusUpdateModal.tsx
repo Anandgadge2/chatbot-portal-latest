@@ -291,9 +291,15 @@ export default function StatusUpdateModal({
                       </button>
                     ))}
                   </div>
-                  <div className="flex items-center gap-1.5 col-span-1">
-                    <span className="text-[11px] text-slate-500">Min</span>
-                    <input type="range" min={0} max={59} value={clockMinute} onChange={(e) => setClockMinute(Number(e.target.value))} className="w-full" />
+                  <div className="space-y-2 col-span-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[11px] text-slate-500 w-7">Hr</span>
+                      <input type="range" min={1} max={12} value={clockHour} onChange={(e) => { setClockHour(Number(e.target.value)); setClockMode('hour'); }} className="w-full" />
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[11px] text-slate-500 w-7">Min</span>
+                      <input type="range" min={0} max={59} value={clockMinute} onChange={(e) => { setClockMinute(Number(e.target.value)); setClockMode('minute'); }} className="w-full" />
+                    </div>
                   </div>
                 </div>
                 <button

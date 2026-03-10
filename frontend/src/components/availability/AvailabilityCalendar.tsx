@@ -177,6 +177,32 @@ function ClockFacePicker({
       </div>
 
       <div className="flex items-center gap-2">
+        <span className="text-xs font-semibold text-slate-500">Hr</span>
+        <input
+          type="range"
+          min={1}
+          max={12}
+          value={hour12}
+          onChange={(e) => {
+            setHour12(Number(e.target.value));
+            setMode('hour');
+          }}
+          className="w-full"
+        />
+        <input
+          type="number"
+          min={1}
+          max={12}
+          value={hour12}
+          onChange={(e) => {
+            setHour12(Math.max(1, Math.min(12, Number(e.target.value) || 1)));
+            setMode('hour');
+          }}
+          className="w-14 text-xs border border-slate-200 rounded-lg px-2 py-1"
+        />
+      </div>
+
+      <div className="flex items-center gap-2">
         <span className="text-xs font-semibold text-slate-500">Min</span>
         <input type="range" min={0} max={59} value={minute} onChange={(e) => setMinute(Number(e.target.value))} className="w-full" />
         <input type="number" min={0} max={59} value={minute} onChange={(e) => setMinute(Math.max(0, Math.min(59, Number(e.target.value) || 0)))} className="w-14 text-xs border border-slate-200 rounded-lg px-2 py-1" />
@@ -947,10 +973,16 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
                               return (
                                 <button
                                   key={holiday.date}
-                                  onClick={() => !isAdded && addHoliday(holiday)}
+                                  onClick={() => {
+                                    if (isAdded) {
+                                      removeSpecialDate(holiday.date);
+                                    } else {
+                                      addHoliday(holiday);
+                                    }
+                                  }}
                                   className={`group flex items-center gap-4 p-4 rounded-2xl border transition-all duration-300 text-left ${
                                     isAdded
-                                      ? 'bg-emerald-50 border-emerald-100 cursor-default opacity-80'
+                                      ? 'bg-emerald-50 border-emerald-100 cursor-pointer opacity-100'
                                       : 'bg-white border-slate-100 hover:border-indigo-200 hover:shadow-lg hover:shadow-indigo-50 cursor-pointer'
                                   }`}
                                 >
