@@ -191,15 +191,30 @@ export async function testEmailConfiguration(companyId?: string | mongoose.Types
 function formatDateTime(date: Date | string | undefined): string {
   if (!date) return 'N/A';
   const d = typeof date === 'string' ? new Date(date) : date;
-  return d.toLocaleString('en-IN', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
-    timeZone: 'Asia/Kolkata'
-  });
+  
+  try {
+    const formatter = new Intl.DateTimeFormat('en-IN', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true,
+      timeZone: 'Asia/Kolkata'
+    });
+    
+    // Some environments' toLocaleString includes "at" or other filler.
+    // Using formatToParts allows us to build a precise string.
+    const parts = formatter.formatToParts(d);
+    const p: Record<string, string> = {};
+    parts.forEach(part => { p[part.type] = part.value; });
+    
+    // Format: "10 March 2026, 09:05:53 AM"
+    return `${p.day} ${p.month} ${p.year}, ${p.hour}:${p.minute}:${p.second} ${p.dayPeriod || p.ampm || ''}`.trim().replace(/\s+/g, ' ');
+  } catch (e) {
+    return d.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+  }
 }
 
 /**
@@ -294,7 +309,7 @@ function formatTimelineDetails(details: any, action: string): string {
 /**
  * Generate timeline HTML
  */
-function generateTimelineHTML(timeline: any[] | undefined, resolvedBy: any, resolvedAt: Date | string | undefined, createdAt: Date | string | undefined, assignedAt: Date | string | undefined): string {
+function generateTimelineHTML(timeline: any[] | undefined, resolvedBy: any, resolvedAt: Date | string | undefined, createdAt: Date | string | undefined, assignedAt: Date | string | undefined, type?: string): string {
   if (!timeline || timeline.length === 0) {
     // Generate basic timeline from available data
     let timelineItems = [];
@@ -304,7 +319,7 @@ function generateTimelineHTML(timeline: any[] | undefined, resolvedBy: any, reso
         action: 'CREATED',
         timestamp: createdAt,
         performedBy: null,
-        details: 'Grievance/Appointment was created by the citizen'
+        details: type === 'appointment' ? 'Appointment booking was created by the citizen' : 'Grievance was successfully registered by the citizen'
       });
     }
     
@@ -413,7 +428,8 @@ export async function getNotificationEmailContent(
   companyId: string | mongoose.Types.ObjectId,
   type: 'grievance' | 'appointment',
   action: string,
-  data: any
+  data: any,
+  isAdmin: boolean = false
 ): Promise<{ subject: string; html: string; text: string } | null> {
   const key = `${type}_${action}`;
   const cid = typeof companyId === 'string' && mongoose.Types.ObjectId.isValid(companyId)
@@ -429,7 +445,7 @@ export async function getNotificationEmailContent(
   
   // Only use default for the core three actions
   if (['created', 'assigned', 'resolved'].includes(action)) {
-    return generateNotificationEmail(type, action as any, data);
+    return generateNotificationEmail(type, action as any, data, isAdmin);
   }
   
   return null;
@@ -461,10 +477,11 @@ export async function getNotificationWhatsAppMessage(
 export function generateNotificationEmail(
   type: 'grievance' | 'appointment',
   action: 'created' | 'assigned' | 'resolved',
-  data: any
+  data: any,
+  isAdmin: boolean = false
 ): { subject: string; html: string; text: string } {
   const companyName = data.companyName || 'Government Digital Portal';
-  const recipientName = data.recipientName || 'Sir/Madam';
+  const recipientName = data.recipientName || 'Admin';
 
   // Common styles
   const commonStyles = `
@@ -649,13 +666,28 @@ export function generateNotificationEmail(
       margin-top: 20px;
       font-weight: 500;
     }
+    .admin-link-section {
+      margin-top: 25px;
+      padding: 20px;
+      background: #f1f5f9;
+      border-radius: 8px;
+      text-align: center;
+      border: 1px dashed #cbd5e1;
+    }
   `;
 
+  const dashboardLink = 'https://chatbot-portal-latest-frontend.vercel.app/';
+  const adminLinkHtml = isAdmin ? `
+    <div class="admin-link-section">
+      <p style="margin: 0 0 15px 0; font-size: 14px; color: #475569; font-weight: 600;">🔐 ADMIN ACCESS ONLY</p>
+      <a href="${dashboardLink}" class="action-button">Access Dashboard</a>
+      <p style="margin: 10px 0 0 0; font-size: 11px; color: #64748b;">Click above to login and manage this record.</p>
+    </div>
+  ` : '';
+
+  const adminLinkText = isAdmin ? `\n\nACCESS DASHBOARD (ADMIN ONLY):\n${dashboardLink}\n` : '';
+
   if (action === 'created' && type === 'grievance') {
-    const priorityClass = data.priority 
-      ? `priority-${data.priority.toLowerCase()}` 
-      : 'priority-medium';
-    
     return {
       subject: `New Grievance Received - ${data.grievanceId} | ${companyName}`,
       html: `
@@ -702,18 +734,7 @@ export function generateNotificationEmail(
                   <span class="detail-value">${data.category}</span>
                 </div>
                 ` : ''}
-                <div class="detail-row">
-                  <span class="detail-label">Priority Level:</span>
-                  <span class="detail-value">
-                    <span class="priority-badge ${priorityClass}">${data.priority || 'MEDIUM'}</span>
-                  </span>
-                </div>
-                ${data.location ? `
-                <div class="detail-row">
-                  <span class="detail-label">Location:</span>
-                  <span class="detail-value">${data.location}</span>
-                </div>
-                ` : ''}
+
                 <div class="detail-row" style="align-items: flex-start;">
                   <span class="detail-label">Description:</span>
                   <span class="detail-value" style="white-space: pre-wrap;">${data.description || 'No description provided'}</span>
@@ -733,7 +754,12 @@ export function generateNotificationEmail(
                 </p>
               </div>
 
-              ${generateTimelineHTML(data.timeline, undefined, undefined, data.createdAt, undefined)}
+                </p>
+              </div>
+
+              ${adminLinkHtml}
+
+              ${generateTimelineHTML(data.timeline, undefined, undefined, data.createdAt, undefined, type)}
             </div>
             <div class="footer">
               <div class="footer-text"><strong>${companyName}</strong></div>
@@ -746,7 +772,7 @@ export function generateNotificationEmail(
         </body>
         </html>
       `,
-      text: `NEW GRIEVANCE RECEIVED\n\nRespected ${recipientName},\n\nA new grievance has been received and assigned to your department.\n\nGrievance ID: ${data.grievanceId}\nCitizen Name: ${data.citizenName}\nContact: ${data.citizenPhone}\nDepartment: ${data.departmentName}\nCategory: ${data.category || 'N/A'}\nPriority: ${data.priority || 'MEDIUM'}\nDescription: ${data.description}\n${data.location ? `Location: ${data.location}\n` : ''}${data.createdAt ? `Received On: ${formatDateTime(data.createdAt)}\n` : ''}\n\nPlease review and take necessary action.\n\n${companyName} - Digital Portal`
+      text: `NEW GRIEVANCE RECEIVED\n\nRespected ${recipientName},\n\nA new grievance has been received and assigned to your department.\n\nGrievance ID: ${data.grievanceId}\nCitizen Name: ${data.citizenName}\nContact: ${data.citizenPhone}\nDepartment: ${data.departmentName}\nCategory: ${data.category || 'N/A'}\nDescription: ${data.description}\n${data.createdAt ? `Received On: ${formatDateTime(data.createdAt)}\n` : ''}${adminLinkText}\nPlease review and take necessary action.\n\n${companyName} - Digital Portal`
     };
   }
 
@@ -822,7 +848,12 @@ export function generateNotificationEmail(
                 </p>
               </div>
 
-              ${generateTimelineHTML(data.timeline, undefined, undefined, data.createdAt, undefined)}
+                </p>
+              </div>
+
+              ${adminLinkHtml}
+
+              ${generateTimelineHTML(data.timeline, undefined, undefined, data.createdAt, undefined, type)}
             </div>
             <div class="footer">
               <div class="footer-text"><strong>${companyName}</strong></div>
@@ -835,15 +866,11 @@ export function generateNotificationEmail(
         </body>
         </html>
       `,
-      text: `NEW APPOINTMENT BOOKING RECEIVED\n\nRespected ${recipientName},\n\nA new appointment has been booked and assigned to your department.\n\nAppointment ID: ${data.appointmentId}\nCitizen Name: ${data.citizenName}\nContact: ${data.citizenPhone}\nDepartment: ${data.departmentName}\nPurpose: ${data.purpose}\n${data.appointmentDate ? `Scheduled Date: ${formatDate(data.appointmentDate)}\n` : ''}${data.appointmentTime ? `Scheduled Time: ${data.appointmentTime}\n` : ''}${data.createdAt ? `Booked On: ${formatDateTime(data.createdAt)}\n` : ''}\n\nPlease review and confirm the appointment.\n\n${companyName} - Digital Portal`
+      text: `NEW APPOINTMENT BOOKING RECEIVED\n\nRespected ${recipientName},\n\nA new appointment has been booked and assigned to your department.\n\nAppointment ID: ${data.appointmentId}\nCitizen Name: ${data.citizenName}\nContact: ${data.citizenPhone}\nDepartment: ${data.departmentName}\nPurpose: ${data.purpose}\n${data.appointmentDate ? `Scheduled Date: ${formatDate(data.appointmentDate)}\n` : ''}${data.appointmentTime ? `Scheduled Time: ${data.appointmentTime}\n` : ''}${data.createdAt ? `Booked On: ${formatDateTime(data.createdAt)}\n` : ''}${adminLinkText}\nPlease review and confirm the appointment.\n\n${companyName} - Digital Portal`
     };
   }
 
   if (action === 'assigned' && type === 'grievance') {
-    const priorityClass = data.priority 
-      ? `priority-${data.priority.toLowerCase()}` 
-      : 'priority-medium';
-    
     const assignedByName = data.assignedByName || 'Administrator';
     
     return {
@@ -886,12 +913,7 @@ export function generateNotificationEmail(
                   <span class="detail-label">Department:</span>
                   <span class="detail-value"><strong>${data.departmentName}</strong></span>
                 </div>
-                <div class="detail-row">
-                  <span class="detail-label">Priority Level:</span>
-                  <span class="detail-value">
-                    <span class="priority-badge ${priorityClass}">${data.priority || 'MEDIUM'}</span>
-                  </span>
-                </div>
+
                 <div class="detail-row" style="align-items: flex-start;">
                   <span class="detail-label">Description:</span>
                   <span class="detail-value" style="white-space: pre-wrap;">${data.description || 'No description provided'}</span>
@@ -915,7 +937,12 @@ export function generateNotificationEmail(
                 </p>
               </div>
 
-              ${generateTimelineHTML(data.timeline, undefined, undefined, data.createdAt, data.assignedAt)}
+                </p>
+              </div>
+
+              ${adminLinkHtml}
+
+              ${generateTimelineHTML(data.timeline, undefined, undefined, data.createdAt, data.assignedAt, type)}
             </div>
             <div class="footer">
               <div class="footer-text"><strong>${companyName}</strong></div>
@@ -928,7 +955,7 @@ export function generateNotificationEmail(
         </body>
         </html>
       `,
-      text: `GRIEVANCE ASSIGNED TO YOU\n\nRespected ${recipientName},\n\nA grievance has been assigned to you for resolution.\n\nGrievance ID: ${data.grievanceId}\nCitizen Name: ${data.citizenName}\nContact: ${data.citizenPhone}\nDepartment: ${data.departmentName}\nPriority: ${data.priority || 'MEDIUM'}\nDescription: ${data.description}\nAssigned By: ${assignedByName}\n${data.assignedAt ? `Assigned On: ${formatDateTime(data.assignedAt)}\n` : ''}\n\nPlease review and take necessary action.\n\n${companyName} - Digital Portal`
+      text: `GRIEVANCE ASSIGNED TO YOU\n\nRespected ${recipientName},\n\nA grievance has been assigned to you for resolution.\n\nGrievance ID: ${data.grievanceId}\nCitizen Name: ${data.citizenName}\nContact: ${data.citizenPhone}\nDepartment: ${data.departmentName}\nDescription: ${data.description}\nAssigned By: ${assignedByName}\n${data.assignedAt ? `Assigned On: ${formatDateTime(data.assignedAt)}\n` : ''}${adminLinkText}\nPlease review and take necessary action.\n\n${companyName} - Digital Portal`
     };
   }
 
@@ -1010,7 +1037,12 @@ export function generateNotificationEmail(
                 </p>
               </div>
 
-              ${generateTimelineHTML(data.timeline, undefined, undefined, data.createdAt, data.assignedAt)}
+                </p>
+              </div>
+
+              ${adminLinkHtml}
+
+              ${generateTimelineHTML(data.timeline, undefined, undefined, data.createdAt, data.assignedAt, type)}
             </div>
             <div class="footer">
               <div class="footer-text"><strong>${companyName}</strong></div>
@@ -1023,7 +1055,7 @@ export function generateNotificationEmail(
         </body>
         </html>
       `,
-      text: `APPOINTMENT ASSIGNED TO YOU\n\nRespected ${recipientName},\n\nAn appointment has been assigned to you for management.\n\nAppointment ID: ${data.appointmentId}\nCitizen Name: ${data.citizenName}\nContact: ${data.citizenPhone}\nDepartment: ${data.departmentName}\nPurpose: ${data.purpose}\n${data.appointmentDate ? `Scheduled Date: ${formatDate(data.appointmentDate)}\n` : ''}${data.appointmentTime ? `Scheduled Time: ${data.appointmentTime}\n` : ''}Assigned By: ${assignedByName}\n${data.assignedAt ? `Assigned On: ${formatDateTime(data.assignedAt)}\n` : ''}\n\nPlease review and confirm the appointment.\n\n${companyName} - Digital Portal`
+      text: `APPOINTMENT ASSIGNED TO YOU\n\nRespected ${recipientName},\n\nAn appointment has been assigned to you for management.\n\nAppointment ID: ${data.appointmentId}\nCitizen Name: ${data.citizenName}\nContact: ${data.citizenPhone}\nDepartment: ${data.departmentName}\nPurpose: ${data.purpose}\n${data.appointmentDate ? `Scheduled Date: ${formatDate(data.appointmentDate)}\n` : ''}${data.appointmentTime ? `Scheduled Time: ${data.appointmentTime}\n` : ''}Assigned By: ${assignedByName}\n${data.assignedAt ? `Assigned On: ${formatDateTime(data.assignedAt)}\n` : ''}${adminLinkText}\nPlease review and confirm the appointment.\n\n${companyName} - Digital Portal`
     };
   }
 
@@ -1125,7 +1157,9 @@ export function generateNotificationEmail(
               </div>
               ` : ''}
 
-              ${generateTimelineHTML(data.timeline, data.resolvedBy, data.resolvedAt, data.createdAt, data.assignedAt)}
+              ${adminLinkHtml}
+
+              ${generateTimelineHTML(data.timeline, data.resolvedBy, data.resolvedAt, data.createdAt, data.assignedAt, type)}
 
               <div style="background: #d4edda; border-left: 4px solid #28a745; padding: 15px; margin: 20px 0; border-radius: 4px;">
                 <strong style="color: #155724;">✓ Resolution Confirmed:</strong>
@@ -1145,7 +1179,7 @@ export function generateNotificationEmail(
         </body>
         </html>
       `,
-      text: `GRIEVANCE RESOLVED\n\nRespected ${recipientName},\n\nThe following grievance has been successfully resolved.\n\nGrievance ID: ${data.grievanceId}\nCitizen Name: ${data.citizenName}\nContact: ${data.citizenPhone}\nDepartment: ${data.departmentName || 'N/A'}\nStatus: RESOLVED\nResolved By: ${resolvedByName}\nResolved On: ${resolvedAtFormatted}\n${resolutionTime ? `Resolution Time: ${resolutionTime}\n` : ''}${data.createdAt ? `Received On: ${createdAtFormatted}\n` : ''}\n${data.remarks ? `\nOfficer Remarks:\n${data.remarks}\n` : ''}\n\n${companyName} - Digital Portal`
+      text: `GRIEVANCE RESOLVED\n\nRespected ${recipientName},\n\nThe following grievance has been successfully resolved.\n\nGrievance ID: ${data.grievanceId}\nCitizen Name: ${data.citizenName}\nContact: ${data.citizenPhone}\nDepartment: ${data.departmentName || 'N/A'}\nStatus: RESOLVED\nResolved By: ${resolvedByName}\nResolved On: ${resolvedAtFormatted}\n${resolutionTime ? `Resolution Time: ${resolutionTime}\n` : ''}${data.createdAt ? `Received On: ${createdAtFormatted}\n` : ''}\n${data.remarks ? `\nOfficer Remarks:\n${data.remarks}\n` : ''}${adminLinkText}\n\n${companyName} - Digital Portal`
     };
   }
 
@@ -1231,7 +1265,9 @@ export function generateNotificationEmail(
               </div>
               ` : ''}
 
-              ${generateTimelineHTML(data.timeline, data.resolvedBy, data.resolvedAt, data.createdAt, data.assignedAt)}
+              ${adminLinkHtml}
+
+              ${generateTimelineHTML(data.timeline, data.resolvedBy, data.resolvedAt, data.createdAt, data.assignedAt, type)}
 
               <div style="background: #d4edda; border-left: 4px solid #28a745; padding: 15px; margin: 20px 0; border-radius: 4px;">
                 <strong style="color: #155724;">✓ Completion Confirmed:</strong>
@@ -1251,7 +1287,7 @@ export function generateNotificationEmail(
         </body>
         </html>
       `,
-      text: `APPOINTMENT COMPLETED\n\nRespected ${recipientName},\n\nThe following appointment has been successfully completed.\n\nAppointment ID: ${data.appointmentId}\nCitizen Name: ${data.citizenName}\nContact: ${data.citizenPhone}\nDepartment: ${data.departmentName || 'N/A'}\nStatus: COMPLETED\nCompleted By: ${resolvedByName}\nCompleted On: ${resolvedAtFormatted}\n${data.appointmentDate ? `Scheduled Date: ${formatDate(data.appointmentDate)}\n` : ''}${data.appointmentTime ? `Scheduled Time: ${data.appointmentTime}\n` : ''}\n${data.remarks ? `\nOfficer Remarks:\n${data.remarks}\n` : ''}\n\n${companyName} - Digital Portal`
+      text: `APPOINTMENT COMPLETED\n\nRespected ${recipientName},\n\nThe following appointment has been successfully completed.\n\nAppointment ID: ${data.appointmentId}\nCitizen Name: ${data.citizenName}\nContact: ${data.citizenPhone}\nDepartment: ${data.departmentName || 'N/A'}\nStatus: COMPLETED\nCompleted By: ${resolvedByName}\nCompleted On: ${resolvedAtFormatted}\n${data.appointmentDate ? `Scheduled Date: ${formatDate(data.appointmentDate)}\n` : ''}${data.appointmentTime ? `Scheduled Time: ${data.appointmentTime}\n` : ''}\n${data.remarks ? `\nOfficer Remarks:\n${data.remarks}\n` : ''}${adminLinkText}\n\n${companyName} - Digital Portal`
     };
   }
 

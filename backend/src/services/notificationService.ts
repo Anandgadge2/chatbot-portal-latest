@@ -112,23 +112,31 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
     } catch (e) {}
   }
 
+  const formatFn = (d: Date) => {
+    try {
+      const formatter = new Intl.DateTimeFormat('en-IN', {
+        day: '2-digit', month: 'long', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true,
+        timeZone: 'Asia/Kolkata'
+      });
+      const parts = formatter.formatToParts(d);
+      const p: Record<string, string> = {};
+      parts.forEach(part => { p[part.type] = part.value; });
+      return `${p.day} ${p.month} ${p.year}, ${p.hour}:${p.minute}:${p.second} ${p.dayPeriod || p.ampm || ''}`.trim().replace(/\s+/g, ' ');
+    } catch (e) {
+      return d.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+    }
+  };
+
   const createdAt = data.createdAt || new Date();
-  const formattedDate = new Date(createdAt).toLocaleString('en-IN', {
-    day: '2-digit', month: 'long', year: 'numeric',
-    hour: '2-digit', minute: '2-digit', hour12: true,
-    timeZone: 'Asia/Kolkata'
-  });
+  const formattedDate = formatFn(new Date(createdAt));
 
   const resolvedAt = data.resolvedAt || (data.action === 'resolved' ? new Date() : null);
   let formattedResolvedDate = '';
   let resolutionTimeText = data.resolutionTimeText || '';
 
   if (resolvedAt) {
-    formattedResolvedDate = new Date(resolvedAt).toLocaleString('en-IN', {
-      day: '2-digit', month: 'long', year: 'numeric',
-      hour: '2-digit', minute: '2-digit', hour12: true,
-      timeZone: 'Asia/Kolkata'
-    });
+    formattedResolvedDate = formatFn(new Date(resolvedAt));
     if (!resolutionTimeText) {
       resolutionTimeText = computeResolutionTime(data.createdAt, resolvedAt);
     }
@@ -456,7 +464,7 @@ export async function notifyDepartmentAdminOnCreation(
       // 📧 Email - Everyone in the list gets an email
       if (user.email && canNotify(company, user, 'email')) {
         try {
-          const email = await getNotificationEmailContent(data.companyId, data.type, 'created', notificationData);
+          const email = await getNotificationEmailContent(data.companyId, data.type, 'created', notificationData, true);
           if (email) {
             const result = await sendEmail(user.email, email.subject, email.html, email.text, { companyId: data.companyId });
             if (result.success) {
@@ -493,6 +501,7 @@ export async function notifyDepartmentAdminOnCreation(
             `\n📅 *Received On:* ${fullData.formattedDate}\n\n` +
             `*Action Required:*\n` +
             `Please review this ${data.type} promptly. Resolution should be provided as per SLA.\n\n` +
+            `🔗 *Access Dashboard:* https://chatbot-portal-latest-frontend.vercel.app/\n\n` +
             `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
             `*${fullData.companyName}*\n` +
             `Digital Grievance Redressal System\n` +
@@ -529,7 +538,7 @@ export async function notifyUserOnAssignment(
     // 📧 Email
     if (user.email && canNotify(company, user, 'email')) {
       try {
-        const email = await getNotificationEmailContent(data.companyId, data.type, 'assigned', fullData);
+        const email = await getNotificationEmailContent(data.companyId, data.type, 'assigned', fullData, true);
         if (email) {
           await sendEmail(user.email, email.subject, email.html, email.text, { companyId: data.companyId });
         }
@@ -558,6 +567,7 @@ export async function notifyUserOnAssignment(
           `👨‍💼 *Assigned By:* ${fullData.assignedByName}\n` +
           `📅 *Assigned On:* ${fullData.formattedDate}\n\n` +
           `Please investigate and take required action.\n\n` +
+          `🔗 *Dashboard:* https://chatbot-portal-latest-frontend.vercel.app/\n\n` +
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
           `*${fullData.companyName}*\n` +
           `Digital Grievance Redressal System`;
@@ -831,6 +841,7 @@ export async function notifyHierarchyOnStatusChange(
         `📊 *Status Change:* ${oldStatus} → ${newStatus}\n` +
         `👨‍💼 *Updated By:* ${fullData.resolvedByName || 'Administrator'}\n` +
         `📅 *Updated On:* ${fullData.formattedResolvedDate || fullData.formattedDate}${resolutionTimeLine}${remarksText}\n\n` +
+        `🔗 *Dashboard:* https://chatbot-portal-latest-frontend.vercel.app/\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
         `Digital System`;
     }
@@ -853,9 +864,9 @@ export async function notifyHierarchyOnStatusChange(
             oldStatus
           };
           
-          let email = await getNotificationEmailContent(data.companyId, data.type, statusAction as any, emailPayload);
+          let email = await getNotificationEmailContent(data.companyId, data.type, statusAction as any, emailPayload, true);
           if (!email && (newStatus === 'RESOLVED' || newStatus === 'COMPLETED')) {
-             email = await getNotificationEmailContent(data.companyId, data.type, 'resolved', emailPayload);
+             email = await getNotificationEmailContent(data.companyId, data.type, 'resolved', emailPayload, true);
           }
 
           if (email) {
