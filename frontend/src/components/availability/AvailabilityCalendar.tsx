@@ -125,15 +125,7 @@ function ClockFacePicker({
             </button>
           );
         })}
-        {mode === 'hour' && (
-          <div className="absolute inset-0 pointer-events-none">
-            {Array.from({ length: 12 }, (_, i) => {
-              const v = (i + 12) % 24;
-              const { x, y } = angleToPoint(i, 12, 38);
-              return <span key={`inner-${v}`} className="absolute -translate-x-1/2 -translate-y-1/2 text-xs text-slate-500 font-semibold" style={{ left: `${x}px`, top: `${y}px` }}>{v}</span>;
-            })}
-          </div>
-        )}
+        {/* Intentionally no inner 24-hour ring; keep 1-12 clock style only */}
         {mode === 'minute' && (
           <>
             {Array.from({ length: 12 }, (_, i) => i * 5).map((m, idx) => {
@@ -889,6 +881,9 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
                                     <div>
                                       <p className="font-black text-[10px] uppercase tracking-widest text-slate-500">Holiday Toggle</p>
                                       <h4 className="font-bold text-sm text-slate-800 mt-0.5">Mark as Holiday</h4>
+                                      <p className="text-[11px] text-slate-500 mt-1">
+                                        {getSpecialDateInfo(selectedDate)?.type === 'holiday' ? 'Selected: ON' : 'Selected: OFF'}
+                                      </p>
                                     </div>
                                     <button
                                       type="button"
@@ -904,14 +899,9 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
                                   </div>
                                 </div>
 
-                                <button
-                                  onClick={() => toast.success('Time slots for this date are being loaded...')}
-                                  className="group bg-indigo-600 hover:bg-indigo-700 text-white p-3 rounded-xl transition-all duration-300 shadow-lg border border-indigo-500/30 text-left"
-                                >
-                                  <Settings className="w-4 h-4 mb-2 group-hover:rotate-45 transition-transform" />
-                                  <p className="font-black text-[10px] uppercase tracking-widest mb-1 opacity-80">Toggle</p>
-                                  <h4 className="font-bold text-sm">Edit Slots</h4>
-                                </button>
+                                <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-3 text-indigo-700 text-xs font-semibold">
+                                  Holiday setting will be saved when you click <strong>Apply Changes</strong>.
+                                </div>
                               </div>
                             </div>
                           );
