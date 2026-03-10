@@ -21,6 +21,7 @@ import { grievanceAPI, Grievance } from "@/lib/api/grievance";
 import { appointmentAPI, Appointment } from "@/lib/api/appointment";
 import { leadAPI, Lead } from "@/lib/api/lead";
 import CreateDepartmentDialog from "@/components/department/CreateDepartmentDialog";
+import DepartmentUsersDialog from "@/components/department/DepartmentUsersDialog";
 import CreateUserDialog from "@/components/user/CreateUserDialog";
 import EditUserDialog from "@/components/user/EditUserDialog";
 import ChangePermissionsDialog from "@/components/user/ChangePermissionsDialog";
@@ -180,6 +181,11 @@ function DashboardContent() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [company, setCompany] = useState<Company | null>(null);
   const [showDepartmentDialog, setShowDepartmentDialog] = useState(false);
+  const [showDeptUsersDialog, setShowDeptUsersDialog] = useState(false);
+  const [selectedDeptForUsers, setSelectedDeptForUsers] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const [showUserDialog, setShowUserDialog] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [showEditUserDialog, setShowEditUserDialog] = useState(false);
@@ -2986,11 +2992,25 @@ function DashboardContent() {
                                   <td className="px-4 py-4 text-center">
                                     <div className="inline-flex items-center gap-1.5">
                                       <div
-                                        className={`w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-black ${
+                                        className={`w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-black transition-all ${
                                           userCount > 0
-                                            ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
+                                            ? "bg-emerald-50 text-emerald-700 border border-emerald-100 cursor-pointer hover:bg-emerald-100 hover:scale-110 active:scale-95 shadow-sm"
                                             : "bg-slate-50 text-slate-400 border border-slate-200"
                                         }`}
+                                        onClick={() => {
+                                          if (userCount > 0) {
+                                            setSelectedDeptForUsers({
+                                              id: dept._id,
+                                              name: dept.name,
+                                            });
+                                            setShowDeptUsersDialog(true);
+                                          }
+                                        }}
+                                        title={
+                                          userCount > 0
+                                            ? "Click to view personnel"
+                                            : "No users in this department"
+                                        }
                                       >
                                         {userCount}
                                       </div>
@@ -6185,6 +6205,21 @@ function DashboardContent() {
           grievanceVariant={
             user?.role === "OPERATOR" ? "operator" : "department-admin"
           }
+        />
+
+        {/* Department Users Dialog */}
+        <DepartmentUsersDialog
+          isOpen={showDeptUsersDialog}
+          onClose={() => {
+            setShowDeptUsersDialog(false);
+            setSelectedDeptForUsers(null);
+          }}
+          departmentId={selectedDeptForUsers?.id || null}
+          departmentName={selectedDeptForUsers?.name || null}
+          onUserClick={(u) => {
+            setSelectedUserForDetails(u);
+            setShowUserDetailsDialog(true);
+          }}
         />
       </main>
     </div>
