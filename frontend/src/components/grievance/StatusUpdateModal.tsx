@@ -195,19 +195,25 @@ export default function StatusUpdateModal({
               </div>
               <div>
                 <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Select Time (Clock) *</label>
-                <div className="relative w-52 h-52 mx-auto rounded-full border-4 border-indigo-200 bg-white">
+                <div className="rounded-2xl border border-indigo-100 bg-white p-4 shadow-sm">
+                <div className="flex items-center justify-center mb-3">
+                  <span className="inline-flex items-center px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold border border-indigo-100">
+                    Selected: {appointmentTime || 'Choose time'}
+                  </span>
+                </div>
+                <div className="relative w-64 h-64 mx-auto rounded-full border-[5px] border-indigo-200/90 bg-gradient-to-b from-indigo-50 to-white shadow-inner">
                   {clockTimes.map((time, idx) => {
                     const angle = (idx / clockTimes.length) * 2 * Math.PI - Math.PI / 2;
-                    const radius = 82;
-                    const x = 104 + radius * Math.cos(angle);
-                    const y = 104 + radius * Math.sin(angle);
+                    const radius = 102;
+                    const x = 128 + radius * Math.cos(angle);
+                    const y = 128 + radius * Math.sin(angle);
                     const active = appointmentTime === time;
                     return (
                       <button
                         key={time}
                         type="button"
                         onClick={() => setAppointmentTime(time)}
-                        className={`absolute -translate-x-1/2 -translate-y-1/2 text-[10px] px-2 py-1 rounded-full border ${active ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-600 border-slate-200'}`}
+                        className={`absolute -translate-x-1/2 -translate-y-1/2 text-[11px] px-2.5 py-1.5 rounded-full border font-semibold transition-all duration-200 ${active ? 'bg-indigo-600 text-white border-indigo-600 scale-110 shadow-md' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-600'}`}
                         style={{ left: `${x}px`, top: `${y}px` }}
                       >
                         {time}
@@ -215,8 +221,12 @@ export default function StatusUpdateModal({
                     );
                   })}
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <CalendarDays className="w-8 h-8 text-indigo-300" />
+                    <div className="w-20 h-20 rounded-full border border-indigo-200 bg-white shadow-sm flex flex-col items-center justify-center">
+                      <CalendarDays className="w-7 h-7 text-indigo-400" />
+                      <span className="text-[10px] font-bold text-indigo-500 mt-1">CLOCK</span>
+                    </div>
                   </div>
+                </div>
                 </div>
               </div>
               <div>

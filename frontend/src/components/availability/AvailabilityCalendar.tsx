@@ -51,11 +51,104 @@ const DAYS_OF_WEEK: { key: DayName; label: string; short: string }[] = [
   { key: 'saturday', label: 'Saturday', short: 'Sat' }
 ];
 
-const TIME_OPTIONS = Array.from({ length: 24 * 4 }, (_, i) => {
-  const hours = Math.floor(i / 4);
-  const minutes = (i % 4) * 15;
-  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-});
+const HOUR_RING = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+
+const parseTimeForClock = (time: string) => {
+  const [hourStr, minuteStr] = (time || '09:00').split(':');
+  const hour24 = Number.parseInt(hourStr || '9', 10);
+  const minute = Number.parseInt(minuteStr || '0', 10);
+  const period: 'AM' | 'PM' = hour24 >= 12 ? 'PM' : 'AM';
+  const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+  return { hour12, minute, period };
+};
+
+const to24HourTime = (hour12: number, minute: number, period: 'AM' | 'PM') => {
+  let hour24 = hour12 % 12;
+  if (period === 'PM') hour24 += 12;
+  return `${String(hour24).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+};
+
+function ClockFacePicker({
+  value,
+  onChange,
+  onClose
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  onClose: () => void;
+}) {
+  const parsed = parseTimeForClock(value);
+  const [hour12, setHour12] = useState(parsed.hour12);
+  const [minute, setMinute] = useState([0, 15, 30, 45].includes(parsed.minute) ? parsed.minute : 0);
+  const [period, setPeriod] = useState<'AM' | 'PM'>(parsed.period);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-bold text-slate-700">Select Time</p>
+        <button type="button" onClick={onClose} className="text-[11px] font-semibold text-slate-500 hover:text-slate-700">Close</button>
+      </div>
+
+      <div className="rounded-full border-2 border-indigo-100 w-44 h-44 mx-auto relative bg-indigo-50/40">
+        {HOUR_RING.map((h, idx) => {
+          const angle = (idx / HOUR_RING.length) * 2 * Math.PI - Math.PI / 2;
+          const radius = 68;
+          const x = 88 + radius * Math.cos(angle);
+          const y = 88 + radius * Math.sin(angle);
+          const active = hour12 === h;
+          return (
+            <button
+              key={h}
+              type="button"
+              onClick={() => setHour12(h)}
+              className={`absolute -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full text-[10px] font-bold border transition ${active ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-700 border-slate-200 hover:border-indigo-300'}`}
+              style={{ left: `${x}px`, top: `${y}px` }}
+            >
+              {h}
+            </button>
+          );
+        })}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Clock className="w-8 h-8 text-indigo-300" />
+        </div>
+      </div>
+
+      <div className="flex items-center justify-center gap-2">
+        {(['AM', 'PM'] as const).map((p) => (
+          <button
+            key={p}
+            type="button"
+            onClick={() => setPeriod(p)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold border ${period === p ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-700 border-slate-200'}`}
+          >
+            {p}
+          </button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-4 gap-2">
+        {[0, 15, 30, 45].map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => setMinute(m)}
+            className={`py-1.5 rounded-lg text-xs font-bold border ${minute === m ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-700 border-slate-200'}`}
+          >
+            :{String(m).padStart(2, '0')}
+          </button>
+        ))}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => onChange(to24HourTime(hour12, minute, period))}
+        className="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold"
+      >
+        Apply {to24HourTime(hour12, minute, period)}
+      </button>
+    </div>
+  );
+}
 
 export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: AvailabilityCalendarProps) {
   const [availability, setAvailability] = useState<AppointmentAvailability | null>(null);
@@ -67,6 +160,7 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [hasChanges, setHasChanges] = useState(false);
   const [markingHolidayForDate, setMarkingHolidayForDate] = useState<string | null>(null);
+  const [activeClockPicker, setActiveClockPicker] = useState<string | null>(null);
 
   // Fetch availability settings
   const fetchAvailability = useCallback(async () => {
@@ -262,7 +356,7 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-none sm:rounded-3xl shadow-2xl w-full max-w-full sm:max-w-5xl h-full sm:max-h-[90vh] overflow-hidden border-0 sm:border border-slate-200 flex flex-col">
+      <div className="bg-white rounded-none sm:rounded-3xl shadow-2xl w-full max-w-full sm:max-w-5xl h-full sm:max-h-[92vh] overflow-hidden border-0 sm:border border-slate-200 flex flex-col">
         {/* Header */}
         <div className="bg-slate-900 px-6 py-5 text-white relative overflow-hidden flex-shrink-0">
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-30"></div>
@@ -317,7 +411,7 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-3 sm:p-6 bg-slate-50/30">
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-3 sm:p-6 bg-slate-50/30 sm:[zoom:0.9]">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
               <LoadingSpinner />
@@ -438,29 +532,49 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
                                     {slot.enabled && (
                                       <div className="space-y-3">
                                         <div className="grid grid-cols-2 gap-2">
-                                          <div className="flex flex-col gap-1">
+                                          <div className="flex flex-col gap-1 relative">
                                             <span className="text-[9px] font-black uppercase tracking-widest text-white/70">Start</span>
-                                            <select
-                                              value={slot.startTime}
-                                              onChange={(e) => updateTimeSlot(day.key, period, { startTime: e.target.value })}
-                                              className="bg-white/20 border border-white/30 rounded-xl px-2 py-2 text-white backdrop-blur-md text-xs w-full focus:outline-none focus:ring-2 focus:ring-white/50 cursor-pointer hover:bg-white/30 transition-colors"
+                                            <button
+                                              type="button"
+                                              onClick={() => setActiveClockPicker(`${day.key}-${period}-start`)}
+                                              className="bg-white/20 border border-white/30 rounded-xl px-2 py-2 text-white backdrop-blur-md text-xs w-full focus:outline-none focus:ring-2 focus:ring-white/50 cursor-pointer hover:bg-white/30 transition-colors text-left"
                                             >
-                                              {TIME_OPTIONS.map((time) => (
-                                                <option key={time} value={time} className="text-slate-800">{time}</option>
-                                              ))}
-                                            </select>
+                                              {slot.startTime}
+                                            </button>
+                                            {activeClockPicker === `${day.key}-${period}-start` && (
+                                              <div className="absolute z-20 top-[110%] left-0 bg-white rounded-2xl border border-slate-200 shadow-2xl p-3 w-64">
+                                                <ClockFacePicker
+                                                  value={slot.startTime}
+                                                  onChange={(val) => {
+                                                    updateTimeSlot(day.key, period, { startTime: val });
+                                                    setActiveClockPicker(null);
+                                                  }}
+                                                  onClose={() => setActiveClockPicker(null)}
+                                                />
+                                              </div>
+                                            )}
                                           </div>
-                                          <div className="flex flex-col gap-1">
+                                          <div className="flex flex-col gap-1 relative">
                                             <span className="text-[9px] font-black uppercase tracking-widest text-white/70">End</span>
-                                            <select
-                                              value={slot.endTime}
-                                              onChange={(e) => updateTimeSlot(day.key, period, { endTime: e.target.value })}
-                                              className="bg-white/20 border border-white/30 rounded-xl px-2 py-2 text-white backdrop-blur-md text-xs w-full focus:outline-none focus:ring-2 focus:ring-white/50 cursor-pointer hover:bg-white/30 transition-colors"
+                                            <button
+                                              type="button"
+                                              onClick={() => setActiveClockPicker(`${day.key}-${period}-end`)}
+                                              className="bg-white/20 border border-white/30 rounded-xl px-2 py-2 text-white backdrop-blur-md text-xs w-full focus:outline-none focus:ring-2 focus:ring-white/50 cursor-pointer hover:bg-white/30 transition-colors text-left"
                                             >
-                                              {TIME_OPTIONS.map((time) => (
-                                                <option key={time} value={time} className="text-slate-800">{time}</option>
-                                              ))}
-                                            </select>
+                                              {slot.endTime}
+                                            </button>
+                                            {activeClockPicker === `${day.key}-${period}-end` && (
+                                              <div className="absolute z-20 top-[110%] left-0 bg-white rounded-2xl border border-slate-200 shadow-2xl p-3 w-64">
+                                                <ClockFacePicker
+                                                  value={slot.endTime}
+                                                  onChange={(val) => {
+                                                    updateTimeSlot(day.key, period, { endTime: val });
+                                                    setActiveClockPicker(null);
+                                                  }}
+                                                  onClose={() => setActiveClockPicker(null)}
+                                                />
+                                              </div>
+                                            )}
                                           </div>
                                         </div>
                                       </div>
