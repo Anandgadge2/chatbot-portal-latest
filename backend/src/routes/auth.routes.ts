@@ -228,11 +228,10 @@ router.post('/login', async (req: Request, res: Response) => {
     if (phone && phone.trim()) {
       const { validatePhoneNumber, normalizePhoneNumber } = await import('../utils/phoneUtils');
       const phoneTrimmed = phone.trim();
-      // Validate phone number format (must be 10 digits)
       if (!validatePhoneNumber(phoneTrimmed)) {
         return res.status(400).json({
           success: false,
-          message: 'Phone number must be exactly 10 digits'
+          message: 'Phone number must be exactly 10 digits or 12 digits starting with 91'
         });
       }
       normalizedPhone = normalizePhoneNumber(phoneTrimmed);

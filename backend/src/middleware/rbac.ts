@@ -84,7 +84,7 @@ export const requirePermission = (...permissions: string[]) => {
             companyId: user.companyId, 
             $or: [
               { key: user.role.toUpperCase() },
-              { name: user.role }
+              { name: { $regex: new RegExp(`^${user.role.replace(/_/g, ' ')}$`, 'i') } }
             ]
           });
           if (systemRole) roleToFind = systemRole._id;

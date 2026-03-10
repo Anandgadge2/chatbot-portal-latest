@@ -57,7 +57,7 @@ export default function LoginPage() {
       return;
     }
     if (!validatePhoneNumber(phone.trim())) {
-      const msg = "Phone number must be exactly 10 digits";
+      const msg = "Phone number must be exactly 10 digits or 12 digits starting with 91";
       setError(msg);
       toast.error(msg);
       return;
@@ -69,7 +69,7 @@ export default function LoginPage() {
       return;
     }
     if (!validatePassword(password.trim())) {
-      const msg = "Password must be between 6 and 8 characters";
+      const msg = "Password must be at least 6 characters";
       setError(msg);
       toast.error(msg);
       return;
@@ -268,10 +268,10 @@ export default function LoginPage() {
                     <Input
                       id="phone"
                       type="tel"
-                      placeholder="Enter 10-digit mobile"
+                      placeholder="Enter 10 or 12-digit mobile"
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                      maxLength={10}
+                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 12))}
+                      maxLength={12}
                       required
                       className="pl-16 h-14 border-slate-200 focus:border-indigo-600 focus:ring-0 bg-slate-50/50 rounded-2xl text-slate-900 placeholder:text-slate-400 font-black text-sm tracking-widest transition-all"
                     />
@@ -301,7 +301,7 @@ export default function LoginPage() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       minLength={6}
-                      maxLength={8}
+                      maxLength={128}
                       required
                       className="pl-16 pr-14 h-14 border-slate-200 focus:border-indigo-600 focus:ring-0 bg-slate-50/50 rounded-2xl text-slate-900 placeholder:text-slate-400 font-bold text-sm transition-all"
                     />

@@ -56,8 +56,8 @@ export function validatePhoneNumber(phone: string): boolean {
   // Remove all non-digit characters
   const digitsOnly = phone.replace(/\D/g, '');
   
-  // Must be exactly 10 digits
-  return digitsOnly.length === 10;
+  // Must be exactly 10 digits or 12 digits starting with 91
+  return digitsOnly.length === 10 || (digitsOnly.length === 12 && digitsOnly.startsWith('91'));
 }
 
 /**
@@ -76,5 +76,5 @@ export function validateTelephone(phone: string): boolean {
  */
 export function validatePassword(password: string): boolean {
   if (!password) return false;
-  return password.length >= 6 && password.length <= 8;
+  return password.length >= 6;
 }
