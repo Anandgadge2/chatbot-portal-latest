@@ -13,7 +13,7 @@
     "commands": {
       "stop": {
         "keywords": [
-          "stop","Stop",
+          "stop","Stop","End","Exit",
           "exit",
           "quit",
           "end",
@@ -32,7 +32,7 @@
       },
       "restart": {
         "keywords": [
-          "restart",
+          "restart","Restart"
           "reset",
           "start again",
           "begin again",
@@ -69,7 +69,7 @@
       },
       "back": {
         "keywords": [
-          "back",
+          "back","Back","Previous",
           "go back",
           "previous",
           "undo",
