@@ -51,6 +51,7 @@ import GrievanceDetailDialog from "@/components/grievance/GrievanceDetailDialog"
 import AppointmentDetailDialog from "@/components/appointment/AppointmentDetailDialog";
 import AssignmentDialog from "@/components/assignment/AssignmentDialog";
 import StatusUpdateModal from "@/components/grievance/StatusUpdateModal";
+import RevertGrievanceDialog from "@/components/grievance/RevertGrievanceDialog";
 import MetricInfoDialog, {
   MetricInfo,
 } from "@/components/analytics/MetricInfoDialog";
@@ -259,6 +260,10 @@ function DashboardContent() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showGrievanceAssignment, setShowGrievanceAssignment] = useState(false);
   const [selectedGrievanceForAssignment, setSelectedGrievanceForAssignment] =
+    useState<Grievance | null>(null);
+  const [showGrievanceRevertDialog, setShowGrievanceRevertDialog] =
+    useState(false);
+  const [selectedGrievanceForRevert, setSelectedGrievanceForRevert] =
     useState<Grievance | null>(null);
   const [showAppointmentAssignment, setShowAppointmentAssignment] =
     useState(false);
@@ -795,7 +800,7 @@ function DashboardContent() {
           fetchCategoryData(),
           fetchDashboardData(),
         ]);
-      } else if (activeTab === "grievances") {
+      } else if (activeTab === "grievances" || activeTab === "reverted") {
         await fetchGrievances(grievancePage);
       } else if (activeTab === "appointments") {
         await fetchAppointments(appointmentPage);
@@ -1282,6 +1287,9 @@ function DashboardContent() {
             if (activeTab !== value) {
               setPreviousTab(activeTab);
             }
+            if (value === "reverted") {
+              setGrievanceFilters((prev) => ({ ...prev, status: "REVERTED" }));
+            }
             setActiveTab(value);
           }}
           className="space-y-4 sm:space-y-6"
@@ -1317,6 +1325,15 @@ function DashboardContent() {
                     Grievances
                   </TabsTrigger>
                 )}
+
+              {isCompanyLevel && hasModule(Module.GRIEVANCE) && hasPermission(user, Permission.READ_GRIEVANCE) && (
+                <TabsTrigger
+                  value="reverted"
+                  className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-amber-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
+                >
+                  Reverted
+                </TabsTrigger>
+              )}
 
               {hasModule(Module.APPOINTMENT) &&
                 hasPermission(user, Permission.READ_APPOINTMENT) && (
@@ -1386,7 +1403,7 @@ function DashboardContent() {
               <>
                 {/* Total Grievances */}
                 {hasPermission(user, Permission.READ_GRIEVANCE) && (
-                  <Card className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300">
+                  <Card onClick={() => setActiveTab("grievances")} className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer">
                     <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
                       <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                         Total Grievances
@@ -1411,7 +1428,7 @@ function DashboardContent() {
 
                 {/* Pending Grievances */}
                 {hasPermission(user, Permission.READ_GRIEVANCE) && (
-                  <Card className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 border-l-4 border-l-amber-400">
+                  <Card onClick={() => { setActiveTab("grievances"); setGrievanceFilters((prev) => ({ ...prev, status: "PENDING" })); }} className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 border-l-4 border-l-amber-400 cursor-pointer">
                     <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
                       <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                         Pending Actions
@@ -1431,7 +1448,7 @@ function DashboardContent() {
 
                 {/* Total Appointments */}
                 {hasModule(Module.APPOINTMENT) && hasPermission(user, Permission.READ_APPOINTMENT) && (
-                  <Card className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300">
+                  <Card onClick={() => setActiveTab("appointments")} className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer">
                     <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
                       <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                         Appointments
@@ -1455,7 +1472,7 @@ function DashboardContent() {
 
                 {/* Total Staff (Company Level) */}
                 {isCompanyLevel && (
-                  <Card className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300">
+                  <Card onClick={() => setActiveTab("users")} className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer">
                     <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
                       <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                         Active Personnel
@@ -1475,7 +1492,7 @@ function DashboardContent() {
 
                 {/* Departments (Company Level) */}
                 {isCompanyLevel && (
-                  <Card className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300">
+                  <Card onClick={() => setActiveTab("departments")} className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer">
                     <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
                       <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                         Working Units
@@ -2035,7 +2052,7 @@ function DashboardContent() {
               >
                 {/* Total Grievances */}
                 {hasModule(Module.GRIEVANCE) && (
-                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 hover:shadow-md transition-all group">
+                  <div onClick={() => setActiveTab("grievances")} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 hover:shadow-md transition-all group cursor-pointer">
                     <div className="flex items-center justify-between mb-3">
                       <div className="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform">
                         <FileText className="w-4 h-4" />
@@ -2066,7 +2083,7 @@ function DashboardContent() {
 
                 {/* Pending Grievances */}
                 {hasModule(Module.GRIEVANCE) && (
-                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 hover:shadow-md transition-all group">
+                  <div onClick={() => { setActiveTab("grievances"); setGrievanceFilters((prev) => ({ ...prev, status: "PENDING" })); }} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 hover:shadow-md transition-all group cursor-pointer">
                     <div className="flex items-center justify-between mb-3">
                       <div className="w-9 h-9 bg-amber-50 rounded-xl flex items-center justify-center text-amber-600 group-hover:scale-110 transition-transform">
                         <Clock className="w-4 h-4" />
@@ -2089,7 +2106,7 @@ function DashboardContent() {
 
                 {/* Resolved Grievances */}
                 {hasModule(Module.GRIEVANCE) && (
-                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 hover:shadow-md transition-all group">
+                  <div onClick={() => { setActiveTab("grievances"); setGrievanceFilters((prev) => ({ ...prev, status: "RESOLVED" })); }} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 hover:shadow-md transition-all group cursor-pointer">
                     <div className="flex items-center justify-between mb-3">
                       <div className="w-9 h-9 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform">
                         <CheckCircle className="w-4 h-4" />
@@ -2112,7 +2129,7 @@ function DashboardContent() {
 
                 {/* Appointments */}
                 {hasModule(Module.APPOINTMENT) && isCompanyLevel && (
-                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 hover:shadow-md transition-all group">
+                  <div onClick={() => setActiveTab("appointments")} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 hover:shadow-md transition-all group cursor-pointer">
                     <div className="flex items-center justify-between mb-3">
                       <div className="w-9 h-9 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600 group-hover:scale-110 transition-transform">
                         <CalendarClock className="w-4 h-4" />
@@ -2136,7 +2153,7 @@ function DashboardContent() {
                 )}
 
                 {/* Staff / Users */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 hover:shadow-md transition-all group">
+                <div onClick={() => setActiveTab("users")} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 hover:shadow-md transition-all group cursor-pointer">
                   <div className="flex items-center justify-between mb-3">
                     <div className="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
                       <Users className="w-4 h-4" />
@@ -3898,7 +3915,9 @@ function DashboardContent() {
                                 ? "Rejected Grievances"
                                 : grievanceFilters.status === "CLOSED"
                                   ? "Closed Grievances"
-                                  : "Active Grievances"}
+                                  : grievanceFilters.status === "REVERTED"
+                                    ? "Reverted Grievances"
+                                    : "Active Grievances"}
                           </CardTitle>
                           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
                             {grievanceFilters.status === "RESOLVED"
@@ -3907,17 +3926,27 @@ function DashboardContent() {
                                 ? "View all rejected grievances"
                                 : grievanceFilters.status === "CLOSED"
                                   ? "View all closed grievances"
-                                  : "View and manage grievances"}
+                                  : grievanceFilters.status === "REVERTED"
+                                    ? "Reverted by departments and pending reassignment"
+                                    : "View and manage grievances"}
                           </p>
                         </div>
                       </div>
-                      <Link
-                        href="/resolved-grievances"
-                        className="flex items-center gap-2 px-4 h-8 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-all border border-white/20 text-[10px] font-bold uppercase tracking-wider"
-                      >
-                        <CheckCircle className="w-3.5 h-3.5" />
-                        View Resolved
-                      </Link>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setGrievanceFilters((prev) => ({ ...prev, status: 'REVERTED' }))}
+                          className="flex items-center gap-2 px-4 h-8 bg-amber-500/20 text-amber-100 rounded-lg hover:bg-amber-500/30 transition-all border border-amber-400/30 text-[10px] font-bold uppercase tracking-wider"
+                        >
+                          ↩ Reverted
+                        </button>
+                        <Link
+                          href="/resolved-grievances"
+                          className="flex items-center gap-2 px-4 h-8 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-all border border-white/20 text-[10px] font-bold uppercase tracking-wider"
+                        >
+                          <CheckCircle className="w-3.5 h-3.5" />
+                          View Resolved
+                        </Link>
+                      </div>
                     </div>
                   </CardHeader>
 
@@ -4002,6 +4031,7 @@ function DashboardContent() {
                         <option value="RESOLVED">✅ Resolved</option>
                         <option value="REJECTED">❌ Rejected</option>
                         <option value="CLOSED">🔒 Closed</option>
+                        <option value="REVERTED">↩️ Reverted</option>
                       </select>
 
                       {/* Department Filter */}
@@ -4540,6 +4570,25 @@ function DashboardContent() {
                                               </svg>
                                             </Button>
                                           )}
+                                        {isDepartmentLevel &&
+                                          grievance.status !== "RESOLVED" &&
+                                          grievance.status !== "REJECTED" &&
+                                          grievance.status !== "CLOSED" && (
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => {
+                                                setSelectedGrievanceForRevert(grievance);
+                                                setShowGrievanceRevertDialog(true);
+                                              }}
+                                              title="Revert to Company Admin"
+                                              className="h-8 w-8 p-0 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                                            >
+                                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a4 4 0 014 4v1m0 0l-3-3m3 3l3-3M7 14H3m0 0l3 3m-3-3l3-3" />
+                                              </svg>
+                                            </Button>
+                                          )}
                                         <Button
                                           variant="ghost"
                                           size="sm"
@@ -4607,6 +4656,64 @@ function DashboardContent() {
                 </Card>
               </TabsContent>
             )}
+
+
+          {isCompanyLevel && hasModule(Module.GRIEVANCE) && hasPermission(user, Permission.READ_GRIEVANCE) && (
+            <TabsContent value="reverted" className="space-y-6">
+              <Card className="rounded-xl border border-amber-200 shadow-sm overflow-hidden bg-white">
+                <CardHeader className="bg-amber-600 px-6 py-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-base font-bold text-white">Reverted Grievances</CardTitle>
+                      <p className="text-[10px] text-amber-100 font-bold uppercase tracking-widest mt-0.5">Reassign grievances reverted by departments</p>
+                    </div>
+                    <Button size="sm" variant="outline" className="bg-white text-amber-700 border-white" onClick={() => { setActiveTab("grievances"); setGrievanceFilters((prev)=>({ ...prev, status: "REVERTED" })); }}>
+                      Open Full Grievance View
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-slate-50 border-b border-slate-100">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">ID</th>
+                          <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">Citizen</th>
+                          <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">Remarks</th>
+                          <th className="px-4 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {grievances.filter((g) => g.status === "REVERTED").map((grievance) => {
+                          const lastRevert = grievance.timeline?.slice().reverse().find((t) => t.action === "REVERTED_TO_COMPANY_ADMIN");
+                          return (
+                            <tr key={grievance._id} className="hover:bg-amber-50/30">
+                              <td className="px-4 py-3 text-xs font-black text-amber-700">{grievance.grievanceId}</td>
+                              <td className="px-4 py-3 text-xs text-slate-700">{grievance.citizenName}</td>
+                              <td className="px-4 py-3 text-xs text-slate-600 max-w-md truncate" title={lastRevert?.details?.remarks || ""}>{lastRevert?.details?.remarks || "—"}</td>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center justify-center gap-1">
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-green-600 hover:bg-green-50" title="Reassign" onClick={() => { setSelectedGrievanceForAssignment(grievance); setShowGrievanceAssignment(true); }}>
+                                    <UserIcon className="w-4 h-4" />
+                                  </Button>
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-50" title="View" onClick={async () => { const response = await grievanceAPI.getById(grievance._id); if (response.success) { setSelectedGrievance(response.data.grievance); setShowGrievanceDetail(true);} }}>
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        {grievances.filter((g) => g.status === "REVERTED").length === 0 && (
+                          <tr><td colSpan={4} className="px-4 py-10 text-center text-sm text-slate-500">No reverted grievances found.</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
 
           {/* Appointments Tab - show if module active or SuperAdmin */}
           {user &&
@@ -6055,6 +6162,22 @@ function DashboardContent() {
           onClose={() => {
             setShowAppointmentDetail(false);
             setSelectedAppointment(null);
+          }}
+        />
+
+        <RevertGrievanceDialog
+          isOpen={showGrievanceRevertDialog}
+          grievanceId={selectedGrievanceForRevert?.grievanceId}
+          onClose={() => {
+            setShowGrievanceRevertDialog(false);
+            setSelectedGrievanceForRevert(null);
+          }}
+          onSubmit={async (payload) => {
+            if (!selectedGrievanceForRevert) return;
+            await grievanceAPI.revert(selectedGrievanceForRevert._id, payload);
+            toast.success("Grievance reverted to company admin for reassignment");
+            fetchGrievances(grievancePage, true);
+            fetchDashboardData(true);
           }}
         />
 

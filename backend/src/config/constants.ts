@@ -49,6 +49,7 @@ export type ModuleType = typeof Module[keyof typeof Module] | string;
 export enum GrievanceStatus {
   PENDING = 'PENDING',
   ASSIGNED = 'ASSIGNED',
+  REVERTED = 'REVERTED',
   RESOLVED = 'RESOLVED',
   REJECTED = 'REJECTED'
 }

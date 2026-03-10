@@ -40,6 +40,7 @@ import { appointmentAPI, Appointment } from "@/lib/api/appointment";
 import GrievanceDetailDialog from "@/components/grievance/GrievanceDetailDialog";
 import AppointmentDetailDialog from "@/components/appointment/AppointmentDetailDialog";
 import StatusUpdateModal from "@/components/grievance/StatusUpdateModal";
+import RevertGrievanceDialog from "@/components/grievance/RevertGrievanceDialog";
 import toast from "react-hot-toast";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import {
@@ -92,6 +93,9 @@ export default function DepartmentDetail() {
   const [showGrievanceStatusModal, setShowGrievanceStatusModal] =
     useState(false);
   const [selectedGrievanceForStatus, setSelectedGrievanceForStatus] =
+    useState<Grievance | null>(null);
+  const [showRevertDialog, setShowRevertDialog] = useState(false);
+  const [selectedGrievanceForRevert, setSelectedGrievanceForRevert] =
     useState<Grievance | null>(null);
 
   // Filter & Sort states
@@ -454,7 +458,7 @@ export default function DepartmentDetail() {
                 )}
 
               {/* Resolution Rate */}
-              <div className="bg-white rounded-xl border border-slate-200/60 shadow-sm hover:shadow-md transition-all group p-4">
+              <div className="bg-white rounded-xl border border-slate-200/60 shadow-sm hover:shadow-md transition-all group p-4 cursor-pointer" onClick={() => { setActiveTab("grievances"); setStatusFilter("RESOLVED"); }}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform">
                     <CheckCircle className="w-4 h-4" />
@@ -784,6 +788,7 @@ export default function DepartmentDetail() {
                       <option value="PENDING">Pending</option>
                       <option value="ASSIGNED">Assigned</option>
                       <option value="IN_PROGRESS">In Progress</option>
+                      <option value="REVERTED">Reverted</option>
                     </select>
                   </div>
 
@@ -894,6 +899,18 @@ export default function DepartmentDetail() {
                               </td>
                               <td className="px-4 py-3 text-center">
                                 <button
+                                  onClick={() => {
+                                    setSelectedGrievanceForRevert(g);
+                                    setShowRevertDialog(true);
+                                  }}
+                                  className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition-all mr-1"
+                                  title="Revert to Company Admin"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a4 4 0 014 4v1m0 0l-3-3m3 3l3-3M7 14H3m0 0l3 3m-3-3l3-3" />
+                                  </svg>
+                                </button>
+                                <button
                                   onClick={async () => {
                                     const response = await grievanceAPI.getById(
                                       g._id,
@@ -975,7 +992,7 @@ export default function DepartmentDetail() {
 
             {/* Analytics KPIs */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 cursor-pointer" onClick={() => setActiveTab("grievances")}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
                     <FileText className="w-4 h-4" />
@@ -991,7 +1008,7 @@ export default function DepartmentDetail() {
                   Active Cases
                 </p>
               </div>
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 cursor-pointer" onClick={() => { setActiveTab("grievances"); setStatusFilter("PENDING"); }}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="w-9 h-9 bg-amber-50 rounded-xl flex items-center justify-center text-amber-600">
                     <Clock className="w-4 h-4" />
@@ -1007,7 +1024,7 @@ export default function DepartmentDetail() {
                   Pending
                 </p>
               </div>
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 cursor-pointer" onClick={() => { setActiveTab("grievances"); setStatusFilter("RESOLVED"); }}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="w-9 h-9 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600">
                     <CheckCircle className="w-4 h-4" />
@@ -1023,7 +1040,7 @@ export default function DepartmentDetail() {
                   Resolved
                 </p>
               </div>
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 cursor-pointer" onClick={() => setActiveTab("users")}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
                     <Users className="w-4 h-4" />
@@ -1192,6 +1209,20 @@ export default function DepartmentDetail() {
         onClose={() => {
           setShowAppointmentDetail(false);
           setSelectedAppointment(null);
+        }}
+      />
+      <RevertGrievanceDialog
+        isOpen={showRevertDialog}
+        grievanceId={selectedGrievanceForRevert?.grievanceId}
+        onClose={() => {
+          setShowRevertDialog(false);
+          setSelectedGrievanceForRevert(null);
+        }}
+        onSubmit={async (payload) => {
+          if (!selectedGrievanceForRevert) return;
+          await grievanceAPI.revert(selectedGrievanceForRevert._id, payload);
+          toast.success('Grievance reverted to company admin for reassignment');
+          await fetchData();
         }}
       />
       <StatusUpdateModal

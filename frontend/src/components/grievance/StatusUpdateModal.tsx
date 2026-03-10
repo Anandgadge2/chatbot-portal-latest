@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, CheckCircle2, AlertTriangle, Clock, MessageSquare, RefreshCw, Ban } from 'lucide-react';
+import { X, CheckCircle2, Clock, MessageSquare, RefreshCw, Ban, CalendarDays } from 'lucide-react';
 import { apiClient } from '@/lib/api/client';
 import toast from 'react-hot-toast';
 
@@ -46,6 +46,9 @@ export default function StatusUpdateModal({
 }: StatusUpdateModalProps) {
   const [selectedStatus, setSelectedStatus] = useState(currentStatus);
   const [remarks, setRemarks] = useState('');
+  const [appointmentDate, setAppointmentDate] = useState('');
+  const [appointmentTime, setAppointmentTime] = useState('');
+  const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const grievanceStatuses =
@@ -58,6 +61,9 @@ export default function StatusUpdateModal({
     if (isOpen) {
       setSelectedStatus(currentStatus);
       setRemarks('');
+      setAppointmentDate('');
+      setAppointmentTime('');
+      setDescription('');
     }
   }, [isOpen, currentStatus]);
 
@@ -71,7 +77,13 @@ export default function StatusUpdateModal({
       setSubmitting(true);
       const response = await apiClient.put(
         `/status/${itemType}/${itemId}`,
-        { status: selectedStatus, remarks }
+        {
+          status: selectedStatus,
+          remarks,
+          appointmentDate: selectedStatus === 'CONFIRMED' ? appointmentDate : undefined,
+          appointmentTime: selectedStatus === 'CONFIRMED' ? appointmentTime : undefined,
+          description: selectedStatus === 'CONFIRMED' ? description : undefined
+        }
       );
 
       if (response.success) {
@@ -93,6 +105,8 @@ export default function StatusUpdateModal({
 
   const currentStatusInfo = statuses.find(s => s.value === currentStatus) || statuses[0];
   const typeLabel = itemType === 'grievance' ? 'Grievance' : 'Appointment';
+
+  const clockTimes = ['09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00'];
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-150">
@@ -168,6 +182,50 @@ export default function StatusUpdateModal({
             </div>
           </div>
 
+          {itemType === 'appointment' && selectedStatus === 'CONFIRMED' && (
+            <div className="space-y-4 bg-indigo-50/40 border border-indigo-100 rounded-xl p-4">
+              <div>
+                <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Confirmation Date *</label>
+                <input
+                  type="date"
+                  value={appointmentDate}
+                  onChange={(e) => setAppointmentDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Select Time (Clock) *</label>
+                <div className="relative w-52 h-52 mx-auto rounded-full border-4 border-indigo-200 bg-white">
+                  {clockTimes.map((time, idx) => {
+                    const angle = (idx / clockTimes.length) * 2 * Math.PI - Math.PI / 2;
+                    const radius = 82;
+                    const x = 104 + radius * Math.cos(angle);
+                    const y = 104 + radius * Math.sin(angle);
+                    const active = appointmentTime === time;
+                    return (
+                      <button
+                        key={time}
+                        type="button"
+                        onClick={() => setAppointmentTime(time)}
+                        className={`absolute -translate-x-1/2 -translate-y-1/2 text-[10px] px-2 py-1 rounded-full border ${active ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-600 border-slate-200'}`}
+                        style={{ left: `${x}px`, top: `${y}px` }}
+                      >
+                        {time}
+                      </button>
+                    );
+                  })}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <CalendarDays className="w-8 h-8 text-indigo-300" />
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Description (optional)</label>
+                <textarea value={description} onChange={(e)=>setDescription(e.target.value)} rows={2} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" placeholder="Add meeting details" />
+              </div>
+            </div>
+          )}
+
           {/* Remarks */}
           <div>
             <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">
@@ -207,7 +265,7 @@ export default function StatusUpdateModal({
           </button>
           <button
             onClick={handleUpdate}
-            disabled={selectedStatus === currentStatus || submitting}
+            disabled={selectedStatus === currentStatus || submitting || (itemType === 'appointment' && selectedStatus === 'CONFIRMED' && (!appointmentDate || !appointmentTime))}
             className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold uppercase tracking-wider shadow-md shadow-indigo-900/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {submitting ? (

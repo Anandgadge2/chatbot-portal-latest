@@ -63,6 +63,12 @@ export interface CreateGrievanceData {
   };
 }
 
+export interface RevertGrievanceData {
+  remarks: string;
+  suggestedDepartmentId?: string;
+  suggestedAssigneeId?: string;
+}
+
 export interface GrievancesResponse {
   success: boolean;
   data: {
@@ -124,5 +130,9 @@ export const grievanceAPI = {
 
   deleteBulk: async (ids: string[]): Promise<{ success: boolean; message: string; data: { deletedCount: number } }> => {
     return apiClient.delete('/grievances/bulk', { ids });
+  },
+
+  revert: async (id: string, data: RevertGrievanceData): Promise<{ success: boolean; data: { grievance: Grievance }; message: string }> => {
+    return apiClient.put(`/grievances/${id}/revert`, data);
   }
 };
