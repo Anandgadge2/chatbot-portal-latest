@@ -458,7 +458,7 @@ export default function DepartmentDetail() {
                 )}
 
               {/* Resolution Rate */}
-              <div className="bg-white rounded-xl border border-slate-200/60 shadow-sm hover:shadow-md transition-all group p-4">
+              <div className="bg-white rounded-xl border border-slate-200/60 shadow-sm hover:shadow-md transition-all group p-4 cursor-pointer" onClick={() => { setActiveTab("grievances"); setStatusFilter("RESOLVED"); }}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform">
                     <CheckCircle className="w-4 h-4" />
@@ -992,7 +992,7 @@ export default function DepartmentDetail() {
 
             {/* Analytics KPIs */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 cursor-pointer" onClick={() => setActiveTab("grievances")}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
                     <FileText className="w-4 h-4" />
@@ -1008,7 +1008,7 @@ export default function DepartmentDetail() {
                   Active Cases
                 </p>
               </div>
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 cursor-pointer" onClick={() => { setActiveTab("grievances"); setStatusFilter("PENDING"); }}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="w-9 h-9 bg-amber-50 rounded-xl flex items-center justify-center text-amber-600">
                     <Clock className="w-4 h-4" />
@@ -1024,7 +1024,7 @@ export default function DepartmentDetail() {
                   Pending
                 </p>
               </div>
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 cursor-pointer" onClick={() => { setActiveTab("grievances"); setStatusFilter("RESOLVED"); }}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="w-9 h-9 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600">
                     <CheckCircle className="w-4 h-4" />
@@ -1040,7 +1040,7 @@ export default function DepartmentDetail() {
                   Resolved
                 </p>
               </div>
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 cursor-pointer" onClick={() => setActiveTab("users")}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
                     <Users className="w-4 h-4" />
