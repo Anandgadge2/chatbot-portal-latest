@@ -272,7 +272,7 @@ const DEFAULT_WA_MESSAGES: Record<string, string> = {
 
 Respected {recipientName},
 
-Grievance Details:
+Details:
 🎫 *Reference ID:* {grievanceId}
 👤 *Citizen Name:* {citizenName}
 📞 *Contact Number:* {citizenPhone}
@@ -283,7 +283,9 @@ Grievance Details:
 📅 *Received On:* {formattedDate}
 
 *Action Required:*
-Please review this grievance at your earliest convenience.
+Please review this grievance promptly. Resolution should be provided as per SLA.
+
+🔗 *Access Dashboard:* https://chatbot-portal-latest-frontend.vercel.app/
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 *{companyName}*
@@ -296,18 +298,21 @@ This is an automated notification.`,
 
 Respected {recipientName},
 
-Assignment Details:
+Details:
 🎫 *Reference ID:* {grievanceId}
-👤 *Citizen Name:* {citizenName}
-📞 *Contact Number:* {citizenPhone}
+👤 *Citizen:* {citizenName}
 🏢 *Department:* {departmentName}
 🏢 *Sub-Dept:* {subDepartmentName}
 📝 *Description:*
 {description}
+
 👨‍💼 *Assigned By:* {assignedByName}
 📅 *Assigned On:* {formattedDate}
 
 Please investigate and take required action.
+
+🔗 *Access Dashboard:* https://chatbot-portal-latest-frontend.vercel.app/
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 *{companyName}*
 Digital Grievance Redressal System`,
@@ -354,53 +359,65 @@ Digital Grievance Redressal System`,
 
   appointment_created: `*{companyName}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📅 *NEW APPOINTMENT RECEIVED*
+📋 *NEW APPOINTMENT RECEIVED*
 
 Respected {recipientName},
 
-Appointment Details:
+Details:
 🎫 *Reference ID:* {appointmentId}
 👤 *Citizen Name:* {citizenName}
 📞 *Contact Number:* {citizenPhone}
 🎯 *Purpose:* {purpose}
 📅 *Received On:* {formattedDate}
 
+*Action Required:*
+Please review this appointment promptly.
+
+🔗 *Access Dashboard:* https://chatbot-portal-latest-frontend.vercel.app/
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*{companyName}*
+Digital Appointment System
+This is an automated notification.`,
+
+  appointment_assigned: `*{companyName}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+👤 *APPOINTMENT ASSIGNED TO YOU*
+
+Respected {recipientName},
+
+Details:
+🎫 *Reference ID:* {appointmentId}
+👤 *Citizen:* {citizenName}
+🎯 *Purpose:* {purpose}
+
+👨‍💼 *Assigned By:* {assignedByName}
+📅 *Assigned On:* {formattedDate}
+
+Please investigate and take required action.
+
+🔗 *Access Dashboard:* https://chatbot-portal-latest-frontend.vercel.app/
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 *{companyName}*
 Digital Appointment System`,
 
-//   appointment_assigned: `*{companyName}*
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// 👤 *APPOINTMENT ASSIGNED TO YOU*
+  appointment_resolved: `*{companyName}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ *APPOINTMENT COMPLETED*
 
-// Respected {recipientName},
+Respected {citizenName},
 
-// 🎫 *Reference ID:* {appointmentId}
-// 👤 *Citizen Name:* {citizenName}
-// 📞 *Contact Number:* {citizenPhone}
-// 🎯 *Purpose:* {purpose}
+🎫 *Reference ID:* {appointmentId}
+📊 *Status:* COMPLETED
+👨‍💼 *Completed By:* {resolvedByName}
+📅 *Completed On:* {formattedResolvedDate}
+📝 *Remarks:* {remarks}
 
-// 👨‍💼 *Assigned By:* {assignedByName}
-// 📅 *Assigned On:* {formattedDate}
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// *{companyName}*
-// Digital Appointment System`,
-
-//   appointment_resolved: `*{companyName}*
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// ✅ *APPOINTMENT COMPLETED*
-
-// Respected {citizenName},
-
-// 🎫 *Reference ID:* {appointmentId}
-// 📊 *Status:* COMPLETED
-// 👨‍💼 *Completed By:* {resolvedByName}
-// 📅 *Completed On:* {formattedResolvedDate}
-// 📝 *Remarks:* {remarks}
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// *{companyName}*
-// Digital Appointment System`,
+Thank you for visiting us.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*{companyName}*
+Digital Appointment System`,
 
   appointment_scheduled: `*{companyName}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
