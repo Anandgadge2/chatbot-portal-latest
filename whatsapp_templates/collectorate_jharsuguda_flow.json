@@ -563,7 +563,7 @@
       "position": { "x": 2150, "y": 200 },
       "data": {
         "label": "Apt Success (EN)",
-        "messageText": "👋 *Thank You*\n\nYour appointment request has been submitted.\n\n*Reference No:* {appointmentId}\n\nYou will receive confirmation once approved by the office.\n\n---\nThank you for contacting Collectorate Jharsuguda.\n\n📞 *For Support:*\n• Type \"Hi\" anytime for assistance\n• Type \"Help\" for helpdesk information\n• Type \"Menu\" to see all services"
+        "messageText": "✅ *Appointment Registered Successfully!*\n\n*Reference Number:* `{appointmentId}`\n\n👤 *Name:* {citizenName}\n🎯 *Purpose:* {purpose}\n📅 *Date:* {appointmentDate}\n⏰ *Time:* {appointmentTime}\n\nYou will receive status updates via WhatsApp.\n\n-----------------------------------\nThank you for contacting {companyName}.\n\n📞 *For Support:*\n• Type \"Hi\" anytime for assistance\n• Type \"Help\" for helpdesk information\n• Type \"Menu\" to see all services"
       }
     },
     {
