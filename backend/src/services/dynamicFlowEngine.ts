@@ -728,7 +728,7 @@ export class DynamicFlowEngine {
             displayName.length > 24
               ? displayName.substring(0, 21) + "..."
               : displayName,
-          description: displayDesc,
+          description: displayName.length > 24 ? displayName.substring(0, 72) : displayDesc,
         };
       });
 
@@ -956,7 +956,7 @@ export class DynamicFlowEngine {
               displayName.length > 24
                 ? displayName.substring(0, 21) + "..."
                 : displayName,
-            description: displayDesc,
+            description: displayName.length > 24 ? displayName.substring(0, 72) : displayDesc,
             nextStepId: step.nextStepId,
           };
         });
@@ -2378,7 +2378,7 @@ export class DynamicFlowEngine {
                   displayName.length > 24
                     ? displayName.substring(0, 21) + "..."
                     : displayName,
-                description: displayDesc,
+                description: displayName.length > 24 ? displayName.substring(0, 72) : displayDesc,
               };
             });
 
