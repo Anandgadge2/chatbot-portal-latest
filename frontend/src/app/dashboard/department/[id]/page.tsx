@@ -40,6 +40,7 @@ import { appointmentAPI, Appointment } from "@/lib/api/appointment";
 import GrievanceDetailDialog from "@/components/grievance/GrievanceDetailDialog";
 import AppointmentDetailDialog from "@/components/appointment/AppointmentDetailDialog";
 import StatusUpdateModal from "@/components/grievance/StatusUpdateModal";
+import RevertGrievanceDialog from "@/components/grievance/RevertGrievanceDialog";
 import toast from "react-hot-toast";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import {
@@ -92,6 +93,9 @@ export default function DepartmentDetail() {
   const [showGrievanceStatusModal, setShowGrievanceStatusModal] =
     useState(false);
   const [selectedGrievanceForStatus, setSelectedGrievanceForStatus] =
+    useState<Grievance | null>(null);
+  const [showRevertDialog, setShowRevertDialog] = useState(false);
+  const [selectedGrievanceForRevert, setSelectedGrievanceForRevert] =
     useState<Grievance | null>(null);
 
   // Filter & Sort states
@@ -784,6 +788,7 @@ export default function DepartmentDetail() {
                       <option value="PENDING">Pending</option>
                       <option value="ASSIGNED">Assigned</option>
                       <option value="IN_PROGRESS">In Progress</option>
+                      <option value="REVERTED">Reverted</option>
                     </select>
                   </div>
 
@@ -893,6 +898,18 @@ export default function DepartmentDetail() {
                                 </div>
                               </td>
                               <td className="px-4 py-3 text-center">
+                                <button
+                                  onClick={() => {
+                                    setSelectedGrievanceForRevert(g);
+                                    setShowRevertDialog(true);
+                                  }}
+                                  className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition-all mr-1"
+                                  title="Revert to Company Admin"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a4 4 0 014 4v1m0 0l-3-3m3 3l3-3M7 14H3m0 0l3 3m-3-3l3-3" />
+                                  </svg>
+                                </button>
                                 <button
                                   onClick={async () => {
                                     const response = await grievanceAPI.getById(
@@ -1192,6 +1209,20 @@ export default function DepartmentDetail() {
         onClose={() => {
           setShowAppointmentDetail(false);
           setSelectedAppointment(null);
+        }}
+      />
+      <RevertGrievanceDialog
+        isOpen={showRevertDialog}
+        grievanceId={selectedGrievanceForRevert?.grievanceId}
+        onClose={() => {
+          setShowRevertDialog(false);
+          setSelectedGrievanceForRevert(null);
+        }}
+        onSubmit={async (payload) => {
+          if (!selectedGrievanceForRevert) return;
+          await grievanceAPI.revert(selectedGrievanceForRevert._id, payload);
+          toast.success('Grievance reverted to company admin for reassignment');
+          await fetchData();
         }}
       />
       <StatusUpdateModal

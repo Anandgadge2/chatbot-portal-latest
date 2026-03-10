@@ -3898,7 +3898,9 @@ function DashboardContent() {
                                 ? "Rejected Grievances"
                                 : grievanceFilters.status === "CLOSED"
                                   ? "Closed Grievances"
-                                  : "Active Grievances"}
+                                  : grievanceFilters.status === "REVERTED"
+                                    ? "Reverted Grievances"
+                                    : "Active Grievances"}
                           </CardTitle>
                           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
                             {grievanceFilters.status === "RESOLVED"
@@ -3907,17 +3909,27 @@ function DashboardContent() {
                                 ? "View all rejected grievances"
                                 : grievanceFilters.status === "CLOSED"
                                   ? "View all closed grievances"
-                                  : "View and manage grievances"}
+                                  : grievanceFilters.status === "REVERTED"
+                                    ? "Reverted by departments and pending reassignment"
+                                    : "View and manage grievances"}
                           </p>
                         </div>
                       </div>
-                      <Link
-                        href="/resolved-grievances"
-                        className="flex items-center gap-2 px-4 h-8 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-all border border-white/20 text-[10px] font-bold uppercase tracking-wider"
-                      >
-                        <CheckCircle className="w-3.5 h-3.5" />
-                        View Resolved
-                      </Link>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setGrievanceFilters((prev) => ({ ...prev, status: 'REVERTED' }))}
+                          className="flex items-center gap-2 px-4 h-8 bg-amber-500/20 text-amber-100 rounded-lg hover:bg-amber-500/30 transition-all border border-amber-400/30 text-[10px] font-bold uppercase tracking-wider"
+                        >
+                          ↩ Reverted
+                        </button>
+                        <Link
+                          href="/resolved-grievances"
+                          className="flex items-center gap-2 px-4 h-8 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-all border border-white/20 text-[10px] font-bold uppercase tracking-wider"
+                        >
+                          <CheckCircle className="w-3.5 h-3.5" />
+                          View Resolved
+                        </Link>
+                      </div>
                     </div>
                   </CardHeader>
 
@@ -4002,6 +4014,7 @@ function DashboardContent() {
                         <option value="RESOLVED">✅ Resolved</option>
                         <option value="REJECTED">❌ Rejected</option>
                         <option value="CLOSED">🔒 Closed</option>
+                        <option value="REVERTED">↩️ Reverted</option>
                       </select>
 
                       {/* Department Filter */}
