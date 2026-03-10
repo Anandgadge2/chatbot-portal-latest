@@ -408,20 +408,23 @@ export default function GrievancesPage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
-                          <span className="font-bold text-sm text-blue-700">
+                          <button
+                            onClick={() => handleViewDetails(grievance)}
+                            className="font-bold text-sm text-blue-700 text-left hover:underline break-all"
+                          >
                             {grievance.grievanceId}
-                          </span>
+                          </button>
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
                           <button
                             onClick={() => handleViewDetails(grievance)}
-                            className="text-blue-600 hover:text-blue-800 font-bold text-left hover:underline"
+                            className="text-blue-600 hover:text-blue-800 font-bold text-left hover:underline break-words whitespace-normal"
                           >
                             {grievance.citizenName}
                           </button>
-                          <div className="flex items-center text-sm text-gray-500 mt-1">
+                          <div className="flex items-center text-sm text-gray-500 mt-1 break-all">
                             <Phone className="w-3.5 h-3.5 mr-1 text-gray-400" />
                             {grievance.citizenPhone}
                           </div>
@@ -440,7 +443,7 @@ export default function GrievancesPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-sm text-gray-600 line-clamp-2 max-w-xs leading-relaxed">
+                        <p className="text-sm text-gray-600 max-w-xs leading-relaxed break-words whitespace-normal">
                           {grievance.description}
                         </p>
                       </td>
