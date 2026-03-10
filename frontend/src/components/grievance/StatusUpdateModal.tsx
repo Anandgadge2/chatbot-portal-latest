@@ -226,7 +226,7 @@ export default function StatusUpdateModal({
                     Selected: {appointmentTime || `${computedClockTime} (tap Apply)`}
                   </span>
                 </div>
-                <div className="relative w-64 h-64 mx-auto rounded-full border-[5px] border-indigo-200/90 bg-gradient-to-b from-indigo-50 to-white shadow-inner">
+                <div className="relative w-64 h-64 mx-auto rounded-full border-[5px] border-indigo-200/90 bg-gradient-to-b from-indigo-50 to-white shadow-inner scale-90 sm:scale-100">
                   {CLOCK_HOURS_12.map((hour, idx) => {
                     const angle = (idx / CLOCK_HOURS_12.length) * 2 * Math.PI - Math.PI / 2;
                     const radius = 102;
