@@ -962,7 +962,7 @@
         "buttons": [
           {
             "id": "confirm_apt_hi",
-            "text": "✅ अनुरोध की पुष्टि करें",
+            "text": "✅ पुष्टि करें",
             "type": "quick_reply"
           },
           {
@@ -1095,7 +1095,7 @@
         "buttons": [
           {
             "id": "confirm_apt_or",
-            "text": "✅ ଅନୁରୋଧ ନିଶ୍ଚିତ କରନ୍ତୁ",
+            "text": "✅ ନିଶ୍ଚିତ କରନ୍ତୁ",
             "type": "quick_reply"
           },
           {
