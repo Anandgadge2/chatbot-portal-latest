@@ -178,9 +178,15 @@ async function handleIncomingMessage(message: any, metadata: any, resolvedCompan
 
     let messageText = '';
     let mediaUrl = '';
+    let buttonId = '';
 
     if (messageType === 'text') {
       messageText = message.text?.body || '';
+    } else if (messageType === 'button') {
+      // Template quick-reply buttons are delivered as message.type = "button"
+      // (not interactive.button_reply). Capture payload as buttonId so flow routing works.
+      buttonId = message.button?.payload || '';
+      messageText = message.button?.text || '';
     } else if (messageType === 'image') {
       messageText = message.image?.caption || '';
       mediaUrl = message.image?.id || '';
@@ -205,7 +211,8 @@ async function handleIncomingMessage(message: any, metadata: any, resolvedCompan
       messageType,
       messageId,
       mediaUrl,
-      metadata
+      metadata,
+      buttonId
     });
 
     return response;
