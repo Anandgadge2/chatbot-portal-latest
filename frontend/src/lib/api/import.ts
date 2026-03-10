@@ -81,7 +81,7 @@ export const importAPI = {
    * Download import template
    */
   downloadTemplate: async (type: 'companies' | 'departments' | 'users' | 'drilldown-hierarchy'): Promise<void> => {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/import/template/${type}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'||'https://chatbot-portal-latest.vercel.app/api'}/import/template/${type}`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
       },
