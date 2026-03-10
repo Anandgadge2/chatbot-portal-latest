@@ -68,6 +68,14 @@ const to24HourTime = (hour12: number, minute: number, period: 'AM' | 'PM') => {
   return `${String(hour24).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
 };
 
+const angleToPoint = (index: number, total: number, radius: number, center = 96) => {
+  const angle = (index / total) * 2 * Math.PI - Math.PI / 2;
+  return {
+    x: center + radius * Math.cos(angle),
+    y: center + radius * Math.sin(angle)
+  };
+};
+
 function ClockFacePicker({
   value,
   onChange,
@@ -79,8 +87,13 @@ function ClockFacePicker({
 }) {
   const parsed = parseTimeForClock(value);
   const [hour12, setHour12] = useState(parsed.hour12);
-  const [minute, setMinute] = useState([0, 15, 30, 45].includes(parsed.minute) ? parsed.minute : 0);
+  const [minute, setMinute] = useState(parsed.minute);
   const [period, setPeriod] = useState<'AM' | 'PM'>(parsed.period);
+  const [mode, setMode] = useState<'hour' | 'minute'>('hour');
+
+  const handSteps = mode === 'hour' ? HOUR_RING : Array.from({ length: 12 }, (_, i) => i * 5);
+  const activeIndex = mode === 'hour' ? HOUR_RING.indexOf(hour12) : Math.round(minute / 5) % 12;
+  const handPoint = angleToPoint(activeIndex, handSteps.length, 56);
 
   return (
     <div className="space-y-3">
@@ -89,28 +102,73 @@ function ClockFacePicker({
         <button type="button" onClick={onClose} className="text-[11px] font-semibold text-slate-500 hover:text-slate-700">Close</button>
       </div>
 
-      <div className="rounded-full border-2 border-indigo-100 w-44 h-44 mx-auto relative bg-indigo-50/40">
+      <div className="text-center text-xl font-black text-slate-800 bg-sky-500 text-white rounded-xl py-2">
+        {to24HourTime(hour12, minute, period)}
+      </div>
+
+      <div className="rounded-full border-2 border-slate-200 w-48 h-48 mx-auto relative bg-slate-100/80">
         {HOUR_RING.map((h, idx) => {
-          const angle = (idx / HOUR_RING.length) * 2 * Math.PI - Math.PI / 2;
-          const radius = 68;
-          const x = 88 + radius * Math.cos(angle);
-          const y = 88 + radius * Math.sin(angle);
-          const active = hour12 === h;
+          const { x, y } = angleToPoint(idx, HOUR_RING.length, 72);
+          const active = mode === 'hour' && hour12 === h;
           return (
             <button
-              key={h}
+              key={`hour-${h}`}
               type="button"
-              onClick={() => setHour12(h)}
-              className={`absolute -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full text-[10px] font-bold border transition ${active ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-700 border-slate-200 hover:border-indigo-300'}`}
+              onClick={() => {
+                setHour12(h);
+                setMode('minute');
+              }}
+              className={`absolute -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full text-[11px] font-bold border transition ${active ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-slate-700 border-slate-200 hover:border-blue-300'}`}
               style={{ left: `${x}px`, top: `${y}px` }}
             >
               {h}
             </button>
           );
         })}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <Clock className="w-8 h-8 text-indigo-300" />
+        {mode === 'hour' && (
+          <div className="absolute inset-0 pointer-events-none">
+            {Array.from({ length: 12 }, (_, i) => {
+              const v = (i + 12) % 24;
+              const { x, y } = angleToPoint(i, 12, 38);
+              return <span key={`inner-${v}`} className="absolute -translate-x-1/2 -translate-y-1/2 text-xs text-slate-500 font-semibold" style={{ left: `${x}px`, top: `${y}px` }}>{v}</span>;
+            })}
+          </div>
+        )}
+        {mode === 'minute' && (
+          <>
+            {Array.from({ length: 12 }, (_, i) => i * 5).map((m, idx) => {
+              const { x, y } = angleToPoint(idx, 12, 72);
+              const active = Math.round(minute / 5) % 12 === idx;
+              return (
+                <button
+                  key={`minute-${m}`}
+                  type="button"
+                  onClick={() => setMinute(m)}
+                  className={`absolute -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full text-[10px] font-bold border transition ${active ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-slate-700 border-slate-200 hover:border-blue-300'}`}
+                  style={{ left: `${x}px`, top: `${y}px` }}
+                >
+                  {String(m).padStart(2, '0')}
+                </button>
+              );
+            })}
+          </>
+        )}
+        <div className="absolute inset-0 pointer-events-none">
+          <svg className="w-full h-full" viewBox="0 0 192 192">
+            <line x1="96" y1="96" x2={handPoint.x} y2={handPoint.y} stroke="#38bdf8" strokeWidth="2" />
+            <circle cx="96" cy="96" r="4" fill="#38bdf8" />
+          </svg>
         </div>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-16 h-16 rounded-full bg-white border border-slate-300 flex items-center justify-center">
+            <Clock className="w-7 h-7 text-sky-500" />
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <button type="button" onClick={() => setMode('hour')} className={`py-1.5 rounded-lg text-xs font-bold border ${mode === 'hour' ? 'bg-sky-500 text-white border-sky-500' : 'bg-white border-slate-200 text-slate-700'}`}>Hour</button>
+        <button type="button" onClick={() => setMode('minute')} className={`py-1.5 rounded-lg text-xs font-bold border ${mode === 'minute' ? 'bg-sky-500 text-white border-sky-500' : 'bg-white border-slate-200 text-slate-700'}`}>Minute</button>
       </div>
 
       <div className="flex items-center justify-center gap-2">
@@ -126,17 +184,10 @@ function ClockFacePicker({
         ))}
       </div>
 
-      <div className="grid grid-cols-4 gap-2">
-        {[0, 15, 30, 45].map((m) => (
-          <button
-            key={m}
-            type="button"
-            onClick={() => setMinute(m)}
-            className={`py-1.5 rounded-lg text-xs font-bold border ${minute === m ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-700 border-slate-200'}`}
-          >
-            :{String(m).padStart(2, '0')}
-          </button>
-        ))}
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-semibold text-slate-500">Min</span>
+        <input type="range" min={0} max={59} value={minute} onChange={(e) => setMinute(Number(e.target.value))} className="w-full" />
+        <input type="number" min={0} max={59} value={minute} onChange={(e) => setMinute(Math.max(0, Math.min(59, Number(e.target.value) || 0)))} className="w-14 text-xs border border-slate-200 rounded-lg px-2 py-1" />
       </div>
 
       <button
@@ -366,7 +417,7 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-none sm:rounded-3xl shadow-2xl w-full max-w-full sm:max-w-5xl h-full sm:max-h-[92vh] overflow-hidden border-0 sm:border border-slate-200 flex flex-col">
+      <div className="bg-white rounded-none sm:rounded-3xl shadow-2xl w-full max-w-full sm:max-w-3xl h-full sm:max-h-[86vh] overflow-hidden border-0 sm:border border-slate-200 flex flex-col">
         {/* Header */}
         <div className="bg-slate-900 px-6 py-5 text-white relative overflow-hidden flex-shrink-0">
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-30"></div>
@@ -421,7 +472,7 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-3 sm:p-6 bg-slate-50/30 sm:[zoom:0.9]">
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-2 sm:p-4 bg-slate-50/30 sm:[zoom:0.78]">
           {activeClockPicker && (
             <button
               type="button"
@@ -436,7 +487,7 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
               <p className="text-slate-500 font-medium animate-pulse">Loading availability data...</p>
             </div>
           ) : (
-            <div className="max-w-4xl mx-auto w-full">
+            <div className="max-w-3xl mx-auto w-full">
               {/* Weekly Schedule Tab */}
               {activeTab === 'weekly' && availability && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
@@ -643,7 +694,7 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
                   </div>
 
                   {/* Calendar Grid */}
-                  <div className="bg-white rounded-[2.5rem] border border-slate-200/60 overflow-hidden shadow-2xl mx-auto backdrop-blur-xl md:[zoom:0.9]">
+                  <div className="bg-white rounded-[2rem] border border-slate-200/60 overflow-hidden shadow-xl mx-auto backdrop-blur-xl md:[zoom:0.78]">
                     {/* Week Headers */}
                     <div className="grid grid-cols-7 bg-slate-50/50 border-b border-slate-100">
                       {DAYS_OF_WEEK.map((day) => (
@@ -664,7 +715,7 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
                     <div className="grid grid-cols-7 divide-x divide-y divide-slate-50">
                       {getCalendarDays().map((date, index) => {
                         if (!date) {
-                          return <div key={`empty-${index}`} className="aspect-square sm:h-20 bg-slate-50/30" />;
+                          return <div key={`empty-${index}`} className="aspect-square sm:h-16 bg-slate-50/30" />;
                         }
 
                         const isToday = date.toDateString() === new Date().toDateString();
@@ -679,7 +730,7 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
                             key={date.toISOString()}
                             onClick={() => setSelectedDate(isSelected ? null : date)}
                             disabled={isPast}
-                            className={`aspect-square sm:h-20 p-1.5 transition-all duration-300 text-left relative group flex flex-col ${
+                            className={`aspect-square sm:h-16 p-1 transition-all duration-300 text-left relative group flex flex-col ${
                               isPast
                                 ? 'bg-slate-50/50 text-slate-300 grayscale cursor-not-allowed'
                                 : isSelected

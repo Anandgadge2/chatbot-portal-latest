@@ -43,6 +43,14 @@ const to24Hour = (hour12: number, minute: number, period: 'AM' | 'PM') => {
   return `${String(hour24).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
 };
 
+const angleToPoint = (index: number, total: number, radius: number, center = 128) => {
+  const angle = (index / total) * 2 * Math.PI - Math.PI / 2;
+  return {
+    x: center + radius * Math.cos(angle),
+    y: center + radius * Math.sin(angle)
+  };
+};
+
 export default function StatusUpdateModal({
   isOpen,
   onClose,
@@ -59,6 +67,7 @@ export default function StatusUpdateModal({
   const [clockHour, setClockHour] = useState(9);
   const [clockMinute, setClockMinute] = useState(0);
   const [clockPeriod, setClockPeriod] = useState<'AM' | 'PM'>('AM');
+  const [clockMode, setClockMode] = useState<'hour' | 'minute'>('hour');
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -77,6 +86,7 @@ export default function StatusUpdateModal({
       setClockHour(9);
       setClockMinute(0);
       setClockPeriod('AM');
+      setClockMode('hour');
       setDescription('');
     }
   }, [isOpen, currentStatus]);
@@ -132,6 +142,8 @@ export default function StatusUpdateModal({
   const typeLabel = itemType === 'grievance' ? 'Grievance' : 'Appointment';
 
   const computedClockTime = to24Hour(clockHour, clockMinute, clockPeriod);
+  const activeIndex = clockMode === 'hour' ? CLOCK_HOURS_12.indexOf(clockHour) : Math.round(clockMinute / 5) % 12;
+  const handPoint = angleToPoint(activeIndex, 12, 75);
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-150">
@@ -227,30 +239,44 @@ export default function StatusUpdateModal({
                   </span>
                 </div>
                 <div className="relative w-64 h-64 mx-auto rounded-full border-[5px] border-indigo-200/90 bg-gradient-to-b from-indigo-50 to-white shadow-inner scale-90 sm:scale-100">
-                  {CLOCK_HOURS_12.map((hour, idx) => {
-                    const angle = (idx / CLOCK_HOURS_12.length) * 2 * Math.PI - Math.PI / 2;
-                    const radius = 102;
-                    const x = 128 + radius * Math.cos(angle);
-                    const y = 128 + radius * Math.sin(angle);
-                    const active = clockHour === hour;
+                  {(clockMode === 'hour' ? CLOCK_HOURS_12 : Array.from({ length: 12 }, (_, i) => i * 5)).map((value, idx) => {
+                    const { x, y } = angleToPoint(idx, 12, 102);
+                    const active = clockMode === 'hour' ? clockHour === value : Math.round(clockMinute / 5) % 12 === idx;
                     return (
                       <button
-                        key={hour}
+                        key={`${clockMode}-${value}`}
                         type="button"
-                        onClick={() => setClockHour(hour)}
+                        onClick={() => {
+                          if (clockMode === 'hour') {
+                            setClockHour(value);
+                            setClockMode('minute');
+                          } else {
+                            setClockMinute(value);
+                          }
+                        }}
                         className={`absolute -translate-x-1/2 -translate-y-1/2 text-[11px] px-2.5 py-1.5 rounded-full border font-semibold transition-all duration-200 ${active ? 'bg-indigo-600 text-white border-indigo-600 scale-110 shadow-md' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-600'}`}
                         style={{ left: `${x}px`, top: `${y}px` }}
                       >
-                        {hour}
+                        {clockMode === 'hour' ? value : String(value).padStart(2, '0')}
                       </button>
                     );
                   })}
+                  <div className="absolute inset-0 pointer-events-none">
+                    <svg className="w-full h-full" viewBox="0 0 256 256">
+                      <line x1="128" y1="128" x2={handPoint.x} y2={handPoint.y} stroke="#6366f1" strokeWidth="2.5" />
+                      <circle cx="128" cy="128" r="5" fill="#6366f1" />
+                    </svg>
+                  </div>
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="w-20 h-20 rounded-full border border-indigo-200 bg-white shadow-sm flex flex-col items-center justify-center">
                       <CalendarDays className="w-7 h-7 text-indigo-400" />
                       <span className="text-[10px] font-bold text-indigo-500 mt-1">CLOCK</span>
                     </div>
                   </div>
+                </div>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => setClockMode('hour')} className={`py-1.5 rounded-lg text-xs font-bold border ${clockMode === 'hour' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-700 border-slate-200'}`}>Hour</button>
+                  <button type="button" onClick={() => setClockMode('minute')} className={`py-1.5 rounded-lg text-xs font-bold border ${clockMode === 'minute' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-700 border-slate-200'}`}>Minute</button>
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-3">
                   <div className="flex gap-2">
@@ -265,17 +291,9 @@ export default function StatusUpdateModal({
                       </button>
                     ))}
                   </div>
-                  <div className="grid grid-cols-4 gap-1.5">
-                    {[0, 15, 30, 45].map((m) => (
-                      <button
-                        key={m}
-                        type="button"
-                        onClick={() => setClockMinute(m)}
-                        className={`py-2 rounded-lg text-xs font-bold border ${clockMinute === m ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-700 border-slate-200'}`}
-                      >
-                        :{String(m).padStart(2, '0')}
-                      </button>
-                    ))}
+                  <div className="flex items-center gap-1.5 col-span-1">
+                    <span className="text-[11px] text-slate-500">Min</span>
+                    <input type="range" min={0} max={59} value={clockMinute} onChange={(e) => setClockMinute(Number(e.target.value))} className="w-full" />
                   </div>
                 </div>
                 <button
