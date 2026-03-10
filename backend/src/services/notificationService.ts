@@ -713,18 +713,33 @@ export async function notifyCitizenOnGrievanceStatusChange(data: {
 
     let message: string | null = null;
 
-    // Check for a custom DB template keyed 'grievance_status_update'
+    // Priority 1: Specific status template (e.g., grievance_created, grievance_assigned, grievance_resolved)
+    // Priority 2: Generic 'grievance_status_update'
+    const statusKey = data.newStatus === 'PENDING' ? 'grievance_created' : `grievance_${data.newStatus.toLowerCase()}`;
+    
     try {
       const { default: CompanyWhatsAppTemplate } = await import('../models/CompanyWhatsAppTemplate');
       const { replacePlaceholders } = await import('./emailService');
       const cid = mongoose.Types.ObjectId.isValid(String(data.companyId))
         ? new mongoose.Types.ObjectId(String(data.companyId))
         : data.companyId;
-      const tmpl = await CompanyWhatsAppTemplate.findOne({
+
+      // Try specific key first
+      let tmpl = await CompanyWhatsAppTemplate.findOne({
         companyId: cid,
-        templateKey: 'grievance_status_update',
+        templateKey: statusKey as any,
         isActive: true
       });
+
+      // Try 'grievance_status_update' as fallback
+      if (!tmpl) {
+        tmpl = await CompanyWhatsAppTemplate.findOne({
+          companyId: cid,
+          templateKey: 'grievance_status_update',
+          isActive: true
+        });
+      }
+
       if (tmpl && tmpl.message && tmpl.message.trim()) {
         message = replacePlaceholders(tmpl.message.trim(), templateData);
       }
@@ -929,6 +944,7 @@ export async function notifyCitizenOnAppointmentStatusChange(data: {
 
     // Try DB template for this status event
     const statusKey =
+      data.newStatus === AppointmentStatus.REQUESTED  ? 'appointment_created'    :
       data.newStatus === AppointmentStatus.SCHEDULED  ? 'appointment_scheduled'  :
       data.newStatus === AppointmentStatus.CONFIRMED  ? 'appointment_confirmed'  :
       data.newStatus === AppointmentStatus.CANCELLED  ? 'appointment_cancelled'  :
@@ -968,7 +984,24 @@ export async function notifyCitizenOnAppointmentStatusChange(data: {
 
     if (!message) {
       // Hardcoded fallback — keeps same content as before but is only used when no DB template exists
-      if (data.newStatus === AppointmentStatus.SCHEDULED) {
+      if (data.newStatus === AppointmentStatus.REQUESTED) {
+        message =
+          `*${company.name}*\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+          `📋 *APPOINTMENT REQUEST RECEIVED*\n\n` +
+          `Respected ${data.citizenName},\n\n` +
+          `Your appointment request has been successfully received.\n\n` +
+          `*Details:*\n` +
+          `🎫 *Ref No:* \`${data.appointmentId}\`\n` +
+          `📅 *Preferred Date:* ${dateDisplay}\n` +
+          `⏰ *Preferred Time:* ${timeDisplay}\n` +
+          `🎯 *Purpose:* ${data.purpose || 'Meeting with CEO'}\n\n` +
+          `Our team will review your request and confirm soon.\n\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+          `*${company.name}*\n` +
+          `Digital Appointment System`;
+
+      } else if (data.newStatus === AppointmentStatus.SCHEDULED) {
         message =
           `*${company.name}*\n` +
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +

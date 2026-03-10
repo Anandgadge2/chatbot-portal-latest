@@ -5,7 +5,7 @@ import Lead from '../models/Lead';
 import User from '../models/User';
 import Department from '../models/Department';
 import { findDepartmentByCategory } from './departmentMapper';
-import { notifyDepartmentAdminOnCreation, notifyUserOnAssignment } from './notificationService';
+import { notifyDepartmentAdminOnCreation, notifyUserOnAssignment, notifyCitizenOnGrievanceStatusChange, notifyCitizenOnAppointmentStatusChange } from './notificationService';
 import { GrievanceStatus, AppointmentStatus, UserRole } from '../config/constants';
 import { updateSession } from './sessionService';
 
@@ -182,6 +182,21 @@ export class ActionService {
             timeline: grievance.timeline
           });
         }
+
+        // 📱 Notify citizen that their grievance is registered
+        await notifyCitizenOnGrievanceStatusChange({
+          companyId: company._id,
+          grievanceId: grievance.grievanceId,
+          citizenName: session.data.citizenName,
+          citizenPhone: userPhone,
+          citizenWhatsApp: userPhone,
+          departmentId: departmentId as any,
+          subDepartmentId: session.data.subDepartmentId ? (session.data.subDepartmentId as any) : undefined,
+          departmentName: dept ? dept.name : session.data.category,
+          subDepartmentName: subDept ? subDept.name : undefined,
+          newStatus: grievance.status,
+          remarks: 'Automatic confirmation on registration'
+        });
       }
     } catch (err: any) {
       console.error('❌ ActionService: Error creating grievance:', err);
@@ -205,7 +220,7 @@ export class ActionService {
         purpose: session.data.purpose,
         appointmentDate,
         appointmentTime: session.data.appointmentTime,
-        status: AppointmentStatus.SCHEDULED
+        status: AppointmentStatus.REQUESTED
       };
       
       const appointment = new Appointment(appointmentData);
@@ -230,6 +245,21 @@ export class ActionService {
         appointmentTime: appointment.appointmentTime,
         createdAt: appointment.createdAt,
         timeline: appointment.timeline
+      });
+
+      // 📱 Notify citizen that their appointment request is received
+      await notifyCitizenOnAppointmentStatusChange({
+        appointmentId: appointment.appointmentId,
+        citizenName: session.data.citizenName,
+        citizenPhone: userPhone,
+        citizenWhatsApp: userPhone,
+        companyId: company._id,
+        oldStatus: 'NONE',
+        newStatus: appointment.status,
+        remarks: 'Your appointment request has been received.',
+        appointmentDate: appointment.appointmentDate,
+        appointmentTime: appointment.appointmentTime,
+        purpose: appointment.purpose
       });
     } catch (err: any) {
       console.error('❌ ActionService: Error creating appointment:', err);
