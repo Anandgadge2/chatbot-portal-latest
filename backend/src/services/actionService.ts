@@ -206,6 +206,7 @@ export class ActionService {
   static async createAppointment(session: any, company: any, userPhone: string): Promise<void> {
     try {
       const appointmentDate = new Date(session.data.appointmentDate);
+      const appointmentTime = session.data.appointmentTime || "TBD";
       const appointmentData = {
         companyId: company._id,
         departmentId: session.data.departmentId || undefined,
@@ -215,7 +216,7 @@ export class ActionService {
         citizenEmail: session.data.citizenEmail,
         purpose: session.data.purpose,
         appointmentDate,
-        appointmentTime: session.data.appointmentTime,
+        appointmentTime: appointmentTime,
         status: AppointmentStatus.REQUESTED
       };
       
@@ -226,7 +227,8 @@ export class ActionService {
       session.data.id = appointment.appointmentId;
       session.data.status = 'REQUESTED';
       session.data.date = appointmentDate.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
-      session.data.time = session.data.appointmentTime;
+      session.data.appointmentTime = appointmentTime;
+      session.data.time = appointmentTime;
       await updateSession(session);
       
       // ✅ AUTO-ASSIGNMENT for Appointment

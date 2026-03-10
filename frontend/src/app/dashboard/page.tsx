@@ -4548,9 +4548,10 @@ function DashboardContent() {
                                     <td className="px-4 py-4">
                                       <div className="flex items-center justify-center space-x-1">
                                         {hasPermission(user, Permission.ASSIGN_GRIEVANCE) &&
-                                          grievance.status !== "RESOLVED" &&
-                                          grievance.status !== "CLOSED" &&
-                                          grievance.status !== "REJECTED" && (
+                                          (user?.role === "COMPANY_ADMIN" ||
+                                            (grievance.status !== "RESOLVED" &&
+                                              grievance.status !== "CLOSED" &&
+                                              grievance.status !== "REJECTED")) && (
                                             <Button
                                               variant="ghost"
                                               size="sm"

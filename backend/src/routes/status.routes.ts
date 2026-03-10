@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express';
+import multer from 'multer';
 import { authenticate } from '../middleware/auth';
 import { requirePermission } from '../middleware/rbac';
 import { requireDatabaseConnection } from '../middleware/dbConnection';
@@ -9,8 +10,36 @@ import Company from '../models/Company';
 import { logUserAction } from '../utils/auditLogger';
 import { AuditAction } from '../config/constants';
 import { sendWhatsAppMessage } from '../services/whatsappService';
+import { cloudinary } from '../config/cloudinary';
 
 const router = express.Router();
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024, files: 5 },
+});
+
+const uploadBufferToCloudinary = async (
+  file: Express.Multer.File,
+  companyId: string,
+): Promise<string | null> => {
+  return new Promise((resolve) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder: `status_documents/${companyId}`,
+        resource_type: 'auto',
+      },
+      (error: any, result: any) => {
+        if (error) {
+          console.error('❌ Cloudinary status document upload failed:', error);
+          resolve(null);
+          return;
+        }
+        resolve(result?.secure_url || null);
+      },
+    );
+    uploadStream.end(file.buffer);
+  });
+};
 
 // All routes require database connection and authentication
 router.use(requireDatabaseConnection);
@@ -45,10 +74,11 @@ const getStatusMessage = (type: 'grievance' | 'appointment', id: string, status:
 // @route   PUT /api/status/grievance/:id
 // @desc    Update grievance status and notify citizen via WhatsApp
 // @access  DepartmentAdmin, Operator, CompanyAdmin
-router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANCE, Permission.UPDATE_GRIEVANCE), async (req: Request, res: Response) => {
+router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANCE, Permission.UPDATE_GRIEVANCE), upload.array('documents', 5), async (req: Request, res: Response) => {
   try {
     const currentUser = req.user!;
-    const { status, remarks, appointmentDate, appointmentTime, description } = req.body;
+    const { status, remarks } = req.body;
+    const uploadedFiles = (req.files as Express.Multer.File[]) || [];
 
     if (!status) {
       return res.status(400).json({
@@ -118,6 +148,27 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
     // oldStatus is already declared above for freeze check
     grievance.status = status;
 
+    const uploadedDocumentUrls: string[] = [];
+    if (status === GrievanceStatus.RESOLVED && uploadedFiles.length > 0) {
+      if (!Array.isArray(grievance.media)) {
+        grievance.media = [] as any;
+      }
+      for (const file of uploadedFiles) {
+        const cloudUrl = await uploadBufferToCloudinary(
+          file,
+          String(grievance.companyId._id || grievance.companyId),
+        );
+        if (cloudUrl) {
+          uploadedDocumentUrls.push(cloudUrl);
+          grievance.media.push({
+            url: cloudUrl,
+            type: file.mimetype.startsWith('image/') ? 'image' : 'document',
+            uploadedAt: new Date(),
+          } as any);
+        }
+      }
+    }
+
     // Add to status history
     if (!grievance.statusHistory) {
       grievance.statusHistory = [];
@@ -166,6 +217,7 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
         subDepartmentId: grievance.subDepartmentId,
         companyId: grievance.companyId,
         remarks: remarks,
+        evidenceUrls: uploadedDocumentUrls,
         resolvedBy: currentUser._id,
         resolvedAt: grievance.resolvedAt,
         createdAt: grievance.createdAt,
@@ -185,6 +237,7 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
         companyId: grievance.companyId,
         assignedTo: grievance.assignedTo,
         remarks: remarks,
+        evidenceUrls: uploadedDocumentUrls,
         resolvedBy: currentUser._id,
         resolvedAt: grievance.resolvedAt,
         createdAt: grievance.createdAt,
@@ -205,7 +258,8 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
         subDepartmentId: grievance.subDepartmentId,
         departmentName,
         newStatus: status,
-        remarks: remarks || undefined
+        remarks: remarks || undefined,
+        evidenceUrls: uploadedDocumentUrls,
       });
     }
 
@@ -219,6 +273,7 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
         oldStatus,
         newStatus: status,
         remarks,
+        uploadedDocumentUrls,
         grievanceId: grievance.grievanceId
       }
     );

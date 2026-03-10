@@ -35,6 +35,22 @@ const appointmentStatuses = [
   { value: 'CANCELLED', label: 'Cancelled', iconBg: 'bg-rose-100', iconColor: 'text-rose-600', badge: 'bg-rose-50 border-rose-200 text-rose-700', activeBadge: 'bg-rose-600 text-white border-rose-600', Icon: Ban },
 ];
 
+const CLOCK_HOURS_12 = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+
+const to24Hour = (hour12: number, minute: number, period: 'AM' | 'PM') => {
+  let hour24 = hour12 % 12;
+  if (period === 'PM') hour24 += 12;
+  return `${String(hour24).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+};
+
+const angleToPoint = (index: number, total: number, radius: number, center = 128) => {
+  const angle = (index / total) * 2 * Math.PI - Math.PI / 2;
+  return {
+    x: center + radius * Math.cos(angle),
+    y: center + radius * Math.sin(angle)
+  };
+};
+
 export default function StatusUpdateModal({
   isOpen,
   onClose,
@@ -46,8 +62,13 @@ export default function StatusUpdateModal({
 }: StatusUpdateModalProps) {
   const [selectedStatus, setSelectedStatus] = useState(currentStatus);
   const [remarks, setRemarks] = useState('');
+  const [documents, setDocuments] = useState<File[]>([]);
   const [appointmentDate, setAppointmentDate] = useState('');
   const [appointmentTime, setAppointmentTime] = useState('');
+  const [clockHour, setClockHour] = useState(9);
+  const [clockMinute, setClockMinute] = useState(0);
+  const [clockPeriod, setClockPeriod] = useState<'AM' | 'PM'>('AM');
+  const [clockMode, setClockMode] = useState<'hour' | 'minute'>('hour');
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -61,8 +82,13 @@ export default function StatusUpdateModal({
     if (isOpen) {
       setSelectedStatus(currentStatus);
       setRemarks('');
+      setDocuments([]);
       setAppointmentDate('');
       setAppointmentTime('');
+      setClockHour(9);
+      setClockMinute(0);
+      setClockPeriod('AM');
+      setClockMode('hour');
       setDescription('');
     }
   }, [isOpen, currentStatus]);
@@ -73,18 +99,44 @@ export default function StatusUpdateModal({
       return;
     }
 
+    if (itemType === 'appointment' && selectedStatus === 'CONFIRMED') {
+      if (!appointmentDate) {
+        toast.error('Please select confirmation date');
+        return;
+      }
+      if (!appointmentTime) {
+        toast.error('Please select confirmation time from the clock');
+        return;
+      }
+    }
+
     try {
       setSubmitting(true);
-      const response = await apiClient.put(
-        `/status/${itemType}/${itemId}`,
-        {
-          status: selectedStatus,
-          remarks,
-          appointmentDate: selectedStatus === 'CONFIRMED' ? appointmentDate : undefined,
-          appointmentTime: selectedStatus === 'CONFIRMED' ? appointmentTime : undefined,
-          description: selectedStatus === 'CONFIRMED' ? description : undefined
+      let response;
+      if (itemType === 'grievance') {
+        const formData = new FormData();
+        formData.append('status', selectedStatus);
+        if (remarks) formData.append('remarks', remarks);
+        if (selectedStatus === 'RESOLVED' && documents.length > 0) {
+          documents.forEach((file) => formData.append('documents', file));
         }
-      );
+        response = await apiClient.put(
+          `/status/${itemType}/${itemId}`,
+          formData,
+          { headers: { 'Content-Type': 'multipart/form-data' } }
+        );
+      } else {
+        response = await apiClient.put(
+          `/status/${itemType}/${itemId}`,
+          {
+            status: selectedStatus,
+            remarks,
+            appointmentDate: selectedStatus === 'CONFIRMED' ? appointmentDate : undefined,
+            appointmentTime: selectedStatus === 'CONFIRMED' ? appointmentTime : undefined,
+            description: selectedStatus === 'CONFIRMED' ? description : undefined
+          }
+        );
+      }
 
       if (response.success) {
         toast.success(
@@ -106,7 +158,9 @@ export default function StatusUpdateModal({
   const currentStatusInfo = statuses.find(s => s.value === currentStatus) || statuses[0];
   const typeLabel = itemType === 'grievance' ? 'Grievance' : 'Appointment';
 
-  const clockTimes = ['09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00'];
+  const computedClockTime = to24Hour(clockHour, clockMinute, clockPeriod);
+  const activeIndex = clockMode === 'hour' ? CLOCK_HOURS_12.indexOf(clockHour) : Math.round(clockMinute / 5) % 12;
+  const handPoint = angleToPoint(activeIndex, 12, 75);
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-150">
@@ -195,28 +249,83 @@ export default function StatusUpdateModal({
               </div>
               <div>
                 <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Select Time (Clock) *</label>
-                <div className="relative w-52 h-52 mx-auto rounded-full border-4 border-indigo-200 bg-white">
-                  {clockTimes.map((time, idx) => {
-                    const angle = (idx / clockTimes.length) * 2 * Math.PI - Math.PI / 2;
-                    const radius = 82;
-                    const x = 104 + radius * Math.cos(angle);
-                    const y = 104 + radius * Math.sin(angle);
-                    const active = appointmentTime === time;
+                <div className="rounded-2xl border border-indigo-100 bg-white p-4 shadow-sm">
+                <div className="flex items-center justify-center mb-3">
+                  <span className="inline-flex items-center px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold border border-indigo-100">
+                    Selected: {appointmentTime || `${computedClockTime} (tap Apply)`}
+                  </span>
+                </div>
+                <div className="relative w-64 h-64 mx-auto rounded-full border-[5px] border-indigo-200/90 bg-gradient-to-b from-indigo-50 to-white shadow-inner scale-90 sm:scale-100">
+                  {(clockMode === 'hour' ? CLOCK_HOURS_12 : Array.from({ length: 12 }, (_, i) => i * 5)).map((value, idx) => {
+                    const { x, y } = angleToPoint(idx, 12, 102);
+                    const active = clockMode === 'hour' ? clockHour === value : Math.round(clockMinute / 5) % 12 === idx;
                     return (
                       <button
-                        key={time}
+                        key={`${clockMode}-${value}`}
                         type="button"
-                        onClick={() => setAppointmentTime(time)}
-                        className={`absolute -translate-x-1/2 -translate-y-1/2 text-[10px] px-2 py-1 rounded-full border ${active ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-600 border-slate-200'}`}
+                        onClick={() => {
+                          if (clockMode === 'hour') {
+                            setClockHour(value);
+                            setClockMode('minute');
+                          } else {
+                            setClockMinute(value);
+                          }
+                        }}
+                        className={`absolute -translate-x-1/2 -translate-y-1/2 text-[11px] px-2.5 py-1.5 rounded-full border font-semibold transition-all duration-200 ${active ? 'bg-indigo-600 text-white border-indigo-600 scale-110 shadow-md' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-600'}`}
                         style={{ left: `${x}px`, top: `${y}px` }}
                       >
-                        {time}
+                        {clockMode === 'hour' ? value : String(value).padStart(2, '0')}
                       </button>
                     );
                   })}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <CalendarDays className="w-8 h-8 text-indigo-300" />
+                  <div className="absolute inset-0 pointer-events-none">
+                    <svg className="w-full h-full" viewBox="0 0 256 256">
+                      <line x1="128" y1="128" x2={handPoint.x} y2={handPoint.y} stroke="#6366f1" strokeWidth="2.5" />
+                      <circle cx="128" cy="128" r="5" fill="#6366f1" />
+                    </svg>
                   </div>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-20 h-20 rounded-full border border-indigo-200 bg-white shadow-sm flex flex-col items-center justify-center">
+                      <CalendarDays className="w-7 h-7 text-indigo-400" />
+                      <span className="text-[10px] font-bold text-indigo-500 mt-1">CLOCK</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => setClockMode('hour')} className={`py-1.5 rounded-lg text-xs font-bold border ${clockMode === 'hour' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-700 border-slate-200'}`}>Hour</button>
+                  <button type="button" onClick={() => setClockMode('minute')} className={`py-1.5 rounded-lg text-xs font-bold border ${clockMode === 'minute' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-700 border-slate-200'}`}>Minute</button>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <div className="flex gap-2">
+                    {(['AM', 'PM'] as const).map((period) => (
+                      <button
+                        key={period}
+                        type="button"
+                        onClick={() => setClockPeriod(period)}
+                        className={`flex-1 py-2 rounded-lg text-xs font-bold border ${clockPeriod === period ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-700 border-slate-200'}`}
+                      >
+                        {period}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="space-y-2 col-span-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[11px] text-slate-500 w-7">Hr</span>
+                      <input type="range" min={1} max={12} value={clockHour} onChange={(e) => { setClockHour(Number(e.target.value)); setClockMode('hour'); }} className="w-full" />
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[11px] text-slate-500 w-7">Min</span>
+                      <input type="range" min={0} max={59} value={clockMinute} onChange={(e) => { setClockMinute(Number(e.target.value)); setClockMode('minute'); }} className="w-full" />
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAppointmentTime(computedClockTime)}
+                  className="mt-3 w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold"
+                >
+                  Apply {computedClockTime}
+                </button>
                 </div>
               </div>
               <div>
@@ -239,6 +348,26 @@ export default function StatusUpdateModal({
               placeholder="Add notes, comments, or instructions about this status change. These will be sent to the citizen via WhatsApp..."
             />
           </div>
+
+          {itemType === 'grievance' && selectedStatus === 'RESOLVED' && (
+            <div>
+              <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                Upload Relevant Documents <span className="text-slate-400 font-normal normal-case">(optional)</span>
+              </label>
+              <input
+                type="file"
+                multiple
+                accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                onChange={(e) => setDocuments(Array.from(e.target.files || []))}
+                className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white"
+              />
+              {documents.length > 0 && (
+                <p className="text-[11px] text-slate-500 mt-2">
+                  {documents.length} file(s) selected. These will be uploaded and shared as links with the citizen.
+                </p>
+              )}
+            </div>
+          )}
 
           {/* WhatsApp Notice */}
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 flex items-start gap-3">
