@@ -10,10 +10,19 @@
     "sessionTimeout": 30,
     "errorFallbackMessage": "⚠️ I'm sorry, I didn't understand that. Please use the menu buttons or type 'menu' to restart.",
     "enableTypingIndicator": true,
-
     "commands": {
       "stop": {
-        "keywords": ["stop", "exit", "quit", "end", "bye", "goodbye", "रोको", "बंद करो", "ବନ୍ଦ କରନ୍ତୁ"],
+        "keywords": [
+          "stop",
+          "exit",
+          "quit",
+          "end",
+          "bye",
+          "goodbye",
+          "रोको",
+          "बंद करो",
+          "ବନ୍ଦ କରନ୍ତୁ"
+        ],
         "clearSession": true,
         "responses": {
           "en": "🛑 *Session Ended*\n\nThank you for using Collectorate Jharsuguda services.\n\nType *Hi* anytime to start again. 🙏",
@@ -22,7 +31,15 @@
         }
       },
       "restart": {
-        "keywords": ["restart", "reset", "start again", "begin again", "पुनः शुरू", "फिर से शुरू", "ପୁଣି ଆରମ୍ଭ"],
+        "keywords": [
+          "restart",
+          "reset",
+          "start again",
+          "begin again",
+          "पुनः शुरू",
+          "फिर से शुरू",
+          "ପୁଣି ଆରମ୍ଭ"
+        ],
         "clearSession": true,
         "restartFlow": true,
         "responses": {
@@ -32,7 +49,16 @@
         }
       },
       "menu": {
-        "keywords": ["menu", "main menu", "home", "मेनू", "मुख्य मेनू", "मेन्यू", "ମେନୁ", "ମୁଖ୍ୟ ମେନୁ"],
+        "keywords": [
+          "menu",
+          "main menu",
+          "home",
+          "मेनू",
+          "मुख्य मेनू",
+          "मेन्यू",
+          "ମେନୁ",
+          "ମୁଖ୍ୟ ମେନୁ"
+        ],
         "clearSession": false,
         "navigateTo": "language_selection",
         "responses": {
@@ -42,7 +68,16 @@
         }
       },
       "back": {
-        "keywords": ["back", "go back", "previous", "undo", "वापस", "पीछे", "ପଛକୁ", "ଆଗର"],
+        "keywords": [
+          "back",
+          "go back",
+          "previous",
+          "undo",
+          "वापस",
+          "पीछे",
+          "ପଛକୁ",
+          "ଆଗର"
+        ],
         "clearSession": false,
         "navigateToPrevious": true,
         "responses": {
@@ -52,7 +87,6 @@
         }
       }
     },
-
     "fallback": {
       "button": {
         "maxAttempts": 3,
@@ -136,7 +170,10 @@
     {
       "id": "start_node",
       "type": "start",
-      "position": { "x": 0, "y": 600 },
+      "position": {
+        "x": 0,
+        "y": 600
+      },
       "data": {
         "label": "Start Trigger",
         "trigger": "start",
@@ -146,21 +183,39 @@
     {
       "id": "language_selection",
       "type": "buttonMessage",
-      "position": { "x": 300, "y": 600 },
+      "position": {
+        "x": 300,
+        "y": 600
+      },
       "data": {
         "label": "Language Selection",
         "messageText": "🇮🇳 *Collectorate Jharsuguda – Official Digital Services Portal*\n\nWelcome to the official WhatsApp Helpdesk.\n\nस्वागत है – कलेक्टरेट झारसुगुडा व्हाट्सएप सेवा में।\n\nସ୍ୱାଗତମ୍ – ଝାରସୁଗୁଡା କଲେକ୍ଟରେଟ ଡିଜିଟାଲ୍ ସେବାକୁ।\n\n👇 Please select your preferred language:\n👇 कृपया अपनी भाषा चुनें:\n👇 ଦୟାକରି ଆପଣଙ୍କ ଭାଷା ବାଛନ୍ତୁ:",
         "buttons": [
-          { "id": "lang_en", "text": "🇮🇳 English", "type": "quick_reply" },
-          { "id": "lang_hi", "text": "🇮🇳 हिंदी", "type": "quick_reply" },
-          { "id": "lang_or", "text": "🇮🇳 ଓଡ଼ିଆ", "type": "quick_reply" }
+          {
+            "id": "lang_en",
+            "text": "🇮🇳 English",
+            "type": "quick_reply"
+          },
+          {
+            "id": "lang_hi",
+            "text": "🇮🇳 हिंदी",
+            "type": "quick_reply"
+          },
+          {
+            "id": "lang_or",
+            "text": "🇮🇳 ଓଡ଼ିଆ",
+            "type": "quick_reply"
+          }
         ]
       }
     },
     {
       "id": "main_menu_en",
       "type": "listMessage",
-      "position": { "x": 600, "y": 200 },
+      "position": {
+        "x": 600,
+        "y": 200
+      },
       "data": {
         "label": "Main Menu (EN)",
         "messageText": "🏛️ *Citizen Services Menu*\n\nPlease select a service:",
@@ -169,10 +224,26 @@
           {
             "title": "Services",
             "rows": [
-              { "id": "grv_en", "title": "📝 File Grievance", "description": "Lodge a formal complaint" },
-              { "id": "apt_en", "title": "📅 Book Appointment", "description": "Schedule meeting with Collector" },
-              { "id": "trk_en", "title": "🔍 Track Status", "description": "Check application status" },
-              { "id": "help_en", "title": "ℹ️ Help & Support", "description": "Office info and helpline" }
+              {
+                "id": "grv_en",
+                "title": "📝 File Grievance",
+                "description": "Lodge a formal complaint"
+              },
+              {
+                "id": "apt_en",
+                "title": "📅 Book Appointment",
+                "description": "Schedule meeting with Collector"
+              },
+              {
+                "id": "trk_en",
+                "title": "🔍 Track Status",
+                "description": "Check application status"
+              },
+              {
+                "id": "help_en",
+                "title": "ℹ️ Help & Support",
+                "description": "Office info and helpline"
+              }
             ]
           }
         ]
@@ -181,7 +252,10 @@
     {
       "id": "main_menu_hi",
       "type": "listMessage",
-      "position": { "x": 600, "y": 600 },
+      "position": {
+        "x": 600,
+        "y": 600
+      },
       "data": {
         "label": "Main Menu (HI)",
         "messageText": "🏛️ *नागरिक सेवा मेनू*\n\nकृपया एक सेवा चुनें:",
@@ -190,10 +264,26 @@
           {
             "title": "सेवाएं",
             "rows": [
-              { "id": "grv_hi", "title": "📝 शिकायत भेजें", "description": "औपचारिक शिकायत दर्ज करें" },
-              { "id": "apt_hi", "title": "📅 बुकिंग करें", "description": "कलेक्टर के साथ बैठक शेड्यूल करें" },
-              { "id": "trk_hi", "title": "🔍 स्थिति जांचें", "description": "अपनी शिकायत/बुकिंग ट्रैक करें" },
-              { "id": "help_hi", "title": "ℹ️ सहायता केंद्र", "description": "संपर्क और सहायता जानकारी" }
+              {
+                "id": "grv_hi",
+                "title": "📝 शिकायत भेजें",
+                "description": "औपचारिक शिकायत दर्ज करें"
+              },
+              {
+                "id": "apt_hi",
+                "title": "📅 बुकिंग करें",
+                "description": "कलेक्टर के साथ बैठक शेड्यूल करें"
+              },
+              {
+                "id": "trk_hi",
+                "title": "🔍 स्थिति जांचें",
+                "description": "अपनी शिकायत/बुकिंग ट्रैक करें"
+              },
+              {
+                "id": "help_hi",
+                "title": "ℹ️ सहायता केंद्र",
+                "description": "संपर्क और सहायता जानकारी"
+              }
             ]
           }
         ]
@@ -202,7 +292,10 @@
     {
       "id": "main_menu_or",
       "type": "listMessage",
-      "position": { "x": 600, "y": 1000 },
+      "position": {
+        "x": 600,
+        "y": 1000
+      },
       "data": {
         "label": "Main Menu (OR)",
         "messageText": "🏛️ *ନାଗରିକ ସେବା ମେନୁ*\n\nଦୟାକରି ଏକ ସେବା ଚୟନ କରନ୍ତୁ:",
@@ -211,10 +304,26 @@
           {
             "title": "ସେବାଗୁଡିକ",
             "rows": [
-              { "id": "grv_or", "title": "📝 ଅଭିଯୋଗ", "description": "ଆନୁଷ୍ଠାନିକ ଅଭିଯୋଗ ଦାଖଲ କରନ୍ତୁ" },
-              { "id": "apt_or", "title": "📅 ବୁକିଂ କରିବେ", "description": "କଲେକ୍ଟରଙ୍କ ସହିତ ସାକ୍ଷାତ ପାଇଁ ସମୟ" },
-              { "id": "trk_or", "title": "🔍 ସ୍ଥିତି ଯାଞ୍ଚ", "description": "ଆପଣଙ୍କର ଅଭିଯୋଗ/ବୁକିଂ ଟ୍ରାକ୍ କରନ୍ତୁ" },
-              { "id": "help_or", "title": "ℹ️ ସହାୟତା କେନ୍ଦ୍ର", "description": "ଅଫିସ୍ ଯୋଗାଯୋଗ ଏବଂ ସହାୟତା" }
+              {
+                "id": "grv_or",
+                "title": "📝 ଅଭିଯୋଗ",
+                "description": "ଆନୁଷ୍ଠାନିକ ଅଭିଯୋଗ ଦାଖଲ କରନ୍ତୁ"
+              },
+              {
+                "id": "apt_or",
+                "title": "📅 ବୁକିଂ କରିବେ",
+                "description": "କଲେକ୍ଟରଙ୍କ ସହିତ ସାକ୍ଷାତ ପାଇଁ ସମୟ"
+              },
+              {
+                "id": "trk_or",
+                "title": "🔍 ସ୍ଥିତି ଯାଞ୍ଚ",
+                "description": "ଆପଣଙ୍କର ଅଭିଯୋଗ/ବୁକିଂ ଟ୍ରାକ୍ କରନ୍ତୁ"
+              },
+              {
+                "id": "help_or",
+                "title": "ℹ️ ସହାୟତା କେନ୍ଦ୍ର",
+                "description": "ଅଫିସ୍ ଯୋଗାଯୋଗ ଏବଂ ସହାୟତା"
+              }
             ]
           }
         ]
@@ -223,7 +332,10 @@
     {
       "id": "grv_intro_en",
       "type": "textMessage",
-      "position": { "x": 900, "y": 0 },
+      "position": {
+        "x": 900,
+        "y": 0
+      },
       "data": {
         "label": "Grievance Intro (EN)",
         "messageText": "📝 *Register a Grievance*\n\nYou can file a formal complaint regarding any Collectorate department.\n\nTo begin, please provide the details as requested."
@@ -232,19 +344,27 @@
     {
       "id": "grv_name_en",
       "type": "userInput",
-      "position": { "x": 1150, "y": 0 },
+      "position": {
+        "x": 1150,
+        "y": 0
+      },
       "data": {
         "label": "Citizen ID (EN)",
         "messageText": "👤 *Citizen Identification*\n\nPlease enter your Full Name as it appears on official documents:",
         "inputType": "text",
         "saveToField": "citizenName",
-        "validation": { "required": true }
+        "validation": {
+          "required": true
+        }
       }
     },
     {
       "id": "grv_dept_en",
       "type": "listMessage",
-      "position": { "x": 1400, "y": 0 },
+      "position": {
+        "x": 1400,
+        "y": 0
+      },
       "data": {
         "label": "Dept Selection (EN)",
         "messageText": "🏢 *Department Selection*\n\nSelect the relevant department:",
@@ -256,57 +376,100 @@
     {
       "id": "grv_desc_en",
       "type": "userInput",
-      "position": { "x": 1900, "y": 0 },
+      "position": {
+        "x": 1900,
+        "y": 0
+      },
       "data": {
         "label": "Grievance Details (EN)",
         "messageText": "✍️ *Grievance Details*\n\nPlease type a detailed description of your issue.\n\n*Tip:* Include dates, location, and specific details for faster resolution.",
         "inputType": "text",
         "saveToField": "description",
-        "validation": { "required": true, "minLength": 15 }
+        "validation": {
+          "required": true,
+          "minLength": 15
+        }
       }
     },
     {
       "id": "grv_evidence_en",
       "type": "buttonMessage",
-      "position": { "x": 2150, "y": 0 },
+      "position": {
+        "x": 2150,
+        "y": 0
+      },
       "data": {
         "label": "Evidence (EN)",
         "messageText": "📷 *Supporting Evidence*\n\nUpload a photo or document to support your claim (Optional).\n\n👇 Select an option:",
         "buttons": [
-          { "id": "upload_file_en", "text": "📎 Upload File", "type": "quick_reply" },
-          { "id": "skip_evidence_en", "text": "⏭️ Skip", "type": "quick_reply" }
+          {
+            "id": "upload_file_en",
+            "text": "📎 Upload File",
+            "type": "quick_reply"
+          },
+          {
+            "id": "skip_evidence_en",
+            "text": "⏭️ Skip",
+            "type": "quick_reply"
+          }
         ]
       }
     },
     {
       "id": "grv_upload_en",
       "type": "userInput",
-      "position": { "x": 2400, "y": -100 },
+      "position": {
+        "x": 2400,
+        "y": -100
+      },
       "data": {
         "label": "Upload File (EN)",
         "messageText": "Please upload your file (JPG, PNG, PDF, DOCX):",
         "inputType": "file",
         "saveToField": "attachmentUrl",
-        "validation": { "allowedTypes": ["image/jpeg", "image/png", "application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"] }
+        "validation": {
+          "allowedTypes": [
+            "image/jpeg",
+            "image/png",
+            "application/pdf",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          ]
+        }
       }
     },
     {
       "id": "grv_confirm_en",
       "type": "buttonMessage",
-      "position": { "x": 2650, "y": 0 },
+      "position": {
+        "x": 2650,
+        "y": 0
+      },
       "data": {
         "label": "Confirm Submission (EN)",
         "messageText": "📋 *Confirm Submission*\n\nPlease verify your details:\n\n👤 *Name:* {citizenName}\n🏢 *Dept:* {departmentName}\n🏢 *Section:* {subDepartmentName}\n📝 *Issue:* {description}\n\n👇 Is this correct?",
         "buttons": [
-          { "id": "submit_grv_en", "text": "✅ Confirm Submit", "type": "quick_reply" },
-          { "id": "cancel_grv_en", "text": "❌ Cancel", "type": "quick_reply" }
+          {
+            "id": "submit_grv_en",
+            "text": "✅ Confirm Submit",
+            "type": "quick_reply"
+          },
+          {
+            "id": "cancel_grv_en",
+            "text": "❌ Cancel",
+            "type": "quick_reply"
+          }
         ]
       }
     },
     {
       "id": "grv_success_en",
       "type": "textMessage",
-      "position": { "x": 2900, "y": 0 },
+      "position": {
+        "x": 2900,
+        "y": 0
+      },
       "data": {
         "label": "Success Message (EN)",
         "messageText": "✅ *Grievance Registered Successfully!*\n\n*Reference Number:* `{grievanceId}`\n\n👤 *Name:* {citizenName}\n🏢 *Department:* {departmentName}\n📂 *Sub-Department:* {subDepartmentName}\n📝 *Issue:* {description}\n\nYou will receive status updates via WhatsApp.\n\n-----------------------------------\nThank you for contacting {companyName}.\n\n📞 *For Support:*\n• Type \"Hi\" anytime for assistance\n• Type \"Help\" for helpdesk information\n• Type \"Menu\" to see all services"
@@ -315,7 +478,10 @@
     {
       "id": "grv_intro_hi",
       "type": "textMessage",
-      "position": { "x": 900, "y": 400 },
+      "position": {
+        "x": 900,
+        "y": 400
+      },
       "data": {
         "label": "Grievance Intro (HI)",
         "messageText": "📝 *शिकायत दर्ज करें*\n\nआप किसी भी कलेक्टरेट विभाग के संबंध में औपचारिक शिकायत दर्ज कर सकते हैं।\n\nशुरू करने के लिए, कृपया अनुरोध के अनुसार विवरण प्रदान करें।"
@@ -324,19 +490,27 @@
     {
       "id": "grv_name_hi",
       "type": "userInput",
-      "position": { "x": 1150, "y": 400 },
+      "position": {
+        "x": 1150,
+        "y": 400
+      },
       "data": {
         "label": "Citizen ID (HI)",
         "messageText": "👤 *नागरिक पहचान*\n\nकृपया अपना पूरा नाम दर्ज करें जैसा कि आधिकारिक दस्तावेजों में दिखाई देता है:",
         "inputType": "text",
         "saveToField": "citizenName",
-        "validation": { "required": true }
+        "validation": {
+          "required": true
+        }
       }
     },
     {
       "id": "grv_dept_hi",
       "type": "listMessage",
-      "position": { "x": 1400, "y": 400 },
+      "position": {
+        "x": 1400,
+        "y": 400
+      },
       "data": {
         "label": "Dept Selection (HI)",
         "messageText": "🏢 *विभाग चयन*\n\nसंबंधित विभाग चुनें:",
@@ -348,57 +522,100 @@
     {
       "id": "grv_desc_hi",
       "type": "userInput",
-      "position": { "x": 1900, "y": 400 },
+      "position": {
+        "x": 1900,
+        "y": 400
+      },
       "data": {
         "label": "Grievance Details (HI)",
         "messageText": "✍️ *शिकायत विवरण*\n\nकृपया अपनी समस्या का विस्तृत विवरण लिखें।\n\n*टिप:* तेजी से समाधान के लिए तारीखें, स्थान और विशिष्ट विवरण शामिल करें।",
         "inputType": "text",
         "saveToField": "description",
-        "validation": { "required": true, "minLength": 15 }
+        "validation": {
+          "required": true,
+          "minLength": 15
+        }
       }
     },
     {
       "id": "grv_evidence_hi",
       "type": "buttonMessage",
-      "position": { "x": 2150, "y": 400 },
+      "position": {
+        "x": 2150,
+        "y": 400
+      },
       "data": {
         "label": "Evidence (HI)",
         "messageText": "📷 *सहायक साक्ष्य*\n\nअपने दावे के समर्थन में एक फोटो या दस्तावेज अपलोड करें (वैकल्पिक)।\n\n👇 एक विकल्प चुनें:",
         "buttons": [
-          { "id": "upload_file_hi", "text": "📎 फाइल भेजें", "type": "quick_reply" },
-          { "id": "skip_evidence_hi", "text": "⏭️ छोड़ें", "type": "quick_reply" }
+          {
+            "id": "upload_file_hi",
+            "text": "📎 फाइल भेजें",
+            "type": "quick_reply"
+          },
+          {
+            "id": "skip_evidence_hi",
+            "text": "⏭️ छोड़ें",
+            "type": "quick_reply"
+          }
         ]
       }
     },
     {
       "id": "grv_upload_hi",
       "type": "userInput",
-      "position": { "x": 2400, "y": 300 },
+      "position": {
+        "x": 2400,
+        "y": 300
+      },
       "data": {
         "label": "Upload File (HI)",
         "messageText": "कृपया अपनी फाइल अपलोड करें (JPG, PNG, PDF, DOCX):",
         "inputType": "file",
         "saveToField": "attachmentUrl",
-        "validation": { "allowedTypes": ["image/jpeg", "image/png", "application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"] }
+        "validation": {
+          "allowedTypes": [
+            "image/jpeg",
+            "image/png",
+            "application/pdf",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          ]
+        }
       }
     },
     {
       "id": "grv_confirm_hi",
       "type": "buttonMessage",
-      "position": { "x": 2650, "y": 400 },
+      "position": {
+        "x": 2650,
+        "y": 400
+      },
       "data": {
         "label": "Confirm Submission (HI)",
         "messageText": "📋 *सबमिशन की पुष्टि करें*\n\nकृपया अपने विवरणों को सत्यापित करें:\n\n👤 *नाम:* {citizenName}\n🏢 *विभाग:* {departmentName}\n🏢 *अनुभाग:* {subDepartmentName}\n📝 *समस्या:* {description}\n\n👇 क्या यह सही है?",
         "buttons": [
-          { "id": "submit_grv_hi", "text": "✅ भेजें", "type": "quick_reply" },
-          { "id": "cancel_grv_hi", "text": "❌ रद्द करें", "type": "quick_reply" }
+          {
+            "id": "submit_grv_hi",
+            "text": "✅ भेजें",
+            "type": "quick_reply"
+          },
+          {
+            "id": "cancel_grv_hi",
+            "text": "❌ रद्द करें",
+            "type": "quick_reply"
+          }
         ]
       }
     },
     {
       "id": "grv_success_hi",
       "type": "textMessage",
-      "position": { "x": 2900, "y": 400 },
+      "position": {
+        "x": 2900,
+        "y": 400
+      },
       "data": {
         "label": "Success Message (HI)",
         "messageText": "✅ *शिकायत सफलतापूर्वक दर्ज!*\n\n*संदर्भ संख्या:* `{grievanceId}`\n\n👤 *नाम:* {citizenName}\n🏢 *विभाग:* {departmentName}\n📂 *अनुभाग:* {subDepartmentName}\n📝 *समस्या:* {description}\n\nआपको व्हाट्सएप के माध्यम से अपडेट प्राप्त होंगे।\n\n---\n{companyName} से संपर्क करने के लिए धन्यवाद।\n\n📞 *सहायता के लिए:*\n• सहायता के लिए कभी भी \"Hi\" टाइप करें\n• हेल्पडेस्क जानकारी के लिए \"Help\" टाइप करें\n• सभी सेवाओं को देखने के लिए \"Menu\" टाइप करें"
@@ -407,7 +624,10 @@
     {
       "id": "grv_intro_or",
       "type": "textMessage",
-      "position": { "x": 900, "y": 800 },
+      "position": {
+        "x": 900,
+        "y": 800
+      },
       "data": {
         "label": "Grievance Intro (OR)",
         "messageText": "📝 *ଅଭିଯୋଗ ପଞ୍ଜିକରଣ*\n\nଆପଣ ଯେକୌଣସି କଲେକ୍ଟରେଟ୍ ବିଭାଗ ସମ୍ପର୍କରେ ଆନୁଷ୍ଠାନିକ ଅଭିଯୋଗ ଦାଖଲ କରିପାରିବେ।\n\nଆରମ୍ଭ କରିବାକୁ, ଦୟାକରି ଅନୁରୋଧ ଅନୁଯାୟୀ ବିବରଣୀ ପ୍ରଦାନ କରନ୍ତୁ।"
@@ -416,19 +636,27 @@
     {
       "id": "grv_name_or",
       "type": "userInput",
-      "position": { "x": 1150, "y": 800 },
+      "position": {
+        "x": 1150,
+        "y": 800
+      },
       "data": {
         "label": "Citizen ID (OR)",
         "messageText": "👤 *ନାଗରିକ ପରିଚୟ*\n\nଦୟାକରି ଆପଣଙ୍କର ସମ୍ପୂର୍ଣ୍ଣ ନାମ ପ୍ରବେଶ କରନ୍ତୁ ଯେପରି ଏହା ସରକାରୀ ଦଲିଲରେ ଦେଖାଯାଏ:",
         "inputType": "text",
         "saveToField": "citizenName",
-        "validation": { "required": true }
+        "validation": {
+          "required": true
+        }
       }
     },
     {
       "id": "grv_dept_or",
       "type": "listMessage",
-      "position": { "x": 1400, "y": 800 },
+      "position": {
+        "x": 1400,
+        "y": 800
+      },
       "data": {
         "label": "Dept Selection (OR)",
         "messageText": "🏢 *ବିଭାଗ ଚୟନ*\n\nସମ୍ପୃକ୍ତ ବିଭାଗ ବାଛନ୍ତୁ:",
@@ -440,57 +668,100 @@
     {
       "id": "grv_desc_or",
       "type": "userInput",
-      "position": { "x": 1900, "y": 800 },
+      "position": {
+        "x": 1900,
+        "y": 800
+      },
       "data": {
         "label": "Grievance Details (OR)",
         "messageText": "✍ *ଅଭିଯୋଗ ବିବରଣୀ*\n\nଦୟାକରି ଆପଣଙ୍କ ସମସ୍ୟାର ବିସ୍ତୃତ ବିବରଣୀ ଟାଇପ୍ କରନ୍ତୁ।\n\n*ପରାମର୍ଶ:* ଶୀଘ୍ର ସମାଧାନ ପାଇଁ ତାରିଖ, ସ୍ଥାନ ଏବଂ ନିର୍ଦ୍ଦିଷ୍ଟ ବିବରଣୀ ଅନ୍ତର୍ଭୁକ୍ତ କରନ୍ତୁ।",
         "inputType": "text",
         "saveToField": "description",
-        "validation": { "required": true, "minLength": 15 }
+        "validation": {
+          "required": true,
+          "minLength": 15
+        }
       }
     },
     {
       "id": "grv_evidence_or",
       "type": "buttonMessage",
-      "position": { "x": 2150, "y": 800 },
+      "position": {
+        "x": 2150,
+        "y": 800
+      },
       "data": {
         "label": "Evidence (OR)",
         "messageText": "📷 *ସହାୟକ ପ୍ରମାଣ*\n\nଆପଣଙ୍କ ଅଭିଯୋଗକୁ ସମର୍ଥନ କରିବା ପାଇଁ ଏକ ଫଟୋ କିମ୍ବା ଦଲିଲ ଅପଲୋଡ୍ କରନ୍ତୁ (ବୈକଳ୍ପିକ)।\n\n👇 ଏକ ବିକଳ୍ପ ବାଛନ୍ତୁ:",
         "buttons": [
-          { "id": "upload_file_or", "text": "📎 ଫାଇଲ୍ ଦିଅନ୍ତୁ", "type": "quick_reply" },
-          { "id": "skip_evidence_or", "text": "⏭️ ବାଦ୍ ଦିଅନ୍ତୁ", "type": "quick_reply" }
+          {
+            "id": "upload_file_or",
+            "text": "📎 ଫାଇଲ୍ ଦିଅନ୍ତୁ",
+            "type": "quick_reply"
+          },
+          {
+            "id": "skip_evidence_or",
+            "text": "⏭️ ବାଦ୍ ଦିଅନ୍ତୁ",
+            "type": "quick_reply"
+          }
         ]
       }
     },
     {
       "id": "grv_upload_or",
       "type": "userInput",
-      "position": { "x": 2400, "y": 700 },
+      "position": {
+        "x": 2400,
+        "y": 700
+      },
       "data": {
         "label": "Upload File (OR)",
         "messageText": "ଦୟାକରି ଆପଣଙ୍କର ଫାଇଲ୍ ଅପଲୋଡ୍ କରନ୍ତୁ (JPG, PNG, PDF, DOCX):",
         "inputType": "file",
         "saveToField": "attachmentUrl",
-        "validation": { "allowedTypes": ["image/jpeg", "image/png", "application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"] }
+        "validation": {
+          "allowedTypes": [
+            "image/jpeg",
+            "image/png",
+            "application/pdf",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          ]
+        }
       }
     },
     {
       "id": "grv_confirm_or",
       "type": "buttonMessage",
-      "position": { "x": 2650, "y": 800 },
+      "position": {
+        "x": 2650,
+        "y": 800
+      },
       "data": {
         "label": "Confirm Submission (OR)",
         "messageText": "📋 *ଦାଖଲ ନିଶ୍ଚିତ କରନ୍ତୁ*\n\nଦୟାକରି ଆପଣଙ୍କର ବିବରଣୀ ଯାଞ୍ଚ କରନ୍ତୁ:\n\n👤 *ନାମ:* {citizenName}\n🏢 *ବିଭାଗ:* {departmentName}\n🏢 *ଉପ-ବିଭାଗ:* {subDepartmentName}\n📝 *ସମସ୍ୟା:* {description}\n\n👇 ଏହା ସଠିକ୍ କି?",
         "buttons": [
-          { "id": "submit_grv_or", "text": "✅ ଦାଖଲ କରନ୍ତୁ", "type": "quick_reply" },
-          { "id": "cancel_grv_or", "text": "❌ ବାତିଲ୍", "type": "quick_reply" }
+          {
+            "id": "submit_grv_or",
+            "text": "✅ ଦାଖଲ କରନ୍ତୁ",
+            "type": "quick_reply"
+          },
+          {
+            "id": "cancel_grv_or",
+            "text": "❌ ବାତିଲ୍",
+            "type": "quick_reply"
+          }
         ]
       }
     },
     {
       "id": "grv_success_or",
       "type": "textMessage",
-      "position": { "x": 2900, "y": 800 },
+      "position": {
+        "x": 2900,
+        "y": 800
+      },
       "data": {
         "label": "Success Message (OR)",
         "messageText": "✅ *ଅଭିଯୋଗ ସଫଳତାର ସହ ପଞ୍ଜିକୃତ!*\n\n*ରେଫରେନ୍ସ ନମ୍ବର:* `{grievanceId}`\n\n👤 *ନାମ:* {citizenName}\n🏢 *ବିଭାଗ:* {departmentName}\n📂 *ଉପ-ବିଭାଗ:* {subDepartmentName}\n📝 *ସମସ୍ୟା:* {description}\n\nଆପଣ ହ୍ବାଟସ୍ଆପ୍ ମାଧ୍ୟମରେ ଅଡ଼ଡ଼ ଅପଡେଟ ପାଇବେ।\n\n---\n{companyName} ସହ ଯୋଗାଯୋଗ କରିଥିବାରୁ ଧନ୍ୟବାଦ।\n\n📞 *ସହାୟତା ପାଇଁ:*\n• ସହାୟତା ପାଇଁ ଯେକୌଣସି ସମୟରେ \"Hi\" ଟାଇପ୍ କରନ୍ତୁ\n• ହେଲ୍ପଡେସ୍କ ସୂଚନା ପାଇଁ \"Help\" ଟାଇପ୍ କରନ୍ତୁ\n• ସମସ୍ତ ସେବା ଦେଖିବା ପାଇଁ \"Menu\" ଟାଇପ୍ କରନ୍ତୁ"
@@ -499,90 +770,112 @@
     {
       "id": "apt_intro_en",
       "type": "userInput",
-      "position": { "x": 900, "y": 200 },
+      "position": {
+        "x": 900,
+        "y": 200
+      },
       "data": {
         "label": "Appointment Intro (EN)",
         "messageText": "📅 *New Appointment Request*\n\nPlease enter your Full Name (as per official records):",
         "inputType": "text",
         "saveToField": "citizenName",
-        "validation": { "required": true }
+        "validation": {
+          "required": true
+        }
       }
     },
     {
       "id": "apt_purpose_en",
       "type": "userInput",
-      "position": { "x": 1150, "y": 200 },
+      "position": {
+        "x": 1150,
+        "y": 200
+      },
       "data": {
         "label": "Meeting Purpose (EN)",
         "messageText": "🎯 *Meeting Purpose*\n\nPlease briefly describe the purpose of your meeting with the Collector:",
         "inputType": "text",
         "saveToField": "purpose",
-        "validation": { "required": true }
+        "validation": {
+          "required": true
+        }
       }
     },
     {
       "id": "apt_date_en",
       "type": "apiCall",
-      "position": { "x": 1650, "y": 200 },
+      "position": {
+        "x": 1650,
+        "y": 200
+      },
       "data": {
         "label": "Select Date (EN)",
-        "messageText": "🗓️ *Select Date*\n\nChoose an available date for your meeting with the Collector:",
+        "messageText": "🗓️ *Select Date*\n\nPlease choose your preferred appointment date from the list below.\n\nYou can view more dates by selecting *Load More Dates*.",
         "method": "GET",
         "endpoint": "/api/availability/chatbot/{companyId}",
         "saveResponseTo": "availableDates"
       }
     },
     {
-      "id": "apt_time_en",
-      "type": "apiCall",
-      "position": { "x": 1900, "y": 200 },
-      "data": {
-        "label": "Time Slot (EN)",
-        "messageText": "⏰ *Choose Time Slot*\n\nSelect an available time for {appointmentDate}:",
-        "method": "GET",
-        "endpoint": "/api/availability/chatbot/{companyId}?selectedDate={appointmentDate}",
-        "saveResponseTo": "availableTimes"
-      }
-    },
-    {
       "id": "apt_confirm_en",
       "type": "buttonMessage",
-      "position": { "x": 1900, "y": 200 },
+      "position": {
+        "x": 1900,
+        "y": 200
+      },
       "data": {
         "label": "Verify Appointment (EN)",
-        "messageText": "📋 *Verify Appointment*\n\nPlease confirm your booking details:\n\n👤 *Name:* {citizenName}\n🎯 *Purpose:* {purpose}\n📅 *Date:* {appointmentDate}\n⏰ *Time:* {appointmentTime}\n\n👇 Is this correct?",
+        "messageText": "📋 *Confirm Appointment Request*\n\nPlease confirm your appointment details:\n\n👤 *Name:* {citizenName}\n🎯 *Purpose:* {purpose}\n📅 *Date:* {appointmentDate}\n\n👇 Do you want to submit this appointment request?",
         "buttons": [
-          { "id": "confirm_apt_en", "text": "✅ Confirm Booking", "type": "quick_reply" },
-          { "id": "cancel_apt_en", "text": "❌ Cancel", "type": "quick_reply" }
+          {
+            "id": "confirm_apt_en",
+            "text": "✅ Confirm Request",
+            "type": "quick_reply"
+          },
+          {
+            "id": "cancel_apt_en",
+            "text": "❌ Cancel",
+            "type": "quick_reply"
+          }
         ]
       }
     },
     {
       "id": "apt_success_en",
       "type": "textMessage",
-      "position": { "x": 2150, "y": 200 },
+      "position": {
+        "x": 2150,
+        "y": 200
+      },
       "data": {
         "label": "Apt Success (EN)",
-        "messageText": "✅ *Appointment Registered Successfully!*\n\n*Reference Number:* `{appointmentId}`\n\n👤 *Name:* {citizenName}\n🎯 *Purpose:* {purpose}\n📅 *Date:* {appointmentDate}\n⏰ *Time:* {appointmentTime}\n\nYou will receive status updates via WhatsApp.\n\n-----------------------------------\nThank you for contacting {companyName}.\n\n📞 *For Support:*\n• Type \"Hi\" anytime for assistance\n• Type \"Help\" for helpdesk information\n• Type \"Menu\" to see all services"
+        "messageText": "✅ *Appointment Request Submitted Successfully*\n\n🆔 *Appointment ID:* {appointmentId}\n\nYour appointment request has been lodged in our system.\nYou will be notified on WhatsApp with the appointment time and final confirmation.\n\nThank you for contacting {companyName}."
       }
     },
     {
       "id": "trk_start_en",
       "type": "userInput",
-      "position": { "x": 900, "y": 350 },
+      "position": {
+        "x": 900,
+        "y": 350
+      },
       "data": {
         "label": "Track Request (EN)",
         "messageText": "🔍 *Track Status*\n\nPlease enter your Reference Number:",
         "inputType": "text",
         "saveToField": "refNumber",
-        "validation": { "required": true }
+        "validation": {
+          "required": true
+        }
       }
     },
-
     {
       "id": "trk_result_en",
       "type": "textMessage",
-      "position": { "x": 1400, "y": 350 },
+      "position": {
+        "x": 1400,
+        "y": 350
+      },
       "data": {
         "label": "Display Status (EN)",
         "messageText": "📄 *Status Details*\n\n*Reference:* {refNumber}\n*Service Type:* {serviceType}\n*Current Status:* {status}\n*Remarks:* {remarks}\n*Last Updated:* {updatedAt}\n\n---\nThank you for contacting Collectorate Jharsuguda.\n\n📞 *For Support:*\n• Type \"Hi\" anytime for assistance\n• Type \"Help\" for helpdesk information\n• Type \"Menu\" to see all services"
@@ -591,102 +884,131 @@
     {
       "id": "helpdesk_en",
       "type": "buttonMessage",
-      "position": { "x": 900, "y": 500 },
+      "position": {
+        "x": 900,
+        "y": 500
+      },
       "data": {
         "label": "Helpdesk (EN)",
         "messageText": "ℹ️ *Helpdesk & Support*\n\nFor further assistance:\n\n📞 *Helpline:* 1800-123-4567\n🌐 *Website:* jharsuguda.odisha.gov.in\n📍 *Office:*\nCollectorate, NH 10, Jharsuguda Road,\nBijju Nagar, Jharsuguda, Odisha 768204\n\n*Office Hours:*\n10:00 AM – 6:00 PM (Mon–Sat)",
         "buttons": [
-          { "id": "back_to_menu_en", "text": "🔙 Back to Menu", "type": "quick_reply" }
+          {
+            "id": "back_to_menu_en",
+            "text": "🔙 Back to Menu",
+            "type": "quick_reply"
+          }
         ]
       }
     },
     {
       "id": "apt_intro_hi",
       "type": "userInput",
-      "position": { "x": 900, "y": 600 },
+      "position": {
+        "x": 900,
+        "y": 600
+      },
       "data": {
         "label": "Appointment Intro (HI)",
         "messageText": "📅 *नया अपॉइंटमेंट अनुरोध*\n\nकृपया अपना पूरा नाम दर्ज करें (आधिकारिक रिकॉर्ड के अनुसार):",
         "inputType": "text",
         "saveToField": "citizenName",
-        "validation": { "required": true }
+        "validation": {
+          "required": true
+        }
       }
     },
     {
       "id": "apt_purpose_hi",
       "type": "userInput",
-      "position": { "x": 1150, "y": 600 },
+      "position": {
+        "x": 1150,
+        "y": 600
+      },
       "data": {
         "label": "Meeting Purpose (HI)",
         "messageText": "🎯 *बैठक का उद्देश्य*\n\nकृपया कलेक्टर के साथ अपनी बैठक के उद्देश्य का संक्षेप में वर्णन करें:",
         "inputType": "text",
         "saveToField": "purpose",
-        "validation": { "required": true }
+        "validation": {
+          "required": true
+        }
       }
     },
     {
       "id": "apt_date_hi",
       "type": "apiCall",
-      "position": { "x": 1650, "y": 600 },
+      "position": {
+        "x": 1650,
+        "y": 600
+      },
       "data": {
         "label": "Select Date (HI)",
-        "messageText": "🗓️ *तारीख चुनें*\n\nकलेक्टर के साथ बैठक के लिए उपलब्ध तारीख चुनें:",
+        "messageText": "🗓️ *तारीख चुनें*\n\nकृपया नीचे दी गई सूची से अपनी पसंदीदा अपॉइंटमेंट तारीख चुनें।\n\nअधिक तारीख देखने के लिए *और तारीख लोड करें* चुनें।",
         "method": "GET",
         "endpoint": "/api/availability/chatbot/{companyId}",
         "saveResponseTo": "availableDates"
       }
     },
     {
-      "id": "apt_time_hi",
-      "type": "apiCall",
-      "position": { "x": 1900, "y": 600 },
-      "data": {
-        "label": "Time Slot (HI)",
-        "messageText": "⏰ *समय चुनें*\n\n{appointmentDate} के लिए उपलब्ध समय चुनें:",
-        "method": "GET",
-        "endpoint": "/api/availability/chatbot/{companyId}?selectedDate={appointmentDate}",
-        "saveResponseTo": "availableTimes"
-      }
-    },
-    {
       "id": "apt_confirm_hi",
       "type": "buttonMessage",
-      "position": { "x": 2150, "y": 600 },
+      "position": {
+        "x": 2150,
+        "y": 600
+      },
       "data": {
         "label": "Verify Appointment (HI)",
-        "messageText": "📋 *अपॉइंटमेंट सत्यापित करें*\n\nकृपया अपने बुकिंग विवरण की पुष्टि करें:\n\n👤 *नाम:* {citizenName}\n🎯 *उद्देश्य:* {purpose}\n📅 *तारीख:* {appointmentDate}\n⏰ *समय:* {appointmentTime}\n\n👇 क्या यह सही है?",
+        "messageText": "📋 *अपॉइंटमेंट अनुरोध की पुष्टि करें*\n\nकृपया अपनी अपॉइंटमेंट जानकारी की पुष्टि करें:\n\n👤 *नाम:* {citizenName}\n🎯 *उद्देश्य:* {purpose}\n📅 *तारीख:* {appointmentDate}\n\n👇 क्या आप यह अपॉइंटमेंट अनुरोध जमा करना चाहते हैं?",
         "buttons": [
-          { "id": "confirm_apt_hi", "text": "✅ बुकिंग करें", "type": "quick_reply" },
-          { "id": "cancel_apt_hi", "text": "❌ रद्द करें", "type": "quick_reply" }
+          {
+            "id": "confirm_apt_hi",
+            "text": "✅ अनुरोध की पुष्टि करें",
+            "type": "quick_reply"
+          },
+          {
+            "id": "cancel_apt_hi",
+            "text": "❌ रद्द करें",
+            "type": "quick_reply"
+          }
         ]
       }
     },
     {
       "id": "apt_success_hi",
       "type": "textMessage",
-      "position": { "x": 2150, "y": 600 },
+      "position": {
+        "x": 2150,
+        "y": 600
+      },
       "data": {
         "label": "Apt Success (HI)",
-        "messageText": "👋 *आपका धन्यवाद*\n\nआपका अपॉइंटमेंट अनुरोध जमा कर दिया गया है।\n\n*संदर्भ संख्या:* {appointmentId}\n\nकार्यालय द्वारा अनुमोदित होने के बाद आपको पुष्टि प्राप्त होगी।\n\n---\nकलेक्टरेट झारसुगुडा से संपर्क करने के लिए धन्यवाद।\n\n📞 *सहायता के लिए:*\n• सहायता के लिए कभी भी \"Hi\" टाइप करें\n• हेल्पडेस्क जानकारी के लिए \"Help\" टाइप करें\n• सभी सेवाओं को देखने के लिए \"Menu\" टाइप करें"
+        "messageText": "✅ *अपॉइंटमेंट अनुरोध सफलतापूर्वक जमा हुआ*\n\n🆔 *अपॉइंटमेंट आईडी:* {appointmentId}\n\nआपका अपॉइंटमेंट अनुरोध हमारे सिस्टम में दर्ज कर दिया गया है।\nआपको अपॉइंटमेंट समय और अंतिम पुष्टि की जानकारी व्हाट्सएप पर दी जाएगी।\n\n{companyName} से संपर्क करने के लिए धन्यवाद।"
       }
     },
     {
       "id": "trk_start_hi",
       "type": "userInput",
-      "position": { "x": 900, "y": 750 },
+      "position": {
+        "x": 900,
+        "y": 750
+      },
       "data": {
         "label": "Track Request (HI)",
         "messageText": "🔍 *स्थिति ट्रैक करें*\n\nकृपया अपनी संदर्भ संख्या दर्ज करें:",
         "inputType": "text",
         "saveToField": "refNumber",
-        "validation": { "required": true }
+        "validation": {
+          "required": true
+        }
       }
     },
-
     {
       "id": "trk_result_hi",
       "type": "textMessage",
-      "position": { "x": 1400, "y": 750 },
+      "position": {
+        "x": 1400,
+        "y": 750
+      },
       "data": {
         "label": "Display Status (HI)",
         "messageText": "📄 *स्थिति का विवरण*\n\n*संदर्भ:* {refNumber}\n*सेवा प्रकार:* {serviceType}\n*वर्तमान स्थिति:* {status}\n*टिप्पणियाँ:* {remarks}\n*अंतिम अपडेट:* {updatedAt}\n\n---\nकलेक्टरेट झारसुगुडा से संपर्क करने के लिए धन्यवाद।\n\n📞 *सहायता के लिए:*\n• सहायता के लिए कभी भी \"Hi\" टाइप करें\n• हेल्पडेस्क जानकारी के लिए \"Help\" टाइप करें\n• सभी सेवाओं को देखने के लिए \"Menu\" टाइप करें"
@@ -695,102 +1017,131 @@
     {
       "id": "helpdesk_hi",
       "type": "buttonMessage",
-      "position": { "x": 900, "y": 900 },
+      "position": {
+        "x": 900,
+        "y": 900
+      },
       "data": {
         "label": "Helpdesk (HI)",
         "messageText": "ℹ️ *हेल्पडेस्क और सहायता*\n\nआगे की सहायता के लिए:\n\n📞 *हेल्पलाइन:* 1800-123-4567\n🌐 *वेबसाइट:* jharsuguda.odisha.gov.in\n📍 *कार्यालय:*\nकलेक्टरेट, एनएच 10, झारसुगुडा रोड,\nबीजू नगर, झारसुगुडा, ओडिशा 768204\n\n*कार्यालय का समय:*\n10:00 AM – 6:00 PM (सोम–शनि)",
         "buttons": [
-          { "id": "back_to_menu_hi", "text": "🔙 मेनू पर वापस जाएं", "type": "quick_reply" }
+          {
+            "id": "back_to_menu_hi",
+            "text": "🔙 मेनू पर वापस जाएं",
+            "type": "quick_reply"
+          }
         ]
       }
     },
     {
       "id": "apt_intro_or",
       "type": "userInput",
-      "position": { "x": 900, "y": 1000 },
+      "position": {
+        "x": 900,
+        "y": 1000
+      },
       "data": {
         "label": "Appointment Intro (OR)",
         "messageText": "📅 *ନୂତନ ଆପଏଣ୍ଟମେଣ୍ଟ ଅନୁରୋଧ*\n\nଦୟାକରି ଆପଣଙ୍କର ସମ୍ପୂର୍ଣ୍ଣ ନାମ ପ୍ରବେଶ କରନ୍ତୁ (ସରକାରୀ ରେକର୍ଡ ଅନୁଯାୟୀ):",
         "inputType": "text",
         "saveToField": "citizenName",
-        "validation": { "required": true }
+        "validation": {
+          "required": true
+        }
       }
     },
     {
       "id": "apt_purpose_or",
       "type": "userInput",
-      "position": { "x": 1150, "y": 1000 },
+      "position": {
+        "x": 1150,
+        "y": 1000
+      },
       "data": {
         "label": "Meeting Purpose (OR)",
         "messageText": "🎯 *ସାକ୍ଷାତର ଉଦ୍ଦେଶ୍ୟ*\n\nଦୟାକରି କଲେକ୍ଟରଙ୍କ ସହିତ ଆପଣଙ୍କର ସାକ୍ଷାତର ଉଦ୍ଦେଶ୍ୟ ସଂକ୍ଷେପରେ ବର୍ଣ୍ଣନା କରନ୍ତୁ:",
         "inputType": "text",
         "saveToField": "purpose",
-        "validation": { "required": true }
+        "validation": {
+          "required": true
+        }
       }
     },
     {
       "id": "apt_date_or",
       "type": "apiCall",
-      "position": { "x": 1650, "y": 1000 },
+      "position": {
+        "x": 1650,
+        "y": 1000
+      },
       "data": {
         "label": "Select Date (OR)",
-        "messageText": "🗓️ *ତାରିଖ ବାଛନ୍ତୁ*\n\nକଲେକ୍ଟରଙ୍କ ସହିତ ସାକ୍ଷାତ ପାଇଁ ଉପଲବ୍ଧ ତାରିଖ ବାଛନ୍ତୁ:",
+        "messageText": "🗓️ *ତାରିଖ ବାଛନ୍ତୁ*\n\nଦୟାକରି ନିମ୍ନତଲିକାରୁ ଆପଣଙ୍କ ପସନ୍ଦର ଆପଏଣ୍ଟମେଣ୍ଟ ତାରିଖ ବାଛନ୍ତୁ।\n\nଅଧିକ ତାରିଖ ଦେଖିବା ପାଇଁ *ଅଧିକ ତାରିଖ ଲୋଡ୍ କରନ୍ତୁ* ଚୟନ କରନ୍ତୁ।",
         "method": "GET",
         "endpoint": "/api/availability/chatbot/{companyId}",
         "saveResponseTo": "availableDates"
       }
     },
     {
-      "id": "apt_time_or",
-      "type": "apiCall",
-      "position": { "x": 1900, "y": 1000 },
-      "data": {
-        "label": "Time Slot (OR)",
-        "messageText": "⏰ *ସମୟ ଚୟନ କରନ୍ତୁ*\n\n{appointmentDate} ପାଇଁ ଉପଲବ୍ଧ ସମୟ ବାଛନ୍ତୁ:",
-        "method": "GET",
-        "endpoint": "/api/availability/chatbot/{companyId}?selectedDate={appointmentDate}",
-        "saveResponseTo": "availableTimes"
-      }
-    },
-    {
       "id": "apt_confirm_or",
       "type": "buttonMessage",
-      "position": { "x": 2150, "y": 1000 },
+      "position": {
+        "x": 2150,
+        "y": 1000
+      },
       "data": {
         "label": "Verify Appointment (OR)",
-        "messageText": "📋 *ଆପଏଣ୍ଟମେଣ୍ଟ ଯାଞ୍ଚ କରନ୍ତୁ*\n\nଦୟାକରି ଆପଣଙ୍କର ବୁକିଂ ବିବରଣୀ ନିଶ୍ଚିତ କରନ୍ତୁ:\n\n👤 *ନାମ:* {citizenName}\n🎯 *ସାକ୍ଷାତର ଉଦ୍ଦେଶ୍ୟ:* {purpose}\n📅 *ତାରିଖ:* {appointmentDate}\n⏰ *ସମୟ:* {appointmentTime}\n\n👇 ଏହା ସଠିକ୍ କି?",
+        "messageText": "📋 *ଆପଏଣ୍ଟମେଣ୍ଟ ଅନୁରୋଧ ନିଶ୍ଚିତ କରନ୍ତୁ*\n\nଦୟାକରି ଆପଣଙ୍କ ଆପଏଣ୍ଟମେଣ୍ଟ ବିବରଣୀ ନିଶ୍ଚିତ କରନ୍ତୁ:\n\n👤 *ନାମ:* {citizenName}\n🎯 *ଉଦ୍ଦେଶ୍ୟ:* {purpose}\n📅 *ତାରିଖ:* {appointmentDate}\n\n👇 ଆପଣ ଏହି ଆପଏଣ୍ଟମେଣ୍ଟ ଅନୁରୋଧ ଦାଖଲ କରିବାକୁ ଚାହୁଁଛନ୍ତି କି?",
         "buttons": [
-          { "id": "confirm_apt_or", "text": "✅ ନିଶ୍ଚିତ କରନ୍ତୁ", "type": "quick_reply" },
-          { "id": "cancel_apt_or", "text": "❌ ବାତିଲ୍", "type": "quick_reply" }
+          {
+            "id": "confirm_apt_or",
+            "text": "✅ ଅନୁରୋଧ ନିଶ୍ଚିତ କରନ୍ତୁ",
+            "type": "quick_reply"
+          },
+          {
+            "id": "cancel_apt_or",
+            "text": "❌ ବାତିଲ୍",
+            "type": "quick_reply"
+          }
         ]
       }
     },
     {
       "id": "apt_success_or",
       "type": "textMessage",
-      "position": { "x": 2150, "y": 1000 },
+      "position": {
+        "x": 2150,
+        "y": 1000
+      },
       "data": {
         "label": "Apt Success (OR)",
-        "messageText": "👋 *ଆପଣଙ୍କୁ ଧନ୍ୟବାଦ*\n\nଆପଣଙ୍କର ଆପଏଣ୍ଟମେଣ୍ଟ ଅନୁରୋଧ ଦାଖଲ ହୋଇଛି।\n\n*ରେଫରେନ୍ସ ନମ୍ବର:* {appointmentId}\n\nକାର୍ଯ୍ୟାଳୟ ଦ୍ୱାରା ଅନୁମୋଦିତ ହେବା ପରେ ଆପଣ ନିଶ୍ଚିତକରଣ ପାଇବେ।\n\n---\nଝାରସୁଗୁଡା କଲେକ୍ଟରେଟ୍ ସହିତ ଯୋଗାଯୋଗ କରିଥିବାରୁ ଧନ୍ୟବାଦ।\n\n📞 *ସହାୟତା ପାଇଁ:*\n• ସହାୟତା ପାଇଁ ଯେକୌଣସି ସମୟରେ \"Hi\" ଟାଇପ୍ କରନ୍ତୁ\n• ହେଲ୍ପଡେସ୍କ ସୂଚନା ପାଇଁ \"Help\" ଟାଇପ୍ କରନ୍ତୁ\n• ସମସ୍ତ ସେବା ଦେଖିବା ପାଇଁ \"Menu\" ଟାଇପ୍ କରନ୍ତୁ"
+        "messageText": "✅ *ଆପଏଣ୍ଟମେଣ୍ଟ ଅନୁରୋଧ ସଫଳତାର ସହିତ ଦାଖଲ ହେଲା*\n\n🆔 *ଆପଏଣ୍ଟମେଣ୍ଟ ଆଇଡି:* {appointmentId}\n\nଆପଣଙ୍କର ଆପଏଣ୍ଟମେଣ୍ଟ ଅନୁରୋଧ ଆମ ସିଷ୍ଟମରେ ଦାଖଲ ହୋଇଛି।\nଆପଏଣ୍ଟମେଣ୍ଟ ସମୟ ଏବଂ ଅନ୍ତିମ ନିଶ୍ଚିତକରଣ ବିଷୟରେ ଆପଣଙ୍କୁ WhatsApp ରେ ସୂଚନା ଦିଆଯିବ।\n\n{companyName} ସହିତ ଯୋଗାଯୋଗ କରିଥିବାରୁ ଧନ୍ୟବାଦ।"
       }
     },
     {
       "id": "trk_start_or",
       "type": "userInput",
-      "position": { "x": 900, "y": 1150 },
+      "position": {
+        "x": 900,
+        "y": 1150
+      },
       "data": {
         "label": "Track Request (OR)",
         "messageText": "🔍 *ସ୍ଥିତି ଟ୍ରାକ୍ କରନ୍ତୁ*\n\nଦୟାକରି ଆପଣଙ୍କର ରେଫରେନ୍ସ ନମ୍ବର ପ୍ରବେଶ କରନ୍ତୁ:",
         "inputType": "text",
         "saveToField": "refNumber",
-        "validation": { "required": true }
+        "validation": {
+          "required": true
+        }
       }
     },
-
     {
       "id": "trk_result_or",
       "type": "textMessage",
-      "position": { "x": 1400, "y": 1150 },
+      "position": {
+        "x": 1400,
+        "y": 1150
+      },
       "data": {
         "label": "Display Status (OR)",
         "messageText": "📄 *ସ୍ଥିତି ବିବରଣୀ*\n\n*ରେଫରେନ୍ସ:* {refNumber}\n*ସେବା ପ୍ରକାର:* {serviceType}\n*ବର୍ତ୍ତମାନର ସ୍ଥିତି:* {status}\n*ମନ୍ତବ୍ୟ:* {remarks}\n*ଶେଷ ଅପଡେଟ୍:* {updatedAt}\n\n---\nଝାରସୁଗୁଡା କଲେକ୍ଟରେଟ୍ ସହିତ ଯୋଗାଯୋଗ କରିଥିବାରୁ ଧନ୍ୟବାଦ।\n\n📞 *ସହାୟତା ପାଇଁ:*\n• ସହାୟତା ପାଇଁ ଯେକୌଣସି ସମୟରେ \"Hi\" ଟାଇପ୍ କରନ୍ତୁ\n• ହେଲ୍ପଡେସ୍କ ସୂଚନା ପାଇଁ \"Help\" ଟାଇପ୍ କରନ୍ତୁ\n• ସମସ୍ତ ସେବା ଦେଖିବା ପାଇଁ \"Menu\" ଟାଇପ୍ କରନ୍ତୁ"
@@ -799,95 +1150,444 @@
     {
       "id": "helpdesk_or",
       "type": "buttonMessage",
-      "position": { "x": 900, "y": 1300 },
+      "position": {
+        "x": 900,
+        "y": 1300
+      },
       "data": {
         "label": "Helpdesk (OR)",
         "messageText": "ℹ️ *ହେଲ୍ପଡେସ୍କ ଏବଂ ସହାୟତା*\n\nଅଧିକ ସହାୟତା ପାଇଁ:\n\n📞 *ହେଲ୍ପଲାଇନ:* 1800-123-4567\n🌐 *ୱେବସାଇଟ:* jharsuguda.odisha.gov.in\n📍 *କାର୍ଯ୍ୟାଳୟ:*\nକଲେକ୍ଟରେଟ୍, NH 10, ଝାରସୁଗୁଡା ରୋଡ୍,\nବିଜୁ ନଗର, ଝାରସୁଗୁଡା, ଓଡିଶା 768204\n\n*କାର୍ଯ୍ୟାଳୟ ସମୟ:*\n10:00 AM – 6:00 PM (ସୋମ–ଶନି)",
         "buttons": [
-          { "id": "back_to_menu_or", "text": "🔙 ମେନୁକୁ ଫେରନ୍ତୁ", "type": "quick_reply" }
+          {
+            "id": "back_to_menu_or",
+            "text": "🔙 ମେନୁକୁ ଫେରନ୍ତୁ",
+            "type": "quick_reply"
+          }
         ]
       }
     }
   ],
   "edges": [
-    { "id": "e1", "source": "start_node", "target": "language_selection", "type": "smoothstep", "animated": true },
-    { "id": "e2", "source": "language_selection", "target": "main_menu_en", "sourceHandle": "lang_en", "type": "smoothstep" },
-    { "id": "e3", "source": "language_selection", "target": "main_menu_hi", "sourceHandle": "lang_hi", "type": "smoothstep" },
-    { "id": "e4", "source": "language_selection", "target": "main_menu_or", "sourceHandle": "lang_or", "type": "smoothstep" },
-    
-    { "id": "e_en_grv", "source": "main_menu_en", "target": "grv_intro_en", "sourceHandle": "grv_en", "type": "smoothstep" },
-    { "id": "e_en_grv2", "source": "grv_intro_en", "target": "grv_name_en", "type": "smoothstep" },
-    { "id": "e_en_grv3", "source": "grv_name_en", "target": "grv_dept_en", "type": "smoothstep" },
-    { "id": "e_en_grv4", "source": "grv_dept_en", "target": "grv_desc_en", "type": "smoothstep" },
-    { "id": "e_en_grv6", "source": "grv_desc_en", "target": "grv_evidence_en", "type": "smoothstep" },
-    { "id": "e_en_grv7", "source": "grv_evidence_en", "target": "grv_upload_en", "sourceHandle": "upload_file_en", "type": "smoothstep" },
-    { "id": "e_en_grv8", "source": "grv_evidence_en", "target": "grv_confirm_en", "sourceHandle": "skip_evidence_en", "type": "smoothstep" },
-    { "id": "e_en_grv9", "source": "grv_upload_en", "target": "grv_confirm_en", "type": "smoothstep" },
-    { "id": "e_en_grv10", "source": "grv_confirm_en", "target": "grv_success_en", "sourceHandle": "submit_grv_en", "type": "smoothstep" },
-    { "id": "e_en_grv11", "source": "grv_confirm_en", "target": "main_menu_en", "sourceHandle": "cancel_grv_en", "type": "smoothstep" },
-
-    { "id": "e_hi_grv", "source": "main_menu_hi", "target": "grv_intro_hi", "sourceHandle": "grv_hi", "type": "smoothstep" },
-    { "id": "e_hi_grv2", "source": "grv_intro_hi", "target": "grv_name_hi", "type": "smoothstep" },
-    { "id": "e_hi_grv3", "source": "grv_name_hi", "target": "grv_dept_hi", "type": "smoothstep" },
-    { "id": "e_hi_grv4", "source": "grv_dept_hi", "target": "grv_desc_hi", "type": "smoothstep" },
-    { "id": "e_hi_grv6", "source": "grv_desc_hi", "target": "grv_evidence_hi", "type": "smoothstep" },
-    { "id": "e_hi_grv7", "source": "grv_evidence_hi", "target": "grv_upload_hi", "sourceHandle": "upload_file_hi", "type": "smoothstep" },
-    { "id": "e_hi_grv8", "source": "grv_evidence_hi", "target": "grv_confirm_hi", "sourceHandle": "skip_evidence_hi", "type": "smoothstep" },
-    { "id": "e_hi_grv9", "source": "grv_upload_hi", "target": "grv_confirm_hi", "type": "smoothstep" },
-    { "id": "e_hi_grv10", "source": "grv_confirm_hi", "target": "grv_success_hi", "sourceHandle": "submit_grv_hi", "type": "smoothstep" },
-    { "id": "e_hi_grv11", "source": "grv_confirm_hi", "target": "main_menu_hi", "sourceHandle": "cancel_grv_hi", "type": "smoothstep" },
-
-    { "id": "e_or_grv", "source": "main_menu_or", "target": "grv_intro_or", "sourceHandle": "grv_or", "type": "smoothstep" },
-    { "id": "e_or_grv2", "source": "grv_intro_or", "target": "grv_name_or", "type": "smoothstep" },
-    { "id": "e_or_grv3", "source": "grv_name_or", "target": "grv_dept_or", "type": "smoothstep" },
-    { "id": "e_or_grv4", "source": "grv_dept_or", "target": "grv_desc_or", "type": "smoothstep" },
-    { "id": "e_or_grv6", "source": "grv_desc_or", "target": "grv_evidence_or", "type": "smoothstep" },
-    { "id": "e_or_grv7", "source": "grv_evidence_or", "target": "grv_upload_or", "sourceHandle": "upload_file_or", "type": "smoothstep" },
-    { "id": "e_or_grv8", "source": "grv_evidence_or", "target": "grv_confirm_or", "sourceHandle": "skip_evidence_or", "type": "smoothstep" },
-    { "id": "e_or_grv9", "source": "grv_upload_or", "target": "grv_confirm_or", "type": "smoothstep" },
-    { "id": "e_or_grv10", "source": "grv_confirm_or", "target": "grv_success_or", "sourceHandle": "submit_grv_or", "type": "smoothstep" },
-    { "id": "e_or_grv11", "source": "grv_confirm_or", "target": "main_menu_or", "sourceHandle": "cancel_grv_or", "type": "smoothstep" },
-
-    { "id": "e_en_apt", "source": "main_menu_en", "target": "apt_intro_en", "sourceHandle": "apt_en", "type": "smoothstep" },
-    { "id": "e_en_apt2", "source": "apt_intro_en", "target": "apt_purpose_en", "type": "smoothstep" },
-    { "id": "e_en_apt3", "source": "apt_purpose_en", "target": "apt_date_en", "type": "smoothstep" },
-    { "id": "e_en_apt4", "source": "apt_date_en", "target": "apt_time_en", "type": "smoothstep" },
-    { "id": "e_en_apt5", "source": "apt_time_en", "target": "apt_confirm_en", "type": "smoothstep" },
-    { "id": "e_en_apt6", "source": "apt_confirm_en", "target": "apt_success_en", "sourceHandle": "confirm_apt_en", "type": "smoothstep" },
-    { "id": "e_en_apt7", "source": "apt_confirm_en", "target": "main_menu_en", "sourceHandle": "cancel_apt_en", "type": "smoothstep" },
-
-    { "id": "e_hi_apt", "source": "main_menu_hi", "target": "apt_intro_hi", "sourceHandle": "apt_hi", "type": "smoothstep" },
-    { "id": "e_hi_apt2", "source": "apt_intro_hi", "target": "apt_purpose_hi", "type": "smoothstep" },
-    { "id": "e_hi_apt3", "source": "apt_purpose_hi", "target": "apt_date_hi", "type": "smoothstep" },
-    { "id": "e_hi_apt4", "source": "apt_date_hi", "target": "apt_time_hi", "type": "smoothstep" },
-    { "id": "e_hi_apt5", "source": "apt_time_hi", "target": "apt_confirm_hi", "type": "smoothstep" },
-    { "id": "e_hi_apt6", "source": "apt_confirm_hi", "target": "apt_success_hi", "sourceHandle": "confirm_apt_hi", "type": "smoothstep" },
-    { "id": "e_hi_apt7", "source": "apt_confirm_hi", "target": "main_menu_hi", "sourceHandle": "cancel_apt_hi", "type": "smoothstep" },
-
-    { "id": "e_or_apt", "source": "main_menu_or", "target": "apt_intro_or", "sourceHandle": "apt_or", "type": "smoothstep" },
-    { "id": "e_or_apt2", "source": "apt_intro_or", "target": "apt_purpose_or", "type": "smoothstep" },
-    { "id": "e_or_apt3", "source": "apt_purpose_or", "target": "apt_date_or", "type": "smoothstep" },
-    { "id": "e_or_apt4", "source": "apt_date_or", "target": "apt_time_or", "type": "smoothstep" },
-    { "id": "e_or_apt5", "source": "apt_time_or", "target": "apt_confirm_or", "type": "smoothstep" },
-    { "id": "e_or_apt6", "source": "apt_confirm_or", "target": "apt_success_or", "sourceHandle": "confirm_apt_or", "type": "smoothstep" },
-    { "id": "e_or_apt7", "source": "apt_confirm_or", "target": "main_menu_or", "sourceHandle": "cancel_apt_or", "type": "smoothstep" },
-
-    { "id": "e_en_trk", "source": "main_menu_en", "target": "trk_start_en", "sourceHandle": "trk_en", "type": "smoothstep" },
-    { "id": "e_en_trk2", "source": "trk_start_en", "target": "trk_result_en", "type": "smoothstep" },
-
-    { "id": "e_hi_trk", "source": "main_menu_hi", "target": "trk_start_hi", "sourceHandle": "trk_hi", "type": "smoothstep" },
-    { "id": "e_hi_trk2", "source": "trk_start_hi", "target": "trk_result_hi", "type": "smoothstep" },
-
-    { "id": "e_or_trk", "source": "main_menu_or", "target": "trk_start_or", "sourceHandle": "trk_or", "type": "smoothstep" },
-    { "id": "e_or_trk2", "source": "trk_start_or", "target": "trk_result_or", "type": "smoothstep" },
-
-    { "id": "e_en_help", "source": "main_menu_en", "target": "helpdesk_en", "sourceHandle": "help_en", "type": "smoothstep" },
-    { "id": "e_en_help_back", "source": "helpdesk_en", "target": "main_menu_en", "sourceHandle": "back_to_menu_en", "type": "smoothstep" },
-
-    { "id": "e_hi_help", "source": "main_menu_hi", "target": "helpdesk_hi", "sourceHandle": "help_hi", "type": "smoothstep" },
-    { "id": "e_hi_help_back", "source": "helpdesk_hi", "target": "main_menu_hi", "sourceHandle": "back_to_menu_hi", "type": "smoothstep" },
-
-    { "id": "e_or_help", "source": "main_menu_or", "target": "helpdesk_or", "sourceHandle": "help_or", "type": "smoothstep" },
-    { "id": "e_or_help_back", "source": "helpdesk_or", "target": "main_menu_or", "sourceHandle": "back_to_menu_or", "type": "smoothstep" }
+    {
+      "id": "e1",
+      "source": "start_node",
+      "target": "language_selection",
+      "type": "smoothstep",
+      "animated": true
+    },
+    {
+      "id": "e2",
+      "source": "language_selection",
+      "target": "main_menu_en",
+      "sourceHandle": "lang_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e3",
+      "source": "language_selection",
+      "target": "main_menu_hi",
+      "sourceHandle": "lang_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e4",
+      "source": "language_selection",
+      "target": "main_menu_or",
+      "sourceHandle": "lang_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_en_grv",
+      "source": "main_menu_en",
+      "target": "grv_intro_en",
+      "sourceHandle": "grv_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_en_grv2",
+      "source": "grv_intro_en",
+      "target": "grv_name_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_en_grv3",
+      "source": "grv_name_en",
+      "target": "grv_dept_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_en_grv4",
+      "source": "grv_dept_en",
+      "target": "grv_desc_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_en_grv6",
+      "source": "grv_desc_en",
+      "target": "grv_evidence_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_en_grv7",
+      "source": "grv_evidence_en",
+      "target": "grv_upload_en",
+      "sourceHandle": "upload_file_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_en_grv8",
+      "source": "grv_evidence_en",
+      "target": "grv_confirm_en",
+      "sourceHandle": "skip_evidence_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_en_grv9",
+      "source": "grv_upload_en",
+      "target": "grv_confirm_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_en_grv10",
+      "source": "grv_confirm_en",
+      "target": "grv_success_en",
+      "sourceHandle": "submit_grv_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_en_grv11",
+      "source": "grv_confirm_en",
+      "target": "main_menu_en",
+      "sourceHandle": "cancel_grv_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_hi_grv",
+      "source": "main_menu_hi",
+      "target": "grv_intro_hi",
+      "sourceHandle": "grv_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_hi_grv2",
+      "source": "grv_intro_hi",
+      "target": "grv_name_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_hi_grv3",
+      "source": "grv_name_hi",
+      "target": "grv_dept_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_hi_grv4",
+      "source": "grv_dept_hi",
+      "target": "grv_desc_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_hi_grv6",
+      "source": "grv_desc_hi",
+      "target": "grv_evidence_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_hi_grv7",
+      "source": "grv_evidence_hi",
+      "target": "grv_upload_hi",
+      "sourceHandle": "upload_file_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_hi_grv8",
+      "source": "grv_evidence_hi",
+      "target": "grv_confirm_hi",
+      "sourceHandle": "skip_evidence_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_hi_grv9",
+      "source": "grv_upload_hi",
+      "target": "grv_confirm_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_hi_grv10",
+      "source": "grv_confirm_hi",
+      "target": "grv_success_hi",
+      "sourceHandle": "submit_grv_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_hi_grv11",
+      "source": "grv_confirm_hi",
+      "target": "main_menu_hi",
+      "sourceHandle": "cancel_grv_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_or_grv",
+      "source": "main_menu_or",
+      "target": "grv_intro_or",
+      "sourceHandle": "grv_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_or_grv2",
+      "source": "grv_intro_or",
+      "target": "grv_name_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_or_grv3",
+      "source": "grv_name_or",
+      "target": "grv_dept_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_or_grv4",
+      "source": "grv_dept_or",
+      "target": "grv_desc_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_or_grv6",
+      "source": "grv_desc_or",
+      "target": "grv_evidence_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_or_grv7",
+      "source": "grv_evidence_or",
+      "target": "grv_upload_or",
+      "sourceHandle": "upload_file_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_or_grv8",
+      "source": "grv_evidence_or",
+      "target": "grv_confirm_or",
+      "sourceHandle": "skip_evidence_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_or_grv9",
+      "source": "grv_upload_or",
+      "target": "grv_confirm_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_or_grv10",
+      "source": "grv_confirm_or",
+      "target": "grv_success_or",
+      "sourceHandle": "submit_grv_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_or_grv11",
+      "source": "grv_confirm_or",
+      "target": "main_menu_or",
+      "sourceHandle": "cancel_grv_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_en_apt",
+      "source": "main_menu_en",
+      "target": "apt_intro_en",
+      "sourceHandle": "apt_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_en_apt2",
+      "source": "apt_intro_en",
+      "target": "apt_purpose_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_en_apt3",
+      "source": "apt_purpose_en",
+      "target": "apt_date_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_en_apt6",
+      "source": "apt_confirm_en",
+      "target": "apt_success_en",
+      "sourceHandle": "confirm_apt_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_en_apt7",
+      "source": "apt_confirm_en",
+      "target": "main_menu_en",
+      "sourceHandle": "cancel_apt_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_hi_apt",
+      "source": "main_menu_hi",
+      "target": "apt_intro_hi",
+      "sourceHandle": "apt_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_hi_apt2",
+      "source": "apt_intro_hi",
+      "target": "apt_purpose_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_hi_apt3",
+      "source": "apt_purpose_hi",
+      "target": "apt_date_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_hi_apt6",
+      "source": "apt_confirm_hi",
+      "target": "apt_success_hi",
+      "sourceHandle": "confirm_apt_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_hi_apt7",
+      "source": "apt_confirm_hi",
+      "target": "main_menu_hi",
+      "sourceHandle": "cancel_apt_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_or_apt",
+      "source": "main_menu_or",
+      "target": "apt_intro_or",
+      "sourceHandle": "apt_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_or_apt2",
+      "source": "apt_intro_or",
+      "target": "apt_purpose_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_or_apt3",
+      "source": "apt_purpose_or",
+      "target": "apt_date_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_or_apt6",
+      "source": "apt_confirm_or",
+      "target": "apt_success_or",
+      "sourceHandle": "confirm_apt_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_or_apt7",
+      "source": "apt_confirm_or",
+      "target": "main_menu_or",
+      "sourceHandle": "cancel_apt_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_en_trk",
+      "source": "main_menu_en",
+      "target": "trk_start_en",
+      "sourceHandle": "trk_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_en_trk2",
+      "source": "trk_start_en",
+      "target": "trk_result_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_hi_trk",
+      "source": "main_menu_hi",
+      "target": "trk_start_hi",
+      "sourceHandle": "trk_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_hi_trk2",
+      "source": "trk_start_hi",
+      "target": "trk_result_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_or_trk",
+      "source": "main_menu_or",
+      "target": "trk_start_or",
+      "sourceHandle": "trk_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_or_trk2",
+      "source": "trk_start_or",
+      "target": "trk_result_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_en_help",
+      "source": "main_menu_en",
+      "target": "helpdesk_en",
+      "sourceHandle": "help_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_en_help_back",
+      "source": "helpdesk_en",
+      "target": "main_menu_en",
+      "sourceHandle": "back_to_menu_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_hi_help",
+      "source": "main_menu_hi",
+      "target": "helpdesk_hi",
+      "sourceHandle": "help_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_hi_help_back",
+      "source": "helpdesk_hi",
+      "target": "main_menu_hi",
+      "sourceHandle": "back_to_menu_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_or_help",
+      "source": "main_menu_or",
+      "target": "helpdesk_or",
+      "sourceHandle": "help_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_or_help_back",
+      "source": "helpdesk_or",
+      "target": "main_menu_or",
+      "sourceHandle": "back_to_menu_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_apt_date_en_apt_confirm_en",
+      "source": "apt_date_en",
+      "target": "apt_confirm_en",
+      "type": "default"
+    },
+    {
+      "id": "e_apt_date_hi_apt_confirm_hi",
+      "source": "apt_date_hi",
+      "target": "apt_confirm_hi",
+      "type": "default"
+    },
+    {
+      "id": "e_apt_date_or_apt_confirm_or",
+      "source": "apt_date_or",
+      "target": "apt_confirm_or",
+      "type": "default"
+    }
   ]
 }

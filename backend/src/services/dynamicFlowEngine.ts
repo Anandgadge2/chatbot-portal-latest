@@ -1458,29 +1458,12 @@ export class DynamicFlowEngine {
           Array.isArray(availabilityData.availableDates)
         ) {
           const dates = availabilityData.availableDates;
-          const buttons = dates.slice(0, 3).map((date: any) => ({
-            id: `date_${date.date}`,
-            title: date.buttonLabel || date.formattedDate || date.date,
-          }));
-
-          if (buttons.length > 0) {
-            const message = this.replacePlaceholders(
-              step.messageText || "📅 Please select a date:",
-            );
-            await sendWhatsAppButtons(
-              this.company,
-              this.userPhone,
-              message,
-              buttons,
-            );
-
-            this.session.data.currentStepId = step.stepId;
-            this.session.data.availabilityNextStepId = effectiveNextStepId;
-            this.session.data.dateMapping = {};
-            dates.forEach((date: any) => {
-              this.session.data.dateMapping[`date_${date.date}`] = date.date;
-            });
-            await updateSession(this.session);
+          const sent = await this.sendAvailableDateList(
+            step,
+            dates,
+            effectiveNextStepId,
+          );
+          if (sent) {
             return;
           }
         }
@@ -1700,6 +1683,78 @@ export class DynamicFlowEngine {
       this.session.data.remarks = "Could not fetch status. Please try again.";
       this.session.data.recordType = "—";
     }
+  }
+
+
+  private formatListDate(dateValue: string): string {
+    const parsed = new Date(`${dateValue}T00:00:00`);
+    if (Number.isNaN(parsed.getTime())) return dateValue;
+
+    const formattedDate = parsed.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      timeZone: "Asia/Kolkata",
+    });
+    const weekday = parsed.toLocaleDateString("en-GB", {
+      weekday: "short",
+      timeZone: "Asia/Kolkata",
+    });
+
+    return `${formattedDate}, ${weekday}`;
+  }
+
+  public async sendAvailableDateList(
+    step: IFlowStep,
+    dates: any[],
+    effectiveNextStepId?: string,
+  ): Promise<boolean> {
+    if (!dates?.length) return false;
+
+    const lang = this.session.language || "en";
+    const visibleDates = dates.slice(0, 9);
+    const remainingDates = dates.slice(9);
+
+    const rows = visibleDates.map((date: any) => ({
+      id: `date_${date.date}`,
+      title: this.formatListDate(date.date),
+      description: date.formattedDate || date.date,
+    }));
+
+    if (remainingDates.length > 0) {
+      rows.push({
+        id: "date_load_more",
+        title:
+          lang === "hi"
+            ? "और तारीख लोड करें"
+            : lang === "or"
+              ? "ଅଧିକ ତାରିଖ ଲୋଡ୍ କରନ୍ତୁ"
+              : "Load More Dates",
+        description:
+          lang === "hi"
+            ? "अगली उपलब्ध तारीखें देखें"
+            : lang === "or"
+              ? "ପରବର୍ତ୍ତୀ ଉପଲବ୍ଧ ତାରିଖ ଦେଖନ୍ତୁ"
+              : "View next available dates",
+      });
+    }
+
+    const message = this.replacePlaceholders(
+      step.messageText || "📅 Please select a date:",
+    );
+    await sendWhatsAppList(this.company, this.userPhone, message, "Select Date", [
+      { title: "Available Dates", rows },
+    ]);
+
+    this.session.data.currentStepId = step.stepId;
+    this.session.data.availabilityNextStepId = effectiveNextStepId;
+    this.session.data.dateMapping = {};
+    visibleDates.forEach((date: any) => {
+      this.session.data.dateMapping[`date_${date.date}`] = date.date;
+    });
+    this.session.data.availableDateRemainder = remainingDates;
+    await updateSession(this.session);
+    return true;
   }
 
   /**
@@ -2927,6 +2982,22 @@ async function continueFlow(
   // Handled inside executeStep now for more accuracy
 
   // ── 2. Date/Time selections (Special handlers)
+  if (buttonId === "date_load_more") {
+    const remainingDates = session.data.availableDateRemainder;
+    const currentStepId = session.data.currentStepId;
+    if (currentStepId && Array.isArray(remainingDates) && remainingDates.length) {
+      const currentStep = flow.steps.find((s) => s.stepId === currentStepId);
+      if (currentStep) {
+        await engine.sendAvailableDateList(
+          currentStep,
+          remainingDates,
+          session.data.availabilityNextStepId,
+        );
+      }
+    }
+    return;
+  }
+
   if (buttonId?.startsWith("date_") && session.data.dateMapping) {
     const date = session.data.dateMapping[buttonId];
     if (date) {
