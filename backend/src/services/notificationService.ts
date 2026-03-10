@@ -634,6 +634,9 @@ export async function notifyCitizenOnResolution(
         ? `🏢 *Department:* ${fullData.departmentName}\n🏢 *Sub-Dept:* ${fullData.subDepartmentName}`
         : `🏢 *Department:* ${fullData.departmentName}`;
       const remarksText = data.remarks ? `\n\n*Officer's Resolution Remarks:*\n${data.remarks}\n` : '';
+      const evidenceText = data.evidenceUrls && data.evidenceUrls.length > 0
+        ? `\n📎 *Relevant Documents:*\n${data.evidenceUrls.map((u, i) => `${i + 1}. ${u}`).join('\n')}\n`
+        : '';
       const resolutionTimeLine = fullData.resolutionTimeText ? `\n⏱️ *Resolution Time:* ${fullData.resolutionTimeText}` : '';
 
       message =
@@ -647,7 +650,7 @@ export async function notifyCitizenOnResolution(
         `${deptLine}\n` +
         `📊 *Status:* RESOLVED\n` +
         `👨‍💼 *Resolved By:* ${fullData.resolvedByName}\n` +
-        `📅 *Resolved On:* ${fullData.formattedResolvedDate}${resolutionTimeLine}${remarksText}\n\n` +
+        `📅 *Resolved On:* ${fullData.formattedResolvedDate}${resolutionTimeLine}${remarksText}${evidenceText}\n\n` +
         `Thank you for using our digital portal.\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
         `*${fullData.companyName}*\n` +
@@ -733,6 +736,7 @@ export async function notifyCitizenOnGrievanceStatusChange(data: {
   subDepartmentName?: string;
   newStatus: string;
   remarks?: string;
+  evidenceUrls?: string[];
   createdAt?: Date | string;
 }): Promise<void> {
   try {
@@ -761,6 +765,9 @@ export async function notifyCitizenOnGrievanceStatusChange(data: {
     }
 
     const remarksText = data.remarks ? `\n\n📝 *Remarks:*\n${data.remarks}` : '';
+    const evidenceText = data.evidenceUrls && data.evidenceUrls.length > 0
+      ? `\n\n📎 *Relevant Documents:*\n${data.evidenceUrls.map((u, i) => `${i + 1}. ${u}`).join('\n')}`
+      : '';
     const statusLabel =
       data.newStatus === 'ASSIGNED' ? 'Assigned' :
       data.newStatus === 'REJECTED' ? 'Rejected' :
@@ -811,6 +818,9 @@ export async function notifyCitizenOnGrievanceStatusChange(data: {
 
       if (tmpl && tmpl.message && tmpl.message.trim()) {
         message = replacePlaceholders(tmpl.message.trim(), templateData);
+        if (evidenceText) {
+          message += `${evidenceText}`;
+        }
       }
     } catch (e) { /* fallback */ }
 
@@ -831,7 +841,7 @@ export async function notifyCitizenOnGrievanceStatusChange(data: {
         `*Details:*\n` +
         `🎫 *Ref No:* \`${data.grievanceId}\`\n` +
         `🏢 *Department:* ${departmentName}${subDeptLine}\n` +
-        `📊 *Status:* ${statusLabel}${remarksText}\n\n` +
+        `📊 *Status:* ${statusLabel}${remarksText}${evidenceText}\n\n` +
         `You will receive further updates via WhatsApp.\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
         `*${company.name}*\n` +

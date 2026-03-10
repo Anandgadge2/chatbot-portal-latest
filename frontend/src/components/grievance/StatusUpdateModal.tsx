@@ -62,6 +62,7 @@ export default function StatusUpdateModal({
 }: StatusUpdateModalProps) {
   const [selectedStatus, setSelectedStatus] = useState(currentStatus);
   const [remarks, setRemarks] = useState('');
+  const [documents, setDocuments] = useState<File[]>([]);
   const [appointmentDate, setAppointmentDate] = useState('');
   const [appointmentTime, setAppointmentTime] = useState('');
   const [clockHour, setClockHour] = useState(9);
@@ -81,6 +82,7 @@ export default function StatusUpdateModal({
     if (isOpen) {
       setSelectedStatus(currentStatus);
       setRemarks('');
+      setDocuments([]);
       setAppointmentDate('');
       setAppointmentTime('');
       setClockHour(9);
@@ -110,16 +112,31 @@ export default function StatusUpdateModal({
 
     try {
       setSubmitting(true);
-      const response = await apiClient.put(
-        `/status/${itemType}/${itemId}`,
-        {
-          status: selectedStatus,
-          remarks,
-          appointmentDate: selectedStatus === 'CONFIRMED' ? appointmentDate : undefined,
-          appointmentTime: selectedStatus === 'CONFIRMED' ? appointmentTime : undefined,
-          description: selectedStatus === 'CONFIRMED' ? description : undefined
+      let response;
+      if (itemType === 'grievance') {
+        const formData = new FormData();
+        formData.append('status', selectedStatus);
+        if (remarks) formData.append('remarks', remarks);
+        if (selectedStatus === 'RESOLVED' && documents.length > 0) {
+          documents.forEach((file) => formData.append('documents', file));
         }
-      );
+        response = await apiClient.put(
+          `/status/${itemType}/${itemId}`,
+          formData,
+          { headers: { 'Content-Type': 'multipart/form-data' } }
+        );
+      } else {
+        response = await apiClient.put(
+          `/status/${itemType}/${itemId}`,
+          {
+            status: selectedStatus,
+            remarks,
+            appointmentDate: selectedStatus === 'CONFIRMED' ? appointmentDate : undefined,
+            appointmentTime: selectedStatus === 'CONFIRMED' ? appointmentTime : undefined,
+            description: selectedStatus === 'CONFIRMED' ? description : undefined
+          }
+        );
+      }
 
       if (response.success) {
         toast.success(
@@ -331,6 +348,26 @@ export default function StatusUpdateModal({
               placeholder="Add notes, comments, or instructions about this status change. These will be sent to the citizen via WhatsApp..."
             />
           </div>
+
+          {itemType === 'grievance' && selectedStatus === 'RESOLVED' && (
+            <div>
+              <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                Upload Relevant Documents <span className="text-slate-400 font-normal normal-case">(optional)</span>
+              </label>
+              <input
+                type="file"
+                multiple
+                accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                onChange={(e) => setDocuments(Array.from(e.target.files || []))}
+                className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white"
+              />
+              {documents.length > 0 && (
+                <p className="text-[11px] text-slate-500 mt-2">
+                  {documents.length} file(s) selected. These will be uploaded and shared as links with the citizen.
+                </p>
+              )}
+            </div>
+          )}
 
           {/* WhatsApp Notice */}
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 flex items-start gap-3">
