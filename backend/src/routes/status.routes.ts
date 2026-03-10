@@ -48,7 +48,7 @@ const getStatusMessage = (type: 'grievance' | 'appointment', id: string, status:
 router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANCE, Permission.UPDATE_GRIEVANCE), async (req: Request, res: Response) => {
   try {
     const currentUser = req.user!;
-    const { status, remarks } = req.body;
+    const { status, remarks, appointmentDate, appointmentTime, description } = req.body;
 
     if (!status) {
       return res.status(400).json({
@@ -243,7 +243,7 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
 router.put('/appointment/:id', requirePermission(Permission.STATUS_CHANGE_APPOINTMENT, Permission.UPDATE_APPOINTMENT), async (req: Request, res: Response) => {
   try {
     const currentUser = req.user!;
-    const { status, remarks } = req.body;
+    const { status, remarks, appointmentDate, appointmentTime, description } = req.body;
 
     if (!status) {
       return res.status(400).json({
@@ -287,6 +287,17 @@ router.put('/appointment/:id', requirePermission(Permission.STATUS_CHANGE_APPOIN
 
     const oldStatus = appointment.status;
     appointment.status = status;
+
+    if (status === AppointmentStatus.CONFIRMED) {
+      if (!appointmentDate || !appointmentTime) {
+        return res.status(400).json({ success: false, message: 'Appointment date and time are required when confirming appointment' });
+      }
+      appointment.appointmentDate = new Date(appointmentDate);
+      appointment.appointmentTime = appointmentTime;
+      if (description) {
+        appointment.notes = description;
+      }
+    }
 
     // Add to status history
     if (!appointment.statusHistory) {

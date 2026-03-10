@@ -116,11 +116,9 @@ export async function getChatbotAvailabilityData(params: {
 }) {
   const { companyId, departmentId, selectedDate, daysAhead = '30' } = params;
   
-  const daysToShow = parseInt(daysAhead as string) || 30;
+  const requestedDaysToShow = parseInt(daysAhead as string) || 30;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const maxDate = new Date();
-  maxDate.setDate(maxDate.getDate() + daysToShow);
 
   let actualCompanyId: any = companyId;
   if (!mongoose.Types.ObjectId.isValid(companyId)) {
@@ -163,6 +161,11 @@ export async function getChatbotAvailabilityData(params: {
       maxConcurrentAppointments: 1
     } as any;
   }
+
+  const maxAdvanceDays = availability?.maxAdvanceDays || 30;
+  const daysToShow = Math.min(requestedDaysToShow, maxAdvanceDays);
+  const maxDate = new Date(today);
+  maxDate.setDate(maxDate.getDate() + daysToShow);
 
   const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
   const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];

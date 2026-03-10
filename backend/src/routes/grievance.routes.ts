@@ -196,6 +196,94 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
+
+// @route   PUT /api/grievances/:id/revert
+// @desc    Revert a wrongly assigned grievance back to company admin for reassignment
+// @access  Department/Sub-department admins and operators
+router.put('/:id/revert', requirePermission(Permission.UPDATE_GRIEVANCE), async (req: Request, res: Response) => {
+  try {
+    const currentUser = req.user!;
+    const { remarks, suggestedDepartmentId, suggestedAssigneeId } = req.body;
+
+    if (!remarks || !remarks.trim()) {
+      return res.status(400).json({ success: false, message: 'Remarks are required for reverting a grievance' });
+    }
+
+    const grievance = await Grievance.findById(req.params.id)
+      .populate('companyId')
+      .populate('departmentId')
+      .populate('subDepartmentId');
+
+    if (!grievance) {
+      return res.status(404).json({ success: false, message: 'Grievance not found' });
+    }
+
+    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+      const grievanceCompanyId = (grievance.companyId as any)?._id?.toString();
+      if (grievanceCompanyId !== currentUser.companyId?.toString()) {
+        return res.status(403).json({ success: false, message: 'Access denied to this company' });
+      }
+
+      if (!currentUser.departmentId) {
+        return res.status(403).json({ success: false, message: 'Only department or sub-department users can revert grievances' });
+      }
+
+      const grievanceDeptId = (grievance.departmentId as any)?._id?.toString() || grievance.departmentId?.toString();
+      const grievanceSubDeptId = (grievance.subDepartmentId as any)?._id?.toString() || grievance.subDepartmentId?.toString();
+      const adminDeptId = currentUser.departmentId?.toString();
+      if (grievanceDeptId !== adminDeptId && grievanceSubDeptId !== adminDeptId) {
+        return res.status(403).json({ success: false, message: 'You can only revert grievances from your department scope' });
+      }
+    }
+
+    const previousDepartmentId = grievance.departmentId;
+    const previousSubDepartmentId = grievance.subDepartmentId;
+    const previousAssignedTo = grievance.assignedTo;
+    const oldStatus = grievance.status;
+
+    grievance.status = GrievanceStatus.REVERTED;
+    grievance.departmentId = undefined;
+    grievance.subDepartmentId = undefined;
+    grievance.assignedTo = undefined;
+    grievance.assignedAt = undefined;
+
+    grievance.statusHistory.push({
+      status: GrievanceStatus.REVERTED,
+      changedBy: currentUser._id,
+      changedAt: new Date(),
+      remarks: remarks.trim()
+    } as any);
+
+    grievance.timeline.push({
+      action: 'REVERTED_TO_COMPANY_ADMIN',
+      details: {
+        remarks: remarks.trim(),
+        previousDepartmentId,
+        previousSubDepartmentId,
+        previousAssignedTo,
+        suggestedDepartmentId: suggestedDepartmentId || null,
+        suggestedAssigneeId: suggestedAssigneeId || null,
+        fromStatus: oldStatus
+      },
+      performedBy: currentUser._id,
+      timestamp: new Date()
+    });
+
+    await grievance.save();
+
+    await logUserAction(req, AuditAction.UPDATE, 'Grievance', grievance._id.toString(), {
+      action: 'revert_to_company_admin',
+      grievanceId: grievance.grievanceId,
+      remarks: remarks.trim(),
+      suggestedDepartmentId: suggestedDepartmentId || null
+    });
+
+    return res.json({ success: true, message: 'Grievance reverted to company admin successfully', data: { grievance } });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: 'Failed to revert grievance', error: error.message });
+  }
+});
+
 // @route   GET /api/grievances/:id
 // @desc    Get grievance by ID
 // @access  Private
