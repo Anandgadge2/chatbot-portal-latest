@@ -53,8 +53,10 @@ router.get('/default-template', authenticate, requireSuperAdmin, async (req: Req
 
 
 const TEMPLATE_KEYS = [
-  'grievance_created', 'grievance_assigned', 'grievance_resolved',
-  'appointment_created', 'appointment_assigned', 'appointment_resolved'
+  'grievance_created', 'grievance_assigned', 'grievance_resolved', 'grievance_confirmation', 'grievance_status_update',
+  'appointment_created', 'appointment_assigned', 'appointment_resolved', 'appointment_confirmation', 
+  'appointment_scheduled_update', 'appointment_confirmed_update', 'appointment_cancelled_update', 
+  'appointment_completed_update', 'appointment_status_update'
 ] as const;
 
 /**

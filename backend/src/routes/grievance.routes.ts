@@ -127,24 +127,60 @@ router.post('/', async (req: Request, res: Response) => {
       status: GrievanceStatus.PENDING
     });
 
-    // ✅ Notify Admins about the new portal-submitted grievance
-    const { notifyDepartmentAdminOnCreation } = await import('../services/notificationService');
-    await notifyDepartmentAdminOnCreation({
-      type: 'grievance',
-      action: 'created',
+    // ✅ AUTO-ASSIGNMENT (Designated Officer / Dept Admin)
+    const { getHierarchicalDepartmentAdmins, notifyUserOnAssignment, notifyDepartmentAdminOnCreation, notifyCitizenOnCreation } = await import('../services/notificationService');
+    const targetDeptId = (grievance as any).subDepartmentId || departmentId;
+    const potentialAdmins = await getHierarchicalDepartmentAdmins(targetDeptId);
+    
+    if (potentialAdmins && potentialAdmins.length > 0) {
+      const targetAdmin = potentialAdmins[0];
+      grievance.assignedTo = targetAdmin._id;
+      grievance.status = GrievanceStatus.ASSIGNED;
+      await grievance.save();
+      
+      console.log(`🎯 Auto-assigned portal grievance ${grievance.grievanceId} to admin: ${targetAdmin.email}`);
+
+      await notifyUserOnAssignment({
+        type: 'grievance' as const,
+        action: 'assigned' as const,
+        grievanceId: grievance.grievanceId,
+        citizenName: grievance.citizenName,
+        citizenPhone: grievance.citizenPhone,
+        citizenWhatsApp: grievance.citizenWhatsApp,
+        departmentId: departmentId as any,
+        subDepartmentId: (grievance as any).subDepartmentId,
+        companyId: companyId as any,
+        assignedTo: targetAdmin._id,
+        assignedByName: 'System (Auto-assign)',
+        assignedAt: new Date(),
+        description: grievance.description,
+        category: grievance.category,
+        createdAt: grievance.createdAt,
+        timeline: grievance.timeline
+      }).catch(err => console.error('❌ Assignment Notification failed:', err));
+    }
+
+    // ✅ Notify Admins and Citizen about the new grievance creation
+    const notificationPayload = {
+      type: 'grievance' as const,
+      action: 'created' as const,
       grievanceId: grievance.grievanceId,
       citizenName: grievance.citizenName,
       citizenPhone: grievance.citizenPhone,
       citizenWhatsApp: grievance.citizenWhatsApp,
+      citizenEmail: (req.body as any).citizenEmail,
       departmentId: departmentId as any,
-      subDepartmentId: (grievance as any).subDepartmentId, // Include sub-department if present
+      subDepartmentId: (grievance as any).subDepartmentId,
       companyId: companyId as any,
       description: grievance.description,
       category: grievance.category,
       departmentName: 'Portal Submission',
       createdAt: grievance.createdAt,
       timeline: grievance.timeline
-    }).catch(err => console.error('❌ Notification failed:', err));
+    };
+
+    await notifyDepartmentAdminOnCreation(notificationPayload).catch(err => console.error('❌ Admin Notification failed:', err));
+    await notifyCitizenOnCreation(notificationPayload).catch(err => console.error('❌ Citizen Confirmation failed:', err));
 
     res.status(201).json({
       success: true,
@@ -505,7 +541,7 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
       companyId: grievance.companyId,
       description: grievance.description,
       category: grievance.category,
-    assignedTo: assignedUser._id,
+      assignedTo: assignedUser._id,
       assignedByName: req.user!.getFullName(),
       assignedAt: grievance.assignedAt,
       createdAt: grievance.createdAt,

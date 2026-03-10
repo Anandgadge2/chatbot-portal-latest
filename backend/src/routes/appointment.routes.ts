@@ -131,11 +131,22 @@ router.post('/', async (req: Request, res: Response) => {
       status: AppointmentStatus.SCHEDULED
     });
     
-    // ✅ Notify Admins about the new appointment creation
-    const { notifyDepartmentAdminOnCreation } = await import('../services/notificationService');
-    await notifyDepartmentAdminOnCreation({
-      type: 'appointment',
-      action: 'created',
+    // ✅ AUTO-ASSIGNMENT (Designated Officer / Dept Admin)
+    const { getHierarchicalDepartmentAdmins, notifyDepartmentAdminOnCreation, notifyCitizenOnCreation } = await import('../services/notificationService');
+    const potentialAdmins = await getHierarchicalDepartmentAdmins(appointment.departmentId);
+    
+    if (potentialAdmins && potentialAdmins.length > 0) {
+      const targetAdmin = potentialAdmins[0];
+      appointment.assignedTo = targetAdmin._id;
+      // We keep status as SCHEDULED but assign it to someone for review/management
+      await appointment.save();
+      console.log(`🎯 Auto-assigned portal appointment ${appointment.appointmentId} to admin: ${targetAdmin.email}`);
+    }
+
+    // ✅ Notify Admins and Citizen about the new appointment creation
+    const notificationPayload = {
+      type: 'appointment' as const,
+      action: 'created' as const,
       appointmentId: appointment.appointmentId,
       citizenName: appointment.citizenName,
       citizenPhone: appointment.citizenPhone,
@@ -148,7 +159,10 @@ router.post('/', async (req: Request, res: Response) => {
       appointmentTime: appointment.appointmentTime,
       createdAt: appointment.createdAt,
       timeline: appointment.timeline
-    }).catch(err => console.error('❌ Appointment Notification failed:', err));
+    };
+
+    await notifyDepartmentAdminOnCreation(notificationPayload).catch(err => console.error('❌ Admin Appointment Notification failed:', err));
+    await notifyCitizenOnCreation(notificationPayload).catch(err => console.error('❌ Citizen Appointment Confirmation failed:', err));
 
     res.status(201).json({
       success: true,

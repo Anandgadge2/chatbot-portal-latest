@@ -145,7 +145,7 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
   return {
     ...data,
     companyName: company?.name || 'Portal Admin',
-    recipientName: data.citizenName || 'Citizen',
+    recipientName: data.recipientName || data.citizenName || 'Citizen',
     departmentName: department
       ? department.name
       : (data.departmentName || (data.type === 'appointment' ? 'CEO Office' : 'General')),
@@ -321,7 +321,11 @@ async function safeSendWhatsApp(
  *   1. The sub-department's own admin (if exists)
  *   2. The parent department's admin (if exists)
  */
-async function getHierarchicalDepartmentAdmins(departmentId: any): Promise<any[]> {
+/**
+ * Robustly find admins for a department or its parents up the hierarchy.
+ * Useful for auto-assignment and escalation.
+ */
+export async function getHierarchicalDepartmentAdmins(departmentId: any): Promise<any[]> {
   const admins: any[] = [];
   if (!departmentId) return admins;
 
@@ -352,12 +356,19 @@ async function getHierarchicalDepartmentAdmins(departmentId: any): Promise<any[]
       const adminRoleIds = adminRoles.map(r => r._id);
       const adminRoleNames = adminRoles.map(r => r.name);
 
-      // Find any admins for this level
+      // FIX: Use case-insensitive $in for role names fallback
+      // Standardize by allowing both spaces and underscores interchangeably
+      const adminRoleNamesRegex = adminRoleNames.map(name => {
+        const pattern = name.replace(/[ _]/g, '[ _]');
+        return new RegExp(`^${pattern}$`, 'i');
+      });
+      
       const levelAdmins = await User.find({
         departmentId: currentIdStr,
         $or: [
           { customRoleId: { $in: adminRoleIds } },
-          { role: { $in: adminRoleNames } }
+          { role: { $in: adminRoleNamesRegex } },
+          { role: { $in: adminRoleNames } } // exact match fallback
         ],
         isActive: true
       }).populate('customRoleId');
@@ -651,6 +662,61 @@ export async function notifyCitizenOnResolution(
 }
 
 /* ------------------------------------------------------------------ */
+/* Citizen Confirmation Notification                                   */
+/* ------------------------------------------------------------------ */
+
+export async function notifyCitizenOnCreation(
+  data: NotificationData
+): Promise<void> {
+  try {
+    const company = await getCompanyWithWhatsAppConfig(data.companyId);
+    if (!company) return;
+
+    const fullData = await populateNotificationData(data);
+
+    // 📧 Email
+    if (data.citizenEmail) {
+      try {
+        const email = await getNotificationEmailContent(data.companyId, data.type, 'confirmation', fullData, false);
+        if (email) {
+          await sendEmail(data.citizenEmail, email.subject, email.html, email.text, { companyId: data.companyId });
+          logger.info(`✅ Confirmation email sent to citizen: ${data.citizenEmail}`);
+        }
+      } catch (e) {
+        logger.error('❌ Error sending confirmation email to citizen:', e);
+      }
+    }
+
+    // 📱 WhatsApp
+    let message = await getNotificationWhatsAppMessage(data.companyId, data.type, 'confirmation', fullData);
+    if (!message) {
+      const typeLabel = data.type === 'grievance' ? 'GRIEVANCE' : 'APPOINTMENT';
+      const idLabel = data.type === 'grievance' ? 'Grievance ID' : 'Appointment ID';
+      const refId = data.grievanceId || data.appointmentId;
+      
+      message =
+        `*${fullData.companyName}*\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `✅ *${typeLabel} SUBMITTED*\n\n` +
+        `Respected ${fullData.citizenName},\n\n` +
+        `Thank you for reaching out. Your ${data.type} has been successfully registered.\n\n` +
+        `*Details:*\n` +
+        `🎫 *${idLabel}:* ${refId}\n` +
+        `🏢 *Department:* ${fullData.departmentName}\n` +
+        `📅 *Submitted On:* ${fullData.formattedDate}\n\n` +
+        `Please keep your Reference ID *${refId}* for future tracking.\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `*${fullData.companyName}*\n` +
+        `Digital Portal`;
+    }
+    await safeSendWhatsApp(company, data.citizenPhone, message);
+
+  } catch (error) {
+    logger.error('❌ notifyCitizenOnCreation failed:', error);
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /* Grievance status change notification (ASSIGNED, REJECTED, PENDING)  */
 /* ------------------------------------------------------------------ */
 
@@ -660,6 +726,7 @@ export async function notifyCitizenOnGrievanceStatusChange(data: {
   citizenName: string;
   citizenPhone: string;
   citizenWhatsApp?: string;
+  citizenEmail?: string;
   departmentId?: any;
   subDepartmentId?: any;
   departmentName?: string;
@@ -703,6 +770,7 @@ export async function notifyCitizenOnGrievanceStatusChange(data: {
     const templateData: Record<string, any> = {
       companyName: company.name,
       citizenName: data.citizenName,
+      recipientName: data.citizenName, // Ensure compatibility with admin templates
       citizenPhone: data.citizenPhone,
       grievanceId: data.grievanceId,
       departmentName,
@@ -713,9 +781,10 @@ export async function notifyCitizenOnGrievanceStatusChange(data: {
 
     let message: string | null = null;
 
-    // Priority 1: Specific status template (e.g., grievance_created, grievance_assigned, grievance_resolved)
-    // Priority 2: Generic 'grievance_status_update'
-    const statusKey = data.newStatus === 'PENDING' ? 'grievance_created' : `grievance_${data.newStatus.toLowerCase()}`;
+    // For citizens, we want to avoid using admin-facing templates like 'grievance_created' or 'grievance_assigned'
+    // which often say "New grievance received" or "Assigned to you".
+    const statusKey = data.newStatus === 'PENDING' ? 'grievance_confirmation' : `grievance_status_${data.newStatus.toLowerCase()}`;
+    const fallbackStatusKey = 'grievance_status_update';
     
     try {
       const { default: CompanyWhatsAppTemplate } = await import('../models/CompanyWhatsAppTemplate');
@@ -731,11 +800,11 @@ export async function notifyCitizenOnGrievanceStatusChange(data: {
         isActive: true
       });
 
-      // Try 'grievance_status_update' as fallback
+      // Try fallback key
       if (!tmpl) {
         tmpl = await CompanyWhatsAppTemplate.findOne({
           companyId: cid,
-          templateKey: 'grievance_status_update',
+          templateKey: fallbackStatusKey as any,
           isActive: true
         });
       }
@@ -747,18 +816,22 @@ export async function notifyCitizenOnGrievanceStatusChange(data: {
 
     if (!message) {
       // Hardcoded fallback
+      const isNew = data.newStatus === 'PENDING' || data.remarks === 'Automatic confirmation on registration';
+      const title = isNew ? 'GRIEVANCE REGISTERED' : 'GRIEVANCE STATUS UPDATE';
+      const intro = isNew ? 'Your grievance has been successfully registered.' : 'Your grievance status has been updated.';
+
       const subDeptLine = subDepartmentName && subDepartmentName !== 'N/A'
         ? `\n🏢 *Sub-Dept:* ${subDepartmentName}` : '';
       message =
         `*${company.name}*\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-        `📋 *GRIEVANCE STATUS UPDATE*\n\n` +
+        `📋 *${title}*\n\n` +
         `Respected ${data.citizenName},\n\n` +
-        `Your grievance status has been updated.\n\n` +
+        `${intro}\n\n` +
         `*Details:*\n` +
         `🎫 *Ref No:* \`${data.grievanceId}\`\n` +
         `🏢 *Department:* ${departmentName}${subDeptLine}\n` +
-        `📊 *New Status:* ${statusLabel}${remarksText}\n\n` +
+        `📊 *Status:* ${statusLabel}${remarksText}\n\n` +
         `You will receive further updates via WhatsApp.\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
         `*${company.name}*\n` +
@@ -770,6 +843,30 @@ export async function notifyCitizenOnGrievanceStatusChange(data: {
       logger.info(`✅ Grievance status notification sent to ${data.citizenName} (${data.citizenPhone})`);
     } else {
       logger.error(`❌ Failed to send grievance status notification: ${result.error}`);
+    }
+
+    // 📧 Email
+    if (data.citizenEmail && canNotify(company, data, 'email')) {
+      try {
+        const emailData = {
+          ...templateData,
+          companyName: company.name,
+          recipientName: data.citizenName,
+          action: data.newStatus.toLowerCase()
+        };
+
+        let email = await getNotificationEmailContent(data.companyId, 'grievance', statusKey, emailData, false);
+        if (!email && fallbackStatusKey) {
+          email = await getNotificationEmailContent(data.companyId, 'grievance', fallbackStatusKey, emailData, false);
+        }
+
+        if (email) {
+          await sendEmail(data.citizenEmail, email.subject, email.html, email.text, { companyId: data.companyId });
+          logger.info(`✅ Grievance status email sent to citizen: ${data.citizenEmail}`);
+        }
+      } catch (err) {
+        logger.error(`❌ Error sending grievance status email to citizen:`, err);
+      }
     }
   } catch (error) {
     logger.error('❌ notifyCitizenOnGrievanceStatusChange failed:', error);
@@ -910,6 +1007,7 @@ export async function notifyCitizenOnAppointmentStatusChange(data: {
   citizenName: string;
   citizenPhone: string;
   citizenWhatsApp?: string;
+  citizenEmail?: string;
   companyId: any;
   oldStatus: string;
   newStatus: string;
@@ -942,17 +1040,20 @@ export async function notifyCitizenOnAppointmentStatusChange(data: {
     const timeDisplay = formatTime12Hr(data.appointmentTime);
     const remarksText = data.remarks ? `\n\n📝 *Remarks:*\n${data.remarks}` : '';
 
-    // Try DB template for this status event
+    // For citizens, try specific confirmation/update keys first to avoid admin templates
     const statusKey =
-      data.newStatus === AppointmentStatus.REQUESTED  ? 'appointment_created'    :
-      data.newStatus === AppointmentStatus.SCHEDULED  ? 'appointment_scheduled'  :
-      data.newStatus === AppointmentStatus.CONFIRMED  ? 'appointment_confirmed'  :
-      data.newStatus === AppointmentStatus.CANCELLED  ? 'appointment_cancelled'  :
-      data.newStatus === AppointmentStatus.COMPLETED  ? 'appointment_completed'  : null;
+      data.newStatus === AppointmentStatus.REQUESTED  ? 'appointment_confirmation' :
+      data.newStatus === AppointmentStatus.SCHEDULED  ? 'appointment_scheduled_update' :
+      data.newStatus === AppointmentStatus.CONFIRMED  ? 'appointment_confirmed_update' :
+      data.newStatus === AppointmentStatus.CANCELLED  ? 'appointment_cancelled_update' :
+      data.newStatus === AppointmentStatus.COMPLETED  ? 'appointment_completed_update' : null;
+
+    const fallbackStatusKey = 'appointment_status_update';
 
     const templateData: Record<string, any> = {
       companyName: company.name,
       citizenName: data.citizenName,
+      recipientName: data.citizenName, // For compatibility
       citizenPhone: data.citizenPhone,
       appointmentId: data.appointmentId,
       appointmentDate: dateDisplay,
@@ -971,11 +1072,20 @@ export async function notifyCitizenOnAppointmentStatusChange(data: {
         const cid = mongoose.Types.ObjectId.isValid(String(data.companyId))
           ? new mongoose.Types.ObjectId(String(data.companyId))
           : data.companyId;
-        const tmpl = await CompanyWhatsAppTemplate.findOne({
+        let tmpl = await CompanyWhatsAppTemplate.findOne({
           companyId: cid,
-          templateKey: statusKey,
+          templateKey: statusKey as any,
           isActive: true
         });
+
+        if (!tmpl && fallbackStatusKey) {
+          tmpl = await CompanyWhatsAppTemplate.findOne({
+            companyId: cid,
+            templateKey: fallbackStatusKey as any,
+            isActive: true
+          });
+        }
+
         if (tmpl && tmpl.message && tmpl.message.trim()) {
           message = replacePlaceholders(tmpl.message.trim(), templateData);
         }
@@ -1088,6 +1198,27 @@ export async function notifyCitizenOnAppointmentStatusChange(data: {
       logger.warn(`⚠️ No notification message generated for status: ${data.oldStatus} → ${data.newStatus}`);
     }
 
+    // 📧 Email
+    if (data.citizenEmail && canNotify(company, data, 'email')) {
+      try {
+        const emailData = {
+          ...templateData,
+          action: data.newStatus.toLowerCase()
+        };
+
+        let email = await getNotificationEmailContent(data.companyId, 'appointment', statusKey as any, emailData, false);
+        if (!email && fallbackStatusKey) {
+          email = await getNotificationEmailContent(data.companyId, 'appointment', fallbackStatusKey as any, emailData, false);
+        }
+
+        if (email) {
+          await sendEmail(data.citizenEmail, email.subject, email.html, email.text, { companyId: data.companyId });
+          logger.info(`✅ Appointment status email sent to citizen: ${data.citizenEmail}`);
+        }
+      } catch (err) {
+        logger.error(`❌ Error sending appointment status email to citizen:`, err);
+      }
+    }
   } catch (error) {
     logger.error('❌ notifyCitizenOnAppointmentStatusChange failed:', error);
   }

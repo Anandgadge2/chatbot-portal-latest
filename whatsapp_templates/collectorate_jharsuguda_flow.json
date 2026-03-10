@@ -284,7 +284,7 @@
       "position": { "x": 2400, "y": -100 },
       "data": {
         "label": "Upload File (EN)",
-        "messageText": "Please upload your file (JPG, PNG, PDF, DOCX, XLSX):",
+        "messageText": "Please upload your file (JPG, PNG, PDF, DOCX):",
         "inputType": "file",
         "saveToField": "attachmentUrl",
         "validation": { "allowedTypes": ["image/jpeg", "image/png", "application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"] }
@@ -376,7 +376,7 @@
       "position": { "x": 2400, "y": 300 },
       "data": {
         "label": "Upload File (HI)",
-        "messageText": "कृपया अपनी फाइल अपलोड करें (JPG, PNG, PDF, DOCX, XLSX):",
+        "messageText": "कृपया अपनी फाइल अपलोड करें (JPG, PNG, PDF, DOCX):",
         "inputType": "file",
         "saveToField": "attachmentUrl",
         "validation": { "allowedTypes": ["image/jpeg", "image/png", "application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"] }
@@ -468,7 +468,7 @@
       "position": { "x": 2400, "y": 700 },
       "data": {
         "label": "Upload File (OR)",
-        "messageText": "ଦୟାକରି ଆପଣଙ୍କର ଫାଇଲ୍ ଅପଲୋଡ୍ କରନ୍ତୁ (JPG, PNG, PDF, DOCX, XLSX):",
+        "messageText": "ଦୟାକରି ଆପଣଙ୍କର ଫାଇଲ୍ ଅପଲୋଡ୍ କରନ୍ତୁ (JPG, PNG, PDF, DOCX):",
         "inputType": "file",
         "saveToField": "attachmentUrl",
         "validation": { "allowedTypes": ["image/jpeg", "image/png", "application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"] }

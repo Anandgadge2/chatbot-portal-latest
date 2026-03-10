@@ -35,28 +35,28 @@ export default function DepartmentUsersDialog({
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
+    const fetchUsers = async () => {
+      setLoading(true);
+      try {
+        const response = await userAPI.getAll({
+          departmentId: departmentId!,
+          limit: 100, // Show up to 100 users for this department
+        });
+        if (response.success) {
+          setUsers(response.data.users);
+        }
+      } catch (error) {
+        console.error("Failed to fetch department users:", error);
+        toast.error("Failed to load users for this department");
+      } finally {
+        setLoading(false);
+      }
+    };
+
     if (isOpen && departmentId) {
       fetchUsers();
     }
   }, [isOpen, departmentId]);
-
-  const fetchUsers = async () => {
-    setLoading(true);
-    try {
-      const response = await userAPI.getAll({
-        departmentId: departmentId!,
-        limit: 100, // Show up to 100 users for this department
-      });
-      if (response.success) {
-        setUsers(response.data.users);
-      }
-    } catch (error) {
-      console.error("Failed to fetch department users:", error);
-      toast.error("Failed to load users for this department");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (!isOpen) return null;
 

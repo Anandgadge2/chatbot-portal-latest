@@ -5,7 +5,14 @@ import Lead from '../models/Lead';
 import User from '../models/User';
 import Department from '../models/Department';
 import { findDepartmentByCategory } from './departmentMapper';
-import { notifyDepartmentAdminOnCreation, notifyUserOnAssignment, notifyCitizenOnGrievanceStatusChange, notifyCitizenOnAppointmentStatusChange } from './notificationService';
+import { 
+  notifyDepartmentAdminOnCreation, 
+  notifyUserOnAssignment, 
+  notifyCitizenOnCreation,
+  notifyCitizenOnGrievanceStatusChange, 
+  notifyCitizenOnAppointmentStatusChange,
+  getHierarchicalDepartmentAdmins
+} from './notificationService';
 import { GrievanceStatus, AppointmentStatus, UserRole } from '../config/constants';
 import { updateSession } from './sessionService';
 
@@ -95,7 +102,9 @@ export class ActionService {
       // Update session with results for placeholders
       session.data.grievanceId = grievance.grievanceId;
       session.data.id = grievance.grievanceId;
-      session.data.date = new Date(grievance.createdAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
+      session.data.status = 'PENDING';
+      session.data.date = new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
+      session.data.time = new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' });
       
       const dept = departmentId ? await Department.findById(departmentId) : null;
       const subDept = session.data.subDepartmentId ? await Department.findById(session.data.subDepartmentId) : null;
@@ -113,8 +122,7 @@ export class ActionService {
       await updateSession(session);
       
       if (departmentId) {
-        const notifyTargetId = session.data.subDepartmentId || departmentId;
-        
+        // ✅ Notify Admins about creation
         await notifyDepartmentAdminOnCreation({
           type: 'grievance',
           action: 'created',
@@ -122,8 +130,8 @@ export class ActionService {
           citizenName: session.data.citizenName,
           citizenPhone: userPhone,
           citizenWhatsApp: userPhone,
-          departmentId: departmentId as any, // Parent Dept
-          subDepartmentId: session.data.subDepartmentId ? (session.data.subDepartmentId as any) : undefined, // Sub-Dept
+          departmentId: departmentId as any,
+          subDepartmentId: session.data.subDepartmentId,
           companyId: company._id,
           description: session.data.description,
           category: session.data.category,
@@ -134,35 +142,19 @@ export class ActionService {
           timeline: grievance.timeline
         });
 
-        // Auto-assign to admin
-        // Dynamically find the admin for (sub)department based on permissions
-        const Role = (await import('../models/Role')).default;
-        
-        // 1. Identify roles that represent management authority over departments
-        const adminRoles = await Role.find({
-          companyId: company._id,
-          'permissions.module': 'DEPARTMENTS',
-          'permissions.actions': { $in: ['update', 'all', 'manage'] }
-        }).select('_id name');
-        const adminRoleIds = adminRoles.map(r => r._id);
-        const adminRoleNames = adminRoles.map(r => r.name);
-
+        // ✅ AUTO-ASSIGNMENT (Designated Officer / Dept Admin)
         const targetDeptId = session.data.subDepartmentId || departmentId;
-
-        let targetAdmin = await User.findOne({
-          departmentId: targetDeptId,
-          $or: [
-            { customRoleId: { $in: adminRoleIds } },
-            { role: { $in: adminRoleNames } }
-          ],
-          isActive: true
-        });
-
-        if (targetAdmin) {
+        const potentialAdmins = await getHierarchicalDepartmentAdmins(targetDeptId);
+        
+        if (potentialAdmins && potentialAdmins.length > 0) {
+          const targetAdmin = potentialAdmins[0]; // Pick the primary/level-specific admin
+          
           grievance.assignedTo = targetAdmin._id;
           grievance.status = GrievanceStatus.ASSIGNED;
           await grievance.save();
           
+          console.log(`🎯 Auto-assigned grievance ${grievance.grievanceId} to admin: ${targetAdmin.email}`);
+
           await notifyUserOnAssignment({
             type: 'grievance',
             action: 'assigned',
@@ -171,7 +163,7 @@ export class ActionService {
             citizenPhone: userPhone,
             citizenWhatsApp: userPhone,
             departmentId: departmentId as any,
-            subDepartmentId: session.data.subDepartmentId ? (session.data.subDepartmentId as any) : undefined,
+            subDepartmentId: session.data.subDepartmentId,
             companyId: company._id,
             assignedTo: targetAdmin._id,
             assignedByName: 'System (Auto-assign)',
@@ -183,19 +175,23 @@ export class ActionService {
           });
         }
 
-        // 📱 Notify citizen that their grievance is registered
-        await notifyCitizenOnGrievanceStatusChange({
-          companyId: company._id,
+        // ✅ Notify citizen about registration (Immediate Success Message)
+        await notifyCitizenOnCreation({
+          type: 'grievance',
+          action: 'created',
           grievanceId: grievance.grievanceId,
           citizenName: session.data.citizenName,
           citizenPhone: userPhone,
           citizenWhatsApp: userPhone,
           departmentId: departmentId as any,
-          subDepartmentId: session.data.subDepartmentId ? (session.data.subDepartmentId as any) : undefined,
+          subDepartmentId: session.data.subDepartmentId,
+          companyId: company._id,
+          description: session.data.description,
+          category: session.data.category,
           departmentName: dept ? dept.name : session.data.category,
           subDepartmentName: subDept ? subDept.name : undefined,
-          newStatus: grievance.status,
-          remarks: 'Automatic confirmation on registration'
+          createdAt: grievance.createdAt,
+          timeline: grievance.timeline
         });
       }
     } catch (err: any) {
@@ -228,9 +224,22 @@ export class ActionService {
       
       session.data.appointmentId = appointment.appointmentId;
       session.data.id = appointment.appointmentId;
-      session.data.status = 'Scheduled';
+      session.data.status = 'REQUESTED';
+      session.data.date = appointmentDate.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
+      session.data.time = session.data.appointmentTime;
       await updateSession(session);
       
+      // ✅ AUTO-ASSIGNMENT for Appointment
+      const potentialAdmins = await getHierarchicalDepartmentAdmins(appointment.departmentId);
+      if (potentialAdmins && potentialAdmins.length > 0) {
+        const targetAdmin = potentialAdmins[0];
+        appointment.assignedTo = targetAdmin._id;
+        // Keep status as REQUESTED or change to SCHEDULED/CONFIRMED if needed
+        // Typically stays REQUESTED for initial review but assigned to someone.
+        await appointment.save();
+        console.log(`🎯 Auto-assigned appointment ${appointment.appointmentId} to admin: ${targetAdmin.email}`);
+      }
+
       await notifyDepartmentAdminOnCreation({
         type: 'appointment',
         action: 'created',
@@ -247,19 +256,21 @@ export class ActionService {
         timeline: appointment.timeline
       });
 
-      // 📱 Notify citizen that their appointment request is received
-      await notifyCitizenOnAppointmentStatusChange({
+      // ✅ Notify citizen about appointment request (Immediate Confirmation)
+      await notifyCitizenOnCreation({
+        type: 'appointment',
+        action: 'created',
         appointmentId: appointment.appointmentId,
         citizenName: session.data.citizenName,
         citizenPhone: userPhone,
         citizenWhatsApp: userPhone,
         companyId: company._id,
-        oldStatus: 'NONE',
-        newStatus: appointment.status,
-        remarks: 'Your appointment request has been received.',
+        departmentId: appointment.departmentId as any,
+        purpose: appointment.purpose,
         appointmentDate: appointment.appointmentDate,
         appointmentTime: appointment.appointmentTime,
-        purpose: appointment.purpose
+        createdAt: appointment.createdAt,
+        timeline: appointment.timeline
       });
     } catch (err: any) {
       console.error('❌ ActionService: Error creating appointment:', err);

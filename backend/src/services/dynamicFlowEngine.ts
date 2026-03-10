@@ -574,8 +574,9 @@ export class DynamicFlowEngine {
       this.session.data.currentStepId = step.stepId;
       this.session.data.buttonMapping = {};
       step.buttons.forEach((btn) => {
-        if (btn.nextStepId) {
-          this.session.data.buttonMapping[btn.id] = btn.nextStepId;
+        const nextId = btn.nextStepId || this.resolveNextStepId(step.stepId, btn.id);
+        if (nextId) {
+          this.session.data.buttonMapping[btn.id] = nextId;
         }
       });
       await updateSession(this.session);
@@ -794,8 +795,9 @@ export class DynamicFlowEngine {
     this.session.data.currentStepId = step.stepId;
     this.session.data.buttonMapping = {};
     step.buttons.forEach((btn) => {
-      if (btn.nextStepId) {
-        this.session.data.buttonMapping[btn.id] = btn.nextStepId;
+      const nextId = btn.nextStepId || this.resolveNextStepId(step.stepId, btn.id);
+      if (nextId) {
+        this.session.data.buttonMapping[btn.id] = nextId;
       }
     });
 
@@ -844,8 +846,9 @@ export class DynamicFlowEngine {
     this.session.data.listMapping = {};
     translatedSections.forEach((section) => {
       section.rows.forEach((row) => {
-        if (row.nextStepId) {
-          this.session.data.listMapping[row.id] = row.nextStepId;
+        const nextId = row.nextStepId || this.resolveNextStepId(step.stepId, row.id);
+        if (nextId) {
+          this.session.data.listMapping[row.id] = nextId;
         }
       });
     });
@@ -1952,9 +1955,15 @@ export class DynamicFlowEngine {
       }
     }
 
-    // ✅ SECOND: Check buttonMapping (from button.nextStepId)
+    // ✅ SECOND: Check buttonMapping (from button.nextStepId or edges)
     const buttonMapping = this.session.data.buttonMapping || {};
-    const nextStepIdFromMapping = buttonMapping[buttonId];
+    let nextStepIdFromMapping = buttonMapping[buttonId];
+
+    // FALLBACK: If not in mapping, try to resolve from edges directly
+    if (!nextStepIdFromMapping) {
+      nextStepIdFromMapping = this.resolveNextStepId(currentStep.stepId, buttonId);
+    }
+
     if (nextStepIdFromMapping) {
       console.log(
         `✅ Found button mapping: ${buttonId} → ${nextStepIdFromMapping}`,
@@ -2440,7 +2449,11 @@ export class DynamicFlowEngine {
       }
     }
 
-    const nextStepId = listMapping[rowId];
+    let nextStepId = listMapping[rowId];
+    if (!nextStepId && this.session.data.currentStepId) {
+      nextStepId = this.resolveNextStepId(this.session.data.currentStepId, rowId);
+    }
+
     if (nextStepId) {
       await this.runNextStepIfDifferent(
         nextStepId,

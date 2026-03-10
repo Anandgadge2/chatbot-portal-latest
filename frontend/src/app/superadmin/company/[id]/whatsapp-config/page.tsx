@@ -41,9 +41,8 @@ import {
 ------------------------------------------------------------------ */
 const TEMPLATE_GROUPS = [
   {
-    label: "🏛️ Grievance Notifications",
-    description:
-      "Sent automatically when a grievance is submitted, assigned, or resolved",
+    label: "🏛️ Grievance Notifications (Admin)",
+    description: "Sent to admin staff when a grievance is submitted or assigned",
     keys: [
       {
         key: "grievance_created",
@@ -56,6 +55,18 @@ const TEMPLATE_GROUPS = [
         label: "Grievance Assigned",
         to: "Assigned Officer",
         when: "A grievance is assigned to a department officer",
+      },
+    ],
+  },
+  {
+    label: "👤 Grievance Notifications (Citizen)",
+    description: "Sent to citizens about their grievance status",
+    keys: [
+      {
+        key: "grievance_confirmation",
+        label: "Grievance Confirmation",
+        to: "Citizen (submitter)",
+        when: "Immediately after a grievance is submitted",
       },
       {
         key: "grievance_resolved",
@@ -72,8 +83,8 @@ const TEMPLATE_GROUPS = [
     ],
   },
   {
-    label: "📅 Appointment Notifications",
-    description: "Sent automatically for appointment lifecycle events",
+    label: "📅 Appointment Notifications (Admin)",
+    description: "Sent to admin staff for appointment events",
     keys: [
       {
         key: "appointment_created",
@@ -87,35 +98,53 @@ const TEMPLATE_GROUPS = [
         to: "Assigned Officer",
         when: "An appointment is assigned to a staff member",
       },
+    ],
+  },
+  {
+    label: "👤 Appointment Notifications (Citizen)",
+    description: "Sent to citizens about their appointment status",
+    keys: [
       {
-        key: "appointment_resolved",
-        label: "Appointment Resolved / Completed",
+        key: "appointment_confirmation",
+        label: "Appointment Confirmation",
         to: "Citizen (submitter)",
-        when: "The appointment is marked as resolved or completed",
+        when: "Immediately after an appointment is booked",
       },
       {
-        key: "appointment_scheduled",
+        key: "appointment_scheduled_update",
         label: "Appointment Scheduled",
         to: "Citizen (submitter)",
-        when: "Admin schedules a confirmed date & time for the appointment",
+        when: "Admin schedules a date & time for the appointment",
       },
       {
-        key: "appointment_confirmed",
+        key: "appointment_confirmed_update",
         label: "Appointment Confirmed",
         to: "Citizen (submitter)",
         when: "Admin confirms the appointment",
       },
       {
-        key: "appointment_cancelled",
+        key: "appointment_cancelled_update",
         label: "Appointment Cancelled",
         to: "Citizen (submitter)",
         when: "Admin cancels an appointment",
       },
       {
-        key: "appointment_completed",
+        key: "appointment_completed_update",
         label: "Appointment Completed",
         to: "Citizen (submitter)",
         when: "Admin marks appointment as completed",
+      },
+      {
+        key: "appointment_status_update",
+        label: "Appointment Status Update",
+        to: "Citizen (submitter)",
+        when: "Appointment status changes",
+      },
+      {
+        key: "appointment_resolved",
+        label: "Appointment Resolved (Legacy)",
+        to: "Citizen (submitter)",
+        when: "Backend fallback for completed appointments",
       },
     ],
   },
@@ -419,7 +448,47 @@ Thank you for visiting us.
 *{companyName}*
 Digital Appointment System`,
 
-  appointment_scheduled: `*{companyName}*
+  grievance_confirmation: `*{companyName}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ *GRIEVANCE SUBMITTED SUCCESSFULLY*
+
+Respected {citizenName},
+
+Thank you for reaching out. Your grievance has been registered.
+
+*Details:*
+🎫 *Reference ID:* {grievanceId}
+🏢 *Department:* {departmentName}
+🏢 *Sub-Dept:* {subDepartmentName}
+📅 *Submitted On:* {formattedDate}
+
+You can track your status using the Reference ID: *{grievanceId}*
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*{companyName}*
+Digital Grievance Redressal System`,
+
+  appointment_confirmation: `*{companyName}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ *APPOINTMENT BOOKED SUCCESSFULLY*
+
+Respected {citizenName},
+
+Your appointment request has been received.
+
+*Details:*
+🎫 *Reference ID:* {appointmentId}
+🎯 *Purpose:* {purpose}
+📅 *Booked On:* {formattedDate}
+
+Please note your Reference ID: *{appointmentId}*
+We will notify you once it's scheduled/confirmed.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*{companyName}*
+Digital Appointment System`,
+
+  appointment_scheduled_update: `*{companyName}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📅 *APPOINTMENT SCHEDULED*
 
@@ -429,7 +498,6 @@ Your appointment has been scheduled.
 
 *Appointment Details:*
 🎫 *Ref No:* {appointmentId}
-👤 *Name:* {citizenName}
 📅 *Date:* {appointmentDate}
 ⏰ *Time:* {appointmentTime}
 🎯 *Purpose:* {purpose}
@@ -441,7 +509,7 @@ Please wait for final confirmation.
 *{companyName}*
 Digital Appointment System`,
 
-  appointment_confirmed: `*{companyName}*
+  appointment_confirmed_update: `*{companyName}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ✅ *APPOINTMENT CONFIRMED*
 
@@ -462,7 +530,7 @@ Please arrive 15 minutes early with valid ID.
 *{companyName}*
 Digital Appointment System`,
 
-  appointment_cancelled: `*{companyName}*
+  appointment_cancelled_update: `*{companyName}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ❌ *APPOINTMENT CANCELLED*
 
@@ -476,25 +544,44 @@ We regret to inform you that your appointment has been cancelled.
 ⏰ *Time:* {appointmentTime}
 🎯 *Purpose:* {purpose}
 📝 *Remarks:* {remarks}
+
 We apologize for any inconvenience caused.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 *{companyName}*
 Digital Appointment System`,
 
-  appointment_completed: `*{companyName}*
+  appointment_completed_update: `*{companyName}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ✅ *APPOINTMENT COMPLETED*
 
 Respected {citizenName},
 
 Your appointment has been marked as completed.
+
 *Appointment Details:*
 🎫 *Ref No:* {appointmentId}
 📅 *Date:* {appointmentDate}
 ⏰ *Time:* {appointmentTime}
 📝 *Remarks:* {remarks}
 
-Thank you for visiting us. We hope your concern was addressed satisfactorily.
+Thank you for visiting us.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*{companyName}*
+Digital Appointment System`,
+
+  appointment_status_update: `*{companyName}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 *APPOINTMENT STATUS UPDATE*
+
+Respected {citizenName},
+
+Your appointment status has been updated.
+
+*Details:*
+🎫 *Ref No:* {appointmentId}
+📊 *New Status:* {newStatus}
+📝 *Remarks:* {remarks}
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 *{companyName}*
 Digital Appointment System`,
