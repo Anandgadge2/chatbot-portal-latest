@@ -388,6 +388,30 @@ function DashboardContent() {
     }
   };
 
+  const openGrievanceDetail = async (grievanceId: string) => {
+    try {
+      const response = await grievanceAPI.getById(grievanceId);
+      if (response.success) {
+        setSelectedGrievance(response.data.grievance);
+        setShowGrievanceDetail(true);
+      }
+    } catch (error: any) {
+      toast.error("Failed to load grievance details");
+    }
+  };
+
+  const openAppointmentDetail = async (appointmentId: string) => {
+    try {
+      const response = await appointmentAPI.getById(appointmentId);
+      if (response.success) {
+        setSelectedAppointment(response.data.appointment);
+        setShowAppointmentDetail(true);
+      }
+    } catch (error: any) {
+      toast.error("Failed to load details");
+    }
+  };
+
   // Bulk delete handlers (Super Admin only)
   const handleBulkDeleteGrievances = async () => {
     if (selectedGrievances.size === 0) return;
@@ -4350,31 +4374,17 @@ function DashboardContent() {
                                       </span>
                                     </td>
                                     <td className="px-4 py-4">
-                                      <span className="font-bold text-sm text-blue-700">
+                                      <button
+                                        onClick={() => openGrievanceDetail(grievance._id)}
+                                        className="font-bold text-sm text-blue-700 hover:text-blue-800 hover:underline"
+                                      >
                                         {grievance.grievanceId}
-                                      </span>
+                                      </button>
                                     </td>
                                     <td className="px-4 py-4">
                                       <div className="flex flex-col">
                                         <button
-                                          onClick={async () => {
-                                            try {
-                                              const response =
-                                                await grievanceAPI.getById(
-                                                  grievance._id,
-                                                );
-                                              if (response.success) {
-                                                setSelectedGrievance(
-                                                  response.data.grievance,
-                                                );
-                                                setShowGrievanceDetail(true);
-                                              }
-                                            } catch (error: any) {
-                                              toast.error(
-                                                "Failed to load grievance details",
-                                              );
-                                            }
-                                          }}
+                                          onClick={() => openGrievanceDetail(grievance._id)}
                                           className="text-gray-900 font-bold text-sm text-left hover:text-blue-600 hover:underline"
                                         >
                                           {grievance.citizenName}
@@ -4592,24 +4602,7 @@ function DashboardContent() {
                                         <Button
                                           variant="ghost"
                                           size="sm"
-                                          onClick={async () => {
-                                            try {
-                                              const response =
-                                                await grievanceAPI.getById(
-                                                  grievance._id,
-                                                );
-                                              if (response.success) {
-                                                setSelectedGrievance(
-                                                  response.data.grievance,
-                                                );
-                                                setShowGrievanceDetail(true);
-                                              }
-                                            } catch (error: any) {
-                                              toast.error(
-                                                "Failed to load details",
-                                              );
-                                            }
-                                          }}
+                                          onClick={() => openGrievanceDetail(grievance._id)}
                                           title="View"
                                           className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                                         >
@@ -4688,15 +4681,25 @@ function DashboardContent() {
                           const lastRevert = grievance.timeline?.slice().reverse().find((t) => t.action === "REVERTED_TO_COMPANY_ADMIN");
                           return (
                             <tr key={grievance._id} className="hover:bg-amber-50/30">
-                              <td className="px-4 py-3 text-xs font-black text-amber-700">{grievance.grievanceId}</td>
-                              <td className="px-4 py-3 text-xs text-slate-700">{grievance.citizenName}</td>
+                              <td className="px-4 py-3 text-xs font-black text-amber-700"><button
+                                  onClick={() => openGrievanceDetail(grievance._id)}
+                                  className="text-xs font-black text-amber-700 hover:text-amber-800 hover:underline"
+                                >
+                                  {grievance.grievanceId}
+                                </button></td>
+                              <td className="px-4 py-3 text-xs text-slate-700"><button
+                                  onClick={() => openGrievanceDetail(grievance._id)}
+                                  className="text-xs text-slate-700 hover:text-blue-600 hover:underline"
+                                >
+                                  {grievance.citizenName}
+                                </button></td>
                               <td className="px-4 py-3 text-xs text-slate-600 max-w-md truncate" title={lastRevert?.details?.remarks || ""}>{lastRevert?.details?.remarks || "—"}</td>
                               <td className="px-4 py-3">
                                 <div className="flex items-center justify-center gap-1">
                                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-green-600 hover:bg-green-50" title="Reassign" onClick={() => { setSelectedGrievanceForAssignment(grievance); setShowGrievanceAssignment(true); }}>
                                     <UserIcon className="w-4 h-4" />
                                   </Button>
-                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-50" title="View" onClick={async () => { const response = await grievanceAPI.getById(grievance._id); if (response.success) { setSelectedGrievance(response.data.grievance); setShowGrievanceDetail(true);} }}>
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-50" title="View" onClick={() => openGrievanceDetail(grievance._id)}>
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                                   </Button>
                                 </div>
@@ -5072,31 +5075,17 @@ function DashboardContent() {
                                       </span>
                                     </td>
                                     <td className="px-4 py-4">
-                                      <span className="font-bold text-sm text-purple-700">
+                                      <button
+                                        onClick={() => openAppointmentDetail(appointment._id)}
+                                        className="font-bold text-sm text-purple-700 hover:text-purple-800 hover:underline"
+                                      >
                                         {appointment.appointmentId}
-                                      </span>
+                                      </button>
                                     </td>
                                     <td className="px-4 py-4">
                                       <div className="flex flex-col">
                                         <button
-                                          onClick={async () => {
-                                            try {
-                                              const response =
-                                                await appointmentAPI.getById(
-                                                  appointment._id,
-                                                );
-                                              if (response.success) {
-                                                setSelectedAppointment(
-                                                  response.data.appointment,
-                                                );
-                                                setShowAppointmentDetail(true);
-                                              }
-                                            } catch (error: any) {
-                                              toast.error(
-                                                "Failed to load details",
-                                              );
-                                            }
-                                          }}
+                                          onClick={() => openAppointmentDetail(appointment._id)}
                                           className="text-gray-900 font-bold text-sm text-left hover:text-purple-600 hover:underline whitespace-normal break-words"
                                         >
                                           {appointment.citizenName}
@@ -5204,24 +5193,7 @@ function DashboardContent() {
                                       <div className="flex items-center justify-center gap-1">
                                         {/* Assign button removed - Appointments are for CEO only, no assignment needed */}
                                         <button
-                                          onClick={async () => {
-                                            try {
-                                              const response =
-                                                await appointmentAPI.getById(
-                                                  appointment._id,
-                                                );
-                                              if (response.success) {
-                                                setSelectedAppointment(
-                                                  response.data.appointment,
-                                                );
-                                                setShowAppointmentDetail(true);
-                                              }
-                                            } catch (error: any) {
-                                              toast.error(
-                                                "Failed to load details",
-                                              );
-                                            }
-                                          }}
+                                          onClick={() => openAppointmentDetail(appointment._id)}
                                           title="View Details"
                                           className="p-2 rounded-lg text-purple-600 hover:text-purple-700 hover:bg-purple-50 border border-transparent hover:border-purple-200 transition-all duration-200"
                                         >
