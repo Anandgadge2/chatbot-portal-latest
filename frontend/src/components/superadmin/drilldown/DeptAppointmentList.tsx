@@ -106,7 +106,71 @@ const DeptAppointmentList: React.FC<DeptAppointmentListProps> = ({
             <p className="text-gray-500 text-lg">No appointments found</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+            <div className="md:hidden space-y-3 p-4">
+            {filteredAppointments.slice(0, 50).map((a, index) => (
+              <div
+                key={a._id}
+                className="rounded-xl border border-purple-100 bg-gradient-to-r from-purple-50/60 to-pink-50/60 p-4 space-y-2"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <span className="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-gradient-to-br from-purple-100 to-fuchsia-100 text-purple-700 text-xs font-bold">
+                    {index + 1}
+                  </span>
+                  <span className="font-bold text-sm text-purple-700">{a.appointmentId}</span>
+                </div>
+                <button
+                  onClick={async () => {
+                    const response = await appointmentAPI.getById(a._id);
+                    if (response.success) {
+                      setSelectedAppointment(response.data.appointment);
+                      setShowAppointmentDetail(true);
+                    }
+                  }}
+                  className="text-left"
+                >
+                  <p className="font-semibold text-gray-900">{a.citizenName}</p>
+                  <p className="text-xs text-gray-500">{a.citizenPhone}</p>
+                </button>
+                <p className="text-sm text-gray-600">{a.purpose}</p>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="font-medium text-gray-800 text-sm">
+                      {new Date(a.appointmentDate).toLocaleDateString()}
+                    </p>
+                    <p className="text-xs text-amber-600">{a.appointmentTime}</p>
+                  </div>
+                  <span
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                      a.status === "COMPLETED"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : a.status === "CANCELLED"
+                          ? "bg-red-100 text-red-700"
+                          : "bg-blue-100 text-blue-700"
+                    }`}
+                  >
+                    {a.status}
+                  </span>
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    onClick={async () => {
+                      const response = await appointmentAPI.getById(a._id);
+                      if (response.success) {
+                        setSelectedAppointment(response.data.appointment);
+                        setShowAppointmentDetail(true);
+                      }
+                    }}
+                    className="px-3 py-1.5 text-xs font-bold text-purple-600 hover:bg-purple-100 rounded-lg transition-all"
+                  >
+                    View
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+            <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gradient-to-r from-purple-50 via-fuchsia-50 to-pink-50 border-b border-purple-100">
                 <tr>
@@ -212,7 +276,8 @@ const DeptAppointmentList: React.FC<DeptAppointmentListProps> = ({
                 ))}
               </tbody>
             </table>
-          </div>
+            </div>
+          </>
         )}
       </CardContent>
     </Card>

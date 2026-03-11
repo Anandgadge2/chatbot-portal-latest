@@ -120,7 +120,7 @@ const DeptUserList: React.FC<DeptUserListProps> = ({
 
       {/* Filters */}
       <div className="px-6 py-4 bg-white/50 border-b border-slate-200">
-        <div className="flex flex-wrap gap-3 items-center">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-3 items-stretch sm:items-center">
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
@@ -134,14 +134,14 @@ const DeptUserList: React.FC<DeptUserListProps> = ({
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            className="px-4 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
+            className="w-full sm:w-auto px-4 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
           >
             <option value="all">All Roles</option>
           </select>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
+            className="w-full sm:w-auto px-4 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
           >
             <option value="all">All Status</option>
             <option value="active">Active</option>
@@ -204,7 +204,71 @@ const DeptUserList: React.FC<DeptUserListProps> = ({
             <p className="text-gray-500 text-lg">No users found</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+            <div className="md:hidden space-y-3 p-4">
+              {filteredUsers.map((u, index) => (
+                <div
+                  key={u._id}
+                  className={`rounded-xl border border-emerald-100 p-4 space-y-3 bg-gradient-to-r from-emerald-50/60 to-green-50/60 ${selectedIds.has(u._id) ? "ring-2 ring-emerald-400" : ""}`}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <button
+                      onClick={() => toggleOne(u._id)}
+                      className="text-emerald-400 hover:text-emerald-600 transition-colors"
+                    >
+                      {selectedIds.has(u._id) ? (
+                        <CheckSquare className="w-5 h-5 text-emerald-600" />
+                      ) : (
+                        <Square className="w-5 h-5" />
+                      )}
+                    </button>
+                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-100 to-green-100 text-emerald-700 text-xs font-bold">
+                      {index + 1}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-green-500 rounded-xl flex items-center justify-center text-white font-bold shadow-sm">
+                      {u.firstName?.[0]}
+                      {u.lastName?.[0]}
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-900">
+                        {u.firstName} {u.lastName}
+                      </p>
+                      <p className="text-xs text-gray-500">{u.userId}</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-600 break-all">{u.email}</p>
+                  <div className="flex items-center justify-between gap-3">
+                    {(() => {
+                      const roleLabel =
+                        typeof u.customRoleId === "object" && u.customRoleId
+                          ? (u.customRoleId as any).name
+                          : formatRoleLabel(u.role);
+
+                      return (
+                        <span
+                          className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                            u.role === "SUPER_ADMIN"
+                              ? "bg-red-50 text-red-700 border-red-100"
+                              : "bg-emerald-50 text-emerald-700 border-emerald-100"
+                          }`}
+                        >
+                          {u.role === "SUPER_ADMIN" ? "Super Admin" : roleLabel}
+                        </span>
+                      );
+                    })()}
+                    <span
+                      className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${u.isActive ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-600"}`}
+                    >
+                      {u.isActive ? "Active" : "Inactive"}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gradient-to-r from-emerald-50 via-green-50 to-teal-50 border-b border-emerald-100">
                 <tr>
@@ -319,6 +383,7 @@ const DeptUserList: React.FC<DeptUserListProps> = ({
               </tbody>
             </table>
           </div>
+          </>
         )}
       </CardContent>
     </Card>

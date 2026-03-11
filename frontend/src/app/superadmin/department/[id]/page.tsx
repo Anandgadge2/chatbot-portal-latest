@@ -24,18 +24,9 @@ import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import toast from "react-hot-toast";
 import {
   Building,
-  Users,
-  FileText,
-  Calendar,
   ArrowLeft,
-  BarChart2,
-  Search,
-  ArrowUpDown,
-  Download,
   RefreshCw,
   TrendingUp,
-  Clock,
-  LayoutDashboard,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import DeptStatsOverview from "@/components/superadmin/drilldown/DeptStatsOverview";
@@ -320,8 +311,8 @@ export default function DepartmentDrillDown() {
         </div>
 
         <div className="max-w-[1600px] mx-auto px-4 lg:px-6 relative z-10">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-6">
+          <div className="flex flex-col gap-3 py-3 md:h-16 md:flex-row md:items-center md:justify-between md:py-0">
+            <div className="flex items-center gap-3 sm:gap-6 min-w-0">
               <Button
                 variant="ghost"
                 onClick={() =>
@@ -338,18 +329,18 @@ export default function DepartmentDrillDown() {
                 <Building className="w-5 h-5 text-indigo-400" />
               </div>
 
-              <div>
-                <h1 className="text-xl font-bold text-white tracking-tight leading-none uppercase">
+              <div className="min-w-0">
+                <h1 className="text-base sm:text-xl font-bold text-white tracking-tight leading-none uppercase truncate">
                   {department?.name}
                 </h1>
-                <div className="flex items-center gap-2 mt-1.5">
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                <div className="flex items-center gap-2 mt-1.5 min-w-0">
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest hidden sm:block">
                     Department Management Portal
                   </p>
                   {company && (
                     <>
-                      <span className="w-1 h-1 rounded-full bg-indigo-500"></span>
-                      <span className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest">
+                      <span className="w-1 h-1 rounded-full bg-indigo-500 hidden sm:block"></span>
+                      <span className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest truncate">
                         {company.name}
                       </span>
                     </>
@@ -358,7 +349,7 @@ export default function DepartmentDrillDown() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 self-end md:self-auto">
               <div className="hidden lg:flex flex-col items-end border-r border-slate-800 pr-4 mr-1">
                 <span className="text-[11px] font-black text-white uppercase tracking-wider">
                   Sync Active
@@ -371,10 +362,10 @@ export default function DepartmentDrillDown() {
                 onClick={fetchData}
                 variant="ghost"
                 size="sm"
-                className="h-10 px-4 bg-white/5 hover:bg-white/10 text-white rounded-xl border border-white/10 font-bold text-[11px] uppercase tracking-wider"
+                className="h-9 sm:h-10 px-3 sm:px-4 bg-white/5 hover:bg-white/10 text-white rounded-xl border border-white/10 font-bold text-[11px] uppercase tracking-wider"
               >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Refresh
+                <RefreshCw className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Refresh</span>
               </Button>
             </div>
           </div>
@@ -387,35 +378,35 @@ export default function DepartmentDrillDown() {
           onValueChange={setActiveTab}
           className="space-y-6"
         >
-          <div className="mb-4 sticky top-[64px] z-40 bg-slate-50/95 backdrop-blur-sm py-4 -mx-4 px-4 sm:mx-0 sm:px-0">
-            <TabsList className="bg-slate-200/50 p-1 border border-slate-300/50 h-10 shadow-sm overflow-x-auto no-scrollbar max-w-full">
+          <div className="mb-4 sticky top-[64px] z-40 bg-slate-50/95 backdrop-blur-sm py-3 -mx-4 px-4 sm:mx-0 sm:px-0">
+            <TabsList className="bg-slate-200/50 p-1 border border-slate-300/50 h-auto min-h-10 shadow-sm overflow-x-auto no-scrollbar max-w-full w-full justify-start">
               <TabsTrigger
                 value="overview"
-                className="px-6 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
+                className="px-4 sm:px-6 h-8 text-[11px] font-black uppercase tracking-widest whitespace-nowrap data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
               >
                 Overview
               </TabsTrigger>
               <TabsTrigger
                 value="users"
-                className="px-6 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
+                className="px-4 sm:px-6 h-8 text-[11px] font-black uppercase tracking-widest whitespace-nowrap data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
               >
                 Users
               </TabsTrigger>
               <TabsTrigger
                 value="grievances"
-                className="px-6 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
+                className="px-4 sm:px-6 h-8 text-[11px] font-black uppercase tracking-widest whitespace-nowrap data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
               >
                 Grievances
               </TabsTrigger>
               <TabsTrigger
                 value="appointments"
-                className="px-6 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
+                className="px-4 sm:px-6 h-8 text-[11px] font-black uppercase tracking-widest whitespace-nowrap data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
               >
                 Appointments
               </TabsTrigger>
               <TabsTrigger
                 value="analytics"
-                className="px-6 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg flex items-center"
+                className="px-4 sm:px-6 h-8 text-[11px] font-black uppercase tracking-widest whitespace-nowrap data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg flex items-center"
               >
                 <TrendingUp className="w-3.5 h-3.5 mr-1.5" />
                 Analytics
@@ -429,7 +420,7 @@ export default function DepartmentDrillDown() {
 
             {/* Department Details */}
             <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
-              <CardHeader className="bg-slate-900 px-6 py-4">
+              <CardHeader className="bg-slate-900 px-4 sm:px-6 py-4">
                 <CardTitle className="text-base font-bold text-white uppercase tracking-tight flex items-center gap-2">
                   <Building className="w-4 h-4 text-indigo-400" />
                   Department Infrastructure Status
@@ -438,13 +429,13 @@ export default function DepartmentDrillDown() {
                   Core department settings and identity
                 </p>
               </CardHeader>
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   <div className="p-4 bg-gradient-to-br from-slate-50 to-purple-50 rounded-xl border border-slate-100">
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
                       Department ID
                     </p>
-                    <p className="text-lg font-bold text-slate-800">
+                    <p className="text-base sm:text-lg font-bold text-slate-800 break-all">
                       {department.departmentId}
                     </p>
                   </div>
@@ -463,7 +454,7 @@ export default function DepartmentDrillDown() {
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-bold ${department.isActive !== false ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}
                     >
-                      Active
+                      {department.isActive !== false ? "Active" : "Inactive"}
                     </span>
                   </div>
                 </div>

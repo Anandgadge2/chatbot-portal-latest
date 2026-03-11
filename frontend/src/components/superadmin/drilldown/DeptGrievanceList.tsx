@@ -106,7 +106,68 @@ const DeptGrievanceList: React.FC<DeptGrievanceListProps> = ({
             <p className="text-gray-500 text-lg">No grievances found</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+            <div className="md:hidden space-y-3 p-4">
+            {filteredGrievances.slice(0, 50).map((g, index) => (
+              <div
+                key={g._id}
+                className="rounded-xl border border-blue-100 bg-gradient-to-r from-blue-50/60 to-indigo-50/60 p-4 space-y-2"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <span className="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-gradient-to-br from-blue-100 to-indigo-100 text-blue-700 text-xs font-bold">
+                    {index + 1}
+                  </span>
+                  <span className="font-bold text-sm text-blue-700">{g.grievanceId}</span>
+                </div>
+                <button
+                  onClick={async () => {
+                    const response = await grievanceAPI.getById(g._id);
+                    if (response.success) {
+                      setSelectedGrievance(response.data.grievance);
+                      setShowGrievanceDetail(true);
+                    }
+                  }}
+                  className="text-left"
+                >
+                  <p className="font-semibold text-gray-900">{g.citizenName}</p>
+                  <p className="text-xs text-gray-500">{g.citizenPhone}</p>
+                </button>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs font-medium bg-blue-50 text-blue-600 px-2 py-1 rounded">
+                    {g.category || "General"}
+                  </span>
+                  <span
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                      g.status === "RESOLVED"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : g.status === "PENDING"
+                          ? "bg-amber-100 text-amber-700"
+                          : "bg-blue-100 text-blue-700"
+                    }`}
+                  >
+                    {g.status}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-gray-600">{new Date(g.createdAt).toLocaleDateString()}</span>
+                  <button
+                    onClick={async () => {
+                      const response = await grievanceAPI.getById(g._id);
+                      if (response.success) {
+                        setSelectedGrievance(response.data.grievance);
+                        setShowGrievanceDetail(true);
+                      }
+                    }}
+                    className="px-3 py-1.5 text-xs font-bold text-blue-600 hover:bg-blue-100 rounded-lg transition-all"
+                  >
+                    View
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+            <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border-b border-blue-100">
                 <tr>
@@ -207,7 +268,8 @@ const DeptGrievanceList: React.FC<DeptGrievanceListProps> = ({
                 ))}
               </tbody>
             </table>
-          </div>
+            </div>
+          </>
         )}
       </CardContent>
     </Card>
