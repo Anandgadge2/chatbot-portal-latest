@@ -14,6 +14,7 @@ interface NodeConfigPanelProps {
   onUpdate: (data: any) => void;
   onDelete: () => void;
   onClose: () => void;
+  isMobile?: boolean;
 }
 
 const LANGUAGES = [
@@ -28,6 +29,7 @@ export default function NodeConfigPanel({
   onUpdate,
   onDelete,
   onClose,
+  isMobile = false,
 }: NodeConfigPanelProps) {
   const [localData, setLocalData] = useState(node.data);
 
@@ -434,9 +436,10 @@ export default function NodeConfigPanel({
   };
 
   return (
-    <div className="w-96 bg-white border-l border-gray-200 flex flex-col h-screen fixed right-0 top-0 shadow-2xl z-50 animate-in slide-in-from-right duration-300">
+    <div className={`${isMobile ? "w-full h-[88vh] bottom-0 top-auto rounded-t-2xl border-t border-l-0 animate-in slide-in-from-bottom" : "w-96 h-screen top-0 right-0 border-l animate-in slide-in-from-right"} bg-white border-gray-200 flex flex-col fixed shadow-2xl z-50 duration-300`}>
       {/* Header */}
-      <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-white flex-shrink-0">
+      <div className="relative p-4 border-b border-gray-100 flex items-center justify-between bg-white flex-shrink-0">
+        {isMobile && <div className="absolute left-1/2 top-1 -translate-x-1/2 h-1 w-12 rounded-full bg-slate-200" />}
         <div>
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-purple-500"></span>

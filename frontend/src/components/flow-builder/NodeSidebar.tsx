@@ -237,7 +237,12 @@ function DraggableNode({ item }: { item: NodePaletteItem }) {
   );
 }
 
-export default function NodeSidebar() {
+interface NodeSidebarProps {
+  className?: string;
+  hideCollapseToggle?: boolean;
+}
+
+export default function NodeSidebar({ className = "", hideCollapseToggle = false }: NodeSidebarProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
@@ -261,7 +266,7 @@ export default function NodeSidebar() {
   );
 
   return (
-    <div className={`${isCollapsed ? 'w-16' : 'w-64'} bg-white border-r border-gray-200 flex flex-col h-full transition-all duration-300`}>
+    <div className={`${isCollapsed ? 'w-16' : 'w-64'} bg-white border-r border-gray-200 flex flex-col h-full transition-all duration-300 ${className}`}>
       {/* Header */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between mb-3">
@@ -270,17 +275,19 @@ export default function NodeSidebar() {
               Message types
             </h2>
           )}
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="p-1.5 hover:bg-gray-100 rounded transition-colors ml-auto"
-            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            <ChevronRight
-              className={`w-4 h-4 text-gray-600 transition-transform ${
-                isCollapsed ? '' : 'rotate-180'
-              }`}
-            />
-          </button>
+          {!hideCollapseToggle && (
+            <button
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className="p-1.5 hover:bg-gray-100 rounded transition-colors ml-auto"
+              title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              <ChevronRight
+                className={`w-4 h-4 text-gray-600 transition-transform ${
+                  isCollapsed ? '' : 'rotate-180'
+                }`}
+              />
+            </button>
+          )}
         </div>
 
         {/* Search */}
@@ -359,7 +366,7 @@ export default function NodeSidebar() {
       )}
       
       {/* Node List - Collapsed (Icon only) */}
-      {isCollapsed && (
+      {!hideCollapseToggle && isCollapsed && (
         <div className="flex-1 overflow-y-auto p-2 space-y-2">
           {[...messageTypeNodes.slice(0, 4), ...actionNodes.slice(0, 4)].map((item, idx) => (
             <button

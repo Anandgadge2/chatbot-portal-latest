@@ -352,8 +352,8 @@ export default function ChatbotFlowsPage() {
       <header className="bg-slate-900 sticky top-0 z-50 shadow-2xl border-b border-slate-800">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-10"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
               <Button
                 variant="ghost"
                 onClick={() => router.push(`/superadmin/company/${companyId}`)}
@@ -364,22 +364,22 @@ export default function ChatbotFlowsPage() {
               <div className="w-11 h-11 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-md border border-white/20 shadow-inner">
                 <Workflow className="w-5 h-5 text-indigo-400" />
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-white tracking-tight leading-none">
+              <div className="min-w-0">
+                <h1 className="text-lg sm:text-xl font-bold text-white tracking-tight leading-none">
                   Response Pipelines
                 </h1>
-                <div className="flex items-center gap-2 mt-1.5">
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                <div className="flex items-center gap-2 mt-1.5 min-w-0">
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest truncate">
                     Intelligence Node:{" "}
                     <span className="text-indigo-400">{company?.name}</span>
                   </p>
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2.5">
+            <div className="flex w-full md:w-auto items-center justify-end gap-2">
               <Button
                 onClick={handleCreateFlow}
-                className="h-10 px-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all shadow-lg shadow-indigo-900/20 font-bold text-[11px] uppercase tracking-wider border-0"
+                className="h-9 sm:h-10 px-4 sm:px-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all shadow-lg shadow-indigo-900/20 font-bold text-[11px] uppercase tracking-wider border-0"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Create Flow
