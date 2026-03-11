@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { availabilityAPI, AppointmentAvailability, DayAvailability, TimeSlot, SpecialDate, Holiday } from '@/lib/api/availability';
@@ -76,6 +76,20 @@ const angleToPoint = (index: number, total: number, radius: number, center = 96)
   };
 };
 
+function ClockHand({ angle, length, width, color }: { angle: number; length: number; width: number; color: string }) {
+  const rad = ((angle - 90) * Math.PI) / 180;
+  const cx = 50, cy = 50;
+  const x = cx + length * Math.cos(rad);
+  const y = cy + length * Math.sin(rad);
+  return (
+    <line
+      x1={cx} y1={cy} x2={x} y2={y}
+      stroke={color} strokeWidth={width}
+      strokeLinecap="round"
+    />
+  );
+}
+
 function ClockFacePicker({
   value,
   onChange,
@@ -90,130 +104,181 @@ function ClockFacePicker({
   const [minute, setMinute] = useState(parsed.minute);
   const [period, setPeriod] = useState<'AM' | 'PM'>(parsed.period);
   const [mode, setMode] = useState<'hour' | 'minute'>('hour');
+  const svgRef = useRef<SVGSVGElement>(null);
 
-  const handSteps = mode === 'hour' ? HOUR_RING : Array.from({ length: 12 }, (_, i) => i * 5);
-  const activeIndex = mode === 'hour' ? HOUR_RING.indexOf(hour12) : Math.round(minute / 5) % 12;
-  const handPoint = angleToPoint(activeIndex, handSteps.length, 56);
+  const hourAngle = ((hour12 % 12) / 12) * 360 + (minute / 60) * 30;
+  const minuteAngle = (minute / 60) * 360;
+
+  const getValueFromAngle = useCallback(
+    (clientX: number, clientY: number) => {
+      const svg = svgRef.current;
+      if (!svg) return;
+      const rect = svg.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const dx = clientX - cx;
+      const dy = clientY - cy;
+      let angle = (Math.atan2(dy, dx) * 180) / Math.PI + 90;
+      if (angle < 0) angle += 360;
+
+      if (mode === "hour") {
+        let h = Math.round(angle / 30) % 12;
+        if (h === 0) h = 12;
+        setHour12(h);
+      } else {
+        let m = Math.round(angle / 6) % 60;
+        setMinute(m);
+      }
+    },
+    [mode]
+  );
+
+  const handlePointer = useCallback(
+    (e: React.MouseEvent | React.TouchEvent) => {
+      const touch = 'touches' in e ? e.touches[0] : e;
+      getValueFromAngle(touch.clientX, touch.clientY);
+    },
+    [getValueFromAngle]
+  );
+
+  const ticks = [];
+  for (let i = 0; i < (mode === "hour" ? 12 : 60); i++) {
+    const isMajor = mode === "minute" ? i % 5 === 0 : true;
+    const rad = ((i * (mode === "hour" ? 30 : 6) - 90) * Math.PI) / 180;
+    const r1 = isMajor ? 42 : 44;
+    const r2 = 48;
+    ticks.push(
+      <line
+        key={i}
+        x1={50 + r1 * Math.cos(rad)}
+        y1={50 + r1 * Math.sin(rad)}
+        x2={50 + r2 * Math.cos(rad)}
+        y2={50 + r2 * Math.sin(rad)}
+        stroke={isMajor ? "#818cf8" : "rgba(99, 102, 241, 0.2)"}
+        strokeWidth={isMajor ? 1.5 : 0.8}
+        strokeLinecap="round"
+      />
+    );
+  }
+
+  const labels = [];
+  for (let i = 1; i <= 12; i++) {
+    const val = mode === "hour" ? i : i * 5;
+    const rad = ((i * 30 - 90) * Math.PI) / 180;
+    const r = 36;
+    const isActive =
+      mode === "hour" ? hour12 === i : Math.round(minute / 5) * 5 === val % 60;
+    labels.push(
+      <text
+        key={i}
+        x={50 + r * Math.cos(rad)}
+        y={50 + r * Math.sin(rad)}
+        textAnchor="middle"
+        dominantBaseline="central"
+        fontSize="6"
+        fontWeight={isActive ? "700" : "400"}
+        fill={isActive ? "#ffffff" : "#64748b"}
+        style={{ userSelect: "none", fontFamily: "'DM Sans', sans-serif" }}
+      >
+        {mode === "hour" ? i : String(val % 60).padStart(2, '0')}
+      </text>
+    );
+  }
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-bold text-slate-700">Select Time</p>
-        <button type="button" onClick={onClose} className="text-[11px] font-semibold text-slate-500 hover:text-slate-700">Close</button>
+    <div className="flex flex-col items-center gap-4 bg-slate-900 p-6 rounded-[2.5rem] shadow-2xl border border-white/10 relative overflow-hidden">
+      <div className="absolute top-0 right-0 p-3">
+        <button type="button" onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+          <X className="w-4 h-4 text-white/50" />
+        </button>
       </div>
 
-      <div className="text-center text-xl font-black text-slate-800 bg-sky-500 text-white rounded-xl py-2">
-        {to24HourTime(hour12, minute, period)}
+      <div className="text-center mt-2">
+        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-indigo-400 mb-4 px-3 py-1 bg-white/5 rounded-full inline-block">Select Appointment Time</p>
       </div>
 
-      <div className="rounded-full border-2 border-slate-200 w-48 h-48 mx-auto relative bg-slate-100/80">
-        {HOUR_RING.map((h, idx) => {
-          const { x, y } = angleToPoint(idx, HOUR_RING.length, 72);
-          const active = mode === 'hour' && hour12 === h;
-          return (
-            <button
-              key={`hour-${h}`}
-              type="button"
-              onClick={() => {
-                setHour12(h);
-                setMode('minute');
-              }}
-              className={`absolute -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full text-[11px] font-bold border transition ${active ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-slate-700 border-slate-200 hover:border-blue-300'}`}
-              style={{ left: `${x}px`, top: `${y}px` }}
-            >
-              {h}
-            </button>
-          );
-        })}
-        {/* Intentionally no inner 24-hour ring; keep 1-12 clock style only */}
-        {mode === 'minute' && (
-          <>
-            {Array.from({ length: 12 }, (_, i) => i * 5).map((m, idx) => {
-              const { x, y } = angleToPoint(idx, 12, 72);
-              const active = Math.round(minute / 5) % 12 === idx;
-              return (
-                <button
-                  key={`minute-${m}`}
-                  type="button"
-                  onClick={() => setMinute(m)}
-                  className={`absolute -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full text-[10px] font-bold border transition ${active ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-slate-700 border-slate-200 hover:border-blue-300'}`}
-                  style={{ left: `${x}px`, top: `${y}px` }}
-                >
-                  {String(m).padStart(2, '0')}
-                </button>
-              );
-            })}
-          </>
-        )}
-        <div className="absolute inset-0 pointer-events-none">
-          <svg className="w-full h-full" viewBox="0 0 192 192">
-            <line x1="96" y1="96" x2={handPoint.x} y2={handPoint.y} stroke="#38bdf8" strokeWidth="2" />
-            <circle cx="96" cy="96" r="4" fill="#38bdf8" />
-          </svg>
-        </div>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-16 h-16 rounded-full bg-white border border-slate-300 flex items-center justify-center">
-            <Clock className="w-7 h-7 text-sky-500" />
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2">
-        <button type="button" onClick={() => setMode('hour')} className={`py-1.5 rounded-lg text-xs font-bold border ${mode === 'hour' ? 'bg-sky-500 text-white border-sky-500' : 'bg-white border-slate-200 text-slate-700'}`}>Hour</button>
-        <button type="button" onClick={() => setMode('minute')} className={`py-1.5 rounded-lg text-xs font-bold border ${mode === 'minute' ? 'bg-sky-500 text-white border-sky-500' : 'bg-white border-slate-200 text-slate-700'}`}>Minute</button>
-      </div>
-
-      <div className="flex items-center justify-center gap-2">
-        {(['AM', 'PM'] as const).map((p) => (
+      <div className="flex gap-2 p-1 bg-white/5 rounded-2xl mb-2">
+        {(["hour", "minute"] as const).map((m) => (
           <button
-            key={p}
+            key={m}
             type="button"
-            onClick={() => setPeriod(p)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold border ${period === p ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-700 border-slate-200'}`}
+            onClick={() => setMode(m)}
+            className={`px-8 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 ${mode === m ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' : 'text-slate-400 hover:text-white'}`}
           >
-            {p}
+            {m}
           </button>
         ))}
       </div>
 
-      <div className="flex items-center gap-2">
-        <span className="text-xs font-semibold text-slate-500">Hr</span>
-        <input
-          type="range"
-          min={1}
-          max={12}
-          value={hour12}
-          onChange={(e) => {
-            setHour12(Number(e.target.value));
-            setMode('hour');
-          }}
-          className="w-full"
-        />
-        <input
-          type="number"
-          min={1}
-          max={12}
-          value={hour12}
-          onChange={(e) => {
-            setHour12(Math.max(1, Math.min(12, Number(e.target.value) || 1)));
-            setMode('hour');
-          }}
-          className="w-14 text-xs border border-slate-200 rounded-lg px-2 py-1"
-        />
+      <div className="text-5xl font-black text-white flex items-center gap-3 mb-2 font-mono tracking-tighter">
+        <span className={mode === 'hour' ? 'text-indigo-400' : 'text-white'}>{String(hour12).padStart(2, '0')}</span>
+        <span className="text-indigo-900 animate-pulse">:</span>
+        <span className={mode === 'minute' ? 'text-indigo-400' : 'text-white'}>{String(minute).padStart(2, '0')}</span>
+        <div className="flex flex-col gap-1 ml-4 py-1 px-2 bg-white/5 rounded-xl">
+          {(["AM", "PM"] as const).map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => setPeriod(p)}
+              className={`px-3 py-1.5 rounded-lg text-[10px] font-black transition-all ${period === p ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-500 hover:text-white'}`}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <span className="text-xs font-semibold text-slate-500">Min</span>
-        <input type="range" min={0} max={59} value={minute} onChange={(e) => setMinute(Number(e.target.value))} className="w-full" />
-        <input type="number" min={0} max={59} value={minute} onChange={(e) => setMinute(Math.max(0, Math.min(59, Number(e.target.value) || 0)))} className="w-14 text-xs border border-slate-200 rounded-lg px-2 py-1" />
+      <div className="relative w-64 h-64 group">
+        <svg
+          ref={svgRef}
+          viewBox="0 0 100 100"
+          className="w-full h-full cursor-pointer rounded-full bg-slate-950/20"
+          onMouseDown={handlePointer}
+          onMouseMove={(e) => e.buttons === 1 && handlePointer(e)}
+          onTouchStart={handlePointer}
+          onTouchMove={handlePointer}
+        >
+          <circle cx="50" cy="50" r="49" fill="none" stroke="rgba(99, 102, 241, 0.1)" strokeWidth="0.5" />
+          {ticks}
+          {labels}
+          <circle
+            cx="50" cy="50" r="22"
+            fill="none"
+            stroke={mode === 'hour' ? "#6366f1" : "rgba(99,102,241, 0.4)"}
+            strokeWidth="1.5"
+            strokeDasharray={`${((mode === 'hour' ? hourAngle : minuteAngle) / 360) * 138.2} 138.2`}
+            transform="rotate(-90 50 50)"
+            strokeLinecap="round"
+            className="opacity-20 transition-all duration-300"
+          />
+          <ClockHand angle={hourAngle} length={20} width={2.5} color="#818cf8" />
+          <ClockHand angle={minuteAngle} length={28} width={1.8} color="#6366f1" />
+          <circle cx="50" cy="50" r="3" fill="#ffffff" />
+          <circle cx="50" cy="50" r="1.2" fill="#1e1b4b" />
+          {(() => {
+            const a = mode === "hour" ? hourAngle : minuteAngle;
+            const rad = ((a - 90) * Math.PI) / 180;
+            return (
+              <circle
+                cx={50 + 44 * Math.cos(rad)}
+                cy={50 + 44 * Math.sin(rad)}
+                r="3.5"
+                fill="#818cf8"
+                className="shadow-xl"
+                style={{ filter: "drop-shadow(0 0 5px #6366f1)" }}
+              />
+            );
+          })()}
+        </svg>
       </div>
 
       <button
         type="button"
         onClick={() => onChange(to24HourTime(hour12, minute, period))}
-        className="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold"
+        className="w-full py-5 mt-2 rounded-[1.5rem] bg-indigo-600 hover:bg-white hover:text-indigo-900 text-white text-[11px] font-black uppercase tracking-[0.15em] shadow-xl shadow-indigo-900/40 transition-all active:scale-95 flex items-center justify-center gap-2 group"
       >
-        Apply {to24HourTime(hour12, minute, period)}
+        <span>Apply: {to24HourTime(hour12, minute, period)}</span>
+        <CheckCircle2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
       </button>
     </div>
   );
@@ -364,9 +429,15 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
   const removeSpecialDate = (date: string) => {
     if (!availability) return;
 
+    // Standardize date comparison
+    const targetDate = new Date(date).toISOString().split('T')[0];
+
     setAvailability({
       ...availability,
-      specialDates: availability.specialDates.filter((sd) => sd.date !== date)
+      specialDates: availability.specialDates.filter((sd) => {
+        const sdDate = new Date(sd.date).toISOString().split('T')[0];
+        return sdDate !== targetDate;
+      })
     });
     setHasChanges(true);
     toast.success('Date reset to default rule (save changes to apply)');
@@ -375,14 +446,19 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
   const toggleHolidayForDate = (date: string) => {
     if (!availability) return;
 
-    const holidayExists = availability.specialDates.some((sd) => sd.date === date && sd.type === 'holiday');
+    // Use robust comparison (splitting at T)
+    const target = date.split('T')[0];
+    const holidayExists = availability.specialDates.some((sd) => {
+      const sdDate = typeof sd.date === 'string' ? sd.date : new Date(sd.date).toISOString().split('T')[0];
+      return sdDate.split('T')[0] === target && sd.type === 'holiday';
+    });
 
     if (holidayExists) {
-      removeSpecialDate(date);
+      removeSpecialDate(target);
       return;
     }
 
-    addHoliday({ date, name: 'Custom Holiday', type: 'holiday' });
+    addHoliday({ date: target, name: 'Custom Holiday', type: 'holiday' });
   };
 
   // Get calendar days for the month
@@ -412,11 +488,14 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
   // Check if a date is a holiday/special date
   const getSpecialDateInfo = (date: Date) => {
     if (!availability) return null;
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    const target = `${y}-${m}-${d}`;
+
     return availability.specialDates.find(sd => {
-      const sdDate = new Date(sd.date);
-      return sdDate.getFullYear() === date.getFullYear() &&
-             sdDate.getMonth() === date.getMonth() &&
-             sdDate.getDate() === date.getDate();
+      const sdDate = typeof sd.date === 'string' ? sd.date : new Date(sd.date).toISOString().split('T')[0];
+      return sdDate.split('T')[0] === target;
     });
   };
 
@@ -434,8 +513,8 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-none sm:rounded-3xl shadow-2xl w-full max-w-full sm:max-w-3xl h-full sm:max-h-[86vh] overflow-hidden border-0 sm:border border-slate-200 flex flex-col">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-0 sm:p-2 animate-in fade-in duration-200">
+      <div className="bg-white rounded-none sm:rounded-[2.5rem] shadow-2xl w-full max-w-full sm:max-w-6xl h-full sm:max-h-[98vh] overflow-hidden border-0 sm:border border-slate-200 flex flex-col transition-all duration-300">
         {/* Header */}
         <div className="bg-slate-900 px-6 py-5 text-white relative overflow-hidden flex-shrink-0">
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-30"></div>
@@ -490,7 +569,7 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-2 sm:p-4 bg-slate-50/30 sm:[zoom:0.78]">
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-3 sm:p-8 bg-slate-50/20">
           {activeClockPicker && (
             <button
               type="button"
@@ -505,11 +584,11 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
               <p className="text-slate-500 font-medium animate-pulse">Loading availability data...</p>
             </div>
           ) : (
-            <div className="max-w-3xl mx-auto w-full">
+            <div className="max-w-5xl mx-auto w-full">
               {/* Weekly Schedule Tab */}
               {activeTab === 'weekly' && availability && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                  <div className="flex items-center gap-3 text-sm text-indigo-700 bg-indigo-50/50 px-5 py-4 rounded-2xl border border-indigo-100/50 shadow-sm">
+                  <div className="flex items-center gap-3 text-md text-indigo-700 bg-indigo-50/50 px-4 py-3 rounded-2xl border border-indigo-100/50 shadow-sm">
                     <div className="p-2 bg-indigo-100 rounded-lg">
                       <Info className="w-4 h-4 text-indigo-600 flex-shrink-0" />
                     </div>
@@ -629,15 +708,18 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
                                               {slot.startTime}
                                             </button>
                                             {activeClockPicker === `${day.key}-${period}-start` && (
-                                              <div className="z-40 bg-white rounded-2xl border border-slate-200 shadow-2xl p-3 w-[min(92vw,18rem)] sm:w-64 fixed inset-x-0 mx-auto top-1/2 -translate-y-1/2 sm:absolute sm:inset-auto sm:top-[110%] sm:left-0 sm:mx-0 sm:translate-y-0">
-                                                <ClockFacePicker
-                                                  value={slot.startTime}
-                                                  onChange={(val) => {
-                                                    updateTimeSlot(day.key, period, { startTime: val });
-                                                    setActiveClockPicker(null);
-                                                  }}
-                                                  onClose={() => setActiveClockPicker(null)}
-                                                />
+                                              <div className="z-40 fixed inset-0 flex items-center justify-center p-4 sm:p-0 sm:absolute sm:inset-auto sm:top-[110%] sm:left-1/2 sm:-translate-x-1/2 sm:translate-y-0">
+                                                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm sm:hidden" onClick={() => setActiveClockPicker(null)} />
+                                                <div className="relative animate-in zoom-in-95 duration-200">
+                                                  <ClockFacePicker
+                                                    value={slot.startTime}
+                                                    onChange={(val) => {
+                                                      updateTimeSlot(day.key, period, { startTime: val });
+                                                      setActiveClockPicker(null);
+                                                    }}
+                                                    onClose={() => setActiveClockPicker(null)}
+                                                  />
+                                                </div>
                                               </div>
                                             )}
                                           </div>
@@ -651,15 +733,18 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
                                               {slot.endTime}
                                             </button>
                                             {activeClockPicker === `${day.key}-${period}-end` && (
-                                              <div className="z-40 bg-white rounded-2xl border border-slate-200 shadow-2xl p-3 w-[min(92vw,18rem)] sm:w-64 fixed inset-x-0 mx-auto top-1/2 -translate-y-1/2 sm:absolute sm:inset-auto sm:top-[110%] sm:left-0 sm:mx-0 sm:translate-y-0">
-                                                <ClockFacePicker
-                                                  value={slot.endTime}
-                                                  onChange={(val) => {
-                                                    updateTimeSlot(day.key, period, { endTime: val });
-                                                    setActiveClockPicker(null);
-                                                  }}
-                                                  onClose={() => setActiveClockPicker(null)}
-                                                />
+                                              <div className="z-40 fixed inset-0 flex items-center justify-center p-4 sm:p-0 sm:absolute sm:inset-auto sm:top-[110%] sm:left-1/2 sm:-translate-x-1/2 sm:translate-y-0">
+                                                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm sm:hidden" onClick={() => setActiveClockPicker(null)} />
+                                                <div className="relative animate-in zoom-in-95 duration-200">
+                                                  <ClockFacePicker
+                                                    value={slot.endTime}
+                                                    onChange={(val) => {
+                                                      updateTimeSlot(day.key, period, { endTime: val });
+                                                      setActiveClockPicker(null);
+                                                    }}
+                                                    onClose={() => setActiveClockPicker(null)}
+                                                  />
+                                                </div>
                                               </div>
                                             )}
                                           </div>
@@ -711,100 +796,83 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
                     </button>
                   </div>
 
-                  {/* Calendar Grid */}
-                  <div className="bg-white rounded-[2rem] border border-slate-200/60 overflow-hidden shadow-xl mx-auto backdrop-blur-xl md:[zoom:0.78]">
-                    {/* Week Headers */}
-                    <div className="grid grid-cols-7 bg-slate-50/50 border-b border-slate-100">
-                      {DAYS_OF_WEEK.map((day) => (
-                        <div
-                          key={day.key}
-                          className={`py-5 text-center text-[10px] font-black uppercase tracking-[0.15em] ${
-                            day.key === 'sunday' || day.key === 'saturday'
-                              ? 'text-rose-500/70'
-                              : 'text-slate-400'
-                          }`}
-                        >
-                          {day.short}
-                        </div>
-                      ))}
-                    </div>
+                    {/* Calendar Grid */}
+                    <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-2xl overflow-hidden mx-auto backdrop-blur-xl max-w-4xl p-8">
+                      {/* Week Headers */}
+                      <div className="grid grid-cols-7 mb-4">
+                        {DAYS_OF_WEEK.map((day) => (
+                          <div
+                            key={day.key}
+                            className={`py-3 text-center text-[10px] font-black uppercase tracking-[0.2em] ${
+                              day.key === 'sunday' || day.key === 'saturday'
+                                ? 'text-rose-500'
+                                : 'text-slate-400'
+                            }`}
+                          >
+                            {day.short}
+                          </div>
+                        ))}
+                      </div>
 
-                    {/* Calendar Days */}
-                    <div className="grid grid-cols-7 divide-x divide-y divide-slate-50">
-                      {getCalendarDays().map((date, index) => {
+                      {/* Calendar Days */}
+                      <div className="grid grid-cols-7 gap-3">
+                        {getCalendarDays().map((date, index) => {
                         if (!date) {
                           return <div key={`empty-${index}`} className="aspect-square sm:h-16 bg-slate-50/30" />;
                         }
 
-                        const isToday = date.toDateString() === new Date().toDateString();
-                        const isPast = date < new Date(new Date().setHours(0, 0, 0, 0));
-                        const isAvailable = isDateAvailable(date);
-                        const specialDate = getSpecialDateInfo(date);
-                        const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-                        const isSelected = selectedDate?.toDateString() === date.toDateString();
+                          const isToday = date.toDateString() === new Date().toDateString();
+                          const isSelected = selectedDate && date.toDateString() === selectedDate.toDateString();
+                          const isPast = date.getTime() < new Date().setHours(0, 0, 0, 0);
+                          const dayName = DAYS_OF_WEEK[date.getDay()].key;
+                          const daySchedule = availability.weeklySchedule[dayName];
+                          const specialDate = getSpecialDateInfo(date);
+                          const isAvailable = specialDate ? specialDate.isAvailable : daySchedule.isAvailable;
+                          const isHoliday = specialDate?.type === 'holiday';
 
-                        return (
-                          <button
-                            key={date.toISOString()}
-                            onClick={() => setSelectedDate(isSelected ? null : date)}
-                            disabled={isPast}
-                            className={`aspect-square sm:h-16 p-1 transition-all duration-300 text-left relative group flex flex-col ${
-                              isPast
-                                ? 'bg-slate-50/50 text-slate-300 grayscale cursor-not-allowed'
-                                : isSelected
-                                ? 'bg-indigo-600 text-white shadow-2xl scale-[1.02] z-10 rounded-2xl mx-1 my-1'
-                                : specialDate?.type === 'holiday'
-                                ? 'bg-rose-50/80 hover:bg-rose-100'
-                                : isAvailable
-                                ? 'bg-white hover:bg-indigo-50/50'
-                                : 'bg-slate-100/30 hover:bg-slate-100'
-                            }`}
-                          >
-                            <span
-                              className={`inline-flex items-center justify-center w-7 h-7 rounded-xl text-xs font-black transition-all ${
-                                isToday && !isSelected
-                                  ? 'bg-indigo-100 text-indigo-700 shadow-sm'
+                          return (
+                            <button
+                              key={date.toISOString()}
+                              onClick={() => setSelectedDate(isSelected ? null : date)}
+                              disabled={isPast}
+                              className={`aspect-square h-auto p-4 transition-all duration-300 relative group flex flex-col items-center justify-center rounded-2xl border ${
+                                isPast
+                                  ? 'bg-slate-50 border-slate-100 text-slate-300 opacity-50 cursor-not-allowed'
                                   : isSelected
-                                  ? 'text-white'
-                                  : isWeekend
-                                  ? 'text-rose-500'
-                                  : 'text-slate-700'
+                                  ? 'bg-gradient-to-br from-indigo-600 to-violet-700 text-white shadow-xl shadow-indigo-200 border-transparent scale-[1.05] z-10'
+                                  : isHoliday
+                                  ? 'bg-rose-50 border-rose-100 text-rose-600 hover:bg-rose-100'
+                                  : isAvailable
+                                  ? 'bg-white border-slate-100 hover:border-indigo-300 hover:shadow-lg'
+                                  : 'bg-slate-100 border-slate-200 text-slate-400 hover:bg-slate-200'
                               }`}
                             >
-                              {date.getDate()}
-                            </span>
-                            
-                            {specialDate && (
-                              <div className={`mt-auto text-[9px] px-2 py-1 rounded-lg font-bold truncate max-w-full flex items-center gap-1 shadow-sm ${
-                                isSelected 
-                                  ? 'bg-white/20 text-white' 
-                                  : specialDate.type === 'holiday'
-                                  ? 'bg-rose-200 text-rose-800'
-                                  : 'bg-indigo-200 text-indigo-800'
-                              }`}>
-                                <PartyPopper className="w-3 h-3 flex-shrink-0" />
-                                <span className="truncate">{specialDate.name || 'Special'}</span>
-                              </div>
-                            )}
+                              <span
+                                className={`text-sm font-black transition-all ${
+                                  isToday && !isSelected
+                                    ? 'text-indigo-600 ring-2 ring-indigo-100 rounded-full w-8 h-8 flex items-center justify-center bg-indigo-50'
+                                    : ''
+                                }`}
+                              >
+                                {date.getDate()}
+                              </span>
+                              
+                              {isHoliday && (
+                                <div className="absolute top-2 right-2">
+                                  <PartyPopper className={`w-3 h-3 ${isSelected ? 'text-white' : 'text-rose-500'}`} />
+                                </div>
+                              )}
 
-                            {!isPast && !specialDate && !isSelected && (
-                              <div className="absolute bottom-3 right-3">
-                                <div className={`w-2.5 h-2.5 rounded-full shadow-sm border border-white ${
-                                  isAvailable ? 'bg-emerald-500 animate-pulse' : 'bg-slate-200'
-                                }`} />
-                              </div>
-                            )}
-                            
-                            {isToday && !isSelected && (
-                              <div className="absolute top-2 right-2 flex items-center gap-1">
-                                <span className="flex h-2 w-2 rounded-full bg-indigo-500 shadow-sm"></span>
-                              </div>
-                            )}
-                          </button>
-                        );
-                      })}
+                              {isAvailable && !isPast && !isHoliday && !isSelected && (
+                                <div className="absolute bottom-2 inset-x-0 flex justify-center">
+                                  <div className="h-1 w-1 rounded-full bg-emerald-500 shadow-sm" />
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
 
                   {/* Enhanced Legend */}
                   <div className="flex flex-wrap gap-6 justify-center items-center py-4 px-6 bg-white/50 backdrop-blur-md rounded-[2rem] border border-slate-200/50 shadow-sm">
@@ -829,106 +897,60 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
                   {/* Selected Date Modal/Section (Side Drawer-like feel) */}
                   {selectedDate && (
                     <Card className="border border-slate-200 shadow-lg bg-white text-slate-900 rounded-3xl overflow-hidden animate-in slide-in-from-right-10 duration-500">
-                      <CardHeader className="pb-3 bg-slate-50 px-5 py-5 border-b border-slate-100">
+                      <CardHeader className="pb-3 bg-slate-50 px-5 py-4 border-b border-slate-100">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-indigo-100 rounded-2xl flex items-center justify-center border border-indigo-200">
-                              <CalendarDays className="w-5 h-5 text-indigo-600" />
+                            <div className="w-8 h-8 bg-indigo-100 rounded-xl flex items-center justify-center border border-indigo-200">
+                              <CalendarDays className="w-4 h-4 text-indigo-600" />
                             </div>
                             <div>
-                              <CardTitle className="text-lg font-black tracking-tight leading-none">
-                                {selectedDate.toLocaleDateString('en-US', { weekday: 'long' })}
+                              <CardTitle className="text-sm font-black tracking-tight leading-none">
+                                {selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
                               </CardTitle>
-                              <CardDescription className="text-slate-500 font-bold mt-1 uppercase tracking-widest text-[10px]">
-                                {selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                              </CardDescription>
                             </div>
                           </div>
                           <button onClick={() => setSelectedDate(null)} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
-                            <X className="w-5 h-5 text-slate-500" />
+                            <X className="w-4 h-4 text-slate-400" />
                           </button>
                         </div>
                       </CardHeader>
-                      <CardContent className="px-5 py-5 space-y-4">
+                      <CardContent className="px-5 py-4">
                         {(() => {
                           const specialDate = getSpecialDateInfo(selectedDate);
-                          const dayName = DAYS_OF_WEEK[selectedDate.getDay()].key;
-                          const daySchedule = availability.weeklySchedule[dayName];
-
-                          if (specialDate) {
-                            return (
-                              <div className="space-y-6">
-                                <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-black uppercase tracking-widest ${
-                                  specialDate.type === 'holiday'
-                                    ? 'bg-rose-100 text-rose-700 border border-rose-200'
-                                    : 'bg-blue-100 text-blue-700 border border-blue-200'
-                                }`}>
-                                  <PartyPopper className="w-4 h-4" />
-                                  {specialDate.name || 'Custom Special Date'}
-                                </div>
-                                <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
-                                  <p className="text-slate-600 leading-relaxed font-medium text-sm">
-                                    {specialDate.isAvailable 
-                                      ? '⚡ Special operational window is active for this date.' 
-                                      : '⛔ This date is currently blocked for all public appointments.'}
-                                  </p>
-                                </div>
-                                <div className="flex gap-3">
-                                  <Button
-                                    variant="outline"
-                                    onClick={() => removeSpecialDate(selectedDate.toISOString().split('T')[0])}
-                                    className="bg-white hover:bg-rose-50 border-rose-200 text-rose-700 font-bold rounded-xl px-4 h-9 text-xs"
-                                  >
-                                    <X className="w-4 h-4 mr-2" />
-                                    Restore Default
-                                  </Button>
-                                </div>
-                              </div>
-                            );
-                          }
+                          const isHoliday = specialDate?.type === 'holiday';
 
                           return (
-                            <div className="space-y-4">
-                              <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                  <div className={`p-2 rounded-lg ${daySchedule.isAvailable ? 'bg-emerald-100' : 'bg-slate-200'}`}>
-                                    {daySchedule.isAvailable ? <CheckCircle className="text-emerald-600 w-5 h-5" /> : <XCircle className="text-slate-500 w-5 h-5" />}
-                                  </div>
-                                  <div>
-                                    <p className="font-black text-[10px] uppercase tracking-widest text-slate-500">Standard Rule</p>
-                                    <p className="text-sm font-bold mt-0.5">{daySchedule.isAvailable ? 'Regular Operations' : 'Closed for Weekend/Regular'}</p>
-                                  </div>
+                            <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                              <div className="flex items-center gap-3">
+                                <div className={`p-2 rounded-lg ${isHoliday ? 'bg-rose-100 text-rose-600' : 'bg-slate-100 text-slate-400'}`}>
+                                  <PartyPopper className="w-5 h-5" />
+                                </div>
+                                <div>
+                                  <p className="font-black text-[10px] uppercase tracking-widest text-slate-400">Action</p>
+                                  <p className="font-bold text-sm text-slate-800">Mark as Holiday</p>
                                 </div>
                               </div>
-                              
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
-                                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                                  <div className="flex items-center justify-between">
-                                    <div>
-                                      <p className="font-black text-[10px] uppercase tracking-widest text-slate-500">Holiday Toggle</p>
-                                      <h4 className="font-bold text-sm text-slate-800 mt-0.5">Mark as Holiday</h4>
-                                      <p className="text-[11px] text-slate-500 mt-1">
-                                        {getSpecialDateInfo(selectedDate)?.type === 'holiday' ? 'Selected: ON' : 'Selected: OFF'}
-                                      </p>
-                                    </div>
-                                    <button
-                                      type="button"
-                                      onClick={() => toggleHolidayForDate(selectedDate.toISOString().split('T')[0])}
-                                      className={`w-12 h-7 rounded-full transition-all duration-300 relative ${getSpecialDateInfo(selectedDate)?.type === 'holiday' ? 'bg-rose-500' : 'bg-slate-300'}`}
-                                      aria-label="Toggle mark as holiday"
-                                    >
-                                      <div
-                                        className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow-md transition-all duration-300 ${getSpecialDateInfo(selectedDate)?.type === 'holiday' ? 'translate-x-5' : 'translate-x-0'}`}
-                                        style={{ left: '4px' }}
-                                      />
-                                    </button>
-                                  </div>
-                                </div>
-
-                                <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-3 text-indigo-700 text-xs font-semibold">
-                                  Holiday setting will be saved when you click <strong>Apply Changes</strong>.
-                                </div>
-                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const y = selectedDate.getFullYear();
+                                  const m = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                                  const d = String(selectedDate.getDate()).padStart(2, '0');
+                                  toggleHolidayForDate(`${y}-${m}-${d}`);
+                                }}
+                                className={`w-14 h-8 rounded-full transition-colors duration-300 relative border-2 border-slate-900 ${
+                                  isHoliday 
+                                    ? 'bg-emerald-500 shadow-md' 
+                                    : 'bg-slate-200'
+                                }`}
+                              >
+                                <div
+                                  className={`absolute top-[2px] w-6 h-6 bg-white rounded-full border-2 border-slate-900 shadow-sm transition-transform duration-300 ease-in-out ${
+                                    isHoliday ? 'translate-x-[28px]' : 'translate-x-[0px]'
+                                  }`}
+                                  style={{ left: '2px' }}
+                                />
+                              </button>
                             </div>
                           );
                         })()}
@@ -975,7 +997,7 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
                                   key={holiday.date}
                                   onClick={() => {
                                     if (isAdded) {
-                                      removeSpecialDate(holiday.date);
+                                      removeSpecialDate(holiday.date.split('T')[0]);
                                     } else {
                                       addHoliday(holiday);
                                     }
@@ -1046,7 +1068,7 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
                                       <span className="text-[10px] font-black uppercase tracking-widest text-indigo-300/60 line-clamp-1">{sd.name || 'Custom Date'}</span>
                                     </div>
                                     <button
-                                      onClick={() => removeSpecialDate(sd.date)}
+                                      onClick={() => removeSpecialDate(sd.date.split('T')[0])}
                                       className="p-1.5 hover:bg-rose-500/20 hover:text-rose-400 rounded-lg text-white/20 transition-all opacity-0 group-hover:opacity-100"
                                     >
                                       <X className="w-3.5 h-3.5" />
