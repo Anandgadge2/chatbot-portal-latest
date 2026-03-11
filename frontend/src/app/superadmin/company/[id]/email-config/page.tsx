@@ -334,8 +334,8 @@ export default function EmailConfigPage() {
       <header className="bg-slate-900 sticky top-0 z-50 shadow-2xl border-b border-slate-800">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-10"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
               <Button
                 variant="ghost"
                 onClick={() => router.push(`/superadmin/company/${companyId}`)}
@@ -346,12 +346,12 @@ export default function EmailConfigPage() {
               <div className="w-11 h-11 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-md border border-white/20 shadow-inner">
                 <Mail className="w-5 h-5 text-blue-400" />
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-white tracking-tight leading-none">
+              <div className="min-w-0">
+                <h1 className="text-lg sm:text-xl font-bold text-white tracking-tight leading-none">
                   SMTP Relay Matrix
                 </h1>
-                <div className="flex items-center gap-2 mt-1.5">
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                <div className="flex items-center gap-2 mt-1.5 min-w-0">
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest truncate">
                     Mailing Node:{" "}
                     <span className="text-indigo-400">
                       {company?.name || "Loading..."}
@@ -361,24 +361,24 @@ export default function EmailConfigPage() {
               </div>
             </div>
             {!loading && (
-              <div className="flex items-center gap-2.5">
+              <div className="flex w-full md:w-auto items-center justify-end flex-wrap gap-2">
                 {config?._id && (
                   <>
                     <Button
                       onClick={handleTest}
                       disabled={testing}
                       variant="ghost"
-                      className="h-10 px-4 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-all border border-white/10 font-bold text-[11px] uppercase tracking-wider"
+                      className="h-9 sm:h-10 px-3 sm:px-4 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-all border border-white/10 font-bold text-[11px] uppercase tracking-wider"
                     >
-                      <CheckCircle className="w-4 h-4 mr-2" />
+                      <CheckCircle className="w-4 h-4 sm:mr-2" />
                       {testing ? "Verifying..." : "Test Connection"}
                     </Button>
                     <Button
                       onClick={() => setShowTestInput((v) => !v)}
                       variant="ghost"
-                      className="h-10 px-4 bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 rounded-xl transition-all border border-emerald-600/30 font-bold text-[11px] uppercase tracking-wider"
+                      className="h-9 sm:h-10 px-3 sm:px-4 bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 rounded-xl transition-all border border-emerald-600/30 font-bold text-[11px] uppercase tracking-wider"
                     >
-                      <Send className="w-4 h-4 mr-2" />
+                      <Send className="w-4 h-4 sm:mr-2" />
                       Send Test Email
                     </Button>
                   </>
@@ -388,7 +388,7 @@ export default function EmailConfigPage() {
                     <Button
                       onClick={handleSave}
                       disabled={saving}
-                      className="h-10 px-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all shadow-lg shadow-indigo-900/20 font-bold text-[11px] uppercase tracking-wider border-0"
+                      className="h-9 sm:h-10 px-4 sm:px-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all shadow-lg shadow-indigo-900/20 font-bold text-[11px] uppercase tracking-wider border-0"
                     >
                       <Save className="w-4 h-4 mr-2" />
                       {saving ? "Processing..." : "Deploy Changes"}
@@ -399,7 +399,7 @@ export default function EmailConfigPage() {
                         setIsEditing(false);
                         fetchData();
                       }}
-                      className="h-10 px-4 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-all border border-white/10 font-bold text-[11px] uppercase tracking-wider"
+                      className="h-9 sm:h-10 px-3 sm:px-4 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-all border border-white/10 font-bold text-[11px] uppercase tracking-wider"
                     >
                       Cancel
                     </Button>
@@ -407,7 +407,7 @@ export default function EmailConfigPage() {
                 ) : (
                   <Button
                     onClick={() => setIsEditing(true)}
-                    className="h-10 px-6 bg-slate-800 hover:bg-slate-700 text-white rounded-xl transition-all border border-slate-700 font-bold text-[11px] uppercase tracking-wider"
+                    className="h-9 sm:h-10 px-4 sm:px-6 bg-slate-800 hover:bg-slate-700 text-white rounded-xl transition-all border border-slate-700 font-bold text-[11px] uppercase tracking-wider"
                   >
                     Modify Config
                   </Button>
@@ -426,7 +426,7 @@ export default function EmailConfigPage() {
         <main className="max-w-[1600px] mx-auto w-full px-4 py-6 space-y-6">
           {/* Send Test Email Panel */}
           {showTestInput && (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center gap-3">
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3">
               <div className="flex-1">
                 <Label className="text-sm font-semibold text-emerald-800 mb-1 block">
                   Send a test email to verify SMTP is working
@@ -439,11 +439,11 @@ export default function EmailConfigPage() {
                   type="email"
                 />
               </div>
-              <div className="flex gap-2 pt-5">
+              <div className="flex w-full sm:w-auto gap-2 sm:pt-5">
                 <Button
                   onClick={handleSendTestEmail}
                   disabled={sendingTest}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-5"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-4 sm:px-5 flex-1 sm:flex-none"
                 >
                   <Send className="w-4 h-4 mr-2" />
                   {sendingTest ? "Sending..." : "Send"}
@@ -461,7 +461,7 @@ export default function EmailConfigPage() {
 
           {/* SMTP Settings */}
           <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
-            <CardHeader className="bg-slate-900 px-6 py-4 border-b border-slate-800">
+            <CardHeader className="bg-slate-900 px-4 sm:px-6 py-4 border-b border-slate-800">
               <CardTitle className="text-base font-bold text-white uppercase tracking-tight flex items-center gap-2">
                 <Shield className="w-4 h-4 text-blue-400" />
                 SMTP Relay Infrastructure Settings
@@ -470,7 +470,7 @@ export default function EmailConfigPage() {
                 Custom Outbound Mailing Services
               </p>
             </CardHeader>
-            <CardContent className="space-y-4 pt-5">
+            <CardContent className="space-y-4 pt-5 px-4 sm:px-6 pb-5">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="host">SMTP Host *</Label>
@@ -553,7 +553,7 @@ export default function EmailConfigPage() {
                     }
                     disabled={!isEditing}
                   />
-                  <Label htmlFor="isActive">
+                  <Label htmlFor="isActive" className="leading-snug">
                     Active (use this config for sending)
                   </Label>
                 </div>
@@ -563,7 +563,7 @@ export default function EmailConfigPage() {
 
           {/* Email Template Editor */}
           <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
-            <CardHeader className="bg-slate-900 px-6 py-4 border-b border-slate-800">
+            <CardHeader className="bg-slate-900 px-4 sm:px-6 py-4 border-b border-slate-800">
               <CardTitle className="text-base font-bold text-white uppercase tracking-tight flex items-center gap-2">
                 <Mail className="w-4 h-4 text-emerald-400" />
                 Mailing Payload Templates
@@ -573,9 +573,9 @@ export default function EmailConfigPage() {
                 event
               </p>
             </CardHeader>
-            <CardContent className="pt-5 space-y-4">
+            <CardContent className="pt-5 space-y-4 px-4 sm:px-6 pb-5">
               {/* Template selector + actions */}
-              <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
+              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
                 <div className="flex-1 space-y-1">
                   <Label className="text-sm font-semibold">Template</Label>
                   <select
@@ -596,7 +596,7 @@ export default function EmailConfigPage() {
                 <Button
                   onClick={handleLoadDefault}
                   variant="ghost"
-                  className="h-10 px-4 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg font-semibold text-xs gap-2"
+                  className="h-10 px-4 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg font-semibold text-xs gap-2 w-full sm:w-auto"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                   Load System Default
@@ -618,7 +618,7 @@ export default function EmailConfigPage() {
 
               {/* HTML editor with tabs */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <Label className="text-sm font-semibold">HTML Body</Label>
                   <div className="flex rounded-lg border border-slate-200 overflow-hidden">
                     <button
