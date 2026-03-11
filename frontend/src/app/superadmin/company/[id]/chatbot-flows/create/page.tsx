@@ -162,8 +162,8 @@ export default function CreateFlowPage() {
       {/* Header */}
       <header className="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 shadow-xl z-50">
         <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
               <Button
                 variant="ghost"
                 onClick={() =>
@@ -174,26 +174,26 @@ export default function CreateFlowPage() {
                 <ArrowLeft className="w-5 h-5" />
               </Button>
 
-              <div className="flex flex-col">
+              <div className="flex flex-col min-w-0">
                 <input
                   type="text"
                   value={flowName}
                   onChange={(e) => setFlowName(e.target.value)}
-                  className="text-lg font-bold text-white bg-transparent border-none p-0 focus:outline-none placeholder-white/50"
+                  className="text-base sm:text-lg font-bold text-white bg-transparent border-none p-0 focus:outline-none placeholder-white/50 truncate"
                   placeholder="Flow name..."
                 />
                 <input
                   type="text"
                   value={flowDescription}
                   onChange={(e) => setFlowDescription(e.target.value)}
-                  className="text-xs text-white/70 bg-transparent border-none p-0 focus:outline-none placeholder-white/30"
+                  className="text-xs text-white/70 bg-transparent border-none p-0 focus:outline-none placeholder-white/30 truncate"
                   placeholder="Add a description..."
                 />
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="hidden md:flex flex-col items-end mr-4 text-white/60 text-[10px] uppercase tracking-wider font-bold">
+            <div className="flex w-full md:w-auto items-center justify-end gap-2 sm:gap-3">
+              <div className="hidden lg:flex flex-col items-end mr-2 text-white/60 text-[10px] uppercase tracking-wider font-bold">
                 <span>Company Mode</span>
                 <span className="text-white/40">
                   ID: {companyId.substring(0, 8)}...
@@ -202,7 +202,7 @@ export default function CreateFlowPage() {
               <Button
                 onClick={handleSaveClick}
                 disabled={saving}
-                className="bg-white text-purple-600 hover:bg-white/90 transition-all rounded-xl px-6 h-10 font-bold shadow-lg disabled:opacity-50"
+                className="bg-white text-purple-600 hover:bg-white/90 transition-all rounded-xl px-4 sm:px-6 h-9 sm:h-10 font-bold shadow-lg disabled:opacity-50"
               >
                 <Save className="w-4 h-4 mr-2" />
                 {saving ? "Saving..." : "Save Flow"}

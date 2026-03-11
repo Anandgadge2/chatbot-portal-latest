@@ -23,6 +23,7 @@ import NodeSidebar from '../flow-builder/NodeSidebar';
 import FlowToolbar from '../flow-builder/FlowToolbar';
 import NodeConfigPanel from '../flow-builder/NodeConfigPanel';
 import { toast } from 'react-hot-toast';
+import { PanelLeft, X } from 'lucide-react';
 
 // Import custom node components
 import TextMessageNode from '../flow-builder/nodes/TextMessageNode';
@@ -81,6 +82,8 @@ export default function FlowCanvas({
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [selectedNode, setSelectedNode] = useState<FlowNode | null>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isNodeSidebarOpen, setIsNodeSidebarOpen] = useState(false);
 
   // Monitor nodes change
   useEffect(() => {
@@ -90,6 +93,18 @@ export default function FlowCanvas({
   useEffect(() => {
      console.log('🏗️ FlowCanvas mounted with initialNodes:', initialNodes.length);
   }, [initialNodes]);
+
+  useEffect(() => {
+    const updateViewportMode = () => {
+      const mobile = window.innerWidth < 1024;
+      setIsMobile(mobile);
+      if (!mobile) setIsNodeSidebarOpen(false);
+    };
+
+    updateViewportMode();
+    window.addEventListener('resize', updateViewportMode);
+    return () => window.removeEventListener('resize', updateViewportMode);
+  }, []);
   
   // Undo/Redo state
   const [history, setHistory] = useState<HistoryState[]>([{ nodes: initialNodes, edges: initialEdges }]);
@@ -466,12 +481,49 @@ export default function FlowCanvas({
 
   return (
     <DndContext sensors={sensors} onDragEnd={onDragEnd}>
-      <div className="flex h-screen bg-gray-50">
-        {/* Left Sidebar - Node Palette */}
-        <NodeSidebar />
+      <div className="relative flex h-screen bg-gray-50">
+        {/* Left Sidebar - Desktop Node Palette */}
+        <div className="hidden lg:block">
+          <NodeSidebar />
+        </div>
+
+        {/* Mobile Node Palette Toggle */}
+        {isMobile && (
+          <>
+            <button
+              onClick={() => setIsNodeSidebarOpen(true)}
+              className="absolute left-3 top-3 z-40 inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white/95 px-3 py-2 text-xs font-bold text-slate-700 shadow-lg backdrop-blur"
+            >
+              <PanelLeft className="h-4 w-4" />
+              Nodes
+            </button>
+
+            {isNodeSidebarOpen && (
+              <div className="absolute inset-0 z-50 flex">
+                <button
+                  className="flex-1 bg-slate-900/35"
+                  onClick={() => setIsNodeSidebarOpen(false)}
+                  aria-label="Close node palette"
+                />
+                <div className="w-[86vw] max-w-xs h-full bg-white shadow-2xl">
+                  <div className="flex items-center justify-between border-b border-slate-200 px-3 py-2">
+                    <h4 className="text-sm font-bold text-slate-800">Node Palette</h4>
+                    <button
+                      onClick={() => setIsNodeSidebarOpen(false)}
+                      className="rounded-md p-1.5 hover:bg-slate-100"
+                    >
+                      <X className="h-4 w-4 text-slate-600" />
+                    </button>
+                  </div>
+                  <NodeSidebar className="w-full border-r-0" hideCollapseToggle />
+                </div>
+              </div>
+            )}
+          </>
+        )}
 
         {/* Main Canvas */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
           {/* Toolbar */}
           <FlowToolbar
             nodes={nodes as FlowNode[]}
@@ -511,7 +563,7 @@ export default function FlowCanvas({
                   zIndex: 10,
                 }}
               />
-              <MiniMap
+              {!isMobile && <MiniMap
                 nodeColor={(node) => {
                   switch (node.type) {
                     case 'start':
@@ -527,7 +579,7 @@ export default function FlowCanvas({
                   }
                 }}
                 className="bg-white border border-gray-200 rounded-lg"
-              />
+              />}
               <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
               
               {/* Instructions Panel */}
@@ -551,6 +603,7 @@ export default function FlowCanvas({
         {selectedNode && (
           <NodeConfigPanel
             node={selectedNode}
+            isMobile={isMobile}
             onUpdate={(data) => updateNodeData(selectedNode.id, data)}
             onDelete={() => deleteNode(selectedNode.id)}
             onClose={() => setSelectedNode(null)}

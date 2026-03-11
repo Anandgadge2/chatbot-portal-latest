@@ -420,20 +420,20 @@ export default function FlowToolbar({
 
   return (
     <>
-      <div className="bg-white border-b border-gray-200 px-4 py-3">
-        <div className="flex items-center justify-between">
+      <div className="bg-white border-b border-gray-200 px-3 sm:px-4 py-3">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           {/* Left Section - Flow Name */}
-          <div className="flex items-center gap-3">
+          <div className="flex w-full xl:w-auto items-start sm:items-center gap-2 sm:gap-3 min-w-0">
             {showName && (
               <input
                 type="text"
                 value={flowName}
                 onChange={(e) => setFlowName(e.target.value)}
-                className="text-lg font-semibold bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-purple-500 rounded px-2 py-1"
+                className="text-base sm:text-lg font-semibold bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-purple-500 rounded px-2 py-1 min-w-[140px] max-w-[50vw] sm:max-w-none"
                 placeholder="Flow Name"
               />
             )}
-            <span className="text-sm text-gray-500">
+            <span className="text-xs sm:text-sm text-gray-500 whitespace-nowrap">
               {nodes.length} node{nodes.length !== 1 ? "s" : ""}, {edges.length}{" "}
               connection
               {edges.length !== 1 ? "s" : ""}
@@ -441,7 +441,7 @@ export default function FlowToolbar({
           </div>
 
           {/* Right Section - Actions */}
-          <div className="flex items-center gap-2">
+          <div className="flex w-full xl:w-auto items-center gap-2 overflow-x-auto pb-1">
             {/* Undo */}
             <Button
               variant="ghost"
@@ -464,14 +464,14 @@ export default function FlowToolbar({
               <Redo className="w-4 h-4" />
             </Button>
 
-            <div className="w-px h-6 bg-gray-300 mx-1" />
+            <div className="w-px h-6 bg-gray-300 mx-1 hidden sm:block" />
 
             {/* Load */}
             <Button
               variant="outline"
               size="sm"
               onClick={handleLoad}
-              className="gap-2"
+              className="gap-2 shrink-0"
               disabled={isLoading}
               title="Load saved flow"
             >
@@ -484,7 +484,7 @@ export default function FlowToolbar({
               variant="outline"
               size="sm"
               onClick={handleTest}
-              className="gap-2"
+              className="gap-2 shrink-0"
               disabled={nodes.length === 0 || isTesting}
               title="Test flow"
             >
@@ -503,14 +503,14 @@ export default function FlowToolbar({
               <Settings className="w-4 h-4" />
             </Button>
 
-            <div className="w-px h-6 bg-gray-300 mx-1" />
+            <div className="w-px h-6 bg-gray-300 mx-1 hidden sm:block" />
 
             {/* Validate */}
             <Button
               variant="outline"
               size="sm"
               onClick={onValidate}
-              className="gap-2"
+              className="gap-2 shrink-0"
             >
               <CheckCircle2 className="w-4 h-4" />
               Validate
@@ -521,7 +521,7 @@ export default function FlowToolbar({
               variant="outline"
               size="sm"
               onClick={handleExport}
-              className="gap-2"
+              className="gap-2 shrink-0"
               disabled={nodes.length === 0}
               title="Export as JSON"
             >
@@ -533,7 +533,7 @@ export default function FlowToolbar({
               variant="outline"
               size="sm"
               onClick={handleImport}
-              className="gap-2"
+              className="gap-2 shrink-0"
               title="Import from JSON"
             >
               <Upload className="w-4 h-4" />
@@ -545,7 +545,7 @@ export default function FlowToolbar({
                 size="sm"
                 onClick={handleSave}
                 disabled={isSaving || nodes.length === 0}
-                className="gap-2 bg-purple-600 hover:bg-purple-700"
+                className="gap-2 shrink-0 bg-purple-600 hover:bg-purple-700"
               >
                 <Save className="w-4 h-4" />
                 {isSaving ? "Saving..." : "Save"}
@@ -637,7 +637,7 @@ export default function FlowToolbar({
         )}
 
         {/* Keyboard Shortcuts Hint */}
-        <div className="mt-2 text-xs text-gray-500">
+        <div className="mt-2 text-xs text-gray-500 hidden sm:block">
           <span className="font-medium">Shortcuts:</span> Ctrl+S to validate •
           Ctrl+Z undo • Ctrl+Y redo • Delete to remove node
         </div>
