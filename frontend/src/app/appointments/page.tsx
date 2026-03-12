@@ -641,6 +641,14 @@ export default function AppointmentsPage() {
             ? (appointmentToAssign.subDepartmentId as any)._id
             : appointmentToAssign?.subDepartmentId
         }
+        userRole={user?.role}
+        userDepartmentId={
+          user?.departmentId &&
+          typeof user.departmentId === 'object'
+            ? (user.departmentId as any)._id
+            : user?.departmentId
+        }
+        currentUserId={user?.id}
       />
     </div>
   );

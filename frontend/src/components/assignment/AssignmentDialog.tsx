@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { userAPI, User } from '../../lib/api/user';
 import { departmentAPI, Department } from '../../lib/api/department';
-import { UserCircle, Building2, Search, Loader2, UserCheck, Mail, Shield, ChevronRight, X, Users, ArrowRight } from 'lucide-react';
+import { UserCircle, Building2, Search, Loader2, UserCheck, Mail, Shield, ChevronRight, X, Users, ArrowRight, Layers } from 'lucide-react';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '../ui/LoadingSpinner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -23,6 +23,12 @@ interface AssignmentDialogProps {
   currentUserId?: string; // Current logged-in user ID to filter out from assignee list
 }
 
+/**
+ * Role-based filtering rules:
+ * - COMPANY_ADMIN: sees ALL departments (top-level) and their sub-departments
+ * - DEPARTMENT_ADMIN: sees only their own department's sub-departments (dept dropdown locked to their dept)
+ * - Others (OPERATOR, SUB_DEPT users): sees only sub-departments of their own sub-department hierarchy
+ */
 export default function AssignmentDialog({
   isOpen,
   onClose,
@@ -38,27 +44,123 @@ export default function AssignmentDialog({
   currentUserId
 }: AssignmentDialogProps) {
   const { user: authUser } = useAuth();
+  const [allDepartments, setAllDepartments] = useState<Department[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const [departments, setDepartments] = useState<Department[]>([]);
-  const [subDepartments, setSubDepartments] = useState<Department[]>([]);
   const [selectedDepartment, setSelectedDepartment] = useState<string>('');
   const [selectedSubDepartment, setSelectedSubDepartment] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingDepts, setLoadingDepts] = useState(false);
   const [assigningUserId, setAssigningUserId] = useState<string | null>(null);
 
-  const isHierarchyEnabled = useMemo(() => {
-    return authUser?.enabledModules?.includes('HIERARCHY_DEPARTMENT');
-  }, [authUser]);
+  // Determine the effective role for filtering
+  const effectiveRole = userRole || authUser?.role || '';
 
+  // ──────────────────────────────────────────────────────────
+  // Derived data from allDepartments based on role
+  // ──────────────────────────────────────────────────────────
+
+  /**
+   * Top-level (parent) departments visible to the current user.
+   * - COMPANY_ADMIN: all departments with no parent
+   * - DEPARTMENT_ADMIN: only their own department (as the "top-level")
+   * - Others: the sub-department the user belongs to (treated as their scope)
+   */
+  const visibleTopDepts = useMemo(() => {
+    if (!allDepartments.length) return [];
+
+    if (effectiveRole === 'COMPANY_ADMIN') {
+      // Show all departments that have no parent (true top-level departments)
+      return allDepartments.filter(d => {
+        const pId = typeof d.parentDepartmentId === 'object'
+          ? (d.parentDepartmentId as any)?._id
+          : d.parentDepartmentId;
+        return !pId;
+      });
+    }
+
+    if (effectiveRole === 'DEPARTMENT_ADMIN' && userDepartmentId) {
+      // Show only the department admin's own department as the sole "parent"
+      const myDept = allDepartments.find(d => d._id === userDepartmentId);
+      return myDept ? [myDept] : [];
+    }
+
+    // For operators and other roles - show the department the user belongs to
+    if (userDepartmentId) {
+      const myDept = allDepartments.find(d => d._id === userDepartmentId);
+      if (myDept) {
+        // Check if user's dept is a sub-department (has a parent)
+        const pId = typeof myDept.parentDepartmentId === 'object'
+          ? (myDept.parentDepartmentId as any)?._id
+          : myDept.parentDepartmentId;
+        if (pId) {
+          // User is in a sub-dept; show the parent department
+          const parentDept = allDepartments.find(d => d._id === pId);
+          return parentDept ? [parentDept] : [myDept];
+        }
+        return [myDept];
+      }
+    }
+
+    // Fallback: show all top-level
+    return allDepartments.filter(d => {
+      const pId = typeof d.parentDepartmentId === 'object'
+        ? (d.parentDepartmentId as any)?._id
+        : d.parentDepartmentId;
+      return !pId;
+    });
+  }, [allDepartments, effectiveRole, userDepartmentId]);
+
+  /**
+   * Sub-departments under the currently selected top-level department.
+   * - COMPANY_ADMIN: all sub-departments of selected dept
+   * - DEPARTMENT_ADMIN: all sub-departments of their dept (selectedDept is locked to their dept)
+   * - Others: only sub-departments of the user's own sub-department scope
+   */
+  const visibleSubDepts = useMemo(() => {
+    if (!selectedDepartment || !allDepartments.length) return [];
+
+    const allSubOfSelected = allDepartments.filter(d => {
+      const pId = typeof d.parentDepartmentId === 'object'
+        ? (d.parentDepartmentId as any)?._id
+        : d.parentDepartmentId;
+      return pId === selectedDepartment;
+    });
+
+    if (effectiveRole === 'COMPANY_ADMIN' || effectiveRole === 'DEPARTMENT_ADMIN') {
+      return allSubOfSelected;
+    }
+
+    // For operators/others: if their assigned dept is a sub-dept within selectedDepartment,
+    // show only that sub-department (restrict to their own sub-dept)
+    if (userDepartmentId) {
+      const myDept = allDepartments.find(d => d._id === userDepartmentId);
+      if (myDept) {
+        const myParentId = typeof myDept.parentDepartmentId === 'object'
+          ? (myDept.parentDepartmentId as any)?._id
+          : myDept.parentDepartmentId;
+        if (myParentId === selectedDepartment) {
+          // User belongs to a sub-dept: only show their own sub-dept
+          return allSubOfSelected.filter(d => d._id === userDepartmentId);
+        }
+      }
+    }
+
+    return allSubOfSelected;
+  }, [selectedDepartment, allDepartments, effectiveRole, userDepartmentId]);
+
+  // ──────────────────────────────────────────────────────────
+  // Effects
+  // ──────────────────────────────────────────────────────────
+
+  // Reset on open/close
   useEffect(() => {
     if (isOpen) {
-      fetchDepartments();
+      fetchAllDepartments();
       setSearchQuery('');
     } else {
       setUsers([]);
-      setDepartments([]);
-      setSubDepartments([]);
+      setAllDepartments([]);
       setSelectedDepartment('');
       setSelectedSubDepartment('');
       setAssigningUserId(null);
@@ -66,93 +168,110 @@ export default function AssignmentDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, companyId]);
 
+  // Auto-select department once departments are loaded
   useEffect(() => {
-    if (departments.length > 0 && !selectedDepartment) {
-      if (currentDepartmentId) {
-        setSelectedDepartment(currentDepartmentId);
-        // If it's a sub-department actually, keep track
-        const dept = departments.find(d => d._id === currentDepartmentId);
-        const parentId = dept?.parentDepartmentId 
-          ? (typeof dept.parentDepartmentId === 'object' ? dept.parentDepartmentId._id : dept.parentDepartmentId)
-          : null;
-        
-        if (parentId && isHierarchyEnabled) {
+    if (!allDepartments.length || !isOpen) return;
+
+    if (selectedDepartment) return; // already selected
+
+    // Try to auto-select based on current grievance/appointment dept
+    if (currentDepartmentId) {
+      const dept = allDepartments.find(d => d._id === currentDepartmentId);
+      if (dept) {
+        const parentId = typeof dept.parentDepartmentId === 'object'
+          ? (dept.parentDepartmentId as any)?._id
+          : dept.parentDepartmentId;
+
+        if (parentId) {
+          // currentDepartmentId is actually a sub-dept; select the parent
           setSelectedDepartment(parentId);
           setSelectedSubDepartment(currentDepartmentId);
-        }
-      } else {
-        // Find first main department
-        const mainDept = departments.find(d => !d.parentDepartmentId);
-        if (mainDept) setSelectedDepartment(mainDept._id);
-        else setSelectedDepartment(departments[0]._id);
-      }
-    }
-    
-    // Specifically handle currentSubDepartmentId if provided explicitly
-    if (currentSubDepartmentId && isHierarchyEnabled && departments.length > 0) {
-      setSelectedSubDepartment(currentSubDepartmentId);
-    }
-  }, [departments, currentDepartmentId, currentSubDepartmentId, selectedDepartment, isHierarchyEnabled]);
-
-  useEffect(() => {
-    if (selectedDepartment && departments.length > 0) {
-      const subs = departments.filter(d => {
-        const pId = typeof d.parentDepartmentId === 'object' 
-          ? (d.parentDepartmentId as any)?._id 
-          : d.parentDepartmentId;
-        return pId === selectedDepartment;
-      });
-      setSubDepartments(subs);
-      
-      // Auto-select sub-department if it belongs to the newly selected parent
-      if (currentSubDepartmentId && subs.some(s => s._id === currentSubDepartmentId)) {
-        setSelectedSubDepartment(currentSubDepartmentId);
-      } else if (selectedSubDepartment) {
-        // Clear sub-dept if the parent changed and current sub-dept doesn't belong to it
-        const belongs = subs.some(s => s._id === selectedSubDepartment);
-        if (!belongs) {
-          setSelectedSubDepartment('');
+          return;
+        } else {
+          setSelectedDepartment(currentDepartmentId);
         }
       }
-    } else {
-      setSubDepartments([]);
     }
-  }, [selectedDepartment, departments, currentSubDepartmentId]);
 
+    // Handle currentSubDepartmentId
+    if (currentSubDepartmentId) {
+      const subDept = allDepartments.find(d => d._id === currentSubDepartmentId);
+      if (subDept) {
+        const parentId = typeof subDept.parentDepartmentId === 'object'
+          ? (subDept.parentDepartmentId as any)?._id
+          : subDept.parentDepartmentId;
+        if (parentId) {
+          setSelectedDepartment(parentId);
+          setSelectedSubDepartment(currentSubDepartmentId);
+          return;
+        }
+      }
+    }
+
+    // Default: lock to user's dept if DEPARTMENT_ADMIN or operator
+    if ((effectiveRole === 'DEPARTMENT_ADMIN' || effectiveRole === 'OPERATOR') && userDepartmentId) {
+      const myDept = allDepartments.find(d => d._id === userDepartmentId);
+      if (myDept) {
+        const parentId = typeof myDept.parentDepartmentId === 'object'
+          ? (myDept.parentDepartmentId as any)?._id
+          : myDept.parentDepartmentId;
+        if (parentId) {
+          setSelectedDepartment(parentId);
+          setSelectedSubDepartment(userDepartmentId);
+        } else {
+          setSelectedDepartment(userDepartmentId);
+        }
+        return;
+      }
+    }
+
+    // Fallback: select first visible top-level dept
+    if (visibleTopDepts.length > 0) {
+      setSelectedDepartment(visibleTopDepts[0]._id);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allDepartments, isOpen]);
+
+  // Clear sub-department if it doesn't belong to newly selected parent
   useEffect(() => {
-    if (isOpen && (selectedDepartment || selectedSubDepartment)) {
+    if (selectedSubDepartment && visibleSubDepts.length > 0) {
+      const belongs = visibleSubDepts.some(s => s._id === selectedSubDepartment);
+      if (!belongs) {
+        setSelectedSubDepartment('');
+      }
+    }
+  }, [selectedDepartment, visibleSubDepts, selectedSubDepartment]);
+
+  // Fetch users when department/subdept selection changes
+  useEffect(() => {
+    if (isOpen && selectedDepartment) {
       fetchUsers();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDepartment, selectedSubDepartment, isOpen]);
 
-  const fetchDepartments = async () => {
+  // ──────────────────────────────────────────────────────────
+  // API calls
+  // ──────────────────────────────────────────────────────────
+
+  const fetchAllDepartments = async () => {
+    setLoadingDepts(true);
     try {
-      const deptRes = await departmentAPI.getAll({ companyId });
+      // Fetch all departments (limit=500 to get all)
+      const deptRes = await departmentAPI.getAll({ companyId, limit: 500 });
       if (deptRes.success) {
-        let depts = deptRes.data.departments;
-        if (userRole === 'DEPARTMENT_ADMIN' && userDepartmentId) {
-          // If hierarchy is enabled, we might want to see sub-departments of this admin's department
-          // but for now let's keep it simple: filter only for the admin's specific department context if not hierarchy
-          if (!isHierarchyEnabled) {
-             depts = depts.filter(d => d._id === userDepartmentId);
-          } else {
-            // Include justice for sub-departments
-             depts = depts.filter(d => {
-               const pId = typeof d.parentDepartmentId === 'object' ? d.parentDepartmentId?._id : d.parentDepartmentId;
-               return d._id === userDepartmentId || pId === userDepartmentId;
-             });
-          }
-        }
-        setDepartments(depts);
+        setAllDepartments(deptRes.data.departments);
       }
     } catch (error) {
       toast.error('Failed to load departments');
       console.error(error);
+    } finally {
+      setLoadingDepts(false);
     }
   };
 
   const fetchUsers = async () => {
+    // Use sub-department if selected, otherwise use the top-level department
     const targetDeptId = selectedSubDepartment || selectedDepartment;
     if (!targetDeptId) return;
     
@@ -190,7 +309,7 @@ export default function AssignmentDialog({
       await onAssign(userId, userDeptId);
       
       if (userDeptId && currentDepartmentId && userDeptId !== currentDepartmentId) {
-        const newDept = departments.find(d => d._id === userDeptId);
+        const newDept = allDepartments.find(d => d._id === userDeptId);
         toast.success(
           `${itemType === 'grievance' ? 'Grievance' : 'Appointment'} assigned to ${userName} and transferred to ${newDept?.name || 'new department'}`,
           { id: toastId, duration: 4000 }
@@ -214,7 +333,6 @@ export default function AssignmentDialog({
       return `${currentAssignee.firstName} ${currentAssignee.lastName}`;
     }
     
-    // If it's a string, it might be an ID. Try to find in loaded users.
     const userInList = users.find(u => u._id === currentAssignee || u.userId === currentAssignee);
     if (userInList) return `${userInList.firstName} ${userInList.lastName}`;
     
@@ -222,13 +340,11 @@ export default function AssignmentDialog({
   };
 
   const filteredUsers = useMemo(() => {
-    // First, filter out the current user (department admin cannot assign to themselves)
     let filtered = users;
     if (currentUserId) {
       filtered = filtered.filter(user => user._id !== currentUserId);
     }
     
-    // Then apply search filter
     if (!searchQuery) return filtered;
     
     const query = searchQuery.toLowerCase();
@@ -252,6 +368,12 @@ export default function AssignmentDialog({
         return 'bg-gray-100 text-gray-700 border-gray-200';
     }
   };
+
+  // Whether the department dropdown should be disabled (locked)
+  const isDeptLocked = effectiveRole === 'DEPARTMENT_ADMIN' || 
+    (effectiveRole !== 'COMPANY_ADMIN' && effectiveRole !== 'SUPER_ADMIN' && !!userDepartmentId);
+
+  const hasSubDepts = visibleSubDepts.length > 0;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -290,6 +412,7 @@ export default function AssignmentDialog({
         <div className="p-5 space-y-4 flex-1 overflow-hidden flex flex-col bg-slate-50">
           {/* Filters */}
           <div className="flex flex-col space-y-3">
+            {/* Search */}
             <div className="relative group">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4 group-focus-within:text-indigo-500 transition-colors" />
               <input
@@ -301,50 +424,32 @@ export default function AssignmentDialog({
               />
             </div>
 
-            <div className={`grid grid-cols-1 ${isHierarchyEnabled ? 'md:grid-cols-2' : ''} gap-3`}>
-              <div className="relative group">
-                <Building2 className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4 group-focus-within:text-indigo-500 transition-colors" />
-                <select
-                  value={selectedDepartment}
-                  onChange={(e) => {
-                    setSelectedDepartment(e.target.value);
-                    setSelectedSubDepartment('');
-                  }}
-                  className="w-full pl-11 pr-10 py-3 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm transition-all bg-white shadow-sm appearance-none cursor-pointer font-bold"
-                  required
-                  disabled={userRole === 'DEPARTMENT_ADMIN'}
-                >
-                  <option value="" disabled>Select Department</option>
-                  {departments
-                    .filter((dept) => {
-                      const parentId =
-                        typeof dept.parentDepartmentId === "object"
-                          ? (dept.parentDepartmentId as any)?._id
-                          : dept.parentDepartmentId;
-                      if (!parentId) return true;
-                      // If the parent is not in our list, treat as top-level for this view
-                      return !departments.some((d) => d._id === parentId);
-                    })
-                    .map((dept) => (
-                      <option key={dept._id} value={dept._id}>
-                        {dept.name}
-                      </option>
-                    ))}
-                </select>
-                <ChevronRight className="absolute right-4 top-1/2 transform -translate-y-1/2 rotate-90 text-slate-400 w-4 h-4 pointer-events-none" />
-              </div>
-
-              {isHierarchyEnabled && (
+            {/* Department & Sub-Department Dropdowns - Always shown */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {/* Department Dropdown */}
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1 flex items-center gap-1.5">
+                  <Building2 className="w-3.5 h-3.5 text-indigo-400" />
+                  Department
+                  {isDeptLocked && (
+                    <span className="text-[9px] bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded-full border">Locked</span>
+                  )}
+                </label>
                 <div className="relative group">
-                  <ArrowRight className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4 group-focus-within:text-indigo-500 transition-colors" />
+                  <Building2 className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4 group-focus-within:text-indigo-500 transition-colors" />
                   <select
-                    value={selectedSubDepartment}
-                    onChange={(e) => setSelectedSubDepartment(e.target.value)}
-                    className="w-full pl-11 pr-10 py-3 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm transition-all bg-white shadow-sm appearance-none cursor-pointer font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={!selectedDepartment || subDepartments.length === 0}
+                    value={selectedDepartment}
+                    onChange={(e) => {
+                      setSelectedDepartment(e.target.value);
+                      setSelectedSubDepartment('');
+                    }}
+                    className="w-full pl-11 pr-10 py-3 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm transition-all bg-white shadow-sm appearance-none cursor-pointer font-bold disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-slate-50"
+                    disabled={isDeptLocked || loadingDepts}
                   >
-                    <option value="">Select Sub Department (Optional)</option>
-                    {subDepartments.map((dept) => (
+                    <option value="" disabled>
+                      {loadingDepts ? 'Loading...' : 'Select Department'}
+                    </option>
+                    {visibleTopDepts.map((dept) => (
                       <option key={dept._id} value={dept._id}>
                         {dept.name}
                       </option>
@@ -352,8 +457,59 @@ export default function AssignmentDialog({
                   </select>
                   <ChevronRight className="absolute right-4 top-1/2 transform -translate-y-1/2 rotate-90 text-slate-400 w-4 h-4 pointer-events-none" />
                 </div>
-              )}
+              </div>
+
+              {/* Sub-Department Dropdown */}
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1 flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5 text-purple-400" />
+                  Sub Department
+                  {!hasSubDepts && selectedDepartment && (
+                    <span className="text-[9px] bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded-full border">None available</span>
+                  )}
+                </label>
+                <div className="relative group">
+                  <Layers className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4 group-focus-within:text-purple-500 transition-colors" />
+                  <select
+                    value={selectedSubDepartment}
+                    onChange={(e) => setSelectedSubDepartment(e.target.value)}
+                    className="w-full pl-11 pr-10 py-3 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm transition-all bg-white shadow-sm appearance-none cursor-pointer font-bold disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-50"
+                    disabled={!selectedDepartment || !hasSubDepts}
+                  >
+                    <option value="">
+                      {!selectedDepartment 
+                        ? 'Select dept. first' 
+                        : !hasSubDepts 
+                          ? 'No sub-departments' 
+                          : 'All (show dept. users)'}
+                    </option>
+                    {visibleSubDepts.map((dept) => (
+                      <option key={dept._id} value={dept._id}>
+                        {dept.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronRight className="absolute right-4 top-1/2 transform -translate-y-1/2 rotate-90 text-slate-400 w-4 h-4 pointer-events-none" />
+                </div>
+              </div>
             </div>
+
+            {/* Info banner showing current filter scope */}
+            {selectedDepartment && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-indigo-50 rounded-xl border border-indigo-100 text-xs text-indigo-600 font-medium">
+                <Building2 className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>
+                  Showing users from: <strong>
+                    {selectedSubDepartment 
+                      ? visibleSubDepts.find(d => d._id === selectedSubDepartment)?.name 
+                      : visibleTopDepts.find(d => d._id === selectedDepartment)?.name}
+                  </strong>
+                  {selectedSubDepartment && (
+                    <span className="text-indigo-400"> (sub-department)</span>
+                  )}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Users List */}

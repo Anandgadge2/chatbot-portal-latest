@@ -473,6 +473,14 @@ export default function ResolvedGrievancesPage() {
             ? (grievanceToAssign.subDepartmentId as any)._id
             : grievanceToAssign?.subDepartmentId
         }
+        userRole={user?.role}
+        userDepartmentId={
+          user?.departmentId &&
+          typeof user.departmentId === 'object'
+            ? (user.departmentId as any)._id
+            : user?.departmentId
+        }
+        currentUserId={user?.id}
       />
     </div>
   );
