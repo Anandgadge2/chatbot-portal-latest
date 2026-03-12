@@ -104,9 +104,9 @@ export default function AppointmentsPage() {
     setAssignDialogOpen(true);
   };
 
-  const handleAssign = async (userId: string) => {
+  const handleAssign = async (userId: string, departmentId?: string) => {
     if (!appointmentToAssign) return;
-    await appointmentAPI.assign(appointmentToAssign._id, userId);
+    await appointmentAPI.assign(appointmentToAssign._id, userId, departmentId);
     await fetchAppointments();
   };
 
@@ -629,6 +629,18 @@ export default function AppointmentsPage() {
         itemId={appointmentToAssign?._id || ""}
         companyId={companyId}
         currentAssignee={appointmentToAssign?.assignedTo}
+        currentDepartmentId={
+          appointmentToAssign?.departmentId &&
+          typeof appointmentToAssign.departmentId === 'object'
+            ? (appointmentToAssign.departmentId as any)._id
+            : appointmentToAssign?.departmentId
+        }
+        currentSubDepartmentId={
+          appointmentToAssign?.subDepartmentId &&
+          typeof appointmentToAssign.subDepartmentId === 'object'
+            ? (appointmentToAssign.subDepartmentId as any)._id
+            : appointmentToAssign?.subDepartmentId
+        }
       />
     </div>
   );

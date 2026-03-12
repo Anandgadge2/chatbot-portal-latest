@@ -26,7 +26,13 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
     if (currentUser.role === UserRole.SUPER_ADMIN) {
       // SuperAdmin can see all users, optionally filter by company/dept
       if (companyId) query.companyId = companyId;
-      if (departmentId) query.departmentId = departmentId;
+      if (departmentId) {
+        if (typeof departmentId === 'string' && departmentId.includes(',')) {
+          query.departmentId = { $in: departmentId.split(',') };
+        } else {
+          query.departmentId = departmentId;
+        }
+      }
     } else {
       // All other users are scoped by their company
       query.companyId = currentUser.companyId;
@@ -36,7 +42,11 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
       if (currentUser.departmentId) {
         query.departmentId = currentUser.departmentId;
       } else if (departmentId) {
-        query.departmentId = departmentId;
+        if (typeof departmentId === 'string' && departmentId.includes(',')) {
+          query.departmentId = { $in: departmentId.split(',') };
+        } else {
+          query.departmentId = departmentId;
+        }
       }
     }
 

@@ -341,8 +341,7 @@ export async function getHierarchicalDepartmentAdmins(departmentId: any): Promis
       const dept = await Department.findById(currentDeptId);
       if (!dept) break;
 
-      // Dynamically identify roles that have department management permissions
-      // NOTE: permission values are not consistently cased across deployments.
+      // 🔍 1. Find Roles with Department Management Permissions
       const Role = (await import('../models/Role')).default;
       const adminRoles = await Role.find({
         companyId: dept.companyId,
@@ -353,40 +352,69 @@ export async function getHierarchicalDepartmentAdmins(departmentId: any): Promis
           }
         }
       }).select('_id name');
+      
       const adminRoleIds = adminRoles.map(r => r._id);
       const adminRoleNames = adminRoles.map(r => r.name);
 
-      // FIX: Use case-insensitive $in for role names fallback
-      // Standardize by allowing both spaces and underscores interchangeably
+      // Standardize role names for fallback (Sub Department Admin -> SUB_DEPARTMENT_ADMIN)
       const adminRoleNamesRegex = adminRoleNames.map(name => {
-        const pattern = name.replace(/[ _]/g, '[ _]');
+        const pattern = name.trim().replace(/[ _]/g, '[ _]');
         return new RegExp(`^${pattern}$`, 'i');
       });
-      
-      const levelAdmins = await User.find({
-        departmentId: currentIdStr,
+
+      // 🔍 2. Build Query for Admins at this level
+      const adminQuery: any = {
+        departmentId: new mongoose.Types.ObjectId(currentIdStr),
+        isActive: true,
         $or: [
           { customRoleId: { $in: adminRoleIds } },
           { role: { $in: adminRoleNamesRegex } },
-          { role: { $in: adminRoleNames } } // exact match fallback
-        ],
-        isActive: true
-      }).populate('customRoleId');
+          { role: { $in: adminRoleNames } },
+          // 🛡️ HARDCODED FALLBACKS for standard nomenclature
+          { role: { $regex: /^(SUB_)?DEPARTMENT_ADMIN|COMPANY_ADMIN$/i } },
+          { role: 'SUB_DEPARTMENT_ADMIN' },
+          { role: 'DEPARTMENT_ADMIN' }
+        ]
+      };
+
+      const levelAdmins = await User.find(adminQuery).populate('customRoleId');
+      
+      if (levelAdmins.length === 0) {
+        logger.info(`ℹ️ No admins found directly in ${dept.name} (${currentIdStr}). Checking parent...`);
+      } else {
+        logger.info(`✅ Found ${levelAdmins.length} potential admins in ${dept.name}`);
+      }
+
+      // 🔍 3. Sort Admins: Prioritize "Head", "Chief", "HOD", "Dist" in designation/role
+      levelAdmins.sort((a, b) => {
+        const headTerms = /head|chief|hod|manager|collector|dist|registrar/i;
+        const isAHead = headTerms.test(a.designation || '') || headTerms.test(a.role || '');
+        const isBHead = headTerms.test(b.designation || '') || headTerms.test(b.role || '');
+        
+        if (isAHead && !isBHead) return -1;
+        if (!isAHead && isBHead) return 1;
+        return 0;
+      });
 
       for (const admin of levelAdmins) {
-        const alreadyAdded = admins.some(a => a._id.toString() === admin._id.toString());
-        if (!alreadyAdded) admins.push(admin);
+        if (!admins.find(a => a._id.toString() === admin._id.toString())) {
+          admins.push(admin);
+        }
       }
 
+      // Move up the hierarchy
       currentDeptId = dept.parentDepartmentId;
-      if (currentDeptId) {
-        logger.info(`🔍 Traversing up hierarchy: ${dept.name} -> Checking parent admin.`);
-      }
+    }
+
+    if (admins.length === 0) {
+      logger.warn(`⚠️ Hierarchical admin lookup total FAILURE for department ID: ${departmentId}`);
+    } else {
+      logger.info(`🎯 Hierarchical admin lookup successful: Found ${admins.length} total across chain.`);
     }
 
     return admins;
   } catch (error) {
-    logger.error('Error getting hierarchical department admins:', error);
+    logger.error('❌ Error in getHierarchicalDepartmentAdmins:', error);
     return admins;
   }
 }
@@ -691,7 +719,8 @@ export async function notifyCitizenOnCreation(
     }
 
     // 📱 WhatsApp
-    let message = await getNotificationWhatsAppMessage(data.companyId, data.type, 'confirmation', fullData);
+    const actionKey = data.action || 'confirmation';
+    let message = await getNotificationWhatsAppMessage(data.companyId, data.type, actionKey, fullData);
     if (!message) {
       const typeLabel = data.type === 'grievance' ? 'GRIEVANCE' : 'APPOINTMENT';
       const idLabel = data.type === 'grievance' ? 'Grievance ID' : 'Appointment ID';
@@ -712,7 +741,7 @@ export async function notifyCitizenOnCreation(
         `*${fullData.companyName}*\n` +
         `Digital Portal`;
     }
-    await safeSendWhatsApp(company, data.citizenPhone, message);
+    await safeSendWhatsApp(company, data.citizenWhatsApp || data.citizenPhone, message);
 
   } catch (error) {
     logger.error('❌ notifyCitizenOnCreation failed:', error);

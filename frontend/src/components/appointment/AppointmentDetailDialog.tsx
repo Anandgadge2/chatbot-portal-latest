@@ -225,7 +225,7 @@ const AppointmentDetailDialog: React.FC<AppointmentDetailDialogProps> = ({
               </h3>
             </div>
             <div className="p-5">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
                   <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
                     <User className="w-5 h-5 text-blue-600" />
@@ -249,26 +249,12 @@ const AppointmentDetailDialog: React.FC<AppointmentDetailDialogProps> = ({
                       Phone Number
                     </p>
                     <p className="text-sm font-bold text-slate-800">
-                      {appointment.citizenPhone}
+                      {appointment.citizenPhone.replace(/\D/g, '').slice(-10)}
                     </p>
                   </div>
                 </div>
 
-                {appointment.citizenWhatsApp && (
-                  <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
-                    <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <MessageCircle className="w-5 h-5 text-emerald-600" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
-                        WhatsApp
-                      </p>
-                      <p className="text-sm font-bold text-slate-800">
-                        {appointment.citizenWhatsApp}
-                      </p>
-                    </div>
-                  </div>
-                )}
+
               </div>
             </div>
           </div>

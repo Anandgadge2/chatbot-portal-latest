@@ -212,7 +212,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
         {/* Scrollable Content */}
         <div className="overflow-y-auto flex-1 p-5 space-y-5 custom-scrollbar">
           {/* Quick Info Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-3 border border-blue-100">
               <div className="flex items-center gap-2 mb-1.5">
                 <div className="w-7 h-7 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -223,36 +223,14 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                 </span>
               </div>
               <p
-                className="text-sm font-bold text-gray-900 truncate"
+                className="text-sm font-bold text-gray-900 break-words whitespace-normal"
                 title={grievance.citizenName}
               >
                 {grievance.citizenName}
               </p>
             </div>
 
-            <div className="bg-gradient-to-br from-purple-50 to-fuchsia-50 rounded-xl p-3 border border-purple-100 group relative">
-              <div className="flex items-center gap-2 mb-1.5">
-                <div className="w-7 h-7 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Tag className="w-3.5 h-3.5 text-purple-600" />
-                </div>
-                <span className="text-[10px] font-bold text-purple-600 uppercase">
-                  Category
-                </span>
-              </div>
-              <p
-                className="text-sm font-bold text-gray-900 truncate"
-                title={grievance.category || "General"}
-              >
-                {grievance.category || "General"}
-              </p>
-              {/* Tooltip for full category name */}
-              {grievance.category && grievance.category.length > 15 && (
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-50 pointer-events-none shadow-lg">
-                  {grievance.category}
-                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
-                </div>
-              )}
-            </div>
+
 
             <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-3 border border-emerald-100">
               <div className="flex items-center gap-2 mb-1.5">
@@ -302,7 +280,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                       Main Department
                     </p>
                     <p
-                      className="text-sm font-bold text-slate-800 truncate"
+                      className="text-sm font-bold text-slate-800 break-words whitespace-normal"
                       title={
                         typeof grievance.departmentId === "object" &&
                         grievance.departmentId
@@ -328,7 +306,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                         Sub-Department
                       </p>
                       <p
-                        className="text-sm font-bold text-slate-800 truncate"
+                        className="text-sm font-bold text-slate-800 break-words whitespace-normal"
                         title={
                           typeof grievance.subDepartmentId === "object" &&
                           grievance.subDepartmentId
@@ -357,7 +335,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
               </h3>
             </div>
             <div className="p-5">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
                   <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
                     <User className="w-5 h-5 text-blue-600" />
@@ -366,7 +344,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
                       Full Name
                     </p>
-                    <p className="text-sm font-bold text-slate-800 truncate">
+                    <p className="text-sm font-bold text-slate-800 break-words whitespace-normal">
                       {grievance.citizenName}
                     </p>
                   </div>
@@ -381,26 +359,12 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                       Phone Number
                     </p>
                     <p className="text-sm font-bold text-slate-800">
-                      {grievance.citizenPhone}
+                      {grievance.citizenPhone.replace(/\D/g, '').slice(-10)}
                     </p>
                   </div>
                 </div>
 
-                {grievance.citizenWhatsApp && (
-                  <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
-                    <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <MessageCircle className="w-5 h-5 text-emerald-600" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
-                        WhatsApp
-                      </p>
-                      <p className="text-sm font-bold text-slate-800">
-                        {grievance.citizenWhatsApp}
-                      </p>
-                    </div>
-                  </div>
-                )}
+
               </div>
             </div>
           </div>

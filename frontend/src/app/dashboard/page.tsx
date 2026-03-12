@@ -302,7 +302,7 @@ function DashboardContent() {
   const [userPagination, setUserPagination] = useState({
     total: 0,
     pages: 1,
-    limit: 10,
+    limit: 20,
   });
 
   // Sorting State
@@ -3910,7 +3910,7 @@ function DashboardContent() {
               !user.companyId) && (
               <TabsContent value="grievances" className="space-y-6">
                 {/* Back Button - Show when coming from overview (not for operators) */}
-                {previousTab === "overview" && hasPermission(user, Permission.VIEW_ANALYTICS) && (
+                {/* {previousTab === "overview" && hasPermission(user, Permission.VIEW_ANALYTICS) && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -3923,7 +3923,7 @@ function DashboardContent() {
                     <ArrowLeft className="w-4 h-4 mr-2" />
                     Back to Overview
                   </Button>
-                )}
+                )} */}
                 <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
                   <CardHeader className="bg-slate-900 px-6 py-4">
                     <div className="flex items-center justify-between">
@@ -4390,7 +4390,7 @@ function DashboardContent() {
                                           {grievance.citizenName}
                                         </button>
                                         <span className="text-xs text-gray-500">
-                                          {grievance.citizenPhone}
+                                          {grievance.citizenPhone.replace(/\D/g, '').slice(-10)}
                                         </span>
                                       </div>
                                     </td>
@@ -4417,24 +4417,35 @@ function DashboardContent() {
                                       <div className="flex flex-col">
                                         {grievance.assignedTo ? (
                                           <>
-                                            <span className="text-xs font-semibold text-green-700">
-                                              {typeof grievance.assignedTo ===
-                                              "object"
-                                                ? `${(grievance.assignedTo as any).firstName} ${(grievance.assignedTo as any).lastName}`
-                                                : grievance.assignedTo}
-                                            </span>
+                                            <div className="flex items-center gap-1.5 mb-0.5">
+                                              <span className="text-xs font-semibold text-indigo-700">
+                                                {typeof grievance.assignedTo === "object" && grievance.assignedTo !== null
+                                                  ? `${(grievance.assignedTo as any).firstName} ${(grievance.assignedTo as any).lastName}`
+                                                  : // Fallback: try to find in users list if it's just an ID
+                                                    users.find(u => u._id === grievance.assignedTo || u.userId === grievance.assignedTo)?.firstName 
+                                                    ? (() => {
+                                                        const found = users.find(u => u._id === grievance.assignedTo || u.userId === grievance.assignedTo);
+                                                        return `${found?.firstName} ${found?.lastName}`;
+                                                      })()
+                                                    : grievance.assignedTo}
+                                              </span>
+                                              {typeof grievance.assignedTo === "object" && (grievance.assignedTo as any).designation && (
+                                                <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-full font-medium">
+                                                  {(grievance.assignedTo as any).designation}
+                                                </span>
+                                              )}
+                                            </div>
                                             {grievance.assignedAt && (
-                                              <span className="text-[10px] text-gray-400">
-                                                {new Date(
-                                                  grievance.assignedAt,
-                                                ).toLocaleDateString()}
+                                              <span className="text-[10px] text-slate-400 font-medium">
+                                                Assigned: {new Date(grievance.assignedAt).toLocaleDateString()}
                                               </span>
                                             )}
                                           </>
                                         ) : (
-                                          <span className="text-xs text-gray-400 italic">
-                                            Not assigned
-                                          </span>
+                                          <div className="flex items-center gap-1.5 text-slate-400 italic">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                                            <span className="text-[11px]">Unassigned</span>
+                                          </div>
                                         )}
                                       </div>
                                     </td>
@@ -4548,7 +4559,7 @@ function DashboardContent() {
                                     <td className="px-4 py-4">
                                       <div className="flex items-center justify-center space-x-1">
                                         {hasPermission(user, Permission.ASSIGN_GRIEVANCE) &&
-                                          (user?.role === "COMPANY_ADMIN" ||
+                                          (isCompanyLevel ||
                                             (grievance.status !== "RESOLVED" &&
                                               grievance.status !== "CLOSED" &&
                                               grievance.status !== "REJECTED")) && (
@@ -4563,8 +4574,8 @@ function DashboardContent() {
                                                   true,
                                                 );
                                               }}
-                                              title="Assign"
-                                              className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                              title="Assign/Reassign Official"
+                                              className="h-8 w-8 p-0 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors"
                                             >
                                               <svg
                                                 className="w-4 h-4"
@@ -6184,6 +6195,12 @@ function DashboardContent() {
               typeof selectedGrievanceForAssignment.departmentId === "object"
                 ? selectedGrievanceForAssignment.departmentId._id
                 : selectedGrievanceForAssignment.departmentId
+            }
+            currentSubDepartmentId={
+              selectedGrievanceForAssignment.subDepartmentId &&
+              typeof selectedGrievanceForAssignment.subDepartmentId === "object"
+                ? selectedGrievanceForAssignment.subDepartmentId._id
+                : selectedGrievanceForAssignment.subDepartmentId
             }
             userRole={user.role}
             userDepartmentId={

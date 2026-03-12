@@ -460,14 +460,30 @@ export async function getNotificationWhatsAppMessage(
   action: string,
   data: Record<string, any>
 ): Promise<string | null> {
-  const key = `${type}_${action}`;
   const cid = typeof companyId === 'string' && mongoose.Types.ObjectId.isValid(companyId)
     ? new mongoose.Types.ObjectId(companyId)
     : companyId;
-  const template = await CompanyWhatsAppTemplate.findOne({ companyId: cid, templateKey: key as any, isActive: true });
-  if (template && template.message && template.message.trim()) {
-    return replacePlaceholders(template.message.trim(), data);
+    
+  const attemptKeys = [
+    `${type}_${action}`,
+    action === 'confirmation' ? `${type}_created` : '',
+    action === 'created' ? `${type}_confirmation` : ''
+  ].filter(Boolean);
+
+  for (const key of attemptKeys) {
+    const template = await CompanyWhatsAppTemplate.findOne({ 
+      companyId: cid, 
+      templateKey: key as any, 
+      isActive: true 
+    });
+    
+    if (template && template.message && template.message.trim()) {
+      logger.info(`✅ Found WhatsApp template for key: ${key}`);
+      return replacePlaceholders(template.message.trim(), data);
+    }
   }
+
+  logger.warn(`⚠️ No active WhatsApp template found for keys: ${attemptKeys.join(', ')}`);
   return null;
 }
 

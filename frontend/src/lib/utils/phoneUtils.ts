@@ -56,8 +56,8 @@ export function validatePhoneNumber(phone: string): boolean {
   // Remove all non-digit characters
   const digitsOnly = phone.replace(/\D/g, '');
   
-  // Must be exactly 10 digits or 12 digits starting with 91
-  return digitsOnly.length === 10 || (digitsOnly.length === 12 && digitsOnly.startsWith('91'));
+  // Must be exactly 10 digits
+  return digitsOnly.length === 10;
 }
 
 /**

@@ -330,7 +330,7 @@ export default function StatusUpdateModal({
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-150">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[91vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[95vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
         {/* Dark Header */}
         <div className="bg-slate-900 p-5 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">

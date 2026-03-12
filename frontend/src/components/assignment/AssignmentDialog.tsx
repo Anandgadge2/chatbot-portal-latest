@@ -3,9 +3,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { userAPI, User } from '../../lib/api/user';
 import { departmentAPI, Department } from '../../lib/api/department';
-import { UserCircle, Building2, Search, Loader2, UserCheck, Mail, Shield, ChevronRight, X, Users } from 'lucide-react';
+import { UserCircle, Building2, Search, Loader2, UserCheck, Mail, Shield, ChevronRight, X, Users, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '../ui/LoadingSpinner';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AssignmentDialogProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ interface AssignmentDialogProps {
   companyId: string;
   currentAssignee?: string | { _id: string; firstName: string; lastName: string };
   currentDepartmentId?: string;
+  currentSubDepartmentId?: string;
   userRole?: string;
   userDepartmentId?: string;
   currentUserId?: string; // Current logged-in user ID to filter out from assignee list
@@ -30,16 +32,24 @@ export default function AssignmentDialog({
   companyId,
   currentAssignee,
   currentDepartmentId,
+  currentSubDepartmentId,
   userRole,
   userDepartmentId,
   currentUserId
 }: AssignmentDialogProps) {
+  const { user: authUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [subDepartments, setSubDepartments] = useState<Department[]>([]);
   const [selectedDepartment, setSelectedDepartment] = useState<string>('');
+  const [selectedSubDepartment, setSelectedSubDepartment] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [assigningUserId, setAssigningUserId] = useState<string | null>(null);
+
+  const isHierarchyEnabled = useMemo(() => {
+    return authUser?.enabledModules?.includes('HIERARCHY_DEPARTMENT');
+  }, [authUser]);
 
   useEffect(() => {
     if (isOpen) {
@@ -47,7 +57,10 @@ export default function AssignmentDialog({
       setSearchQuery('');
     } else {
       setUsers([]);
+      setDepartments([]);
+      setSubDepartments([]);
       setSelectedDepartment('');
+      setSelectedSubDepartment('');
       setAssigningUserId(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -57,18 +70,61 @@ export default function AssignmentDialog({
     if (departments.length > 0 && !selectedDepartment) {
       if (currentDepartmentId) {
         setSelectedDepartment(currentDepartmentId);
+        // If it's a sub-department actually, keep track
+        const dept = departments.find(d => d._id === currentDepartmentId);
+        const parentId = dept?.parentDepartmentId 
+          ? (typeof dept.parentDepartmentId === 'object' ? dept.parentDepartmentId._id : dept.parentDepartmentId)
+          : null;
+        
+        if (parentId && isHierarchyEnabled) {
+          setSelectedDepartment(parentId);
+          setSelectedSubDepartment(currentDepartmentId);
+        }
       } else {
-        setSelectedDepartment(departments[0]._id);
+        // Find first main department
+        const mainDept = departments.find(d => !d.parentDepartmentId);
+        if (mainDept) setSelectedDepartment(mainDept._id);
+        else setSelectedDepartment(departments[0]._id);
       }
     }
-  }, [departments, currentDepartmentId, selectedDepartment]);
+    
+    // Specifically handle currentSubDepartmentId if provided explicitly
+    if (currentSubDepartmentId && isHierarchyEnabled && departments.length > 0) {
+      setSelectedSubDepartment(currentSubDepartmentId);
+    }
+  }, [departments, currentDepartmentId, currentSubDepartmentId, selectedDepartment, isHierarchyEnabled]);
 
   useEffect(() => {
-    if (isOpen && selectedDepartment) {
+    if (selectedDepartment && departments.length > 0) {
+      const subs = departments.filter(d => {
+        const pId = typeof d.parentDepartmentId === 'object' 
+          ? (d.parentDepartmentId as any)?._id 
+          : d.parentDepartmentId;
+        return pId === selectedDepartment;
+      });
+      setSubDepartments(subs);
+      
+      // Auto-select sub-department if it belongs to the newly selected parent
+      if (currentSubDepartmentId && subs.some(s => s._id === currentSubDepartmentId)) {
+        setSelectedSubDepartment(currentSubDepartmentId);
+      } else if (selectedSubDepartment) {
+        // Clear sub-dept if the parent changed and current sub-dept doesn't belong to it
+        const belongs = subs.some(s => s._id === selectedSubDepartment);
+        if (!belongs) {
+          setSelectedSubDepartment('');
+        }
+      }
+    } else {
+      setSubDepartments([]);
+    }
+  }, [selectedDepartment, departments, currentSubDepartmentId]);
+
+  useEffect(() => {
+    if (isOpen && (selectedDepartment || selectedSubDepartment)) {
       fetchUsers();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDepartment, isOpen]);
+  }, [selectedDepartment, selectedSubDepartment, isOpen]);
 
   const fetchDepartments = async () => {
     try {
@@ -76,7 +132,17 @@ export default function AssignmentDialog({
       if (deptRes.success) {
         let depts = deptRes.data.departments;
         if (userRole === 'DEPARTMENT_ADMIN' && userDepartmentId) {
-          depts = depts.filter(d => d._id === userDepartmentId);
+          // If hierarchy is enabled, we might want to see sub-departments of this admin's department
+          // but for now let's keep it simple: filter only for the admin's specific department context if not hierarchy
+          if (!isHierarchyEnabled) {
+             depts = depts.filter(d => d._id === userDepartmentId);
+          } else {
+            // Include justice for sub-departments
+             depts = depts.filter(d => {
+               const pId = typeof d.parentDepartmentId === 'object' ? d.parentDepartmentId?._id : d.parentDepartmentId;
+               return d._id === userDepartmentId || pId === userDepartmentId;
+             });
+          }
         }
         setDepartments(depts);
       }
@@ -87,13 +153,14 @@ export default function AssignmentDialog({
   };
 
   const fetchUsers = async () => {
-    if (!selectedDepartment) return;
+    const targetDeptId = selectedSubDepartment || selectedDepartment;
+    if (!targetDeptId) return;
     
     setLoading(true);
     try {
       const usersRes = await userAPI.getAll({ 
         companyId,
-        departmentId: selectedDepartment,
+        departmentId: targetDeptId,
         limit: 100
       });
       if (usersRes.success) {
@@ -143,8 +210,15 @@ export default function AssignmentDialog({
 
   const getCurrentAssigneeName = () => {
     if (!currentAssignee) return 'Unassigned';
-    if (typeof currentAssignee === 'string') return currentAssignee;
-    return `${currentAssignee.firstName} ${currentAssignee.lastName}`;
+    if (typeof currentAssignee === 'object') {
+      return `${currentAssignee.firstName} ${currentAssignee.lastName}`;
+    }
+    
+    // If it's a string, it might be an ID. Try to find in loaded users.
+    const userInList = users.find(u => u._id === currentAssignee || u.userId === currentAssignee);
+    if (userInList) return `${userInList.firstName} ${userInList.lastName}`;
+    
+    return currentAssignee;
   };
 
   const filteredUsers = useMemo(() => {
@@ -181,23 +255,24 @@ export default function AssignmentDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col p-0 gap-0 rounded-2xl border-0 shadow-2xl [&>button]:hidden">
-        {/* Gradient Header */}
-        <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-6 relative overflow-hidden">
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA4KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-50"></div>
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col p-0 gap-0 rounded-[2rem] border-0 shadow-2xl [&>button]:hidden bg-white">
+        {/* Modern Slate Header */}
+        <div className="bg-slate-900 p-8 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-transparent to-purple-500/10"></div>
+          <div className="absolute -top-10 -right-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl"></div>
           
           <div className="relative flex items-start justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-                <UserCheck className="w-6 h-6 text-white" />
+            <div className="flex items-center gap-5">
+              <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-xl border border-white/20 shadow-inner">
+                <UserCheck className="w-7 h-7 text-indigo-400" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white">
+                <h2 className="text-2xl font-black text-white tracking-tight">
                   Assign {itemType === 'grievance' ? 'Grievance' : 'Appointment'}
                 </h2>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-white/80 text-sm">Current:</span>
-                  <span className="px-2.5 py-0.5 bg-white/20 rounded-full text-xs font-semibold text-white backdrop-blur-sm">
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Currently With:</span>
+                  <span className="px-3 py-1 bg-indigo-500/20 rounded-full text-[10px] font-black uppercase tracking-wider text-indigo-300 backdrop-blur-md border border-indigo-500/30">
                     {getCurrentAssigneeName()}
                   </span>
                 </div>
@@ -205,44 +280,79 @@ export default function AssignmentDialog({
             </div>
             <button 
               onClick={onClose}
-              className="w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center transition-all z-10"
+              className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all duration-300 border border-white/10 group cursor-pointer"
             >
-              <X className="w-4 h-4 text-white" />
+              <X className="w-5 h-5 text-slate-400 group-hover:text-white transition-colors" />
             </button>
           </div>
         </div>
 
         <div className="p-5 space-y-4 flex-1 overflow-hidden flex flex-col bg-slate-50">
           {/* Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+          <div className="flex flex-col space-y-3">
+            <div className="relative group">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4 group-focus-within:text-indigo-500 transition-colors" />
               <input
                 type="text"
-                placeholder="Search by name, email, or ID..."
+                placeholder="Search name, email, or ID..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-all bg-white shadow-sm"
+                className="w-full pl-11 pr-4 py-3 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm transition-all bg-white shadow-sm font-medium"
               />
             </div>
 
-            <div className="relative">
-              <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-              <select
-                value={selectedDepartment}
-                onChange={(e) => setSelectedDepartment(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-all bg-white shadow-sm appearance-none cursor-pointer"
-                required
-                disabled={userRole === 'DEPARTMENT_ADMIN'}
-              >
-                <option value="" disabled>Select Department</option>
-                {departments.map((dept) => (
-                  <option key={dept._id} value={dept._id}>
-                    {dept.name}
-                  </option>
-                ))}
-              </select>
-              <ChevronRight className="absolute right-3 top-1/2 transform -translate-y-1/2 rotate-90 text-slate-400 w-4 h-4 pointer-events-none" />
+            <div className={`grid grid-cols-1 ${isHierarchyEnabled ? 'md:grid-cols-2' : ''} gap-3`}>
+              <div className="relative group">
+                <Building2 className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4 group-focus-within:text-indigo-500 transition-colors" />
+                <select
+                  value={selectedDepartment}
+                  onChange={(e) => {
+                    setSelectedDepartment(e.target.value);
+                    setSelectedSubDepartment('');
+                  }}
+                  className="w-full pl-11 pr-10 py-3 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm transition-all bg-white shadow-sm appearance-none cursor-pointer font-bold"
+                  required
+                  disabled={userRole === 'DEPARTMENT_ADMIN'}
+                >
+                  <option value="" disabled>Select Department</option>
+                  {departments
+                    .filter((dept) => {
+                      const parentId =
+                        typeof dept.parentDepartmentId === "object"
+                          ? (dept.parentDepartmentId as any)?._id
+                          : dept.parentDepartmentId;
+                      if (!parentId) return true;
+                      // If the parent is not in our list, treat as top-level for this view
+                      return !departments.some((d) => d._id === parentId);
+                    })
+                    .map((dept) => (
+                      <option key={dept._id} value={dept._id}>
+                        {dept.name}
+                      </option>
+                    ))}
+                </select>
+                <ChevronRight className="absolute right-4 top-1/2 transform -translate-y-1/2 rotate-90 text-slate-400 w-4 h-4 pointer-events-none" />
+              </div>
+
+              {isHierarchyEnabled && (
+                <div className="relative group">
+                  <ArrowRight className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4 group-focus-within:text-indigo-500 transition-colors" />
+                  <select
+                    value={selectedSubDepartment}
+                    onChange={(e) => setSelectedSubDepartment(e.target.value)}
+                    className="w-full pl-11 pr-10 py-3 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm transition-all bg-white shadow-sm appearance-none cursor-pointer font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={!selectedDepartment || subDepartments.length === 0}
+                  >
+                    <option value="">Select Sub Department (Optional)</option>
+                    {subDepartments.map((dept) => (
+                      <option key={dept._id} value={dept._id}>
+                        {dept.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronRight className="absolute right-4 top-1/2 transform -translate-y-1/2 rotate-90 text-slate-400 w-4 h-4 pointer-events-none" />
+                </div>
+              )}
             </div>
           </div>
 
@@ -274,9 +384,10 @@ export default function AssignmentDialog({
                   const userDept = typeof user.departmentId === 'object' 
                     ? user.departmentId 
                     : null;
-                  const isCurrentAssignee = typeof currentAssignee === 'object' && currentAssignee !== null
-                    ? currentAssignee._id === user._id 
-                    : false;
+                  const currentAssigneeId = typeof currentAssignee === 'object' && currentAssignee !== null
+                    ? currentAssignee._id 
+                    : currentAssignee;
+                  const isCurrentAssignee = currentAssigneeId === user._id;
                   const isAssigning = assigningUserId === user._id;
 
                   return (
@@ -310,7 +421,7 @@ export default function AssignmentDialog({
                           </div>
                           <div className="flex items-center gap-1.5 mt-1 text-slate-500 text-sm">
                             <Mail className="w-3.5 h-3.5" />
-                            <span className="truncate">{user.email}</span>
+                            <span className="break-words whitespace-normal">{user.email}</span>
                           </div>
                           <div className="flex items-center gap-2 mt-2 flex-wrap">
                             <span className="text-[10px] text-slate-400 font-mono bg-slate-100 px-1.5 py-0.5 rounded">
@@ -322,7 +433,7 @@ export default function AssignmentDialog({
                             {userDept && (
                               <span className="flex items-center gap-1 text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
                                 <Building2 className="w-3 h-3" />
-                                <span className="truncate max-w-[120px]">{userDept.name}</span>
+                                <span className="break-words whitespace-normal">{userDept.name}</span>
                               </span>
                             )}
                           </div>

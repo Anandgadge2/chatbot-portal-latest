@@ -90,9 +90,9 @@ export default function ResolvedGrievancesPage() {
     setAssignDialogOpen(true);
   };
 
-  const handleAssign = async (userId: string) => {
+  const handleAssign = async (userId: string, departmentId?: string) => {
     if (!grievanceToAssign) return;
-    await grievanceAPI.assign(grievanceToAssign._id, userId);
+    await grievanceAPI.assign(grievanceToAssign._id, userId, departmentId);
     await fetchGrievances();
   };
 
@@ -461,6 +461,18 @@ export default function ResolvedGrievancesPage() {
         itemId={grievanceToAssign?._id || ""}
         companyId={companyId}
         currentAssignee={grievanceToAssign?.assignedTo}
+        currentDepartmentId={
+          grievanceToAssign?.departmentId &&
+          typeof grievanceToAssign.departmentId === 'object'
+            ? (grievanceToAssign.departmentId as any)._id
+            : grievanceToAssign?.departmentId
+        }
+        currentSubDepartmentId={
+          grievanceToAssign?.subDepartmentId &&
+          typeof grievanceToAssign.subDepartmentId === 'object'
+            ? (grievanceToAssign.subDepartmentId as any)._id
+            : grievanceToAssign?.subDepartmentId
+        }
       />
     </div>
   );

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { availabilityAPI, AppointmentAvailability, DayAvailability, TimeSlot, SpecialDate, Holiday } from '@/lib/api/availability';
 import toast from 'react-hot-toast';
 import {
@@ -28,6 +29,7 @@ import {
   Target,
   TrendingUp,
   User as UserIcon,
+  Plus,
   Building,
   Zap
 } from 'lucide-react';
@@ -278,7 +280,7 @@ function ClockFacePicker({
         className="w-full py-5 mt-2 rounded-[1.5rem] bg-indigo-600 hover:bg-white hover:text-indigo-900 text-white text-[11px] font-black uppercase tracking-[0.15em] shadow-xl shadow-indigo-900/40 transition-all active:scale-95 flex items-center justify-center gap-2 group"
       >
         <span>Apply: {to24HourTime(hour12, minute, period)}</span>
-        <CheckCircle2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
+        <CheckCircle className="w-4 h-4 group-hover:scale-110 transition-transform" />
       </button>
     </div>
   );
@@ -511,34 +513,37 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
   };
 
   if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-0 sm:p-2 animate-in fade-in duration-200">
-      <div className="bg-white rounded-none sm:rounded-[2.5rem] shadow-2xl w-full max-w-full sm:max-w-6xl h-full sm:max-h-[98vh] overflow-hidden border-0 sm:border border-slate-200 flex flex-col transition-all duration-300">
-        {/* Header */}
-        <div className="bg-slate-900 px-6 py-5 text-white relative overflow-hidden flex-shrink-0">
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-30"></div>
-          <div className="relative flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
-                <CalendarDays className="w-6 h-6" />
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-[95vw] md:max-w-7xl h-[98vh] p-0 overflow-hidden bg-slate-50 border-0 rounded-[2.5rem] shadow-3xl">
+        <div className="flex flex-col h-full bg-slate-50 relative">
+          {/* Dashboard-style Header */}
+          <div className="bg-slate-900 px-8 py-8 relative overflow-hidden shrink-0">
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-transparent to-purple-500/10 hover:opacity-80 transition-opacity"></div>
+            <div className="absolute -top-24 -right-24 w-80 h-80 bg-indigo-500/10 rounded-full blur-[100px]"></div>
+            <div className="absolute top-1/2 -left-20 w-60 h-60 bg-purple-500/5 rounded-full blur-[80px]"></div>
+            
+            <div className="relative flex items-center justify-between">
+              <div className="flex items-center gap-6">
+                <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-xl border border-white/20 shadow-inner">
+                  <CalendarCheck className="w-8 h-8 text-indigo-400" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-black text-white tracking-tight leading-none mb-2">
+                    Availability <span className="text-indigo-400">Settings</span>
+                  </h1>
+                  <p className="text-slate-400 text-sm font-medium">Manage your schedule, holidays, and appointment slots</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-2xl font-black italic tracking-tight">Appointment Availability</h2>
-                <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-0.5">Configure when appointments can be scheduled</p>
-              </div>
+              <Button 
+                variant="ghost" 
+                onClick={onClose}
+                className="w-12 h-12 rounded-2xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all duration-300 border border-white/10 group cursor-pointer"
+              >
+                <X className="w-6 h-6 text-slate-400 group-hover:text-white transition-colors" />
+              </Button>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="text-white hover:bg-white/20 rounded-xl h-8 w-8 sm:h-10 sm:w-10 p-0 flex-shrink-0"
-              title="Close"
-            >
-              <X className="w-4 h-4 sm:w-5 sm:h-5" />
-            </Button>
           </div>
-        </div>
 
         {/* Tabs */}
         <div className="border-b border-slate-200 bg-white/80 backdrop-blur-sm overflow-x-auto flex-shrink-0">
@@ -708,8 +713,8 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
                                               {slot.startTime}
                                             </button>
                                             {activeClockPicker === `${day.key}-${period}-start` && (
-                                              <div className="z-40 fixed inset-0 flex items-center justify-center p-4 sm:p-0 sm:absolute sm:inset-auto sm:top-[110%] sm:left-1/2 sm:-translate-x-1/2 sm:translate-y-0">
-                                                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm sm:hidden" onClick={() => setActiveClockPicker(null)} />
+                                              <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                                                <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setActiveClockPicker(null)} />
                                                 <div className="relative animate-in zoom-in-95 duration-200">
                                                   <ClockFacePicker
                                                     value={slot.startTime}
@@ -733,8 +738,8 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
                                               {slot.endTime}
                                             </button>
                                             {activeClockPicker === `${day.key}-${period}-end` && (
-                                              <div className="z-40 fixed inset-0 flex items-center justify-center p-4 sm:p-0 sm:absolute sm:inset-auto sm:top-[110%] sm:left-1/2 sm:-translate-x-1/2 sm:translate-y-0">
-                                                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm sm:hidden" onClick={() => setActiveClockPicker(null)} />
+                                              <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                                                <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setActiveClockPicker(null)} />
                                                 <div className="relative animate-in zoom-in-95 duration-200">
                                                   <ClockFacePicker
                                                     value={slot.endTime}
@@ -1235,48 +1240,8 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
             </Button>
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-// Add these Lucide icons to imports if missing
-function Plus(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M5 12h14" />
-      <path d="M12 5v14" />
-    </svg>
-  );
-}
-
-function CheckCircle2(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
-      <path d="m9 12 2 2 4-4" />
-    </svg>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
