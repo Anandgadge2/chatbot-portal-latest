@@ -175,25 +175,27 @@ export class ActionService {
           });
         }
 
-        // ✅ Notify citizen about registration (Immediate Success Message)
-        await notifyCitizenOnCreation({
-          type: 'grievance',
-          action: 'created',
-          grievanceId: grievance.grievanceId,
-          citizenName: session.data.citizenName,
-          citizenPhone: userPhone,
-          citizenWhatsApp: userPhone,
-          departmentId: departmentId as any,
-          subDepartmentId: session.data.subDepartmentId,
-          companyId: company._id,
-          description: session.data.description,
-          category: session.data.category,
-          departmentName: dept ? dept.name : session.data.category,
-          subDepartmentName: subDept ? subDept.name : undefined,
-          createdAt: grievance.createdAt,
-          timeline: grievance.timeline
-        });
       }
+
+      // ✅ Notify citizen about registration (Immediate Success Message)
+      // NOTE: this should happen even when department auto-mapping fails.
+      await notifyCitizenOnCreation({
+        type: 'grievance',
+        action: 'created',
+        grievanceId: grievance.grievanceId,
+        citizenName: session.data.citizenName,
+        citizenPhone: userPhone,
+        citizenWhatsApp: userPhone,
+        departmentId: departmentId as any,
+        subDepartmentId: session.data.subDepartmentId,
+        companyId: company._id,
+        description: session.data.description,
+        category: session.data.category,
+        departmentName: dept ? dept.name : session.data.category,
+        subDepartmentName: subDept ? subDept.name : undefined,
+        createdAt: grievance.createdAt,
+        timeline: grievance.timeline
+      });
     } catch (err: any) {
       console.error('❌ ActionService: Error creating grievance:', err);
       throw err;
