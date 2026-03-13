@@ -117,7 +117,7 @@ export async function getChatbotAvailabilityData(params: {
   const { companyId, departmentId, selectedDate, daysAhead = '30' } = params;
   
   const requestedDaysToShow = parseInt(daysAhead as string) || 30;
-  const today = new Date();
+  const today = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
   today.setHours(0, 0, 0, 0);
 
   let actualCompanyId: any = companyId;

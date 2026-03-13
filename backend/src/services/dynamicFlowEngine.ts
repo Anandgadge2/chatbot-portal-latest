@@ -910,65 +910,70 @@ export class DynamicFlowEngine {
       }
 
       const offset = this.session.data.deptOffset || 0;
+      const visibleDepts = departments.slice(offset, offset + 9);
+      const remainingDepts = departments.slice(offset + 9);
 
-      const deptRows = departments
-        .slice(offset, offset + 9)
-        .map((dept: any) => {
-          let displayName: string;
-          if (lang === "hi" && dept.nameHi && dept.nameHi.trim()) {
-            displayName = dept.nameHi.trim();
-          } else if (lang === "or" && dept.nameOr && dept.nameOr.trim()) {
-            displayName = dept.nameOr.trim();
-          } else if (lang === "mr" && dept.nameMr && dept.nameMr.trim()) {
-            displayName = dept.nameMr.trim();
-          } else {
-            displayName = dept.name;
-          }
-          let displayDesc: string;
-          if (
-            lang === "hi" &&
-            dept.descriptionHi &&
-            dept.descriptionHi.trim()
-          ) {
-            displayDesc = dept.descriptionHi.trim();
-          } else if (
-            lang === "or" &&
-            dept.descriptionOr &&
-            dept.descriptionOr.trim()
-          ) {
-            displayDesc = dept.descriptionOr.trim();
-          } else if (
-            lang === "mr" &&
-            dept.descriptionMr &&
-            dept.descriptionMr.trim()
-          ) {
-            displayDesc = dept.descriptionMr.trim();
-          } else {
-            displayDesc = (dept.description || "").substring(0, 72);
-          }
+      const deptRows = visibleDepts.map((dept: any) => {
+        let displayName: string;
+        if (lang === "hi" && dept.nameHi && dept.nameHi.trim()) {
+          displayName = dept.nameHi.trim();
+        } else if (lang === "or" && dept.nameOr && dept.nameOr.trim()) {
+          displayName = dept.nameOr.trim();
+        } else if (lang === "mr" && dept.nameMr && dept.nameMr.trim()) {
+          displayName = dept.nameMr.trim();
+        } else {
+          displayName = dept.name;
+        }
 
-          const prefix =
-            step.stepId &&
-            (step.stepId.startsWith("apt") ||
-              step.stepId.includes("appointment"))
-              ? "apt"
-              : "grv";
-          return {
-            id: `${prefix}_dept_${dept._id}`,
-            title:
-              displayName.length > 24
-                ? displayName.substring(0, 21) + "..."
-                : displayName,
-            description: displayName.length > 24 ? displayName.substring(0, 72) : displayDesc,
-            nextStepId: step.nextStepId,
-          };
-        });
+        let displayDesc: string;
+        if (lang === "hi" && dept.descriptionHi && dept.descriptionHi.trim()) {
+          displayDesc = dept.descriptionHi.trim();
+        } else if (
+          lang === "or" &&
+          dept.descriptionOr &&
+          dept.descriptionOr.trim()
+        ) {
+          displayDesc = dept.descriptionOr.trim();
+        } else if (
+          lang === "mr" &&
+          dept.descriptionMr &&
+          dept.descriptionMr.trim()
+        ) {
+          displayDesc = dept.descriptionMr.trim();
+        } else {
+          displayDesc = (dept.description || "").substring(0, 72);
+        }
 
-      if (departments.length > offset + 9) {
+        const prefix =
+          step.stepId &&
+          (step.stepId.startsWith("apt") || step.stepId.includes("appointment"))
+            ? "apt"
+            : "grv";
+
+        return {
+          id: `${prefix}_dept_${dept._id}`,
+          title:
+            displayName.length > 24
+              ? displayName.substring(0, 21) + "..."
+              : displayName,
+          description:
+            displayName.length > 24
+              ? displayName.substring(0, 72)
+              : displayDesc,
+          nextStepId: step.nextStepId,
+        };
+      });
+
+      if (remainingDepts.length > 0) {
         deptRows.push({
           id: "grv_load_more",
           title: this.ui("load_more"),
-          description: "Show more departments...",
+          description:
+            lang === "hi"
+              ? "और विभाग देखें"
+              : lang === "or"
+                ? "ଅଧିକ ବିଭାଗ ଦେଖନ୍ତୁ"
+                : "See more departments...",
           nextStepId: step.stepId,
         });
       }
@@ -1474,31 +1479,12 @@ export class DynamicFlowEngine {
           Array.isArray(availabilityData.formattedTimeSlots)
         ) {
           const timeSlots = availabilityData.formattedTimeSlots;
-          const buttons = timeSlots.slice(0, 3).map((slot: any) => ({
-            id: `time_${slot.time}`,
-            title: slot.label || slot.time,
-          }));
-
-          if (buttons.length > 0) {
-            const message = this.replacePlaceholders(
-              step.messageText || "⏰ Please select a time:",
-            );
-            await sendWhatsAppButtons(
-              this.company,
-              this.userPhone,
-              message,
-              buttons,
-            );
-
-            this.session.data.currentStepId = step.stepId;
-            this.session.data.availabilityNextStepId = effectiveNextStepId;
-            this.session.data.timeMapping = {};
-            timeSlots.forEach((slot: any) => {
-              this.session.data.timeMapping[`time_${slot.time}`] = slot.time;
-            });
-            await updateSession(this.session);
-            return;
-          }
+          const sent = await this.sendAvailableTimeList(
+            step,
+            timeSlots,
+            effectiveNextStepId,
+          );
+          if (sent) return;
         }
       }
 
@@ -1602,8 +1588,15 @@ export class DynamicFlowEngine {
             grievance.statusHistory && grievance.statusHistory.length > 0
               ? grievance.statusHistory[grievance.statusHistory.length - 1]
               : null;
+          const noRemarksMap: any = {
+            en: "No remarks provided",
+            hi: "कोई विवरण नहीं दिया गया",
+            or: "କୌଣସି ବିବରଣୀ ପ୍ରଦାନ କରାଯାଇ ନାହିଁ",
+            mr: "कोणतेही तपशील प्रदान केलेले नाहीत",
+          };
+          const rawRemarks = (lastHistory as any)?.remarks ?? (grievance as any).remarks;
           this.session.data.remarks =
-            (lastHistory as any)?.remarks ?? (grievance as any).remarks ?? "—";
+            rawRemarks && rawRemarks.trim() !== "" ? rawRemarks : noRemarksMap[lang] || noRemarksMap.en;
           this.session.data.assignedTo =
             (grievance as any).assignedTo?.name ??
             (grievance as any).assignedTo ??
@@ -1623,6 +1616,10 @@ export class DynamicFlowEngine {
             this.session.data.departmentName = "General";
           }
           this.session.data.category = (grievance as any).category || "General";
+          this.session.data.serviceType = "Grievance";
+          this.session.data.updatedAt = new Date(
+            grievance.updatedAt || grievance.createdAt,
+          ).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" });
 
           await updateSession(this.session);
         } else {
@@ -1645,10 +1642,16 @@ export class DynamicFlowEngine {
             appointment.statusHistory && appointment.statusHistory.length > 0
               ? appointment.statusHistory[appointment.statusHistory.length - 1]
               : null;
+          const noRemarksMap: any = {
+            en: "No remarks provided",
+            hi: "कोई विवरण नहीं दिया गया",
+            or: "କୌଣସି ବିବରଣୀ ପ୍ରଦାନ କରାଯାଇ ନାହିଁ",
+            mr: "कोणतेही तपशील प्रदान केलेले नाहीत",
+          };
+          const lang = this.session.language || "en";
+          const rawRemarks = (lastHistory as any)?.remarks ?? (appointment as any).remarks;
           this.session.data.remarks =
-            (lastHistory as any)?.remarks ??
-            (appointment as any).remarks ??
-            "—";
+            rawRemarks && rawRemarks.trim() !== "" ? rawRemarks : noRemarksMap[lang] || noRemarksMap.en;
           this.session.data.assignedTo =
             (appointment as any).assignedTo?.name ??
             (appointment as any).assignedTo ??
@@ -1660,6 +1663,10 @@ export class DynamicFlowEngine {
           this.session.data.departmentName = "Administration";
           this.session.data.category =
             (appointment as any).purpose || "General";
+          this.session.data.serviceType = "Appointment";
+          this.session.data.updatedAt = new Date(
+            appointment.updatedAt || appointment.createdAt,
+          ).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" });
 
           await updateSession(this.session);
         } else {
@@ -1740,19 +1747,85 @@ export class DynamicFlowEngine {
     }
 
     const message = this.replacePlaceholders(
-      step.messageText || "📅 Please select a date:",
+      getLocalText(step, lang) || "📅 Please select a date:",
     );
-    await sendWhatsAppList(this.company, this.userPhone, message, "Select Date", [
-      { title: "Available Dates", rows },
-    ]);
+    await sendWhatsAppList(
+      this.company,
+      this.userPhone,
+      message,
+      lang === "hi" ? "तारीख चुनें" : lang === "or" ? "ତାରିଖ ବାଛନ୍ତୁ" : "Select Date",
+      [{ title: lang === "hi" ? "उपलब्ध तारीखें" : lang === "or" ? "ଉପଲବ୍ଧ ତାରିଖ" : "Available Dates", rows }],
+    );
 
     this.session.data.currentStepId = step.stepId;
     this.session.data.availabilityNextStepId = effectiveNextStepId;
-    this.session.data.dateMapping = {};
+    this.session.data.dateMapping = this.session.data.dateMapping || {};
     visibleDates.forEach((date: any) => {
       this.session.data.dateMapping[`date_${date.date}`] = date.date;
     });
     this.session.data.availableDateRemainder = remainingDates;
+    await updateSession(this.session);
+    return true;
+  }
+
+  public async sendAvailableTimeList(
+    step: IFlowStep,
+    timeSlots: any[],
+    effectiveNextStepId?: string,
+  ): Promise<boolean> {
+    if (!timeSlots?.length) return false;
+
+    const lang = this.session.language || "en";
+    const visibleSlots = timeSlots.slice(0, 9);
+    const remainingSlots = timeSlots.slice(9);
+
+    const rows = visibleSlots.map((slot: any) => ({
+      id: `time_${slot.time}`,
+      title: slot.label || slot.time,
+      description:
+        lang === "hi"
+          ? "अपॉइंटमेंट समय चुनें"
+          : lang === "or"
+            ? "ଆପଏଣ୍ଟମେଣ୍ଟ ସମୟ ବାଛନ୍ତୁ"
+            : "Select appointment time",
+    }));
+
+    if (remainingSlots.length > 0) {
+      rows.push({
+        id: "time_load_more",
+        title:
+          lang === "hi"
+            ? "और समय लोड करें"
+            : lang === "or"
+              ? "ଅଧିକ ସମୟ ଲୋଡ୍ କରନ୍ତୁ"
+              : "Load More Slots",
+        description:
+          lang === "hi"
+            ? "अगले उपलब्ध समय देखें"
+            : lang === "or"
+              ? "ପରବର୍ତ୍ତୀ ଉପଲବ୍ଧ ସମୟ ଦେଖନ୍ତୁ"
+              : "View next available time slots",
+      });
+    }
+
+    const message = this.replacePlaceholders(
+      getLocalText(step, lang) || "⏰ Please select a time:",
+    );
+    await sendWhatsAppList(
+      this.company,
+      this.userPhone,
+      message,
+      lang === "hi" ? "समय चुनें" : lang === "or" ? "ସମୟ ବାଛନ୍ତୁ" : "Select Time",
+      [{ title: lang === "hi" ? "उपलब्ध समय" : lang === "or" ? "ଉପଲବ୍ଧ ସମୟ" : "Available Slots", rows }],
+    );
+
+    this.session.data.currentStepId = step.stepId;
+    this.session.data.availabilityNextStepId = effectiveNextStepId;
+    this.session.data.timeMapping = this.session.data.timeMapping || {};
+    visibleSlots.forEach((slot: any) => {
+      this.session.data.timeMapping[`time_${slot.time}`] = slot.time;
+    });
+    this.session.data.availableTimeRemainder = remainingSlots;
     await updateSession(this.session);
     return true;
   }
@@ -2311,25 +2384,88 @@ export class DynamicFlowEngine {
   async handleListSelection(rowId: string): Promise<void> {
     const listMapping = this.session.data.listMapping || {};
     const Department = (await import("../models/Department")).default;
+    const lang = this.session.language || "en";
 
-    // Special handling for "Load More" button in department list
-    if (rowId === "grv_load_more") {
+    // Handle "Load More" for dates
+    if (rowId === "date_load_more") {
+      const remainingDates = this.session.data.availableDateRemainder;
+      const currentStep = this.flow.steps.find(
+        (s) => s.stepId === this.session.data.currentStepId,
+      );
+      if (currentStep && Array.isArray(remainingDates) && remainingDates.length) {
+        await this.sendAvailableDateList(
+          currentStep,
+          remainingDates,
+          this.session.data.availabilityNextStepId,
+        );
+      }
+      return;
+    }
+
+    // Handle "Load More" for time slots
+    if (rowId === "time_load_more") {
+      const remainingSlots = this.session.data.availableTimeRemainder;
+      const currentStep = this.flow.steps.find(
+        (s) => s.stepId === this.session.data.currentStepId,
+      );
+      if (currentStep && Array.isArray(remainingSlots) && remainingSlots.length) {
+        await this.sendAvailableTimeList(
+          currentStep,
+          remainingSlots,
+          this.session.data.availabilityNextStepId,
+        );
+      }
+      return;
+    }
+
+    // Handle Date selection
+    if (rowId.startsWith("date_") && this.session.data.dateMapping?.[rowId]) {
+      const date = this.session.data.dateMapping[rowId];
+      this.session.data.selectedDate = date;
+      this.session.data.appointmentDate = date;
+      await updateSession(this.session);
+      console.log(`📅 Date selected via list: ${date}`);
+      const nextStepId =
+        this.session.data.availabilityNextStepId || this.session.data.currentStepId;
+      if (nextStepId) {
+        await this.runNextStepIfDifferent(nextStepId, this.session.data.currentStepId);
+      }
+      return;
+    }
+
+    // Handle Time selection
+    if (rowId.startsWith("time_") && this.session.data.timeMapping?.[rowId]) {
+      const time = this.session.data.timeMapping[rowId];
+      this.session.data.selectedTime = time;
+      this.session.data.appointmentTime = time;
+      await updateSession(this.session);
+      console.log(`⏰ Time selected via list: ${time}`);
+      const nextStepId =
+        this.session.data.availabilityNextStepId || this.session.data.currentStepId;
+      if (nextStepId) {
+        await this.runNextStepIfDifferent(nextStepId, this.session.data.currentStepId);
+      }
+      return;
+    }
+
+    // Special handling for "Load More" button in department list (grv or apt)
+    if (rowId === "grv_load_more" || rowId === "apt_load_more") {
       this.session.data.deptOffset = (this.session.data.deptOffset || 0) + 9;
       await updateSession(this.session);
       const currentStep = this.flow.steps.find(
         (s) => s.stepId === this.session.data.currentStepId,
       );
-      const isDynamic =
-        currentStep?.listConfig?.listSource === "departments" ||
-        (currentStep?.listConfig as any)?.dynamicSource === "departments" ||
-        (currentStep?.listConfig as any)?.isDynamic === true;
-
-      if (isDynamic && currentStep) {
-        await this.loadDepartmentsForListStep(currentStep);
-      } else if (currentStep) {
-        // Fallback for list steps that are dynamic but don't have isDynamic flag (rare)
+      if (currentStep) {
         await this.loadDepartmentsForListStep(currentStep);
       }
+      return;
+    }
+
+    // Special handling for "Load More" button in sub-department list
+    if (rowId === "sub_load_more") {
+      this.session.data.subDeptOffset = (this.session.data.subDeptOffset || 0) + 9;
+      await updateSession(this.session);
+      await this.injectSubDepartmentList(rowId);
       return;
     }
 
@@ -2414,54 +2550,8 @@ export class DynamicFlowEngine {
             console.log(
               `🏢 Found ${subDepartments.length} sub-departments. Injecting sub-dept list...`,
             );
-
-            // Determine which step to advance to after a sub-dept is chosen
-            const afterSubDeptStepId =
-              listMapping[rowId] || currentStep?.nextStepId || nextFlowStepId;
-
-            const rows = subDepartments.map((dept: any) => {
-              let displayName = dept.name;
-              if (lang === "hi" && dept.nameHi?.trim())
-                displayName = dept.nameHi.trim();
-              else if (lang === "or" && dept.nameOr?.trim())
-                displayName = dept.nameOr.trim();
-              else if (lang === "mr" && dept.nameMr?.trim())
-                displayName = dept.nameMr.trim();
-
-              let displayDesc = (dept.description || "").substring(0, 72);
-              if (lang === "hi" && dept.descriptionHi?.trim())
-                displayDesc = dept.descriptionHi.trim().substring(0, 72);
-              else if (lang === "or" && dept.descriptionOr?.trim())
-                displayDesc = dept.descriptionOr.trim().substring(0, 72);
-              else if (lang === "mr" && dept.descriptionMr?.trim())
-                displayDesc = dept.descriptionMr.trim().substring(0, 72);
-
-              return {
-                id: `${prefix}_sub_dept_${dept._id}`,
-                title:
-                  displayName.length > 24
-                    ? displayName.substring(0, 21) + "..."
-                    : displayName,
-                description: displayName.length > 24 ? displayName.substring(0, 72) : displayDesc,
-              };
-            });
-
-            // Save sub-dept list mapping
-            this.session.data.listMapping = {};
-            rows.forEach((row: any) => {
-              this.session.data.listMapping[row.id] = afterSubDeptStepId;
-            });
-            await updateSession(this.session);
-
-            // Send sub-department WhatsApp list
-            await sendWhatsAppList(
-              this.company,
-              this.userPhone,
-              this.ui("sub_dept_title"),
-              this.ui("sub_dept_btn"),
-              [{ title: this.ui("select_dept"), rows }],
-            );
-            return; // ← stop here; sub-dept selection will advance the flow
+            await this.injectSubDepartmentList(rowId, subDepartments, prefix, departmentId);
+            return;
           } else {
             console.log(
               `ℹ️ No sub-departments for department ${departmentId}. Advancing normally.`,
@@ -2530,6 +2620,124 @@ export class DynamicFlowEngine {
         fallbackMsgs[lang] || fallbackMsgs["en"],
       );
     }
+  }
+
+  /**
+   * Helper to inject sub-department list with pagination
+   */
+  private async injectSubDepartmentList(
+    rowId: string,
+    subDepts?: any[],
+    prefix?: string,
+    parentId?: string,
+  ): Promise<void> {
+    const Department = (await import("../models/Department")).default;
+    const lang = this.session.language || "en";
+
+    // Recover data from session if this is a "Load More" call
+    let allSubDepts = subDepts;
+    let currentPrefix = prefix;
+    let departmentId = parentId;
+
+    if (!allSubDepts) {
+      departmentId = this.session.data.lastParentDeptId;
+      currentPrefix = this.session.data.lastPrefix;
+      if (!departmentId) return;
+
+      const hierarchicalEnabled = this.company.enabledModules?.includes(
+        "HIERARCHICAL_DEPARTMENTS",
+      );
+
+      allSubDepts = hierarchicalEnabled
+        ? await Department.find({
+            parentDepartmentId: departmentId,
+            isActive: true,
+          })
+        : [];
+    } else {
+      // Save for "Load More" recovery
+      this.session.data.lastParentDeptId = departmentId;
+      this.session.data.lastPrefix = currentPrefix;
+      this.session.data.subDeptOffset = 0;
+    }
+
+    const offset = this.session.data.subDeptOffset || 0;
+    const visibleSubDepts = allSubDepts.slice(offset, offset + 9);
+    const remainingSubDepts = allSubDepts.slice(offset + 9);
+
+    if (visibleSubDepts.length === 0 && offset > 0) {
+      // No more to show, ignore load more
+      return;
+    }
+
+    // Determine target ID for next step
+    const currentStep = this.flow.steps.find(
+      (s) => s.stepId === this.session.data.currentStepId,
+    );
+    const nextFlowStepId = this.resolveNextStepId(
+      this.session.data.currentStepId,
+    );
+    const afterSubDeptStepId =
+      this.session.data.listMapping?.[rowId] ||
+      currentStep?.nextStepId ||
+      nextFlowStepId;
+
+    const rows = visibleSubDepts.map((dept: any) => {
+      let displayName = dept.name;
+      if (lang === "hi" && dept.nameHi?.trim())
+        displayName = dept.nameHi.trim();
+      else if (lang === "or" && dept.nameOr?.trim())
+        displayName = dept.nameOr.trim();
+      else if (lang === "mr" && dept.nameMr?.trim())
+        displayName = dept.nameMr.trim();
+
+      let displayDesc = (dept.description || "").substring(0, 72);
+      if (lang === "hi" && dept.descriptionHi?.trim())
+        displayDesc = dept.descriptionHi.trim().substring(0, 72);
+      else if (lang === "or" && dept.descriptionOr?.trim())
+        displayDesc = dept.descriptionOr.trim().substring(0, 72);
+      else if (lang === "mr" && dept.descriptionMr?.trim())
+        displayDesc = dept.descriptionMr.trim().substring(0, 72);
+
+      return {
+        id: `${currentPrefix}_sub_dept_${dept._id}`,
+        title:
+          displayName.length > 24
+            ? displayName.substring(0, 21) + "..."
+            : displayName,
+        description:
+          displayName.length > 24 ? displayName.substring(0, 72) : displayDesc,
+      };
+    });
+
+    if (remainingSubDepts.length > 0) {
+      rows.push({
+        id: "sub_load_more",
+        title: this.ui("load_more"),
+        description:
+          lang === "hi"
+            ? "और अनुभाग देखें"
+            : lang === "or"
+              ? "ଅଧିକ ଅନୁଭାଗ"
+              : "View more sections",
+      });
+    }
+
+    // Save mapping
+    this.session.data.listMapping = this.session.data.listMapping || {};
+    rows.forEach((row: any) => {
+      this.session.data.listMapping[row.id] = afterSubDeptStepId;
+    });
+    await updateSession(this.session);
+
+    // Send list
+    await sendWhatsAppList(
+      this.company,
+      this.userPhone,
+      this.ui("sub_dept_title"),
+      this.ui("sub_dept_btn"),
+      [{ title: this.ui("select_dept"), rows }],
+    );
   }
 }
 
@@ -2981,22 +3189,7 @@ async function continueFlow(
   // ── 1. Track previous step for 'back' command navigation
   // Handled inside executeStep now for more accuracy
 
-  // ── 2. Date/Time selections (Special handlers)
-  if (buttonId === "date_load_more") {
-    const remainingDates = session.data.availableDateRemainder;
-    const currentStepId = session.data.currentStepId;
-    if (currentStepId && Array.isArray(remainingDates) && remainingDates.length) {
-      const currentStep = flow.steps.find((s) => s.stepId === currentStepId);
-      if (currentStep) {
-        await engine.sendAvailableDateList(
-          currentStep,
-          remainingDates,
-          session.data.availabilityNextStepId,
-        );
-      }
-    }
-    return;
-  }
+
 
   if (buttonId?.startsWith("date_") && session.data.dateMapping) {
     const date = session.data.dateMapping[buttonId];

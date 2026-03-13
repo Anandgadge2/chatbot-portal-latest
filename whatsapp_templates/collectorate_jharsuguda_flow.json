@@ -448,7 +448,7 @@
       },
       "data": {
         "label": "Confirm Submission (EN)",
-        "messageText": "📋 *Confirm Submission*\n\nPlease verify your details:\n\n👤 *Name:* {citizenName}\n🏢 *Dept:* {departmentName}\n🏢 *Section:* {subDepartmentName}\n📝 *Issue:* {description}\n\n👇 Is this correct?",
+        "messageText": "📋 *Confirm Submission*\n\nPlease verify your details:\n\n👤 *Name:* {citizenName}\n🏢 *Dept:* {departmentName}\n🏢 *Sub-Department:* {subDepartmentName}\n📝 *Issue:* {description}\n\n👇 Is this correct?",
         "buttons": [
           {
             "id": "submit_grv_en",
@@ -472,7 +472,7 @@
       },
       "data": {
         "label": "Success Message (EN)",
-        "messageText": "✅ *Grievance Registered Successfully!*\n\n*Reference Number:* `{grievanceId}`\n\n👤 *Name:* {citizenName}\n🏢 *Department:* {departmentName}\n📂 *Sub-Department:* {subDepartmentName}\n📝 *Issue:* {description}\n\nYou will receive status updates via WhatsApp.\n\n-----------------------------------\nThank you for contacting {companyName}.\n\n📞 *For Support:*\n• Type \"Hi\" anytime for assistance\n• Type \"Help\" for helpdesk information\n• Type \"Menu\" to see all services"
+        "messageText": "✅ *Grievance Registered Successfully!*\n\n*Reference Number:* `{grievanceId}`\n\n👤 *Name:* {citizenName}\n🏢 *Department:* {departmentName}\n📂 *Sub-Department:* {subDepartmentName}\n📝 *Issue:* {description}\n📎 *Attachment:* {attachmentUrl}\n\nYour evidence has been received and attached to your reference. You will receive status updates via WhatsApp.\n\n-----------------------------------\nThank you for contacting {companyName}."
       }
     },
     {
@@ -594,7 +594,7 @@
       },
       "data": {
         "label": "Confirm Submission (HI)",
-        "messageText": "📋 *सबमिशन की पुष्टि करें*\n\nकृपया अपने विवरणों को सत्यापित करें:\n\n👤 *नाम:* {citizenName}\n🏢 *विभाग:* {departmentName}\n🏢 *अनुभाग:* {subDepartmentName}\n📝 *समस्या:* {description}\n\n👇 क्या यह सही है?",
+        "messageText": "📋 *सबमिशन की पुष्टि करें*\n\nकृपया अपने विवरणों को सत्यापित करें:\n\n👤 *नाम:* {citizenName}\n🏢 *विभाग:* {departmentName}\n🏢 *उप-विभाग:* {subDepartmentName}\n📝 *समस्या:* {description}\n\n👇 क्या यह सही है?",
         "buttons": [
           {
             "id": "submit_grv_hi",
@@ -618,7 +618,7 @@
       },
       "data": {
         "label": "Success Message (HI)",
-        "messageText": "✅ *शिकायत सफलतापूर्वक दर्ज!*\n\n*संदर्भ संख्या:* `{grievanceId}`\n\n👤 *नाम:* {citizenName}\n🏢 *विभाग:* {departmentName}\n📂 *अनुभाग:* {subDepartmentName}\n📝 *समस्या:* {description}\n\nआपको व्हाट्सएप के माध्यम से अपडेट प्राप्त होंगे।\n\n---\n{companyName} से संपर्क करने के लिए धन्यवाद।\n\n📞 *सहायता के लिए:*\n• सहायता के लिए कभी भी \"Hi\" टाइप करें\n• हेल्पडेस्क जानकारी के लिए \"Help\" टाइप करें\n• सभी सेवाओं को देखने के लिए \"Menu\" टाइप करें"
+        "messageText": "✅ *शिकायत सफलतापूर्वक दर्ज!*\n\n*संदर्भ संख्या:* `{grievanceId}`\n\n👤 *नाम:* {citizenName}\n🏢 *विभाग:* {departmentName}\n📂 *उप-विभाग:* {subDepartmentName}\n📝 *समस्या:* {description}\n📎 *संलग्नक:* {attachmentUrl}\n\nआपका साक्ष्य प्राप्त हो गया है और आपके संदर्भ के साथ संलग्न कर दिया गया है। आपको व्हाट्सएप के माध्यम से अपडेट प्राप्त होंगे।\n\n---\n{companyName} से संपर्क करने के लिए धन्यवाद।"
       }
     },
     {
@@ -764,7 +764,7 @@
       },
       "data": {
         "label": "Success Message (OR)",
-        "messageText": "✅ *ଅଭିଯୋଗ ସଫଳତାର ସହ ପଞ୍ଜିକୃତ!*\n\n*ରେଫରେନ୍ସ ନମ୍ବର:* `{grievanceId}`\n\n👤 *ନାମ:* {citizenName}\n🏢 *ବିଭାଗ:* {departmentName}\n📂 *ଉପ-ବିଭାଗ:* {subDepartmentName}\n📝 *ସମସ୍ୟା:* {description}\n\nଆପଣ ହ୍ବାଟସ୍ଆପ୍ ମାଧ୍ୟମରେ ଅଡ଼ଡ଼ ଅପଡେଟ ପାଇବେ।\n\n---\n{companyName} ସହ ଯୋଗାଯୋଗ କରିଥିବାରୁ ଧନ୍ୟବାଦ।\n\n📞 *ସହାୟତା ପାଇଁ:*\n• ସହାୟତା ପାଇଁ ଯେକୌଣସି ସମୟରେ \"Hi\" ଟାଇପ୍ କରନ୍ତୁ\n• ହେଲ୍ପଡେସ୍କ ସୂଚନା ପାଇଁ \"Help\" ଟାଇପ୍ କରନ୍ତୁ\n• ସମସ୍ତ ସେବା ଦେଖିବା ପାଇଁ \"Menu\" ଟାଇପ୍ କରନ୍ତୁ"
+        "messageText": "✅ *ଅଭିଯୋଗ ସଫଳତାର ସହ ପଞ୍ଜିକୃତ!*\n\n*ରେଫରେନ୍ସ ନମ୍ବର:* `{grievanceId}`\n\n👤 *ନାମ:* {citizenName}\n🏢 *ବିଭାଗ:* {departmentName}\n📂 *ଉପ-ବିଭାଗ:* {subDepartmentName}\n📝 *ସମସ୍ୟା:* {description}\n📎 *ଦଲିଲ:* {attachmentUrl}\n\nଆପଣଙ୍କର ପ୍ରମାଣ ଗ୍ରହଣ କରାଯାଇଛି ଏବଂ ଆପଣଙ୍କର ରେଫରେନ୍ସ ସହିତ ସଂଲଗ୍ନ କରାଯାଇଛି। ଆପଣ ହ୍ବାଟସ୍ଆପ୍ ମାଧ୍ୟମରେ ଅପଡେଟ ପାଇବେ।\n\n---\n{companyName} ସହ ଯୋଗାଯୋଗ କରିଥିବାରୁ ଧନ୍ୟବାଦ।"
       }
     },
     {
@@ -812,8 +812,23 @@
         "label": "Select Date (EN)",
         "messageText": "🗓️ *Select Date*\n\nPlease choose your preferred appointment date from the list below.\n\nYou can view more dates by selecting *Load More Dates*.",
         "method": "GET",
-        "endpoint": "/api/availability/chatbot/{companyId}",
+        "endpoint": "/api/availability/chatbot/{companyId}?departmentId={departmentId}",
         "saveResponseTo": "availableDates"
+      }
+    },
+    {
+      "id": "apt_time_en",
+      "type": "apiCall",
+      "position": {
+        "x": 1800,
+        "y": 100
+      },
+      "data": {
+        "label": "Select Time (EN)",
+        "messageText": "⏰ *Select Time Slot*\n\nPlease choose your preferred time for {appointmentDate}:",
+        "method": "GET",
+        "endpoint": "/api/availability/chatbot/{companyId}?selectedDate={selectedDate}&departmentId={departmentId}",
+        "saveResponseTo": "availableTimeSlots"
       }
     },
     {
@@ -825,7 +840,7 @@
       },
       "data": {
         "label": "Verify Appointment (EN)",
-        "messageText": "📋 *Confirm Appointment Request*\n\nPlease confirm your appointment details:\n\n👤 *Name:* {citizenName}\n🎯 *Purpose:* {purpose}\n📅 *Date:* {appointmentDate}\n\n👇 Do you want to submit this appointment request?",
+        "messageText": "📋 *Confirm Appointment Request*\n\nPlease confirm your appointment details:\n\n👤 *Name:* {citizenName}\n🎯 *Purpose:* {purpose}\n📅 *Date:* {appointmentDate}\n⏰ *Time:* {appointmentTime}\n\n👇 Do you want to submit this appointment request?",
         "buttons": [
           {
             "id": "confirm_apt_en",
@@ -849,7 +864,7 @@
       },
       "data": {
         "label": "Apt Success (EN)",
-        "messageText": "✅ *Appointment Request Submitted Successfully*\n\n🆔 *Appointment ID:* {appointmentId}\n\nYour appointment request has been lodged in our system.\nYou will be notified on WhatsApp with the appointment time and final confirmation.\n\nThank you for contacting {companyName}."
+        "messageText": "✅ *Appointment Request Submitted Successfully*\n\n🆔 *Appointment ID:* {appointmentId}\n📅 *Date:* {appointmentDate}\n⏰ *Time:* {appointmentTime}\n\nYour appointment request has been lodged in our system. You will receive a final confirmation via WhatsApp once processed.\n\nThank you for contacting {companyName}."
       }
     },
     {
@@ -945,8 +960,23 @@
         "label": "Select Date (HI)",
         "messageText": "🗓️ *तारीख चुनें*\n\nकृपया नीचे दी गई सूची से अपनी पसंदीदा अपॉइंटमेंट तारीख चुनें।\n\nअधिक तारीख देखने के लिए *और तारीख लोड करें* चुनें।",
         "method": "GET",
-        "endpoint": "/api/availability/chatbot/{companyId}",
+        "endpoint": "/api/availability/chatbot/{companyId}?departmentId={departmentId}",
         "saveResponseTo": "availableDates"
+      }
+    },
+    {
+      "id": "apt_time_hi",
+      "type": "apiCall",
+      "position": {
+        "x": 1800,
+        "y": 500
+      },
+      "data": {
+        "label": "Select Time (HI)",
+        "messageText": "⏰ *समय स्लॉट चुनें*\n\nकृपया {appointmentDate} के लिए अपना पसंदीदा समय चुनें:",
+        "method": "GET",
+        "endpoint": "/api/availability/chatbot/{companyId}?selectedDate={selectedDate}&departmentId={departmentId}",
+        "saveResponseTo": "availableTimeSlots"
       }
     },
     {
@@ -958,7 +988,7 @@
       },
       "data": {
         "label": "Verify Appointment (HI)",
-        "messageText": "📋 *अपॉइंटमेंट अनुरोध की पुष्टि करें*\n\nकृपया अपनी अपॉइंटमेंट जानकारी की पुष्टि करें:\n\n👤 *नाम:* {citizenName}\n🎯 *उद्देश्य:* {purpose}\n📅 *तारीख:* {appointmentDate}\n\n👇 क्या आप यह अपॉइंटमेंट अनुरोध जमा करना चाहते हैं?",
+        "messageText": "📋 *अपॉइंटमेंट अनुरोध की पुष्टि करें*\n\nकृपया अपनी अपॉइंटमेंट जानकारी की पुष्टि करें:\n\n👤 *नाम:* {citizenName}\n🎯 *उद्देश्य:* {purpose}\n📅 *तारीख:* {appointmentDate}\n⏰ *समय:* {appointmentTime}\n\n👇 क्या आप यह अपॉइंटमेंट अनुरोध जमा करना चाहते हैं?",
         "buttons": [
           {
             "id": "confirm_apt_hi",
@@ -982,7 +1012,7 @@
       },
       "data": {
         "label": "Apt Success (HI)",
-        "messageText": "✅ *अपॉइंटमेंट अनुरोध सफलतापूर्वक जमा हुआ*\n\n🆔 *अपॉइंटमेंट आईडी:* {appointmentId}\n\nआपका अपॉइंटमेंट अनुरोध हमारे सिस्टम में दर्ज कर दिया गया है।\nआपको अपॉइंटमेंट समय और अंतिम पुष्टि की जानकारी व्हाट्सएप पर दी जाएगी।\n\n{companyName} से संपर्क करने के लिए धन्यवाद।"
+        "messageText": "✅ *अपॉइंटमेंट अनुरोध सफलतापूर्वक जमा हुआ*\n\n🆔 *अपॉइंटमेंट आईडी:* {appointmentId}\n📅 *तारीख:* {appointmentDate}\n⏰ *समय:* {appointmentTime}\n\nआपका अपॉइंटमेंट अनुरोध हमारे सिस्टम में दर्ज कर दिया गया है। संसाधित होने के बाद आपको व्हाट्सएप के माध्यम से अंतिम पुष्टि प्राप्त होगी।\n\n{companyName} से संपर्क करने के लिए धन्यवाद।"
       }
     },
     {
@@ -1078,8 +1108,23 @@
         "label": "Select Date (OR)",
         "messageText": "🗓️ *ତାରିଖ ବାଛନ୍ତୁ*\n\nଦୟାକରି ନିମ୍ନତଲିକାରୁ ଆପଣଙ୍କ ପସନ୍ଦର ଆପଏଣ୍ଟମେଣ୍ଟ ତାରିଖ ବାଛନ୍ତୁ।\n\nଅଧିକ ତାରିଖ ଦେଖିବା ପାଇଁ *ଅଧିକ ତାରିଖ ଲୋଡ୍ କରନ୍ତୁ* ଚୟନ କରନ୍ତୁ।",
         "method": "GET",
-        "endpoint": "/api/availability/chatbot/{companyId}",
+        "endpoint": "/api/availability/chatbot/{companyId}?departmentId={departmentId}",
         "saveResponseTo": "availableDates"
+      }
+    },
+    {
+      "id": "apt_time_or",
+      "type": "apiCall",
+      "position": {
+        "x": 1800,
+        "y": 900
+      },
+      "data": {
+        "label": "Select Time (OR)",
+        "messageText": "⏰ *ସମୟ ସ୍ଲଟ୍ ବାଛନ୍ତୁ*\n\nଦୟାକରି {appointmentDate} ପାଇଁ ଆପଣଙ୍କର ପସନ୍ଦର ସମୟ ବାଛନ୍ତୁ:",
+        "method": "GET",
+        "endpoint": "/api/availability/chatbot/{companyId}?selectedDate={selectedDate}&departmentId={departmentId}",
+        "saveResponseTo": "availableTimeSlots"
       }
     },
     {
@@ -1091,7 +1136,7 @@
       },
       "data": {
         "label": "Verify Appointment (OR)",
-        "messageText": "📋 *ଆପଏଣ୍ଟମେଣ୍ଟ ଅନୁରୋଧ ନିଶ୍ଚିତ କରନ୍ତୁ*\n\nଦୟାକରି ଆପଣଙ୍କ ଆପଏଣ୍ଟମେଣ୍ଟ ବିବରଣୀ ନିଶ୍ଚିତ କରନ୍ତୁ:\n\n👤 *ନାମ:* {citizenName}\n🎯 *ଉଦ୍ଦେଶ୍ୟ:* {purpose}\n📅 *ତାରିଖ:* {appointmentDate}\n\n👇 ଆପଣ ଏହି ଆପଏଣ୍ଟମେଣ୍ଟ ଅନୁରୋଧ ଦାଖଲ କରିବାକୁ ଚାହୁଁଛନ୍ତି କି?",
+        "messageText": "📋 *ଆପଏଣ୍ଟମେଣ୍ଟ ଅନୁରୋଧ ନିଶ୍ଚିତ କରନ୍ତୁ*\n\nଦୟାକରି ଆପଣଙ୍କ ଆପଏଣ୍ଟମେଣ୍ଟ ବିବରଣୀ ନିଶ୍ଚିତ କରନ୍ତୁ:\n\n👤 *ନାମ:* {citizenName}\n🎯 *ଉଦ୍ଦେଶ୍ୟ:* {purpose}\n📅 *ତାରିଖ:* {appointmentDate}\n⏰ *ସମୟ:* {appointmentTime}\n\n👇 ଆପଣ ଏହି ଆପଏଣ୍ଟମେଣ୍ଟ ଅନୁରୋଧ ଦାଖଲ କରିବାକୁ ଚାହୁଁଛନ୍ତି କି?",
         "buttons": [
           {
             "id": "confirm_apt_or",
@@ -1115,7 +1160,7 @@
       },
       "data": {
         "label": "Apt Success (OR)",
-        "messageText": "✅ *ଆପଏଣ୍ଟମେଣ୍ଟ ଅନୁରୋଧ ସଫଳତାର ସହିତ ଦାଖଲ ହେଲା*\n\n🆔 *ଆପଏଣ୍ଟମେଣ୍ଟ ଆଇଡି:* {appointmentId}\n\nଆପଣଙ୍କର ଆପଏଣ୍ଟମେଣ୍ଟ ଅନୁରୋଧ ଆମ ସିଷ୍ଟମରେ ଦାଖଲ ହୋଇଛି।\nଆପଏଣ୍ଟମେଣ୍ଟ ସମୟ ଏବଂ ଅନ୍ତିମ ନିଶ୍ଚିତକରଣ ବିଷୟରେ ଆପଣଙ୍କୁ WhatsApp ରେ ସୂଚନା ଦିଆଯିବ।\n\n{companyName} ସହିତ ଯୋଗାଯୋଗ କରିଥିବାରୁ ଧନ୍ୟବାଦ।"
+        "messageText": "✅ *ଆପଏଣ୍ଟମେଣ୍ଟ ଅନୁରୋଧ ସଫଳତାର ସହିତ ଦାଖଲ ହେଲା*\n\n🆔 *ଆପଏଣ୍ଟମେଣ୍ଟ ଆଇଡି:* {appointmentId}\n📅 *ତାରିଖ:* {appointmentDate}\n⏰ *ସମୟ:* {appointmentTime}\n\nଆପଣଙ୍କର ଆପଏଣ୍ଟମେଣ୍ଟ ଅନୁରୋଧ ଆମ ସିଷ୍ଟମରେ ଦାଖଲ ହୋଇଛି। ପ୍ରକ୍ରିୟାକରଣ ପରେ ଆପଣଙ୍କୁ WhatsApp ମାଧ୍ୟମରେ ଅନ୍ତିମ ନିଶ୍ଚିତକରଣ ସୂଚନା ଦିଆଯିବ।\n\n{companyName} ସହିତ ଯୋଗାଯୋଗ କରିଥିବାରୁ ଧନ୍ୟବାଦ।"
       }
     },
     {
@@ -1381,7 +1426,7 @@
       "id": "e_or_grv10",
       "source": "grv_confirm_or",
       "target": "grv_success_or",
-      "sourceHandle": "submit_grv_or",
+      "sourceHandle": "submit_grv_or",  
       "type": "smoothstep"
     },
     {
@@ -1408,6 +1453,18 @@
       "id": "e_en_apt3",
       "source": "apt_purpose_en",
       "target": "apt_date_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_en_apt4",
+      "source": "apt_date_en",
+      "target": "apt_time_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_en_apt5",
+      "source": "apt_time_en",
+      "target": "apt_confirm_en",
       "type": "smoothstep"
     },
     {
@@ -1444,6 +1501,18 @@
       "type": "smoothstep"
     },
     {
+      "id": "e_hi_apt4",
+      "source": "apt_date_hi",
+      "target": "apt_time_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_hi_apt5",
+      "source": "apt_time_hi",
+      "target": "apt_confirm_hi",
+      "type": "smoothstep"
+    },
+    {
       "id": "e_hi_apt6",
       "source": "apt_confirm_hi",
       "target": "apt_success_hi",
@@ -1474,6 +1543,18 @@
       "id": "e_or_apt3",
       "source": "apt_purpose_or",
       "target": "apt_date_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_or_apt4",
+      "source": "apt_date_or",
+      "target": "apt_time_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_or_apt5",
+      "source": "apt_time_or",
+      "target": "apt_confirm_or",
       "type": "smoothstep"
     },
     {
@@ -1570,24 +1651,6 @@
       "target": "main_menu_or",
       "sourceHandle": "back_to_menu_or",
       "type": "smoothstep"
-    },
-    {
-      "id": "e_apt_date_en_apt_confirm_en",
-      "source": "apt_date_en",
-      "target": "apt_confirm_en",
-      "type": "default"
-    },
-    {
-      "id": "e_apt_date_hi_apt_confirm_hi",
-      "source": "apt_date_hi",
-      "target": "apt_confirm_hi",
-      "type": "default"
-    },
-    {
-      "id": "e_apt_date_or_apt_confirm_or",
-      "source": "apt_date_or",
-      "target": "apt_confirm_or",
-      "type": "default"
     }
   ]
 }

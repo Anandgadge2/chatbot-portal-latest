@@ -374,3 +374,62 @@ export async function sendWhatsAppList(
     return sendWhatsAppMessage(company, to, fallbackText);
   }
 }
+
+/**
+ * ============================================================
+ * SEND MEDIA MESSAGE (IMAGE, DOCUMENT, VIDEO, AUDIO)
+ * ============================================================
+ */
+export async function sendWhatsAppMedia(
+  company: any,
+  to: string,
+  mediaUrl: string,
+  mediaType: 'image' | 'document' | 'video' | 'audio' = 'image',
+  caption?: string,
+  filename?: string
+): Promise<any> {
+  try {
+    const { url, headers } = getWhatsAppConfig(company);
+
+    const payload: any = {
+      messaging_product: 'whatsapp',
+      to,
+      type: mediaType,
+      [mediaType]: {
+        link: mediaUrl
+      }
+    };
+
+    if (caption) {
+      payload[mediaType].caption = safeText(caption, 1024);
+    }
+
+    if (mediaType === 'document' && filename) {
+      payload[mediaType].filename = filename;
+    }
+
+    const response = await axios.post(url, payload, { headers });
+
+    console.log(`✅ WhatsApp ${mediaType} sent → ${to}`);
+    
+    // Log to audit
+    await logOutgoingMessage(company, to, `Media (${mediaType}): ${mediaUrl}`, 'media');
+
+    return {
+      success: true,
+      messageId: response.data.messages?.[0]?.id
+    };
+
+  } catch (error: any) {
+    logMetaError(error, {
+      action: 'send_media',
+      mediaType,
+      to,
+      company: company?.name
+    });
+
+    // Fallback? Media cannot easily fallback to text without the file itself being visible.
+    // However, we can send a text message with the link as a fallback.
+    return sendWhatsAppMessage(company, to, `${caption ? caption + '\n\n' : ''}🔗 Attachment: ${mediaUrl}`);
+  }
+}

@@ -6294,6 +6294,8 @@ function DashboardContent() {
           itemId={selectedAppointmentForStatus?._id || ""}
           itemType="appointment"
           currentStatus={selectedAppointmentForStatus?.status || ""}
+          initialDate={selectedAppointmentForStatus?.appointmentDate}
+          initialTime={selectedAppointmentForStatus?.appointmentTime}
           onSuccess={() => {
             fetchAppointments(appointmentPage, true);
             fetchDashboardData(true);

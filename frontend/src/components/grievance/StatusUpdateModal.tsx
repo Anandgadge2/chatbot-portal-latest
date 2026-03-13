@@ -14,6 +14,8 @@ interface StatusUpdateModalProps {
   onSuccess: () => void;
   /** For grievance only: 'operator' = 2 buttons (Resolved, Rejected); 'department-admin' = 4 buttons (Pending, Assigned, Resolved, Rejected) */
   grievanceVariant?: 'operator' | 'department-admin';
+  initialDate?: string;
+  initialTime?: string;
 }
 
 const grievanceStatusesAll = [
@@ -64,26 +66,34 @@ function PremiumClockPicker({
   onChange: (value: string) => void;
   onClose: () => void;
 }) {
-  const [hour12, setHour12] = useState(9);
+  const [hour12, setHour12] = useState(12);
   const [minute, setMinute] = useState(0);
   const [period, setPeriod] = useState<'AM' | 'PM'>('AM');
   const [mode, setMode] = useState<'hour' | 'minute'>('hour');
   const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
-    if (value) {
-      const [h24, m] = value.split(':').map(Number);
-      const p = h24 >= 12 ? 'PM' : 'AM';
-      let h12 = h24 % 12;
-      if (h12 === 0) h12 = 12;
-      setHour12(h12);
-      setMinute(m || 0);
-      setPeriod(p);
+    if (value && value.includes(':')) {
+      const parts = value.split(':');
+      const h24 = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10);
+      
+      if (!isNaN(h24) && !isNaN(m)) {
+        const p = h24 >= 12 ? 'PM' : 'AM';
+        let h12 = h24 % 12;
+        if (h12 === 0) h12 = 12;
+        setHour12(h12);
+        setMinute(m);
+        setPeriod(p);
+      }
     }
   }, [value]);
 
-  const hourAngle = ((hour12 % 12) / 12) * 360 + (minute / 60) * 30;
-  const minuteAngle = (minute / 60) * 360;
+  const safeHour = isNaN(hour12) ? 12 : hour12;
+  const safeMinute = isNaN(minute) ? 0 : minute;
+
+  const hourAngle = ((safeHour % 12) / 12) * 360 + (safeMinute / 60) * 30;
+  const minuteAngle = (safeMinute / 60) * 360;
 
   const getValueFromAngle = useCallback(
     (clientX: number, clientY: number) => {
@@ -162,7 +172,7 @@ function PremiumClockPicker({
     );
   }
 
-  const currentResult = to24Hour(hour12, minute, period);
+  const currentResult = to24Hour(safeHour, safeMinute, period);
 
   return (
     <div className="flex flex-col items-center gap-6 bg-white p-8 rounded-[3rem] shadow-2xl border border-indigo-100 max-w-md mx-auto">
@@ -180,9 +190,9 @@ function PremiumClockPicker({
       </div>
 
       <div className="text-5xl font-black text-slate-800 flex items-center gap-3 font-mono tracking-tighter">
-        <span className={mode === 'hour' ? 'text-indigo-600' : ''}>{String(hour12).padStart(2, '0')}</span>
+        <span className={mode === 'hour' ? 'text-indigo-600' : ''}>{String(safeHour).padStart(2, '0')}</span>
         <span className="text-slate-300 animate-pulse">:</span>
-        <span className={mode === 'minute' ? 'text-indigo-600' : ''}>{String(minute).padStart(2, '0')}</span>
+        <span className={mode === 'minute' ? 'text-indigo-600' : ''}>{String(safeMinute).padStart(2, '0')}</span>
         <div className="flex flex-col gap-1.5 ml-4">
           {(["AM", "PM"] as const).map((p) => (
             <button
@@ -210,8 +220,8 @@ function PremiumClockPicker({
           <circle cx="50" cy="50" r="48" fill="#f8fafc" stroke="#e2e8f0" strokeWidth="0.5" />
           {ticks}
           {labels}
-          <ClockHand angle={hourAngle} length={22} width={2.5} color="#4f46e5" />
-          <ClockHand angle={minuteAngle} length={30} width={1.8} color="#818cf8" />
+          <ClockHand angle={hourAngle} length={18} width={3.5} color="#4f46e5" />
+          <ClockHand angle={minuteAngle} length={28} width={2} color="#818cf8" />
           <circle cx="50" cy="50" r="3" fill="#1e1b4b" />
           <circle cx="50" cy="50" r="1.2" fill="#ffffff" />
         </svg>
@@ -223,10 +233,14 @@ function PremiumClockPicker({
           onChange(currentResult);
           toast.success(`Time confirmed: ${currentResult}`, { id: 'clock-confirm', icon: '🕒' });
         }}
-        className="w-full py-5 rounded-2xl bg-indigo-600 hover:bg-slate-900 text-white text-xs font-black uppercase tracking-widest shadow-xl shadow-indigo-200 transition-all flex items-center justify-center gap-3 group"
+        className={`w-full py-5 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl transition-all flex items-center justify-center gap-3 group ${
+          value === currentResult
+            ? 'bg-emerald-600 text-white shadow-emerald-200'
+            : 'bg-indigo-600 hover:bg-slate-900 text-white shadow-indigo-200'
+        }`}
       >
-        <span>Confirm Time: {currentResult}</span>
-        <CheckCircle2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
+        <span>{value === currentResult ? `Time Confirmed: ${currentResult}` : `Confirm Time: ${currentResult}`}</span>
+        <CheckCircle2 className={`w-4 h-4 transition-transform ${value === currentResult ? 'scale-110' : 'group-hover:scale-110'}`} />
       </button>
     </div>
   );
@@ -362,7 +376,9 @@ export default function StatusUpdateModal({
   itemType,
   currentStatus,
   onSuccess,
-  grievanceVariant
+  grievanceVariant,
+  initialDate,
+  initialTime
 }: StatusUpdateModalProps) {
   const [selectedStatus, setSelectedStatus] = useState(currentStatus);
   const [remarks, setRemarks] = useState('');
@@ -383,11 +399,20 @@ export default function StatusUpdateModal({
       setSelectedStatus(currentStatus);
       setRemarks('');
       setDocuments([]);
-      setAppointmentDate('');
-      setAppointmentTime('');
+      
+      // Auto-set date/time if provided (e.g. for appointments)
+      if (initialDate) {
+        // If it's an ISO string, extract YYYY-MM-DD
+        const datePart = initialDate.includes('T') ? initialDate.split('T')[0] : initialDate;
+        setAppointmentDate(datePart);
+      } else {
+        setAppointmentDate('');
+      }
+      
+      setAppointmentTime(initialTime || '');
       setDescription('');
     }
-  }, [isOpen, currentStatus]);
+  }, [isOpen, currentStatus, initialDate, initialTime]);
 
   const handleUpdate = async () => {
     if (selectedStatus === currentStatus) {
@@ -456,7 +481,7 @@ export default function StatusUpdateModal({
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-150">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[95vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
         {/* Dark Header */}
         <div className="bg-slate-900 p-5 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">

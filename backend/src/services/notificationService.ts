@@ -4,7 +4,7 @@ import CompanyWhatsAppConfig from '../models/CompanyWhatsAppConfig';
 import Department from '../models/Department';
 import User from '../models/User';
 import { sendEmail, getNotificationEmailContent, getNotificationWhatsAppMessage } from './emailService';
-import { sendWhatsAppMessage } from './whatsappService';
+import { sendWhatsAppMessage, sendWhatsAppMedia } from './whatsappService';
 import { logger } from '../config/logger';
 import { UserRole } from '../config/constants';
 
@@ -142,6 +142,22 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
     }
   }
 
+  // Format Appointment Date if present
+  let formattedAppointmentDate = '';
+  if (data.appointmentDate) {
+    try {
+      const d = data.appointmentDate instanceof Date ? data.appointmentDate : new Date(data.appointmentDate);
+      if (!isNaN(d.getTime())) {
+        formattedAppointmentDate = d.toLocaleDateString('en-IN', {
+          day: '2-digit', month: 'long', year: 'numeric',
+          timeZone: 'Asia/Kolkata'
+        });
+      }
+    } catch (e) {
+      formattedAppointmentDate = String(data.appointmentDate);
+    }
+  }
+
   return {
     ...data,
     companyName: company?.name || 'Portal Admin',
@@ -154,7 +170,10 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
     resolvedByName,
     formattedDate,
     formattedResolvedDate,
-    resolutionTimeText
+    formattedAppointmentDate,
+    appointmentDate: formattedAppointmentDate || data.appointmentDate, // Fallback for templates using old field
+    resolutionTimeText,
+    remarks: data.remarks || '' // Ensure it's at least an empty string for replacePlaceholders
   };
 }
 
@@ -265,6 +284,35 @@ function normalizePhone(phone?: string): string | null {
   if (digits.length === 10) return `91${digits}`;
   if (digits.length >= 11) return digits;
   return null;
+}
+
+/**
+ * Shared helper to send multiple media URLs to a recipient
+ */
+async function sendMediaIfAvailable(company: any, to: string, urls?: string[], caption?: string) {
+  if (!urls || urls.length === 0) return;
+  
+  const normalizedTo = normalizePhone(to);
+  if (!normalizedTo) return;
+
+  for (const url of urls) {
+    try {
+      // Basic type detection based on extension
+      const ext = url.split('.').pop()?.toLowerCase() || '';
+      const isImage = ['jpg', 'jpeg', 'png', 'webp'].includes(ext);
+      const isVideo = ['mp4', 'mov', 'avi'].includes(ext);
+      const isAudio = ['mp3', 'wav', 'ogg', 'm4a'].includes(ext);
+      
+      let type: 'image' | 'document' | 'video' | 'audio' = 'document';
+      if (isImage) type = 'image';
+      else if (isVideo) type = 'video';
+      else if (isAudio) type = 'audio';
+
+      await sendWhatsAppMedia(company, normalizedTo, url, type, caption || 'Attachment');
+    } catch (err) {
+      logger.error('❌ Error sending media attachment:', err);
+    }
+  }
 }
 
 async function safeSendWhatsApp(
@@ -553,6 +601,10 @@ export async function notifyDepartmentAdminOnCreation(
                 `This is an automated notification.`;
             }
             await safeSendWhatsApp(company, user.phone, message);
+            // Send attachments if any
+            if (data.evidenceUrls && data.evidenceUrls.length > 0) {
+              await sendMediaIfAvailable(company, user.phone, data.evidenceUrls, `Evidence for ${fullData.grievanceId || fullData.appointmentId}`);
+            }
           })();
           notificationTasks.push(whatsappTask);
         }
@@ -625,6 +677,9 @@ export async function notifyUserOnAssignment(
           `Digital Grievance Redressal System`;
       }
       await safeSendWhatsApp(company, user.phone, message);
+      if (data.evidenceUrls && data.evidenceUrls.length > 0) {
+        await sendMediaIfAvailable(company, user.phone, data.evidenceUrls, `Files for Assignment: ${fullData.grievanceId || fullData.appointmentId}`);
+      }
     }
 
   } catch (error) {
@@ -699,6 +754,9 @@ export async function notifyCitizenOnResolution(
         `This is an automated notification.`;
     }
     await safeSendWhatsApp(company, data.citizenWhatsApp || data.citizenPhone, message);
+    if (data.evidenceUrls && data.evidenceUrls.length > 0) {
+      await sendMediaIfAvailable(company, data.citizenWhatsApp || data.citizenPhone, data.evidenceUrls, 'Resolution Support Documents');
+    }
 
   } catch (error) {
     logger.error('❌ notifyCitizenOnResolution failed:', error);
@@ -755,6 +813,9 @@ export async function notifyCitizenOnCreation(
         `Digital Portal`;
     }
     await safeSendWhatsApp(company, data.citizenWhatsApp || data.citizenPhone, message);
+    if (data.evidenceUrls && data.evidenceUrls.length > 0) {
+      await sendMediaIfAvailable(company, data.citizenWhatsApp || data.citizenPhone, data.evidenceUrls, 'Submission Evidence');
+    }
 
   } catch (error) {
     logger.error('❌ notifyCitizenOnCreation failed:', error);
@@ -893,6 +954,9 @@ export async function notifyCitizenOnGrievanceStatusChange(data: {
     const result = await safeSendWhatsApp(company, data.citizenWhatsApp || data.citizenPhone, message);
     if (result.success) {
       logger.info(`✅ Grievance status notification sent to ${data.citizenName} (${data.citizenPhone})`);
+      if (data.evidenceUrls && data.evidenceUrls.length > 0) {
+        await sendMediaIfAvailable(company, data.citizenWhatsApp || data.citizenPhone, data.evidenceUrls, `Status update: ${statusLabel}`);
+      }
     } else {
       logger.error(`❌ Failed to send grievance status notification: ${result.error}`);
     }
@@ -1021,6 +1085,9 @@ export async function notifyHierarchyOnStatusChange(
         // 📱 WhatsApp
         if (canNotify(company, user, 'whatsapp')) {
           tasks.push(safeSendWhatsApp(company, user.phone, hierarchyMessage));
+          if (data.evidenceUrls && data.evidenceUrls.length > 0) {
+            tasks.push(sendMediaIfAvailable(company, user.phone, data.evidenceUrls, `Hierarchy Update: ${fullData.grievanceId || fullData.appointmentId}`));
+          }
         }
 
         // 📧 Email
@@ -1102,7 +1169,7 @@ export async function notifyCitizenOnAppointmentStatusChange(data: {
       return `${displayHours}:${String(minutes || 0).padStart(2, '0')} ${period}`;
     };
     const timeDisplay = formatTime12Hr(data.appointmentTime);
-    const remarksText = data.remarks ? `\n\n📝 *Remarks:*\n${data.remarks}` : '';
+    const remarksText = data.remarks ? `\n📝 *Remarks:*\n${data.remarks}` : '';
 
     // For citizens, try specific confirmation/update keys first to avoid admin templates
     const statusKey =
@@ -1200,17 +1267,17 @@ export async function notifyCitizenOnAppointmentStatusChange(data: {
           `*${company.name}*\n` +
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
           `✅ *APPOINTMENT CONFIRMED*\n\n` +
-          `Respected ${data.citizenName},\n\n` +
-          `Your appointment has been confirmed and is ready.\n\n` +
+          `Respected ${data.citizenName},\n` +
+          `Your appointment has been confirmed\n\n` +
           `*Appointment Details:*\n` +
           `🎫 *Ref No:* \`${data.appointmentId}\`\n` +
           `👤 *Name:* ${data.citizenName}\n` +
           `📅 *Date:* ${dateDisplay}\n` +
           `⏰ *Time:* ${timeDisplay}\n` +
-          `🎯 *Purpose:* ${data.purpose || 'Meeting with CEO'}\n` +
-          `📊 *Status:* CONFIRMED${remarksText}\n\n` +
-          `Please arrive 15 minutes early with valid ID.\n\n` +
-          `Thank you for using our services.\n\n` +
+          `🎯 *Purpose:* ${data.purpose || 'Meeting with collector'}\n` +
+          `📊 *Status:* CONFIRMED${remarksText}\n` +
+          `Please arrive 15 minutes early with valid ID.\n` +
+          `Thank you for using our services.\n` +
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
           `*${company.name}*\n` +
           `Digital Appointment System`;
@@ -1220,15 +1287,14 @@ export async function notifyCitizenOnAppointmentStatusChange(data: {
           `*${company.name}*\n` +
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
           `❌ *APPOINTMENT CANCELLED*\n\n` +
-          `Respected ${data.citizenName},\n\n` +
-          `We regret to inform you that your appointment request has been cancelled.\n\n` +
+          `Respected ${data.citizenName},\n` +
+          `We regret to inform you that your appointment request has been cancelled.\n` +
           `*Appointment Details:*\n` +
           `🎫 *Ref No:* \`${data.appointmentId}\`\n` +
           `📅 *Date:* ${dateDisplay}\n` +
           `⏰ *Time:* ${timeDisplay}\n` +
-          `🎯 *Purpose:* ${data.purpose || 'Meeting with CEO'}${remarksText}\n\n` +
-          `If you have any questions or would like to reschedule, please contact us.\n\n` +
-          `We apologize for any inconvenience caused.\n\n` +
+          `🎯 *Purpose:* ${data.purpose || 'Meeting with CEO'}${remarksText}\n` +
+          `We apologize for any inconvenience caused.\n` +
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
           `*${company.name}*\n` +
           `Digital Appointment System`;
@@ -1239,13 +1305,13 @@ export async function notifyCitizenOnAppointmentStatusChange(data: {
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
           `✅ *APPOINTMENT COMPLETED*\n\n` +
           `Respected ${data.citizenName},\n\n` +
-          `Your appointment has been marked as completed.\n\n` +
+          `Your appointment has been marked as completed.\n` +
           `*Appointment Details:*\n` +
           `🎫 *Ref No:* \`${data.appointmentId}\`\n` +
           `📅 *Date:* ${dateDisplay}\n` +
-          `⏰ *Time:* ${timeDisplay}${remarksText}\n\n` +
-          `Thank you for visiting us. We hope your concern was addressed satisfactorily.\n\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+          `⏰ *Time:* ${timeDisplay}${remarksText}\n` +
+          `Thank you for visiting us. We hope your concern was addressed satisfactorily.` +
+          `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
           `*${company.name}*\n` +
           `Digital Appointment System`;
       }
@@ -1287,3 +1353,5 @@ export async function notifyCitizenOnAppointmentStatusChange(data: {
     logger.error('❌ notifyCitizenOnAppointmentStatusChange failed:', error);
   }
 }
+
+

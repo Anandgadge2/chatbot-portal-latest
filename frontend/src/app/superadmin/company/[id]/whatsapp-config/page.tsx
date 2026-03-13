@@ -453,9 +453,7 @@ Digital Appointment System`,
 ✅ *GRIEVANCE SUBMITTED SUCCESSFULLY*
 
 Respected {citizenName},
-
 Thank you for reaching out. Your grievance has been registered.
-
 *Details:*
 🎫 *Reference ID:* {grievanceId}
 🏢 *Department:* {departmentName}
@@ -463,7 +461,6 @@ Thank you for reaching out. Your grievance has been registered.
 📅 *Submitted On:* {formattedDate}
 
 You can track your status using the Reference ID: *{grievanceId}*
-
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 *{companyName}*
 Digital Grievance Redressal System`,
