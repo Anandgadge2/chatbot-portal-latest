@@ -219,7 +219,10 @@ function PremiumClockPicker({
 
       <button
         type="button"
-        onClick={() => onChange(currentResult)}
+        onClick={() => {
+          onChange(currentResult);
+          toast.success(`Time confirmed: ${currentResult}`, { id: 'clock-confirm', icon: '🕒' });
+        }}
         className="w-full py-5 rounded-2xl bg-indigo-600 hover:bg-slate-900 text-white text-xs font-black uppercase tracking-widest shadow-xl shadow-indigo-200 transition-all flex items-center justify-center gap-3 group"
       >
         <span>Confirm Time: {currentResult}</span>

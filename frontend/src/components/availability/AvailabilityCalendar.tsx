@@ -515,7 +515,7 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
   if (!isOpen) return null;
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[95vw] md:max-w-7xl h-[98vh] p-0 overflow-hidden bg-slate-50 border-0 rounded-[2.5rem] shadow-3xl">
+      <DialogContent className="max-w-[95vw] md:max-w-5xl h-[92vh] p-0 overflow-hidden bg-slate-50 border-0 rounded-[2.5rem] shadow-3xl">
         <div className="flex flex-col h-full bg-slate-50 relative">
           {/* Dashboard-style Header */}
           <div className="bg-slate-900 px-8 py-8 relative overflow-hidden shrink-0">
@@ -574,7 +574,7 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-3 sm:p-8 bg-slate-50/20">
+        <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-3 sm:p-8 bg-slate-50/20">
           {activeClockPicker && (
             <button
               type="button"
