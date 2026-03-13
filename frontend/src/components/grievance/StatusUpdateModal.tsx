@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { X, CheckCircle2, Clock, MessageSquare, RefreshCw, Ban, CalendarDays, PartyPopper } from 'lucide-react';
+import { X, CheckCircle2, Clock, MessageSquare, RefreshCw, Ban, CalendarDays, PartyPopper, Upload, Trash2, FileText, Image, FileSpreadsheet, File } from 'lucide-react';
 import { apiClient } from '@/lib/api/client';
 import toast from 'react-hot-toast';
 
@@ -229,6 +229,129 @@ function PremiumClockPicker({
   );
 }
 
+/* ─────────────────────────────────────────────
+   Document Upload Zone Component
+   ───────────────────────────────────────────── */
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function getFileIcon(file: File) {
+  const ext = file.name.split('.').pop()?.toLowerCase() || '';
+  if (file.type.startsWith('image/')) return <Image className="w-5 h-5 text-blue-500" />;
+  if (ext === 'pdf') return <FileText className="w-5 h-5 text-red-500" />;
+  if (['xls', 'xlsx'].includes(ext)) return <FileSpreadsheet className="w-5 h-5 text-emerald-600" />;
+  if (['doc', 'docx'].includes(ext)) return <FileText className="w-5 h-5 text-indigo-500" />;
+  return <File className="w-5 h-5 text-slate-400" />;
+}
+
+function DocumentUploadZone({
+  documents,
+  onChange,
+}: {
+  documents: File[];
+  onChange: (files: File[]) => void;
+}) {
+  const [dragging, setDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragging(false);
+    const dropped = Array.from(e.dataTransfer.files);
+    const valid = dropped.filter(f =>
+      f.type.startsWith('image/') ||
+      ['pdf', 'doc', 'docx', 'xls', 'xlsx'].includes(f.name.split('.').pop()?.toLowerCase() || '')
+    );
+    onChange([...documents, ...valid].slice(0, 5));
+  }, [documents, onChange]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const added = Array.from(e.target.files || []);
+    onChange([...documents, ...added].slice(0, 5));
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeFile = (index: number) => {
+    onChange(documents.filter((_, i) => i !== index));
+  };
+
+  return (
+    <div>
+      <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">
+        Upload Support Documents{' '}
+        <span className="text-slate-400 font-normal normal-case">(optional – max 5 files, 10 MB each)</span>
+      </label>
+
+      {/* Drop Zone */}
+      <div
+        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={handleDrop}
+        onClick={() => fileInputRef.current?.click()}
+        className={`
+          relative flex flex-col items-center justify-center gap-2 px-4 py-5 rounded-xl border-2 border-dashed cursor-pointer transition-all duration-200
+          ${dragging
+            ? 'border-indigo-400 bg-indigo-50 scale-[1.01]'
+            : 'border-slate-200 bg-slate-50 hover:border-indigo-300 hover:bg-indigo-50/40'}
+        `}
+      >
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${dragging ? 'bg-indigo-100' : 'bg-white shadow-sm border border-slate-200'}`}>
+          <Upload className={`w-5 h-5 ${dragging ? 'text-indigo-600' : 'text-slate-400'}`} />
+        </div>
+        <div className="text-center">
+          <p className="text-xs font-semibold text-slate-700">
+            {dragging ? 'Drop files here' : 'Drag & drop or click to upload'}
+          </p>
+          <p className="text-[10px] text-slate-400 mt-0.5">
+            Images, PDF, Word, Excel supported
+          </p>
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+          onChange={handleFileChange}
+          className="sr-only"
+        />
+      </div>
+
+      {/* File List */}
+      {documents.length > 0 && (
+        <div className="mt-2 space-y-1.5">
+          {documents.map((file, i) => (
+            <div
+              key={i}
+              className="flex items-center gap-2.5 px-3 py-2 bg-white border border-slate-100 rounded-lg shadow-sm"
+            >
+              <span className="flex-shrink-0">{getFileIcon(file)}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-slate-800 truncate">{file.name}</p>
+                <p className="text-[10px] text-slate-400">{formatFileSize(file.size)}</p>
+              </div>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); removeFile(i); }}
+                className="w-6 h-6 rounded-md bg-rose-50 hover:bg-rose-100 flex items-center justify-center flex-shrink-0 transition-colors"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+              </button>
+            </div>
+          ))}
+          <p className="text-[10px] text-emerald-600 font-medium flex items-center gap-1 px-1">
+            <CheckCircle2 className="w-3 h-3" />
+            {documents.length} file{documents.length > 1 ? 's' : ''} ready • Will be uploaded to Cloudinary & shared as download links
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function StatusUpdateModal({
   isOpen,
   onClose,
@@ -440,23 +563,10 @@ export default function StatusUpdateModal({
           </div>
 
           {itemType === 'grievance' && selectedStatus === 'RESOLVED' && (
-            <div>
-              <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">
-                Upload Relevant Documents <span className="text-slate-400 font-normal normal-case">(optional)</span>
-              </label>
-              <input
-                type="file"
-                multiple
-                accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
-                onChange={(e) => setDocuments(Array.from(e.target.files || []))}
-                className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white"
-              />
-              {documents.length > 0 && (
-                <p className="text-[11px] text-slate-500 mt-2">
-                  {documents.length} file(s) selected. These will be uploaded and shared as links with the citizen.
-                </p>
-              )}
-            </div>
+            <DocumentUploadZone
+              documents={documents}
+              onChange={setDocuments}
+            />
           )}
 
           {/* WhatsApp Notice */}

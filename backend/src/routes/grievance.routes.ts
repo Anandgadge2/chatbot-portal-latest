@@ -179,8 +179,14 @@ router.post('/', async (req: Request, res: Response) => {
       timeline: grievance.timeline
     };
 
-    await notifyDepartmentAdminOnCreation(notificationPayload).catch(err => console.error('❌ Admin Notification failed:', err));
-    await notifyCitizenOnCreation(notificationPayload).catch(err => console.error('❌ Citizen Confirmation failed:', err));
+    // ✅ EXECUTE NOTIFICATIONS IN PARALLEL
+    Promise.allSettled([
+      notifyDepartmentAdminOnCreation(notificationPayload).catch(err => console.error('❌ Admin Notification failed:', err)),
+      notifyCitizenOnCreation({
+        ...notificationPayload,
+        action: 'confirmation'
+      }).catch(err => console.error('❌ Citizen Confirmation failed:', err))
+    ]);
 
     res.status(201).json({
       success: true,

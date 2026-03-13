@@ -48,69 +48,73 @@ router.get('/', requireDatabaseConnection, async (req: Request, res: Response) =
  * ============================================================
  */
 router.post('/', requireDatabaseConnection, async (req: Request, res: Response) => {
-  try {
-    const body = req.body;
+  // ✅ CRITICAL: Respond to Facebook/WhatsApp IMMEDIATELY (within ~5s is required)
+  // All heavy processing (notifications, DB writes) is done AFTER the 200 response.
+  // This prevents FUNCTION_INVOCATION_TIMEOUT on Vercel (30s limit).
+  res.status(200).send('EVENT_RECEIVED');
 
-    logger.info(`📥 Webhook POST received`);
-    logger.info(`📦 Headers: ${JSON.stringify(req.headers)}`);
-    logger.info(`📦 Body: ${JSON.stringify(body, null, 2)}`);
+  // Fire-and-forget: process in background, never block the response
+  setImmediate(async () => {
+    try {
+      const body = req.body;
 
-    if (body.object !== 'whatsapp_business_account') {
-      logger.warn(`⚠️ Unknown webhook object: ${body.object}`);
-      return res.status(404).json({ error: 'Unknown business account object' });
-    }
+      logger.info(`📥 Webhook POST received`);
 
-    // Iterate through entries and changes to find messages
-    for (const entry of body.entry || []) {
-      for (const change of entry.changes || []) {
-        const value = change.value;
-        const metadata = value?.metadata;
+      if (body.object !== 'whatsapp_business_account') {
+        logger.warn(`⚠️ Unknown webhook object: ${body.object}`);
+        return;
+      }
 
-        if (!value?.messages) {
-          logger.info(`ℹ️ Webhook received field: ${change.field}, but no 'messages' content found.`);
-          continue;
-        }
+      // Iterate through entries and changes to find messages
+      for (const entry of body.entry || []) {
+        for (const change of entry.changes || []) {
+          const value = change.value;
+          const metadata = value?.metadata;
 
-        // Resolve company early to see if we can even process this
-        const company = await getCompanyFromMetadata(metadata);
-        if (!company) {
-          logger.error(`❌ Could not resolve company for phoneNumberId: ${metadata?.phone_number_id}. Webhook body: ${JSON.stringify(body)}`);
-          continue;
-        }
+          if (!value?.messages) {
+            logger.info(`ℹ️ Webhook received field: ${change.field}, but no 'messages' content found.`);
+            continue;
+          }
 
-        for (const message of value.messages) {
-          try {
-            const messageId = message.id;
-            
-            // IDEMPOTENCY CHECK: Prevent duplicate processing
-            if (await isMessageProcessed(messageId)) {
-              logger.info(`⏭️ Message ${messageId} already processed, skipping...`);
-              continue;
+          // Resolve company early to see if we can even process this
+          const company = await getCompanyFromMetadata(metadata);
+          if (!company) {
+            logger.error(`❌ Could not resolve company for phoneNumberId: ${metadata?.phone_number_id}.`);
+            continue;
+          }
+
+          for (const message of value.messages) {
+            try {
+              const messageId = message.id;
+
+              // IDEMPOTENCY CHECK: Prevent duplicate processing
+              if (await isMessageProcessed(messageId)) {
+                logger.info(`⏭️ Message ${messageId} already processed, skipping...`);
+                continue;
+              }
+
+              // Mark message as processed (TTL: 48 hours)
+              await markMessageAsProcessed(messageId);
+
+              if (message.type === 'interactive') {
+                logger.info(`🔘 Interactive message received from ${message.from}`);
+                await handleInteractiveMessage(message, metadata, company);
+              } else {
+                logger.info(`📝 ${message.type} message received from ${message.from}`);
+                await handleIncomingMessage(message, metadata, company);
+              }
+            } catch (msgErr: any) {
+              logger.error(`❌ Error processing message loop: ${msgErr.message}`, { stack: msgErr.stack });
             }
-
-            // Mark message as processed (TTL: 48 hours)
-            await markMessageAsProcessed(messageId);
-
-            if (message.type === 'interactive') {
-              logger.info(`🔘 Interactive message received from ${message.from}`);
-              await handleInteractiveMessage(message, metadata, company);
-            } else {
-              logger.info(`📝 ${message.type} message received from ${message.from} (${message.type})`);
-              await handleIncomingMessage(message, metadata, company);
-            }
-          } catch (msgErr: any) {
-            logger.error(`❌ Error processing message loop: ${msgErr.message}`, { stack: msgErr.stack });
           }
         }
       }
+    } catch (error: any) {
+      logger.error('❌ Webhook background processing failed:', error);
     }
-
-    return res.status(200).send('EVENT_RECEIVED');
-  } catch (error: any) {
-    console.error('❌ Webhook processing failed:', error);
-    return res.status(200).send('ERROR_PROCESSED');
-  }
+  });
 });
+
 
 /**
  * ============================================================

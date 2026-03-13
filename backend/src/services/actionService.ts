@@ -144,94 +144,70 @@ export class ActionService {
       session.data.evidenceUrl = evidenceUrls.length > 0 ? evidenceUrls.join(', ') : '';
       
       await updateSession(session);
-      
-      if (departmentId) {
-        // ✅ Notify Admins about creation
-        try {
-          await notifyDepartmentAdminOnCreation({
-            type: 'grievance',
-            action: 'created',
-            grievanceId: grievance.grievanceId,
-            citizenName: session.data.citizenName,
-            citizenPhone: userPhone,
-            citizenWhatsApp: userPhone,
-            departmentId: departmentId as any,
-            subDepartmentId: session.data.subDepartmentId,
-            companyId: company._id,
-            description: session.data.description,
-            category: session.data.category,
-            departmentName: dept ? dept.name : session.data.category,
-            subDepartmentName: subDept ? subDept.name : undefined,
-            evidenceUrls: (session.data.media || []).map((m: any) => m.url).filter(Boolean),
-            createdAt: grievance.createdAt,
-            timeline: grievance.timeline
-          });
-        } catch (notifyErr) {
-          console.error('⚠️ ActionService: notifyDepartmentAdminOnCreation failed for grievance:', notifyErr);
-        }
 
-        // ✅ AUTO-ASSIGNMENT (Designated Officer / Dept Admin)
-        const targetDeptId = session.data.subDepartmentId || departmentId;
+      // ✅ AUTO-ASSIGNMENT (Designated Officer / Dept Admin)
+      const targetDeptId = session.data.subDepartmentId || departmentId;
+      if (targetDeptId) {
         const potentialAdmins = await getHierarchicalDepartmentAdmins(targetDeptId);
-        
         if (potentialAdmins && potentialAdmins.length > 0) {
           const targetAdmin = potentialAdmins[0]; // Pick the primary/level-specific admin
-          
           grievance.assignedTo = targetAdmin._id;
           grievance.status = GrievanceStatus.ASSIGNED;
           await grievance.save();
-          
-          console.log(`🎯 Auto-assigned grievance ${grievance.grievanceId} to admin: ${targetAdmin.email}`);
-
-          try {
-            await notifyUserOnAssignment({
-              type: 'grievance',
-              action: 'assigned',
-              grievanceId: grievance.grievanceId,
-              citizenName: session.data.citizenName,
-              citizenPhone: userPhone,
-              citizenWhatsApp: userPhone,
-              departmentId: departmentId as any,
-              subDepartmentId: session.data.subDepartmentId,
-              companyId: company._id,
-              assignedTo: targetAdmin._id,
-              assignedByName: 'System (Auto-assign)',
-              assignedAt: new Date(),
-              description: session.data.description,
-              category: session.data.category,
-              createdAt: grievance.createdAt,
-              timeline: grievance.timeline
-            });
-          } catch (assignNotifyErr) {
-            console.error('⚠️ ActionService: notifyUserOnAssignment failed for grievance:', assignNotifyErr);
-          }
         }
-
       }
+      
+      // ✅ PREPARE NOTIFICATIONS
+      const notificationData = {
+        grievanceId: grievance.grievanceId,
+        citizenName: session.data.citizenName,
+        citizenPhone: userPhone,
+        citizenWhatsApp: userPhone,
+        departmentId: departmentId as any,
+        subDepartmentId: session.data.subDepartmentId,
+        companyId: company._id,
+        description: session.data.description,
+        category: session.data.category,
+        departmentName: dept ? dept.name : session.data.category,
+        subDepartmentName: subDept ? subDept.name : undefined,
+        evidenceUrls: (session.data.media || []).map((m: any) => m.url).filter(Boolean),
+        createdAt: grievance.createdAt,
+        timeline: grievance.timeline
+      };
 
-      // ✅ Notify citizen about registration (Immediate Success Message)
-      // NOTE: this should happen even when department auto-mapping fails.
-      try {
-        await notifyCitizenOnCreation({
+      // ✅ EXECUTE NOTIFICATIONS IN PARALLEL
+      const notifications = [];
+
+      // 1. Citizen Confirmation (Priority)
+      notifications.push(notifyCitizenOnCreation({
+        ...notificationData,
+        type: 'grievance',
+        action: 'confirmation' 
+      }).catch(err => console.error('⚠️ ActionService: notifyCitizenOnCreation failed:', err)));
+
+      if (departmentId) {
+        // 2. Admin Creation Notification
+        notifications.push(notifyDepartmentAdminOnCreation({
+          ...notificationData,
           type: 'grievance',
           action: 'created',
-          grievanceId: grievance.grievanceId,
-          citizenName: session.data.citizenName,
-          citizenPhone: userPhone,
-          citizenWhatsApp: userPhone,
-          departmentId: departmentId as any,
-          subDepartmentId: session.data.subDepartmentId,
-          companyId: company._id,
-          description: session.data.description,
-          category: session.data.category,
-          departmentName: dept ? dept.name : session.data.category,
-          subDepartmentName: subDept ? subDept.name : undefined,
-          createdAt: grievance.createdAt,
-          timeline: grievance.timeline
-        });
-      } catch (citizenNotifyErr) {
-        console.error('⚠️ ActionService: notifyCitizenOnCreation failed for grievance:', citizenNotifyErr);
+        }).catch(err => console.error('⚠️ ActionService: notifyDepartmentAdminOnCreation failed:', err)));
+
+        // 3. Auto-assignment Notification
+        if (grievance.status === GrievanceStatus.ASSIGNED && grievance.assignedTo) {
+          notifications.push(notifyUserOnAssignment({
+            ...notificationData,
+            type: 'grievance',
+            action: 'assigned',
+            assignedTo: grievance.assignedTo,
+            assignedByName: 'System (Auto-assign)',
+            assignedAt: new Date()
+          } as any).catch(err => console.error('⚠️ ActionService: notifyUserOnAssignment failed:', err)));
+        }
       }
+
+      await Promise.allSettled(notifications);
+
     } catch (err: any) {
       console.error('❌ ActionService: Error creating grievance:', err);
       throw err;
@@ -276,58 +252,49 @@ export class ActionService {
         if (potentialAdmins && potentialAdmins.length > 0) {
           const targetAdmin = potentialAdmins[0];
           appointment.assignedTo = targetAdmin._id;
-          // Keep status as REQUESTED or change to SCHEDULED/CONFIRMED if needed
-          // Typically stays REQUESTED for initial review but assigned to someone.
           await appointment.save();
-          console.log(`🎯 Auto-assigned appointment ${appointment.appointmentId} to admin: ${targetAdmin.email}`);
         }
       }
 
-      try {
-        await notifyDepartmentAdminOnCreation({
-          type: 'appointment',
-          action: 'created',
-          appointmentId: appointment.appointmentId,
-          citizenName: session.data.citizenName,
-          citizenPhone: userPhone,
-          citizenWhatsApp: userPhone,
-          departmentId: appointment.departmentId as any,
-          companyId: company._id,
-          purpose: session.data.purpose,
-          appointmentDate: appointment.appointmentDate,
-          appointmentTime: appointment.appointmentTime,
-          createdAt: appointment.createdAt,
-          timeline: appointment.timeline
-        });
-      } catch (notifyErr) {
-        console.error('⚠️ ActionService: notifyDepartmentAdminOnCreation failed for appointment:', notifyErr);
-      }
+      // ✅ PREPARE NOTIFICATIONS
+      const notificationData = {
+        type: 'appointment',
+        appointmentId: appointment.appointmentId,
+        citizenName: session.data.citizenName,
+        citizenPhone: userPhone,
+        citizenWhatsApp: userPhone,
+        citizenEmail: session.data.citizenEmail,
+        departmentId: appointment.departmentId as any,
+        companyId: company._id,
+        purpose: session.data.purpose,
+        appointmentDate: appointment.appointmentDate,
+        appointmentTime: appointment.appointmentTime,
+        createdAt: appointment.createdAt,
+        timeline: appointment.timeline
+      };
 
-      // ✅ Notify citizen about appointment request (Immediate Confirmation)
-      try {
-        await notifyCitizenOnCreation({
-          type: 'appointment',
-          action: 'created',
-          appointmentId: appointment.appointmentId,
-          citizenName: session.data.citizenName,
-          citizenPhone: userPhone,
-          citizenWhatsApp: userPhone,
-          companyId: company._id,
-          departmentId: appointment.departmentId as any,
-          purpose: appointment.purpose,
-          appointmentDate: appointment.appointmentDate,
-          appointmentTime: appointment.appointmentTime,
-          createdAt: appointment.createdAt,
-          timeline: appointment.timeline
-        });
-      } catch (citizenNotifyErr) {
-        console.error('⚠️ ActionService: notifyCitizenOnCreation failed for appointment:', citizenNotifyErr);
-      }
+      const notifications = [];
+
+      // 1. Citizen Confirmation
+      notifications.push(notifyCitizenOnCreation({
+        ...notificationData,
+        action: 'confirmation'
+      } as any).catch(err => console.error('⚠️ ActionService: notifyCitizenOnCreation failed:', err)));
+
+      // 2. Admin Notification
+      notifications.push(notifyDepartmentAdminOnCreation({
+        ...notificationData,
+        action: 'created'
+      } as any).catch(err => console.error('⚠️ ActionService: notifyDepartmentAdminOnCreation failed:', err)));
+
+      await Promise.allSettled(notifications);
+
     } catch (err: any) {
       console.error('❌ ActionService: Error creating appointment:', err);
       throw err;
     }
   }
+
 
   /**
    * Create lead from session data

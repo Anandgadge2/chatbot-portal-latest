@@ -161,8 +161,14 @@ router.post('/', async (req: Request, res: Response) => {
       timeline: appointment.timeline
     };
 
-    await notifyDepartmentAdminOnCreation(notificationPayload).catch(err => console.error('❌ Admin Appointment Notification failed:', err));
-    await notifyCitizenOnCreation(notificationPayload).catch(err => console.error('❌ Citizen Appointment Confirmation failed:', err));
+    // ✅ EXECUTE NOTIFICATIONS IN PARALLEL
+    Promise.allSettled([
+      notifyDepartmentAdminOnCreation(notificationPayload).catch(err => console.error('❌ Admin Appointment Notification failed:', err)),
+      notifyCitizenOnCreation({
+        ...notificationPayload,
+        action: 'confirmation'
+      }).catch(err => console.error('❌ Citizen Appointment Confirmation failed:', err))
+    ]);
 
     res.status(201).json({
       success: true,

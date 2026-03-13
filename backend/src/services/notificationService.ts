@@ -15,7 +15,7 @@ import { UserRole } from '../config/constants';
 
 interface NotificationData {
   type: 'grievance' | 'appointment';
-  action: 'created' | 'assigned' | 'resolved';
+  action: 'created' | 'assigned' | 'resolved' | 'confirmation';
   grievanceId?: string;
   appointmentId?: string;
   recipientName?: string;
@@ -148,7 +148,7 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
     recipientName: data.recipientName || data.citizenName || 'Citizen',
     departmentName: department
       ? department.name
-      : (data.departmentName || (data.type === 'appointment' ? 'CEO Office' : 'General')),
+      : (data.departmentName || (data.type === 'appointment' ? 'Collector Office' : 'General')),
     subDepartmentName: subDept ? subDept.name : (data.subDepartmentName || 'N/A'),
     assignedByName,
     resolvedByName,
@@ -494,61 +494,74 @@ export async function notifyDepartmentAdminOnCreation(
       return;
     }
 
-    for (const { user, type } of adminsToNotify) {
-      const notificationData: NotificationData = {
-        ...data,
-        recipientName: user.getFullName()
-      };
+    // ✅ CONCURRENT NOTIFICATIONS
+    // Run all admin notifications in parallel to prevent Vercel 30s timeout
+    await Promise.allSettled(adminsToNotify.map(async ({ user, type }) => {
+      try {
+        const notificationData: NotificationData = {
+          ...data,
+          recipientName: user.getFullName()
+        };
 
-      // 📧 Email - Everyone in the list gets an email
-      if (user.email && canNotify(company, user, 'email')) {
-        try {
-          const email = await getNotificationEmailContent(data.companyId, data.type, 'created', notificationData, true);
-          if (email) {
-            const result = await sendEmail(user.email, email.subject, email.html, email.text, { companyId: data.companyId });
-            if (result.success) {
-              logger.info(`✅ Email sent to ${type} ${user.getFullName()} (${user.email})`);
+        const notificationTasks: Promise<any>[] = [];
+
+        // 📧 Email
+        const emailAddress = user.email;
+        if (emailAddress && canNotify(company, user, 'email')) {
+          const emailTask = (async () => {
+            const email = await getNotificationEmailContent(data.companyId, data.type, 'created', notificationData, true);
+            if (email) {
+              const result = await sendEmail(emailAddress, email.subject, email.html, email.text, { companyId: data.companyId });
+              if (result.success) {
+                logger.info(`✅ Email sent to ${type} ${user.getFullName()} (${emailAddress})`);
+              }
             }
-          }
-        } catch (error) {
-          logger.error(`❌ Error sending email to ${user.email}:`, error);
+          })();
+          notificationTasks.push(emailTask);
         }
-      }
 
-      // 📱 WhatsApp - Everyone in the list (Company Admins + Dept Admins) gets a WhatsApp if enabled.
-      if (canNotify(company, user, 'whatsapp')) {
-        const fullData = await populateNotificationData(notificationData);
-        let message = await getNotificationWhatsAppMessage(data.companyId, data.type, 'created', fullData);
-        if (!message) {
-          const typeLabel = data.type === 'grievance' ? 'GRIEVANCE' : 'APPOINTMENT';
-          const categoryText = fullData.category ? `\n📂 *Category:* ${fullData.category}\n` : '';
-          const deptLine = fullData.subDepartmentName && fullData.subDepartmentName !== 'N/A'
-            ? `🏢 *Department:* ${fullData.departmentName}\n🏢 *Sub-Dept:* ${fullData.subDepartmentName}`
-            : `🏢 *Department:* ${fullData.departmentName}`;
+        // 📱 WhatsApp
+        if (canNotify(company, user, 'whatsapp')) {
+          const whatsappTask = (async () => {
+            const fullData = await populateNotificationData(notificationData);
+            let message = await getNotificationWhatsAppMessage(data.companyId, data.type, 'created', fullData);
+            if (!message) {
+              const typeLabel = data.type === 'grievance' ? 'GRIEVANCE' : 'APPOINTMENT';
+              const categoryText = fullData.category ? `\n📂 *Category:* ${fullData.category}\n` : '';
+              const deptLine = fullData.subDepartmentName && fullData.subDepartmentName !== 'N/A'
+                ? `🏢 *Department:* ${fullData.departmentName}\n🏢 *Sub-Dept:* ${fullData.subDepartmentName}`
+                : `🏢 *Department:* ${fullData.departmentName}`;
 
-          message =
-            `*${fullData.companyName}*\n` +
-            `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-            `📋 *NEW ${typeLabel} RECEIVED*\n\n` +
-            `Respected ${fullData.recipientName},\n\n` +
-            `Details:\n` +
-            `🎫 *Reference ID:* ${fullData.grievanceId || fullData.appointmentId}\n` +
-            `👤 *Citizen Name:* ${fullData.citizenName}\n` +
-            `📞 *Contact Number:* ${fullData.citizenPhone}\n` +
-            `${deptLine}\n` +
-            `📝 *Description:*\n${fullData.description || fullData.purpose || ''}${categoryText}` +
-            `\n📅 *Received On:* ${fullData.formattedDate}\n\n` +
-            `*Action Required:*\n` +
-            `Please review this ${data.type} promptly. Resolution should be provided as per SLA.\n\n` +
-            `🔗 *Access Dashboard:* https://chatbot-portal-latest-frontend.vercel.app/\n\n` +
-            `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-            `*${fullData.companyName}*\n` +
-            `Digital Grievance Redressal System\n` +
-            `This is an automated notification.`;
+              message =
+                `*${fullData.companyName}*\n` +
+                `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                `📋 *NEW ${typeLabel} RECEIVED*\n\n` +
+                `Respected ${fullData.recipientName},\n\n` +
+                `Details:\n` +
+                `🎫 *Reference ID:* ${fullData.grievanceId || fullData.appointmentId}\n` +
+                `👤 *Citizen Name:* ${fullData.citizenName}\n` +
+                `📞 *Contact Number:* ${fullData.citizenPhone}\n` +
+                `${deptLine}\n` +
+                `📝 *Description:*\n${fullData.description || fullData.purpose || ''}${categoryText}` +
+                `\n📅 *Received On:* ${fullData.formattedDate}\n\n` +
+                `*Action Required:*\n` +
+                `Please review this ${data.type} promptly. Resolution should be provided as per SLA.\n\n` +
+                `🔗 *Access Dashboard:* https://chatbot-portal-latest-frontend.vercel.app/\n\n` +
+                `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                `*${fullData.companyName}*\n` +
+                `Digital Grievance Redressal System\n` +
+                `This is an automated notification.`;
+            }
+            await safeSendWhatsApp(company, user.phone, message);
+          })();
+          notificationTasks.push(whatsappTask);
         }
-        await safeSendWhatsApp(company, user.phone, message);
+
+        await Promise.allSettled(notificationTasks);
+      } catch (err) {
+        logger.error(`❌ Error in admin notification block for ${user?.email}:`, err);
       }
-    }
+    }));
 
   } catch (error) {
     logger.error('❌ notifyDepartmentAdminOnCreation failed:', error);
@@ -606,7 +619,7 @@ export async function notifyUserOnAssignment(
           `👨‍💼 *Assigned By:* ${fullData.assignedByName}\n` +
           `📅 *Assigned On:* ${fullData.formattedDate}\n\n` +
           `Please investigate and take required action.\n\n` +
-          `🔗 *Dashboard:* https://chatbot-portal-latest-frontend.vercel.app/\n\n` +
+          `🔗 *Access Dashboard:* https://chatbot-portal-latest-frontend.vercel.app/\n\n` +
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
           `*${fullData.companyName}*\n` +
           `Digital Grievance Redressal System`;
@@ -663,7 +676,7 @@ export async function notifyCitizenOnResolution(
         : `🏢 *Department:* ${fullData.departmentName}`;
       const remarksText = data.remarks ? `\n\n*Officer's Resolution Remarks:*\n${data.remarks}\n` : '';
       const evidenceText = data.evidenceUrls && data.evidenceUrls.length > 0
-        ? `\n📎 *Relevant Documents:*\n${data.evidenceUrls.map((u, i) => `${i + 1}. ${u}`).join('\n')}\n`
+        ? `\n\n📎 *Support Documents (tap to open):*\n${data.evidenceUrls.map((u, i) => `📄 Download Document ${i + 1}: ${u}`).join('\n')}\n`
         : '';
       const resolutionTimeLine = fullData.resolutionTimeText ? `\n⏱️ *Resolution Time:* ${fullData.resolutionTimeText}` : '';
 
@@ -795,7 +808,7 @@ export async function notifyCitizenOnGrievanceStatusChange(data: {
 
     const remarksText = data.remarks ? `\n\n📝 *Remarks:*\n${data.remarks}` : '';
     const evidenceText = data.evidenceUrls && data.evidenceUrls.length > 0
-      ? `\n\n📎 *Relevant Documents:*\n${data.evidenceUrls.map((u, i) => `${i + 1}. ${u}`).join('\n')}`
+      ? `\n\n📎 *Support Documents (tap to open):*\n${data.evidenceUrls.map((u, i) => `📄 Download Document ${i + 1}: ${u}`).join('\n')}`
       : '';
     const statusLabel =
       data.newStatus === 'ASSIGNED' ? 'Assigned' :
@@ -977,8 +990,11 @@ export async function notifyHierarchyOnStatusChange(
       const deptLine = fullData.subDepartmentName && fullData.subDepartmentName !== 'N/A'
         ? `🏢 *Department:* ${fullData.departmentName}\n🏢 *Sub-Dept:* ${fullData.subDepartmentName}`
         : `🏢 *Department:* ${fullData.departmentName}`;
-      const remarksText = data.remarks ? `\n\n*Officer's Remarks:*\n${data.remarks}\n` : '';
+      const remarksText = data.remarks ? `\n\n*Officer's Remarks:*\n${data.remarks}` : '';
       const resolutionTimeLine = fullData.resolutionTimeText ? `\n⏱️ *Resolution Time:* ${fullData.resolutionTimeText}` : '';
+      const evidenceText = data.evidenceUrls && data.evidenceUrls.length > 0
+        ? `\n\n📎 *Support Documents (tap to open):*\n${data.evidenceUrls.map((u: string, i: number) => `📄 Download Document ${i + 1}: ${u}`).join('\n')}`
+        : '';
 
       hierarchyMessage =
         `*${fullData.companyName}*\n` +
@@ -991,46 +1007,55 @@ export async function notifyHierarchyOnStatusChange(
         `${deptLine}\n` +
         `📊 *Status Change:* ${oldStatus} → ${newStatus}\n` +
         `👨‍💼 *Updated By:* ${fullData.resolvedByName || 'Administrator'}\n` +
-        `📅 *Updated On:* ${fullData.formattedResolvedDate || fullData.formattedDate}${resolutionTimeLine}${remarksText}\n\n` +
-        `🔗 *Dashboard:* https://chatbot-portal-latest-frontend.vercel.app/\n\n` +
+        `📅 *Updated On:* ${fullData.formattedResolvedDate || fullData.formattedDate}${resolutionTimeLine}${remarksText}${evidenceText}\n\n` +
+        `🔗 *Access Dashboard:* https://chatbot-portal-latest-frontend.vercel.app/\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
         `Digital System`;
     }
 
-    for (const user of users) {
-      // 📱 WhatsApp
-      if (canNotify(company, user, 'whatsapp')) {
-        await safeSendWhatsApp(company, user.phone, hierarchyMessage);
-      }
+    // ✅ CONCURRENT NOTIFICATIONS
+    await Promise.allSettled(users.map(async (user) => {
+      try {
+        const tasks: Promise<any>[] = [];
 
-      // 📧 Email
-      if (user.email && canNotify(company, user, 'email')) {
-        try {
-          const emailPayload = {
-            ...fullData,
-            recipientName: user.getFullName(),
-            appointmentDate: (data as any).appointmentDate,
-            appointmentTime: (data as any).appointmentTime,
-            newStatus,
-            oldStatus
-          };
-          
-          let email = await getNotificationEmailContent(data.companyId, data.type, statusAction as any, emailPayload, true);
-          if (!email && (newStatus === 'RESOLVED' || newStatus === 'COMPLETED')) {
-             email = await getNotificationEmailContent(data.companyId, data.type, 'resolved', emailPayload, true);
-          }
-
-          if (email) {
-            const result = await sendEmail(user.email, email.subject, email.html, email.text, { companyId: data.companyId });
-            if (result.success) {
-              logger.info(`✅ Email sent to ${user.getFullName()} (${user.email})`);
-            }
-          }
-        } catch (error) {
-          logger.error(`❌ Error sending email to ${user.email}:`, error);
+        // 📱 WhatsApp
+        if (canNotify(company, user, 'whatsapp')) {
+          tasks.push(safeSendWhatsApp(company, user.phone, hierarchyMessage));
         }
+
+        // 📧 Email
+        const emailAddress = user.email;
+        if (emailAddress && canNotify(company, user, 'email')) {
+          const emailTask = (async () => {
+            const emailPayload = {
+              ...fullData,
+              recipientName: user.getFullName(),
+              appointmentDate: (data as any).appointmentDate,
+              appointmentTime: (data as any).appointmentTime,
+              newStatus,
+              oldStatus
+            };
+            
+            let email = await getNotificationEmailContent(data.companyId, data.type, statusAction as any, emailPayload, true);
+            if (!email && (newStatus === 'RESOLVED' || newStatus === 'COMPLETED')) {
+               email = await getNotificationEmailContent(data.companyId, data.type, 'resolved', emailPayload, true);
+            }
+
+            if (email) {
+              const result = await sendEmail(emailAddress, email.subject, email.html, email.text, { companyId: data.companyId });
+              if (result.success) {
+                logger.info(`✅ Email sent to hierarchy user: ${emailAddress}`);
+              }
+            }
+          })();
+          tasks.push(emailTask);
+        }
+
+        await Promise.allSettled(tasks);
+      } catch (err) {
+        logger.error(`❌ Error notifying hierarchy user ${user.email}:`, err);
       }
-    }
+    }));
 
   } catch (error) {
     logger.error('❌ notifyHierarchyOnStatusChange failed:', error);
