@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { X, CheckCircle2, Clock, MessageSquare, RefreshCw, Ban, CalendarDays, PartyPopper, Upload, Trash2, FileText, Image, FileSpreadsheet, File } from 'lucide-react';
+import { X, CheckCircle2, Clock, MessageSquare, RefreshCw, Ban, CalendarDays, PartyPopper, Upload, Trash2, FileText, Image as ImageIcon, FileSpreadsheet, File } from 'lucide-react';
 import { apiClient } from '@/lib/api/client';
 import toast from 'react-hot-toast';
 
@@ -241,7 +241,7 @@ function formatFileSize(bytes: number): string {
 
 function getFileIcon(file: File) {
   const ext = file.name.split('.').pop()?.toLowerCase() || '';
-  if (file.type.startsWith('image/')) return <Image className="w-5 h-5 text-blue-500" />;
+  if (file.type.startsWith('image/')) return <ImageIcon className="w-5 h-5 text-blue-500" />;
   if (ext === 'pdf') return <FileText className="w-5 h-5 text-red-500" />;
   if (['xls', 'xlsx'].includes(ext)) return <FileSpreadsheet className="w-5 h-5 text-emerald-600" />;
   if (['doc', 'docx'].includes(ext)) return <FileText className="w-5 h-5 text-indigo-500" />;

@@ -13,7 +13,7 @@ const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL
 const transports: winston.transport[] = [
   new winston.transports.Console({
     format: combine(
-      colorize(),
+      !isProduction ? colorize() : winston.format.uncolorize(),
       logFormat
     )
   })
@@ -52,14 +52,3 @@ export const logger = winston.createLogger({
     new winston.transports.File({ filename: 'logs/rejections.log' })
   ]
 });
-
-// If not in production, log to console with more detail
-if (process.env.NODE_ENV !== 'production') {
-  logger.add(new winston.transports.Console({
-    format: combine(
-      colorize(),
-      timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-      logFormat
-    )
-  }));
-}

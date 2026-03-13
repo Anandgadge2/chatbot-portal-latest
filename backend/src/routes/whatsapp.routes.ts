@@ -48,18 +48,15 @@ router.get('/', requireDatabaseConnection, async (req: Request, res: Response) =
  * ============================================================
  */
 router.post('/', requireDatabaseConnection, async (req: Request, res: Response) => {
-  // ✅ CRITICAL: Respond to Facebook/WhatsApp IMMEDIATELY (within ~5s is required)
-  // All heavy processing (notifications, DB writes) is done AFTER the 200 response.
-  // This prevents FUNCTION_INVOCATION_TIMEOUT on Vercel (30s limit).
-  res.status(200).send('EVENT_RECEIVED');
+  const body = req.body;
+  logger.info(`📥 Webhook POST received`);
 
-  // Fire-and-forget: process in background, never block the response
-  setImmediate(async () => {
+  // ✅ CRITICAL: On Vercel, we MUST await the processing before responding.
+  // Using setImmediate or non-awaited promises will result in the process being killed
+  // as soon as res.send() is called.
+  
+  const processTask = (async () => {
     try {
-      const body = req.body;
-
-      logger.info(`📥 Webhook POST received`);
-
       if (body.object !== 'whatsapp_business_account') {
         logger.warn(`⚠️ Unknown webhook object: ${body.object}`);
         return;
@@ -72,28 +69,31 @@ router.post('/', requireDatabaseConnection, async (req: Request, res: Response) 
           const metadata = value?.metadata;
 
           if (!value?.messages) {
-            logger.info(`ℹ️ Webhook received field: ${change.field}, but no 'messages' content found.`);
+            // logger.info(`ℹ️ Webhook received field: ${change.field}, but no 'messages' content found.`);
             continue;
           }
 
-          // Resolve company early to see if we can even process this
+          // Resolve company early
           const company = await getCompanyFromMetadata(metadata);
           if (!company) {
             logger.error(`❌ Could not resolve company for phoneNumberId: ${metadata?.phone_number_id}.`);
             continue;
           }
 
+          // Process messages sequentially or in parallel?
+          // Sequential is safer for session state, but parallel is faster.
+          // Since it's usually 1 message anyway, we'll keep it simple but awaited.
           for (const message of value.messages) {
             try {
               const messageId = message.id;
 
-              // IDEMPOTENCY CHECK: Prevent duplicate processing
+              // IDEMPOTENCY CHECK
               if (await isMessageProcessed(messageId)) {
                 logger.info(`⏭️ Message ${messageId} already processed, skipping...`);
                 continue;
               }
 
-              // Mark message as processed (TTL: 48 hours)
+              // Mark message as processed
               await markMessageAsProcessed(messageId);
 
               if (message.type === 'interactive') {
@@ -112,7 +112,16 @@ router.post('/', requireDatabaseConnection, async (req: Request, res: Response) 
     } catch (error: any) {
       logger.error('❌ Webhook background processing failed:', error);
     }
-  });
+  })();
+
+  // Race against a 25s timeout (Vercel limit is 30s)
+  // This ensures we always try to respond 200 to WhatsApp to avoid retries.
+  await Promise.race([
+    processTask,
+    new Promise((resolve) => setTimeout(resolve, 25000))
+  ]);
+
+  res.status(200).send('EVENT_RECEIVED');
 });
 
 

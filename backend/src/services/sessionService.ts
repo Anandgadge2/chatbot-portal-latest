@@ -14,7 +14,8 @@ export interface UserSession {
 }
 
 const SESSION_TTL = 60 * 60; // 60 minutes in seconds
-const LOCK_TTL = 30; // 30 seconds lock timeout
+const LOCK_TTL = 10; // Reduced from 30s to 10s for faster recovery
+const LOCK_RETRIES = 5; // Allow more retries
 const FALLBACK_TTL = 30 * 60 * 1000; // 30 minutes in milliseconds for in-memory fallback
 
 // In-memory fallback if Redis is not available
@@ -35,6 +36,82 @@ function getLockKey(phoneNumber: string, companyId: string): string {
 }
 
 /**
+ * Distributed Lock System for Session Management
+ * Prevents race conditions during concurrent user messages
+ */
+
+// Track current lock value to ensure we only release what we own
+const activeLockValues: Map<string, string> = new Map();
+
+/**
+ * Acquire a distributed lock for session operations
+ */
+async function acquireLock(phoneNumber: string, companyId: string, attempts = LOCK_RETRIES): Promise<boolean> {
+  const redis = getRedisClient();
+  if (!redis || !isRedisConnected()) {
+    return true; // No lock if Redis unavailable
+  }
+
+  const lockKey = getLockKey(phoneNumber, companyId);
+  const lockValue = `${Date.now()}-${Math.random()}`;
+  
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const result = await redis.set(lockKey, lockValue, 'EX', LOCK_TTL, 'NX');
+      if (result === 'OK') {
+        activeLockValues.set(lockKey, lockValue);
+        return true;
+      }
+      
+      // Exponential backoff: wait 100ms, 200ms, 300ms...
+      if (i < attempts - 1) {
+        // console.log(`⏳ Lock contested for ${phoneNumber}, retrying ${i+1}/${attempts}...`);
+        await new Promise(resolve => setTimeout(resolve, (i + 1) * 100));
+      }
+    } catch (error) {
+      console.error('❌ Error acquiring lock:', error);
+      return false;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Release a distributed lock
+ */
+async function releaseLock(phoneNumber: string, companyId: string): Promise<void> {
+  const redis = getRedisClient();
+  if (!redis || !isRedisConnected()) {
+    return;
+  }
+
+  const lockKey = getLockKey(phoneNumber, companyId);
+  const lockValue = activeLockValues.get(lockKey);
+
+  try {
+    // Only release if we match the value (standard Redis Distributed Lock pattern)
+    // Avoids releasing someone else's lock if ours expired
+    const script = `
+      if redis.call("get", KEYS[1]) == ARGV[1] then
+        return redis.call("del", KEYS[1])
+      else
+        return 0
+      end
+    `;
+    
+    if (lockValue) {
+      await redis.eval(script, 1, lockKey, lockValue);
+      activeLockValues.delete(lockKey);
+    } else {
+      await redis.del(lockKey); // Fallback for simple release
+    }
+  } catch (error) {
+    console.error('❌ Error releasing lock:', error);
+  }
+}
+
+/**
  * Convert companyId string (e.g., "CMP000001") to MongoDB ObjectId
  * by looking up the Company document
  */
@@ -48,7 +125,7 @@ async function getCompanyObjectId(companyId: string): Promise<mongoose.Types.Obj
     // Otherwise, look up by companyId string field
     const company = await Company.findOne({ companyId });
     if (company) {
-      return company._id;
+      return company._id as mongoose.Types.ObjectId;
     }
     
     // If not found, try as _id directly (in case it's already an ObjectId string)
@@ -60,44 +137,6 @@ async function getCompanyObjectId(companyId: string): Promise<mongoose.Types.Obj
   } catch (error) {
     console.error('❌ Error converting companyId to ObjectId:', error);
     return null;
-  }
-}
-
-/**
- * Acquire a distributed lock for session operations
- */
-async function acquireLock(phoneNumber: string, companyId: string): Promise<boolean> {
-  const redis = getRedisClient();
-  if (!redis || !isRedisConnected()) {
-    return true; // No lock if Redis unavailable
-  }
-
-  const lockKey = getLockKey(phoneNumber, companyId);
-  const lockValue = `${Date.now()}-${Math.random()}`;
-  
-  try {
-    const result = await redis.set(lockKey, lockValue, 'EX', LOCK_TTL, 'NX');
-    return result === 'OK';
-  } catch (error) {
-    console.error('❌ Error acquiring lock:', error);
-    return false;
-  }
-}
-
-/**
- * Release a distributed lock
- */
-async function releaseLock(phoneNumber: string, companyId: string): Promise<void> {
-  const redis = getRedisClient();
-  if (!redis || !isRedisConnected()) {
-    return;
-  }
-
-  const lockKey = getLockKey(phoneNumber, companyId);
-  try {
-    await redis.del(lockKey);
-  } catch (error) {
-    console.error('❌ Error releasing lock:', error);
   }
 }
 
@@ -259,16 +298,10 @@ export async function getSession(phoneNumber: string, companyId: string): Promis
  * Update session with locking
  */
 export async function updateSession(session: UserSession): Promise<void> {
+  // Built-in retries in acquireLock
   const lockAcquired = await acquireLock(session.phoneNumber, session.companyId);
   if (!lockAcquired) {
-    console.warn('⚠️ Could not acquire lock for session update, retrying...');
-    // Retry once after short delay
-    await new Promise(resolve => setTimeout(resolve, 100));
-    const retryLock = await acquireLock(session.phoneNumber, session.companyId);
-    if (!retryLock) {
-      console.error('❌ Failed to acquire lock after retry');
-      return;
-    }
+    console.warn(`⚠️ Could not acquire lock for session update (${session.phoneNumber}), proceeding with caution`);
   }
 
   try {
@@ -325,8 +358,8 @@ export async function updateSession(session: UserSession): Promise<void> {
 export async function clearSession(phoneNumber: string, companyId: string): Promise<void> {
   const lockAcquired = await acquireLock(phoneNumber, companyId);
   if (!lockAcquired) {
-    console.warn('⚠️ Could not acquire lock for session clear');
-    return;
+    console.warn(`⚠️ Could not acquire lock for session clear (${phoneNumber})`);
+    // Note: We proceed anyway if it's a clear operation, as it's destructive
   }
 
   try {
