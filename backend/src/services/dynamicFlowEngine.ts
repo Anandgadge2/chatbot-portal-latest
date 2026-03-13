@@ -68,6 +68,8 @@ const GREETINGS = new Set([
   'ନମସ୍କାର', 'helo', 'hey', 'begin',
 ]);
 
+const DEBUG_FLOW_LOOKUP = process.env.DEBUG_FLOW_LOOKUP === "true";
+
 /**
  * ─── Flow Command Handler ────────────────────────────────────────────────────
  * Reads special control keywords (stop/restart/menu/back) from DB templates (CompanyWhatsAppTemplate)
@@ -2579,7 +2581,9 @@ export async function loadFlowForTrigger(
     const whatsappConfig = await CompanyWhatsAppConfig.findOne({
       companyId: companyObjectId,
       isActive: true,
-    });
+    })
+      .select('activeFlows')
+      .lean();
 
     let assignedFlowIds: mongoose.Types.ObjectId[] = [];
     if (
@@ -2614,19 +2618,9 @@ export async function loadFlowForTrigger(
       );
     }
 
-    console.log(`🔍 Flow query:`, JSON.stringify(query, null, 2));
-
-    // First, let's check all flows for this company to see what we have
-    const allFlows = await ChatbotFlow.find({ companyId: companyObjectId });
-    console.log(`📊 Total flows for company: ${allFlows.length}`);
-    allFlows.forEach((f: any) => {
-      const isAssigned = assignedFlowIds.some(
-        (id: any) => id && id.toString && id.toString() === f._id.toString(),
-      );
-      console.log(
-        `  - Flow: ${f.flowName} (${f.flowId}), Active: ${f.isActive}, Assigned: ${isAssigned}, Triggers: ${JSON.stringify(f.triggers?.map((t: any) => t.triggerValue))}`,
-      );
-    });
+    if (DEBUG_FLOW_LOOKUP) {
+      console.log(`🔍 Flow query:`, JSON.stringify(query, null, 2));
+    }
 
     let flow = await ChatbotFlow.findOne(query).sort({
       "triggers.priority": -1,
@@ -2675,7 +2669,9 @@ export async function loadFlowForTrigger(
       console.log(
         `⚠️ No flow found for trigger "${trigger}" in company ${companyObjectId}`,
       );
-      console.log(`   Query used:`, JSON.stringify(query, null, 2));
+      if (DEBUG_FLOW_LOOKUP) {
+        console.log(`   Query used:`, JSON.stringify(query, null, 2));
+      }
     }
 
     return flow;

@@ -51,9 +51,13 @@ router.post('/', requireDatabaseConnection, async (req: Request, res: Response) 
   try {
     const body = req.body;
 
+    const isWebhookDebug = process.env.WHATSAPP_WEBHOOK_DEBUG === 'true';
+
     logger.info(`📥 Webhook POST received`);
-    logger.info(`📦 Headers: ${JSON.stringify(req.headers)}`);
-    logger.info(`📦 Body: ${JSON.stringify(body, null, 2)}`);
+    if (isWebhookDebug) {
+      logger.info(`📦 Headers: ${JSON.stringify(req.headers)}`);
+      logger.info(`📦 Body: ${JSON.stringify(body, null, 2)}`);
+    }
 
     if (body.object !== 'whatsapp_business_account') {
       logger.warn(`⚠️ Unknown webhook object: ${body.object}`);
@@ -204,8 +208,11 @@ async function handleIncomingMessage(message: any, metadata: any, resolvedCompan
       `📨 Message from ${from} → Company: ${company.name} (ID: ${company.companyId})`
     );
 
+    const canonicalCompanyId =
+      company.companyId || company._id?.toString?.() || String(company._id || '');
+
     const response = await processWhatsAppMessage({
-      companyId: company.companyId,
+      companyId: canonicalCompanyId,
       from,
       messageText,
       messageType,
@@ -258,8 +265,11 @@ async function handleInteractiveMessage(message: any, metadata: any, resolvedCom
 
     console.log(`🔘 Button "${buttonId}" clicked by ${from}`);
 
+    const canonicalCompanyId =
+      company.companyId || company._id?.toString?.() || String(company._id || '');
+
     const response = await processWhatsAppMessage({
-      companyId: company.companyId,
+      companyId: canonicalCompanyId,
       from,
       messageText,
       messageType: 'interactive',
