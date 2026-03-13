@@ -515,7 +515,7 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
   if (!isOpen) return null;
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[95vw] md:max-w-5xl h-[92vh] p-0 overflow-hidden bg-slate-50 border-0 rounded-[2.5rem] shadow-3xl">
+      <DialogContent className="max-w-[95vw] md:max-w-5xl h-[90vh] p-0 overflow-hidden bg-slate-50 border-0 rounded-[2.5rem] shadow-3xl flex flex-col gap-0">
         <div className="flex flex-col h-full bg-slate-50 relative">
           {/* Dashboard-style Header */}
           <div className="bg-slate-900 px-8 py-8 relative overflow-hidden shrink-0">
@@ -546,7 +546,7 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
           </div>
 
         {/* Tabs */}
-        <div className="border-b border-slate-200 bg-white/80 backdrop-blur-sm overflow-x-auto flex-shrink-0">
+        <div className="border-b border-slate-200 bg-white/80 backdrop-blur-sm overflow-x-auto shrink-0">
           <div className="flex gap-1 px-2 sm:px-4 py-2 min-w-max">
             {([
               { id: 'weekly', label: 'Weekly Schedule', icon: Calendar, tooltip: 'Set your default weekly availability' },
@@ -1198,7 +1198,7 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
         </div>
 
         {/* Footer Actions */}
-        <div className="border-t border-slate-200 p-4 sm:p-6 bg-white flex flex-col sm:flex-row items-center justify-between gap-4 flex-shrink-0">
+        <div className="border-t border-slate-200 p-4 sm:p-6 bg-white flex flex-col sm:flex-row items-center justify-between gap-4 shrink-0">
           <div className="flex items-center gap-3">
             {hasChanges && (
               <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 text-amber-700 rounded-xl border border-amber-100 animate-pulse">
