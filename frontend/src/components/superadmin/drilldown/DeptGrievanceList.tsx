@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/card";
 import { FileText, Search, Download, RefreshCw } from "lucide-react";
 import { Grievance, grievanceAPI } from "@/lib/api/grievance";
+import { formatTo10Digits } from "@/lib/utils/phoneUtils";
 
 interface DeptGrievanceListProps {
   filteredGrievances: Grievance[];
@@ -130,7 +131,7 @@ const DeptGrievanceList: React.FC<DeptGrievanceListProps> = ({
                   className="text-left"
                 >
                   <p className="font-semibold text-gray-900">{g.citizenName}</p>
-                  <p className="text-xs text-gray-500">{g.citizenPhone}</p>
+                  <p className="text-xs text-gray-500">{formatTo10Digits(g.citizenPhone)}</p>
                 </button>
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-xs font-medium bg-blue-50 text-blue-600 px-2 py-1 rounded">
@@ -225,7 +226,7 @@ const DeptGrievanceList: React.FC<DeptGrievanceListProps> = ({
                           {g.citizenName}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {g.citizenPhone}
+                          {formatTo10Digits(g.citizenPhone)}
                         </p>
                       </button>
                     </td>

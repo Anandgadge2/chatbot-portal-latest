@@ -2,6 +2,7 @@
 
 import { formatDistanceToNow } from "date-fns";
 import { formatDate, formatDateTime } from "@/lib/utils";
+import { formatTo10Digits } from "@/lib/utils/phoneUtils";
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Appointment } from "@/lib/api/appointment";
@@ -104,7 +105,7 @@ const AppointmentDetailDialog: React.FC<AppointmentDetailDialogProps> = ({
       <div className="w-full max-w-3xl max-h-[90vh] overflow-hidden rounded-2xl shadow-2xl bg-white animate-in fade-in zoom-in duration-200 flex flex-col">
         {/* Dark Slate Header — consistent with superadmin theme */}
         <div className="bg-slate-900 p-5 flex items-start justify-between gap-4 flex-shrink-0 border-b border-slate-800 relative overflow-hidden">
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-10 pointer-events-none"></div>
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDZwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-10 pointer-events-none"></div>
 
           <div className="flex items-center gap-3 min-w-0 flex-1 relative z-10">
             <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30 flex-shrink-0">
@@ -249,7 +250,7 @@ const AppointmentDetailDialog: React.FC<AppointmentDetailDialogProps> = ({
                       Phone Number
                     </p>
                     <p className="text-sm font-bold text-slate-800">
-                      {appointment.citizenPhone.replace(/\D/g, '').slice(-10)}
+                      {formatTo10Digits(appointment.citizenPhone)}
                     </p>
                   </div>
                 </div>

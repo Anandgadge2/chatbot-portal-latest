@@ -302,7 +302,8 @@ router.get('/:id', requirePermission(Permission.READ_GRIEVANCE), async (req: Req
       .populate('subDepartmentId', 'name departmentId')
       .populate('assignedTo', 'firstName lastName email designation')
       .populate('statusHistory.changedBy', 'firstName lastName')
-      .populate('timeline.performedBy', 'firstName lastName role');
+      .populate('timeline.performedBy', 'firstName lastName role')
+      .populate('media.uploadedBy', 'firstName lastName role');
 
     if (!grievance) {
       res.status(404).json({
@@ -583,12 +584,17 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
     if (assignedUser.departmentId && (!oldDepartmentId || oldDepartmentId.toString() !== assignedUser.departmentId.toString())) {
       grievance.departmentId = assignedUser.departmentId as any;
       
+      // Fetch department name for the timeline
+      const targetDept = await Department.findById(assignedUser.departmentId);
+      
       // Add department transfer event to timeline
       grievance.timeline.push({
         action: 'DEPARTMENT_TRANSFER',
         details: {
           fromDepartmentId: oldDepartmentId,
           toDepartmentId: assignedUser.departmentId,
+          toDepartmentName: targetDept?.name || 'Department',
+          toUserName: assignedUser.getFullName(),
           reason: 'Auto-updated during reassignment'
         },
         performedBy: req.user!._id,

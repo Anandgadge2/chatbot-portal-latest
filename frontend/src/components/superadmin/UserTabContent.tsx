@@ -26,6 +26,7 @@ import { User, userAPI } from "@/lib/api/user";
 import { Company } from "@/lib/api/company";
 import { formatRoleLabel } from "@/lib/utils/roleLabel";
 import toast from "react-hot-toast";
+import { formatTo10Digits } from "@/lib/utils/phoneUtils";
 
 function getRoleLabel(u: User): string {
   if (u.customRoleId && typeof u.customRoleId === "object" && (u.customRoleId as any).name) {
@@ -296,12 +297,7 @@ const UserTabContent: React.FC<UserTabContentProps> = ({
                       <td className="px-4 py-4 whitespace-nowrap">
                         <div className="flex flex-col gap-0.5">
                           <div className="text-[11px] font-bold text-indigo-600 tabular-nums">
-                            {(() => {
-                              const phone = u.phone;
-                              if (!phone) return "-";
-                              const d = phone.replace(/\D/g, "");
-                              return d.length >= 10 ? d.slice(-10) : d;
-                            })()}
+                            {formatTo10Digits(u.phone || "")}
                           </div>
                           <div className="flex items-center gap-1.5 cursor-pointer" onClick={() => togglePasswordVisibility(u._id)}>
                             <span className="text-[10px] font-mono text-slate-400 font-bold tracking-tight">

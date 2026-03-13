@@ -338,18 +338,26 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
       console.error('⚠️ Audit logging failed (non-critical):', auditError.message);
     }
 
-    // Automatically update department contact info if user has department management permissions
-    if (departmentId && req.checkPermission(Permission.UPDATE_DEPARTMENT)) {
-      try {
-        const Department = (await import('../models/Department')).default;
-        await Department.findByIdAndUpdate(departmentId, {
-          contactPerson: `${firstName} ${lastName}`,
-          contactEmail: email.toLowerCase().trim(),
-          contactPhone: normalizedPhone
-        });
-        console.log(`✅ Updated department ${departmentId} contact info with admin details`);
-      } catch (deptUpdateError: any) {
-        console.error('⚠️ Failed to update department contact info (non-critical):', deptUpdateError.message);
+    // Automatically update department contact info if user has department management permissions OR is a Department Admin
+    if (departmentId) {
+      const { normalizePhoneNumber } = await import('../utils/phoneUtils');
+      const finalPhone = normalizePhoneNumber(phone || '');
+      
+      // Update if explicit permission or if role implies it
+      const isDeptAdmin = role && role.toLowerCase().includes('admin');
+      
+      if (req.checkPermission(Permission.UPDATE_DEPARTMENT) || isDeptAdmin) {
+        try {
+          const Department = (await import('../models/Department')).default;
+          await Department.findByIdAndUpdate(departmentId, {
+            contactPerson: `${firstName} ${lastName}`,
+            contactEmail: email.toLowerCase().trim(),
+            contactPhone: finalPhone
+          });
+          console.log(`✅ Updated department ${departmentId} contact info with admin details`);
+        } catch (deptUpdateError: any) {
+          console.error('⚠️ Failed to update department contact info (non-critical):', deptUpdateError.message);
+        }
       }
     }
 
@@ -650,25 +658,32 @@ router.put('/:id', requirePermission(Permission.UPDATE_USER), async (req: Reques
       { updates: req.body }
     );
 
-    // Automatically update department contact info if the user has department management permissions
-    const Role = (await import('../models/Role')).default;
-    const managementRole = await Role.findOne({
-      _id: user?.customRoleId,
-      'permissions.module': 'DEPARTMENTS',
-      'permissions.actions': { $in: ['update', 'all', 'manage'] }
-    });
+    // Automatically update department contact info if the user has department management permissions OR is a Department Admin
+    if (user && user.departmentId) {
+      const Role = (await import('../models/Role')).default;
+      const customRole = user.customRoleId ? await Role.findById(user.customRoleId) : null;
+      const roleName = customRole ? customRole.name : (user.role || '');
+      
+      const managementRole = customRole ? await Role.findOne({
+        _id: user.customRoleId,
+        'permissions.module': 'DEPARTMENTS',
+        'permissions.actions': { $in: ['update', 'all', 'manage'] }
+      }) : null;
 
-    if (user && managementRole && user.departmentId) {
-      try {
-        const Department = (await import('../models/Department')).default;
-        await Department.findByIdAndUpdate(user.departmentId, {
-          contactPerson: `${user.firstName} ${user.lastName}`,
-          contactEmail: user.email,
-          contactPhone: user.phone
-        });
-        console.log(`✅ Updated department ${user.departmentId} contact info with admin details`);
-      } catch (deptUpdateError: any) {
-        console.error('⚠️ Failed to update department contact info (non-critical):', deptUpdateError.message);
+      const isDeptAdmin = roleName.toLowerCase().includes('admin');
+
+      if (managementRole || isDeptAdmin || req.checkPermission(Permission.UPDATE_DEPARTMENT)) {
+        try {
+          const Department = (await import('../models/Department')).default;
+          await Department.findByIdAndUpdate(user.departmentId, {
+            contactPerson: `${user.firstName} ${user.lastName}`,
+            contactEmail: user.email,
+            contactPhone: user.phone
+          });
+          console.log(`✅ Updated department ${user.departmentId} contact info with admin details`);
+        } catch (deptUpdateError: any) {
+          console.error('⚠️ Failed to update department contact info (non-critical):', deptUpdateError.message);
+        }
       }
     }
 

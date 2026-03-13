@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { toast } from "react-hot-toast";
+import { formatTo10Digits } from "@/lib/utils/phoneUtils";
 
 interface DepartmentUsersDialogProps {
   isOpen: boolean;
@@ -173,7 +174,7 @@ export default function DepartmentUsersDialog({
                         {user.phone && (
                           <div className="flex items-center gap-1.5 text-xs text-slate-500">
                             <Phone className="w-3 h-3" />
-                            <span>{user.phone}</span>
+                            <span>{formatTo10Digits(user.phone)}</span>
                           </div>
                         )}
                         <div className="flex items-center gap-1.5 mt-2">

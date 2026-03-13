@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import {
   Card,
   CardContent,
@@ -12,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Grievance } from "@/lib/api/grievance";
 import { formatDistanceToNow } from "date-fns";
 import { formatDateTime, formatDate, formatISTTime } from "@/lib/utils";
+import { formatTo10Digits } from "@/lib/utils/phoneUtils";
 import {
   Calendar,
   User,
@@ -157,9 +159,13 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
       ? `${(grievance.assignedTo as any).firstName} ${(grievance.assignedTo as any).lastName}`
       : null;
 
+  // Split media into Citizen vs Officer
+  const citizenMedia = (grievance.media || []).filter(m => !m.uploadedBy);
+  const officerMedia = (grievance.media || []).filter(m => m.uploadedBy);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-3xl max-h-[90vh] overflow-hidden rounded-2xl shadow-2xl bg-white animate-in fade-in zoom-in duration-200 flex flex-col">
+      <div className="w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl shadow-2xl bg-white animate-in fade-in zoom-in duration-200 flex flex-col">
         {/* Dark Slate Header — consistent with superadmin theme */}
         <div className="bg-slate-900 p-5 flex items-start justify-between gap-4 flex-shrink-0">
           <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -359,7 +365,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                       Phone Number
                     </p>
                     <p className="text-sm font-bold text-slate-800">
-                      {grievance.citizenPhone.replace(/\D/g, '').slice(-10)}
+                      {formatTo10Digits(grievance.citizenPhone)}
                     </p>
                   </div>
                 </div>
@@ -430,21 +436,21 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
               </div>
             )}
 
-          {/* Media/Photos */}
-          {grievance.media && grievance.media.length > 0 && (
+          {/* Citizen's Evidence */}
+          {citizenMedia.length > 0 && (
             <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-              <div className="bg-slate-900 px-5 py-3 border-b border-slate-700">
+              <div className="bg-slate-900 px-5 py-3 border-b border-slate-700 flex items-center justify-between">
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
                   <ImageIcon className="w-4 h-4 text-pink-400" />
-                  Uploaded Media
-                  <span className="ml-2 px-2 py-0.5 bg-white/10 text-slate-300 rounded-full text-[10px] font-bold">
-                    {grievance.media.length}
-                  </span>
+                  Citizen&apos;s Evidence
                 </h3>
+                <span className="px-2 py-0.5 bg-white/10 text-slate-300 rounded-full text-[10px] font-bold">
+                  {citizenMedia.length} Files
+                </span>
               </div>
               <div className="p-5">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {grievance.media.map((media: any, index: number) => {
+                  {citizenMedia.map((media: any, index: number) => {
                     const isImage = isImageMedia(media);
                     return (
                       <div
@@ -457,31 +463,22 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                             onClick={() =>
                               setFullScreenMedia({
                                 url: media.url,
-                                alt: `Evidence ${index + 1}`,
+                                alt: `Citizen Evidence ${index + 1}`,
                                 isImage: true,
                               })
                             }
                             className="absolute inset-0 w-full h-full text-left focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-inset rounded-xl"
-                            aria-label={`View evidence ${index + 1} in full screen`}
                           >
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
+                            <Image
                               src={media.url}
                               alt={`Evidence ${index + 1}`}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 cursor-pointer"
-                              onError={(e) => {
-                                const target = e.currentTarget;
-                                target.style.display = "none";
-                                const parent = target.parentElement;
-                                if (parent) {
-                                  parent.innerHTML = `<div class="w-full h-full flex flex-col items-center justify-center gap-2 text-slate-400"><svg xmlns='http://www.w3.org/2000/svg' class='w-8 h-8' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z'/></svg><span class='text-xs'>Image unavailable</span></div>`;
-                                }
-                              }}
+                              fill
+                              className="object-cover group-hover:scale-105 transition-transform duration-300 cursor-pointer"
+                              unoptimized
                             />
                             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center pointer-events-none">
-                              <span className="opacity-0 group-hover:opacity-100 text-white text-xs font-semibold bg-black/60 px-3 py-1.5 rounded-lg transition-all duration-200 flex items-center gap-1.5">
-                                <ExternalLink className="w-3.5 h-3.5" />
-                                View Full Screen
+                              <span className="opacity-0 group-hover:opacity-100 text-white text-[10px] font-bold bg-black/60 px-2 py-1 rounded-lg transition-all">
+                                View Full
                               </span>
                             </div>
                           </button>
@@ -495,19 +492,93 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                                 isImage: false,
                               })
                             }
-                            className="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 flex flex-col items-center justify-center hover:from-indigo-50 hover:to-blue-100 transition-all duration-200 cursor-pointer border-0 gap-2"
-                            aria-label={`View ${getDocumentLabel(media)} document`}
+                            className="w-full h-full flex flex-col items-center justify-center hover:bg-slate-50 transition-all border-0 gap-1.5"
                           >
-                            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm border border-slate-200">
-                              <FileType className="w-6 h-6 text-indigo-500" />
+                            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm border border-slate-200">
+                              <FileType className="w-4 h-4 text-indigo-500" />
                             </div>
-                            <span className="text-sm font-semibold text-slate-700">
+                            <span className="text-[10px] font-bold text-slate-700 truncate max-w-[90%]">
                               {getDocumentLabel(media)}
                             </span>
-                            <span className="text-xs text-slate-400 flex items-center gap-1">
-                              <ExternalLink className="w-3 h-3" />
-                              Click to open
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Officer's Resolution Media */}
+          {officerMedia.length > 0 && (
+            <div className="bg-white rounded-xl border border-emerald-200 overflow-hidden shadow-sm">
+              <div className="bg-emerald-900 px-5 py-3 border-b border-emerald-800 flex items-center justify-between">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <UserCheck className="w-4 h-4 text-emerald-400" />
+                  Officer&apos;s Resolution Proof
+                </h3>
+                <span className="px-2 py-0.5 bg-white/10 text-emerald-100 rounded-full text-[10px] font-bold">
+                  {officerMedia.length} Files
+                </span>
+              </div>
+              <div className="p-5 bg-emerald-50/30">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {officerMedia.map((media: any, index: number) => {
+                    const isImage = isImageMedia(media);
+                    const officerName = typeof media.uploadedBy === 'object' 
+                      ? `${media.uploadedBy.firstName} ${media.uploadedBy.lastName}`
+                      : 'Officer';
+
+                    return (
+                      <div
+                        key={index}
+                        className="relative group rounded-xl overflow-hidden border border-emerald-200 aspect-video bg-white"
+                      >
+                        {isImage ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setFullScreenMedia({
+                                url: media.url,
+                                alt: `Resolution proof by ${officerName}`,
+                                isImage: true,
+                              })
+                            }
+                            className="absolute inset-0 w-full h-full text-left"
+                          >
+                            <Image
+                              src={media.url}
+                              alt={`Officer upload ${index + 1}`}
+                              fill
+                              className="object-cover group-hover:scale-105 transition-transform duration-300"
+                              unoptimized
+                            />
+                            <div className="absolute top-1 right-1">
+                              <div className="bg-emerald-600 text-white p-1 rounded-md shadow-lg" title={`Uploaded by ${officerName}`}>
+                                <UserCheck className="w-3 h-3" />
+                              </div>
+                            </div>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setFullScreenMedia({
+                                url: media.url,
+                                alt: getDocumentLabel(media),
+                                isImage: false,
+                              })
+                            }
+                            className="w-full h-full flex flex-col items-center justify-center hover:bg-emerald-50 transition-all border-0 gap-1.5"
+                          >
+                            <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center shadow-sm border border-emerald-200">
+                              <FileText className="w-4 h-4 text-emerald-600" />
+                            </div>
+                            <span className="text-[10px] font-bold text-emerald-800 truncate max-w-[90%]">
+                              {getDocumentLabel(media)}
                             </span>
+                            <span className="text-[8px] text-emerald-500 font-bold uppercase tracking-tighter">By {officerName}</span>
                           </button>
                         )}
                       </div>
@@ -526,8 +597,8 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                 Service Timeline
               </h3>
             </div>
-            <div className="p-5">
-              <div className="relative pl-8 space-y-6">
+            <div className="p-4">
+              <div className="relative pl-8 space-y-4">
                 {/* Vertical Line */}
                 <div className="absolute left-[11px] top-3 bottom-3 w-0.5 bg-gradient-to-b from-emerald-400 via-blue-400 to-slate-200 rounded-full"></div>
 
@@ -536,7 +607,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                   <div className="absolute -left-8 top-0 w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-200">
                     <Calendar className="w-3 h-3 text-white" />
                   </div>
-                  <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl p-4 border border-emerald-100 ml-2">
+                  <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl p-3.5 border border-emerald-100 ml-2">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs font-bold text-emerald-700 uppercase tracking-wide">
                         Grievance Registered
@@ -546,7 +617,11 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                       </span>
                     </div>
                     <p className="text-sm text-slate-600">
-                      Grievance successfully submitted via WhatsApp Chatbot
+                      Grievance successfully submitted via WhatsApp Chatbot to {
+                        typeof grievance.departmentId === "object" && grievance.departmentId 
+                          ? (grievance.departmentId as any).name 
+                          : "Department"
+                      } {assignedTo ? `and it is assigned to ${assignedTo}` : "and is pending assignment"}
                     </p>
                   </div>
                 </div>
@@ -608,8 +683,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                           textColor = "text-purple-700";
                           icon = <Building className="w-3 h-3 text-white" />;
                           title = "Department Transferred";
-                          description =
-                            "Transferred to another department for resolution";
+                          description = `Transferred to ${event.details?.toDepartmentName || "another department"} for resolution${event.details?.toUserName ? `, assigned to ${event.details.toUserName}` : ""}`;
                           break;
                       }
 
@@ -626,7 +700,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                             {icon}
                           </div>
                           <div
-                            className={`bg-gradient-to-r ${cardBg} rounded-xl p-4 border ${borderColor} ml-2`}
+                            className={`bg-gradient-to-r ${cardBg} rounded-xl p-3.5 border ${borderColor} ml-2`}
                           >
                             <div className="flex items-center justify-between mb-2">
                               <span

@@ -152,15 +152,30 @@ router.post('/sso/login', async (req: Request, res: Response) => {
 
     // Fetch permissions for the user's role
     let permissions: any[] = [];
-    const roleToFind = user.customRoleId || null;
-    if (roleToFind) {
-      const roleDoc = await Role.findById(roleToFind);
+    if (user.customRoleId) {
+      const roleDoc = await Role.findById(user.customRoleId);
       if (roleDoc) permissions = roleDoc.permissions;
     } else if (user.companyId) {
-      const systemRole = await Role.findOne({ 
-        companyId: user.companyId instanceof mongoose.Types.ObjectId ? user.companyId : (user.companyId as any)._id, 
-        key: (user.role || 'CUSTOM').toUpperCase() 
-      });
+      const companyId = user.companyId instanceof mongoose.Types.ObjectId ? user.companyId : (user.companyId as any)._id;
+      const roleKey = (user.role || 'CUSTOM').toUpperCase();
+      
+      // Try finding by key first
+      let systemRole = await Role.findOne({ companyId, key: roleKey });
+      
+      // Fallback: search by name if it's a standard role but key is missing
+      if (!systemRole && roleKey !== 'CUSTOM') {
+        const humanizedName = roleKey.replace(/_/g, ' ')
+                                   .toLowerCase()
+                                   .split(' ')
+                                   .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                                   .join(' ');
+        
+        systemRole = await Role.findOne({ 
+          companyId, 
+          name: new RegExp(`^${humanizedName}$`, 'i') 
+        });
+      }
+      
       if (systemRole) permissions = systemRole.permissions;
     }
 
@@ -313,15 +328,30 @@ router.post('/login', async (req: Request, res: Response) => {
 
     // Fetch permissions for the user's role
     let permissions: any[] = [];
-    const roleToFind = user.customRoleId || null;
-    if (roleToFind) {
-      const roleDoc = await Role.findById(roleToFind);
+    if (user.customRoleId) {
+      const roleDoc = await Role.findById(user.customRoleId);
       if (roleDoc) permissions = roleDoc.permissions;
     } else if (user.companyId) {
-      const systemRole = await Role.findOne({ 
-        companyId: user.companyId instanceof mongoose.Types.ObjectId ? user.companyId : (user.companyId as any)._id, 
-        key: (user.role || 'CUSTOM').toUpperCase() 
-      });
+      const companyId = user.companyId instanceof mongoose.Types.ObjectId ? user.companyId : (user.companyId as any)._id;
+      const roleKey = (user.role || 'CUSTOM').toUpperCase();
+      
+      // Try finding by key first
+      let systemRole = await Role.findOne({ companyId, key: roleKey });
+      
+      // Fallback: search by name if it's a standard role but key is missing
+      if (!systemRole && roleKey !== 'CUSTOM') {
+        const humanizedName = roleKey.replace(/_/g, ' ')
+                                   .toLowerCase()
+                                   .split(' ')
+                                   .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+                                   .join(' ');
+        
+        systemRole = await Role.findOne({ 
+          companyId, 
+          name: new RegExp(`^${humanizedName}$`, 'i') 
+        });
+      }
+      
       if (systemRole) permissions = systemRole.permissions;
     }
 
@@ -377,15 +407,30 @@ router.get('/me', authenticate, async (req: Request, res: Response) => {
 
     // Fetch permissions for the user's role
     let permissions: any[] = [];
-    const roleToFind = user.customRoleId || null;
-    if (roleToFind) {
-      const roleDoc = await Role.findById(roleToFind);
+    if (user.customRoleId) {
+      const roleDoc = await Role.findById(user.customRoleId);
       if (roleDoc) permissions = roleDoc.permissions;
     } else if (user.companyId) {
-      const systemRole = await Role.findOne({ 
-        companyId: user.companyId instanceof mongoose.Types.ObjectId ? user.companyId : (user.companyId as any)._id, 
-        key: (user.role || 'CUSTOM').toUpperCase() 
-      });
+      const companyId = user.companyId instanceof mongoose.Types.ObjectId ? user.companyId : (user.companyId as any)._id;
+      const roleKey = (user.role || 'CUSTOM').toUpperCase();
+      
+      // Try finding by key first
+      let systemRole = await Role.findOne({ companyId, key: roleKey });
+      
+      // Fallback: search by name if it's a standard role but key is missing
+      if (!systemRole && roleKey !== 'CUSTOM') {
+        const humanizedName = roleKey.replace(/_/g, ' ')
+                                   .toLowerCase()
+                                   .split(' ')
+                                   .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+                                   .join(' ');
+        
+        systemRole = await Role.findOne({ 
+          companyId, 
+          name: new RegExp(`^${humanizedName}$`, 'i') 
+        });
+      }
+      
       if (systemRole) permissions = systemRole.permissions;
     }
 

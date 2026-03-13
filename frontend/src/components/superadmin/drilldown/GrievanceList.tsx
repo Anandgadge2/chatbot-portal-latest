@@ -5,6 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, FileText, Download } from "lucide-react";
 import { Grievance } from "@/lib/api/grievance";
+import { formatTo10Digits } from "@/lib/utils/phoneUtils";
 
 interface GrievanceListProps {
   grievances: Grievance[];
@@ -97,7 +98,7 @@ export default function GrievanceList({
                         {g.citizenName}
                       </p>
                       <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-tighter">
-                        {g.citizenPhone}
+                        {formatTo10Digits(g.citizenPhone)}
                       </p>
                     </div>
                   </td>

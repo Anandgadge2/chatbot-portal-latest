@@ -62,6 +62,7 @@ import AvailabilityCalendar from "@/components/availability/AvailabilityCalendar
 
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
+import { formatTo10Digits } from "@/lib/utils/phoneUtils";
 
 import {
   ArrowUpDown,
@@ -316,10 +317,15 @@ function DashboardContent() {
     tab: "grievances",
   });
 
-  // Grievances Filters
+  // Filters for other tabs
+  const [deptFilters, setDeptFilters] = useState({ type: "", status: "", mainDeptId: "" });
+  const [userFilters, setUserFilters] = useState({ role: "", status: "", mainDeptId: "", subDeptId: "" });
+
   const [grievanceFilters, setGrievanceFilters] = useState({
     status: "",
     department: "",
+    mainDeptId: "",
+    subDeptId: "",
     assignmentStatus: "",
     overdueStatus: "",
     dateRange: "",
@@ -588,7 +594,7 @@ function DashboardContent() {
   }, []);
 
   const fetchCompany = useCallback(async () => {
-    if (!user || !isCompanyLevel) return;
+    if (!user || user.role === "SUPER_ADMIN") return;
 
     try {
       const response = await companyAPI.getMyCompany();
@@ -599,14 +605,14 @@ function DashboardContent() {
       // CompanyAdmin might not have company associated
       console.log("Company details not available:", error.message);
     }
-  }, [user, isCompanyLevel]);
+  }, [user]);
 
   const fetchDepartments = useCallback(
     async (page = departmentPage, isSilent = false) => {
       if (!isSilent) setLoadingDepartments(true);
       try {
         // For company admin, fetch ALL departments (no pagination limit)
-        const fetchLimit = isCompanyLevel ? 500 : departmentPagination.limit;
+        const fetchLimit = isCompanyLevel ? 1000 : departmentPagination.limit;
         const response = await departmentAPI.getAll({
           page: isCompanyLevel ? 1 : page,
           limit: fetchLimit,
@@ -860,11 +866,11 @@ function DashboardContent() {
   useEffect(() => {
     if (mounted && user && user.role !== "SUPER_ADMIN") {
       fetchDashboardData();
-      if (user.companyId && isCompanyLevel) {
+      if (user.companyId) {
         fetchCompany();
       }
     }
-  }, [mounted, user, fetchDashboardData, fetchCompany, isCompanyLevel]);
+  }, [mounted, user, fetchDashboardData, fetchCompany]);
 
   // 2. Specialized effects for each paginated module
   useEffect(() => {
@@ -1036,6 +1042,33 @@ function DashboardContent() {
           return deptId === grievanceFilters.department;
         });
       }
+      // Main Department filter
+      if (grievanceFilters.mainDeptId) {
+        filteredData = filteredData.filter((g: Grievance) => {
+          const deptId =
+            typeof g.departmentId === "object" && g.departmentId
+              ? (g.departmentId as any)._id
+              : g.departmentId;
+          const subDeptId =
+            typeof g.subDepartmentId === "object" && g.subDepartmentId
+              ? (g.subDepartmentId as any)._id
+              : g.subDepartmentId;
+          
+          // Show if main department matches OR if it belongs to a sub-department of the selected main
+          const dept = departments.find(d => d._id === deptId);
+          return deptId === grievanceFilters.mainDeptId || dept?.parentDepartmentId === grievanceFilters.mainDeptId;
+        });
+      }
+      // Sub Department filter
+      if (grievanceFilters.subDeptId) {
+        filteredData = filteredData.filter((g: Grievance) => {
+          const subDeptId =
+            typeof g.subDepartmentId === "object" && g.subDepartmentId
+              ? (g.subDepartmentId as any)._id
+              : g.subDepartmentId;
+          return subDeptId === grievanceFilters.subDeptId;
+        });
+      }
       // Assignment status filter
       if (grievanceFilters.assignmentStatus) {
         if (grievanceFilters.assignmentStatus === "assigned") {
@@ -1156,6 +1189,77 @@ function DashboardContent() {
             a.citizenName?.toLowerCase().includes(search) ||
             a.citizenPhone?.includes(search) ||
             a.purpose?.toLowerCase().includes(search),
+        );
+      }
+    }
+
+    // Apply department filters
+    if (tab === "departments") {
+      // Type filter
+      if (deptFilters.type) {
+        filteredData = filteredData.filter((d: Department) => 
+          deptFilters.type === "main" ? !d.parentDepartmentId : !!d.parentDepartmentId
+        );
+      }
+      // Status filter
+      if (deptFilters.status) {
+        filteredData = filteredData.filter((d: Department) => 
+          deptFilters.status === "active" ? d.isActive : !d.isActive
+        );
+      }
+      // Search filter
+      if (deptSearch.trim()) {
+        const search = deptSearch.toLowerCase().trim();
+        filteredData = filteredData.filter(
+          (d: Department) =>
+            d.name.toLowerCase().includes(search) ||
+            d.departmentId?.toLowerCase().includes(search)
+        );
+      }
+      // Main Department filter (show main + its subs)
+      if (deptFilters.mainDeptId) {
+        filteredData = filteredData.filter((d: Department) => 
+          d._id === deptFilters.mainDeptId || d.parentDepartmentId === deptFilters.mainDeptId
+        );
+      }
+    }
+
+    // Apply user filters
+    if (tab === "users") {
+      // Role filter
+      if (userFilters.role) {
+        filteredData = filteredData.filter((u: User) => u.role === userFilters.role);
+      }
+      // Status filter
+      if (userFilters.status) {
+        filteredData = filteredData.filter((u: User) => 
+          userFilters.status === "active" ? u.isActive : !u.isActive
+        );
+      }
+      // Main Department filter
+      if (userFilters.mainDeptId) {
+        filteredData = filteredData.filter((u: User) => {
+          const deptId = typeof u.departmentId === "object" && u.departmentId ? (u.departmentId as any)._id : u.departmentId;
+          const dept = departments.find(d => d._id === deptId);
+          return deptId === userFilters.mainDeptId || dept?.parentDepartmentId === userFilters.mainDeptId;
+        });
+      }
+      // Sub Department filter
+      if (userFilters.subDeptId) {
+        filteredData = filteredData.filter((u: User) => {
+          const deptId = typeof u.departmentId === "object" && u.departmentId ? (u.departmentId as any)._id : u.departmentId;
+          return deptId === userFilters.subDeptId;
+        });
+      }
+      // Search filter
+      if (userSearch.trim()) {
+        const search = userSearch.toLowerCase().trim();
+        filteredData = filteredData.filter(
+          (u: User) =>
+            u.firstName?.toLowerCase().includes(search) ||
+            u.lastName?.toLowerCase().includes(search) ||
+            u.email?.toLowerCase().includes(search) ||
+            u.phone?.includes(search)
         );
       }
     }
@@ -1340,8 +1444,7 @@ function DashboardContent() {
                 </TabsTrigger>
               )}
 
-              {hasModule(Module.GRIEVANCE) &&
-                hasPermission(user, Permission.READ_GRIEVANCE) && (
+              {hasPermission(user, Permission.READ_GRIEVANCE) && (
                   <TabsTrigger
                     value="grievances"
                     className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
@@ -1359,7 +1462,7 @@ function DashboardContent() {
                 </TabsTrigger>
               )}
 
-              {hasModule(Module.APPOINTMENT) &&
+              {(isCompanyLevel || isDepartmentLevel) && hasModule(Module.APPOINTMENT) &&
                 hasPermission(user, Permission.READ_APPOINTMENT) && (
                   <TabsTrigger
                     value="appointments"
@@ -1616,7 +1719,7 @@ function DashboardContent() {
                         Direct Line
                       </div>
                       <div className="text-xs font-bold text-slate-700">
-                        {company.contactPhone}
+                        {formatTo10Digits(company.contactPhone)}
                       </div>
                     </div>
                   </div>
@@ -2853,8 +2956,49 @@ function DashboardContent() {
                         placeholder="Search departments by name or ID..."
                         value={deptSearch}
                         onChange={(e) => setDeptSearch(e.target.value)}
-                        className="w-full pl-9 pr-4 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+                        className="w-full pl-9 pr-4 py-2 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-sm"
                       />
+                    </div>
+                    {/* Dept Filters */}
+                    <div className="flex items-center gap-2">
+                       <select
+                        value={deptFilters.type}
+                        onChange={(e) => setDeptFilters(prev => ({ ...prev, type: e.target.value }))}
+                        className="text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all"
+                      >
+                        <option value="">All Types</option>
+                        <option value="main">Main Depts</option>
+                        <option value="sub">Sub Depts</option>
+                      </select>
+                      <select
+                        value={deptFilters.status}
+                        onChange={(e) => setDeptFilters(prev => ({ ...prev, status: e.target.value }))}
+                        className="text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all"
+                      >
+                        <option value="">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                      </select>
+                      <select
+                        value={deptFilters.mainDeptId}
+                        onChange={(e) => setDeptFilters(prev => ({ ...prev, mainDeptId: e.target.value }))}
+                        className="text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all min-w-[150px]"
+                      >
+                        <option value="">Filter by Main Dept</option>
+                        {departments.filter(d => !d.parentDepartmentId).map(dept => (
+                           <option key={dept._id} value={dept._id}>{dept.name}</option>
+                        ))}
+                      </select>
+                      {(deptFilters.type || deptFilters.status || deptFilters.mainDeptId) && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => setDeptFilters({ type: "", status: "", mainDeptId: "" })}
+                          className="h-7 text-[9px] font-bold text-red-500 hover:text-red-600 hover:bg-red-50 uppercase tracking-tighter"
+                        >
+                          Clear
+                        </Button>
+                      )}
                     </div>
                     <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                       <span className="px-2 py-1 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-lg">
@@ -2931,19 +3075,7 @@ function DashboardContent() {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100 bg-white">
-                            {getSortedData(
-                              departments.filter(
-                                (d) =>
-                                  !deptSearch ||
-                                  d.name
-                                    .toLowerCase()
-                                    .includes(deptSearch.toLowerCase()) ||
-                                  d.departmentId
-                                    ?.toLowerCase()
-                                    .includes(deptSearch.toLowerCase()),
-                              ),
-                              "departments",
-                            ).map((dept, index) => {
+                            {getSortedData(departments, "departments").map((dept, index) => {
                               const isMain = !dept.parentDepartmentId;
                               const userCount = deptUserCounts[dept._id] || 0;
                               const parentName =
@@ -3430,7 +3562,7 @@ function DashboardContent() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                  {/* Search bar for Users */}
+                  {/* Search and Filters for Users */}
                   <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/40 flex flex-wrap items-center gap-3">
                     <div className="relative flex-1 min-w-[240px]">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
@@ -3439,8 +3571,61 @@ function DashboardContent() {
                         placeholder="Search users by name, email or ID..."
                         value={userSearch}
                         onChange={(e) => setUserSearch(e.target.value)}
-                        className="w-full pl-9 pr-4 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+                        className="w-full pl-9 pr-4 py-2 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-sm"
                       />
+                    </div>
+                    {/* User Filters */}
+                    <div className="flex items-center gap-2">
+                       <select
+                        value={userFilters.role}
+                        onChange={(e) => setUserFilters(prev => ({ ...prev, role: e.target.value }))}
+                        className="text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all"
+                      >
+                        <option value="">All Roles</option>
+                        <option value="DEPARTMENT_ADMIN">Dept Admin</option>
+                        <option value="SUB_DEPARTMENT_ADMIN">Sub-Dept Admin</option>
+                        <option value="OFFICER">Officer</option>
+                      </select>
+                      <select
+                        value={userFilters.status}
+                        onChange={(e) => setUserFilters(prev => ({ ...prev, status: e.target.value }))}
+                        className="text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all"
+                      >
+                        <option value="">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                      </select>
+                      <select
+                        value={userFilters.mainDeptId}
+                        onChange={(e) => setUserFilters(prev => ({ ...prev, mainDeptId: e.target.value, subDeptId: "" }))}
+                        className="text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all min-w-[150px]"
+                      >
+                        <option value="">Main Dept</option>
+                        {departments.filter(d => !d.parentDepartmentId).map(dept => (
+                           <option key={dept._id} value={dept._id}>{dept.name}</option>
+                        ))}
+                      </select>
+                      <select
+                        value={userFilters.subDeptId}
+                        onChange={(e) => setUserFilters(prev => ({ ...prev, subDeptId: e.target.value }))}
+                        className="text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all min-w-[150px]"
+                        disabled={!userFilters.mainDeptId}
+                      >
+                        <option value="">Sub Dept</option>
+                        {userFilters.mainDeptId && departments.filter(d => d.parentDepartmentId === userFilters.mainDeptId).map(dept => (
+                           <option key={dept._id} value={dept._id}>{dept.name}</option>
+                        ))}
+                      </select>
+                      {(userFilters.role || userFilters.status || userFilters.mainDeptId || userFilters.subDeptId) && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => setUserFilters({ role: "", status: "", mainDeptId: "", subDeptId: "" })}
+                          className="h-7 text-[9px] font-bold text-red-500 hover:text-red-600 hover:bg-red-50 uppercase tracking-tighter"
+                        >
+                          Clear
+                        </Button>
+                      )}
                     </div>
                   </div>
 
@@ -3589,7 +3774,7 @@ function DashboardContent() {
                                       {u.phone && (
                                         <div className="flex items-center text-xs text-gray-500">
                                           <Phone className="w-3.5 h-3.5 mr-2 text-gray-400" />
-                                          {u.phone}
+                                          {formatTo10Digits(u.phone)}
                                         </div>
                                       )}
                                   {isSuperAdmin && u.notificationSettings && (
@@ -4058,19 +4243,64 @@ function DashboardContent() {
                         <option value="REVERTED">↩️ Reverted</option>
                       </select>
 
-                      {/* Department Filter */}
+                      {/* Main Department Filter */}
+                      <select
+                        value={grievanceFilters.mainDeptId}
+                        onChange={(e) =>
+                          setGrievanceFilters((prev) => ({
+                            ...prev,
+                            mainDeptId: e.target.value,
+                            subDeptId: "",
+                            department: "", // reset old filter
+                          }))
+                        }
+                        className="text-xs px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer min-w-[150px]"
+                        title="Filter by main department"
+                      >
+                        <option value="">🏢 Main Dept</option>
+                        {departments.filter(d => !d.parentDepartmentId).map((dept) => (
+                          <option key={dept._id} value={dept._id}>
+                            {dept.name}
+                          </option>
+                        ))}
+                      </select>
+
+                      {/* Sub Department Filter */}
+                      <select
+                        value={grievanceFilters.subDeptId}
+                        onChange={(e) =>
+                          setGrievanceFilters((prev) => ({
+                            ...prev,
+                            subDeptId: e.target.value,
+                          }))
+                        }
+                        className="text-xs px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer min-w-[150px]"
+                        title="Filter by sub department"
+                        disabled={!grievanceFilters.mainDeptId}
+                      >
+                        <option value="">🏢 Sub Dept</option>
+                        {grievanceFilters.mainDeptId && departments.filter(d => d.parentDepartmentId === grievanceFilters.mainDeptId).map((dept) => (
+                          <option key={dept._id} value={dept._id}>
+                            {dept.name}
+                          </option>
+                        ))}
+                      </select>
+
+                      {/* Old Department Filter (Optional, keep for backward compatibility or remove) */}
                       <select
                         value={grievanceFilters.department}
                         onChange={(e) =>
                           setGrievanceFilters((prev) => ({
                             ...prev,
                             department: e.target.value,
+                            mainDeptId: "", // reset new filters
+                            subDeptId: "",
                           }))
                         }
-                        className="text-xs px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer"
-                        title="Filter by department"
+                        className="text-xs px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer max-w-[150px]"
+                        title="Filter by specific department"
                       >
-                        <option value="">🏢 All Departments</option>
+                        <option value="">🏢 Specific Dept</option>
                         {departments.map((dept) => (
                           <option key={dept._id} value={dept._id}>
                             {dept.name}
@@ -4133,6 +4363,8 @@ function DashboardContent() {
                       {/* Clear Filters */}
                       {(grievanceFilters.status ||
                         grievanceFilters.department ||
+                        grievanceFilters.mainDeptId ||
+                        grievanceFilters.subDeptId ||
                         grievanceFilters.assignmentStatus ||
                         grievanceFilters.overdueStatus ||
                         grievanceFilters.dateRange) && (
@@ -4143,6 +4375,8 @@ function DashboardContent() {
                             setGrievanceFilters({
                               status: "",
                               department: "",
+                              mainDeptId: "",
+                              subDeptId: "",
                               assignmentStatus: "",
                               overdueStatus: "",
                               dateRange: "",
@@ -4389,9 +4623,10 @@ function DashboardContent() {
                                         >
                                           {grievance.citizenName}
                                         </button>
-                                        <span className="text-xs text-gray-500">
-                                          {grievance.citizenPhone.replace(/\D/g, '').slice(-10)}
-                                        </span>
+                                        <div className="flex items-center text-xs text-gray-500 font-medium">
+                                          <Phone className="w-3 h-3 mr-1.5" />
+                                          {formatTo10Digits(grievance.citizenPhone)}
+                                        </div>
                                       </div>
                                     </td>
                                     <td className="px-4 py-4">
@@ -5102,9 +5337,10 @@ function DashboardContent() {
                                         >
                                           {appointment.citizenName}
                                         </button>
-                                        <span className="text-xs text-gray-500">
-                                          {appointment.citizenPhone}
-                                        </span>
+                                        <div className="flex items-center text-xs text-gray-500 font-medium">
+                                          <Phone className="w-3 h-3 mr-1.5" />
+                                          {formatTo10Digits(appointment.citizenPhone)}
+                                        </div>
                                       </div>
                                     </td>
                                     <td className="px-4 py-4">

@@ -164,6 +164,7 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
             url: cloudUrl,
             type: file.mimetype.startsWith('image/') ? 'image' : 'document',
             uploadedAt: new Date(),
+            uploadedBy: currentUser._id
           } as any);
         }
       }

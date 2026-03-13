@@ -42,30 +42,24 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
     phone: "",
     designation: "",
     role: "OPERATOR",
-    departmentId: "",
     notificationSettings: {
       email: true,
       whatsapp: true
     }
   });
+  const [selectedMainDeptId, setSelectedMainDeptId] = useState<string>("");
+  const [selectedSubDeptId, setSelectedSubDeptId] = useState<string>("");
   const [customRoles, setCustomRoles] = useState<Role[]>([]);
 
-  const fetchDepartments = useCallback(async () => {
+  const fetchDepartments = useCallback(async (companyId: string) => {
+    if (!companyId) return;
     try {
-      const companyId = currentUser?.companyId
-        ? typeof currentUser.companyId === "object"
-          ? (currentUser.companyId as any)._id
-          : currentUser.companyId
-        : "";
-
-      if (companyId) {
-        const response = await departmentAPI.getAll({ companyId });
-        setDepartments(response.data.departments || []);
-      }
+      const response = await departmentAPI.getAll({ companyId, limit: 1000 });
+      setDepartments(response.data.departments || []);
     } catch (error: any) {
       console.error("Failed to fetch departments:", error);
     }
-  }, [currentUser]);
+  }, []);
 
   const fetchCustomRoles = useCallback(async (companyId: string) => {
     if (!companyId) return;
@@ -90,11 +84,6 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
         role: user.customRoleId
           ? `CUSTOM:${typeof user.customRoleId === "object" ? (user.customRoleId as any)._id : user.customRoleId}`
           : user.role || "OPERATOR",
-        departmentId: user.departmentId
-          ? typeof user.departmentId === "object"
-            ? (user.departmentId as any)._id
-            : user.departmentId
-          : "",
         notificationSettings: {
           email: user.notificationSettings?.email ?? true,
           whatsapp: user.notificationSettings?.whatsapp ?? true
@@ -113,11 +102,37 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
 
       if (companyId) {
         fetchCustomRoles(companyId);
+        fetchDepartments(companyId);
       }
-
-      fetchDepartments();
     }
   }, [isOpen, user, currentUser, fetchCustomRoles, fetchDepartments]);
+
+  useEffect(() => {
+    if (isOpen && user && departments.length > 0) {
+      const userDeptId = user.departmentId
+        ? typeof user.departmentId === "object"
+          ? (user.departmentId as any)._id
+          : user.departmentId
+        : "";
+
+      if (userDeptId) {
+        const dept = departments.find((d) => d._id === userDeptId);
+        if (dept) {
+          const parentId = typeof dept.parentDepartmentId === "object"
+            ? (dept.parentDepartmentId as any)?._id
+            : dept.parentDepartmentId;
+
+          if (parentId) {
+            setSelectedMainDeptId(parentId);
+            setSelectedSubDeptId(userDeptId);
+          } else {
+            setSelectedMainDeptId(userDeptId);
+            setSelectedSubDeptId("");
+          }
+        }
+      }
+    }
+  }, [isOpen, user, departments]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -136,10 +151,29 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
       const submissionData = {
         ...formData,
         role: submissionRole,
-        customRoleId: submissionCustomRoleId || null,
+        customRoleId: submissionCustomRoleId || undefined,
+        departmentId: selectedSubDeptId || selectedMainDeptId || undefined,
       };
 
       await userAPI.update(user._id, submissionData);
+
+      // 🔄 SYNC: If user is an Admin, update Department Contact Person
+      const assignedDeptId = submissionData.departmentId;
+      if (assignedDeptId) {
+        const roleName = customRoles.find(r => `CUSTOM:${r._id}` === formData.role)?.name || formData.role;
+        if (roleName.toLowerCase().includes("admin")) {
+          try {
+            await departmentAPI.update(assignedDeptId, {
+              contactPerson: `${formData.firstName} ${formData.lastName}`,
+              contactEmail: formData.email,
+              contactPhone: formData.phone
+            });
+          } catch (syncError) {
+            console.error("Failed to sync department head info:", syncError);
+          }
+        }
+      }
+
       toast.success("User updated successfully");
       onUserUpdated();
       onClose();
@@ -151,8 +185,6 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
   };
 
   const getAllPossibleRoles = () => {
-    // ONLY SHOW CUSTOM ROLES created by the Admin
-    // Standard roles are deprecated in favor of dynamic roles.
     const customRoleOptions = customRoles.map((r) => ({
       value: `CUSTOM:${r._id}`,
       label: r.name,
@@ -314,15 +346,6 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
                   <option value="" disabled>
                     Select a role
                   </option>
-                  <optgroup label="Standard Roles">
-                    {getAllPossibleRoles()
-                      .filter((r: any) => !r.value.startsWith("CUSTOM:"))
-                      .map((role: { value: string; label: string }) => (
-                        <option key={role.value} value={role.value}>
-                          {role.label}
-                        </option>
-                      ))}
-                  </optgroup>
                   {getAllPossibleRoles().some((r: any) =>
                     r.value.startsWith("CUSTOM:"),
                   ) && (
@@ -341,28 +364,61 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
 
               <div className="space-y-1.5">
                 <Label
-                  htmlFor="departmentId"
+                  htmlFor="mainDepartmentId"
                   className="text-[10px] font-black text-slate-500 uppercase tracking-widest"
                 >
-                  Department
+                  Main Department
                 </Label>
                 <select
-                  id="departmentId"
-                  name="departmentId"
-                  value={formData.departmentId}
-                  onChange={(e) =>
-                    setFormData({ ...formData, departmentId: e.target.value })
-                  }
+                  id="mainDepartmentId"
+                  value={selectedMainDeptId}
+                  onChange={(e) => {
+                    setSelectedMainDeptId(e.target.value);
+                    setSelectedSubDeptId(""); // Reset sub-dept when main dept changes
+                  }}
                   className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold"
                 >
                   <option value="">No Department</option>
-                  {departments.map((dept) => (
-                    <option key={dept._id} value={dept._id}>
-                      {dept.name}
-                    </option>
-                  ))}
+                  {departments
+                    .filter((d) => !d.parentDepartmentId)
+                    .map((dept) => (
+                      <option key={dept._id} value={dept._id}>
+                        {dept.name}
+                      </option>
+                    ))}
                 </select>
               </div>
+
+              {selectedMainDeptId && (
+                <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <Label
+                    htmlFor="subDepartmentId"
+                    className="text-[10px] font-black text-slate-500 uppercase tracking-widest"
+                  >
+                    Sub Department (Optional)
+                  </Label>
+                  <select
+                    id="subDepartmentId"
+                    value={selectedSubDeptId}
+                    onChange={(e) => setSelectedSubDeptId(e.target.value)}
+                    className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold"
+                  >
+                    <option value="">None (Map to Main Department)</option>
+                    {departments
+                      .filter((d) => {
+                        const parentId = typeof d.parentDepartmentId === "object"
+                          ? (d.parentDepartmentId as any)?._id
+                          : d.parentDepartmentId;
+                        return parentId === selectedMainDeptId;
+                      })
+                      .map((dept) => (
+                        <option key={dept._id} value={dept._id}>
+                          {dept.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              )}
 
               {/* Notification Controls */}
               <div className="grid grid-cols-2 gap-4 pt-2">

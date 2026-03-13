@@ -5,6 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Calendar as CalendarIcon, Download } from "lucide-react";
 import { Appointment } from "@/lib/api/appointment";
+import { formatTo10Digits } from "@/lib/utils/phoneUtils";
 
 interface AppointmentListProps {
   appointments: Appointment[];
@@ -96,7 +97,7 @@ export default function AppointmentList({
                       {a.citizenName}
                     </p>
                     <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-tighter">
-                      {a.citizenPhone}
+                      {formatTo10Digits(a.citizenPhone)}
                     </p>
                   </div>
                 </td>

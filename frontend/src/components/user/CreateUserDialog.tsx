@@ -61,12 +61,14 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
     }
   });
 
+  const [selectedMainDeptId, setSelectedMainDeptId] = useState<string>("");
+  const [selectedSubDeptId, setSelectedSubDeptId] = useState<string>("");
+
   // Get available roles based on current user's role
   const getAllPossibleRoles = () => {
     if (!user) return [];
 
     // ONLY SHOW CUSTOM ROLES created by the Admin
-    // Standard roles (except SUPER_ADMIN) are deprecated in favor of dynamic roles.
     const customRoleOptions = customRoles.map((r) => ({
       value: `CUSTOM:${r._id}`,
       label: r.name,
@@ -80,16 +82,15 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
     // Only SUPER_ADMIN and users with specific CREATE_USER permission can create users
     return user.role === UserRole.SUPER_ADMIN || hasPermission(user, Permission.CREATE_USER);
   };
+
   const fetchCompanies = useCallback(async () => {
     try {
       const response = await companyAPI.getAll();
       if (response.success) {
-        // Filter companies based on user's scope
         let filteredCompanies = response.data.companies;
         const currentRole = user?.role as string;
 
         if (currentRole !== UserRole.SUPER_ADMIN) {
-          // Non-SuperAdmin: only show their company
           const userCompanyId = user?.companyId
             ? typeof user.companyId === "object"
               ? user.companyId._id
@@ -97,15 +98,10 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
             : "";
           if (userCompanyId) {
             filteredCompanies = response.data.companies.filter(
-              (company: Company) => {
-                return company._id === userCompanyId;
-              },
+              (company: Company) => company._id === userCompanyId
             );
           }
         }
-        // SUPER_ADMIN can see all companies (no filter)
-        // DEPARTMENT_ADMIN will only see their company (handled in the select dropdown)
-
         setCompanies(filteredCompanies);
       }
     } catch (error) {
@@ -113,42 +109,25 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
     }
   }, [user]);
 
-  const fetchDepartments = useCallback(async () => {
+  const fetchDepartments = useCallback(async (companyId?: string) => {
     try {
-      const response = await departmentAPI.getAll();
+      const response = await departmentAPI.getAll({ companyId, limit: 1000 });
       if (response.success) {
-        // Filter departments based on user's scope
         let filteredDepartments = response.data.departments;
         const currentRole = user?.role as string;
 
         if (currentRole !== UserRole.SUPER_ADMIN) {
-          const userCompanyId = user?.companyId
-            ? typeof user.companyId === "object"
-              ? (user.companyId as any)._id
-              : user.companyId
-            : "";
-          
-          if (userCompanyId) {
-            // Filter by company
-            filteredDepartments = response.data.departments.filter(
+          // If user is restricted to a department, scope them
+          const userDeptId = user?.departmentId ? (typeof user.departmentId === "object" ? (user.departmentId as any)._id : user.departmentId) : "";
+          if (userDeptId) {
+            filteredDepartments = filteredDepartments.filter(
               (dept: Department) => {
-                const deptCompanyId = typeof dept.companyId === "object" ? (dept.companyId as any)?._id : dept.companyId;
-                return deptCompanyId === userCompanyId;
+                const deptId = dept._id?.toString() || dept._id;
+                const parentId = typeof dept.parentDepartmentId === "object" ? (dept.parentDepartmentId as any)?._id : dept.parentDepartmentId;
+                const parentIdStr = parentId?.toString() || parentId;
+                return deptId === userDeptId || parentIdStr === userDeptId;
               }
             );
-
-            // If user is scoped to a specific department (e.g. from local storage or context)
-            const userDeptId = user?.departmentId ? (typeof user.departmentId === "object" ? (user.departmentId as any)._id : user.departmentId) : "";
-            if (userDeptId) {
-              filteredDepartments = filteredDepartments.filter(
-                (dept: Department) => {
-                  const deptId = dept._id?.toString() || dept._id;
-                  const parentId = typeof dept.parentDepartmentId === "object" ? (dept.parentDepartmentId as any)?._id : dept.parentDepartmentId;
-                  const parentIdStr = parentId?.toString() || parentId;
-                  return deptId === userDeptId || parentIdStr === userDeptId;
-                }
-              );
-            }
           }
         }
 
@@ -184,155 +163,109 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
           firstName: editingUser.firstName || "",
           lastName: editingUser.lastName || "",
           email: editingUser.email || "",
-          password: "", // Don't show password
-          phone: editingUser.phone
-            ? denormalizePhoneNumber(editingUser.phone)
-            : "",
+          password: "",
+          phone: editingUser.phone ? denormalizePhoneNumber(editingUser.phone) : "",
           designation: editingUser.designation || "",
           role: editingUser.customRoleId
             ? `CUSTOM:${typeof editingUser.customRoleId === "object" ? (editingUser.customRoleId as any)._id : editingUser.customRoleId}`
             : editingUser.role || "",
-          companyId:
-            typeof editingUser.companyId === "object"
-              ? editingUser.companyId?._id
-              : editingUser.companyId || "",
-          departmentId:
-            typeof editingUser.departmentId === "object"
-              ? editingUser.departmentId?._id
-              : editingUser.departmentId || "",
+          companyId: typeof editingUser.companyId === "object" ? editingUser.companyId?._id : editingUser.companyId || "",
+          departmentId: typeof editingUser.departmentId === "object" ? editingUser.departmentId?._id : editingUser.departmentId || "",
           notificationSettings: {
             email: editingUser.notificationSettings?.email ?? true,
             whatsapp: editingUser.notificationSettings?.whatsapp ?? true
           }
         });
       } else {
-        // Auto-select and lock company/department based on user's role
-        const userCompanyId = user?.companyId
-          ? typeof user.companyId === "object"
-            ? user.companyId._id
-            : user.companyId
-          : "";
-        const userDepartmentId = user?.departmentId
-          ? typeof user.departmentId === "object"
-            ? user.departmentId._id
-            : user.departmentId
-          : "";
+        const userCompanyId = user?.companyId ? (typeof user.companyId === "object" ? user.companyId._id : user.companyId) : "";
+        const userDepartmentId = user?.departmentId ? (typeof user.departmentId === "object" ? user.departmentId._id : user.departmentId) : "";
+
+        setFormData({
+          firstName: "",
+          lastName: "",
+          email: "",
+          password: "",
+          phone: "",
+          designation: "",
+          role: "",
+          companyId: userCompanyId || "",
+          departmentId: userDepartmentId || "",
+          notificationSettings: {
+            email: true,
+            whatsapp: true
+          }
+        });
 
         if (userCompanyId) {
-          setFormData({
-            firstName: "",
-            lastName: "",
-            email: "",
-            password: "",
-            phone: "",
-            designation: "",
-            role: "",
-            companyId: userCompanyId,
-            departmentId: userDepartmentId || "",
-            notificationSettings: {
-              email: true,
-              whatsapp: true
-            }
-          });
-        } else {
-          setFormData({
-            firstName: "",
-            lastName: "",
-            email: "",
-            password: "",
-            phone: "",
-            designation: "",
-            role: "",
-            companyId: "",
-            departmentId: "",
-            notificationSettings: {
-              email: true,
-              whatsapp: true
-            }
-          });
+          fetchDepartments(userCompanyId);
         }
       }
     }
   }, [isOpen, user, editingUser, fetchCompanies, fetchDepartments]);
 
   useEffect(() => {
+    if (isOpen && departments.length > 0) {
+        const currentDeptId = editingUser ? (typeof editingUser.departmentId === "object" ? editingUser.departmentId?._id : editingUser.departmentId) : formData.departmentId;
+        if (currentDeptId) {
+            const dept = departments.find(d => d._id === currentDeptId);
+            if (dept) {
+                const parentId = typeof dept.parentDepartmentId === "object" ? (dept.parentDepartmentId as any)?._id : dept.parentDepartmentId;
+                if (parentId) {
+                    setSelectedMainDeptId(parentId);
+                    setSelectedSubDeptId(currentDeptId);
+                } else {
+                    setSelectedMainDeptId(currentDeptId);
+                    setSelectedSubDeptId("");
+                }
+            }
+        }
+    }
+  }, [isOpen, departments, editingUser, formData.departmentId]);
+
+  useEffect(() => {
     if (formData.companyId) {
       fetchCustomRoles(formData.companyId);
+      fetchDepartments(formData.companyId);
     } else {
       setCustomRoles([]);
       if (formData.role.startsWith("CUSTOM:")) {
         setFormData((prev) => ({ ...prev, role: "" }));
       }
     }
-  }, [formData.companyId, formData.role, fetchCustomRoles]);
-
-  useEffect(() => {
-    // Reset dependent fields when role changes
-    if (
-      formData.role === UserRole.SUPER_ADMIN
-    ) {
-      setFormData((prev) => ({ ...prev, departmentId: "" }));
-    }
-    // DEPARTMENT_ADMIN and OPERATOR need both companyId and departmentId
-    // So we don't clear companyId for DEPARTMENT_ADMIN
-  }, [formData.role]);
+  }, [formData.companyId, formData.role, fetchCustomRoles, fetchDepartments]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const isEditing = !!editingUser;
 
-    if (
-      !formData.firstName ||
-      !formData.lastName ||
-      !formData.email ||
-      !formData.role
-    ) {
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.role) {
       toast.error("Please fill in all required fields");
       return;
     }
 
-    // Password is only required when creating a new user
     if (!isEditing && !formData.password) {
       toast.error("Password is required for new users");
       return;
     }
 
-    // Validate phone number if provided
     if (formData.phone && !validatePhoneNumber(formData.phone)) {
       toast.error("Phone number must be exactly 10 digits");
       return;
     }
 
-    // Validate password if provided
     if (formData.password && !validatePassword(formData.password)) {
       toast.error("Password must be between 6 and 8 characters");
       return;
     }
 
-    // Role-specific validation
-    if (formData.role !== UserRole.SUPER_ADMIN) {
-      if (!formData.companyId) {
-        toast.error("Please select a company");
-        return;
-      }
-    }
-
-    // RBAC validation
-    const allPossibleRoles = getAllPossibleRoles();
-    if (!allPossibleRoles.find((r) => r.value === formData.role)) {
-      toast.error("You do not have permission for this role");
-      return;
-    }
-
     setLoading(true);
     try {
-      let response;
       let submissionRole = formData.role;
       let submissionCustomRoleId = "";
 
       if (formData.role.startsWith("CUSTOM:")) {
-        submissionRole = ""; // Clear base role, backend handles CUSTOM default or uses customRoleId
+        submissionRole = "";
         submissionCustomRoleId = formData.role.split(":")[1];
       }
 
@@ -341,134 +274,58 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
         role: submissionRole || undefined,
         customRoleId: submissionCustomRoleId || null,
         companyId: formData.companyId || undefined,
-        departmentId: formData.departmentId || undefined,
+        departmentId: selectedSubDeptId || selectedMainDeptId || undefined,
       };
 
+      let response;
       if (isEditing) {
-        // Remove password if empty
-        if (!submissionData.password) {
-          delete (submissionData as any).password;
-        }
-        response = await userAPI.update(editingUser._id, submissionData);
+        if (!submissionData.password) delete (submissionData as any).password;
+        response = await userAPI.update(editingUser!._id, submissionData);
       } else {
         response = await userAPI.create(submissionData);
       }
 
       if (response.success) {
-        toast.success(
-          isEditing
-            ? "User updated successfully!"
-            : "User created successfully!",
-        );
-        if (!isEditing) {
-          setFormData({
-            firstName: "",
-            lastName: "",
-            email: "",
-            password: "",
-            phone: "",
-            designation: "",
-            role: "",
-            companyId: "",
-            departmentId: "",
-            notificationSettings: {
-              email: true,
-              whatsapp: true
+        // 🔄 SYNC: If user is an Admin, update Department Contact Person
+        const assignedDeptId = submissionData.departmentId;
+        if (assignedDeptId) {
+          const roleName = customRoles.find(r => `CUSTOM:${r._id}` === formData.role)?.name || formData.role;
+          if (roleName.toLowerCase().includes("admin")) {
+            try {
+              await departmentAPI.update(assignedDeptId, {
+                contactPerson: `${formData.firstName} ${formData.lastName}`,
+                contactEmail: formData.email,
+                contactPhone: normalizePhoneNumber(formData.phone)
+              });
+            } catch (syncError) {
+              console.error("Failed to sync department head info:", syncError);
             }
-          });
+          }
         }
+
+        toast.success(isEditing ? "User updated successfully!" : "User created successfully!");
         onClose();
         onUserCreated();
-      } else {
-        toast.error("Operation failed");
       }
     } catch (error: any) {
-      const errorMessage =
-        error.response?.data?.message ||
-        error.response?.data?.error ||
-        error.message ||
-        "Operation failed";
-      console.error("User operation error:", error.response?.data);
-      toast.error(errorMessage);
+      toast.error(error.response?.data?.message || "Operation failed");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-
-    // Clear department if role changes to SuperAdmin
-    if (name === "role" && value === UserRole.SUPER_ADMIN) {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-        departmentId: "",
-      }));
-      return;
-    }
-
-    // Clear department if company changes
     if (name === "companyId") {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-        departmentId: "", // Clear department when company changes
-      }));
+      setFormData((prev) => ({ ...prev, [name]: value, departmentId: "" }));
+      setSelectedMainDeptId("");
+      setSelectedSubDeptId("");
       return;
     }
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   if (!isOpen) return null;
-
-  // Show error if operator tries to create users
-  if (!canCreateUsers()) {
-    return (
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-        <Card className="w-full max-w-md bg-white/95 backdrop-blur-lg rounded-2xl border border-red-200/50 shadow-2xl">
-          <CardHeader className="bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-t-2xl">
-            <CardTitle className="text-xl">Access Denied</CardTitle>
-            <CardDescription className="text-red-100">
-              Unable to create users
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-6 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
-              <svg
-                className="w-8 h-8 text-red-500"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                />
-              </svg>
-            </div>
-            <p className="text-gray-600 mb-6">
-              You are not authorized to create users. Please contact your system administrator.
-            </p>
-            <Button
-              onClick={onClose}
-              className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white"
-            >
-              Close
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -480,9 +337,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
             </div>
             <div>
               <CardTitle className="text-base font-bold text-white uppercase tracking-tight">
-                {editingUser
-                  ? "Modify Personnel Profile"
-                  : "Initialize New Personnel"}
+                {editingUser ? "Modify Personnel Profile" : "Initialize New Personnel"}
               </CardTitle>
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
                 Global Authorization Registry
@@ -495,298 +350,111 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="firstName">First Name *</Label>
-                <Input
-                  id="firstName"
-                  name="firstName"
-                  type="text"
-                  value={formData.firstName}
-                  onChange={handleChange}
-                  required
-                  placeholder="First name"
-                />
+                <Input id="firstName" name="firstName" value={formData.firstName} onChange={handleChange} required placeholder="First name" />
               </div>
               <div>
                 <Label htmlFor="lastName">Last Name *</Label>
-                <Input
-                  id="lastName"
-                  name="lastName"
-                  type="text"
-                  value={formData.lastName}
-                  onChange={handleChange}
-                  required
-                  placeholder="Last name"
-                />
+                <Input id="lastName" name="lastName" value={formData.lastName} onChange={handleChange} required placeholder="Last name" />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="email">Email *</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                  placeholder="user@example.com"
-                />
+                <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} required placeholder="user@example.com" />
               </div>
               <div>
-                <Label htmlFor="password">Password *</Label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  minLength={6}
-                  maxLength={8}
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                  placeholder="6-8 characters"
-                />
-                {formData.password && !validatePassword(formData.password) && (
-                  <p className="text-xs text-red-500 mt-1">
-                    Password must be between 6 and 8 characters
-                  </p>
-                )}
+                <Label htmlFor="password">Password {editingUser ? "(Leave blank to keep current)" : "*"}</Label>
+                <Input id="password" name="password" type="password" minLength={6} maxLength={8} value={formData.password} onChange={handleChange} required={!editingUser} placeholder="6-8 characters" />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="phone">Phone</Label>
-                <Input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => {
-                    // Only allow digits, max 10
-                    const value = e.target.value
-                      .replace(/\D/g, "")
-                      .slice(0, 10);
-                    setFormData((prev) => ({ ...prev, phone: value }));
-                  }}
-                  maxLength={10}
-                  placeholder="10 digit number (1234567890)"
-                />
-                {formData.phone && !validatePhoneNumber(formData.phone) && (
-                  <p className="text-xs text-red-500 mt-1">
-                    Phone number must be exactly 10 digits
-                  </p>
-                )}
+                <Input id="phone" name="phone" type="tel" value={formData.phone} onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, "").slice(0, 10);
+                  setFormData(prev => ({ ...prev, phone: val }));
+                }} maxLength={10} placeholder="10 digit number" />
               </div>
               <div>
                 <Label htmlFor="designation">Designation</Label>
-                <Input
-                  id="designation"
-                  name="designation"
-                  type="text"
-                  value={formData.designation}
-                  onChange={handleChange}
-                  placeholder="e.g. Collector & DM"
-                />
-              </div>
-              <div>
-                <Label htmlFor="role">Role *</Label>
-                <select
-                  id="role"
-                  name="role"
-                  value={formData.role}
-                  onChange={handleChange}
-                  className="w-full p-2 border rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-medium"
-                  required
-                >
-                  <option value="" disabled>
-                    Select a role
-                  </option>
-                  {getAllPossibleRoles().map((role: { value: string; label: string }) => (
-                    <option key={role.value} value={role.value}>
-                      {role.label}
-                    </option>
-                  ))}
-                </select>
+                <Input id="designation" name="designation" value={formData.designation} onChange={handleChange} placeholder="e.g. Collector & DM" />
               </div>
             </div>
 
-            {/* Notification Controls */}
+            <div>
+              <Label htmlFor="role">Role *</Label>
+              <select id="role" name="role" value={formData.role} onChange={handleChange} className="w-full p-2 border rounded-md bg-white focus:ring-2 focus:ring-indigo-500 font-medium" required>
+                <option value="" disabled>Select a role</option>
+                {getAllPossibleRoles().map((role) => (
+                  <option key={role.value} value={role.value}>{role.label}</option>
+                ))}
+              </select>
+            </div>
+
             <div className="flex items-center gap-2 py-1">
               <div className="flex-1 h-px bg-slate-100"></div>
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Notification Preferences</span>
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Assignment & Notifications</span>
               <div className="flex-1 h-px bg-slate-100"></div>
+            </div>
+
+            {user?.role === UserRole.SUPER_ADMIN && (
+                <div>
+                    <Label htmlFor="companyId">Company *</Label>
+                    <select id="companyId" name="companyId" value={formData.companyId} onChange={handleChange} className="w-full p-2 border rounded-md bg-white focus:ring-2 focus:ring-indigo-500" required>
+                        <option value="">Select a company</option>
+                        {companies.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                    </select>
+                </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <Label>Main Department</Label>
+                    <select value={selectedMainDeptId} onChange={(e) => {
+                        setSelectedMainDeptId(e.target.value);
+                        setSelectedSubDeptId("");
+                    }} className="w-full p-2 border rounded-md bg-white focus:ring-2 focus:ring-indigo-500" disabled={!formData.companyId}>
+                        <option value="">{formData.companyId ? "No Department" : "Select Company First"}</option>
+                        {departments.filter(d => !d.parentDepartmentId).map(d => <option key={d._id} value={d._id}>{d.name}</option>)}
+                    </select>
+                </div>
+                {selectedMainDeptId && (
+                    <div>
+                        <Label>Sub Department</Label>
+                        <select value={selectedSubDeptId} onChange={(e) => setSelectedSubDeptId(e.target.value)} className="w-full p-2 border rounded-md bg-white focus:ring-2 focus:ring-indigo-500">
+                            <option value="">None (Map to Main)</option>
+                            {departments.filter(d => {
+                                const pid = typeof d.parentDepartmentId === "object" ? (d.parentDepartmentId as any)?._id : d.parentDepartmentId;
+                                return pid === selectedMainDeptId;
+                            }).map(d => <option key={d._id} value={d._id}>{d.name}</option>)}
+                        </select>
+                    </div>
+                )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+              <div className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-500">
-                    <Mail className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black text-slate-700 uppercase tracking-tight">Email</p>
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Alerts</p>
-                  </div>
+                  <Mail className="w-4 h-4 text-indigo-500" />
+                  <span className="text-[10px] font-black uppercase tracking-tight text-slate-700">Email</span>
                 </div>
-                <Switch
-                  checked={formData.notificationSettings.email}
-                  onCheckedChange={(checked) => 
-                    setFormData({
-                      ...formData,
-                      notificationSettings: { ...formData.notificationSettings, email: checked }
-                    })
-                  }
-                />
+                <Switch checked={formData.notificationSettings.email} onCheckedChange={(checked) => setFormData(p => ({ ...p, notificationSettings: {...p.notificationSettings, email: checked} }))} />
               </div>
-
-              <div className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+              <div className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-500">
-                    <MessageSquare className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black text-slate-700 uppercase tracking-tight">WhatsApp</p>
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Alerts</p>
-                  </div>
+                  <MessageSquare className="w-4 h-4 text-emerald-500" />
+                  <span className="text-[10px] font-black uppercase tracking-tight text-slate-700">WhatsApp</span>
                 </div>
-                <Switch
-                  checked={formData.notificationSettings.whatsapp}
-                  onCheckedChange={(checked) => 
-                    setFormData({
-                      ...formData,
-                      notificationSettings: { ...formData.notificationSettings, whatsapp: checked }
-                    })
-                  }
-                />
+                <Switch checked={formData.notificationSettings.whatsapp} onCheckedChange={(checked) => setFormData(p => ({ ...p, notificationSettings: {...p.notificationSettings, whatsapp: checked} }))} />
               </div>
             </div>
 
-            {/* Company field - only visible for SUPER_ADMIN */}
-            {/* Company Admin and Department Admin will have company auto-selected and hidden */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Show company selection ONLY for Super Admin */}
-              {user?.role === UserRole.SUPER_ADMIN &&
-                formData.role !== UserRole.SUPER_ADMIN && (
-                  <div>
-                    <Label htmlFor="companyId">
-                      Company{" "}
-                      {formData.role !== UserRole.SUPER_ADMIN ? "*" : ""}
-                    </Label>
-                    <select
-                      id="companyId"
-                      name="companyId"
-                      value={formData.companyId}
-                      onChange={handleChange}
-                      className="w-full p-2 border rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                      required={formData.role !== UserRole.SUPER_ADMIN}
-                    >
-                      <option value="">Select a company</option>
-                      {companies.map((company) => (
-                        <option key={company._id} value={company._id}>
-                          {company.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-              {/* Show auto-selected company info for users with a companyId (read-only display) */}
-              {user?.role !== UserRole.SUPER_ADMIN && user?.companyId &&
-                formData.role !== UserRole.SUPER_ADMIN && (
-                  <div>
-                    <Label htmlFor="companyDisplay">Company</Label>
-                    <div className="w-full p-2 border rounded-md bg-gradient-to-r from-slate-50 to-indigo-50 text-slate-700 font-medium flex items-center gap-2">
-                      <Building className="w-4 h-4 text-indigo-500" />
-                      {companies.find((c) => c._id === formData.companyId)
-                        ?.name || "Your Company"}
-                      <span className="ml-auto text-xs text-indigo-500 bg-indigo-100 px-2 py-0.5 rounded-full">
-                        Auto-selected
-                      </span>
-                    </div>
-                    {/* Hidden input to keep the value */}
-                    <input
-                      type="hidden"
-                      name="companyId"
-                      value={formData.companyId}
-                    />
-                  </div>
-                )}
-
-              {/* Department field - visible for non-Super Admin roles */}
-              {formData.role !== UserRole.SUPER_ADMIN && (
-                <div>
-                  <Label htmlFor="departmentId">Department</Label>
-                  <select
-                    id="departmentId"
-                    name="departmentId"
-                    value={formData.departmentId}
-                    onChange={handleChange}
-                    className="w-full p-2 border rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    disabled={!formData.companyId}
-                  >
-                    <option value="">
-                      {formData.companyId
-                        ? "Optional: Select a department"
-                        : "Select a company first"}
-                    </option>
-                    {departments
-                      .filter((dept) => {
-                        if (!formData.companyId) return false;
-                        const deptCompanyId =
-                          typeof dept.companyId === "object"
-                            ? dept.companyId?._id
-                            : dept.companyId;
-                        return deptCompanyId === formData.companyId;
-                      })
-                      .map((department) => (
-                        <option key={department._id} value={department._id}>
-                          {department.name}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-              )}
-            </div>
-
-            <div className="flex justify-end space-x-3 pt-6 border-t border-slate-200">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-                className="px-6 border-slate-300 hover:bg-slate-100"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={loading}
-                className="px-6 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg shadow-indigo-500/25"
-              >
-                {loading ? (
-                  <span className="flex items-center gap-2">
-                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                        fill="none"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      />
-                    </svg>
-                    Creating...
-                  </span>
-                ) : editingUser ? (
-                  "Update User"
-                ) : (
-                  "Create User"
-                )}
+            <div className="flex justify-end space-x-3 pt-6 border-t">
+              <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+              <Button type="submit" disabled={loading} className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg">
+                {loading ? "Processing..." : (editingUser ? "Update User" : "Create User")}
               </Button>
             </div>
           </form>

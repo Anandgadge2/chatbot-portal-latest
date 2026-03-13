@@ -56,18 +56,28 @@ const DAYS_OF_WEEK: { key: DayName; label: string; short: string }[] = [
 const HOUR_RING = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
 const parseTimeForClock = (time: string) => {
-  const [hourStr, minuteStr] = (time || '09:00').split(':');
-  const hour24 = Number.parseInt(hourStr || '9', 10);
-  const minute = Number.parseInt(minuteStr || '0', 10);
+  if (!time || time.includes('NaN')) {
+    return { hour12: 12, minute: 0, period: 'AM' as const };
+  }
+  const [hourStr, minuteStr] = time.split(':');
+  const hour24 = Number.parseInt(hourStr, 10);
+  const minute = Number.parseInt(minuteStr, 10);
+  
+  if (isNaN(hour24) || isNaN(minute)) {
+    return { hour12: 12, minute: 0, period: 'AM' as const };
+  }
+
   const period: 'AM' | 'PM' = hour24 >= 12 ? 'PM' : 'AM';
   const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
   return { hour12, minute, period };
 };
 
 const to24HourTime = (hour12: number, minute: number, period: 'AM' | 'PM') => {
-  let hour24 = hour12 % 12;
+  const h12 = isNaN(hour12) ? 12 : hour12;
+  const m = isNaN(minute) ? 0 : minute;
+  let hour24 = h12 % 12;
   if (period === 'PM') hour24 += 12;
-  return `${String(hour24).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+  return `${String(hour24).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 };
 
 const angleToPoint = (index: number, total: number, radius: number, center = 96) => {
@@ -126,10 +136,10 @@ function ClockFacePicker({
       if (mode === "hour") {
         let h = Math.round(angle / 30) % 12;
         if (h === 0) h = 12;
-        setHour12(h);
+        if (!isNaN(h)) setHour12(h);
       } else {
         let m = Math.round(angle / 6) % 60;
-        setMinute(m);
+        if (!isNaN(m)) setMinute(m);
       }
     },
     [mode]
@@ -213,9 +223,13 @@ function ClockFacePicker({
       </div>
 
       <div className="text-5xl font-black text-white flex items-center gap-3 mb-2 font-mono tracking-tighter">
-        <span className={mode === 'hour' ? 'text-indigo-400' : 'text-white'}>{String(hour12).padStart(2, '0')}</span>
+        <span className={mode === 'hour' ? 'text-indigo-400' : 'text-white'}>
+          {isNaN(hour12) ? '12' : String(hour12).padStart(2, '0')}
+        </span>
         <span className="text-indigo-900 animate-pulse">:</span>
-        <span className={mode === 'minute' ? 'text-indigo-400' : 'text-white'}>{String(minute).padStart(2, '0')}</span>
+        <span className={mode === 'minute' ? 'text-indigo-400' : 'text-white'}>
+          {isNaN(minute) ? '00' : String(minute).padStart(2, '0')}
+        </span>
         <div className="flex flex-col gap-1 ml-4 py-1 px-2 bg-white/5 rounded-xl">
           {(["AM", "PM"] as const).map((p) => (
             <button
@@ -253,18 +267,19 @@ function ClockFacePicker({
             strokeLinecap="round"
             className="opacity-20 transition-all duration-300"
           />
-          <ClockHand angle={hourAngle} length={20} width={2.5} color="#818cf8" />
-          <ClockHand angle={minuteAngle} length={28} width={1.8} color="#6366f1" />
+          <ClockHand angle={hourAngle} length={20} width={3} color="#818cf8" />
+          <ClockHand angle={minuteAngle} length={28} width={1.2} color="#6366f1" />
           <circle cx="50" cy="50" r="3" fill="#ffffff" />
           <circle cx="50" cy="50" r="1.2" fill="#1e1b4b" />
           {(() => {
             const a = mode === "hour" ? hourAngle : minuteAngle;
+            if (isNaN(a)) return null;
             const rad = ((a - 90) * Math.PI) / 180;
             return (
               <circle
                 cx={50 + 44 * Math.cos(rad)}
                 cy={50 + 44 * Math.sin(rad)}
-                r="3.5"
+                r="2.2"
                 fill="#818cf8"
                 className="shadow-xl"
                 style={{ filter: "drop-shadow(0 0 5px #6366f1)" }}

@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Calendar, Search, Download, RefreshCw } from "lucide-react";
 import { Appointment, appointmentAPI } from "@/lib/api/appointment";
+import { formatTo10Digits } from "@/lib/utils/phoneUtils";
 
 interface DeptAppointmentListProps {
   filteredAppointments: Appointment[];
@@ -130,7 +131,7 @@ const DeptAppointmentList: React.FC<DeptAppointmentListProps> = ({
                   className="text-left"
                 >
                   <p className="font-semibold text-gray-900">{a.citizenName}</p>
-                  <p className="text-xs text-gray-500">{a.citizenPhone}</p>
+                  <p className="text-xs text-gray-500">{formatTo10Digits(a.citizenPhone)}</p>
                 </button>
                 <p className="text-sm text-gray-600">{a.purpose}</p>
                 <div className="flex items-center justify-between gap-3">
@@ -228,7 +229,7 @@ const DeptAppointmentList: React.FC<DeptAppointmentListProps> = ({
                           {a.citizenName}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {a.citizenPhone}
+                          {formatTo10Digits(a.citizenPhone)}
                         </p>
                       </button>
                     </td>

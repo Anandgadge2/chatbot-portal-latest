@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
+import { formatTo10Digits } from "@/lib/utils/phoneUtils";
 
 interface UserDetailsDialogProps {
   isOpen: boolean;
@@ -216,7 +217,7 @@ export default function UserDetailsDialog({
                     Phone Number
                   </span>
                 </div>
-                <p className="text-sm font-bold text-gray-900 break-all">{user.phone}</p>
+                <p className="text-sm font-bold text-gray-900 break-all">{formatTo10Digits(user.phone || "")}</p>
               </div>
 
               <div className="bg-white rounded-lg p-4 border border-slate-200">

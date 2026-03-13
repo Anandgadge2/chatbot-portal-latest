@@ -22,6 +22,7 @@ import { Pagination } from "@/components/ui/Pagination";
 import { Department, departmentAPI } from "@/lib/api/department";
 import { Company } from "@/lib/api/company";
 import toast from "react-hot-toast";
+import { formatTo10Digits } from "@/lib/utils/phoneUtils";
 
 interface DepartmentTabContentProps {
   departments: Department[];
@@ -323,12 +324,7 @@ const DepartmentTabContent: React.FC<DepartmentTabContentProps> = ({
                           {department.contactPerson || "Not Assigned"}
                         </div>
                         <div className="text-[10px] font-medium text-slate-400 mt-0.5">
-                          {(() => {
-                            const phone = department.contactPhone;
-                            if (!phone) return "-";
-                            const digitsOnly = phone.replace(/\D/g, "");
-                            return digitsOnly.length >= 10 ? digitsOnly.slice(-10) : digitsOnly;
-                          })()}
+                          {formatTo10Digits(department.contactPhone || "")}
                         </div>
                       </td>
                       <td className="px-5 py-4 whitespace-nowrap">

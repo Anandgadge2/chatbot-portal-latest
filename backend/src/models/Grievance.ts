@@ -29,6 +29,7 @@ export interface IGrievance extends Document {
     url: string;
     type: 'image' | 'document';
     uploadedAt: Date;
+    uploadedBy?: mongoose.Types.ObjectId;
   }>;
   resolution?: string;
   resolvedAt?: Date;
@@ -143,6 +144,10 @@ const GrievanceSchema: Schema = new Schema(
       uploadedAt: {
         type: Date,
         default: Date.now
+      },
+      uploadedBy: {
+        type: Schema.Types.ObjectId,
+        ref: 'User'
       }
     }],
     resolution: {

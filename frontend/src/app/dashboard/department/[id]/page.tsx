@@ -56,7 +56,8 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { Module } from "@/lib/permissions";
+import { Permission, hasPermission, Module } from "@/lib/permissions";
+import { formatTo10Digits } from "@/lib/utils/phoneUtils";
 
 const COLORS = ["#6366f1", "#10b981", "#f59e0b", "#f43f5e"];
 
@@ -381,16 +382,14 @@ export default function DepartmentDetail() {
               >
                 Users
               </TabsTrigger>
-              {user &&
-                (user.enabledModules?.includes(Module.GRIEVANCE) ||
-                  !user.companyId) && (
-                  <TabsTrigger
-                    value="grievances"
-                    className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
-                  >
-                    Grievances
-                  </TabsTrigger>
-                )}
+              {hasPermission(user, Permission.READ_GRIEVANCE) && (
+                <TabsTrigger
+                  value="grievances"
+                  className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
+                >
+                  Grievances
+                </TabsTrigger>
+              )}
               <TabsTrigger
                 value="analytics"
                 className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg flex items-center gap-1.5"
@@ -863,7 +862,7 @@ export default function DepartmentDetail() {
                                     {g.citizenName}
                                   </p>
                                   <p className="text-[10px] text-slate-400">
-                                    {g.citizenPhone}
+                                    {formatTo10Digits(g.citizenPhone)}
                                   </p>
                                 </button>
                               </td>

@@ -24,6 +24,7 @@ import { Pagination } from "@/components/ui/Pagination";
 import { Company } from "@/lib/api/company";
 import { companyAPI } from "@/lib/api/company";
 import toast from "react-hot-toast";
+import { formatTo10Digits } from "@/lib/utils/phoneUtils";
 
 interface CompanyTabContentProps {
   companies: Company[];
@@ -349,7 +350,7 @@ const CompanyTabContent: React.FC<CompanyTabContentProps> = ({
                       <td className="px-5 py-4 whitespace-nowrap">
                         <div className="flex flex-col gap-0.5">
                           <span className="text-xs text-slate-600 font-medium">{company.contactEmail || "N/A"}</span>
-                          <span className="text-[10px] text-slate-400 font-bold">{company.contactPhone || "N/A"}</span>
+                          <span className="text-[10px] text-slate-400 font-bold">{formatTo10Digits(company.contactPhone || "")}</span>
                         </div>
                       </td>
                       <td className="px-5 py-4 whitespace-nowrap">

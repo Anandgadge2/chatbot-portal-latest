@@ -31,6 +31,7 @@ export interface Grievance {
     url: string;
     type: 'image' | 'document';
     uploadedAt: string;
+    uploadedBy?: string | { _id: string; firstName: string; lastName: string; role: string };
   }>;
   resolution?: string;
   resolvedAt?: string;
