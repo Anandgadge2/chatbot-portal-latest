@@ -550,13 +550,6 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
                   <p className="text-slate-400 text-sm font-medium">Manage your schedule, holidays, and appointment slots</p>
                 </div>
               </div>
-              <Button 
-                variant="ghost" 
-                onClick={onClose}
-                className="w-12 h-12 rounded-2xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all duration-300 border border-white/10 group cursor-pointer"
-              >
-                <X className="w-6 h-6 text-slate-400 group-hover:text-white transition-colors" />
-              </Button>
             </div>
           </div>
 
