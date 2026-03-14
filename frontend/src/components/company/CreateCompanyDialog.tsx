@@ -12,6 +12,13 @@ import { Module } from '@/lib/permissions';
 import { AVAILABLE_MODULES } from '@/config/modules';
 import { Building } from 'lucide-react';
 
+const LANGUAGE_OPTIONS = [
+  { code: 'en', label: 'English' },
+  { code: 'hi', label: 'Hindi' },
+  { code: 'or', label: 'Odia' },
+  { code: 'mr', label: 'Marathi' },
+];
+
 interface CreateCompanyDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -31,6 +38,7 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({ isOpen, onClo
     contactPhone: '',
     address: '',
     enabledModules: [],
+    selectedLanguages: ['en'],
     theme: {
       primaryColor: '#0f4c81',
       secondaryColor: '#1a73e8'
@@ -57,6 +65,9 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({ isOpen, onClo
         contactPhone: editingCompany.contactPhone,
         address: editingCompany.address || '',
         enabledModules: editingCompany.enabledModules || [],
+        selectedLanguages: editingCompany.selectedLanguages?.length
+          ? Array.from(new Set(['en', ...editingCompany.selectedLanguages]))
+          : ['en'],
         theme: editingCompany.theme || {
           primaryColor: '#0f4c81',
           secondaryColor: '#1a73e8'
@@ -82,6 +93,7 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({ isOpen, onClo
         contactPhone: '',
         address: '',
         enabledModules: [],
+        selectedLanguages: ['en'],
         theme: {
           primaryColor: '#0f4c81',
           secondaryColor: '#1a73e8'
@@ -158,6 +170,7 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({ isOpen, onClo
           contactPhone: '',
           address: '',
           enabledModules: [],
+          selectedLanguages: ['en'],
           theme: {
             primaryColor: '#0f4c81',
             secondaryColor: '#1a73e8'
@@ -190,6 +203,22 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({ isOpen, onClo
         ? prev.enabledModules.filter(id => id !== moduleId)
         : [...(prev.enabledModules || []), moduleId]
     }));
+  };
+
+  const handleLanguageToggle = (languageCode: string) => {
+    if (languageCode === 'en') return;
+
+    setFormData((prev) => {
+      const currentlySelected = prev.selectedLanguages || ['en'];
+      const updated = currentlySelected.includes(languageCode)
+        ? currentlySelected.filter((code) => code !== languageCode)
+        : [...currentlySelected, languageCode];
+
+      return {
+        ...prev,
+        selectedLanguages: Array.from(new Set(['en', ...updated])),
+      };
+    });
   };
 
   const handleAdminChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -362,6 +391,40 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({ isOpen, onClo
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+
+            <div>
+              <Label>Multilingual Selection</Label>
+              <p className="text-xs text-slate-500 mt-1">
+                Selected languages will be available in department creation forms.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+                {LANGUAGE_OPTIONS.map((language) => {
+                  const checked = formData.selectedLanguages?.includes(language.code) || false;
+                  const isEnglish = language.code === 'en';
+
+                  return (
+                    <div key={language.code} className="flex items-start space-x-2 p-2 border rounded-md">
+                      <input
+                        type="checkbox"
+                        id={`language-${language.code}`}
+                        checked={checked}
+                        onChange={() => handleLanguageToggle(language.code)}
+                        disabled={isEnglish}
+                        className="mt-1"
+                      />
+                      <div className="flex-1">
+                        <Label htmlFor={`language-${language.code}`} className="text-sm font-medium cursor-pointer">
+                          {language.label}
+                        </Label>
+                        {isEnglish && (
+                          <p className="text-[11px] text-slate-500">Required for core records.</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 

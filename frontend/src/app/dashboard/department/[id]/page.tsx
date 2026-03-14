@@ -65,7 +65,7 @@ export default function DepartmentDetail() {
   const { user } = useAuth();
   const router = useRouter();
   const params = useParams();
-  const departmentId = params.id as string;
+  const departmentId = Array.isArray(params.id) ? params.id[0] : (params.id as string);
 
   const [department, setDepartment] = useState<Department | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
@@ -110,6 +110,11 @@ export default function DepartmentDetail() {
 
   useEffect(() => {
     if (!user || user.role === "SUPER_ADMIN") {
+      router.push("/dashboard");
+      return;
+    }
+    if (!departmentId) {
+      toast.error("Invalid department link");
       router.push("/dashboard");
       return;
     }
@@ -183,14 +188,17 @@ export default function DepartmentDetail() {
   };
 
   const filteredUsers = useMemo(() => {
+    const toSearchable = (value: unknown) =>
+      typeof value === "string" ? value.toLowerCase() : "";
+
     let filtered = [...users];
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
       filtered = filtered.filter(
         (u) =>
-          u.firstName?.toLowerCase().includes(search) ||
-          u.lastName?.toLowerCase().includes(search) ||
-          u.email?.toLowerCase().includes(search),
+          toSearchable(u.firstName).includes(search) ||
+          toSearchable(u.lastName).includes(search) ||
+          toSearchable(u.email).includes(search),
       );
     }
     if (roleFilter !== "all")
@@ -215,13 +223,16 @@ export default function DepartmentDetail() {
   }, [users, searchTerm, roleFilter, statusFilter, sortConfig]);
 
   const filteredGrievances = useMemo(() => {
+    const toSearchable = (value: unknown) =>
+      typeof value === "string" ? value.toLowerCase() : "";
+
     let filtered = [...grievances];
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
       filtered = filtered.filter(
         (g) =>
-          g.citizenName?.toLowerCase().includes(search) ||
-          g.grievanceId?.toLowerCase().includes(search),
+          toSearchable(g.citizenName).includes(search) ||
+          toSearchable(g.grievanceId).includes(search),
       );
     }
     if (statusFilter !== "all" && statusFilter !== "active") {
@@ -290,7 +301,10 @@ export default function DepartmentDetail() {
   ].filter((item) => item.value > 0);
 
   const userRoleData = users.reduce((acc: any[], u) => {
-    const role = u.role?.replace(/_/g, " ") || "Unknown";
+    const role =
+      typeof u.role === "string" && u.role.length > 0
+        ? u.role.replace(/_/g, " ")
+        : "Unknown";
     const existing = acc.find((item) => item.name === role);
     if (existing) existing.value++;
     else acc.push({ name: role, value: 1 });

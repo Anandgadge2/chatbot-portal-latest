@@ -9,6 +9,19 @@ import { AuditAction, UserRole } from '../config/constants';
 
 const router = express.Router();
 
+const ALLOWED_LANGUAGES = ['en', 'hi', 'or', 'mr'] as const;
+
+const normalizeSelectedLanguages = (languages: unknown): string[] => {
+  const normalized = Array.isArray(languages)
+    ? languages.filter((language): language is string =>
+      typeof language === 'string' && ALLOWED_LANGUAGES.includes(language as any)
+    )
+    : [];
+
+  if (!normalized.includes('en')) normalized.unshift('en');
+  return Array.from(new Set(normalized));
+};
+
 // All routes require database connection and authentication
 router.use(requireDatabaseConnection);
 router.use(authenticate);
@@ -125,6 +138,7 @@ router.post('/', requireSuperAdmin, async (req: Request, res: Response) => {
       contactPhone, 
       address, 
       enabledModules,
+      selectedLanguages,
       theme,
       admin // Admin user data
     } = req.body;
@@ -188,6 +202,7 @@ router.post('/', requireSuperAdmin, async (req: Request, res: Response) => {
       contactPhone: normalizedContactPhone,
       address,
       enabledModules: enabledModules || [],
+      selectedLanguages: normalizeSelectedLanguages(selectedLanguages),
       theme: theme || {
         primaryColor: '#0f4c81',
         secondaryColor: '#1a73e8'
@@ -360,6 +375,10 @@ router.put('/:id', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     // Normalize phone numbers if provided in update
     const updateData: any = { ...req.body };
+
+    if (req.body.selectedLanguages !== undefined) {
+      updateData.selectedLanguages = normalizeSelectedLanguages(req.body.selectedLanguages);
+    }
     
     if (updateData.contactPhone) {
       const { validateTelephone, normalizeTelephone } = await import('../utils/phoneUtils');
