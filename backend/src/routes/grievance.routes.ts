@@ -214,7 +214,7 @@ router.post('/', async (req: Request, res: Response) => {
 router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async (req: Request, res: Response) => {
   try {
     const currentUser = req.user!;
-    const { remarks, suggestedDepartmentId, suggestedAssigneeId } = req.body;
+    const { remarks, suggestedDepartmentId, suggestedSubDepartmentId, suggestedAssigneeId } = req.body;
 
     if (!remarks || !remarks.trim()) {
       return res.status(400).json({ success: false, message: 'Remarks are required for reverting a grievance' });
@@ -230,20 +230,21 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
     }
 
     if (currentUser.role !== UserRole.SUPER_ADMIN) {
-      const grievanceCompanyId = (grievance.companyId as any)?._id?.toString();
+      const grievanceCompanyId = (grievance.companyId as any)?._id?.toString() || grievance.companyId?.toString();
       if (grievanceCompanyId !== currentUser.companyId?.toString()) {
         return res.status(403).json({ success: false, message: 'Access denied to this company' });
       }
 
-      if (!currentUser.departmentId) {
-        return res.status(403).json({ success: false, message: 'Only department or sub-department users can revert grievances' });
-      }
-
-      const grievanceDeptId = (grievance.departmentId as any)?._id?.toString() || grievance.departmentId?.toString();
-      const grievanceSubDeptId = (grievance.subDepartmentId as any)?._id?.toString() || grievance.subDepartmentId?.toString();
-      const adminDeptId = currentUser.departmentId?.toString();
-      if (grievanceDeptId !== adminDeptId && grievanceSubDeptId !== adminDeptId) {
-        return res.status(403).json({ success: false, message: 'You can only revert grievances from your department scope' });
+      // Enforce department scope only if the user is assigned to a department
+      // Company Admins (who have no departmentId) can revert any grievance in their company
+      if (currentUser.departmentId) {
+        const grievanceDeptId = (grievance.departmentId as any)?._id?.toString() || grievance.departmentId?.toString();
+        const grievanceSubDeptId = (grievance.subDepartmentId as any)?._id?.toString() || grievance.subDepartmentId?.toString();
+        const adminDeptId = currentUser.departmentId?.toString();
+        
+        if (grievanceDeptId !== adminDeptId && grievanceSubDeptId !== adminDeptId) {
+          return res.status(403).json({ success: false, message: 'You can only revert grievances from your department scope' });
+        }
       }
     }
 
@@ -273,6 +274,7 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
         previousSubDepartmentId,
         previousAssignedTo,
         suggestedDepartmentId: suggestedDepartmentId || null,
+        suggestedSubDepartmentId: suggestedSubDepartmentId || null,
         suggestedAssigneeId: suggestedAssigneeId || null,
         fromStatus: oldStatus
       },

@@ -67,6 +67,7 @@ export interface CreateGrievanceData {
 export interface RevertGrievanceData {
   remarks: string;
   suggestedDepartmentId?: string;
+  suggestedSubDepartmentId?: string;
   suggestedAssigneeId?: string;
 }
 

@@ -17,7 +17,7 @@ router.use(authenticate);
 // @access  Private
 router.get('/', requirePermission(Permission.READ_DEPARTMENT), async (req: Request, res: Response) => {
   try {
-    const { page = 1, limit = 20, search, companyId } = req.query;
+    const { page = 1, limit = 20, search, companyId, listAll } = req.query;
     const user = req.user!;
 
     const query: any = {};
@@ -31,10 +31,11 @@ router.get('/', requirePermission(Permission.READ_DEPARTMENT), async (req: Reque
 
       // If restricted to a department, only show that department
       if (user.departmentId) {
-        // Anyone with a departmentId is restricted to it by default,
-        // unless they have a specific high-level permission (bypass).
+        // listAll=true bypasses department scoping (used by Revert Grievance dialog)
+        // so department admins can see all departments to suggest reassignment
         const hasCompanyBypass = req.checkPermission(Permission.CREATE_DEPARTMENT);
-        if (!hasCompanyBypass) {
+        const wantsAllDepts = listAll === 'true';
+        if (!hasCompanyBypass && !wantsAllDepts) {
           query._id = user.departmentId;
         }
       }

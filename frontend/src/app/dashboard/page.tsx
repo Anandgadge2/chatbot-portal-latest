@@ -67,6 +67,7 @@ import { formatTo10Digits } from "@/lib/utils/phoneUtils";
 import {
   ArrowUpDown,
   ArrowLeft,
+  ArrowRight,
   Phone,
   UserPlus,
   UserCog,
@@ -109,6 +110,10 @@ import {
   Download,
   Calendar,
   Bell,
+  Undo2,
+  ExternalLink,
+  Inbox,
+  Eye,
 } from "lucide-react";
 
 interface DashboardStats {
@@ -149,6 +154,7 @@ interface DashboardStats {
   departments: number;
   users: number;
   activeUsers: number;
+  usersByRole?: Array<{ name: string; count: number }>;
 }
 
 function DashboardContent() {
@@ -721,6 +727,10 @@ function DashboardContent() {
     setUserPage(1);
   }, [userSearch]);
 
+  useEffect(() => {
+    setGrievancePage(1);
+  }, [grievanceFilters, grievanceSearch]);
+
 
   const fetchGrievances = useCallback(
     async (page = grievancePage, isSilent = false) => {
@@ -733,6 +743,9 @@ function DashboardContent() {
         const response = await grievanceAPI.getAll({
           page,
           limit: grievancePagination.limit,
+          status: grievanceFilters.status || undefined,
+          departmentId: (grievanceFilters.subDeptId || grievanceFilters.mainDeptId || grievanceFilters.department) || undefined,
+          assignedTo: grievanceFilters.assignmentStatus === "assigned" ? "ANY" : grievanceFilters.assignmentStatus === "unassigned" ? "NONE" : undefined,
         });
         if (response.success) {
           setGrievances(response.data.grievances);
@@ -751,7 +764,7 @@ function DashboardContent() {
         if (!isSilent) setLoadingGrievances(false);
       }
     },
-    [grievancePage, grievancePagination.limit, user, hasModule],
+    [grievancePage, grievancePagination.limit, user, hasModule, grievanceFilters],
   );
 
   const fetchAppointments = useCallback(
@@ -1011,7 +1024,7 @@ function DashboardContent() {
     }
 
     // Apply grievance filters
-    if (tab === "grievances") {
+    if (tab === "grievances" || tab === "reverted") {
       // Status filter
       if (grievanceFilters.status) {
         filteredData = filteredData.filter(
@@ -1352,9 +1365,9 @@ function DashboardContent() {
                 <div className="hidden sm:block">
                   <h1 className="text-sm font-black text-white tracking-tight leading-none uppercase">
                     {isCompanyLevel && (company?.name || "Company Level")}
-                    {isDepartmentLevel && "Department Hub"}
-                    {!hasPermission(user, Permission.VIEW_ANALYTICS) && !isSuperAdmin && "Operator/Operations Center"}
-                    {hasPermission(user, Permission.VIEW_ANALYTICS) && !isCompanyLevel && !isSuperAdmin && "Intelligence Portal"}
+                    {isDepartmentLevel && "Department"}
+                    {!hasPermission(user, Permission.VIEW_ANALYTICS) && !isSuperAdmin && "Operations Center"}
+                    {hasPermission(user, Permission.VIEW_ANALYTICS) && !isCompanyLevel && !isSuperAdmin && " Portal"}
                   </h1>
                   <div className="flex items-center gap-2 mt-1">
                     <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">
@@ -1401,6 +1414,15 @@ function DashboardContent() {
           onValueChange={(value) => {
             if (activeTab !== value) {
               setPreviousTab(activeTab);
+              
+              // Clear 'REVERTED' status filter when leaving the specialized Reverted tab
+              // especially when going to the main Grievances tab
+              if (activeTab === "reverted" && value === "grievances") {
+                setGrievanceFilters(prev => ({ ...prev, status: "" }));
+              }
+            }
+            if (value === "reverted") {
+              setGrievanceFilters((prev) => ({ ...prev, status: "REVERTED" }));
             }
             setActiveTab(value);
           }}
@@ -1428,7 +1450,7 @@ function DashboardContent() {
                 </TabsTrigger>
               )}
 
-              {hasPermission(user, Permission.READ_GRIEVANCE) && (
+                {hasPermission(user, Permission.READ_GRIEVANCE) && (
                   <TabsTrigger
                     value="grievances"
                     className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
@@ -1436,6 +1458,16 @@ function DashboardContent() {
                     Grievances
                   </TabsTrigger>
                 )}
+
+              {isCompanyLevel && hasPermission(user, Permission.READ_GRIEVANCE) && (
+                <TabsTrigger
+                  value="reverted"
+                  className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg flex items-center"
+                >
+                  <Undo2 className="w-3.5 h-3.5 mr-1.5" />
+                  Reverted
+                </TabsTrigger>
+              )}
 
 
 
@@ -1610,6 +1642,26 @@ function DashboardContent() {
                         {loadingStats ? "..." : (stats?.departments || 0)}
                       </div>
                       <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">Functional Depts</p>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Reverted Grievances (Company Level) */}
+                {isCompanyLevel && hasPermission(user, Permission.READ_GRIEVANCE) && (
+                  <Card onClick={() => { setActiveTab("reverted"); setGrievanceFilters((prev) => ({ ...prev, status: "REVERTED" })); }} className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 border-l-4 border-l-rose-400 cursor-pointer">
+                    <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
+                      <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        Reverted
+                      </CardTitle>
+                      <div className="p-1.5 bg-rose-50 rounded-lg">
+                        <ArrowLeft className="w-3.5 h-3.5 text-rose-500" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-black text-rose-600 tabular-nums">
+                        {loadingStats ? "..." : (grievances.filter(g => g.status?.toUpperCase() === "REVERTED").length || 0)}
+                      </div>
+                      <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">Pending Resolution</p>
                     </CardContent>
                   </Card>
                 )}
@@ -2598,60 +2650,77 @@ function DashboardContent() {
                   </div>
                   <div className="p-5">
                     {(() => {
-                      const roleMap: Record<string, number> = {};
-                      users.forEach((u) => {
-                        const role = u.role?.replace(/_/g, " ") || "Unknown";
-                        roleMap[role] = (roleMap[role] || 0) + 1;
-                      });
-                      const roleColors = [
-                        "#6366f1",
-                        "#10b981",
-                        "#f59e0b",
-                        "#f43f5e",
-                        "#8b5cf6",
-                      ];
-                      const roleData = Object.entries(roleMap).map(
-                        ([name, value], i) => ({
-                          name,
-                          value,
-                          color: roleColors[i % roleColors.length],
-                        }),
-                      );
-                      return roleData.length > 0 ? (
+                      const roleDataRaw = stats?.usersByRole || [];
+                      const localRoleMap: Record<string, number> = {};
+                      
+                      if (roleDataRaw.length === 0) {
+                        users.forEach((u) => {
+                          let roleName = "";
+                          if (typeof u.customRoleId === "object" && u.customRoleId?.name) {
+                            roleName = u.customRoleId.name;
+                          } else {
+                            roleName = u.role?.replace(/_/g, " ") || "Unknown";
+                          }
+                          const normalizedRole = roleName.toUpperCase();
+                          localRoleMap[normalizedRole] = (localRoleMap[normalizedRole] || 0) + 1;
+                        });
+                      }
+
+                      const roleColors = ["#6366f1", "#10b981", "#f59e0b", "#f43f5e", "#8b5cf6"];
+                      
+                      const roleData = roleDataRaw.length > 0 
+                        ? roleDataRaw.map((r, i) => ({
+                            name: r.name.toUpperCase(),
+                            value: r.count,
+                            color: roleColors[i % roleColors.length],
+                          }))
+                        : Object.entries(localRoleMap).map(([name, value], i) => ({
+                            name,
+                            value,
+                            color: roleColors[i % roleColors.length],
+                          }));
+
+                      const totalStaffCount = stats?.users || users.length;
+
+                      if (roleData.length === 0) {
+                        return (
+                          <div className="h-[200px] flex items-center justify-center text-slate-400 text-sm">
+                            No staff data available
+                          </div>
+                        );
+                      }
+
+                      return (
                         <div className="space-y-3">
                           {roleData.map((r, i) => (
                             <div key={i}>
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs font-semibold text-slate-700 capitalize">
+                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">
                                   {r.name}
                                 </span>
-                                <span className="text-xs font-bold text-slate-900">
+                                <span className="text-xs font-black text-slate-900">
                                   {r.value}
                                 </span>
                               </div>
-                              <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
                                 <div
-                                  className="h-full rounded-full transition-all duration-500"
+                                  className="h-full rounded-full transition-all duration-700"
                                   style={{
-                                    width: `${(r.value / users.length) * 100}%`,
+                                    width: `${totalStaffCount > 0 ? (r.value / totalStaffCount) * 100 : 0}%`,
                                     backgroundColor: r.color,
                                   }}
                                 ></div>
                               </div>
                             </div>
                           ))}
-                          <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                            <span className="text-xs text-slate-500">
+                          <div className="pt-3 mt-4 border-t border-slate-100 flex items-center justify-between">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase">
                               Total Staff
                             </span>
-                            <span className="text-sm font-black text-slate-900">
-                              {users.length}
+                            <span className="text-sm font-black text-slate-900 tabular-nums">
+                              {totalStaffCount}
                             </span>
                           </div>
-                        </div>
-                      ) : (
-                        <div className="h-[200px] flex items-center justify-center text-slate-400 text-sm">
-                          No staff data yet
                         </div>
                       );
                     })()}
@@ -4202,52 +4271,60 @@ function DashboardContent() {
                         <option value="ASSIGNED">👤 Assigned</option>
                         <option value="RESOLVED">✅ Resolved</option>
                         <option value="REJECTED">❌ Rejected</option>
-                        <option value="CLOSED">🔒 Closed</option>
-                        <option value="REVERTED">↩️ Reverted</option>
+                        {isCompanyLevel && (
+                          <>
+                            <option value="CLOSED">🔒 Closed</option>
+                            <option value="REVERTED">↩️ Reverted</option>
+                          </>
+                        )}
                       </select>
 
-                      {/* Main Department Filter */}
-                      <select
-                        value={grievanceFilters.mainDeptId}
-                        onChange={(e) =>
-                          setGrievanceFilters((prev) => ({
-                            ...prev,
-                            mainDeptId: e.target.value,
-                            subDeptId: "",
-                            department: "", // reset old filter
-                          }))
-                        }
-                        className="text-xs px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer min-w-[150px]"
-                        title="Filter by main department"
-                      >
-                        <option value="">🏢 Main Dept</option>
-                        {departments.filter(d => !d.parentDepartmentId).map((dept) => (
-                          <option key={dept._id} value={dept._id}>
-                            {dept.name}
-                          </option>
-                        ))}
-                      </select>
+                      {isCompanyLevel && (
+                        <>
+                          {/* Main Department Filter */}
+                          <select
+                            value={grievanceFilters.mainDeptId}
+                            onChange={(e) =>
+                              setGrievanceFilters((prev) => ({
+                                ...prev,
+                                mainDeptId: e.target.value,
+                                subDeptId: "",
+                                department: "", // reset old filter
+                              }))
+                            }
+                            className="text-xs px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer min-w-[150px]"
+                            title="Filter by main department"
+                          >
+                            <option value="">🏢 Main Dept</option>
+                            {departments.filter(d => !d.parentDepartmentId).map((dept) => (
+                              <option key={dept._id} value={dept._id}>
+                                {dept.name}
+                              </option>
+                            ))}
+                          </select>
 
-                      {/* Sub Department Filter */}
-                      <select
-                        value={grievanceFilters.subDeptId}
-                        onChange={(e) =>
-                          setGrievanceFilters((prev) => ({
-                            ...prev,
-                            subDeptId: e.target.value,
-                          }))
-                        }
-                        className="text-xs px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer min-w-[150px]"
-                        title="Filter by sub department"
-                        disabled={!grievanceFilters.mainDeptId}
-                      >
-                        <option value="">🏢 Sub Dept</option>
-                        {grievanceFilters.mainDeptId && departments.filter(d => d.parentDepartmentId === grievanceFilters.mainDeptId).map((dept) => (
-                          <option key={dept._id} value={dept._id}>
-                            {dept.name}
-                          </option>
-                        ))}
-                      </select>
+                          {/* Sub Department Filter */}
+                          <select
+                            value={grievanceFilters.subDeptId}
+                            onChange={(e) =>
+                              setGrievanceFilters((prev) => ({
+                                ...prev,
+                                subDeptId: e.target.value,
+                              }))
+                            }
+                            className="text-xs px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer min-w-[150px]"
+                            title="Filter by sub department"
+                            disabled={!grievanceFilters.mainDeptId}
+                          >
+                            <option value="">🏢 Sub Dept</option>
+                            {grievanceFilters.mainDeptId && departments.filter(d => d.parentDepartmentId === grievanceFilters.mainDeptId).map((dept) => (
+                              <option key={dept._id} value={dept._id}>
+                                {dept.name}
+                              </option>
+                            ))}
+                          </select>
+                        </>
+                      )}
 
                       {/* Assignment Status Filter */}
                       <select
@@ -4840,6 +4917,268 @@ function DashboardContent() {
 
 
 
+
+          {/* Reverted Grievances Tab - for Company Admin */}
+          {isCompanyLevel && hasPermission(user, Permission.READ_GRIEVANCE) && (
+            <TabsContent value="reverted" className="space-y-6">
+              <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
+                <CardHeader className="bg-slate-900 px-6 py-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-rose-500/20 rounded-xl flex items-center justify-center border border-rose-500/30">
+                        <Undo2 className="w-5 h-5 text-rose-400" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-base font-bold text-white">
+                          Reverted Grievances
+                        </CardTitle>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                          Grievances requiring reassignment after being reverted
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </CardHeader>
+
+                <div className="px-6 py-4 bg-slate-50/50 border-b border-slate-200">
+                  {/* Search and Quick Filters */}
+                  <div className="flex items-center justify-between gap-4 mb-3">
+                    <div className="relative flex-1 max-w-md">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <input
+                        type="text"
+                        placeholder="Search reverted grievances..."
+                        value={grievanceSearch}
+                        onChange={(e) => setGrievanceSearch(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white shadow-sm text-sm"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleRefreshData}
+                        className="border-slate-200 hover:bg-slate-50 rounded-xl"
+                      >
+                        <RefreshCw className={`w-4 h-4 mr-1.5 ${isRefreshing ? "animate-spin" : ""}`} />
+                        Refresh
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Filter Dropdowns */}
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm">
+                      <Filter className="w-3.5 h-3.5 text-rose-500" />
+                      <span className="text-xs font-bold text-slate-600">Filters</span>
+                    </div>
+
+                    <select
+                      value={grievanceFilters.mainDeptId}
+                      onChange={(e) => setGrievanceFilters(prev => ({ ...prev, mainDeptId: e.target.value, subDeptId: "" }))}
+                      className="text-xs px-4 py-2 border border-slate-200 rounded-xl bg-white shadow-sm hover:border-rose-300 transition-colors cursor-pointer min-w-[170px]"
+                    >
+                      <option value="">🏢 Origin Department</option>
+                      {departments.filter(d => !d.parentDepartmentId).map(d => (
+                        <option key={d._id} value={d._id}>{d.name}</option>
+                      ))}
+                    </select>
+
+                    <select
+                      value={grievanceFilters.dateRange}
+                      onChange={(e) => setGrievanceFilters(prev => ({ ...prev, dateRange: e.target.value }))}
+                      className="text-xs px-4 py-2 border border-slate-200 rounded-xl bg-white shadow-sm hover:border-rose-300 transition-colors cursor-pointer"
+                    >
+                      <option value="">📅 All Dates</option>
+                      <option value="today">Today</option>
+                      <option value="week">Last 7 Days</option>
+                      <option value="month">Last 30 Days</option>
+                    </select>
+
+                    {(grievanceSearch || grievanceFilters.mainDeptId || grievanceFilters.dateRange) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setGrievanceSearch("");
+                          setGrievanceFilters(prev => ({ ...prev, mainDeptId: "", subDeptId: "", dateRange: "" }));
+                        }}
+                        className="text-xs h-8 px-3 text-red-600 hover:bg-red-50 rounded-xl border border-red-100"
+                      >
+                        <X className="w-3 h-3 mr-1" /> Clear
+                      </Button>
+                    )}
+
+                    <div className="ml-auto text-xs font-black text-slate-400 uppercase tracking-widest bg-slate-100/50 px-3 py-1.5 rounded-lg">
+                      Showing: <span className="text-slate-900">{getSortedData(grievances, "reverted").length} reverted cases</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-0">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead>
+                        <tr className="border-b border-slate-100 bg-slate-50/30">
+                          <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center w-12">#</th>
+                          <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Grievance Id</th>
+                          <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking_widest">Citizen Details</th>
+                          <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Description & Remarks</th>
+                          <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Dept & Category</th>
+                          <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking_widest">Status</th>
+                          <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Reassign</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {getSortedData(grievances, "reverted").length > 0 ? (
+                          getSortedData(grievances, "reverted").map((grievance, index) => {
+                            const latestRevertRemark = grievance.statusHistory
+                                ?.filter((h: any) => h.status === 'REVERTED')
+                                .sort((a: any, b: any) => new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime())[0]?.remarks;
+
+                            return (
+                              <tr key={grievance._id} className="border-b border-slate-50 hover:bg-slate-50/80 transition-all group">
+                                <td className="px-4 py-5 text-center">
+                                  <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black group-hover:bg-rose-100 group-hover:text-rose-700 transition-colors shadow-sm">
+                                    {index + 1}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-5 font-bold text-sm">
+                                  <button
+                                    onClick={() => openGrievanceDetail(grievance._id)}
+                                    className="text-blue-700 hover:text-blue-900 flex items-center gap-1.5 group/id"
+                                  >
+                                    {grievance.grievanceId}
+                                    <ExternalLink className="w-3 h-3 opacity-0 group-hover/id:opacity-100 transition-opacity" />
+                                  </button>
+                                  <div className="text-[10px] text-slate-400 font-medium mt-1">
+                                    {new Date(grievance.createdAt).toLocaleDateString()}
+                                  </div>
+                                </td>
+                                <td className="px-4 py-5">
+                                  <div className="flex flex-col">
+                                    <button
+                                      onClick={() => openGrievanceDetail(grievance._id)}
+                                      className="text-slate-900 font-bold text-sm text-left hover:text-indigo-600 transition-colors"
+                                    >
+                                      {grievance.citizenName}
+                                    </button>
+                                    <div className="flex items-center text-[11px] text-slate-500 font-medium mt-0.5">
+                                      <Phone className="w-3 h-3 mr-1.5 text-slate-400" />
+                                      {formatTo10Digits(grievance.citizenPhone)}
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="px-4 py-5 max-w-[250px]">
+                                  <div className="flex flex-col gap-1.5">
+                                    <div className="text-xs text-slate-600 line-clamp-1 italic" title={grievance.description}>
+                                      &quot;{grievance.description}&quot;
+                                    </div>
+                                    {latestRevertRemark && (
+                                      <div className="bg-rose-50 border border-rose-100 rounded-lg p-2">
+                                        <p className="text-[10px] font-black text-rose-500 uppercase tracking-tighter mb-0.5 flex items-center gap-1">
+                                          <Undo2 className="w-2.5 h-2.5" /> Revert Remark
+                                        </p>
+                                        <p className="text-[11px] text-rose-700 font-bold leading-tight">
+                                          {latestRevertRemark}
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="px-4 py-5">
+                                  <div className="flex flex-col gap-1">
+                                    <div className="flex flex-col">
+                                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight mb-0.5">Original Dept</span>
+                                      <span className="text-xs font-semibold text-slate-700">
+                                        {grievance.departmentId && typeof grievance.departmentId === "object" ? (grievance.departmentId as any).name : "General"}
+                                      </span>
+                                    </div>
+                                    
+                                    {(() => {
+                                      const revertEntry = grievance.timeline
+                                        ?.filter((t: any) => t.action === "REVERTED_TO_COMPANY_ADMIN")
+                                        .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+                                      
+                                      const suggestedDeptId = revertEntry?.details?.suggestedDepartmentId;
+                                      const suggestedSubDeptId = revertEntry?.details?.suggestedSubDepartmentId;
+                                      
+                                      if (suggestedDeptId || suggestedSubDeptId) {
+                                        const suggestedDept = departments.find(d => d._id === (suggestedSubDeptId || suggestedDeptId));
+                                        return (
+                                          <div className="mt-2 pt-2 border-t border-slate-100">
+                                            <span className="text-[10px] text-rose-500 font-black uppercase tracking-tight mb-0.5 flex items-center gap-1">
+                                              <ArrowRight className="w-2.5 h-2.5" /> Suggested Dept
+                                            </span>
+                                            <span className="text-xs font-bold text-slate-900 bg-rose-50 px-2 py-0.5 rounded border border-rose-100">
+                                              {suggestedDept?.name || "Unknown Department"}
+                                            </span>
+                                          </div>
+                                        );
+                                      }
+                                      return null;
+                                    })()}
+                                    
+                                    <span className="text-[10px] text-orange-500 font-bold uppercase tracking-tight mt-1">
+                                      {grievance.category}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="px-4 py-5">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black bg-rose-50 text-rose-600 border border-rose-100 uppercase tracking-wider">
+                                    REVERTED
+                                  </span>
+                                </td>
+                                <td className="px-4 py-5">
+                                  <div className="flex justify-center gap-1.5">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        setSelectedGrievanceForAssignment(grievance);
+                                        setShowGrievanceAssignment(true);
+                                      }}
+                                      className="h-8 w-8 p-0 text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700 rounded-lg shadow-none border-0 transition-all"
+                                      title="Assign to New Official"
+                                    >
+                                      <UserPlus className="w-3.5 h-3.5" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => openGrievanceDetail(grievance._id)}
+                                      className="h-8 w-8 p-0 text-slate-400 hover:bg-slate-50 hover:text-slate-900 rounded-lg shadow-none border-0 transition-all"
+                                      title="View Case Details"
+                                    >
+                                      <Eye className="w-3.5 h-3.5" />
+                                    </Button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        ) : (
+                          <tr>
+                            <td colSpan={7} className="px-4 py-24 text-center">
+                              <div className="flex flex-col items-center justify-center">
+                                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-slate-100">
+                                  <Inbox className="w-8 h-8 text-slate-200" />
+                                </div>
+                                <h3 className="text-slate-900 font-bold">No Reverted Items</h3>
+                                <p className="text-slate-400 text-xs mt-1 max-w-[200px] mx-auto leading-relaxed">
+                                  All reverted grievances have been addressed or none exist currently.
+                                </p>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </Card>
+            </TabsContent>
+          )}
 
           {/* Appointments Tab - show if module active or SuperAdmin */}
           {user &&
@@ -6264,10 +6603,19 @@ function DashboardContent() {
           }}
           onSubmit={async (payload) => {
             if (!selectedGrievanceForRevert) return;
-            await grievanceAPI.revert(selectedGrievanceForRevert._id, payload);
-            toast.success("Grievance reverted to company admin for reassignment");
-            fetchGrievances(grievancePage, true);
-            fetchDashboardData(true);
+            try {
+              const response = await grievanceAPI.revert(selectedGrievanceForRevert._id, payload);
+              if (response.success) {
+                toast.success("Grievance reverted to company admin for reassignment");
+                fetchGrievances(grievancePage, true);
+                fetchDashboardData(true);
+                setShowGrievanceRevertDialog(false);
+                setSelectedGrievanceForRevert(null);
+              }
+            } catch (error: any) {
+              const errorMessage = error.response?.data?.message || error.message || "Failed to revert grievance";
+              toast.error(errorMessage);
+            }
           }}
         />
 
@@ -6297,16 +6645,40 @@ function DashboardContent() {
             }
             currentAssignee={selectedGrievanceForAssignment.assignedTo}
             currentDepartmentId={
-              selectedGrievanceForAssignment.departmentId &&
-              typeof selectedGrievanceForAssignment.departmentId === "object"
-                ? selectedGrievanceForAssignment.departmentId._id
-                : selectedGrievanceForAssignment.departmentId
+              (() => {
+                if (selectedGrievanceForAssignment.status === "REVERTED") {
+                  const revertEntry = selectedGrievanceForAssignment.timeline
+                    ?.filter((t: any) => t.action === "REVERTED_TO_COMPANY_ADMIN")
+                    .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+                  
+                  if (revertEntry?.details?.suggestedDepartmentId) {
+                    return revertEntry.details.suggestedDepartmentId;
+                  }
+                }
+                
+                return selectedGrievanceForAssignment.departmentId &&
+                  typeof selectedGrievanceForAssignment.departmentId === "object"
+                  ? (selectedGrievanceForAssignment.departmentId as any)._id
+                  : selectedGrievanceForAssignment.departmentId;
+              })()
             }
             currentSubDepartmentId={
-              selectedGrievanceForAssignment.subDepartmentId &&
-              typeof selectedGrievanceForAssignment.subDepartmentId === "object"
-                ? selectedGrievanceForAssignment.subDepartmentId._id
-                : selectedGrievanceForAssignment.subDepartmentId
+              (() => {
+                if (selectedGrievanceForAssignment.status === "REVERTED") {
+                  const revertEntry = selectedGrievanceForAssignment.timeline
+                    ?.filter((t: any) => t.action === "REVERTED_TO_COMPANY_ADMIN")
+                    .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+                  
+                  if (revertEntry?.details?.suggestedSubDepartmentId) {
+                    return revertEntry.details.suggestedSubDepartmentId;
+                  }
+                }
+
+                return selectedGrievanceForAssignment.subDepartmentId &&
+                  typeof selectedGrievanceForAssignment.subDepartmentId === "object"
+                  ? (selectedGrievanceForAssignment.subDepartmentId as any)._id
+                  : selectedGrievanceForAssignment.subDepartmentId;
+              })()
             }
             userRole={user.role}
             userDepartmentId={

@@ -252,6 +252,28 @@ router.get('/dashboard', requirePermission(Permission.VIEW_ANALYTICS), async (re
       { $sort: { _id: 1 } }
     ]);
 
+    // 👤 User distribution by role (Across whole company/scope)
+    // This is more accurate than client-side grouping of paginated data
+    const usersByRole = await User.aggregate([
+      { $match: { ...baseQuery } },
+      {
+        $lookup: {
+          from: 'roles',
+          localField: 'customRoleId',
+          foreignField: '_id',
+          as: 'customRole'
+        }
+      },
+      { $unwind: { path: '$customRole', preserveNullAndEmptyArrays: true } },
+      {
+        $group: {
+          _id: { $ifNull: ['$customRole.name', '$role'] },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { count: -1 } }
+    ]);
+
     res.json({
       success: true,
       data: {
@@ -288,7 +310,18 @@ router.get('/dashboard', requirePermission(Permission.VIEW_ANALYTICS), async (re
         },
         departments: departmentCount,
         users: userCount,
-        activeUsers: userCount > 0 ? await User.countDocuments({ ...baseQuery, isActive: true }) : 0
+        activeUsers: userCount > 0 ? await User.countDocuments({ ...baseQuery, isActive: true }) : 0,
+        usersByRole: usersByRole.reduce((acc: any[], current: any) => {
+          const rawName = current._id || 'Unknown';
+          const name = rawName.toString().replace(/_/g, ' ').toUpperCase();
+          const existing = acc.find(a => a.name === name);
+          if (existing) {
+            existing.count += current.count;
+          } else {
+            acc.push({ name, count: current.count });
+          }
+          return acc;
+        }, []).sort((a: any, b: any) => b.count - a.count)
       }
     });
   } catch (error: any) {

@@ -761,13 +761,13 @@ export default function DepartmentDetail() {
                     <select
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
-                      className="px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white font-medium"
+                      className="px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white font-medium cursor-pointer"
                     >
-                      <option value="all">All Status</option>
-                      <option value="PENDING">Pending</option>
-                      <option value="ASSIGNED">Assigned</option>
-                      <option value="IN_PROGRESS">In Progress</option>
-                      <option value="REVERTED">Reverted</option>
+                      <option value="all">📋 All Status</option>
+                      <option value="PENDING">🔸 Pending</option>
+                      <option value="ASSIGNED">👤 Assigned</option>
+                      <option value="RESOLVED">✅ Resolved</option>
+                      <option value="REJECTED">❌ Rejected</option>
                     </select>
                   </div>
 
