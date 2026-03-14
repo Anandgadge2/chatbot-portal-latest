@@ -9,6 +9,7 @@ export interface Company {
   nameMr?: string;
   companyType: string;
   enabledModules: string[];
+  selectedLanguages?: string[];
   contactEmail?: string;
   contactPhone?: string;
   address?: string;
@@ -44,6 +45,7 @@ export interface CreateCompanyData {
   contactPhone?: string;
   address?: string;
   enabledModules?: string[];
+  selectedLanguages?: string[];
   theme?: {
     primaryColor?: string;
     secondaryColor?: string;

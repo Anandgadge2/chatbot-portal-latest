@@ -19,6 +19,15 @@ import toast from "react-hot-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 
+const LANGUAGE_OPTIONS = [
+  { code: "en", label: "English" },
+  { code: "hi", label: "Hindi" },
+  { code: "or", label: "Odia" },
+  { code: "mr", label: "Marathi" },
+] as const;
+
+const FALLBACK_LANGUAGES = LANGUAGE_OPTIONS.map((option) => option.code);
+
 interface CreateDepartmentDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -36,6 +45,8 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
   const [loading, setLoading] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [allDepartments, setAllDepartments] = useState<Department[]>([]);
+  const [companyLanguages, setCompanyLanguages] = useState<string[]>(FALLBACK_LANGUAGES);
+  const [activeLanguageTab, setActiveLanguageTab] = useState<string>("en");
   const [formData, setFormData] = useState({
     name: "",
     nameHi: "",
@@ -121,11 +132,66 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
     }
   };
 
+  const resolveSelectedLanguages = (company?: Company | null) => {
+    const selected = company?.selectedLanguages?.length
+      ? company.selectedLanguages
+      : FALLBACK_LANGUAGES;
+
+    return Array.from(new Set(["en", ...selected])).filter((language) =>
+      FALLBACK_LANGUAGES.includes(language as any),
+    );
+  };
+
+  const syncLanguagesForCompany = useCallback(
+    async (companyId?: string) => {
+      try {
+        if (user?.role === "SUPER_ADMIN") {
+          if (!companyId) {
+            setCompanyLanguages(FALLBACK_LANGUAGES);
+            return;
+          }
+
+          const selectedCompany = companies.find((company) => company._id === companyId);
+          if (selectedCompany) {
+            setCompanyLanguages(resolveSelectedLanguages(selectedCompany));
+            return;
+          }
+
+          const response = await companyAPI.getById(companyId);
+          if (response.success) {
+            setCompanyLanguages(resolveSelectedLanguages(response.data.company));
+          }
+          return;
+        }
+
+        const response = await companyAPI.getMyCompany();
+        if (response.success) {
+          setCompanyLanguages(resolveSelectedLanguages(response.data.company));
+        }
+      } catch (error) {
+        console.error("Failed to fetch company languages:", error);
+        setCompanyLanguages(FALLBACK_LANGUAGES);
+      }
+    },
+    [companies, user?.role],
+  );
+
   useEffect(() => {
     if (isOpen && formData.companyId) {
       fetchDepartments();
     }
   }, [isOpen, formData.companyId, fetchDepartments]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    syncLanguagesForCompany(formData.companyId);
+  }, [isOpen, formData.companyId, syncLanguagesForCompany]);
+
+  useEffect(() => {
+    if (!companyLanguages.includes(activeLanguageTab)) {
+      setActiveLanguageTab(companyLanguages[0] || "en");
+    }
+  }, [companyLanguages, activeLanguageTab]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -387,27 +453,24 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                 </span>
               </div>
 
-              <Tabs defaultValue="en" className="w-full">
-                <TabsList className="grid w-full grid-cols-4 h-10 bg-slate-100 p-1 rounded-xl">
-                  {["en", "hi", "or", "mr"].map((l) => (
+              <Tabs value={activeLanguageTab} onValueChange={setActiveLanguageTab} className="w-full">
+                <TabsList
+                  className="grid w-full h-10 bg-slate-100 p-1 rounded-xl"
+                  style={{ gridTemplateColumns: `repeat(${Math.max(companyLanguages.length, 1)}, minmax(0, 1fr))` }}
+                >
+                  {LANGUAGE_OPTIONS.filter((option) => companyLanguages.includes(option.code)).map((option) => (
                     <TabsTrigger
-                      key={l}
-                      value={l}
+                      key={option.code}
+                      value={option.code}
                       className="rounded-lg text-[10px] font-black uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm"
                     >
-                      {l === "en"
-                        ? "English"
-                        : l === "hi"
-                          ? "Hindi"
-                          : l === "or"
-                            ? "Odia"
-                            : "Marathi"}
+                      {option.label}
                     </TabsTrigger>
                   ))}
                 </TabsList>
 
                 {/* English Content */}
-                <TabsContent
+                {companyLanguages.includes("en") && <TabsContent
                   value="en"
                   className="space-y-4 mt-4 animate-in fade-in slide-in-from-bottom-2 duration-300"
                 >
@@ -448,10 +511,10 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                       className="border-slate-200 focus:border-indigo-500 min-h-[80px]"
                     />
                   </div>
-                </TabsContent>
+                </TabsContent>}
 
                 {/* Hindi Content */}
-                <TabsContent
+                {companyLanguages.includes("hi") && <TabsContent
                   value="hi"
                   className="space-y-4 mt-4 animate-in fade-in slide-in-from-bottom-2 duration-300"
                 >
@@ -491,10 +554,10 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                       className="border-slate-200 focus:border-indigo-500 min-h-[80px]"
                     />
                   </div>
-                </TabsContent>
+                </TabsContent>}
 
                 {/* Odia Content */}
-                <TabsContent
+                {companyLanguages.includes("or") && <TabsContent
                   value="or"
                   className="space-y-4 mt-4 animate-in fade-in slide-in-from-bottom-2 duration-300"
                 >
@@ -534,10 +597,10 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                       className="border-slate-200 focus:border-indigo-500 min-h-[80px]"
                     />
                   </div>
-                </TabsContent>
+                </TabsContent>}
 
                 {/* Marathi Content */}
-                <TabsContent
+                {companyLanguages.includes("mr") && <TabsContent
                   value="mr"
                   className="space-y-4 mt-4 animate-in fade-in slide-in-from-bottom-2 duration-300"
                 >
@@ -577,7 +640,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                       className="border-slate-200 focus:border-indigo-500 min-h-[80px]"
                     />
                   </div>
-                </TabsContent>
+                </TabsContent>}
               </Tabs>
             </div>
 

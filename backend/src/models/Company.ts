@@ -12,6 +12,7 @@ export interface ICompany extends Document {
   nameMr?: string;
   companyType: CompanyType;
   enabledModules: string[];
+  selectedLanguages: string[];
   contactEmail?: string;
   contactPhone?: string;
   address?: string;
@@ -59,6 +60,10 @@ const CompanySchema: Schema = new Schema(
     },
     enabledModules: [{
       type: String
+    }],
+    selectedLanguages: [{
+      type: String,
+      enum: ['en', 'hi', 'or', 'mr']
     }],
     contactEmail: {
       type: String,
@@ -116,6 +121,21 @@ const CompanySchema: Schema = new Schema(
 // Indexes
 CompanySchema.index({ companyType: 1 });
 CompanySchema.index({ isActive: 1, isSuspended: 1 });
+
+CompanySchema.pre('validate', function (next) {
+  const doc = this as any;
+
+  if (!Array.isArray(doc.selectedLanguages) || doc.selectedLanguages.length === 0) {
+    doc.selectedLanguages = ['en'];
+  }
+
+  if (!doc.selectedLanguages.includes('en')) {
+    doc.selectedLanguages.unshift('en');
+  }
+
+  doc.selectedLanguages = Array.from(new Set(doc.selectedLanguages));
+  next();
+});
 
 // Pre-save hook to generate companyId
 CompanySchema.pre('save', async function (next) {
