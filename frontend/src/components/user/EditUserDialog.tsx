@@ -11,6 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import toast from "react-hot-toast";
 import { User as UserIcon, Mail, MessageSquare } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { denormalizePhoneNumber } from "@/lib/utils/phoneUtils";
 import {
   Dialog,
   DialogContent,
@@ -79,7 +80,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
         firstName: user.firstName || "",
         lastName: user.lastName || "",
         email: user.email || "",
-        phone: user.phone || "",
+        phone: user.phone ? denormalizePhoneNumber(user.phone) : "",
         designation: user.designation || "",
         role: user.customRoleId
           ? `CUSTOM:${typeof user.customRoleId === "object" ? (user.customRoleId as any)._id : user.customRoleId}`
@@ -286,17 +287,18 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
               >
                 Phone *
               </Label>
-              <Input
-                id="phone"
-                type="tel"
-                value={formData.phone}
-                onChange={(e) =>
-                  setFormData({ ...formData, phone: e.target.value })
-                }
-                required
-                placeholder="+91 98765 43210"
-                className="h-10 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-lg text-sm"
-              />
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, "").slice(0, 10);
+                    setFormData({ ...formData, phone: val });
+                  }}
+                  required
+                  placeholder="10 digit number"
+                  className="h-10 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-lg text-sm"
+                />
             </div>
 
             <div className="space-y-1.5">

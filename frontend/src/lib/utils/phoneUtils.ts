@@ -1,8 +1,8 @@
 /**
- * Normalizes phone number by removing country code prefix (91 for India)
- * Returns only the last 10 digits
+ * Normalizes phone number to 12 digits (with country code 91 for India)
+ * If 10 digits, prepends 91. If 12 digits, returns as is.
  * @param phone - Phone number string
- * @returns 10 digit phone number
+ * @returns 12 digit phone number
  */
 export function normalizePhoneNumber(phone: string | undefined | null): string {
     if (!phone) return "";
@@ -10,26 +10,32 @@ export function normalizePhoneNumber(phone: string | undefined | null): string {
     // Remove all non-digit characters
     const digitsOnly = phone.toString().replace(/\D/g, '');
     
-    // Return the last 10 digits
-    if (digitsOnly.length > 10) {
-      return digitsOnly.slice(-10);
+    // If 10 digits, prepend 91 (India)
+    if (digitsOnly.length === 10) {
+      return '91' + digitsOnly;
+    }
+    
+    // If it's more than 10 digits (likely already has country code), return last 12
+    if (digitsOnly.length > 12) {
+      return digitsOnly.slice(-12);
     }
     
     return digitsOnly;
   }
   
   /**
-   * Denormalizes phone number - since we now only store 10 digits, it just returns the digits
+   * Denormalizes phone number - returns only the last 10 digits for dashboard display
    * @param phone - Phone number string
    * @returns 10 digit phone number
    */
   export function denormalizePhoneNumber(phone: string | undefined | null): string {
     if (!phone) return "";
-    return phone.toString().replace(/\D/g, '');
+    const digitsOnly = phone.toString().replace(/\D/g, '');
+    return digitsOnly.length > 10 ? digitsOnly.slice(-10) : digitsOnly;
   }
   
   /**
-   * Formats phone number to exactly 10 digits by removing prefixes 
+   * Formats phone number to exactly 10 digits for display (removes country code)
    * @param phone - Phone number string
    * @returns 10 digit phone number
    */
@@ -43,7 +49,7 @@ export function normalizePhoneNumber(phone: string | undefined | null): string {
   }
   
   /**
-   * Validates phone number - must be exactly 10 digits
+   * Validates phone number - must be 10 or 12 digits
    * @param phone - Phone number string
    * @returns true if valid, false otherwise
    */
@@ -53,8 +59,8 @@ export function normalizePhoneNumber(phone: string | undefined | null): string {
     // Remove all non-digit characters
     const digitsOnly = phone.toString().replace(/\D/g, '');
     
-    // Must be exactly 10 digits
-    return digitsOnly.length === 10;
+    // Must be 10 or 12 digits
+    return digitsOnly.length === 10 || digitsOnly.length === 12;
   }
   
   /**

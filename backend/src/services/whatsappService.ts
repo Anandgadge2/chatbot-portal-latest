@@ -5,6 +5,7 @@ import {
 } from '../config/whatsappLimits';
 import { createAuditLog } from '../utils/auditLogger';
 import { AuditAction } from '../config/constants';
+import { normalizePhoneNumber } from '../utils/phoneUtils';
 
 /**
  * WhatsApp Business API limits are enforced here and in flow builder.
@@ -78,9 +79,10 @@ export async function sendWhatsAppMessage(
   try {
     const { url, headers } = getWhatsAppConfig(company);
 
+    const normalizedTo = normalizePhoneNumber(to);
     const payload = {
       messaging_product: 'whatsapp',
-      to,
+      to: normalizedTo,
       type: 'text',
       text: {
         body: safeText(message)
@@ -165,9 +167,10 @@ export async function sendWhatsAppTemplate(
   try {
     const { url, headers } = getWhatsAppConfig(company);
 
+    const normalizedTo = normalizePhoneNumber(to);
     const payload: any = {
       messaging_product: 'whatsapp',
-      to,
+      to: normalizedTo,
       type: 'template',
       template: {
         name: templateName,
@@ -228,9 +231,10 @@ export async function sendWhatsAppButtons(
   try {
     const { url, headers } = getWhatsAppConfig(company);
 
+    const normalizedTo = normalizePhoneNumber(to);
     const payload = {
       messaging_product: 'whatsapp',
-      to,
+      to: normalizedTo,
       type: 'interactive',
       interactive: {
         type: 'button',
@@ -314,9 +318,10 @@ export async function sendWhatsAppList(
           }))
       }));
 
+    const normalizedTo = normalizePhoneNumber(to);
     const payload = {
       messaging_product: 'whatsapp',
-      to,
+      to: normalizedTo,
       type: 'interactive',
       interactive: {
         type: 'list',
@@ -391,9 +396,10 @@ export async function sendWhatsAppMedia(
   try {
     const { url, headers } = getWhatsAppConfig(company);
 
+    const normalizedTo = normalizePhoneNumber(to);
     const payload: any = {
       messaging_product: 'whatsapp',
-      to,
+      to: normalizedTo,
       type: mediaType,
       [mediaType]: {
         link: mediaUrl

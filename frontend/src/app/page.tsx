@@ -57,7 +57,7 @@ export default function LoginPage() {
       return;
     }
     if (!validatePhoneNumber(phone.trim())) {
-      const msg = "Phone number must be exactly 10 digits";
+      const msg = "Phone number must be 10 or 12 digits (with country code)";
       setError(msg);
       toast.error(msg);
       return;
@@ -268,10 +268,10 @@ export default function LoginPage() {
                     <Input
                       id="phone"
                       type="tel"
-                      placeholder="Enter 10-digit mobile"
+                      placeholder="Enter mobile number"
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                      maxLength={10}
+                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 12))}
+                      maxLength={12}
                       required
                       className="pl-16 h-14 border-slate-200 focus:border-indigo-600 focus:ring-0 bg-slate-50/50 rounded-2xl text-slate-900 placeholder:text-slate-400 font-black text-sm tracking-widest transition-all"
                     />

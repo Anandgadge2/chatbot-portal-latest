@@ -377,7 +377,7 @@ export default function AssignmentDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col p-0 gap-0 rounded-[2rem] border-0 shadow-2xl [&>button]:hidden bg-white">
+      <DialogContent hideClose className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col p-0 gap-0 rounded-[2rem] border-0 shadow-2xl bg-white">
         {/* Modern Slate Header */}
         <div className="bg-slate-900 p-8 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-transparent to-purple-500/10"></div>
