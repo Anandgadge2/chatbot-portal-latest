@@ -7,7 +7,7 @@ import User from '../models/User';
 import { authenticate } from '../middleware/auth';
 import { requirePermission } from '../middleware/rbac';
 import { requireDatabaseConnection } from '../middleware/dbConnection';
-import { Permission, UserRole, GrievanceStatus, AppointmentStatus } from '../config/constants';
+import { Permission, UserRole, GrievanceStatus, AppointmentStatus, Module } from '../config/constants';
 
 const router = express.Router();
 
@@ -58,6 +58,11 @@ router.get('/dashboard', requirePermission(Permission.VIEW_ANALYTICS), async (re
 
     const baseQuery = getAnalyticsBaseQuery(req, companyId, departmentId);
 
+    // Fetch company to check for modules
+    const targetCompanyId = currentUser.companyId || companyId;
+    const company = targetCompanyId ? await mongoose.model('Company').findById(targetCompanyId) as any : null;
+    const isHierarchicalEnabled = company?.enabledModules?.includes(Module.HIERARCHICAL_DEPARTMENTS);
+
     // Get time-based statistics (last 7 days, 30 days)
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -85,7 +90,12 @@ router.get('/dashboard', requirePermission(Permission.VIEW_ANALYTICS), async (re
       slaBreachedGrievances,
       assignedGrievances,
       departmentCount,
-      userCount
+      userCount,
+      mainDepartmentCount,
+      subDepartmentCount,
+      resolvedToday,
+      highPriorityPending,
+      urgentPriorityPending
     ] = await Promise.all([
       Grievance.countDocuments({ ...baseQuery }),
       Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.PENDING }),
@@ -131,13 +141,25 @@ router.get('/dashboard', requirePermission(Permission.VIEW_ANALYTICS), async (re
       Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.ASSIGNED }),
       
       // Counts (Super Admin or those without a specific departmentId)
-      (currentUser.role === UserRole.SUPER_ADMIN || !currentUser.departmentId) 
-        ? Department.countDocuments({ companyId: currentUser.companyId || (companyId || { $exists: true }) })
-        : Promise.resolve(0),
+      Department.countDocuments({ companyId: currentUser.companyId || (companyId || { $exists: true }) }),
         
-      (currentUser.role === UserRole.SUPER_ADMIN || !currentUser.departmentId)
-        ? User.countDocuments({ companyId: currentUser.companyId || (companyId || { $exists: true }) })
-        : Promise.resolve(0)
+      User.countDocuments({ companyId: currentUser.companyId || (companyId || { $exists: true }) }),
+
+      // Hierarchical Dept Counts
+      isHierarchicalEnabled ? Department.countDocuments({ 
+        companyId: targetCompanyId, 
+        $or: [{ parentDepartmentId: null }, { parentDepartmentId: { $exists: false } }] 
+      }) : Promise.resolve(0),
+      
+      isHierarchicalEnabled ? Department.countDocuments({ 
+        companyId: targetCompanyId, 
+        parentDepartmentId: { $ne: null } 
+      }) : Promise.resolve(0),
+
+      // More informative stats
+      Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.RESOLVED, resolvedAt: { $gte: new Date().setHours(0,0,0,0) } }),
+      Grievance.countDocuments({ ...baseQuery, priority: 'HIGH', status: { $ne: GrievanceStatus.RESOLVED } }),
+      Grievance.countDocuments({ ...baseQuery, priority: 'URGENT', status: { $ne: GrievanceStatus.RESOLVED } })
     ]);
 
     // Calculate resolution rate
@@ -309,8 +331,13 @@ router.get('/dashboard', requirePermission(Permission.VIEW_ANALYTICS), async (re
           monthly: monthlyAppointments.map(m => ({ month: m._id, count: m.count, completed: m.completed }))
         },
         departments: departmentCount,
+        mainDepartments: mainDepartmentCount,
+        subDepartments: subDepartmentCount,
         users: userCount,
         activeUsers: userCount > 0 ? await User.countDocuments({ ...baseQuery, isActive: true }) : 0,
+        resolvedToday: resolvedToday,
+        highPriorityPending: highPriorityPending + urgentPriorityPending,
+        isHierarchicalEnabled: !!isHierarchicalEnabled,
         usersByRole: usersByRole.reduce((acc: any[], current: any) => {
           const rawName = current._id || 'Unknown';
           const name = rawName.toString().replace(/_/g, ' ').toUpperCase();

@@ -68,13 +68,23 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
   const getAllPossibleRoles = () => {
     if (!user) return [];
 
-    // ONLY SHOW CUSTOM ROLES created by the Admin
+    const options: { value: string; label: string }[] = [];
+
+    // Add ONLY custom roles fetched from backend (created by Superadmin for this company)
     const customRoleOptions = customRoles.map((r) => ({
       value: `CUSTOM:${r._id}`,
       label: r.name,
     }));
 
-    return customRoleOptions;
+    options.push(...customRoleOptions);
+
+    // Special case: Only Super Admin can assign the Super Admin role
+    // This is a system-level role, not a company-level custom role
+    if (user.role === UserRole.SUPER_ADMIN) {
+      options.push({ value: "SUPER_ADMIN", label: "Super Admin" });
+    }
+
+    return options;
   };
 
   const canCreateUsers = (): boolean => {

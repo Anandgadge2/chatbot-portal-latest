@@ -20,6 +20,7 @@ import { userAPI, User } from "@/lib/api/user";
 import { grievanceAPI, Grievance } from "@/lib/api/grievance";
 import { appointmentAPI, Appointment } from "@/lib/api/appointment";
 import { leadAPI, Lead } from "@/lib/api/lead";
+import { roleAPI, Role } from "@/lib/api/role";
 import CreateDepartmentDialog from "@/components/department/CreateDepartmentDialog";
 import DepartmentUsersDialog from "@/components/department/DepartmentUsersDialog";
 import CreateUserDialog from "@/components/user/CreateUserDialog";
@@ -114,6 +115,9 @@ import {
   ExternalLink,
   Inbox,
   Eye,
+  ArrowRightCircle,
+  Building2,
+  Layers,
 } from "lucide-react";
 
 interface DashboardStats {
@@ -152,8 +156,13 @@ interface DashboardStats {
     monthly?: Array<{ month: string; count: number; completed: number }>;
   };
   departments: number;
+  mainDepartments?: number;
+  subDepartments?: number;
   users: number;
   activeUsers: number;
+  resolvedToday?: number;
+  highPriorityPending?: number;
+  isHierarchicalEnabled?: boolean;
   usersByRole?: Array<{ name: string; count: number }>;
 }
 
@@ -188,6 +197,7 @@ function DashboardContent() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [company, setCompany] = useState<Company | null>(null);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [showDepartmentDialog, setShowDepartmentDialog] = useState(false);
   const [showDeptUsersDialog, setShowDeptUsersDialog] = useState(false);
   const [selectedDeptForUsers, setSelectedDeptForUsers] = useState<{
@@ -236,8 +246,9 @@ function DashboardContent() {
     string | null
   >(null);
   const [performanceData, setPerformanceData] = useState<any>(null);
-  const [hourlyData, setHourlyData] = useState<any>(null);
-  const [categoryData, setCategoryData] = useState<any>(null);
+  const [hourlyData, setHourlyData] = useState<any[]>([]);
+  const [categoryData, setCategoryData] = useState<any[]>([]);
+  const [departmentData, setDepartmentData] = useState<any[]>([]);
   const [selectedGrievance, setSelectedGrievance] = useState<Grievance | null>(
     null,
   );
@@ -581,8 +592,35 @@ function DashboardContent() {
     }
   }, []);
 
-  const fetchDashboardData = useCallback(async (isSilent = false) => {
-    if (!isSilent) setLoadingStats(true);
+  const fetchDepartmentData = useCallback(async () => {
+    try {
+      const response = await apiClient.get("/analytics/grievances/by-department");
+      if (response.success) {
+        setDepartmentData(response.data);
+      }
+    } catch (error: any) {
+      console.error("Failed to fetch department data:", error);
+    }
+  }, []);
+
+  const fetchRoles = useCallback(async () => {
+    const cid = user?.companyId ? (typeof user.companyId === 'object' ? (user.companyId as any)._id : user.companyId) : null;
+    if (!cid) {
+      setRoles([]);
+      return;
+    }
+    try {
+      const response = await roleAPI.getRoles(cid);
+      if (response.success) {
+        setRoles(response.data.roles || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch roles:", error);
+    }
+  }, [user]);
+
+  const fetchDashboardData = useCallback(async (refresh = false) => {
+    if (!refresh) setLoadingStats(true);
     try {
       const response = await apiClient.get<{
         success: boolean;
@@ -595,7 +633,7 @@ function DashboardContent() {
       console.error("Failed to fetch dashboard stats:", error);
       toast.error("Failed to load dashboard statistics");
     } finally {
-      if (!isSilent) setLoadingStats(false);
+      if (!refresh) setLoadingStats(false);
     }
   }, []);
 
@@ -868,9 +906,10 @@ function DashboardContent() {
       fetchDashboardData();
       if (user.companyId) {
         fetchCompany();
+        fetchRoles();
       }
     }
-  }, [mounted, user, fetchDashboardData, fetchCompany]);
+  }, [mounted, user, fetchDashboardData, fetchCompany, fetchRoles]);
 
   // 2. Specialized effects for each paginated module
   useEffect(() => {
@@ -990,6 +1029,7 @@ function DashboardContent() {
       fetchPerformanceData();
       fetchHourlyData();
       fetchCategoryData();
+      fetchDepartmentData();
     }
   }, [
     mounted,
@@ -998,6 +1038,7 @@ function DashboardContent() {
     fetchPerformanceData,
     fetchHourlyData,
     fetchCategoryData,
+    fetchDepartmentData,
   ]);
 
   const handleSort = (key: string, tab: string) => {
@@ -1228,7 +1269,14 @@ function DashboardContent() {
     if (tab === "users") {
       // Role filter
       if (userFilters.role) {
-        filteredData = filteredData.filter((u: User) => u.role === userFilters.role);
+        filteredData = filteredData.filter((u: User) => {
+          if (userFilters.role.startsWith("CUSTOM:")) {
+            const roleId = userFilters.role.split(":")[1];
+            const uRoleId = typeof u.customRoleId === "object" ? (u.customRoleId as any)._id : u.customRoleId;
+            return uRoleId === roleId;
+          }
+          return u.role === userFilters.role;
+        });
       }
       // Status filter
       if (userFilters.status) {
@@ -1416,13 +1464,16 @@ function DashboardContent() {
               setPreviousTab(activeTab);
               
               // Clear 'REVERTED' status filter when leaving the specialized Reverted tab
-              // especially when going to the main Grievances tab
-              if (activeTab === "reverted" && value === "grievances") {
+              if (activeTab === "reverted") {
                 setGrievanceFilters(prev => ({ ...prev, status: "" }));
               }
             }
             if (value === "reverted") {
               setGrievanceFilters((prev) => ({ ...prev, status: "REVERTED" }));
+            }
+            // Also reset filters if going specifically to grievances from overview
+            if (activeTab === "overview" && value === "grievances") {
+              setGrievanceFilters(prev => ({ ...prev, status: "" }));
             }
             setActiveTab(value);
           }}
@@ -1567,7 +1618,7 @@ function DashboardContent() {
                   <Card onClick={() => { setActiveTab("grievances"); setGrievanceFilters((prev) => ({ ...prev, status: "PENDING" })); }} className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 border-l-4 border-l-amber-400 cursor-pointer">
                     <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
                       <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                        Pending Actions
+                        Overdue Grievances
                       </CardTitle>
                       <div className="p-1.5 bg-amber-50 rounded-lg">
                         <Clock className="w-3.5 h-3.5 text-amber-500" />
@@ -1611,7 +1662,7 @@ function DashboardContent() {
                   <Card onClick={() => setActiveTab("users")} className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer">
                     <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
                       <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                        Active Personnel
+                        Users
                       </CardTitle>
                       <div className="p-1.5 bg-purple-50 rounded-lg">
                         <Users className="w-3.5 h-3.5 text-purple-500" />
@@ -1628,22 +1679,61 @@ function DashboardContent() {
 
                 {/* Departments (Company Level) */}
                 {isCompanyLevel && (
-                  <Card onClick={() => setActiveTab("departments")} className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer">
-                    <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
-                      <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                        Working Units
-                      </CardTitle>
-                      <div className="p-1.5 bg-blue-50 rounded-lg">
-                        <Building className="w-3.5 h-3.5 text-blue-500" />
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-black text-slate-800 tabular-nums">
-                        {loadingStats ? "..." : (stats?.departments || 0)}
-                      </div>
-                      <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">Functional Depts</p>
-                    </CardContent>
-                  </Card>
+                  <>
+                    {stats?.isHierarchicalEnabled ? (
+                      <>
+                        <Card onClick={() => setActiveTab("departments")} className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer">
+                          <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
+                            <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                              Main Departments
+                            </CardTitle>
+                            <div className="p-1.5 bg-blue-50 rounded-lg">
+                              <Building className="w-3.5 h-3.5 text-blue-500" />
+                            </div>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-black text-slate-800 tabular-nums">
+                              {loadingStats ? "..." : (stats?.mainDepartments || 0)}
+                            </div>
+                            <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">Primary Units</p>
+                          </CardContent>
+                        </Card>
+                        <Card onClick={() => setActiveTab("departments")} className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer shadow-indigo-100/20">
+                          <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
+                            <CardTitle className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">
+                              Sub Departments
+                            </CardTitle>
+                            <div className="p-1.5 bg-indigo-50 rounded-lg">
+                              <Zap className="w-3.5 h-3.5 text-indigo-500" />
+                            </div>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-black text-indigo-600 tabular-nums">
+                              {loadingStats ? "..." : (stats?.subDepartments || 0)}
+                            </div>
+                            <p className="text-[9px] text-indigo-300 font-bold uppercase mt-1">Specialized Units</p>
+                          </CardContent>
+                        </Card>
+                      </>
+                    ) : (
+                      <Card onClick={() => setActiveTab("departments")} className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer">
+                        <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
+                          <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                            Working Units
+                          </CardTitle>
+                          <div className="p-1.5 bg-blue-50 rounded-lg">
+                            <Building className="w-3.5 h-3.5 text-blue-500" />
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-2xl font-black text-slate-800 tabular-nums">
+                            {loadingStats ? "..." : (stats?.departments || 0)}
+                          </div>
+                          <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">Functional Depts</p>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </>
                 )}
 
                 {/* Reverted Grievances (Company Level) */}
@@ -2166,169 +2256,205 @@ function DashboardContent() {
           {!isSuperAdmin && (
             <TabsContent value="analytics" className="space-y-6">
               {/* Header Banner */}
-              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-6 border border-slate-800 shadow-xl">
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-6 border border-slate-800 shadow-xl mb-6">
                 <div
-                  className="absolute inset-0 opacity-[0.04]"
+                  className="absolute inset-0 opacity-[0.06]"
                   style={{
                     backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
                   }}
                 ></div>
                 <div className="relative flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
+                    <div className="w-12 h-12 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30 backdrop-blur-md shadow-inner">
                       <BarChart2 className="w-6 h-6 text-indigo-400" />
                     </div>
                     <div>
-                      <h2 className="text-xl font-bold text-white">
+                      <h2 className="text-xl font-bold text-white flex items-center gap-2 tracking-tight">
+                        <Activity className="w-5 h-5 text-indigo-400 animate-pulse" />
                         {isCompanyLevel
-                          ? "Company Analytics Dashboard"
+                          ? "Operational Intelligence Dashboard"
                           : isDepartmentLevel
-                            ? "Department Analytics"
-                            : "Operations Analytics"}
+                            ? "Departmental Analytics Hub"
+                            : "Operations Analytics Center"}
                       </h2>
-                      <p className="text-slate-400 text-xs mt-0.5">
+                      <p className="text-slate-300 text-xs mt-1 font-medium opacity-80 leading-relaxed">
                         {isCompanyLevel
-                          ? `Live data across all departments · ${departments.length} departments · ${users.length} staff`
-                          : `Live data for your department · ${users.length} staff members`}
+                          ? stats?.isHierarchicalEnabled 
+                            ? `Comprehensive analysis across ${stats?.mainDepartments || 0} main departments, ${stats?.subDepartments || 0} sub-divisions and ${stats?.users || users.length} personnel`
+                            : `Visualizing operational health across ${stats?.departments || departments.length} departments and ${stats?.users || users.length} personnel`
+                          : `Monitoring real-time performance for your assigned department and ${users.length} staff`}
                       </p>
                     </div>
                   </div>
-                  <div className="hidden md:flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span className="text-xs font-bold text-emerald-400 uppercase tracking-widest">
-                      Live
-                    </span>
+                  <div className="hidden md:flex items-center gap-3">
+                    <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl backdrop-blur-sm">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]"></span>
+                      <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">
+                        Live Metrics
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* KPI Cards - 5 columns for company admin, 4 for dept admin */}
+              {/* KPI Cards - Refined Design */}
               <div
-                className={`grid gap-4 ${isCompanyLevel ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-5" : "grid-cols-2 md:grid-cols-4"}`}
+                className={cn(
+                  "grid gap-6",
+                  stats?.isHierarchicalEnabled && isCompanyLevel 
+                    ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6" 
+                    : "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5"
+                )}
               >
-                {/* Total Grievances */}
+                {/* Total Grievances - Enhanced */}
                 {hasModule(Module.GRIEVANCE) && (
-                  <div onClick={() => setActiveTab("grievances")} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 hover:shadow-md transition-all group cursor-pointer">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform">
-                        <FileText className="w-4 h-4" />
+                  <div 
+                    onClick={() => setActiveTab("grievances")} 
+                    className="group relative bg-white/70 backdrop-blur-md rounded-2xl border border-slate-200/60 p-5 transition-all duration-500 hover:shadow-2xl hover:shadow-indigo-500/10 hover:-translate-y-1.5 cursor-pointer overflow-hidden"
+                  >
+                    <div className="absolute -right-4 -top-4 w-24 h-24 bg-gradient-to-br from-indigo-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
+                    <div className="relative">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600 border border-indigo-100/50 shadow-sm group-hover:rotate-6 transition-transform">
+                          <FileText className="w-6 h-6" />
+                        </div>
+                        <div className="text-right">
+                          <div className="text-[10px] font-black text-indigo-600 bg-indigo-50/80 px-2 py-1 rounded-lg uppercase tracking-tight border border-indigo-100/30">
+                            {(stats?.grievances.resolutionRate || 0).toFixed(1)}% Resolved
+                          </div>
+                        </div>
                       </div>
-                      <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${(stats?.grievances.resolutionRate || 0) >= 70 ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"}`}
-                      >
-                        {(stats?.grievances.resolutionRate || 0).toFixed(0)}%
-                        resolved
-                      </span>
-                    </div>
-                    <p className="text-2xl font-black text-slate-900 tracking-tighter">
-                      {stats?.grievances.total || 0}
-                    </p>
-                    <p className="text-xs font-semibold text-slate-500 mt-1">
-                      Total Grievances
-                    </p>
-                    <div className="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-indigo-500 rounded-full"
-                        style={{
-                          width: `${stats?.grievances.resolutionRate || 0}%`,
-                        }}
-                      ></div>
+                      <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">Inbound Grievances</h4>
+                      <p className="text-3xl font-black text-slate-900 tracking-tighter group-hover:text-indigo-600 transition-colors">
+                        {stats?.grievances.total || 0}
+                      </p>
+                      <div className="mt-4">
+                        <div className="flex justify-between text-[9px] font-black text-slate-400 uppercase mb-1">
+                          <span>Volume Tracking</span>
+                          <span className="text-indigo-600">{(stats?.grievances.resolutionRate || 0).toFixed(0)}%</span>
+                        </div>
+                        <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-indigo-500 via-blue-500 to-indigo-600 rounded-full transition-all duration-1000"
+                            style={{ width: `${stats?.grievances.resolutionRate || 0}%` }}
+                          ></div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
 
-                {/* Pending Grievances */}
+                {/* Actions Needed - Optimized */}
                 {hasModule(Module.GRIEVANCE) && (
-                  <div onClick={() => { setActiveTab("grievances"); setGrievanceFilters((prev) => ({ ...prev, status: "PENDING" })); }} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 hover:shadow-md transition-all group cursor-pointer">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="w-9 h-9 bg-amber-50 rounded-xl flex items-center justify-center text-amber-600 group-hover:scale-110 transition-transform">
-                        <Clock className="w-4 h-4" />
+                  <div 
+                    onClick={() => { setActiveTab("grievances"); setGrievanceFilters((prev) => ({ ...prev, status: "PENDING" })); }} 
+                    className="group relative bg-white/70 backdrop-blur-md rounded-2xl border border-slate-200/60 p-5 transition-all duration-500 hover:shadow-2xl hover:shadow-amber-500/10 hover:-translate-y-1.5 cursor-pointer overflow-hidden"
+                  >
+                    <div className="absolute -right-4 -top-4 w-24 h-24 bg-gradient-to-br from-amber-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
+                    <div className="relative">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center text-amber-600 border border-amber-100/50 shadow-sm group-hover:-rotate-6 transition-transform">
+                          <Clock className="w-6 h-6" />
+                        </div>
+                        <span className="text-[10px] font-black bg-rose-50 text-rose-600 px-2 py-1 rounded-lg uppercase tracking-tight border border-rose-100/30 animate-pulse">
+                          {stats?.highPriorityPending || 0} Urgent
+                        </span>
                       </div>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600">
-                        Action Needed
-                      </span>
+                      <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">Overdue Grievances</h4>
+                      <p className="text-3xl font-black text-amber-600 tracking-tighter">
+                        {stats?.grievances.pending || 0}
+                      </p>
+                      <div className="mt-4 flex items-center gap-2 text-[10px] font-bold text-slate-500 bg-slate-50 p-2 rounded-lg border border-slate-100">
+                        <Activity className="w-3.5 h-3.5 text-amber-500" />
+                        <span>{stats?.grievances.assigned || stats?.grievances.inProgress || 0} in active processing</span>
+                      </div>
                     </div>
-                    <p className="text-2xl font-black text-amber-600 tracking-tighter">
-                      {stats?.grievances.pending || 0}
-                    </p>
-                    <p className="text-xs font-semibold text-slate-500 mt-1">
-                      Pending
-                    </p>
-                    <p className="text-[10px] text-slate-400 mt-1">
-                      {stats?.grievances.inProgress || 0} in progress
-                    </p>
                   </div>
                 )}
 
-                {/* Resolved Grievances */}
+                {/* Resolved Page Content - Success Gradient */}
                 {hasModule(Module.GRIEVANCE) && (
-                  <div onClick={() => { setActiveTab("grievances"); setGrievanceFilters((prev) => ({ ...prev, status: "RESOLVED" })); }} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 hover:shadow-md transition-all group cursor-pointer">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="w-9 h-9 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform">
-                        <CheckCircle className="w-4 h-4" />
+                  <div 
+                    onClick={() => { setActiveTab("grievances"); setGrievanceFilters((prev) => ({ ...prev, status: "RESOLVED" })); }} 
+                    className="group relative bg-white/70 backdrop-blur-md rounded-2xl border border-slate-200/60 p-5 transition-all duration-500 hover:shadow-2xl hover:shadow-emerald-500/10 hover:-translate-y-1.5 cursor-pointer overflow-hidden border-b-4 border-b-emerald-500"
+                  >
+                    <div className="absolute -right-4 -top-4 w-24 h-24 bg-gradient-to-br from-emerald-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
+                    <div className="relative">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 border border-emerald-100/50 shadow-sm transition-all group-hover:bg-emerald-600 group-hover:text-white">
+                          <CheckCircle2 className="w-6 h-6" />
+                        </div>
+                        {stats?.resolvedToday ? (
+                          <div className="flex items-center gap-1 text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg uppercase tracking-tight border border-emerald-100/30">
+                            <Zap className="w-2.5 h-2.5 fill-emerald-500" /> +{stats.resolvedToday} Today
+                          </div>
+                        ) : (
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest opacity-60">Success Benchmark</span>
+                        )}
                       </div>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600">
-                        Done
-                      </span>
+                      <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Resolved</h4>
+                      <p className="text-3xl font-black text-emerald-600 tracking-tighter">
+                        {stats?.grievances.resolved || 0}
+                      </p>
+                      <p className="text-[10px] font-bold text-slate-400 mt-4 px-2 py-1 bg-slate-50/50 rounded inline-block">
+                        Growth: <span className="text-emerald-600 font-black">+{stats?.grievances.last7Days || 0} cases</span> this week
+                      </p>
                     </div>
-                    <p className="text-2xl font-black text-emerald-600 tracking-tighter">
-                      {stats?.grievances.resolved || 0}
-                    </p>
-                    <p className="text-xs font-semibold text-slate-500 mt-1">
-                      Resolved
-                    </p>
-                    <p className="text-[10px] text-slate-400 mt-1">
-                      Last 7d: {stats?.grievances.last7Days || 0} new
-                    </p>
                   </div>
                 )}
 
-                {/* Appointments */}
+                {/* Appointments - Modern Card */}
                 {hasModule(Module.APPOINTMENT) && isCompanyLevel && (
-                  <div onClick={() => setActiveTab("appointments")} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 hover:shadow-md transition-all group cursor-pointer">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="w-9 h-9 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600 group-hover:scale-110 transition-transform">
-                        <CalendarClock className="w-4 h-4" />
+                  <div 
+                    onClick={() => setActiveTab("appointments")} 
+                    className="group relative bg-white/70 backdrop-blur-md rounded-2xl border border-slate-200/60 p-5 transition-all duration-500 hover:shadow-2xl hover:shadow-purple-500/10 hover:-translate-y-1.5 cursor-pointer overflow-hidden"
+                  >
+                    <div className="absolute -right-4 -top-4 w-24 h-24 bg-gradient-to-br from-purple-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
+                    <div className="relative">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600 border border-purple-100/50 shadow-sm transition-all group-hover:rotate-12">
+                          <CalendarCheck className="w-6 h-6" />
+                        </div>
+                        <div className="text-[10px] font-black text-purple-600 bg-purple-50 px-2 py-1 rounded-lg uppercase tracking-tight border border-purple-100/30">
+                          {(stats?.appointments.completionRate || 0).toFixed(0)}% Completion
+                        </div>
                       </div>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-600">
-                        {(stats?.appointments.completionRate || 0).toFixed(0)}%
-                        done
-                      </span>
+                      <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">Appointments</h4>
+                      <p className="text-3xl font-black text-slate-900 tracking-tighter">
+                        {stats?.appointments.total || 0}
+                      </p>
+                      <div className="mt-4 flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-slate-400">{stats?.appointments.pending || 0} pending</span>
+                        <div className="flex -space-x-2">
+                           {[1,2,3].map(i => (
+                             <div key={i} className="w-5 h-5 rounded-full border-2 border-white bg-slate-200"></div>
+                           ))}
+                        </div>
+                      </div>
                     </div>
-                    <p className="text-2xl font-black text-slate-900 tracking-tighter">
-                      {stats?.appointments.total || 0}
-                    </p>
-                    <p className="text-xs font-semibold text-slate-500 mt-1">
-                      Appointments
-                    </p>
-                    <p className="text-[10px] text-slate-400 mt-1">
-                      {stats?.appointments.pending || 0} pending ·{" "}
-                      {stats?.appointments.confirmed || 0} confirmed
-                    </p>
                   </div>
                 )}
 
-                {/* Staff / Users */}
-                <div onClick={() => setActiveTab("users")} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 hover:shadow-md transition-all group cursor-pointer">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
-                      <Users className="w-4 h-4" />
+                <div onClick={() => setActiveTab("users")} className="group relative bg-white/70 backdrop-blur-md rounded-2xl border border-slate-200/60 p-5 transition-all duration-500 hover:shadow-2xl hover:shadow-slate-500/10 hover:-translate-y-1.5 cursor-pointer overflow-hidden lg:col-span-2 md:col-span-1">
+                  <div className="absolute -right-4 -top-4 w-24 h-24 bg-gradient-to-br from-slate-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
+                  <div className="relative">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center text-slate-600 border border-slate-200/50 shadow-sm transition-all group-hover:bg-slate-900 group-hover:text-white">
+                        <Users className="w-6 h-6" />
+                      </div>
+                      <div className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg uppercase tracking-tight border border-emerald-100/30">
+                        {stats?.activeUsers || stats?.users || 0} Live
+                      </div>
                     </div>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600">
-                      {stats?.activeUsers || 0} active
-                    </span>
+                    <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">{isCompanyLevel ? "Total Users" : "Dept Team"}</h4>
+                    <p className="text-3xl font-black text-slate-900 tracking-tighter">
+                      {stats?.users || users.length || 0}
+                    </p>
+                    <p className="text-[10px] font-bold text-slate-400 mt-4 flex items-center gap-2">
+                      <Building2 className="w-3.5 h-3.5" />
+                      <span>Authorized personnel across units</span>
+                    </p>
                   </div>
-                  <p className="text-2xl font-black text-slate-900 tracking-tighter">
-                    {stats?.users || users.length || 0}
-                  </p>
-                  <p className="text-xs font-semibold text-slate-500 mt-1">
-                    {isCompanyLevel ? "Total Staff" : "Dept Staff"}
-                  </p>
-                  <p className="text-[10px] text-slate-400 mt-1">
-                    {isCompanyLevel
-                      ? `${departments.length} departments`
-                      : `${users.filter((u) => u.role === "OPERATOR").length} operators`}
-                  </p>
                 </div>
               </div>
 
@@ -2425,85 +2551,113 @@ function DashboardContent() {
                   </div>
                 )}
 
-                {/* Grievance Status Donut */}
+                {/* Grievance Status Donut - Updated Palette */}
                 {hasModule(Module.GRIEVANCE) && (
-                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                    <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
-                      <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
-                        <PieChartIcon className="w-4 h-4 text-purple-600" />
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-bold text-slate-800">
-                          Status Breakdown
-                        </h3>
-                        <p className="text-[10px] text-slate-400">
-                          Current distribution
-                        </p>
+                  <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden flex flex-col">
+                    <div className="px-6 py-5 border-b border-slate-50 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 bg-purple-50 rounded-xl flex items-center justify-center border border-purple-100/50">
+                          <PieChartIcon className="w-4.5 h-4.5 text-purple-600" />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">
+                            Operational Status
+                          </h3>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
+                            Real-time efficiency
+                          </p>
+                        </div>
                       </div>
                     </div>
-                    <div className="p-5">
+                    <div className="p-6 flex-1 flex flex-col justify-between">
                       {(() => {
                         const chart = [
                           {
                             name: "Pending",
                             value: stats?.grievances.pending || 0,
                             color: "#f59e0b",
+                            subText: "Awaiting assignment",
                           },
                           {
                             name: "In Progress",
-                            value: stats?.grievances.inProgress || 0,
+                            value: stats?.grievances.assigned || stats?.grievances.inProgress || 0,
                             color: "#6366f1",
+                            subText: "Active resolution",
                           },
                           {
                             name: "Resolved",
                             value: stats?.grievances.resolved || 0,
                             color: "#10b981",
+                            subText: "Completed cases",
                           },
                         ].filter((d) => d.value > 0);
                         return chart.length > 0 ? (
                           <>
-                            <ResponsiveContainer width="100%" height={160}>
-                              <PieChart>
-                                <Pie
-                                  data={chart}
-                                  cx="50%"
-                                  cy="50%"
-                                  innerRadius={45}
-                                  outerRadius={70}
-                                  paddingAngle={4}
-                                  dataKey="value"
-                                >
-                                  {chart.map((entry, i) => (
-                                    <Cell key={i} fill={entry.color} />
-                                  ))}
-                                </Pie>
-                                <Tooltip
-                                  contentStyle={{
-                                    borderRadius: "12px",
-                                    border: "1px solid #e2e8f0",
-                                    fontSize: "12px",
-                                  }}
-                                />
-                              </PieChart>
-                            </ResponsiveContainer>
-                            <div className="space-y-2 mt-2">
+                            <div className="relative h-[180px]">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                  <Pie
+                                    data={chart}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={55}
+                                    outerRadius={80}
+                                    paddingAngle={8}
+                                    dataKey="value"
+                                    strokeWidth={0}
+                                  >
+                                    {chart.map((entry, i) => (
+                                      <Cell 
+                                        key={i} 
+                                        fill={entry.color} 
+                                        className="outline-none hover:opacity-80 transition-opacity"
+                                      />
+                                    ))}
+                                  </Pie>
+                                  <Tooltip
+                                    contentStyle={{
+                                      borderRadius: "16px",
+                                      border: "none",
+                                      boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+                                      fontSize: "12px",
+                                      fontWeight: "bold",
+                                    }}
+                                  />
+                                </PieChart>
+                              </ResponsiveContainer>
+                              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                <span className="text-2xl font-black text-slate-900 tracking-tighter">
+                                  {stats?.grievances.total || 0}
+                                </span>
+                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total</span>
+                              </div>
+                            </div>
+                            <div className="space-y-3 mt-6">
                               {chart.map((d, i) => (
                                 <div
                                   key={i}
-                                  className="flex items-center justify-between"
+                                  className="group flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors"
                                 >
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-3">
                                     <span
-                                      className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                                      className="w-2.5 h-2.5 rounded-full shadow-sm"
                                       style={{ backgroundColor: d.color }}
                                     ></span>
-                                    <span className="text-xs text-slate-600">
-                                      {d.name}
-                                    </span>
+                                    <div>
+                                      <p className="text-[11px] font-black text-slate-700 uppercase tracking-tighter">
+                                        {d.name}
+                                      </p>
+                                      <p className="text-[9px] text-slate-400 group-hover:text-slate-500 transition-colors">{d.subText}</p>
+                                    </div>
                                   </div>
-                                  <span className="text-xs font-bold text-slate-800">
-                                    {d.value}
-                                  </span>
+                                  <div className="text-right">
+                                    <p className="text-xs font-black text-slate-900">
+                                      {d.value}
+                                    </p>
+                                    <p className="text-[9px] font-bold text-slate-400">
+                                      {((d.value / (stats?.grievances.total || 1)) * 100).toFixed(0)}%
+                                    </p>
+                                  </div>
                                 </div>
                               ))}
                             </div>
@@ -2519,8 +2673,62 @@ function DashboardContent() {
                 )}
               </div>
 
-              {/* Second Charts Row */}
+
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* High Grievance Departments */}
+                {isCompanyLevel && departmentData && departmentData.length > 0 && (
+                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                    <div className="px-6 py-5 border-b border-slate-50 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 bg-rose-50 rounded-xl flex items-center justify-center border border-rose-100/50">
+                          <Building className="w-4.5 h-4.5 text-rose-600" />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">
+                            High Grievance Departments
+                          </h3>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
+                            Grievance Distribution
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-6">
+                      <ResponsiveContainer width="100%" height={250}>
+                        <BarChart
+                          data={departmentData.slice(0, 5)}
+                          layout="vertical"
+                          margin={{ left: 20, right: 30, top: 0, bottom: 0 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
+                          <XAxis type="number" hide />
+                          <YAxis
+                            dataKey="departmentName"
+                            type="category"
+                            tick={{ fontSize: 10, fontWeight: "bold", fill: "#64748b" }}
+                            width={100}
+                          />
+                          <Tooltip
+                            cursor={{ fill: "#f8fafc" }}
+                            contentStyle={{
+                              borderRadius: "12px",
+                              border: "none",
+                              boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+                            }}
+                          />
+                          <Bar
+                            dataKey="count"
+                            fill="#ef4444"
+                            radius={[0, 4, 4, 0]}
+                            barSize={20}
+                            name="Total Grievances"
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                )}
+
                 {/* Appointments by Status - Company Admin only */}
                 {hasModule(Module.APPOINTMENT) && isCompanyLevel && (
                   <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -3632,11 +3840,12 @@ function DashboardContent() {
                         onChange={(e) => setUserFilters(prev => ({ ...prev, role: e.target.value }))}
                         className="text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all"
                       >
-                        <option value="">All Roles</option>
-                        <option value="DEPARTMENT_ADMIN">Dept Admin</option>
-                        <option value="SUB_DEPARTMENT_ADMIN">Sub-Dept Admin</option>
-                        <option value="OFFICER">Officer</option>
-                      </select>
+                                     <option value="">All Roles</option>
+                         {roles.map(r => (
+                           <option key={r._id} value={`CUSTOM:${r._id}`}>{r.name}</option>
+                         ))}
+                         {isSuperAdmin && <option value="SUPER_ADMIN">Super Admin</option>}
+                       </select>
                       <select
                         value={userFilters.status}
                         onChange={(e) => setUserFilters(prev => ({ ...prev, status: e.target.value }))}
@@ -5106,13 +5315,23 @@ function DashboardContent() {
                                       if (suggestedDeptId || suggestedSubDeptId) {
                                         const suggestedDept = departments.find(d => d._id === (suggestedSubDeptId || suggestedDeptId));
                                         return (
-                                          <div className="mt-2 pt-2 border-t border-slate-100">
-                                            <span className="text-[10px] text-rose-500 font-black uppercase tracking-tight mb-0.5 flex items-center gap-1">
-                                              <ArrowRight className="w-2.5 h-2.5" /> Suggested Dept
-                                            </span>
-                                            <span className="text-xs font-bold text-slate-900 bg-rose-50 px-2 py-0.5 rounded border border-rose-100">
-                                              {suggestedDept?.name || "Unknown Department"}
-                                            </span>
+                                          <div className="mt-2 group/suggested">
+                                            <div className="flex items-center gap-1 text-[9px] text-rose-500 font-black uppercase tracking-widest mb-1 opacity-70">
+                                              <ArrowRightCircle className="w-2.5 h-2.5" /> Proposed Destination
+                                            </div>
+                                            <div className="flex items-center gap-2 bg-rose-50/50 border border-rose-100 rounded-lg p-2 transition-all group-hover/suggested:bg-rose-50">
+                                              <div className="w-6 h-6 bg-rose-100 rounded-md flex items-center justify-center text-rose-600">
+                                                <Building2 className="w-3.5 h-3.5" />
+                                              </div>
+                                              <div className="flex flex-col">
+                                                <span className="text-xs font-bold text-slate-900 leading-none">
+                                                  {suggestedDept?.name || "Target Department"}
+                                                </span>
+                                                <span className="text-[9px] font-bold text-rose-500 uppercase mt-0.5 tracking-tighter">
+                                                  Recommended by Admin
+                                                </span>
+                                              </div>
+                                            </div>
                                           </div>
                                         );
                                       }

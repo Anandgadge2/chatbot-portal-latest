@@ -186,12 +186,22 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
   };
 
   const getAllPossibleRoles = () => {
+    const options: { value: string; label: string }[] = [];
+
+    // Add ONLY custom roles created for this company
     const customRoleOptions = customRoles.map((r) => ({
       value: `CUSTOM:${r._id}`,
       label: r.name,
     }));
 
-    return customRoleOptions;
+    options.push(...customRoleOptions);
+
+    // Keep system-level Super Admin role available for Super Admins
+    if (currentUser?.role === "SUPER_ADMIN") {
+      options.push({ value: "SUPER_ADMIN", label: "Super Admin" });
+    }
+
+    return options;
   };
 
   if (!user) return null;
