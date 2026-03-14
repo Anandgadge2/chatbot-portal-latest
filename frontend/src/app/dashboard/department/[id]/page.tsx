@@ -470,52 +470,24 @@ export default function DepartmentDetail() {
                   </div>
                 )}
 
-              {/* Resolution Rate */}
-              <div className="bg-white rounded-xl border border-slate-200/60 shadow-sm hover:shadow-md transition-all group p-4 cursor-pointer" onClick={() => { setActiveTab("grievances"); setStatusFilter("RESOLVED"); }}>
+              {/* Total Staff (Company Level) */}
+              <div className="bg-white rounded-xl border border-slate-200/60 shadow-sm hover:shadow-md transition-all group p-4 cursor-pointer" onClick={() => setActiveTab("users")}>
                 <div className="flex items-center justify-between mb-3">
-                  <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform">
-                    <CheckCircle className="w-4 h-4" />
+                  <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center text-purple-600 group-hover:scale-110 transition-transform">
+                    <Users className="w-4 h-4" />
                   </div>
-                  <span
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${resolutionRate >= 70 ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"}`}
-                  >
-                    {resolutionRate >= 70 ? "Good" : "Needs Work"}
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-600">
+                    Staff
                   </span>
                 </div>
-                <p
-                  className={`text-2xl font-black tracking-tighter ${resolutionRate >= 70 ? "text-emerald-600" : "text-amber-600"}`}
-                >
-                  {resolutionRate}%
+                <p className="text-2xl font-black text-slate-900 tracking-tighter">
+                  {stats.totalUsers}
                 </p>
                 <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">
-                  Resolution Rate
-                </p>
-                <div className="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-emerald-500 rounded-full transition-all"
-                    style={{ width: `${resolutionRate}%` }}
-                  ></div>
-                </div>
-              </div>
-
-              {/* Resolved */}
-              <div className="bg-white rounded-xl border border-slate-200/60 shadow-sm hover:shadow-md transition-all group p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="w-8 h-8 bg-teal-50 rounded-lg flex items-center justify-center text-teal-600 group-hover:scale-110 transition-transform">
-                    <Shield className="w-4 h-4" />
-                  </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-50 text-teal-600">
-                    Done
-                  </span>
-                </div>
-                <p className="text-2xl font-black text-teal-600 tracking-tighter">
-                  {stats.resolvedGrievances}
-                </p>
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">
-                  Resolved
+                  Active Personnel
                 </p>
                 <p className="text-[10px] text-slate-400 mt-0.5">
-                  of {stats.totalGrievances} total
+                  Click to view →
                 </p>
               </div>
             </div>
@@ -761,13 +733,7 @@ export default function DepartmentDetail() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Link
-                        href="/resolved-grievances"
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all text-[10px] font-bold uppercase tracking-widest"
-                      >
-                        <CheckCircle className="w-3.5 h-3.5" />
-                        View Resolved
-                      </Link>
+
                       <button
                         onClick={() =>
                           exportToCSV(filteredGrievances, "grievances")
@@ -1035,22 +1001,6 @@ export default function DepartmentDetail() {
                 </p>
                 <p className="text-xs font-semibold text-slate-500 mt-1">
                   Pending
-                </p>
-              </div>
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 cursor-pointer" onClick={() => { setActiveTab("grievances"); setStatusFilter("RESOLVED"); }}>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="w-9 h-9 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600">
-                    <CheckCircle className="w-4 h-4" />
-                  </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600">
-                    {resolutionRate}%
-                  </span>
-                </div>
-                <p className="text-2xl font-black text-emerald-600 tracking-tighter">
-                  {stats.resolvedGrievances}
-                </p>
-                <p className="text-xs font-semibold text-slate-500 mt-1">
-                  Resolved
                 </p>
               </div>
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 cursor-pointer" onClick={() => setActiveTab("users")}>

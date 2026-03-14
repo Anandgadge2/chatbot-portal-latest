@@ -75,11 +75,7 @@ export default function AppointmentsPage() {
       setLoading(true);
       const response = await appointmentAPI.getAll();
       if (response.success) {
-        // Filter out COMPLETED appointments - they should be on the completed appointments page
-        const activeAppointments = response.data.appointments.filter(
-          (a: Appointment) => a.status !== "COMPLETED",
-        );
-        setAppointments(activeAppointments);
+        setAppointments(response.data.appointments);
       }
     } catch (error) {
       toast.error("Failed to load appointments");
@@ -261,13 +257,7 @@ export default function AppointmentsPage() {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <Link
-                href="/completed-appointments"
-                className="flex items-center gap-2 px-4 py-2.5 bg-white/20 hover:bg-white/30 text-white rounded-xl transition-all border border-white/30 backdrop-blur-sm font-medium"
-              >
-                <CheckCircle className="w-5 h-5" />
-                Completed Appointments
-              </Link>
+
               <button
                 onClick={() => router.back()}
                 className="flex items-center gap-2 px-4 py-2.5 bg-white/10 text-white rounded-xl hover:bg-white/20 transition-all border border-white/30 backdrop-blur-sm"

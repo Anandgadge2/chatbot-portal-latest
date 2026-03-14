@@ -74,23 +74,44 @@ router.get('/', requirePermission(Permission.READ_DEPARTMENT), async (req: Reque
       departmentId: { $in: deptIds },
       $or: [
         { customRoleId: { $in: adminRoleIds } },
-        { role: { $in: adminRoleNames } }
+        { role: { $in: [...adminRoleNames, 'DEPARTMENT_ADMIN', 'SUB_DEPARTMENT_ADMIN', 'DEPARTMENT ADMIN', 'SUB DEPARTMENT ADMIN'] } }
       ]
     }).select('firstName lastName email phone departmentId');
 
-    const departmentsWithHead = departments.map(d => {
+    // 3. Get accurate user counts for each department
+    const userCounts = await User.aggregate([
+      { 
+        $match: { 
+          companyId: user.companyId || { $exists: true }, 
+          departmentId: { $in: deptIds }
+        } 
+      },
+      { $group: { _id: '$departmentId', count: { $sum: 1 } } }
+    ]);
+
+      const departmentsWithHead = departments.map(d => {
       const admin = admins.find(a => a.departmentId?.toString() === d._id.toString());
-      const deptObj = d.toObject();
+      const countInfo = userCounts.find(c => c._id?.toString() === d._id.toString());
+      const deptObj: any = (d as any).toObject();
       
-      // If an admin is found, override the static contact fields
+      // Attach the actual user count
+      deptObj.userCount = countInfo ? countInfo.count : 0;
+      
+      // If an admin is found, set head info
       if (admin) {
-        deptObj.contactPerson = `${admin.firstName} ${admin.lastName}`;
+        const fullName = `${admin.firstName} ${admin.lastName}`;
+        deptObj.head = fullName;
+        deptObj.headName = fullName; // legacy
+        deptObj.headEmail = admin.email;
+        deptObj.headPhone = admin.phone;
+        // Also update contactPerson/Email for broader compatibility
+        deptObj.contactPerson = fullName;
         deptObj.contactEmail = admin.email;
         deptObj.contactPhone = admin.phone;
       }
       
       return deptObj;
-    });
+    }) as any[];
 
     const total = await Department.countDocuments(query);
 
@@ -250,9 +271,15 @@ router.get('/:id', requirePermission(Permission.READ_DEPARTMENT), async (req: Re
       ]
     }).select('firstName lastName email phone');
 
-    const deptObj = department.toObject();
+    const deptObj: any = department.toObject();
     if (admin) {
-      deptObj.contactPerson = `${admin.firstName} ${admin.lastName}`;
+      const fullName = `${admin.firstName} ${admin.lastName}`;
+      deptObj.head = fullName;
+      deptObj.headName = fullName; // legacy
+      deptObj.headEmail = admin.email;
+      deptObj.headPhone = admin.phone;
+      // Also update contactPerson/Email for broader compatibility
+      deptObj.contactPerson = fullName;
       deptObj.contactEmail = admin.email;
       deptObj.contactPhone = admin.phone;
     }

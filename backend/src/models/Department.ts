@@ -22,6 +22,7 @@ export interface IDepartment extends Document {
   contactEmail?: string;
   contactPhone?: string;
   isActive: boolean;
+  userCount?: number; // 🏢 Added for display in department list
   createdAt: Date;
   updatedAt: Date;
 }

@@ -51,7 +51,10 @@ export enum Permission {
   MANAGE_SETTINGS = 'MANAGE_SETTINGS',
   
   // Recovery
-  RECOVER_DELETED = 'RECOVER_DELETED'
+  RECOVER_DELETED = 'RECOVER_DELETED',
+  
+  // New Permissions
+  REVERT_GRIEVANCE = 'REVERT_GRIEVANCE'
 }
 
 export const UserRole = {
@@ -102,6 +105,7 @@ export const LEGACY_TO_DYNAMIC: Record<string, { module: string; action: string 
   'DELETE_GRIEVANCE': { module: 'GRIEVANCE', action: 'delete' },
   'ASSIGN_GRIEVANCE': { module: 'GRIEVANCE', action: 'assign' },
   'STATUS_CHANGE_GRIEVANCE': { module: 'GRIEVANCE', action: 'status_change' },
+  'REVERT_GRIEVANCE': { module: 'GRIEVANCE', action: 'revert' },
   
   'READ_APPOINTMENT': { module: 'APPOINTMENT', action: 'view' },
   'CREATE_APPOINTMENT': { module: 'APPOINTMENT', action: 'create' },

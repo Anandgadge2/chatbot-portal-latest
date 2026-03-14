@@ -45,11 +45,16 @@ router.get('/', requirePermission(Permission.READ_GRIEVANCE), async (req: Reques
             { subDepartmentId: currentUser.departmentId }
           ];
         }
+      } else if (status === GrievanceStatus.REVERTED) {
+          // For Company Admin (who has no departmentId), 
+          // they should see REVERTED grievances that have no departmentId (reverted to them)
+          query.status = GrievanceStatus.REVERTED;
+          query.departmentId = null;
       }
     }
 
     // Apply filters
-    if (status) query.status = status;
+    if (status && !query.status) query.status = status;
     if (departmentId) query.departmentId = departmentId;
     if (assignedTo) query.assignedTo = assignedTo;
     if (priority) query.priority = priority;
@@ -206,7 +211,7 @@ router.post('/', async (req: Request, res: Response) => {
 // @route   PUT /api/grievances/:id/revert
 // @desc    Revert a wrongly assigned grievance back to company admin for reassignment
 // @access  Department/Sub-department admins and operators
-router.put('/:id/revert', requirePermission(Permission.UPDATE_GRIEVANCE), async (req: Request, res: Response) => {
+router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async (req: Request, res: Response) => {
   try {
     const currentUser = req.user!;
     const { remarks, suggestedDepartmentId, suggestedAssigneeId } = req.body;

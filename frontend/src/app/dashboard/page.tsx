@@ -647,25 +647,12 @@ function DashboardContent() {
             pages: isCompanyLevel ? 1 : response.data.pagination.pages,
           }));
 
-          // Fetch user counts per department (company admin only)
-          if (isCompanyLevel && filteredDepartments.length > 0) {
-            try {
-              const userRes = await userAPI.getAll({ limit: 1000 });
-              if (userRes.success) {
-                const counts: Record<string, number> = {};
-                for (const u of userRes.data.users) {
-                  const dId =
-                    typeof u.departmentId === "object" && u.departmentId
-                      ? (u.departmentId as any)._id
-                      : u.departmentId;
-                  if (dId) counts[dId] = (counts[dId] || 0) + 1;
-                }
-                setDeptUserCounts(counts);
-              }
-            } catch {
-              // user count fetch failed silently
-            }
-          }
+          // Set user counts from enriched data
+          const counts: Record<string, number> = {};
+          filteredDepartments.forEach((dept: any) => {
+            counts[dept._id] = dept.userCount || 0;
+          });
+          setDeptUserCounts(counts);
         }
       } catch (error: any) {
         console.error("Failed to fetch departments:", error);
@@ -1415,9 +1402,6 @@ function DashboardContent() {
             if (activeTab !== value) {
               setPreviousTab(activeTab);
             }
-            if (value === "reverted") {
-              setGrievanceFilters((prev) => ({ ...prev, status: "REVERTED" }));
-            }
             setActiveTab(value);
           }}
           className="space-y-4 sm:space-y-6"
@@ -1453,14 +1437,7 @@ function DashboardContent() {
                   </TabsTrigger>
                 )}
 
-              {isCompanyLevel && hasModule(Module.GRIEVANCE) && hasPermission(user, Permission.READ_GRIEVANCE) && (
-                <TabsTrigger
-                  value="reverted"
-                  className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-amber-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
-                >
-                  Reverted
-                </TabsTrigger>
-              )}
+
 
               {(isCompanyLevel || isDepartmentLevel) && hasModule(Module.APPOINTMENT) &&
                 hasPermission(user, Permission.READ_APPOINTMENT) && (
@@ -3038,10 +3015,10 @@ function DashboardContent() {
                         <table className="w-full relative border-collapse min-w-[900px]">
                           <thead className="sticky top-0 z-20 bg-[#fcfdfe] border-b border-slate-200">
                             <tr>
-                              <th className="px-3 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest w-12">
+                              <th className="px-3 py-3 text-center text-[9px] font-black text-slate-400 border-b border-slate-100 uppercase tracking-widest w-12">
                                 Sr.
                               </th>
-                              <th className="px-4 py-3 text-left">
+                              <th className="px-4 py-3 text-left border-b border-slate-100">
                                 <button
                                   onClick={() =>
                                     handleSort("name", "departments")
@@ -3054,22 +3031,22 @@ function DashboardContent() {
                                   />
                                 </button>
                               </th>
-                              <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                              <th className="px-4 py-3 text-left border-b border-slate-100 text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                 Dept ID
                               </th>
-                              <th className="px-4 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                              <th className="px-4 py-3 text-center border-b border-slate-100 text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                 Type
                               </th>
-                              <th className="px-4 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                              <th className="px-4 py-3 text-center border-b border-slate-100 text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                 Users
                               </th>
-                              <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                              <th className="px-4 py-3 text-left border-b border-slate-100 text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                 Head / Contact
                               </th>
-                              <th className="px-4 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                              <th className="px-4 py-3 text-center border-b border-slate-100 text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                 Status
                               </th>
-                              <th className="px-4 py-3 text-right text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                              <th className="px-4 py-3 text-right border-b border-slate-100 text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                 Actions
                               </th>
                             </tr>
@@ -3077,7 +3054,7 @@ function DashboardContent() {
                           <tbody className="divide-y divide-slate-100 bg-white">
                             {getSortedData(departments, "departments").map((dept, index) => {
                               const isMain = !dept.parentDepartmentId;
-                              const userCount = deptUserCounts[dept._id] || 0;
+                              const userCount = dept.userCount || deptUserCounts[dept._id] || 0;
                               const parentName =
                                 typeof dept.parentDepartmentId === "object" &&
                                 dept.parentDepartmentId
@@ -3140,14 +3117,14 @@ function DashboardContent() {
                                   </td>
 
                                   {/* Dept ID */}
-                                  <td className="px-4 py-4 whitespace-nowrap">
+                                  <td className="px-4 py-4 whitespace-normal break-all">
                                     <span className="text-[10px] font-mono bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border border-gray-200 uppercase">
                                       {dept.departmentId}
                                     </span>
                                   </td>
 
                                   {/* Type */}
-                                  <td className="px-4 py-4 text-center whitespace-nowrap">
+                                  <td className="px-4 py-4 text-center whitespace-normal">
                                     {isMain ? (
                                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-100">
                                         <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
@@ -3163,12 +3140,12 @@ function DashboardContent() {
 
                                   {/* User Count */}
                                   <td className="px-4 py-4 text-center">
-                                    <div className="inline-flex items-center gap-1.5">
-                                      <div
-                                        className={`w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-black transition-all ${
+                                    <div className="inline-flex items-center justify-center">
+                                      <button
+                                        className={`min-w-[32px] h-8 px-2 rounded-xl flex items-center justify-center text-xs font-black transition-all shadow-sm border ${
                                           userCount > 0
-                                            ? "bg-emerald-50 text-emerald-700 border border-emerald-100 cursor-pointer hover:bg-emerald-100 hover:scale-110 active:scale-95 shadow-sm"
-                                            : "bg-slate-50 text-slate-400 border border-slate-200"
+                                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:scale-105 active:scale-95"
+                                            : "bg-slate-50 text-slate-400 border-slate-200"
                                         }`}
                                         onClick={() => {
                                           if (userCount > 0) {
@@ -3185,29 +3162,34 @@ function DashboardContent() {
                                             : "No users in this department"
                                         }
                                       >
+                                        <Users className={`w-3 h-3 mr-1.5 ${userCount > 0 ? "text-emerald-500" : "text-slate-300"}`} />
                                         {userCount}
-                                      </div>
+                                      </button>
                                     </div>
                                   </td>
 
                                   {/* Head / Contact */}
-                                  <td className="px-4 py-4">
-                                    <div className="text-xs font-bold text-slate-700 uppercase">
-                                      {dept.contactPerson || (
-                                        <span className="text-slate-300 font-medium">
-                                          Not assigned
-                                        </span>
+                                  <td className="px-4 py-4 whitespace-normal break-words">
+                                    <div className="flex flex-col gap-1 min-w-[120px]">
+                                      <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5 uppercase tracking-tight">
+                                        <UserIcon className="w-3 h-3 text-slate-400 shrink-0" />
+                                        {dept.head || (dept as any).headName || dept.contactPerson || (
+                                          <span className="text-slate-300 font-medium">
+                                            Not assigned
+                                          </span>
+                                        )}
+                                      </div>
+                                      {(dept.headEmail || dept.contactEmail) && (
+                                        <div className="text-[10px] text-indigo-500 flex items-center gap-1.5 font-bold hover:underline cursor-pointer transition-colors px-1 break-all">
+                                          <Mail className="w-3 h-3 text-indigo-300 shrink-0" />
+                                          {dept.headEmail || dept.contactEmail}
+                                        </div>
                                       )}
                                     </div>
-                                    {dept.contactEmail && (
-                                      <div className="text-[10px] text-slate-400 mt-0.5 font-medium">
-                                        {dept.contactEmail}
-                                      </div>
-                                    )}
                                   </td>
 
                                   {/* Status */}
-                                  <td className="px-4 py-4 text-center whitespace-nowrap">
+                                  <td className="px-4 py-4 text-center whitespace-normal">
                                     <div className="flex items-center justify-center gap-2">
                                       <button
                                         onClick={() => {
@@ -3278,8 +3260,8 @@ function DashboardContent() {
                                   </td>
 
                                   {/* Actions */}
-                                  <td className="px-4 py-4 whitespace-nowrap text-right">
-                                    <div className="flex justify-end items-center gap-1 transition-opacity">
+                                  <td className="px-4 py-4 whitespace-normal text-right">
+                                    <div className="flex justify-end items-center gap-1">
                                       <Button
                                         variant="ghost"
                                         size="sm"
@@ -3646,13 +3628,13 @@ function DashboardContent() {
                   ) : (
                     <div className="overflow-hidden">
                       <div className="overflow-x-auto custom-scrollbar">
-                        <table className="w-full relative border-collapse min-w-[1200px]">
+                        <table className="w-full relative border-collapse table-fixed">
                           <thead className="bg-[#fcfdfe] border-b border-slate-200">
                             <tr>
-                              <th className="px-3 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                              <th className="px-3 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest w-[5%]">
                                 Sr.
                               </th>
-                              <th className="px-6 py-3 text-left min-w-[200px]">
+                              <th className="px-6 py-3 text-left w-[25%]">
                                 <button
                                   onClick={() =>
                                     handleSort("firstName", "users")
@@ -3665,7 +3647,7 @@ function DashboardContent() {
                                   />
                                 </button>
                               </th>
-                              <th className="px-6 py-3 text-left min-w-[220px]">
+                              <th className="px-5 py-3 text-left">
                                 <button
                                   onClick={() => handleSort("email", "users")}
                                   className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
@@ -3676,7 +3658,7 @@ function DashboardContent() {
                                   />
                                 </button>
                               </th>
-                              <th className="px-6 py-3 text-left min-w-[200px]">
+                              <th className="px-6 py-3 text-left">
                                 <button
                                   onClick={() => handleSort("role", "users")}
                                   className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
@@ -3687,7 +3669,7 @@ function DashboardContent() {
                                   />
                                 </button>
                               </th>
-                              <th className="px-6 py-3 text-left min-w-[180px]">
+                              <th className="px-6 py-3 text-left">
                                 <button
                                   onClick={() =>
                                     handleSort("isActive", "users")
@@ -3700,7 +3682,7 @@ function DashboardContent() {
                                   />
                                 </button>
                               </th>
-                              <th className="px-6 py-3 text-right text-[9px] font-black text-slate-400 uppercase tracking-widest min-w-[140px] sticky right-0 bg-[#fcfdfe]">
+                              <th className="px-6 py-3 text-right text-[9px] font-black text-slate-400 border-b border-slate-100 uppercase tracking-widest">
                                 Actions
                               </th>
                             </tr>
@@ -3719,7 +3701,7 @@ function DashboardContent() {
                                         1}
                                     </span>
                                   </td>
-                                  <td className="px-6 py-5 whitespace-nowrap">
+                                  <td className="px-4 py-5">
                                     <div className="flex items-center">
                                       <div className="relative">
                                         <div className="flex-shrink-0 h-12 w-12 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-full flex items-center justify-center text-white text-base font-bold shadow-sm border-2 border-white ring-1 ring-gray-100">
@@ -3730,7 +3712,7 @@ function DashboardContent() {
                                           className={`absolute bottom-0 right-0 h-3.5 w-3.5 border-2 border-white rounded-full shadow-sm ${u.isActive ? "bg-green-500" : "bg-gray-300"}`}
                                         ></div>
                                       </div>
-                                      <div className="ml-4">
+                                      <div className="ml-3 min-w-0">
                                         <button
                                           onClick={async () => {
                                             try {
@@ -3748,27 +3730,27 @@ function DashboardContent() {
                                               );
                                             }
                                           }}
-                                          className="text-sm font-bold text-gray-900 leading-tight hover:text-blue-600 hover:underline text-left"
+                                          className="text-sm font-bold text-slate-900 leading-snug hover:text-blue-600 hover:underline text-left whitespace-normal block w-full"
                                         >
                                           {u.firstName} {u.lastName}
                                         </button>
                                         <div className="mt-1 flex flex-col gap-1">
                                           {u.designation && (
-                                            <span className="text-[10px] font-semibold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100 uppercase tracking-wider w-fit">
+                                            <span className="text-[9px] font-bold text-indigo-600 bg-indigo-50/80 px-2 py-0.5 rounded-md border border-indigo-100/50 uppercase tracking-wider w-fit shadow-sm">
                                               {u.designation}
                                             </span>
                                           )}
-                                          <span className="text-[10px] font-mono bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border border-gray-200 uppercase tracking-tighter w-fit">
+                                          <span className="text-[8px] font-black bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded border border-slate-200 uppercase tracking-widest w-fit">
                                             ID: {u.userId}
                                           </span>
                                         </div>
                                       </div>
                                     </div>
                                   </td>
-                                  <td className="px-6 py-5 whitespace-nowrap">
+                                  <td className="px-4 py-5">
                                     <div className="flex flex-col space-y-1.5">
-                                      <div className="flex items-center text-sm text-blue-600 font-medium">
-                                        <Mail className="w-3.5 h-3.5 mr-2 text-blue-400" />
+                                      <div className="flex items-center text-sm text-blue-600 font-medium break-all">
+                                        <Mail className="w-3.5 h-3.5 mr-2 text-blue-400 shrink-0" />
                                         {u.email}
                                       </div>
                                       {u.phone && (
@@ -3805,7 +3787,7 @@ function DashboardContent() {
                                   )}
                                 </div>
                                   </td>
-                                  <td className="px-6 py-5 whitespace-nowrap">
+                                  <td className="px-4 py-5">
                                     <div className="flex flex-col space-y-2">
                                       <div className="flex">
                                         <span
@@ -3861,9 +3843,9 @@ function DashboardContent() {
                                                           ).replace(/_/g, " ")}
                                         </span>
                                       </div>
-                                      <div className="flex flex-col gap-1 ml-1">
-                                        <div className="flex items-center text-xs text-slate-600 font-bold group-hover/row:text-indigo-900 transition-colors">
-                                          <Building className="w-3.5 h-3.5 mr-1.5 text-slate-400 group-hover/row:text-indigo-400 transition-colors" />
+                                      <div className="flex flex-col gap-1">
+                                        <div className="flex items-start text-[11px] text-slate-600 font-bold group-hover/row:text-indigo-900 transition-colors whitespace-normal break-words">
+                                          <Building className="w-3.5 h-3.5 mr-1.5 text-slate-400 group-hover/row:text-indigo-400 transition-colors shrink-0 mt-0.5" />
                                           {typeof u.departmentId === "object" &&
                                           u.departmentId
                                             ? u.departmentId.name
@@ -3905,7 +3887,7 @@ function DashboardContent() {
                                       </div>
                                     </div>
                                   </td>
-                                  <td className="px-6 py-5 whitespace-nowrap">
+                                  <td className="px-4 py-5">
                                     <div className="flex flex-col space-y-2.5">
                                       <div className="flex items-center">
                                         <div
@@ -3959,7 +3941,7 @@ function DashboardContent() {
                                       </div>
                                     </div>
                                   </td>
-                                  <td className="px-6 py-5 whitespace-nowrap text-right sticky right-0 bg-white group-hover/row:bg-slate-50/50">
+                                  <td className="px-4 py-5 whitespace-normal text-right">
                                     <div className="flex justify-end items-center gap-1.5">
                                       {hasPermission(
                                         user,
@@ -4118,9 +4100,7 @@ function DashboardContent() {
                         </div>
                         <div>
                           <CardTitle className="text-base font-bold text-white">
-                            {grievanceFilters.status === "RESOLVED"
-                              ? "Resolved Grievances"
-                              : grievanceFilters.status === "REJECTED"
+                            {grievanceFilters.status === "REJECTED"
                                 ? "Rejected Grievances"
                                 : grievanceFilters.status === "CLOSED"
                                   ? "Closed Grievances"
@@ -4129,9 +4109,7 @@ function DashboardContent() {
                                     : "Active Grievances"}
                           </CardTitle>
                           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-                            {grievanceFilters.status === "RESOLVED"
-                              ? "View all resolved grievances"
-                              : grievanceFilters.status === "REJECTED"
+                            {grievanceFilters.status === "REJECTED"
                                 ? "View all rejected grievances"
                                 : grievanceFilters.status === "CLOSED"
                                   ? "View all closed grievances"
@@ -4140,21 +4118,6 @@ function DashboardContent() {
                                     : "View and manage grievances"}
                           </p>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setGrievanceFilters((prev) => ({ ...prev, status: 'REVERTED' }))}
-                          className="flex items-center gap-2 px-4 h-8 bg-amber-500/20 text-amber-100 rounded-lg hover:bg-amber-500/30 transition-all border border-amber-400/30 text-[10px] font-bold uppercase tracking-wider"
-                        >
-                          ↩ Reverted
-                        </button>
-                        <Link
-                          href="/resolved-grievances"
-                          className="flex items-center gap-2 px-4 h-8 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-all border border-white/20 text-[10px] font-bold uppercase tracking-wider"
-                        >
-                          <CheckCircle className="w-3.5 h-3.5" />
-                          View Resolved
-                        </Link>
                       </div>
                     </div>
                   </CardHeader>
@@ -4280,28 +4243,6 @@ function DashboardContent() {
                       >
                         <option value="">🏢 Sub Dept</option>
                         {grievanceFilters.mainDeptId && departments.filter(d => d.parentDepartmentId === grievanceFilters.mainDeptId).map((dept) => (
-                          <option key={dept._id} value={dept._id}>
-                            {dept.name}
-                          </option>
-                        ))}
-                      </select>
-
-                      {/* Old Department Filter (Optional, keep for backward compatibility or remove) */}
-                      <select
-                        value={grievanceFilters.department}
-                        onChange={(e) =>
-                          setGrievanceFilters((prev) => ({
-                            ...prev,
-                            department: e.target.value,
-                            mainDeptId: "", // reset new filters
-                            subDeptId: "",
-                          }))
-                        }
-                        className="text-xs px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer max-w-[150px]"
-                        title="Filter by specific department"
-                      >
-                        <option value="">🏢 Specific Dept</option>
-                        {departments.map((dept) => (
                           <option key={dept._id} value={dept._id}>
                             {dept.name}
                           </option>
@@ -4898,72 +4839,7 @@ function DashboardContent() {
             )}
 
 
-          {isCompanyLevel && hasModule(Module.GRIEVANCE) && hasPermission(user, Permission.READ_GRIEVANCE) && (
-            <TabsContent value="reverted" className="space-y-6">
-              <Card className="rounded-xl border border-amber-200 shadow-sm overflow-hidden bg-white">
-                <CardHeader className="bg-amber-600 px-6 py-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-base font-bold text-white">Reverted Grievances</CardTitle>
-                      <p className="text-[10px] text-amber-100 font-bold uppercase tracking-widest mt-0.5">Reassign grievances reverted by departments</p>
-                    </div>
-                    <Button size="sm" variant="outline" className="bg-white text-amber-700 border-white" onClick={() => { setActiveTab("grievances"); setGrievanceFilters((prev)=>({ ...prev, status: "REVERTED" })); }}>
-                      Open Full Grievance View
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-slate-50 border-b border-slate-100">
-                        <tr>
-                          <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">ID</th>
-                          <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">Citizen</th>
-                          <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">Remarks</th>
-                          <th className="px-4 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {grievances.filter((g) => g.status === "REVERTED").map((grievance) => {
-                          const lastRevert = grievance.timeline?.slice().reverse().find((t) => t.action === "REVERTED_TO_COMPANY_ADMIN");
-                          return (
-                            <tr key={grievance._id} className="hover:bg-amber-50/30">
-                              <td className="px-4 py-3 text-xs font-black text-amber-700"><button
-                                  onClick={() => openGrievanceDetail(grievance._id)}
-                                  className="text-xs font-black text-amber-700 hover:text-amber-800 hover:underline"
-                                >
-                                  {grievance.grievanceId}
-                                </button></td>
-                              <td className="px-4 py-3 text-xs text-slate-700"><button
-                                  onClick={() => openGrievanceDetail(grievance._id)}
-                                  className="text-xs text-slate-700 hover:text-blue-600 hover:underline"
-                                >
-                                  {grievance.citizenName}
-                                </button></td>
-                              <td className="px-4 py-3 text-xs text-slate-600 max-w-md truncate" title={lastRevert?.details?.remarks || ""}>{lastRevert?.details?.remarks || "—"}</td>
-                              <td className="px-4 py-3">
-                                <div className="flex items-center justify-center gap-1">
-                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-green-600 hover:bg-green-50" title="Reassign" onClick={() => { setSelectedGrievanceForAssignment(grievance); setShowGrievanceAssignment(true); }}>
-                                    <UserIcon className="w-4 h-4" />
-                                  </Button>
-                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-50" title="View" onClick={() => openGrievanceDetail(grievance._id)}>
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                                  </Button>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                        {grievances.filter((g) => g.status === "REVERTED").length === 0 && (
-                          <tr><td colSpan={4} className="px-4 py-10 text-center text-sm text-slate-500">No reverted grievances found.</td></tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          )}
+
 
           {/* Appointments Tab - show if module active or SuperAdmin */}
           {user &&
@@ -4988,13 +4864,7 @@ function DashboardContent() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Link
-                          href="/completed-appointments"
-                          className="flex items-center gap-2 px-3 h-8 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-all border border-white/20 text-[10px] font-bold uppercase tracking-wider"
-                        >
-                          <CheckCircle className="w-3.5 h-3.5" />
-                          Completed
-                        </Link>
+
                         {(isCompanyLevel || isDepartmentLevel) && (
                           <Button
                             onClick={() => setShowAvailabilityCalendar(true)}
@@ -6490,16 +6360,6 @@ function DashboardContent() {
           />
         )}
 
-        {/* User Details Dialog */}
-        <UserDetailsDialog
-          isOpen={showUserDetailsDialog}
-          onClose={() => {
-            setShowUserDetailsDialog(false);
-            setSelectedUserForDetails(null);
-          }}
-          user={selectedUserForDetails}
-        />
-
         {/* Metric Info Dialog */}
         <MetricInfoDialog
           isOpen={showMetricDialog}
@@ -6527,7 +6387,7 @@ function DashboardContent() {
             setShowAppointmentStatusModal(false);
             setSelectedAppointmentForStatus(null);
           }}
-          itemId={selectedAppointmentForStatus?._id || ""}
+          itemId={showAppointmentStatusModal ? (selectedAppointmentForStatus?._id || "") : ""}
           itemType="appointment"
           currentStatus={selectedAppointmentForStatus?.status || ""}
           initialDate={selectedAppointmentForStatus?.appointmentDate}
@@ -6546,7 +6406,7 @@ function DashboardContent() {
             setShowGrievanceStatusModal(false);
             setSelectedGrievanceForStatus(null);
           }}
-          itemId={selectedGrievanceForStatus?._id || ""}
+          itemId={showGrievanceStatusModal ? (selectedGrievanceForStatus?._id || "") : ""}
           itemType="grievance"
           currentStatus={selectedGrievanceForStatus?.status || ""}
           onSuccess={() => {
@@ -6571,6 +6431,16 @@ function DashboardContent() {
             setSelectedUserForDetails(u);
             setShowUserDetailsDialog(true);
           }}
+        />
+
+        {/* User Details Dialog (Moved here to ensure it appears on top of other dialogs) */}
+        <UserDetailsDialog
+          isOpen={showUserDetailsDialog}
+          onClose={() => {
+            setShowUserDetailsDialog(false);
+            setSelectedUserForDetails(null);
+          }}
+          user={selectedUserForDetails}
         />
       </main>
     </div>

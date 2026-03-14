@@ -64,11 +64,7 @@ export default function GrievancesPage() {
       setLoading(true);
       const response = await grievanceAPI.getAll();
       if (response.success) {
-        // Filter out resolved grievances (they are shown on the Resolved Grievances page)
-        const activeGrievances = response.data.grievances.filter(
-          (g) => g.status !== "RESOLVED",
-        );
-        setGrievances(activeGrievances);
+        setGrievances(response.data.grievances);
       }
     } catch (error) {
       toast.error("Failed to load grievances");
@@ -223,13 +219,6 @@ export default function GrievancesPage() {
                 <ArrowLeft className="w-5 h-5" />
                 Back
               </button>
-              <Link
-                href="/resolved-grievances"
-                className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-all shadow-lg"
-              >
-                <CheckCircle className="w-5 h-5" />
-                View Resolved
-              </Link>
               <div className="text-right bg-white/10 px-4 py-2 rounded-xl border border-white/20 backdrop-blur-sm">
                 <p className="text-sm text-white/70">Active</p>
                 <p className="text-2xl font-bold text-white">
