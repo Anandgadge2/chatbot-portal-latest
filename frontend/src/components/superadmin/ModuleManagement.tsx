@@ -293,7 +293,7 @@ export default function ModuleManagement() {
                         </CardDescription>
                       </div>
                     </div>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex gap-1 transition-opacity">
                       <button
                         onClick={() => openEdit(mod)}
                         className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50"

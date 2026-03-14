@@ -9,7 +9,7 @@ import { departmentAPI, Department } from "@/lib/api/department";
 import { roleAPI, Role } from "@/lib/api/role";
 import { useAuth } from "@/contexts/AuthContext";
 import toast from "react-hot-toast";
-import { User as UserIcon, Mail, MessageSquare } from "lucide-react";
+import { User as UserIcon, Mail, MessageSquare, X } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { denormalizePhoneNumber } from "@/lib/utils/phoneUtils";
 import {
@@ -198,7 +198,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[650px] max-h-[90vh] overflow-hidden rounded-2xl shadow-2xl bg-white p-0 border-0 flex flex-col">
+      <DialogContent hideClose className="sm:max-w-[650px] max-h-[90vh] overflow-hidden rounded-2xl shadow-2xl bg-white p-0 border-0 flex flex-col">
         <div className="bg-slate-900 px-6 py-5 relative overflow-hidden flex-shrink-0 border-b border-slate-800">
           <div
             className="absolute inset-0 opacity-[0.03] pointer-events-none"
@@ -206,17 +206,25 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
               backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
             }}
           ></div>
-          <DialogHeader className="relative">
-            <DialogTitle className="text-base font-bold text-white flex items-center gap-3 uppercase tracking-tight">
-              <div className="w-9 h-9 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
-                <UserIcon className="w-4 h-4 text-indigo-400" />
-              </div>
-              Edit User
-            </DialogTitle>
-            <DialogDescription className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-              Update staff information and access settings
-            </DialogDescription>
-          </DialogHeader>
+          <div className="relative flex items-center justify-between">
+            <DialogHeader className="relative">
+              <DialogTitle className="text-base font-bold text-white flex items-center gap-3 uppercase tracking-tight">
+                <div className="w-9 h-9 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
+                  <UserIcon className="w-4 h-4 text-indigo-400" />
+                </div>
+                Edit User
+              </DialogTitle>
+              <DialogDescription className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                Update staff information and access settings
+              </DialogDescription>
+            </DialogHeader>
+            <button
+              onClick={onClose}
+              className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all duration-300 border border-white/10 group cursor-pointer"
+            >
+              <X className="w-5 h-5 text-slate-400 group-hover:text-white transition-colors" />
+            </button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">

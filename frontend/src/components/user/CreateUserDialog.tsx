@@ -24,7 +24,7 @@ import {
   normalizePhoneNumber,
   denormalizePhoneNumber,
 } from "@/lib/utils/phoneUtils";
-import { Building, Users, Mail, MessageSquare } from "lucide-react";
+import { Building, Users, Mail, MessageSquare, X } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 
 interface CreateUserDialogProps {
@@ -331,18 +331,26 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <Card className="w-full max-w-lg max-h-[90vh] flex flex-col bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden">
         <CardHeader className="bg-slate-900 px-6 py-4 border-b border-slate-800">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-md border border-white/20 shadow-inner">
-              <Users className="w-5 h-5 text-indigo-400" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-md border border-white/20 shadow-inner">
+                <Users className="w-5 h-5 text-indigo-400" />
+              </div>
+              <div>
+                <CardTitle className="text-base font-bold text-white uppercase tracking-tight">
+                  {editingUser ? "Modify Personnel Profile" : "Initialize New Personnel"}
+                </CardTitle>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                  Global Authorization Registry
+                </p>
+              </div>
             </div>
-            <div>
-              <CardTitle className="text-base font-bold text-white uppercase tracking-tight">
-                {editingUser ? "Modify Personnel Profile" : "Initialize New Personnel"}
-              </CardTitle>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-                Global Authorization Registry
-              </p>
-            </div>
+            <button
+              onClick={onClose}
+              className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all duration-300 border border-white/10 group cursor-pointer"
+            >
+              <X className="w-5 h-5 text-slate-400 group-hover:text-white transition-colors" />
+            </button>
           </div>
         </CardHeader>
         <CardContent className="flex-1 overflow-y-auto p-6 custom-scrollbar">

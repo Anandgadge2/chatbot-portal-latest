@@ -27,14 +27,13 @@ export const connectDatabase = async (): Promise<void> => {
     // 3. Start a new connection
     const options = {
       maxPoolSize: 10,
-      serverSelectionTimeoutMS: 30000,
+      serverSelectionTimeoutMS: 45000, 
       socketTimeoutMS: 45000,
       connectTimeoutMS: 30000,
-      family: 4,
-      autoIndex: process.env.NODE_ENV !== 'production', // Don't auto-index in prod to speed up cold starts
+      autoIndex: true,
     };
 
-    logger.info('🔌 Connecting to MongoDB...');
+    logger.info(`🔌 Connecting to MongoDB (v${mongoose.version})...`);
     
     // Set global buffer timeout longer for serverless
     mongoose.set('bufferTimeoutMS', 30000);
@@ -50,6 +49,10 @@ export const connectDatabase = async (): Promise<void> => {
     connectionPromise = null;
     logger.error('❌ Failed to connect to MongoDB:', error.message);
     
+    if (error.reason) {
+      logger.error('🔍 Server Selection Reason:', error.reason);
+    }
+
     if (error.message.includes('IP') || error.message.includes('whitelist')) {
       logger.error('💡 IP Whitelist issue. Ensure 0.0.0.0/0 is added to MongoDB Atlas.');
     }

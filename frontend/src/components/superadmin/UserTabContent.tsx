@@ -335,7 +335,7 @@ const UserTabContent: React.FC<UserTabContentProps> = ({
                       </td>
                       {/* Actions */}
                       <td className="px-4 py-4 whitespace-nowrap text-right">
-                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center justify-end gap-1 transition-opacity">
                           <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50" onClick={() => handleEditUser(u)}>
                             <Edit2 className="w-3.5 h-3.5" />
                           </Button>

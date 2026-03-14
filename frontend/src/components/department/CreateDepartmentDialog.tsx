@@ -14,7 +14,7 @@ import {
 import { departmentAPI, Department } from "@/lib/api/department";
 import { companyAPI, Company } from "@/lib/api/company";
 import { useAuth } from "@/contexts/AuthContext";
-import { Building, Shield, Languages } from "lucide-react";
+import { Building, Shield, Languages, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
@@ -46,7 +46,8 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
   const [companies, setCompanies] = useState<Company[]>([]);
   const [allDepartments, setAllDepartments] = useState<Department[]>([]);
   const [companyLanguages, setCompanyLanguages] = useState<string[]>(FALLBACK_LANGUAGES);
-  const [activeLanguageTab, setActiveLanguageTab] = useState<string>("en");
+  const [activeLanguageTab, setActiveLanguageTab] = useState("en");
+  const [isSubDepartment, setIsSubDepartment] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     nameHi: "",
@@ -64,6 +65,8 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
     if (isOpen) {
       fetchCompanies();
       if (editingDepartment) {
+        const hasParent = !!editingDepartment.parentDepartmentId;
+        setIsSubDepartment(hasParent);
         setFormData({
           name: editingDepartment.name || "",
           nameHi: editingDepartment.nameHi || "",
@@ -91,6 +94,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
             : user.companyId
           : "";
 
+        setIsSubDepartment(false);
         setFormData({
           name: "",
           nameHi: "",
@@ -196,12 +200,16 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name?.trim() && !formData.parentDepartmentId) {
+    if (!formData.name?.trim()) {
       toast.error("Please enter department name");
       return;
     }
     if (!formData.companyId) {
       toast.error("Please select a company");
+      return;
+    }
+    if (isSubDepartment && !formData.parentDepartmentId) {
+      toast.error("Please select a main department");
       return;
     }
 
@@ -210,7 +218,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
       let response;
       const dataToSubmit = {
         ...formData,
-        parentDepartmentId: formData.parentDepartmentId || undefined,
+        parentDepartmentId: isSubDepartment ? formData.parentDepartmentId : undefined,
       };
 
       if (editingDepartment) {
@@ -279,7 +287,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <Card className="w-full max-w-lg max-h-[90vh] flex flex-col bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden">
-        <CardHeader className="bg-slate-900 px-6 py-4 border-b border-slate-800">
+        <CardHeader className="bg-slate-900 px-6 py-4 border-b border-slate-800 flex flex-row items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-md border border-white/20 shadow-inner">
               <Shield className="w-5 h-5 text-indigo-400" />
@@ -295,13 +303,19 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
               </p>
             </div>
           </div>
+          <button
+            onClick={onClose}
+            className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all duration-300 border border-white/10 group cursor-pointer"
+          >
+            <X className="w-5 h-5 text-slate-400 group-hover:text-white transition-colors" />
+          </button>
         </CardHeader>
         <CardContent className="flex-1 overflow-y-auto p-6 custom-scrollbar">
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Company selector - only shown to SuperAdmin */}
             {user?.role === "SUPER_ADMIN" ? (
               <div>
-                <Label htmlFor="companyId">Company *</Label>
+                <Label htmlFor="companyId" className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5 block">Company *</Label>
                 <select
                   id="companyId"
                   name="companyId"
@@ -329,127 +343,75 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
               <input type="hidden" name="companyId" value={formData.companyId} />
             )}
 
-            {/* Department Selection for COMPANY_ADMIN */}
-            {user?.role === "COMPANY_ADMIN" && (
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="topLevelDept">Parent Department</Label>
-                  <select
-                    id="topLevelDept"
-                    value={
-                      allDepartments.find(d => d._id === formData.parentDepartmentId)?.parentDepartmentId 
-                        ? (typeof allDepartments.find(d => d._id === formData.parentDepartmentId)?.parentDepartmentId === 'string' 
-                            ? allDepartments.find(d => d._id === formData.parentDepartmentId)?.parentDepartmentId 
-                            : (allDepartments.find(d => d._id === formData.parentDepartmentId)?.parentDepartmentId as any)?._id)
-                        : formData.parentDepartmentId
-                    }
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setFormData(prev => ({ ...prev, parentDepartmentId: val }));
-                    }}
-                    className="w-full h-10 px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
-                  >
-                    <option value="">Add another (New Top-Level)</option>
-                    {allDepartments
-                      .filter((d) => !d.parentDepartmentId || (typeof d.parentDepartmentId === "string" ? !d.parentDepartmentId : !d.parentDepartmentId._id))
-                      .map((dept) => (
-                        <option key={dept._id} value={dept._id}>
-                          {dept.name}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-
-                {formData.parentDepartmentId && (
-                  <div>
-                    <Label htmlFor="subDeptSelect">Sub-Department (Optional)</Label>
-                    <select
-                      id="subDeptSelect"
-                      value={formData.parentDepartmentId}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val) setFormData(prev => ({ ...prev, parentDepartmentId: val }));
-                      }}
-                      className="w-full h-10 px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
-                    >
-                      <option value={
-                        allDepartments.find(d => d._id === formData.parentDepartmentId)?.parentDepartmentId 
-                          ? (typeof allDepartments.find(d => d._id === formData.parentDepartmentId)?.parentDepartmentId === 'string' 
-                              ? allDepartments.find(d => d._id === formData.parentDepartmentId)?.parentDepartmentId 
-                              : (allDepartments.find(d => d._id === formData.parentDepartmentId)?.parentDepartmentId as any)?._id)
-                          : formData.parentDepartmentId
-                      }>
-                        None (Add under Parent)
-                      </option>
-                      {allDepartments
-                        .filter((d) => {
-                          const parentId = typeof d.parentDepartmentId === 'string' ? d.parentDepartmentId : d.parentDepartmentId?._id;
-                          const currentSelection = allDepartments.find(dept => dept._id === formData.parentDepartmentId);
-                          const currentTopLevelId = currentSelection?.parentDepartmentId 
-                            ? (typeof currentSelection.parentDepartmentId === 'string' ? currentSelection.parentDepartmentId : (currentSelection.parentDepartmentId as any)?._id)
-                            : currentSelection?._id;
-                          return parentId === currentTopLevelId;
-                        })
-                        .map((dept) => (
-                          <option key={dept._id} value={dept._id}>
-                            {dept.name}
-                          </option>
-                        ))}
-                    </select>
+            {/* Department Hierarchy Toggle */}
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/60 mb-4">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 block text-center">Department Structure</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSubDepartment(false);
+                    setFormData(prev => ({ ...prev, parentDepartmentId: "" }));
+                  }}
+                  className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all border ${
+                    !isSubDepartment
+                      ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200"
+                      : "bg-white text-slate-500 border-slate-200 hover:border-indigo-300 hover:text-indigo-600"
+                  }`}
+                >
+                  <Building className="w-3.5 h-3.5" />
+                  Main Department
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsSubDepartment(true)}
+                  className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all border ${
+                    isSubDepartment
+                      ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200"
+                      : "bg-white text-slate-500 border-slate-200 hover:border-indigo-300 hover:text-indigo-600"
+                  }`}
+                >
+                  <div className="flex items-center">
+                    <Building className="w-3.5 h-3.5" />
+                    <Building className="w-2.5 h-2.5 -ml-1 mt-1 opacity-70" />
                   </div>
-                )}
+                  Sub Department
+                </button>
+              </div>
+            </div>
+
+            {/* Parent Department Selection for Sub Department */}
+            {isSubDepartment && (
+              <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                <Label htmlFor="parentDepartmentId" className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5 block">
+                  Select Main Department *
+                </Label>
+                <select
+                  id="parentDepartmentId"
+                  name="parentDepartmentId"
+                  value={formData.parentDepartmentId}
+                  onChange={handleChange}
+                  className="w-full h-10 px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
+                  required={isSubDepartment}
+                >
+                  <option value="">-- Choose Parent Department --</option>
+                  {allDepartments
+                    .filter((d) => !d.parentDepartmentId || (typeof d.parentDepartmentId === 'object' && !(d.parentDepartmentId as any)?._id))
+                    .filter((d) => !editingDepartment || d._id !== editingDepartment._id)
+                    .map((dept) => (
+                      <option key={dept._id} value={dept._id}>
+                        {dept.name}
+                      </option>
+                    ))}
+                </select>
               </div>
             )}
 
-            {/* Parent Department Selection for non-Company Admin (if hierarchical enabled) */}
-            {user?.role !== "COMPANY_ADMIN" && formData.companyId &&
-              (() => {
-                const selectedCompany = companies.find(
-                  (c) => c._id === formData.companyId,
-                );
-                const hierarchicalEnabled =
-                  selectedCompany?.enabledModules?.includes(
-                    "HIERARCHICAL_DEPARTMENTS",
-                  );
-
-                return hierarchicalEnabled ? (
-                  <div>
-                    <Label htmlFor="parentDepartmentId">
-                      Parent Department
-                    </Label>
-                    <select
-                      id="parentDepartmentId"
-                      name="parentDepartmentId"
-                      value={formData.parentDepartmentId}
-                      onChange={handleChange}
-                      className="w-full h-10 px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
-                    >
-                      <option value="">Top-level Department</option>
-                      {allDepartments
-                        .filter(
-                          (d) =>
-                            !editingDepartment ||
-                            d._id !== editingDepartment._id,
-                        )
-                        .filter((d) => !d.parentDepartmentId)
-                        .map((dept) => (
-                          <option key={dept._id} value={dept._id}>
-                            {dept.name}
-                          </option>
-                        ))}
-                    </select>
-                    <p className="text-[9px] text-slate-500 mt-1 font-bold uppercase tracking-tighter">
-                      Hierarchy Level: Sub-Dept
-                    </p>
-                  </div>
-                ) : null;
-              })()}
-
-            <div className="pt-4 space-y-4">
+            <div className="pt-2 space-y-4">
               <div className="flex items-center gap-2 mb-2">
                 <Languages className="w-4 h-4 text-indigo-500" />
                 <span className="text-xs font-black text-slate-800 uppercase tracking-widest">
-                  Localized Metadata
+                  Localized Identity
                 </span>
               </div>
 
@@ -479,9 +441,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                       htmlFor="name"
                       className="text-[10px] font-black uppercase tracking-widest text-slate-500"
                     >
-                      {formData.parentDepartmentId 
-                        ? "Sub-Department Name (Optional)" 
-                        : "Primary Name (Required)"}
+                      {isSubDepartment ? "Sub-Department Name (Required)" : "Main Department Name (Required)"}
                     </Label>
                     <Input
                       id="name"
@@ -490,7 +450,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                       value={formData.name}
                       onChange={handleChange}
                       required
-                      placeholder="e.g. Revenue Department"
+                      placeholder={isSubDepartment ? "e.g. Land Records Division" : "e.g. Revenue Department"}
                       className="border-slate-200 focus:border-indigo-500"
                     />
                   </div>
@@ -499,7 +459,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                       htmlFor="description"
                       className="text-[10px] font-black uppercase tracking-widest text-slate-500"
                     >
-                      Service Description
+                      Infrastructure Role / Description
                     </Label>
                     <Textarea
                       id="description"
@@ -507,7 +467,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                       value={formData.description}
                       onChange={handleChange}
                       rows={3}
-                      placeholder="Explain the purpose of this department..."
+                      placeholder="Define the functional scope of this department..."
                       className="border-slate-200 focus:border-indigo-500 min-h-[80px]"
                     />
                   </div>
@@ -523,9 +483,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                       htmlFor="nameHi"
                       className="text-[10px] font-black uppercase tracking-widest text-slate-500"
                     >
-                      {formData.parentDepartmentId 
-                        ? "हिंदी उप-विभाग नाम (Optional)" 
-                        : "हिंदी नाम (Hindi Name)"}
+                      {isSubDepartment ? "हिंदी उप-विभाग नाम (Required)" : "हिंदी मुख्य विभाग नाम (Required)"}
                     </Label>
                     <Input
                       id="nameHi"
@@ -533,7 +491,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                       type="text"
                       value={formData.nameHi}
                       onChange={handleChange}
-                      placeholder="e.g. राजस्व विभाग"
+                      placeholder="हिंदी नाम यहाँ लिखें..."
                       className="border-slate-200 focus:border-indigo-500"
                     />
                   </div>
@@ -550,7 +508,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                       value={formData.descriptionHi}
                       onChange={handleChange}
                       rows={3}
-                      placeholder="विभाग का विवरण हिंदी में..."
+                      placeholder="विवरण यहाँ लिखें..."
                       className="border-slate-200 focus:border-indigo-500 min-h-[80px]"
                     />
                   </div>
@@ -566,9 +524,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                       htmlFor="nameOr"
                       className="text-[10px] font-black uppercase tracking-widest text-slate-500"
                     >
-                      {formData.parentDepartmentId 
-                        ? "ଓଡ଼ିଆ ଉପ-ବିଭାଗ ନାମ (Optional)" 
-                        : "ଓଡ଼ିଆ ନାମ (Odia Name)"}
+                      {isSubDepartment ? "ଓଡ଼ିଆ ଉପ-ବିଭାଗ ନାମ (Required)" : "ଓଡ଼ିଆ ମୁଖ୍ୟ ବିଭାଗ ନାମ (Required)"}
                     </Label>
                     <Input
                       id="nameOr"
@@ -576,7 +532,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                       type="text"
                       value={formData.nameOr}
                       onChange={handleChange}
-                      placeholder="e.g. ଆଦାୟ ବିଭାଗ"
+                      placeholder="ଓଡ଼ିଆ ନାମ ଏଠାରେ ଲେଖନ୍ତୁ..."
                       className="border-slate-200 focus:border-indigo-500"
                     />
                   </div>
@@ -593,7 +549,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                       value={formData.descriptionOr}
                       onChange={handleChange}
                       rows={3}
-                      placeholder="ବିଭାଗର ବିବରଣୀ ଓଡ଼ିଆରେ..."
+                      placeholder="ବିବରଣୀ ଏଠାରେ ଲେଖନ୍ତୁ..."
                       className="border-slate-200 focus:border-indigo-500 min-h-[80px]"
                     />
                   </div>
@@ -609,9 +565,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                       htmlFor="nameMr"
                       className="text-[10px] font-black uppercase tracking-widest text-slate-500"
                     >
-                      {formData.parentDepartmentId 
-                        ? "मराठी उप-विभाग नाव (Optional)" 
-                        : "मराठी नाव (Marathi Name)"}
+                      {isSubDepartment ? "मराठी उप-विभाग नाव (Required)" : "मराठी मुख्य विभाग नाव (Required)"}
                     </Label>
                     <Input
                       id="nameMr"
@@ -619,7 +573,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                       type="text"
                       value={formData.nameMr}
                       onChange={handleChange}
-                      placeholder="e.g. राजस्व विभाग"
+                      placeholder="मराठी नाव येथे लिहा..."
                       className="border-slate-200 focus:border-indigo-500"
                     />
                   </div>
@@ -636,7 +590,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                       value={formData.descriptionMr}
                       onChange={handleChange}
                       rows={3}
-                      placeholder="विभागाचे वर्णन मराठीत..."
+                      placeholder="वर्णन येथे लिहा..."
                       className="border-slate-200 focus:border-indigo-500 min-h-[80px]"
                     />
                   </div>

@@ -371,7 +371,7 @@ const CompanyTabContent: React.FC<CompanyTabContentProps> = ({
                         </button>
                       </td>
                       <td className="px-5 py-4 whitespace-nowrap text-right">
-                        <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center justify-end gap-1.5 transition-opacity">
                           <Button
                             variant="ghost"
                             size="sm"

@@ -340,7 +340,7 @@ const DepartmentTabContent: React.FC<DepartmentTabContentProps> = ({
                         </button>
                       </td>
                       <td className="px-5 py-4 whitespace-nowrap text-right">
-                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center justify-end gap-1 transition-opacity">
                           <Button
                             variant="ghost"
                             size="sm"

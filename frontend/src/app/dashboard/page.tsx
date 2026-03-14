@@ -3279,7 +3279,7 @@ function DashboardContent() {
 
                                   {/* Actions */}
                                   <td className="px-4 py-4 whitespace-nowrap text-right">
-                                    <div className="flex justify-end items-center gap-1 opacity-0 group-hover/row:opacity-100 transition-opacity">
+                                    <div className="flex justify-end items-center gap-1 transition-opacity">
                                       <Button
                                         variant="ghost"
                                         size="sm"
