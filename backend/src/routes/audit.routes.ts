@@ -83,11 +83,18 @@ router.get('/', requirePermission(Permission.VIEW_AUDIT_LOGS), async (req: Reque
 // @access  Private (SuperAdmin only)
 router.get('/stats', requirePermission(Permission.VIEW_AUDIT_LOGS), async (req: Request, res: Response) => {
   try {
+    const currentUser = req.user!;
     const { companyId, startDate, endDate } = req.query;
 
     const matchQuery: any = {};
 
-    if (companyId) matchQuery.companyId = new mongoose.Types.ObjectId(companyId as string);
+    // Enforce company-level isolation for all non-superadmin users.
+    // They can only access statistics for their own company regardless of query params.
+    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+      matchQuery.companyId = currentUser.companyId;
+    } else if (companyId) {
+      matchQuery.companyId = new mongoose.Types.ObjectId(companyId as string);
+    }
 
     if (startDate || endDate) {
       matchQuery.timestamp = {};
