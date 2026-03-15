@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,11 +41,7 @@ export default function FlowManagement({ companyId }: FlowManagementProps) {
   const [loadingAction, setLoadingAction] = useState<{ flowId: string, action: string } | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<any>({ isOpen: false, title: "", message: "", onConfirm: () => {} });
 
-  useEffect(() => {
-    fetchData();
-  }, [companyId]);
-
-  const fetchData = async (silent = false) => {
+  const fetchData = useCallback(async (silent = false) => {
     try {
       if (silent) setRefreshing(true); else setLoading(true);
       const flowsRes = await apiClient.get(`/chatbot-flows?companyId=${companyId}`);
@@ -56,7 +52,11 @@ export default function FlowManagement({ companyId }: FlowManagementProps) {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [companyId]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleCreateFlow = () => {
     router.push(`/superadmin/company/${companyId}/chatbot-flows/create`);

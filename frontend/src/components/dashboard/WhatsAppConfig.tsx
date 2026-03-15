@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -158,11 +158,7 @@ export default function WhatsAppConfig({ companyId }: WhatsAppConfigProps) {
   const [savingTemplates, setSavingTemplates] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
 
-  useEffect(() => {
-    fetchData();
-  }, [companyId]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const [configRes, templatesRes] = await Promise.all([
@@ -188,7 +184,11 @@ export default function WhatsAppConfig({ companyId }: WhatsAppConfigProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [companyId]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const makeEmptyConfig = () => ({
     companyId,

@@ -347,8 +347,8 @@ function DashboardContent() {
     dateRange: "",
   });
 
-  const getParentDepartmentId = useCallback((dept: any): string | undefined => {
-    if (!dept?.parentDepartmentId) return undefined;
+  const getParentDepartmentId = useCallback((dept: any): string | null => {
+    if (!dept?.parentDepartmentId) return null;
     return typeof dept.parentDepartmentId === "object"
       ? dept.parentDepartmentId._id
       : dept.parentDepartmentId;
