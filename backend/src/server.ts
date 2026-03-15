@@ -113,7 +113,8 @@ const corsOptions = {
       },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-company-id']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-company-id', 'X-Company-Id', 'Accept', 'X-Requested-With', 'Origin'],
+  exposedHeaders: ['x-company-id']
 };
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));

@@ -158,6 +158,18 @@ export default function WhatsAppConfig({ companyId }: WhatsAppConfigProps) {
   const [savingTemplates, setSavingTemplates] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
 
+  const makeEmptyConfig = useCallback(() => ({
+    companyId,
+    phoneNumber: "",
+    displayPhoneNumber: "",
+    phoneNumberId: "",
+    businessAccountId: "",
+    accessToken: "",
+    verifyToken: "",
+    chatbotSettings: { isEnabled: true, defaultLanguage: "en", supportedLanguages: ["en"] },
+    isActive: true,
+  }), [companyId]);
+
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
@@ -184,23 +196,12 @@ export default function WhatsAppConfig({ companyId }: WhatsAppConfigProps) {
     } finally {
       setLoading(false);
     }
-  }, [companyId]);
+  }, [companyId, makeEmptyConfig]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  const makeEmptyConfig = () => ({
-    companyId,
-    phoneNumber: "",
-    displayPhoneNumber: "",
-    phoneNumberId: "",
-    businessAccountId: "",
-    accessToken: "",
-    verifyToken: "",
-    chatbotSettings: { isEnabled: true, defaultLanguage: "en", supportedLanguages: ["en"] },
-    isActive: true,
-  });
 
   const handleSave = async () => {
     setSaving(true);
