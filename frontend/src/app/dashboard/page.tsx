@@ -43,7 +43,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
   AreaChart,
   Area,
@@ -81,6 +80,7 @@ import {
   Mail,
   Shield,
   Building,
+  Target,
   CheckCircle,
   CheckCircle2,
   XCircle,
@@ -97,8 +97,6 @@ import {
   BarChart2,
   TrendingUp,
   Clock,
-  AlertTriangle,
-  Target,
   CalendarCheck,
   PieChart as PieChartIcon,
   Power,
@@ -1122,10 +1120,36 @@ function DashboardContent() {
       if (grievanceFilters.overdueStatus) {
         const now = new Date();
         filteredData = filteredData.filter((g: Grievance) => {
-          const createdAt = new Date(g.createdAt);
-          const hoursDiff =
-            (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
-          const isOverdue = hoursDiff > 48; // 48 hours SLA
+          const createdDate = new Date(g.createdAt);
+          const hoursDiff = Math.floor(
+            (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60)
+          );
+
+          let isOverdue = false;
+          let slaHours = 0;
+
+          if (g.status === "PENDING") {
+            slaHours = 24;
+            isOverdue = hoursDiff > slaHours;
+          } else if (g.status === "ASSIGNED") {
+            slaHours = 120;
+            const assignedDate = g.assignedAt
+              ? new Date(g.assignedAt)
+              : createdDate;
+            const hoursFromAssigned = Math.floor(
+              (now.getTime() - assignedDate.getTime()) / (1000 * 60 * 60)
+            );
+            isOverdue = hoursFromAssigned > slaHours;
+          }
+
+          if (
+            g.status === "RESOLVED" ||
+            g.status === "CLOSED" ||
+            g.status === "REJECTED"
+          ) {
+            isOverdue = false;
+          }
+
           return grievanceFilters.overdueStatus === "overdue"
             ? isOverdue
             : !isOverdue;
@@ -1585,7 +1609,7 @@ function DashboardContent() {
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
             {/* Dashboard Headers & Quick Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
               {/* Statistical KPI Cards */}
               <>
                 {/* Total Grievances */}
@@ -1657,25 +1681,7 @@ function DashboardContent() {
                   </Card>
                 )}
 
-                {/* Total Staff (Company Level) */}
-                {isCompanyLevel && (
-                  <Card onClick={() => setActiveTab("users")} className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer">
-                    <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
-                      <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                        Users
-                      </CardTitle>
-                      <div className="p-1.5 bg-purple-50 rounded-lg">
-                        <Users className="w-3.5 h-3.5 text-purple-500" />
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-black text-slate-800 tabular-nums">
-                        {loadingStats ? "..." : (stats?.users || 0)}
-                      </div>
-                      <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">Authorized Access</p>
-                    </CardContent>
-                  </Card>
-                )}
+
 
                 {/* Departments (Company Level) */}
                 {isCompanyLevel && (
@@ -2097,36 +2103,7 @@ function DashboardContent() {
                                   </div>
                                 </div>
                               )}
-                            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm group hover:shadow-md transition-all">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">
-                                    SLA Compliant
-                                  </p>
-                                  <p className="text-2xl font-black text-emerald-600 tracking-tighter mt-1">
-                                    94.2%
-                                  </p>
-                                </div>
-                                <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform">
-                                  <Target className="w-5 h-5" />
-                                </div>
-                              </div>
-                            </div>
-                            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm group hover:shadow-md transition-all">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">
-                                    Avg Load
-                                  </p>
-                                  <p className="text-2xl font-black text-rose-600 tracking-tighter mt-1">
-                                    1.4h
-                                  </p>
-                                </div>
-                                <div className="w-10 h-10 bg-rose-50 rounded-lg flex items-center justify-center text-rose-600 group-hover:scale-110 transition-transform">
-                                  <TrendingUp className="w-5 h-5" />
-                                </div>
-                              </div>
-                            </div>
+
                           </div>
                         </div>
                       ) : (
@@ -2254,9 +2231,9 @@ function DashboardContent() {
 
           {/* Analytics Page - Role-Aware Real Analytics */}
           {!isSuperAdmin && (
-            <TabsContent value="analytics" className="space-y-6">
+            <TabsContent value="analytics" className="space-y-4">
               {/* Header Banner */}
-              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-6 border border-slate-800 shadow-xl mb-6">
+              <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-4 border border-slate-800 shadow-lg mb-4">
                 <div
                   className="absolute inset-0 opacity-[0.06]"
                   style={{
@@ -2300,46 +2277,34 @@ function DashboardContent() {
               {/* KPI Cards - Refined Design */}
               <div
                 className={cn(
-                  "grid gap-6",
+                  "grid gap-4",
                   stats?.isHierarchicalEnabled && isCompanyLevel 
-                    ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6" 
-                    : "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5"
+                    ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5" 
+                    : "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5"
                 )}
               >
                 {/* Total Grievances - Enhanced */}
                 {hasModule(Module.GRIEVANCE) && (
                   <div 
                     onClick={() => setActiveTab("grievances")} 
-                    className="group relative bg-white/70 backdrop-blur-md rounded-2xl border border-slate-200/60 p-5 transition-all duration-500 hover:shadow-2xl hover:shadow-indigo-500/10 hover:-translate-y-1.5 cursor-pointer overflow-hidden"
+                    className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-4 transition-all duration-500 hover:shadow-xl hover:shadow-indigo-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden"
                   >
-                    <div className="absolute -right-4 -top-4 w-24 h-24 bg-gradient-to-br from-indigo-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
+                    <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-indigo-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
                     <div className="relative">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600 border border-indigo-100/50 shadow-sm group-hover:rotate-6 transition-transform">
-                          <FileText className="w-6 h-6" />
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600 border border-indigo-100/50 shadow-sm group-hover:rotate-6 transition-transform">
+                          <FileText className="w-5 h-5" />
                         </div>
                         <div className="text-right">
-                          <div className="text-[10px] font-black text-indigo-600 bg-indigo-50/80 px-2 py-1 rounded-lg uppercase tracking-tight border border-indigo-100/30">
+                          <div className="text-[9px] font-black text-indigo-600 bg-indigo-50/80 px-2 py-1 rounded-lg uppercase tracking-tight border border-indigo-100/30">
                             {(stats?.grievances.resolutionRate || 0).toFixed(1)}% Resolved
                           </div>
                         </div>
                       </div>
-                      <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">Inbound Grievances</h4>
-                      <p className="text-3xl font-black text-slate-900 tracking-tighter group-hover:text-indigo-600 transition-colors">
+                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Inbound Grievances</h4>
+                      <p className="text-2xl font-black text-slate-900 tracking-tighter group-hover:text-indigo-600 transition-colors">
                         {stats?.grievances.total || 0}
                       </p>
-                      <div className="mt-4">
-                        <div className="flex justify-between text-[9px] font-black text-slate-400 uppercase mb-1">
-                          <span>Volume Tracking</span>
-                          <span className="text-indigo-600">{(stats?.grievances.resolutionRate || 0).toFixed(0)}%</span>
-                        </div>
-                        <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-indigo-500 via-blue-500 to-indigo-600 rounded-full transition-all duration-1000"
-                            style={{ width: `${stats?.grievances.resolutionRate || 0}%` }}
-                          ></div>
-                        </div>
-                      </div>
                     </div>
                   </div>
                 )}
@@ -2348,26 +2313,22 @@ function DashboardContent() {
                 {hasModule(Module.GRIEVANCE) && (
                   <div 
                     onClick={() => { setActiveTab("grievances"); setGrievanceFilters((prev) => ({ ...prev, status: "PENDING" })); }} 
-                    className="group relative bg-white/70 backdrop-blur-md rounded-2xl border border-slate-200/60 p-5 transition-all duration-500 hover:shadow-2xl hover:shadow-amber-500/10 hover:-translate-y-1.5 cursor-pointer overflow-hidden"
+                    className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-4 transition-all duration-500 hover:shadow-xl hover:shadow-amber-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden"
                   >
-                    <div className="absolute -right-4 -top-4 w-24 h-24 bg-gradient-to-br from-amber-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
+                    <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-amber-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
                     <div className="relative">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center text-amber-600 border border-amber-100/50 shadow-sm group-hover:-rotate-6 transition-transform">
-                          <Clock className="w-6 h-6" />
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center text-amber-600 border border-amber-100/50 shadow-sm group-hover:-rotate-6 transition-transform">
+                          <Clock className="w-5 h-5" />
                         </div>
-                        <span className="text-[10px] font-black bg-rose-50 text-rose-600 px-2 py-1 rounded-lg uppercase tracking-tight border border-rose-100/30 animate-pulse">
+                        <span className="text-[9px] font-black bg-rose-50 text-rose-600 px-2 py-1 rounded-lg uppercase tracking-tight border border-rose-100/30">
                           {stats?.highPriorityPending || 0} Urgent
                         </span>
                       </div>
-                      <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">Overdue Grievances</h4>
-                      <p className="text-3xl font-black text-amber-600 tracking-tighter">
+                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Overdue cases</h4>
+                      <p className="text-2xl font-black text-amber-600 tracking-tighter">
                         {stats?.grievances.pending || 0}
                       </p>
-                      <div className="mt-4 flex items-center gap-2 text-[10px] font-bold text-slate-500 bg-slate-50 p-2 rounded-lg border border-slate-100">
-                        <Activity className="w-3.5 h-3.5 text-amber-500" />
-                        <span>{stats?.grievances.assigned || stats?.grievances.inProgress || 0} in active processing</span>
-                      </div>
                     </div>
                   </div>
                 )}
@@ -2376,28 +2337,45 @@ function DashboardContent() {
                 {hasModule(Module.GRIEVANCE) && (
                   <div 
                     onClick={() => { setActiveTab("grievances"); setGrievanceFilters((prev) => ({ ...prev, status: "RESOLVED" })); }} 
-                    className="group relative bg-white/70 backdrop-blur-md rounded-2xl border border-slate-200/60 p-5 transition-all duration-500 hover:shadow-2xl hover:shadow-emerald-500/10 hover:-translate-y-1.5 cursor-pointer overflow-hidden border-b-4 border-b-emerald-500"
+                    className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-4 transition-all duration-500 hover:shadow-xl hover:shadow-emerald-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden"
                   >
-                    <div className="absolute -right-4 -top-4 w-24 h-24 bg-gradient-to-br from-emerald-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
+                    <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-emerald-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
                     <div className="relative">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 border border-emerald-100/50 shadow-sm transition-all group-hover:bg-emerald-600 group-hover:text-white">
-                          <CheckCircle2 className="w-6 h-6" />
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600 border border-emerald-100/50 shadow-sm transition-all group-hover:bg-emerald-600 group-hover:text-white">
+                          <CheckCircle2 className="w-5 h-5" />
                         </div>
-                        {stats?.resolvedToday ? (
-                          <div className="flex items-center gap-1 text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg uppercase tracking-tight border border-emerald-100/30">
-                            <Zap className="w-2.5 h-2.5 fill-emerald-500" /> +{stats.resolvedToday} Today
-                          </div>
-                        ) : (
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest opacity-60">Success Benchmark</span>
-                        )}
+                        <div className="flex items-center gap-1 text-[9px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg uppercase tracking-tight">
+                           <Zap className="w-2 h-2 fill-emerald-500" /> +{stats?.resolvedToday || 0}
+                        </div>
                       </div>
-                      <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Resolved</h4>
-                      <p className="text-3xl font-black text-emerald-600 tracking-tighter">
+                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Resolved</h4>
+                      <p className="text-2xl font-black text-emerald-600 tracking-tighter">
                         {stats?.grievances.resolved || 0}
                       </p>
-                      <p className="text-[10px] font-bold text-slate-400 mt-4 px-2 py-1 bg-slate-50/50 rounded inline-block">
-                        Growth: <span className="text-emerald-600 font-black">+{stats?.grievances.last7Days || 0} cases</span> this week
+                    </div>
+                  </div>
+                )}
+
+                {/* Pending Appointments - Modern Card */}
+                {hasModule(Module.APPOINTMENT) && isCompanyLevel && (
+                  <div 
+                    onClick={() => { setActiveTab("appointments"); setAppointmentFilters((prev) => ({ ...prev, status: "SCHEDULED" })); }} 
+                    className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-4 transition-all duration-500 hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden"
+                  >
+                    <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-blue-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
+                    <div className="relative">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600 border border-blue-100/50 shadow-sm transition-all group-hover:-rotate-6">
+                          <CalendarClock className="w-5 h-5" />
+                        </div>
+                        <div className="text-[9px] font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-lg uppercase tracking-tight">
+                          Upcoming
+                        </div>
+                      </div>
+                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Pending Appts</h4>
+                      <p className="text-2xl font-black text-slate-900 tracking-tighter">
+                        {appointments?.filter((a) => a.status === "SCHEDULED").length || 0}
                       </p>
                     </div>
                   </div>
@@ -2407,55 +2385,25 @@ function DashboardContent() {
                 {hasModule(Module.APPOINTMENT) && isCompanyLevel && (
                   <div 
                     onClick={() => setActiveTab("appointments")} 
-                    className="group relative bg-white/70 backdrop-blur-md rounded-2xl border border-slate-200/60 p-5 transition-all duration-500 hover:shadow-2xl hover:shadow-purple-500/10 hover:-translate-y-1.5 cursor-pointer overflow-hidden"
+                    className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-4 transition-all duration-500 hover:shadow-xl hover:shadow-purple-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden"
                   >
-                    <div className="absolute -right-4 -top-4 w-24 h-24 bg-gradient-to-br from-purple-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
+                    <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-purple-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
                     <div className="relative">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600 border border-purple-100/50 shadow-sm transition-all group-hover:rotate-12">
-                          <CalendarCheck className="w-6 h-6" />
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center text-purple-600 border border-purple-100/50 shadow-sm transition-all group-hover:rotate-12">
+                          <CalendarCheck className="w-5 h-5" />
                         </div>
-                        <div className="text-[10px] font-black text-purple-600 bg-purple-50 px-2 py-1 rounded-lg uppercase tracking-tight border border-purple-100/30">
-                          {(stats?.appointments.completionRate || 0).toFixed(0)}% Completion
+                        <div className="text-[9px] font-black text-purple-600 bg-purple-50 px-2 py-1 rounded-lg uppercase tracking-tight">
+                          {(stats?.appointments.completionRate || 0).toFixed(0)}%
                         </div>
                       </div>
-                      <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">Appointments</h4>
-                      <p className="text-3xl font-black text-slate-900 tracking-tighter">
+                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Appointments</h4>
+                      <p className="text-2xl font-black text-slate-900 tracking-tighter">
                         {stats?.appointments.total || 0}
                       </p>
-                      <div className="mt-4 flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-slate-400">{stats?.appointments.pending || 0} pending</span>
-                        <div className="flex -space-x-2">
-                           {[1,2,3].map(i => (
-                             <div key={i} className="w-5 h-5 rounded-full border-2 border-white bg-slate-200"></div>
-                           ))}
-                        </div>
-                      </div>
                     </div>
                   </div>
                 )}
-
-                <div onClick={() => setActiveTab("users")} className="group relative bg-white/70 backdrop-blur-md rounded-2xl border border-slate-200/60 p-5 transition-all duration-500 hover:shadow-2xl hover:shadow-slate-500/10 hover:-translate-y-1.5 cursor-pointer overflow-hidden lg:col-span-2 md:col-span-1">
-                  <div className="absolute -right-4 -top-4 w-24 h-24 bg-gradient-to-br from-slate-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
-                  <div className="relative">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center text-slate-600 border border-slate-200/50 shadow-sm transition-all group-hover:bg-slate-900 group-hover:text-white">
-                        <Users className="w-6 h-6" />
-                      </div>
-                      <div className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg uppercase tracking-tight border border-emerald-100/30">
-                        {stats?.activeUsers || stats?.users || 0} Live
-                      </div>
-                    </div>
-                    <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">{isCompanyLevel ? "Total Users" : "Dept Team"}</h4>
-                    <p className="text-3xl font-black text-slate-900 tracking-tighter">
-                      {stats?.users || users.length || 0}
-                    </p>
-                    <p className="text-[10px] font-bold text-slate-400 mt-4 flex items-center gap-2">
-                      <Building2 className="w-3.5 h-3.5" />
-                      <span>Authorized personnel across units</span>
-                    </p>
-                  </div>
-                </div>
               </div>
 
               {/* Charts Row */}
@@ -2937,7 +2885,7 @@ function DashboardContent() {
               </div>
 
               {/* Department Table - Company Admin only */}
-              {/* {isCompanyLevel && departments.length > 0 && (
+              {/*   {isCompanyLevel && departments.length > 0 && (
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                   <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -3058,102 +3006,7 @@ function DashboardContent() {
                 </div>
               )} */}
 
-              {/* 30-Day Summary Cards — muted, dashboard-matched style */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {hasModule(Module.GRIEVANCE) && (
-                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 hover:shadow-md transition-all">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
-                        <FileText className="w-4 h-4" />
-                      </div>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 uppercase tracking-widest">
-                        30 days
-                      </span>
-                    </div>
-                    <p className="text-3xl font-black text-slate-900 tracking-tighter">
-                      {stats?.grievances.last30Days || 0}
-                    </p>
-                    <p className="text-xs font-bold text-slate-600 mt-1">
-                      Grievances Filed
-                    </p>
-                    <p className="text-[10px] text-slate-400 mt-1">
-                      {stats?.grievances.resolutionRate
-                        ? `${stats.grievances.resolutionRate.toFixed(0)}% resolution rate`
-                        : "No data yet"}
-                    </p>
-                    <div className="mt-3 h-1 bg-slate-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-indigo-500 rounded-full"
-                        style={{
-                          width: `${Math.min(((stats?.grievances.last30Days || 0) / Math.max(stats?.grievances.total || 1, 1)) * 100, 100)}%`,
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-                )}
-                {hasModule(Module.APPOINTMENT) && isCompanyLevel && (
-                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 hover:shadow-md transition-all">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="w-9 h-9 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600">
-                        <CalendarClock className="w-4 h-4" />
-                      </div>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 uppercase tracking-widest">
-                        30 days
-                      </span>
-                    </div>
-                    <p className="text-3xl font-black text-slate-900 tracking-tighter">
-                      {stats?.appointments.last30Days || 0}
-                    </p>
-                    <p className="text-xs font-bold text-slate-600 mt-1">
-                      Appointments Booked
-                    </p>
-                    <p className="text-[10px] text-slate-400 mt-1">
-                      {stats?.appointments.completionRate
-                        ? `${stats.appointments.completionRate.toFixed(0)}% completion rate`
-                        : "No data yet"}
-                    </p>
-                    <div className="mt-3 h-1 bg-slate-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-purple-500 rounded-full"
-                        style={{
-                          width: `${stats?.appointments.completionRate || 0}%`,
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-                )}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 hover:shadow-md transition-all">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="w-9 h-9 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600">
-                      <Users className="w-4 h-4" />
-                    </div>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 uppercase tracking-widest">
-                      Active
-                    </span>
-                  </div>
-                  <p className="text-3xl font-black text-slate-900 tracking-tighter">
-                    {stats?.activeUsers ||
-                      users.filter((u) => u.isActive).length ||
-                      0}
-                  </p>
-                  <p className="text-xs font-bold text-slate-600 mt-1">
-                    Active Staff
-                  </p>
-                  <p className="text-[10px] text-slate-400 mt-1">
-                    {isCompanyLevel
-                      ? `${departments.length} departments total`
-                      : `${users.filter((u) => u.role === "OPERATOR").length} operators`}
-                  </p>
-                  <div className="mt-3 h-1 bg-slate-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-emerald-500 rounded-full"
-                      style={{
-                        width: `${users.length > 0 ? ((stats?.activeUsers || users.filter((u) => u.isActive).length) / users.length) * 100 : 0}%`,
-                      }}
-                    ></div>
-                  </div>
-                </div>
-              </div>
+
             </TabsContent>
           )}
 
@@ -6070,243 +5923,6 @@ function DashboardContent() {
               </TabsContent>
             )}
 
-          {/* Analytics Tab - New Professional View */}
-          <TabsContent value="analytics" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <Card className="rounded-2xl border-0 shadow-lg bg-white overflow-hidden">
-                <CardHeader className="bg-slate-900 border-0 p-4">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-white text-sm font-bold flex items-center gap-2">
-                      <BarChart2 className="w-4 h-4 text-indigo-400" />
-                      Grievance Velocity
-                    </CardTitle>
-                    <select className="bg-white/10 text-white text-[10px] border-white/20 rounded px-2 py-1 outline-none">
-                      <option className="text-slate-900">Last 7 Days</option>
-                      <option className="text-slate-900">Last 30 Days</option>
-                    </select>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-4 h-[250px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={stats?.grievances.daily || []}>
-                      <defs>
-                        <linearGradient
-                          id="colorCount"
-                          x1="0"
-                          y1="0"
-                          x2="0"
-                          y2="1"
-                        >
-                          <stop
-                            offset="5%"
-                            stopColor="#6366f1"
-                            stopOpacity={0.8}
-                          />
-                          <stop
-                            offset="95%"
-                            stopColor="#6366f1"
-                            stopOpacity={0}
-                          />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        vertical={false}
-                        stroke="#f1f5f9"
-                      />
-                      <XAxis
-                        dataKey="date"
-                        fontSize={10}
-                        fontWeight="bold"
-                        tickLine={false}
-                        axisLine={false}
-                        tickFormatter={(val) =>
-                          new Date(val).toLocaleDateString(undefined, {
-                            day: "numeric",
-                            month: "short",
-                          })
-                        }
-                      />
-                      <YAxis
-                        fontSize={10}
-                        fontWeight="bold"
-                        tickLine={false}
-                        axisLine={false}
-                      />
-                      <Tooltip
-                        contentStyle={{
-                          borderRadius: "12px",
-                          border: "none",
-                          boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
-                          fontSize: "10px",
-                          fontWeight: "bold",
-                        }}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="count"
-                        stroke="#4f46e5"
-                        strokeWidth={3}
-                        fillOpacity={1}
-                        fill="url(#colorCount)"
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              <Card className="rounded-2xl border-0 shadow-lg bg-white overflow-hidden">
-                <CardHeader className="bg-slate-900 border-0 p-4">
-                  <CardTitle className="text-white text-sm font-bold flex items-center gap-2">
-                    <Target className="w-4 h-4 text-emerald-400" />
-                    Resolution Efficiency
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6 flex flex-col items-center justify-center">
-                  <div className="relative w-48 h-48">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={[
-                            {
-                              name: "Resolved",
-                              value: stats?.grievances.resolved || 0,
-                            },
-                            {
-                              name: "Pending",
-                              value:
-                                (stats?.grievances.pending || 0) +
-                                (stats?.grievances.inProgress || 0),
-                            },
-                          ]}
-                          innerRadius={60}
-                          outerRadius={80}
-                          paddingAngle={5}
-                          dataKey="value"
-                        >
-                          <Cell fill="#10b981" />
-                          <Cell fill="#f1f5f9" />
-                        </Pie>
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-3xl font-black text-slate-900 tracking-tighter">
-                        {(stats?.grievances.total || 0) > 0
-                          ? Math.round(
-                              ((stats?.grievances.resolved || 0) /
-                                (stats?.grievances.total || 1)) *
-                                100,
-                            )
-                          : 0}
-                        %
-                      </span>
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">
-                        Yield Rate
-                      </span>
-                    </div>
-                  </div>
-                  <div className="mt-6 grid grid-cols-2 gap-8 w-full">
-                    <div className="text-center">
-                      <p className="text-xl font-black text-slate-900">
-                        {stats?.grievances.resolved || 0}
-                      </p>
-                      <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mt-1 px-2 py-0.5 bg-emerald-50 rounded">
-                        Resolved
-                      </p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xl font-black text-slate-900">
-                        {(stats?.grievances.pending || 0) +
-                          (stats?.grievances.inProgress || 0)}
-                      </p>
-                      <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest mt-1 px-2 py-0.5 bg-amber-50 rounded">
-                        In-Cycle
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="rounded-2xl border-0 shadow-lg bg-white overflow-hidden">
-                <CardHeader className="bg-slate-900 border-0 p-4">
-                  <CardTitle className="text-white text-sm font-bold flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-orange-400" />
-                    SLA Compliance
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="space-y-6">
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                          Normal Priority
-                        </span>
-                        <span className="text-xs font-black text-indigo-600">
-                          92%
-                        </span>
-                      </div>
-                      <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-indigo-500 rounded-full"
-                          style={{ width: "92%" }}
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                          High Priority
-                        </span>
-                        <span className="text-xs font-black text-amber-600">
-                          78%
-                        </span>
-                      </div>
-                      <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-amber-500 rounded-full"
-                          style={{ width: "78%" }}
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                          Urgent Escalation
-                        </span>
-                        <span className="text-xs font-black text-rose-600">
-                          64%
-                        </span>
-                      </div>
-                      <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-rose-500 rounded-full"
-                          style={{ width: "64%" }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-8 p-4 bg-slate-50 rounded-xl border border-slate-200/60 shadow-inner">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm">
-                        <Clock className="w-5 h-5 text-indigo-600" />
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                          Avg. Cycle Time
-                        </p>
-                        <p className="text-xl font-black text-slate-900 tracking-tighter">
-                          4.2{" "}
-                          <span className="text-xs font-bold text-slate-400">
-                            Business Days
-                          </span>
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
 
           <TabsContent value="profile" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
