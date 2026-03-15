@@ -548,6 +548,26 @@ export class DynamicFlowEngine {
    * Special handling: grievance_category (or grievance_category_en etc.) loads departments; steps with buttons send buttons
    */
   private async executeMessageStep(step: IFlowStep): Promise<void> {
+    const stepId = step.stepId || "";
+    const messageText = step.messageText || "";
+    const shouldSuppressAppointmentSuccessMessage =
+      this.session.data?.skipFlowAppointmentSuccessMessage === true &&
+      (/appointment_submitted|appointment_success|apt_success/i.test(stepId) ||
+        /appointment request submitted|appointment booked successfully|अपॉइंटमेंट अनुरोध|ଆପଏଣ୍ଟମେଣ୍ଟ/.test(
+          messageText,
+        ));
+
+    if (shouldSuppressAppointmentSuccessMessage) {
+      console.log(
+        `⏭️ Suppressing flow appointment success message for step ${stepId}; using configured WhatsApp template only`,
+      );
+      this.session.data.skipFlowAppointmentSuccessMessage = false;
+      this.session.data.currentStepId = step.stepId;
+      await updateSession(this.session);
+      await this.runNextStepIfDifferent(step.nextStepId, step.stepId);
+      return;
+    }
+
     // Simple message step - no special ID fallbacks for departments anymore to avoid duplicates
     // Rely exclusively on step.stepType === 'list' with isDynamic: true in the flow.
 
