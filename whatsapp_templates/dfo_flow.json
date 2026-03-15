@@ -1,0 +1,548 @@
+{
+  "metadata": {
+    "name": "East Bhanupratappur Forest Division Flow",
+    "description": "WhatsApp Citizen Helpdesk for East Bhanupratappur Forest Division to report forest related issues.",
+    "companyId": "dfo_flow",
+    "version": 1,
+    "isActive": true
+  },
+  "settings": {
+    "sessionTimeout": 30,
+    "errorFallbackMessage": "⚠️ I'm sorry, I didn't understand that. Please use the menu buttons or type 'menu' to restart.",
+    "enableTypingIndicator": true,
+    "commands": {
+      "stop": {
+        "keywords": ["stop", "end", "exit", "quit", "bye", "terminate", "बंद करें", "रोको"],
+        "clearSession": true,
+        "responses": {
+          "en": "🛑 *Session Ended*\n\nThank you for using East Bhanupratappur Forest Division Helpdesk.\n\nType *Hi* anytime to start again. 🙏",
+          "hi": "🛑 *सत्र समाप्त*\n\nपूर्व भानुप्रतापपुर वनमंडल हेल्पडेस्क का उपयोग करने के लिए धन्यवाद।\n\nदोबारा शुरू करने के लिए *Hi* टाइप करें। 🙏"
+        }
+      },
+      "restart": {
+        "keywords": ["restart", "restrt", "reset", "start again", "फिर से शुरू", "पुनः शुरू"],
+        "clearSession": true,
+        "restartFlow": true,
+        "responses": {
+          "en": "🔄 *Restarting...*\n\nLet's start fresh!",
+          "hi": "🔄 *पुनः शुरुआत...*\n\nचलिए फिर से शुरू करते हैं!"
+        }
+      },
+      "menu": {
+        "keywords": ["menu", "main menu", "home", "मेनू", "मुख्य मेनू"],
+        "clearSession": false,
+        "navigateTo": "language_selection",
+        "responses": {
+          "en": "🏠 *Returning to Main Menu...*",
+          "hi": "🏠 *मुख्य मेनू पर वापस...*"
+        }
+      },
+      "back": {
+        "keywords": ["back", "previous", "prev", "go back", "वापस", "पीछे"],
+        "clearSession": false,
+        "navigateToPrevious": true,
+        "responses": {
+          "en": "🔙 *Going back...*",
+          "hi": "🔙 *वापस जा रहे हैं...*"
+        }
+      }
+    },
+    "fallback": {
+      "button": {
+        "maxAttempts": 3,
+        "resendStepOnFallback": true,
+        "messages": {
+          "en": "⚠️ *Invalid selection.*\n\nPlease tap one of the buttons above to continue.\n\n_Type *menu* to go to the Main Menu or *stop* to exit._",
+          "hi": "⚠️ *अमान्य चयन।*\n\nजारी रखने के लिए ऊपर दिए गए बटनों में से किसी एक पर टैप करें।\n\n_मुख्य मेनू के लिए *menu* या बाहर निकलने के लिए *stop* टाइप करें।_"
+        },
+        "maxAttemptsMessage": {
+          "en": "❗ Too many invalid attempts. Returning to Main Menu...",
+          "hi": "❗ बहुत अधिक अमान्य प्रयास। मुख्य मेनू पर वापस जा रहे हैं..."
+        }
+      },
+      "list": {
+        "maxAttempts": 3,
+        "resendStepOnFallback": true,
+        "messages": {
+          "en": "⚠️ *Invalid selection.*\n\nPlease tap the *Select* button to open the menu and choose an option.\n\n_Type *menu* to go to the Main Menu or *stop* to exit._",
+          "hi": "⚠️ *अमान्य चयन।*\n\nमेनू खोलकर विकल्प चुनने के लिए *चुनें* बटन पर टैप करें।\n\n_मुख्य मेनू के लिए *menu* या बाहर निकलने के लिए *stop* टाइप करें।_"
+        },
+        "maxAttemptsMessage": {
+          "en": "❗ Too many invalid attempts. Returning to Main Menu...",
+          "hi": "❗ बहुत अधिक अमान्य प्रयास। मुख्य मेनू पर वापस जा रहे हैं..."
+        }
+      },
+      "input": {
+        "maxAttempts": 3,
+        "messages": {
+          "en": "⚠️ *Invalid input.*\n\nPlease provide the required information to continue.\n\n_Type *menu* for Main Menu or *stop* to exit._",
+          "hi": "⚠️ *अमान्य इनपुट।*\n\nजारी रखने के लिए आवश्यक जानकारी प्रदान करें।\n\n_मुख्य मेनू के लिए *menu* या बाहर निकलने के लिए *stop* टाइप करें।_"
+        },
+        "maxAttemptsMessage": {
+          "en": "❗ Too many invalid attempts. Returning to Main Menu...",
+          "hi": "❗ बहुत अधिक अमान्य प्रयास। मुख्य मेनू पर वापस जा रहे हैं..."
+        }
+      }
+    }
+  },
+  "translations": {
+    "en": {
+      "welcome": "Welcome to the Official WhatsApp Helpdesk\nEast Bhanupratappur Forest Division",
+      "track_not_found": "❌ *No Records Found*\n\nWe could not find any record matching that reference number.\n\nPlease double-check the number or contact support.",
+      "track_found": "📌 📄 *Complaint Status*\n\n🎫 Ref No: {refNumber}\n📂 Category: {category}\n📊 Status: 📋 {status}\n👨‍💼 Assigned Officer: {assignedOfficer}\n\n📝 Details: {remarks}"
+    },
+    "hi": {
+      "welcome": "पूर्व भानुप्रतापपुर वनमंडल\nआधिकारिक व्हाट्सएप हेल्पडेस्क में आपका स्वागत है।",
+      "track_not_found": "❌ *कोई रिकॉर्ड नहीं मिला*\n\nहमें उस संदर्भ संख्या से मेल खाने वाला कोई रिकॉर्ड नहीं मिला।\n\nकृपया संख्या की दोबारा जांच करें या सहायता से संपर्क करें।",
+      "track_found": "📌 📄 *शिकायत की स्थिति*\n\n🎫 संदर्भ संख्या: {refNumber}\n📂 श्रेणी: {category}\n📊 स्थिति: 📋 {status}\n👨‍💼 नियुक्त अधिकारी: {assignedOfficer}\n\n📝 विवरण: {remarks}"
+    }
+  },
+  "nodes": [
+    {
+      "id": "start_node",
+      "type": "start",
+      "position": { "x": 0, "y": 0 },
+      "data": {
+        "label": "Start Trigger",
+        "trigger": "start",
+        "triggerType": "keyword"
+      }
+    },
+    {
+      "id": "language_selection",
+      "type": "buttonMessage",
+      "position": { "x": 300, "y": 0 },
+      "data": {
+        "label": "Language Selection",
+        "messageText": "🌲 *Welcome to the Official WhatsApp Helpdesk*\n*East Bhanupratappur Forest Division*\n\nYou can use this service for:\n• Reporting Forest-related Issues\n• Tracking Complaint Status\n\n🌲 *पूर्व भानुप्रतापपुर वनमंडल*\n*आधिकारिक व्हाट्सएप हेल्पडेस्क में आपका स्वागत है।*\n\nआप इस सेवा का उपयोग कर सकते हैं:\n• वन अपराध/सूचना दर्ज करने हेतु\n• शिकायत की स्थिति देखने हेतु\n\n👇 Select Language / भाषा चुनें:",
+        "buttons": [
+          { "id": "lang_en", "text": "English", "type": "quick_reply" },
+          { "id": "lang_hi", "text": "हिंदी", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "main_menu_en",
+      "type": "listMessage",
+      "position": { "x": 600, "y": -200 },
+      "data": {
+        "label": "Main Menu (EN)",
+        "messageText": "🏛️ *Citizen Services Menu*\n\nPlease select a service:",
+        "buttonText": "Select Service",
+        "sections": [
+          {
+            "title": "Services",
+            "rows": [
+              { "id": "report_en", "title": "Report an Issue", "description": "Lodge a formal complaint" },
+              { "id": "track_en", "title": "Complaint Status", "description": "Check complaint status" },
+              { "id": "helpdesk_en", "title": "Helpdesk & Contact", "description": "Helpline and office info" },
+              { "id": "about_en", "title": "About Forest Division", "description": "Learn about our mission" }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "main_menu_hi",
+      "type": "listMessage",
+      "position": { "x": 600, "y": 200 },
+      "data": {
+        "label": "Main Menu (HI)",
+        "messageText": "🏛️ *नागरिक सेवा पोर्टल - मुख्य मेनू*\n\nकृपया वांछित सेवा का चयन करें:",
+        "buttonText": "सेवा चुनें",
+        "sections": [
+          {
+            "title": "उपलब्ध सेवाएं",
+            "rows": [
+              { "id": "report_hi", "title": "📝 सूचना दर्ज करें", "description": "वन अपराध या घटना की रिपोर्ट" },
+              { "id": "track_hi", "title": "🔍 शिकायत ट्रैक करें", "description": "अपनी शिकायत की स्थिति जानें" },
+              { "id": "helpdesk_hi", "title": "📞 हेल्पडेस्क संपर्क", "description": "संपर्क एवं कार्यालय समय" },
+              { "id": "about_hi", "title": "🌲 वनमंडल परिचय", "description": "मंडल के संरक्षण कार्यों के बारे में" }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "report_cat_en",
+      "type": "listMessage",
+      "position": { "x": 900, "y": -400 },
+      "data": {
+        "label": "Complaint Categories (EN)",
+        "messageText": "📋 *Complaint Categories*\n\nPlease select the type of issue:",
+        "buttonText": "Select Issue Type",
+        "saveToField": "category",
+        "sections": [
+          {
+            "title": "Issue Types",
+            "rows": [
+              { "id": "cat_fire_en", "title": "Forest Fire Info", "description": "Report a forest fire" },
+              { "id": "cat_wildlife_en", "title": "Wildlife Issue", "description": "Wildlife related incidents" },
+              { "id": "cat_encroach_en", "title": "Forest Encroachment", "description": "Encroachment on land" },
+              { "id": "cat_tree_en", "title": "Illegal Tree Cutting", "description": "Report illegal cutting" },
+              { "id": "cat_transport_en", "title": "Illegal Transport", "description": "Illegal forest produce" },
+              { "id": "cat_other_en", "title": "Other Info", "description": "Other forest related" }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "report_cat_hi",
+      "type": "listMessage",
+      "position": { "x": 900, "y": 100 },
+      "data": {
+        "label": "Complaint Categories (HI)",
+        "messageText": "📋 *सूचना का प्रकार*\n\nकृपया संबंधित श्रेणी का चयन करें:",
+        "buttonText": "श्रेणी चुनें",
+        "saveToField": "category",
+        "sections": [
+          {
+            "title": "मुख्य श्रेणियां",
+            "rows": [
+              { "id": "cat_fire_hi", "title": "🔥 वनाग्नि (जंगल की आग)", "description": "वनाग्नि की तत्काल सूचना दें" },
+              { "id": "cat_wildlife_hi", "title": "🐾 वन्यजीव संरक्षण", "description": "वन्यजीव अपराध/मानव-द्वंद्व" },
+              { "id": "cat_encroach_hi", "title": "🧱 वन भूमि अतिक्रमण", "description": "अवैध कब्जे की सूचना" },
+              { "id": "cat_tree_hi", "title": "🪓 अवैध पातन (कटाई)", "description": "वृक्षों की अवैध कटाई" },
+              { "id": "cat_transport_hi", "title": "🚚 अवैध परिवहन", "description": "वन उपज का अवैध परिवहन" },
+              { "id": "cat_other_hi", "title": "📂 अन्य वन मामले", "description": "अन्य महत्वपूर्ण सूचना" }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "report_name_en",
+      "type": "userInput",
+      "position": { "x": 1200, "y": -400 },
+      "data": {
+        "label": "Full Name (EN)",
+        "messageText": "👤 Please enter your Full Name:",
+        "inputType": "text",
+        "saveToField": "citizenName",
+        "validation": { "required": true }
+      }
+    },
+    {
+      "id": "report_loc_choice_en",
+      "type": "buttonMessage",
+      "position": { "x": 1400, "y": -400 },
+      "data": {
+        "label": "Location Choice (EN)",
+        "messageText": "📍 Would you like to share the Incident Location?",
+        "buttons": [
+          { "id": "loc_share_en", "text": "📍 Share Location", "type": "quick_reply" },
+          { "id": "loc_skip_en", "text": "⏭️ Skip", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "report_location_en",
+      "type": "userInput",
+      "position": { "x": 1600, "y": -500 },
+      "data": {
+        "label": "Location (EN)",
+        "messageText": "📍 Please share the incident location by sending a *Location Pin* 📎 via WhatsApp or type the area name below:",
+        "inputType": "text",
+        "saveToField": "locationAddress",
+        "validation": { "required": true }
+      }
+    },
+    {
+      "id": "report_desc_en",
+      "type": "userInput",
+      "position": { "x": 2000, "y": -400 },
+      "data": {
+        "label": "Description (EN)",
+        "messageText": "📝 Please describe the issue in detail:",
+        "inputType": "text",
+        "saveToField": "description",
+        "validation": { "required": true }
+      }
+    },
+    {
+      "id": "report_evidence_en",
+      "type": "buttonMessage",
+      "position": { "x": 2200, "y": -400 },
+      "data": {
+        "label": "Evidence Choice (EN)",
+        "messageText": "📷 Do you want to upload Photo Evidence?",
+        "buttons": [
+          { "id": "yes_photo_en", "text": "Yes, Upload", "type": "quick_reply" },
+          { "id": "no_photo_en", "text": "No, Skip", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "report_upload_en",
+      "type": "userInput",
+      "position": { "x": 2400, "y": -500 },
+      "data": {
+        "label": "Upload Base (EN)",
+        "messageText": "📎 Please upload your Photo now:",
+        "inputType": "file",
+        "saveToField": "attachmentUrl",
+        "validation": { "allowedTypes": ["image/jpeg", "image/png", "video/mp4"] }
+      }
+    },
+    {
+      "id": "report_submit_en",
+      "type": "buttonMessage",
+      "position": { "x": 2600, "y": -400 },
+      "data": {
+        "label": "Confirm (EN)",
+        "messageText": "📋 *Confirm Submission*\n\nName: {citizenName}\nIssue: {description}\n\nShall we submit this complaint to the Forest Division?",
+        "buttons": [
+          { "id": "submit_yes_en", "text": "✅ Submit", "type": "quick_reply" },
+          { "id": "submit_no_en", "text": "❌ Cancel", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "report_success_en",
+      "type": "textMessage",
+      "position": { "x": 2800, "y": -400 },
+      "data": {
+        "label": "Success (EN)",
+        "messageText": "✅ Your complaint has been registered successfully.\n\n*Reference Number: FD-2026-{grievanceId}*\n\nPlease save this reference number for tracking."
+      }
+    },
+    {
+      "id": "report_name_hi",
+      "type": "userInput",
+      "position": { "x": 1200, "y": 100 },
+      "data": {
+        "label": "Full Name (HI)",
+        "messageText": "👤 कृपया अपना पूरा नाम दर्ज करें:",
+        "inputType": "text",
+        "saveToField": "citizenName",
+        "validation": { "required": true }
+      }
+    },
+    {
+      "id": "report_loc_choice_hi",
+      "type": "buttonMessage",
+      "position": { "x": 1400, "y": 100 },
+      "data": {
+        "label": "Location Choice (HI)",
+        "messageText": "📍 क्या आप घटना का स्थान साझा करना चाहेंगे?",
+        "buttons": [
+          { "id": "loc_share_hi", "text": "📍 साझा करें", "type": "quick_reply" },
+          { "id": "loc_skip_hi", "text": "⏭️ छोड़ें", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "report_location_hi",
+      "type": "userInput",
+      "position": { "x": 1600, "y": 0 },
+      "data": {
+        "label": "Location (HI)",
+        "messageText": "📍 कृपया व्हाट्सएप के माध्यम से घटना का *स्थान (Location Pin)* साझा करें 📎 या क्षेत्र का नाम टाइप करें:",
+        "inputType": "text",
+        "saveToField": "locationAddress",
+        "validation": { "required": true }
+      }
+    },
+    {
+      "id": "report_desc_hi",
+      "type": "userInput",
+      "position": { "x": 2000, "y": 100 },
+      "data": {
+        "label": "Description (HI)",
+        "messageText": "📝 समस्या का विस्तृत विवरण दर्ज करें:",
+        "inputType": "text",
+        "saveToField": "description",
+        "validation": { "required": true }
+      }
+    },
+    {
+      "id": "report_evidence_hi",
+      "type": "buttonMessage",
+      "position": { "x": 2200, "y": 100 },
+      "data": {
+        "label": "Evidence Choice (HI)",
+        "messageText": "📷 क्या आप फोटो साक्ष्य संलग्न करना चाहते हैं?",
+        "buttons": [
+          { "id": "yes_photo_hi", "text": "📸 हाँ, संलग्न करें", "type": "quick_reply" },
+          { "id": "no_photo_hi", "text": "⏭️ छोड़ें", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "report_upload_hi",
+      "type": "userInput",
+      "position": { "x": 2400, "y": 0 },
+      "data": {
+        "label": "Upload Base (HI)",
+        "messageText": "📎 कृपया अपना फोटो अभी अपलोड करें:",
+        "inputType": "file",
+        "saveToField": "attachmentUrl",
+        "validation": { "allowedTypes": ["image/jpeg", "image/png", "video/mp4"] }
+      }
+    },
+    {
+      "id": "report_submit_hi",
+      "type": "buttonMessage",
+      "position": { "x": 2600, "y": 100 },
+      "data": {
+        "label": "Confirm (HI)",
+        "messageText": "📋 *विवरण की पुष्टि*\n\n• नाम: {citizenName}\n• विवरण: {description}\n\nक्या आप इस सूचना को वनमंडल कार्यालय प्रेषित करना चाहते हैं?",
+        "buttons": [
+          { "id": "submit_yes_hi", "text": "✅ हाँ, प्रेषित करें", "type": "quick_reply" },
+          { "id": "submit_no_hi", "text": "❌ निरस्त करें", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "report_success_hi",
+      "type": "textMessage",
+      "position": { "x": 2800, "y": 100 },
+      "data": {
+        "label": "Success (HI)",
+        "messageText": "✅ आपकी सूचना सफलतापूर्वक दर्ज कर ली गई है।\n\n*संदर्भ संख्या: FD-2026-{grievanceId}*\n\nकृपया भविष्य के लिए यह संख्या सुरक्षित रखें। आपके सहयोग के लिए धन्यवाद।"
+      }
+    },
+    {
+      "id": "track_intro_en",
+      "type": "userInput",
+      "position": { "x": 900, "y": -200 },
+      "data": {
+        "label": "Track Intro (EN)",
+        "messageText": "🔍 *Track Complaint*\n\nPlease enter your Reference Number (e.g. FD-2026-1023):",
+        "inputType": "text",
+        "saveToField": "trackRefNumber",
+        "validation": { "required": true }
+      }
+    },
+    {
+      "id": "track_found_en",
+      "type": "textMessage",
+      "position": { "x": 1200, "y": -200 },
+      "data": {
+        "label": "Track Success (EN)",
+        "messageText": "📌 📄 *Complaint Status*\n\n🎫 Reference Number: {refNumber}\n📂 Category: {category}\n📊 Status: 📋 {status}\n👨‍💼 Assigned Officer: {assignedOfficer}\n\n📝 Details: {remarks}"
+      }
+    },
+    {
+      "id": "track_intro_hi",
+      "type": "userInput",
+      "position": { "x": 900, "y": 300 },
+      "data": {
+        "label": "Track Intro (HI)",
+        "messageText": "🔍 *शिकायत की स्थिति*\n\nकृपया अपनी संदर्भ संख्या दर्ज करें (उदा. FD-2026-1023):",
+        "inputType": "text",
+        "saveToField": "trackRefNumber",
+        "validation": { "required": true }
+      }
+    },
+    {
+      "id": "track_found_hi",
+      "type": "textMessage",
+      "position": { "x": 1200, "y": 300 },
+      "data": {
+        "label": "Track Success (HI)",
+        "messageText": "📌 📄 *शिकायत की स्थिति*\n\n🎫 संदर्भ संख्या: {refNumber}\n📂 श्रेणी: {category}\n📊 स्थिति: 📋 {status}\n👨‍💼 नियुक्त अधिकारी: {assignedOfficer}\n\n📝 विवरण: {remarks}"
+      }
+    },
+    {
+      "id": "helpdesk_en",
+      "type": "buttonMessage",
+      "position": { "x": 900, "y": -100 },
+      "data": {
+        "label": "Helpdesk (EN)",
+        "messageText": "📞 *Helpdesk Information*\n\n*Helpline Number:* XXXXXXXX\n\n*Website:*\nhttps://forest.cg.gov.in\n\n*Office Address:*\nOffice of Divisional Forest Officer\nEast Bhanupratappur Division\n\n*Office Hours:*\n10:00 AM – 5:30 PM\nMonday – Friday",
+        "buttons": [
+          { "id": "main_menu_btn_en", "text": "↩️ Main Menu", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "about_en",
+      "type": "buttonMessage",
+      "position": { "x": 900, "y": 0 },
+      "data": {
+        "label": "About (EN)",
+        "messageText": "🌲 *About Forest Division*\n\nThe East Bhanupratappur Forest Division works towards:\n• Forest protection\n• Wildlife conservation\n• Prevention of illegal forest activities\n\nCitizens can report forest related incidents through this WhatsApp service.",
+        "buttons": [
+          { "id": "main_menu_btn_en", "text": "↩️ Main Menu", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "helpdesk_hi",
+      "type": "buttonMessage",
+      "position": { "x": 900, "y": 400 },
+      "data": {
+        "label": "Helpdesk (HI)",
+        "messageText": "📞 *हेल्पडेस्क जानकारी*\n\n*हेल्पलाइन नंबर:* XXXXXXXX\n\n*वेबसाइट:*\nhttps://forest.cg.gov.in\n\n*कार्यालय पता:*\nवनमंडलाधिकारी कार्यालय\nपूर्व भानुप्रतापपुर वनमंडल\n\n*कार्यालय समय:*\n10:00 AM – 5:30 PM\nसोमवार – शुक्रवार",
+        "buttons": [
+          { "id": "main_menu_btn_hi", "text": "↩️ मुख्य मेनू", "type": "quick_reply" }
+        ]
+      }
+    },
+    {
+      "id": "about_hi",
+      "type": "buttonMessage",
+      "position": { "x": 900, "y": 500 },
+      "data": {
+        "label": "About (HI)",
+        "messageText": "🌲 *वनमंडल के बारे में*\n\nपूर्व भानुप्रतापपुर वनमंडल इसके लिए काम करता है:\n• वन संरक्षण\n• वन्यजीव संरक्षण\n• वन की अवैध गतिविधियों की रोकथाम\n\nनागरिक इस व्हाट्सएप सेवा के माध्यम से वन संबंधित घटनाओं की सूचना दे सकते हैं।",
+        "buttons": [
+          { "id": "main_menu_btn_hi", "text": "↩️ मुख्य मेनू", "type": "quick_reply" }
+        ]
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e_start", "source": "start_node", "target": "language_selection", "type": "smoothstep" },
+    { "id": "e_lang_en", "source": "language_selection", "target": "main_menu_en", "sourceHandle": "lang_en", "type": "smoothstep" },
+    { "id": "e_lang_hi", "source": "language_selection", "target": "main_menu_hi", "sourceHandle": "lang_hi", "type": "smoothstep" },
+    { "id": "e_en_report", "source": "main_menu_en", "target": "report_cat_en", "sourceHandle": "report_en", "type": "smoothstep" },
+    { "id": "e_en_track", "source": "main_menu_en", "target": "track_intro_en", "sourceHandle": "track_en", "type": "smoothstep" },
+    { "id": "e_en_helpdesk", "source": "main_menu_en", "target": "helpdesk_en", "sourceHandle": "helpdesk_en", "type": "smoothstep" },
+    { "id": "e_en_about", "source": "main_menu_en", "target": "about_en", "sourceHandle": "about_en", "type": "smoothstep" },
+    { "id": "e_en_cat1", "source": "report_cat_en", "target": "report_name_en", "sourceHandle": "cat_fire_en", "type": "smoothstep" },
+    { "id": "e_en_cat2", "source": "report_cat_en", "target": "report_name_en", "sourceHandle": "cat_wildlife_en", "type": "smoothstep" },
+    { "id": "e_en_cat3", "source": "report_cat_en", "target": "report_name_en", "sourceHandle": "cat_encroach_en", "type": "smoothstep" },
+    { "id": "e_en_cat4", "source": "report_cat_en", "target": "report_name_en", "sourceHandle": "cat_tree_en", "type": "smoothstep" },
+    { "id": "e_en_cat5", "source": "report_cat_en", "target": "report_name_en", "sourceHandle": "cat_transport_en", "type": "smoothstep" },
+    { "id": "e_en_cat6", "source": "report_cat_en", "target": "report_name_en", "sourceHandle": "cat_other_en", "type": "smoothstep" },
+    { "id": "e_en_r1", "source": "report_name_en", "target": "report_loc_choice_en", "type": "smoothstep" },
+    { "id": "e_en_loc_yes", "source": "report_loc_choice_en", "target": "report_location_en", "sourceHandle": "loc_share_en", "type": "smoothstep" },
+    { "id": "e_en_loc_no", "source": "report_loc_choice_en", "target": "report_desc_en", "sourceHandle": "loc_skip_en", "type": "smoothstep" },
+    { "id": "e_en_r4", "source": "report_location_en", "target": "report_desc_en", "type": "smoothstep" },
+    { "id": "e_en_r5", "source": "report_desc_en", "target": "report_evidence_en", "type": "smoothstep" },
+    { "id": "e_en_r6_yes", "source": "report_evidence_en", "target": "report_upload_en", "sourceHandle": "yes_photo_en", "type": "smoothstep" },
+    { "id": "e_en_r6_no", "source": "report_evidence_en", "target": "report_submit_en", "sourceHandle": "no_photo_en", "type": "smoothstep" },
+    { "id": "e_en_r7", "source": "report_upload_en", "target": "report_submit_en", "type": "smoothstep" },
+    { "id": "e_en_r8_yes", "source": "report_submit_en", "target": "report_success_en", "sourceHandle": "submit_yes_en", "type": "smoothstep" },
+    { "id": "e_en_r8_no", "source": "report_submit_en", "target": "main_menu_en", "sourceHandle": "submit_no_en", "type": "smoothstep" },
+    { "id": "e_en_t1", "source": "track_intro_en", "target": "track_found_en", "type": "smoothstep" },
+    { "id": "e_en_h_ret", "source": "helpdesk_en", "target": "main_menu_en", "sourceHandle": "main_menu_btn_en", "type": "smoothstep" },
+    { "id": "e_en_a_ret", "source": "about_en", "target": "main_menu_en", "sourceHandle": "main_menu_btn_en", "type": "smoothstep" },
+    { "id": "e_hi_report", "source": "main_menu_hi", "target": "report_cat_hi", "sourceHandle": "report_hi", "type": "smoothstep" },
+    { "id": "e_hi_track", "source": "main_menu_hi", "target": "track_intro_hi", "sourceHandle": "track_hi", "type": "smoothstep" },
+    { "id": "e_hi_helpdesk", "source": "main_menu_hi", "target": "helpdesk_hi", "sourceHandle": "helpdesk_hi", "type": "smoothstep" },
+    { "id": "e_hi_about", "source": "main_menu_hi", "target": "about_hi", "sourceHandle": "about_hi", "type": "smoothstep" },
+    { "id": "e_hi_cat1", "source": "report_cat_hi", "target": "report_name_hi", "sourceHandle": "cat_fire_hi", "type": "smoothstep" },
+    { "id": "e_hi_cat2", "source": "report_cat_hi", "target": "report_name_hi", "sourceHandle": "cat_wildlife_hi", "type": "smoothstep" },
+    { "id": "e_hi_cat3", "source": "report_cat_hi", "target": "report_name_hi", "sourceHandle": "cat_encroach_hi", "type": "smoothstep" },
+    { "id": "e_hi_cat4", "source": "report_cat_hi", "target": "report_name_hi", "sourceHandle": "cat_tree_hi", "type": "smoothstep" },
+    { "id": "e_hi_cat5", "source": "report_cat_hi", "target": "report_name_hi", "sourceHandle": "cat_transport_hi", "type": "smoothstep" },
+    { "id": "e_hi_cat6", "source": "report_cat_hi", "target": "report_name_hi", "sourceHandle": "cat_other_hi", "type": "smoothstep" },
+    { "id": "e_hi_r1", "source": "report_name_hi", "target": "report_loc_choice_hi", "type": "smoothstep" },
+    { "id": "e_hi_loc_yes", "source": "report_loc_choice_hi", "target": "report_location_hi", "sourceHandle": "loc_share_hi", "type": "smoothstep" },
+    { "id": "e_hi_loc_no", "source": "report_loc_choice_hi", "target": "report_desc_hi", "sourceHandle": "loc_skip_hi", "type": "smoothstep" },
+    { "id": "e_hi_r4", "source": "report_location_hi", "target": "report_desc_hi", "type": "smoothstep" },
+    { "id": "e_hi_r5", "source": "report_desc_hi", "target": "report_evidence_hi", "type": "smoothstep" },
+    { "id": "e_hi_r6_yes", "source": "report_evidence_hi", "target": "report_upload_hi", "sourceHandle": "yes_photo_hi", "type": "smoothstep" },
+    { "id": "e_hi_r6_no", "source": "report_evidence_hi", "target": "report_submit_hi", "sourceHandle": "no_photo_hi", "type": "smoothstep" },
+    { "id": "e_hi_r7", "source": "report_upload_hi", "target": "report_submit_hi", "type": "smoothstep" },
+    { "id": "e_hi_r8_yes", "source": "report_submit_hi", "target": "report_success_hi", "sourceHandle": "submit_yes_hi", "type": "smoothstep" },
+    { "id": "e_hi_r8_no", "source": "report_submit_hi", "target": "main_menu_hi", "sourceHandle": "submit_no_hi", "type": "smoothstep" },
+    { "id": "e_hi_t1", "source": "track_intro_hi", "target": "track_found_hi", "type": "smoothstep" },
+    { "id": "e_hi_h_ret", "source": "helpdesk_hi", "target": "main_menu_hi", "sourceHandle": "main_menu_btn_hi", "type": "smoothstep" },
+    { "id": "e_hi_a_ret", "source": "about_hi", "target": "main_menu_hi", "sourceHandle": "main_menu_btn_hi", "type": "smoothstep" }
+  ]
+}

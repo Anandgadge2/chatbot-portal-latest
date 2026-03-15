@@ -105,6 +105,13 @@ export class ActionService {
         description: session.data.description,
         category: session.data.category,
         media: sanitizedMedia,
+        location: (session.data.latitude && session.data.longitude || session.data.locationAddress) ? {
+          type: 'Point',
+          coordinates: (session.data.latitude && session.data.longitude) 
+            ? [Number(session.data.longitude), Number(session.data.latitude)] 
+            : [0, 0], // Placeholder if only address is provided
+          address: session.data.locationAddress || ''
+        } : undefined,
         status: GrievanceStatus.PENDING,
         language: session.language || 'en'
       };
@@ -232,6 +239,9 @@ export class ActionService {
         purpose: session.data.purpose,
         appointmentDate,
         appointmentTime: appointmentTime,
+        location: (session.data.latitude && session.data.longitude) 
+          ? `Lat: ${session.data.latitude}, Long: ${session.data.longitude}${session.data.locationAddress ? `, Address: ${session.data.locationAddress}` : ''}`
+          : undefined,
         status: AppointmentStatus.REQUESTED
       };
       

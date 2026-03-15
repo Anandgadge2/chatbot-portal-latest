@@ -211,6 +211,14 @@ async function handleIncomingMessage(message: any, metadata: any, resolvedCompan
     } else if (messageType === 'video') {
       messageText = message.video?.caption || '';
       mediaUrl = message.video?.id || '';
+    } else if (messageType === 'location') {
+      // Capture WhatsApp location (Live or Static)
+      const lat = message.location?.latitude;
+      const long = message.location?.longitude;
+      const address = message.location?.address || message.location?.name || '';
+      messageText = `Lat: ${lat}, Long: ${long}${address ? `, Address: ${address}` : ''}`;
+      // Pack location data into metadata for the engine
+      (message as any).locationData = { lat, long, address };
     }
 
     console.log(

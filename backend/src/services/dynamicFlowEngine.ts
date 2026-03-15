@@ -40,6 +40,11 @@ export interface ChatbotMessage {
   mediaUrl?: string;
   metadata?: any;
   buttonId?: string;
+  locationData?: {
+    lat: number;
+    long: number;
+    address?: string;
+  };
 }
 
 /**
@@ -65,7 +70,7 @@ function getLocalText(step: IFlowStep, lang: string): string {
  */
 const GREETINGS = new Set([
   'hi', 'hii', 'hello', 'start', 'namaste', 'नमस्ते',
-  'ନମସ୍କାର', 'helo', 'hey', 'begin',
+  'ନମସ୍କାର', 'helo', 'hey', 'begin', 'restart', 'restrt', 'menu', 'main menu'
 ]);
 
 /**
@@ -119,11 +124,26 @@ async function handleFlowCommand(
 
   // Merge with flow settings (json) if not already defined in DB OR if DB has no keywords
   const flowCommands = (flow as any).settings?.commands || {};
+  
+  // Define absolute defaults to merge with flow settings
+  const DEFAULTS: Record<string, string[]> = {
+    stop: ["stop", "end", "exit", "quit", "bye", "terminate", "बंद करें", "रोको"],
+    restart: ["restart", "restrt", "reset", "start again", "फिर से शुरू", "पुनः शुरू"],
+    menu: ["menu", "main menu", "home", "नमस्ते", "मेन्यू", "hi", "hiii"],
+    back: ["back", "previous", "prev", "go back", "पीछे", "वापस", "pichhe"]
+  };
+
   Object.entries(flowCommands).forEach(([name, config]: [string, any]) => {
     const internalKey = name.startsWith('cmd_') ? name : `cmd_${name}`;
+    const cleanName = name.toLowerCase().replace('cmd_', '');
+    const keywords = new Set([
+      ...(config.keywords || []).map((k: string) => k.toLowerCase()),
+      ...(DEFAULTS[cleanName] || [])
+    ]);
+
     if (!commandConfigs[internalKey] || !commandConfigs[internalKey].keywords?.length) {
       commandConfigs[internalKey] = {
-        keywords: (config.keywords || []).map((k: string) => k.toLowerCase()),
+        keywords: Array.from(keywords),
         responses: config.responses || {},
         action: name.toUpperCase() // e.g. "stop" -> "STOP"
       };
@@ -306,7 +326,11 @@ export class DynamicFlowEngine {
    * Execute a specific step in the flow.
    * Auto-advances to nextStepId when the step does not require user input; same step is never repeated.
    */
-  async executeStep(stepId: string, userInput?: string): Promise<void> {
+  async executeStep(
+    stepId: string,
+    userInput?: string,
+    locationData?: { lat: number; long: number; address?: string },
+  ): Promise<void> {
     let step = this.flow.steps.find((s) => s.stepId === stepId);
     // If not found, try base step ID (e.g. grievance_category_en -> grievance_category) so flows with single department step work
     if (!step && stepId && /_.+$/.test(stepId)) {
@@ -325,8 +349,12 @@ export class DynamicFlowEngine {
     }
 
     // SESSION TRACKING: Update previousStepId before changing currentStepId
+    // Only track steps that require user interaction so "back" returns to a useful state
     const oldStepId = this.session.data.currentStepId;
-    if (oldStepId && oldStepId !== stepId) {
+    const oldStep = oldStepId ? this.flow.steps.find(s => s.stepId === oldStepId) : null;
+    const isOldStepInteractive = oldStep && ["buttons", "list", "input", "media"].includes(oldStep.stepType);
+
+    if (oldStepId && oldStepId !== stepId && isOldStepInteractive) {
       this.session.data.previousStepId = oldStepId;
     }
 
@@ -432,7 +460,7 @@ export class DynamicFlowEngine {
           break;
 
         case "input":
-          await this.executeInputStep(step, userInput);
+          await this.executeInputStep(step, userInput, locationData);
           break;
 
         case "media":
@@ -1021,9 +1049,29 @@ export class DynamicFlowEngine {
   private async executeInputStep(
     step: IFlowStep,
     userInput?: string,
+    locationData?: { lat: number; long: number; address?: string },
   ): Promise<void> {
     if (!step.inputConfig) {
       console.error("❌ Input step has no input configuration");
+      return;
+    }
+
+    // Handle incoming Location
+    if (locationData) {
+      console.log(`📍 Storing location: ${locationData.lat}, ${locationData.long}`);
+      this.session.data.latitude = locationData.lat;
+      this.session.data.longitude = locationData.long;
+      if (locationData.address) this.session.data.locationAddress = locationData.address;
+      
+      // If we are currently in a generic "location" field step, save that too
+      if (step.inputConfig.saveToField) {
+        this.session.data[step.inputConfig.saveToField] = `Lat: ${locationData.lat}, Long: ${locationData.long}`;
+      }
+
+      delete this.session.data.awaitingInput;
+      await updateSession(this.session);
+      const nextId = step.inputConfig.nextStepId || step.nextStepId;
+      if (nextId) await this.runNextStepIfDifferent(nextId, step.stepId);
       return;
     }
 
@@ -1163,6 +1211,7 @@ export class DynamicFlowEngine {
       this.session.data[step.inputConfig.saveToField] = userInput;
     }
     // Clear awaitingInput so next message is not treated as input for this step
+    this.session.data.fallbackAttempts = 0;
     delete this.session.data.awaitingInput;
     await updateSession(this.session);
 
@@ -2919,6 +2968,7 @@ export async function processWhatsAppMessage(
   const buttonId = message.buttonId?.trim();
   const userInput = (message.messageText || "").trim().toLowerCase();
   const rawInput = (message.messageText || "").trim();
+  const locationData = message.locationData;
 
   console.log(
     `\n📨 Incoming [${messageType}] from ${from} | Company: ${companyId}`,
@@ -2985,6 +3035,7 @@ export async function processWhatsAppMessage(
       messageType,
       mediaUrl,
       message,
+      locationData,
     );
     return;
   }
@@ -3138,6 +3189,7 @@ async function continueFlow(
   messageType: string,
   mediaUrl: string | undefined,
   message: ChatbotMessage,
+  locationData?: { lat: number; long: number; address?: string },
 ): Promise<void> {
   let flow = await ChatbotFlow.findOne({
     flowId: session.data.flowId,
@@ -3255,6 +3307,14 @@ async function continueFlow(
     return;
   }
 
+  // ── 5.5 Location upload
+  if (messageType === "location" && locationData) {
+    session.data.fallbackAttempts = 0;
+    await updateSession(session);
+    await engine.executeStep(session.data.currentStepId, rawInput, locationData);
+    return;
+  }
+
   // ── 6. Media skip
   if (session.data.awaitingMedia) {
     const skipKeywords = ["skip", "cancel", "no", "na", "n/a"];
@@ -3291,8 +3351,29 @@ async function continueFlow(
 
   // ── 8. Text input for input steps
   if (session.data.awaitingInput) {
-    session.data.fallbackAttempts = 0;
-    await engine.executeStep(session.data.currentStepId, rawInput);
+    // Check if this input step should have fallback protection
+    const attempts = (session.data.fallbackAttempts || 0) + 1;
+    session.data.fallbackAttempts = attempts;
+    await updateSession(session);
+
+    const inputFallback = fallbackConfig?.input;
+    const maxAttempts = inputFallback?.maxAttempts ?? 2; // Default to 2 (1 original + 1 repeat)
+
+    if (attempts >= maxAttempts) {
+      const maxMsg = inputFallback?.maxAttemptsMessage?.[lang] || 
+                    inputFallback?.maxAttemptsMessage?.["en"] || 
+                    "Too many invalid attempts. Returning to menu.";
+      await sendWhatsAppMessage(company, from, maxMsg);
+      
+      session.data.fallbackAttempts = 0;
+      delete session.data.awaitingInput;
+      await updateSession(session);
+      
+      const menuTarget = (flow as any).settings?.commands?.menu?.navigateTo || flow.startStepId;
+      await engine.executeStep(menuTarget);
+    } else {
+      await engine.executeStep(session.data.currentStepId, rawInput, locationData);
+    }
     return;
   }
 
@@ -3305,7 +3386,7 @@ async function continueFlow(
     Object.keys(session.data.listMapping).length > 0
   ) {
     const listFallback = fallbackConfig?.list;
-    const maxAttempts = listFallback?.maxAttempts ?? 3;
+    const maxAttempts = listFallback?.maxAttempts ?? 2; // Default to 2 (1 original + 1 repeat)
     const attempts = (session.data.fallbackAttempts || 0) + 1;
     session.data.fallbackAttempts = attempts;
     await updateSession(session);
@@ -3349,7 +3430,7 @@ async function continueFlow(
     Object.keys(session.data.buttonMapping).length > 0
   ) {
     const btnFallback = fallbackConfig?.button;
-    const maxAttempts = btnFallback?.maxAttempts ?? 3;
+    const maxAttempts = btnFallback?.maxAttempts ?? 2; // Default to 2 (1 original + 1 repeat)
     const attempts = (session.data.fallbackAttempts || 0) + 1;
     session.data.fallbackAttempts = attempts;
     await updateSession(session);
