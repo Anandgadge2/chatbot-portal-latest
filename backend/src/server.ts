@@ -60,57 +60,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// Security - Configure helmet to allow WhatsApp webhook requests
-app.use(helmet({
-  contentSecurityPolicy: false, // Disable CSP for webhook endpoints
-  crossOriginResourcePolicy: { policy: "cross-origin" } // Allow cross-origin requests from WhatsApp
-}));
-
-// CORS - Allow localhost in dev, and all Vercel deployments in production
-const DEFAULT_FRONTEND_ORIGIN = 'https://chatbot-portal-frontend.vercel.app';
-const DEV_ORIGINS = ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:3001', 'http://127.0.0.1:3001'];
-const frontendUrl = process.env.FRONTEND_URL;
-const isProduction = process.env.NODE_ENV === 'production';
-
-const normalizeOrigin = (o: string) => (o || '').replace(/\/+$/, '');
-
+// 1. CORS - MUST BE FIRST
 const corsOptions = {
-  origin: !isProduction
-    ? true // Allow all origins in development
-    : (origin: string | undefined, cb: (err: Error | null, allow?: boolean) => void) => {
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) {
-          cb(null, true);
-          return;
-        }
-        
-        const normalized = normalizeOrigin(origin);
-        
-        // Allow all Vercel preview deployments (*.vercel.app)
-        if (normalized.endsWith('.vercel.app')) {
-          cb(null, true);
-          return;
-        }
-        
-        // Allow explicitly configured origins from FRONTEND_URL env variable
-        if (frontendUrl) {
-          const allowedOrigins = frontendUrl.split(',').map(u => normalizeOrigin(u.trim())).filter(Boolean);
-          if (allowedOrigins.some(allowed => normalized === allowed || normalized.startsWith(allowed))) {
-            cb(null, true);
-            return;
-          }
-        }
-        
-        // Allow default frontend origin
-        if (normalized === normalizeOrigin(DEFAULT_FRONTEND_ORIGIN)) {
-          cb(null, true);
-          return;
-        }
-        
-        // Reject all other origins
-        logger.warn(`CORS blocked origin: ${origin}`);
-        cb(null, false);
-      },
+  origin: true, // Reflect request origin (highly compatible with Vercel previews)
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-company-id', 'X-Company-Id', 'Accept', 'X-Requested-With', 'Origin'],
@@ -118,6 +70,12 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
+
+// 2. Security Headers
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 
 // Rate limiting - protect against brute force and abuse
 const apiLimiter = rateLimit({
