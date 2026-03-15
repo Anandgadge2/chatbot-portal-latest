@@ -16,7 +16,8 @@ import {
   UserPlus, 
   Eye 
 } from "lucide-react";
-import { Grievance, Department } from "@/lib/api/grievance";
+import { Grievance } from "@/lib/api/grievance";
+import { Department } from "@/lib/api/department";
 
 interface RevertedGrievanceListProps {
   grievances: Grievance[];
