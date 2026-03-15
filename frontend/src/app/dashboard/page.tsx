@@ -2406,12 +2406,12 @@ function DashboardContent() {
                 )}
               </div>
 
-              {/* Charts Row */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Charts Row */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 {/* Grievance Trend */}
                 {hasModule(Module.GRIEVANCE) && (
-                  <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                    <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                  <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                    <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center">
                           <TrendingUp className="w-4 h-4 text-indigo-600" />
@@ -2426,10 +2426,10 @@ function DashboardContent() {
                         </div>
                       </div>
                     </div>
-                    <div className="p-5">
+                    <div className="p-4 flex-1">
                       {stats?.grievances.daily &&
                       stats.grievances.daily.length > 0 ? (
-                        <ResponsiveContainer width="100%" height={220}>
+                        <ResponsiveContainer width="100%" height={140}>
                           <AreaChart
                             data={stats.grievances.daily.slice(-7).map((d) => ({
                               name: new Date(d.date).toLocaleDateString(
@@ -2465,11 +2465,13 @@ function DashboardContent() {
                             />
                             <XAxis
                               dataKey="name"
-                              tick={{ fontSize: 11, fill: "#94a3b8" }}
+                              tick={{ fontSize: 10, fill: "#94a3b8" }}
+                              tickMargin={4}
                             />
                             <YAxis
-                              tick={{ fontSize: 11, fill: "#94a3b8" }}
+                              tick={{ fontSize: 10, fill: "#94a3b8" }}
                               allowDecimals={false}
+                              width={30}
                             />
                             <Tooltip
                               contentStyle={{
@@ -2490,9 +2492,9 @@ function DashboardContent() {
                           </AreaChart>
                         </ResponsiveContainer>
                       ) : (
-                        <div className="h-[220px] flex flex-col items-center justify-center text-slate-400">
-                          <TrendingUp className="w-10 h-10 mb-2 opacity-30" />
-                          <p className="text-sm">No trend data available yet</p>
+                        <div className="h-[140px] flex flex-col items-center justify-center text-slate-400 border border-dashed rounded-lg border-slate-200">
+                          <TrendingUp className="w-8 h-8 mb-2 opacity-30" />
+                          <p className="text-sm">No trend data</p>
                         </div>
                       )}
                     </div>
@@ -2502,22 +2504,22 @@ function DashboardContent() {
                 {/* Grievance Status Donut - Updated Palette */}
                 {hasModule(Module.GRIEVANCE) && (
                   <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden flex flex-col">
-                    <div className="px-6 py-5 border-b border-slate-50 flex items-center justify-between">
+                    <div className="px-4 py-3 border-b border-slate-50 flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 bg-purple-50 rounded-xl flex items-center justify-center border border-purple-100/50">
-                          <PieChartIcon className="w-4.5 h-4.5 text-purple-600" />
+                        <div className="w-8 h-8 bg-purple-50 rounded-xl flex items-center justify-center border border-purple-100/50">
+                          <PieChartIcon className="w-4 h-4 text-purple-600" />
                         </div>
                         <div>
-                          <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">
+                          <h3 className="text-[12px] font-black text-slate-800 uppercase tracking-tight leading-none">
                             Operational Status
                           </h3>
-                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
+                          <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter mt-0.5">
                             Real-time efficiency
                           </p>
                         </div>
                       </div>
                     </div>
-                    <div className="p-6 flex-1 flex flex-col justify-between">
+                    <div className="p-4 flex-1 flex flex-col justify-between">
                       {(() => {
                         const chart = [
                           {
@@ -2541,16 +2543,16 @@ function DashboardContent() {
                         ].filter((d) => d.value > 0);
                         return chart.length > 0 ? (
                           <>
-                            <div className="relative h-[180px]">
+                            <div className="relative h-[120px]">
                               <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
                                   <Pie
                                     data={chart}
                                     cx="50%"
                                     cy="50%"
-                                    innerRadius={55}
-                                    outerRadius={80}
-                                    paddingAngle={8}
+                                    innerRadius={40}
+                                    outerRadius={55}
+                                    paddingAngle={6}
                                     dataKey="value"
                                     strokeWidth={0}
                                   >
@@ -2567,42 +2569,42 @@ function DashboardContent() {
                                       borderRadius: "16px",
                                       border: "none",
                                       boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
-                                      fontSize: "12px",
+                                      fontSize: "10px",
                                       fontWeight: "bold",
                                     }}
                                   />
                                 </PieChart>
                               </ResponsiveContainer>
                               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                <span className="text-2xl font-black text-slate-900 tracking-tighter">
+                                <span className="text-xl font-black text-slate-900 tracking-tighter">
                                   {stats?.grievances.total || 0}
                                 </span>
-                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total</span>
+                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Total</span>
                               </div>
                             </div>
-                            <div className="space-y-3 mt-6">
+                            <div className="space-y-1.5 mt-3">
                               {chart.map((d, i) => (
                                 <div
                                   key={i}
-                                  className="group flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors"
+                                  className="group flex items-center justify-between p-1.5 rounded-lg hover:bg-slate-50 transition-colors"
                                 >
-                                  <div className="flex items-center gap-3">
+                                  <div className="flex items-center gap-2">
                                     <span
-                                      className="w-2.5 h-2.5 rounded-full shadow-sm"
+                                      className="w-2 h-2 rounded-full shadow-sm"
                                       style={{ backgroundColor: d.color }}
                                     ></span>
                                     <div>
-                                      <p className="text-[11px] font-black text-slate-700 uppercase tracking-tighter">
+                                      <p className="text-[10px] font-black text-slate-700 uppercase tracking-tighter leading-none">
                                         {d.name}
                                       </p>
-                                      <p className="text-[9px] text-slate-400 group-hover:text-slate-500 transition-colors">{d.subText}</p>
+                                      <p className="text-[8px] text-slate-400 group-hover:text-slate-500 transition-colors mt-0.5">{d.subText}</p>
                                     </div>
                                   </div>
                                   <div className="text-right">
-                                    <p className="text-xs font-black text-slate-900">
+                                    <p className="text-[11px] font-black text-slate-900 leading-none">
                                       {d.value}
                                     </p>
-                                    <p className="text-[9px] font-bold text-slate-400">
+                                    <p className="text-[8px] font-bold text-slate-400 mt-0.5">
                                       {((d.value / (stats?.grievances.total || 1)) * 100).toFixed(0)}%
                                     </p>
                                   </div>
@@ -2611,8 +2613,8 @@ function DashboardContent() {
                             </div>
                           </>
                         ) : (
-                          <div className="h-[200px] flex items-center justify-center text-slate-400 text-sm">
-                            No data yet
+                          <div className="h-[120px] flex items-center justify-center text-slate-400 text-sm border border-dashed rounded-lg border-slate-200">
+                            No data
                           </div>
                         );
                       })()}
@@ -2622,14 +2624,14 @@ function DashboardContent() {
               </div>
 
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* High Grievance Departments */}
                 {isCompanyLevel && departmentData && departmentData.length > 0 && (
                   <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-                    <div className="px-6 py-5 border-b border-slate-50 flex items-center justify-between">
+                    <div className="px-4 py-3 border-b border-slate-50 flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 bg-rose-50 rounded-xl flex items-center justify-center border border-rose-100/50">
-                          <Building className="w-4.5 h-4.5 text-rose-600" />
+                        <div className="w-8 h-8 bg-rose-50 rounded-xl flex items-center justify-center border border-rose-100/50">
+                          <Building className="w-4 h-4 text-rose-600" />
                         </div>
                         <div>
                           <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">
@@ -2641,20 +2643,20 @@ function DashboardContent() {
                         </div>
                       </div>
                     </div>
-                    <div className="p-6">
-                      <ResponsiveContainer width="100%" height={250}>
+                    <div className="p-4 flex-1">
+                      <ResponsiveContainer width="100%" height={160}>
                         <BarChart
                           data={departmentData.slice(0, 5)}
                           layout="vertical"
-                          margin={{ left: 20, right: 30, top: 0, bottom: 0 }}
+                          margin={{ left: 10, right: 30, top: 0, bottom: 0 }}
                         >
                           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
                           <XAxis type="number" hide />
                           <YAxis
                             dataKey="departmentName"
                             type="category"
-                            tick={{ fontSize: 10, fontWeight: "bold", fill: "#64748b" }}
-                            width={100}
+                            tick={{ fontSize: 9, fontWeight: "bold", fill: "#64748b" }}
+                            width={80}
                           />
                           <Tooltip
                             cursor={{ fill: "#f8fafc" }}
@@ -2662,13 +2664,14 @@ function DashboardContent() {
                               borderRadius: "12px",
                               border: "none",
                               boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+                              fontSize: "10px"
                             }}
                           />
                           <Bar
                             dataKey="count"
                             fill="#ef4444"
                             radius={[0, 4, 4, 0]}
-                            barSize={20}
+                            barSize={16}
                             name="Total Grievances"
                           />
                         </BarChart>
@@ -2679,8 +2682,8 @@ function DashboardContent() {
 
                 {/* Appointments by Status - Company Admin only */}
                 {hasModule(Module.APPOINTMENT) && isCompanyLevel && (
-                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                    <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
+                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                    <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-3">
                       <div className="w-8 h-8 bg-violet-50 rounded-lg flex items-center justify-center">
                         <CalendarCheck className="w-4 h-4 text-violet-600" />
                       </div>
@@ -2693,7 +2696,7 @@ function DashboardContent() {
                         </p>
                       </div>
                     </div>
-                    <div className="p-5">
+                    <div className="p-4 flex-1 flex flex-col justify-between">
                       {(() => {
                         const apptData = [
                           {
@@ -2719,8 +2722,8 @@ function DashboardContent() {
                         ].filter((d) => d.value > 0);
                         return apptData.length > 0 ? (
                           <>
-                            <ResponsiveContainer width="100%" height={200}>
-                              <BarChart data={apptData} layout="vertical">
+                            <ResponsiveContainer width="100%" height={120}>
+                              <BarChart data={apptData} layout="vertical" margin={{ left: 0, right: 0, top: 0, bottom: 0 }}>
                                 <CartesianGrid
                                   strokeDasharray="3 3"
                                   stroke="#f1f5f9"
@@ -2728,26 +2731,27 @@ function DashboardContent() {
                                 />
                                 <XAxis
                                   type="number"
-                                  tick={{ fontSize: 11, fill: "#94a3b8" }}
+                                  tick={{ fontSize: 10, fill: "#94a3b8" }}
                                   allowDecimals={false}
                                 />
                                 <YAxis
                                   type="category"
                                   dataKey="name"
-                                  tick={{ fontSize: 11, fill: "#94a3b8" }}
-                                  width={70}
+                                  tick={{ fontSize: 10, fill: "#94a3b8" }}
+                                  width={60}
                                 />
                                 <Tooltip
                                   contentStyle={{
                                     borderRadius: "12px",
                                     border: "1px solid #e2e8f0",
-                                    fontSize: "12px",
+                                    fontSize: "10px",
                                   }}
                                 />
                                 <Bar
                                   dataKey="value"
-                                  radius={[0, 6, 6, 0]}
+                                  radius={[0, 4, 4, 0]}
                                   name="Count"
+                                  barSize={16}
                                 >
                                   {apptData.map((entry, i) => (
                                     <Cell key={i} fill={entry.color} />
@@ -2755,31 +2759,31 @@ function DashboardContent() {
                                 </Bar>
                               </BarChart>
                             </ResponsiveContainer>
-                            <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-slate-100">
+                            <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-100">
                               <div className="text-center">
-                                <p className="text-2xl font-black text-slate-900">
+                                <p className="text-xl font-black text-slate-900 leading-none">
                                   {stats?.appointments.last7Days || 0}
                                 </p>
-                                <p className="text-[10px] text-slate-500 font-semibold uppercase">
+                                <p className="text-[9px] text-slate-500 font-semibold uppercase mt-1">
                                   Last 7 days
                                 </p>
                               </div>
                               <div className="text-center">
-                                <p className="text-2xl font-black text-emerald-600">
+                                <p className="text-xl font-black text-emerald-600 leading-none">
                                   {(
                                     stats?.appointments.completionRate || 0
                                   ).toFixed(0)}
                                   %
                                 </p>
-                                <p className="text-[10px] text-slate-500 font-semibold uppercase">
+                                <p className="text-[9px] text-slate-500 font-semibold uppercase mt-1">
                                   Completion Rate
                                 </p>
                               </div>
                             </div>
                           </>
                         ) : (
-                          <div className="h-[200px] flex items-center justify-center text-slate-400 text-sm">
-                            No appointment data yet
+                          <div className="h-[120px] flex items-center justify-center text-slate-400 text-sm border border-dashed rounded-lg border-slate-200">
+                            No appointment data
                           </div>
                         );
                       })()}
@@ -2788,8 +2792,8 @@ function DashboardContent() {
                 )}
 
                 {/* Staff by Role */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                  <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                  <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-3">
                     <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
                       <Users className="w-4 h-4 text-emerald-600" />
                     </div>
@@ -2804,7 +2808,7 @@ function DashboardContent() {
                       </p>
                     </div>
                   </div>
-                  <div className="p-5">
+                  <div className="p-4 flex-1 flex flex-col justify-between">
                     {(() => {
                       const roleDataRaw = stats?.usersByRole || [];
                       const localRoleMap: Record<string, number> = {};
@@ -2840,21 +2844,21 @@ function DashboardContent() {
 
                       if (roleData.length === 0) {
                         return (
-                          <div className="h-[200px] flex items-center justify-center text-slate-400 text-sm">
+                          <div className="h-[120px] flex items-center justify-center text-slate-400 text-sm border border-dashed rounded-lg border-slate-200">
                             No staff data available
                           </div>
                         );
                       }
 
                       return (
-                        <div className="space-y-3">
+                        <div className="space-y-2 mt-1">
                           {roleData.map((r, i) => (
                             <div key={i}>
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">
+                              <div className="flex items-center justify-between mb-0.5">
+                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-tighter">
                                   {r.name}
                                 </span>
-                                <span className="text-xs font-black text-slate-900">
+                                <span className="text-[11px] font-black text-slate-900 leading-none">
                                   {r.value}
                                 </span>
                               </div>
@@ -2869,11 +2873,11 @@ function DashboardContent() {
                               </div>
                             </div>
                           ))}
-                          <div className="pt-3 mt-4 border-t border-slate-100 flex items-center justify-between">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase">
+                          <div className="pt-2 mt-3 border-t border-slate-100 flex items-center justify-between">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase">
                               Total Staff
                             </span>
-                            <span className="text-sm font-black text-slate-900 tabular-nums">
+                            <span className="text-[12px] font-black text-slate-900 tabular-nums leading-none">
                               {totalStaffCount}
                             </span>
                           </div>
