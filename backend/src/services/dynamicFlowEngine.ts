@@ -1768,8 +1768,9 @@ export class DynamicFlowEngine {
     if (!dates?.length) return false;
 
     const lang = this.session.language || "en";
-    const visibleDates = dates.slice(0, 9);
-    const remainingDates = dates.slice(9);
+    const maxVisibleItems = 9;
+    const visibleDates = dates.slice(0, maxVisibleItems);
+    const remainingDates = dates.slice(maxVisibleItems);
 
     const rows = visibleDates.map((date: any) => ({
       id: `date_${date.date}`,
@@ -1825,8 +1826,9 @@ export class DynamicFlowEngine {
     if (!timeSlots?.length) return false;
 
     const lang = this.session.language || "en";
-    const visibleSlots = timeSlots.slice(0, 9);
-    const remainingSlots = timeSlots.slice(9);
+    const maxVisibleItems = 9;
+    const visibleSlots = timeSlots.slice(0, maxVisibleItems);
+    const remainingSlots = timeSlots.slice(maxVisibleItems);
 
     const rows = visibleSlots.map((slot: any) => ({
       id: `time_${slot.time}`,
