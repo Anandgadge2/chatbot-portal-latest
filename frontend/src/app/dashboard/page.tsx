@@ -335,6 +335,7 @@ function DashboardContent() {
   // Filters for other tabs
   const [deptFilters, setDeptFilters] = useState({ type: "", status: "", mainDeptId: "" });
   const [userFilters, setUserFilters] = useState({ role: "", status: "", mainDeptId: "", subDeptId: "" });
+  const [showUserFiltersOnMobile, setShowUserFiltersOnMobile] = useState(false);
 
   const [grievanceFilters, setGrievanceFilters] = useState({
     status: "",
@@ -1460,6 +1461,13 @@ function DashboardContent() {
   if (!user || user.role === "SUPER_ADMIN") {
     return null;
   }
+
+  const activeUserFilterCount = [
+    userFilters.role,
+    userFilters.status,
+    userFilters.mainDeptId,
+    userFilters.subDeptId,
+  ].filter(Boolean).length;
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -3729,34 +3737,64 @@ function DashboardContent() {
                 </CardHeader>
                 <CardContent className="p-0">
                   {/* Search and Filters for Users */}
-                  <div className="px-3 sm:px-5 py-3 border-b border-slate-100 bg-slate-50/40 flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
-                    <div className="relative w-full sm:flex-1 sm:min-w-[240px]">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                      <input
-                        type="text"
-                        placeholder="Search users by name, email or ID..."
-                        value={userSearch}
-                        onChange={(e) => setUserSearch(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-sm"
-                      />
+                  <div className="px-3 sm:px-5 py-3 border-b border-slate-100 bg-slate-50/40 flex flex-col gap-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                      <div className="relative w-full sm:flex-1 sm:min-w-[240px]">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                        <input
+                          type="text"
+                          placeholder="Search users by name, email, phone or ID..."
+                          value={userSearch}
+                          onChange={(e) => setUserSearch(e.target.value)}
+                          className="w-full pl-9 pr-4 py-2 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-sm"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setShowUserFiltersOnMobile((prev) => !prev)}
+                          className="sm:hidden h-8 flex-1 text-[10px] font-bold uppercase tracking-wider border-slate-200 text-slate-700"
+                        >
+                          <Filter className="w-3.5 h-3.5 mr-1.5" />
+                          Filters {activeUserFilterCount > 0 ? `(${activeUserFilterCount})` : ""}
+                        </Button>
+                        {(userFilters.role || userFilters.status || userFilters.mainDeptId || userFilters.subDeptId || userSearch.trim()) && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setUserSearch("");
+                              setUserFilters({ role: "", status: "", mainDeptId: "", subDeptId: "" });
+                            }}
+                            className="h-8 px-3 sm:px-2 text-[10px] font-bold text-red-500 hover:text-red-600 hover:bg-red-50 uppercase tracking-tighter"
+                          >
+                            Clear All
+                          </Button>
+                        )}
+                      </div>
                     </div>
+
                     {/* User Filters */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 w-full">
-                       <select
+                    <div className={`${showUserFiltersOnMobile ? "grid" : "hidden"} sm:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-2 w-full`}>
+                      <select
                         value={userFilters.role}
                         onChange={(e) => setUserFilters(prev => ({ ...prev, role: e.target.value }))}
-                        className="w-full text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all"
+                        className="w-full h-9 text-[10px] font-bold uppercase tracking-wider px-3 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all"
+                        aria-label="Filter users by role"
                       >
-                                     <option value="">All Roles</option>
-                         {roles.map(r => (
-                           <option key={r._id} value={`CUSTOM:${r._id}`}>{r.name}</option>
-                         ))}
-                         {isSuperAdmin && <option value="SUPER_ADMIN">Super Admin</option>}
-                       </select>
+                        <option value="">All Roles</option>
+                        {roles.map(r => (
+                          <option key={r._id} value={`CUSTOM:${r._id}`}>{r.name}</option>
+                        ))}
+                        {isSuperAdmin && <option value="SUPER_ADMIN">Super Admin</option>}
+                      </select>
                       <select
                         value={userFilters.status}
                         onChange={(e) => setUserFilters(prev => ({ ...prev, status: e.target.value }))}
-                        className="w-full text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all"
+                        className="w-full h-9 text-[10px] font-bold uppercase tracking-wider px-3 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all"
+                        aria-label="Filter users by status"
                       >
                         <option value="">All Status</option>
                         <option value="active">Active</option>
@@ -3765,34 +3803,26 @@ function DashboardContent() {
                       <select
                         value={userFilters.mainDeptId}
                         onChange={(e) => setUserFilters(prev => ({ ...prev, mainDeptId: e.target.value, subDeptId: "" }))}
-                        className="w-full text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all sm:min-w-[150px]"
+                        className="w-full h-9 text-[10px] font-bold uppercase tracking-wider px-3 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all"
+                        aria-label="Filter users by main department"
                       >
                         <option value="">Main Dept</option>
                         {departments.filter(d => !d.parentDepartmentId).map(dept => (
-                           <option key={dept._id} value={dept._id}>{dept.name}</option>
+                          <option key={dept._id} value={dept._id}>{dept.name}</option>
                         ))}
                       </select>
                       <select
                         value={userFilters.subDeptId}
                         onChange={(e) => setUserFilters(prev => ({ ...prev, subDeptId: e.target.value }))}
-                        className="w-full text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all sm:min-w-[150px]"
+                        className="w-full h-9 text-[10px] font-bold uppercase tracking-wider px-3 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all disabled:bg-slate-100 disabled:text-slate-400"
                         disabled={!userFilters.mainDeptId}
+                        aria-label="Filter users by sub department"
                       >
                         <option value="">Sub Dept</option>
                         {userFilters.mainDeptId && departments.filter(d => getParentDepartmentId(d) === userFilters.mainDeptId).map(dept => (
-                           <option key={dept._id} value={dept._id}>{dept.name}</option>
+                          <option key={dept._id} value={dept._id}>{dept.name}</option>
                         ))}
                       </select>
-                      {(userFilters.role || userFilters.status || userFilters.mainDeptId || userFilters.subDeptId) && (
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={() => setUserFilters({ role: "", status: "", mainDeptId: "", subDeptId: "" })}
-                          className="h-7 w-full sm:w-auto text-[9px] font-bold text-red-500 hover:text-red-600 hover:bg-red-50 uppercase tracking-tighter"
-                        >
-                          Clear
-                        </Button>
-                      )}
                     </div>
                   </div>
 

@@ -1022,13 +1022,14 @@ export async function notifyHierarchyOnStatusChange(
     // 2. Find ALL relevant admins interested in the status change
     const users = await User.find({
       $or: [
-        // Company admins (no department)
-        { 
-          companyId: data.companyId, 
-          departmentId: null,
+        // Company admins (do not force departmentId:null; many deployments attach admin users to a default department)
+        {
+          companyId: data.companyId,
           $or: [
-            { customRoleId: { $in: companyAdminRoleIds } },
-            { role: { $in: companyAdminRoleNames } }
+            ...(companyAdminRoleIds.length > 0 ? [{ customRoleId: { $in: companyAdminRoleIds } }] : []),
+            ...(companyAdminRoleNames.length > 0 ? [{ role: { $in: companyAdminRoleNames } }] : []),
+            { role: { $in: ['Admin', 'COMPANY_ADMIN', 'COMPANY_HEAD', 'HEAD', 'MANAGER', 'SUPERVISOR'] } },
+            { role: { $regex: /admin|head|manager|supervisor/i } }
           ]
         },
         // Department hierarchy admins
