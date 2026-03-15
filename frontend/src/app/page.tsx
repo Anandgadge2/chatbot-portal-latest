@@ -213,7 +213,7 @@ export default function LoginPage() {
             </div>
             <div>
               <h1 className="text-3xl font-black text-slate-900 tracking-tighter">
-                Citizen<span className="text-indigo-600">Care</span>
+                Citizen<span className="text-indigo-600">Helpdesk</span>
               </h1>
               <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-1">
                 Admin Command Center
