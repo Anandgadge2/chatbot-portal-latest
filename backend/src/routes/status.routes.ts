@@ -113,7 +113,8 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
 
     const grievance = await Grievance.findById(req.params.id)
       .populate('companyId')
-      .populate('departmentId');
+      .populate('departmentId')
+      .populate('subDepartmentId');
 
     if (!grievance) {
       return res.status(404).json({
@@ -139,7 +140,14 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
       }
 
       if (currentUser.departmentId) {
-        if (grievance.departmentId?._id.toString() !== currentUser.departmentId?.toString()) {
+        const grievanceDepartmentId = (grievance.departmentId as any)?._id?.toString() || grievance.departmentId?.toString();
+        const grievanceSubDepartmentId = (grievance.subDepartmentId as any)?._id?.toString() || grievance.subDepartmentId?.toString();
+        const currentUserDepartmentId = currentUser.departmentId?.toString();
+
+        if (
+          grievanceDepartmentId !== currentUserDepartmentId &&
+          grievanceSubDepartmentId !== currentUserDepartmentId
+        ) {
           return res.status(403).json({ success: false, message: 'Access denied to this department' });
         }
       }
