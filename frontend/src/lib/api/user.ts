@@ -68,6 +68,7 @@ export const userAPI = {
     limit?: number;
     search?: string;
     role?: string;
+    status?: 'active' | 'inactive';
     companyId?: string;
     departmentId?: string;
   }): Promise<UsersResponse> => {
@@ -76,6 +77,7 @@ export const userAPI = {
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.search) queryParams.append('search', params.search);
     if (params?.role) queryParams.append('role', params.role);
+    if (params?.status) queryParams.append('status', params.status);
     if (params?.companyId) queryParams.append('companyId', params.companyId);
     if (params?.departmentId) queryParams.append('departmentId', params.departmentId);
     

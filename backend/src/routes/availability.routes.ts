@@ -115,6 +115,32 @@ export async function getChatbotAvailabilityData(params: {
   daysAhead?: string;
 }) {
   const { companyId, departmentId, selectedDate, daysAhead = '30' } = params;
+
+  const ymdInIst = (date: Date): string => {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).formatToParts(date);
+    const year = parts.find((part) => part.type === 'year')?.value;
+    const month = parts.find((part) => part.type === 'month')?.value;
+    const day = parts.find((part) => part.type === 'day')?.value;
+    return `${year}-${month}-${day}`;
+  };
+
+  const specialDateMap = (specialDates: ISpecialDate[] = []) => {
+    const map = new Map<string, ISpecialDate>();
+    for (const specialDate of specialDates) {
+      map.set(ymdInIst(new Date(specialDate.date)), specialDate);
+    }
+    return map;
+  };
+
+  const parseSelectedDate = (ymd: string): Date => {
+    const [y, m, d] = ymd.split('-').map(Number);
+    return new Date(Date.UTC(y, (m || 1) - 1, d || 1, 12, 0, 0));
+  };
   
   const requestedDaysToShow = parseInt(daysAhead as string) || 30;
   const today = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
@@ -166,6 +192,7 @@ export async function getChatbotAvailabilityData(params: {
   const daysToShow = Math.min(requestedDaysToShow, maxAdvanceDays);
   const maxDate = new Date(today);
   maxDate.setDate(maxDate.getDate() + daysToShow);
+  const specialDatesByYmd = specialDateMap(availability?.specialDates as ISpecialDate[]);
 
   const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
   const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -181,17 +208,12 @@ export async function getChatbotAvailabilityData(params: {
 
   // If selectedDate is provided, return only time slots for that date
   if (selectedDate) {
-    const targetDate = new Date(selectedDate as string);
+    const targetDate = parseSelectedDate(selectedDate as string);
+    const targetYmd = ymdInIst(targetDate);
     const dayOfWeek = targetDate.getDay();
     const dayName = dayNames[dayOfWeek] as 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday';
-    
-    // Check for special date
-    const specialDate = availability?.specialDates?.find(sd => {
-      const sdDate = new Date(sd.date);
-      return sdDate.getFullYear() === targetDate.getFullYear() &&
-              sdDate.getMonth() === targetDate.getMonth() &&
-              sdDate.getDate() === targetDate.getDate();
-    });
+
+    const specialDate = specialDatesByYmd.get(targetYmd);
 
     const daySchedule = specialDate || availability?.weeklySchedule[dayName];
     
@@ -217,7 +239,7 @@ export async function getChatbotAvailabilityData(params: {
       }
 
       return {
-        date: targetDate.toISOString().split('T')[0],
+        date: targetYmd,
         formattedDate: `${weekdayNames[dayOfWeek]}, ${targetDate.getDate()} ${monthNames[targetDate.getMonth()]} ${targetDate.getFullYear()}`,
         buttonLabel: `${targetDate.getDate()} ${monthNames[targetDate.getMonth()].slice(0, 3)} (${weekdayNames[dayOfWeek].slice(0, 3)})`,
         timeSlots,
@@ -226,7 +248,7 @@ export async function getChatbotAvailabilityData(params: {
     }
     
     return {
-      date: targetDate.toISOString().split('T')[0],
+      date: targetYmd,
       formattedDate: `${weekdayNames[dayOfWeek]}, ${targetDate.getDate()} ${monthNames[targetDate.getMonth()]} ${targetDate.getFullYear()}`,
       buttonLabel: `${targetDate.getDate()} ${monthNames[targetDate.getMonth()].slice(0, 3)} (${weekdayNames[dayOfWeek].slice(0, 3)})`,
       timeSlots: [],
@@ -243,12 +265,7 @@ export async function getChatbotAvailabilityData(params: {
     const dayOfWeek = date.getDay();
     const dayName = dayNames[dayOfWeek] as 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday';
     
-    const specialDate = availability?.specialDates?.find(sd => {
-      const sdDate = new Date(sd.date);
-      return sdDate.getFullYear() === date.getFullYear() &&
-              sdDate.getMonth() === date.getMonth() &&
-              sdDate.getDate() === date.getDate();
-    });
+    const specialDate = specialDatesByYmd.get(ymdInIst(date));
 
     if (specialDate && !specialDate.isAvailable) continue; 
     
@@ -265,7 +282,7 @@ export async function getChatbotAvailabilityData(params: {
 
     if (timeSlots.length > 0) {
       availableDates.push({
-        date: date.toISOString().split('T')[0],
+        date: ymdInIst(date),
         formattedDate: `${weekdayNames[dayOfWeek]}, ${date.getDate()} ${monthNames[date.getMonth()]} ${date.getFullYear()}`,
         buttonLabel: `${date.getDate()} ${monthNames[date.getMonth()].slice(0, 3)} (${weekdayNames[dayOfWeek].slice(0, 3)})`,
         timeSlots,

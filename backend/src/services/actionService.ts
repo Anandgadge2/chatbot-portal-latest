@@ -299,6 +299,11 @@ export class ActionService {
 
       await Promise.allSettled(notifications);
 
+      // Prevent duplicate citizen-facing appointment success copy from flow message steps.
+      // Chatbot flow should continue, but success wording should come from WhatsApp template/notification.
+      session.data.skipFlowAppointmentSuccessMessage = true;
+      await updateSession(session);
+
     } catch (err: any) {
       console.error('❌ ActionService: Error creating appointment:', err);
       throw err;
