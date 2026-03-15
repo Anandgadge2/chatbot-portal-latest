@@ -1503,8 +1503,8 @@ function DashboardContent() {
           }}
           className="space-y-4 sm:space-y-6"
         >
-          <div className="mb-4 sticky top-[64px] z-40 bg-slate-50/95 backdrop-blur-sm py-4 -mx-4 px-4 sm:mx-0 sm:px-0 flex items-center justify-between gap-4">
-            <TabsList className="bg-slate-200/50 p-1 border border-slate-300/50 h-10 shadow-sm overflow-x-auto no-scrollbar max-w-full">
+          <div className="mb-4 sticky top-[64px] z-40 bg-slate-50/95 backdrop-blur-sm py-3 -mx-4 px-4 sm:mx-0 sm:px-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <TabsList className="w-full sm:w-auto bg-slate-200/50 p-1 border border-slate-300/50 h-10 shadow-sm overflow-x-auto no-scrollbar max-w-full">
               {hasPermission(user, Permission.VIEW_ANALYTICS) && (
                 <TabsTrigger
                   value="overview"
@@ -1597,7 +1597,7 @@ function DashboardContent() {
               variant="outline"
               size="sm"
               disabled={refreshing}
-              className="h-10 px-4 bg-white border-slate-200 text-slate-600 hover:text-indigo-600 hover:border-indigo-200 transition-all rounded-xl shadow-sm font-bold text-[11px] uppercase tracking-widest gap-2 flex"
+              className="h-10 w-full sm:w-auto px-4 bg-white border-slate-200 text-slate-600 hover:text-indigo-600 hover:border-indigo-200 transition-all rounded-xl shadow-sm font-bold text-[11px] uppercase tracking-widest gap-2 flex"
             >
               <RefreshCw
                 className={cn("w-3.5 h-3.5", refreshing && "animate-spin")}
@@ -3019,8 +3019,8 @@ function DashboardContent() {
             <TabsContent value="departments" className="space-y-4">
               <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
                 {/* Header */}
-                <CardHeader className="bg-slate-900 px-6 py-4">
-                  <div className="flex items-center justify-between">
+                <CardHeader className="bg-slate-900 px-4 sm:px-6 py-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
                         <Building className="w-4 h-4 text-indigo-400" />
@@ -3048,7 +3048,7 @@ function DashboardContent() {
                       <ProtectedButton
                         permission={Permission.CREATE_DEPARTMENT}
                         onClick={() => setShowDepartmentDialog(true)}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-8 text-[10px] font-bold uppercase tracking-widest rounded-lg px-4 shadow-md"
+                        className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-8 text-[10px] font-bold uppercase tracking-widest rounded-lg px-4 shadow-md"
                       >
                         <Building className="w-3.5 h-3.5 mr-1.5" />
                         Add Department
@@ -3059,8 +3059,8 @@ function DashboardContent() {
 
                 <CardContent className="p-0">
                   {/* Search bar */}
-                  <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/40 flex flex-wrap items-center gap-3">
-                    <div className="relative flex-1 min-w-[240px]">
+                  <div className="px-3 sm:px-5 py-3 border-b border-slate-100 bg-slate-50/40 flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
+                    <div className="relative w-full sm:flex-1 sm:min-w-[240px]">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                       <input
                         type="text"
@@ -3071,11 +3071,11 @@ function DashboardContent() {
                       />
                     </div>
                     {/* Dept Filters */}
-                    <div className="flex items-center gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 w-full">
                        <select
                         value={deptFilters.type}
                         onChange={(e) => setDeptFilters(prev => ({ ...prev, type: e.target.value }))}
-                        className="text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all"
+                        className="w-full text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all"
                       >
                         <option value="">All Types</option>
                         <option value="main">Main Depts</option>
@@ -3084,7 +3084,7 @@ function DashboardContent() {
                       <select
                         value={deptFilters.status}
                         onChange={(e) => setDeptFilters(prev => ({ ...prev, status: e.target.value }))}
-                        className="text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all"
+                        className="w-full text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all"
                       >
                         <option value="">All Status</option>
                         <option value="active">Active</option>
@@ -3093,7 +3093,7 @@ function DashboardContent() {
                       <select
                         value={deptFilters.mainDeptId}
                         onChange={(e) => setDeptFilters(prev => ({ ...prev, mainDeptId: e.target.value }))}
-                        className="text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all min-w-[150px]"
+                        className="w-full text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all sm:min-w-[150px]"
                       >
                         <option value="">Filter by Main Dept</option>
                         {departments.filter(d => !d.parentDepartmentId).map(dept => (
@@ -3490,8 +3490,8 @@ function DashboardContent() {
           {hasModule(Module.LEAD_CAPTURE) && isCompanyLevel && (
             <TabsContent value="leads" className="space-y-6">
               <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
-                <CardHeader className="bg-slate-900 px-6 py-4">
-                  <div className="flex items-center justify-between">
+                <CardHeader className="bg-slate-900 px-4 sm:px-6 py-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
                         <UserPlus className="w-4 h-4 text-indigo-400" />
@@ -3644,8 +3644,8 @@ function DashboardContent() {
           {(isCompanyLevel || isDepartmentLevel) && (
             <TabsContent value="users" className="space-y-6">
               <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
-                <CardHeader className="bg-slate-900 px-6 py-4">
-                  <div className="flex items-center justify-between">
+                <CardHeader className="bg-slate-900 px-4 sm:px-6 py-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
                         <Users className="w-4 h-4 text-indigo-400" />
@@ -3669,7 +3669,7 @@ function DashboardContent() {
                           e.stopPropagation();
                           setShowUserDialog(true);
                         }}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-8 text-[10px] font-bold uppercase tracking-widest rounded-lg px-4 shadow-md"
+                        className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-8 text-[10px] font-bold uppercase tracking-widest rounded-lg px-4 shadow-md"
                       >
                         <UserPlus className="w-3.5 h-3.5 mr-1.5" />
                         Add User
@@ -3679,8 +3679,8 @@ function DashboardContent() {
                 </CardHeader>
                 <CardContent className="p-0">
                   {/* Search and Filters for Users */}
-                  <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/40 flex flex-wrap items-center gap-3">
-                    <div className="relative flex-1 min-w-[240px]">
+                  <div className="px-3 sm:px-5 py-3 border-b border-slate-100 bg-slate-50/40 flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
+                    <div className="relative w-full sm:flex-1 sm:min-w-[240px]">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                       <input
                         type="text"
@@ -3691,11 +3691,11 @@ function DashboardContent() {
                       />
                     </div>
                     {/* User Filters */}
-                    <div className="flex items-center gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 w-full">
                        <select
                         value={userFilters.role}
                         onChange={(e) => setUserFilters(prev => ({ ...prev, role: e.target.value }))}
-                        className="text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all"
+                        className="w-full text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all"
                       >
                                      <option value="">All Roles</option>
                          {roles.map(r => (
@@ -3706,7 +3706,7 @@ function DashboardContent() {
                       <select
                         value={userFilters.status}
                         onChange={(e) => setUserFilters(prev => ({ ...prev, status: e.target.value }))}
-                        className="text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all"
+                        className="w-full text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all"
                       >
                         <option value="">All Status</option>
                         <option value="active">Active</option>
@@ -3715,7 +3715,7 @@ function DashboardContent() {
                       <select
                         value={userFilters.mainDeptId}
                         onChange={(e) => setUserFilters(prev => ({ ...prev, mainDeptId: e.target.value, subDeptId: "" }))}
-                        className="text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all min-w-[150px]"
+                        className="w-full text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all sm:min-w-[150px]"
                       >
                         <option value="">Main Dept</option>
                         {departments.filter(d => !d.parentDepartmentId).map(dept => (
@@ -3725,7 +3725,7 @@ function DashboardContent() {
                       <select
                         value={userFilters.subDeptId}
                         onChange={(e) => setUserFilters(prev => ({ ...prev, subDeptId: e.target.value }))}
-                        className="text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all min-w-[150px]"
+                        className="w-full text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all sm:min-w-[150px]"
                         disabled={!userFilters.mainDeptId}
                       >
                         <option value="">Sub Dept</option>
@@ -3738,7 +3738,7 @@ function DashboardContent() {
                           variant="ghost" 
                           size="sm" 
                           onClick={() => setUserFilters({ role: "", status: "", mainDeptId: "", subDeptId: "" })}
-                          className="h-7 text-[9px] font-bold text-red-500 hover:text-red-600 hover:bg-red-50 uppercase tracking-tighter"
+                          className="h-7 w-full sm:w-auto text-[9px] font-bold text-red-500 hover:text-red-600 hover:bg-red-50 uppercase tracking-tighter"
                         >
                           Clear
                         </Button>
@@ -3763,7 +3763,7 @@ function DashboardContent() {
                   ) : (
                     <div className="overflow-hidden">
                       <div className="overflow-x-auto custom-scrollbar">
-                        <table className="w-full relative border-collapse table-fixed">
+                        <table className="w-full min-w-[980px] relative border-collapse table-auto">
                           <thead className="bg-[#fcfdfe] border-b border-slate-200">
                             <tr>
                               <th className="px-3 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest w-[5%]">
