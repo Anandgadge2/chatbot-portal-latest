@@ -346,6 +346,13 @@ function DashboardContent() {
     dateRange: "",
   });
 
+  const getParentDepartmentId = useCallback((dept: any): string | undefined => {
+    if (!dept?.parentDepartmentId) return undefined;
+    return typeof dept.parentDepartmentId === "object"
+      ? dept.parentDepartmentId._id
+      : dept.parentDepartmentId;
+  }, []);
+
   // Search states
   const [grievanceSearch, setGrievanceSearch] = useState("");
   const [appointmentSearch, setAppointmentSearch] = useState("");
@@ -716,10 +723,28 @@ function DashboardContent() {
     async (page = userPage, isSilent = false) => {
       if (!isSilent) setLoadingUsers(true);
       try {
+        const selectedDepartmentId = userFilters.subDeptId
+          ? userFilters.subDeptId
+          : userFilters.mainDeptId
+            ? [
+                userFilters.mainDeptId,
+                ...departments
+                  .filter((d) => getParentDepartmentId(d) === userFilters.mainDeptId)
+                  .map((d) => d._id),
+              ].join(',')
+            : undefined;
+
+        const serverRoleFilter = userFilters.role.startsWith('CUSTOM:')
+          ? undefined
+          : userFilters.role || undefined;
+
         const response = await userAPI.getAll({
           page,
           limit: userPagination.limit,
           search: userSearch,
+          role: serverRoleFilter,
+          status: (userFilters.status as 'active' | 'inactive') || undefined,
+          departmentId: selectedDepartmentId,
         });
         if (response.success) {
           let filteredUsers = response.data.users;
@@ -741,11 +766,27 @@ function DashboardContent() {
             });
           }
 
+          // For custom roles, keep frontend-side filtering (API only supports system role key)
+          if (userFilters.role?.startsWith('CUSTOM:')) {
+            const roleId = userFilters.role.split(':')[1];
+            filteredUsers = filteredUsers.filter((u: any) => {
+              const uRoleId =
+                typeof u.customRoleId === 'object' && u.customRoleId !== null
+                  ? u.customRoleId._id
+                  : u.customRoleId;
+              return uRoleId === roleId;
+            });
+          }
+
           setUsers(filteredUsers);
           setUserPagination((prev) => ({
             ...prev,
-            total: response.data.pagination.total,
-            pages: response.data.pagination.pages,
+            total: userFilters.role?.startsWith('CUSTOM:')
+              ? filteredUsers.length
+              : response.data.pagination.total,
+            pages: userFilters.role?.startsWith('CUSTOM:')
+              ? Math.max(1, Math.ceil(filteredUsers.length / userPagination.limit))
+              : response.data.pagination.pages,
           }));
         }
       } catch (error: any) {
@@ -755,13 +796,22 @@ function DashboardContent() {
         if (!isSilent) setLoadingUsers(false);
       }
     },
-    [userPage, userPagination.limit, isDepartmentLevel, user?.departmentId, userSearch],
+    [
+      userPage,
+      userPagination.limit,
+      isDepartmentLevel,
+      user?.departmentId,
+      userSearch,
+      userFilters,
+      departments,
+      getParentDepartmentId,
+    ],
   );
 
   // Reset user page when search changes
   useEffect(() => {
     setUserPage(1);
-  }, [userSearch]);
+  }, [userSearch, userFilters]);
 
   useEffect(() => {
     setGrievancePage(1);
@@ -1095,7 +1145,7 @@ function DashboardContent() {
           
           // Show if main department matches OR if it belongs to a sub-department of the selected main
           const dept = departments.find(d => d._id === deptId);
-          return deptId === grievanceFilters.mainDeptId || dept?.parentDepartmentId === grievanceFilters.mainDeptId;
+          return deptId === grievanceFilters.mainDeptId || getParentDepartmentId(dept) === grievanceFilters.mainDeptId;
         });
       }
       // Sub Department filter
@@ -1284,7 +1334,7 @@ function DashboardContent() {
       // Main Department filter (show main + its subs)
       if (deptFilters.mainDeptId) {
         filteredData = filteredData.filter((d: Department) => 
-          d._id === deptFilters.mainDeptId || d.parentDepartmentId === deptFilters.mainDeptId
+          d._id === deptFilters.mainDeptId || getParentDepartmentId(d) === deptFilters.mainDeptId
         );
       }
     }
@@ -1313,7 +1363,7 @@ function DashboardContent() {
         filteredData = filteredData.filter((u: User) => {
           const deptId = typeof u.departmentId === "object" && u.departmentId ? (u.departmentId as any)._id : u.departmentId;
           const dept = departments.find(d => d._id === deptId);
-          return deptId === userFilters.mainDeptId || dept?.parentDepartmentId === userFilters.mainDeptId;
+          return deptId === userFilters.mainDeptId || getParentDepartmentId(dept) === userFilters.mainDeptId;
         });
       }
       // Sub Department filter
@@ -3729,7 +3779,7 @@ function DashboardContent() {
                         disabled={!userFilters.mainDeptId}
                       >
                         <option value="">Sub Dept</option>
-                        {userFilters.mainDeptId && departments.filter(d => d.parentDepartmentId === userFilters.mainDeptId).map(dept => (
+                        {userFilters.mainDeptId && departments.filter(d => getParentDepartmentId(d) === userFilters.mainDeptId).map(dept => (
                            <option key={dept._id} value={dept._id}>{dept.name}</option>
                         ))}
                       </select>
@@ -4383,7 +4433,7 @@ function DashboardContent() {
                             disabled={!grievanceFilters.mainDeptId}
                           >
                             <option value="">🏢 Sub Dept</option>
-                            {grievanceFilters.mainDeptId && departments.filter(d => d.parentDepartmentId === grievanceFilters.mainDeptId).map((dept) => (
+                            {grievanceFilters.mainDeptId && departments.filter(d => getParentDepartmentId(d) === grievanceFilters.mainDeptId).map((dept) => (
                               <option key={dept._id} value={dept._id}>
                                 {dept.name}
                               </option>

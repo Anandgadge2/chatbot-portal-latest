@@ -17,7 +17,7 @@ router.use(authenticate);
 // @access  Private
 router.get('/', requirePermission(Permission.READ_USER), async (req: Request, res: Response) => {
   try {
-    const { page = 1, limit = 20, search, role, companyId, departmentId } = req.query;
+    const { page = 1, limit = 20, search, role, companyId, departmentId, status } = req.query;
     const currentUser = req.user!;
 
     const query: any = {};
@@ -61,6 +61,12 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
 
     if (role) {
       query.role = role;
+    }
+
+    if (status === 'active') {
+      query.isActive = true;
+    } else if (status === 'inactive') {
+      query.isActive = false;
     }
 
     const users = await User.find(query)
