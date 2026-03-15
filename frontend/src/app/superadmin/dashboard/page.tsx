@@ -173,7 +173,7 @@ export default function SuperAdminDashboard() {
   const handleOpenCompanyDashboard = (companyId: string) => {
     if (navigatingCompanyId) return;
     setNavigatingCompanyId(companyId);
-    router.push(`/superadmin/company/${companyId}`);
+    router.push(`/dashboard?companyId=${companyId}`);
   };
 
   const [confirmDialog, setConfirmDialog] = useState<{

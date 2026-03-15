@@ -12,10 +12,10 @@ const router = Router();
 router.get('/', authenticate, async (req: Request, res: Response) => {
   try {
     const { departmentId, companyId: queryCompanyId } = req.query;
-    // Super Admin may pass companyId in query; others use their own companyId
+    // Super Admin may pass companyId in query or header; others use their own companyId
     const companyId =
-      (req.user?.role === UserRole.SUPER_ADMIN && typeof queryCompanyId === 'string' && queryCompanyId)
-        ? queryCompanyId
+      (req.user?.role === UserRole.SUPER_ADMIN)
+        ? (queryCompanyId as string || req.headers['x-company-id'] as string)
         : req.user?.companyId;
 
     if (!companyId) {
@@ -421,7 +421,11 @@ router.get('/available-dates/:companyId', async (req: Request, res: Response) =>
 // Update availability settings
 router.put('/', authenticate, async (req: Request, res: Response) => {
   try {
-    const companyId = req.user?.companyId;
+    const companyId = 
+      (req.user?.role === UserRole.SUPER_ADMIN)
+        ? (req.headers['x-company-id'] as string)
+        : req.user?.companyId;
+
     const { departmentId, ...updateData } = req.body;
 
     if (!companyId) {
@@ -453,7 +457,11 @@ router.put('/', authenticate, async (req: Request, res: Response) => {
 // Add special date (holiday or custom)
 router.post('/special-date', authenticate, async (req: Request, res: Response) => {
   try {
-    const companyId = req.user?.companyId;
+    const companyId = 
+      (req.user?.role === UserRole.SUPER_ADMIN)
+        ? (req.headers['x-company-id'] as string)
+        : req.user?.companyId;
+
     const { departmentId, specialDate } = req.body;
 
     if (!companyId) {
@@ -485,7 +493,11 @@ router.post('/special-date', authenticate, async (req: Request, res: Response) =
 // Remove special date
 router.delete('/special-date', authenticate, async (req: Request, res: Response) => {
   try {
-    const companyId = req.user?.companyId;
+    const companyId = 
+      (req.user?.role === UserRole.SUPER_ADMIN)
+        ? (req.headers['x-company-id'] as string)
+        : req.user?.companyId;
+
     const { departmentId, date } = req.body;
 
     if (!companyId) {

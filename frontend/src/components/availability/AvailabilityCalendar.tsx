@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { availabilityAPI, AppointmentAvailability, DayAvailability, TimeSlot, SpecialDate, Holiday } from '@/lib/api/availability';
 import toast from 'react-hot-toast';
 import {
@@ -544,10 +544,10 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
                   <CalendarCheck className="w-8 h-8 text-indigo-400" />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-black text-white tracking-tight leading-none mb-2">
+                  <DialogTitle className="text-3xl font-black text-white tracking-tight leading-none mb-2">
                     Availability <span className="text-indigo-400">Settings</span>
-                  </h1>
-                  <p className="text-slate-400 text-sm font-medium">Manage your schedule, holidays, and appointment slots</p>
+                  </DialogTitle>
+                  <DialogDescription className="text-slate-400 text-sm font-medium">Manage your schedule, holidays, and appointment slots</DialogDescription>
                 </div>
               </div>
             </div>

@@ -14,9 +14,6 @@ import { Building, X } from 'lucide-react';
 
 const LANGUAGE_OPTIONS = [
   { code: 'en', label: 'English' },
-  { code: 'hi', label: 'Hindi' },
-  { code: 'or', label: 'Odia' },
-  { code: 'mr', label: 'Marathi' },
 ];
 
 interface CreateCompanyDialogProps {
@@ -30,9 +27,6 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({ isOpen, onClo
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<CreateCompanyData>({
     name: '',
-    nameHi: '',
-    nameOr: '',
-    nameMr: '',
     companyType: 'GOVERNMENT',
     contactEmail: '',
     contactPhone: '',
@@ -43,23 +37,14 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({ isOpen, onClo
       primaryColor: '#0f4c81',
       secondaryColor: '#1a73e8'
     },
-    admin: {
-      firstName: '',
-      lastName: '',
-      email: '',
-      password: '',
-      phone: ''
-    }
+    admin: undefined
   });
-  const [showAdminForm, setShowAdminForm] = useState(false);
+
 
   useEffect(() => {
     if (editingCompany) {
       setFormData({
         name: editingCompany.name,
-        nameHi: editingCompany.nameHi || '',
-        nameOr: editingCompany.nameOr || '',
-        nameMr: editingCompany.nameMr || '',
         companyType: editingCompany.companyType,
         contactEmail: editingCompany.contactEmail,
         contactPhone: editingCompany.contactPhone,
@@ -72,22 +57,12 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({ isOpen, onClo
           primaryColor: '#0f4c81',
           secondaryColor: '#1a73e8'
         },
-        admin: {
-          firstName: '',
-          lastName: '',
-          email: '',
-          password: '',
-          phone: ''
-        }
+        admin: undefined
       });
-      setShowAdminForm(false);
     } else {
       // Reset form for creating new company
       setFormData({
         name: '',
-        nameHi: '',
-        nameOr: '',
-        nameMr: '',
         companyType: 'GOVERNMENT',
         contactEmail: '',
         contactPhone: '',
@@ -98,15 +73,8 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({ isOpen, onClo
           primaryColor: '#0f4c81',
           secondaryColor: '#1a73e8'
         },
-        admin: {
-          firstName: '',
-          lastName: '',
-          email: '',
-          password: '',
-          phone: ''
-        }
+        admin: undefined
       });
-      setShowAdminForm(false);
     }
   }, [editingCompany, isOpen]);
 
@@ -118,10 +86,7 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({ isOpen, onClo
       return;
     }
 
-    if (showAdminForm && (!formData.admin?.firstName || !formData.admin?.lastName || !formData.admin?.email || !formData.admin?.password)) {
-      toast.error('Please fill in all admin fields');
-      return;
-    }
+
 
     // Validate contact phone (telephone) if provided
     if (formData.contactPhone && !validateTelephone(formData.contactPhone)) {
@@ -129,17 +94,7 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({ isOpen, onClo
       return;
     }
 
-    // Validate admin phone if provided
-    if (showAdminForm && formData.admin?.phone && !validatePhoneNumber(formData.admin.phone)) {
-      toast.error('Admin phone number must be exactly 10 digits');
-      return;
-    }
 
-    // Validate admin password if admin form is shown
-    if (showAdminForm && formData.admin?.password && !validatePassword(formData.admin.password)) {
-      toast.error('Admin password must be between 6 and 8 characters');
-      return;
-    }
 
     setLoading(true);
     try {
@@ -162,9 +117,6 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({ isOpen, onClo
       if (response.success) {
         setFormData({
           name: '',
-          nameHi: '',
-          nameOr: '',
-          nameMr: '',
           companyType: 'GOVERNMENT',
           contactEmail: '',
           contactPhone: '',
@@ -175,15 +127,8 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({ isOpen, onClo
             primaryColor: '#0f4c81',
             secondaryColor: '#1a73e8'
           },
-          admin: {
-            firstName: '',
-            lastName: '',
-            email: '',
-            password: '',
-            phone: ''
-          }
+          admin: undefined
         });
-        setShowAdminForm(false);
         onClose();
         onCompanyCreated();
       }
@@ -205,32 +150,9 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({ isOpen, onClo
     }));
   };
 
-  const handleLanguageToggle = (languageCode: string) => {
-    if (languageCode === 'en') return;
 
-    setFormData((prev) => {
-      const currentlySelected = prev.selectedLanguages || ['en'];
-      const updated = currentlySelected.includes(languageCode)
-        ? currentlySelected.filter((code) => code !== languageCode)
-        : [...currentlySelected, languageCode];
 
-      return {
-        ...prev,
-        selectedLanguages: Array.from(new Set(['en', ...updated])),
-      };
-    });
-  };
 
-  const handleAdminChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      admin: {
-        ...prev.admin!,
-        [name]: value
-      }
-    }));
-  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -292,44 +214,6 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({ isOpen, onClo
                   <option value="GOVERNMENT">Government</option>
                   <option value="CUSTOM_ENTERPRISE">Custom Enterprise</option>
                 </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="nameHi">Company Name (Hindi) (optional)</Label>
-                <Input
-                  id="nameHi"
-                  name="nameHi"
-                  type="text"
-                  value={formData.nameHi || ''}
-                  onChange={handleChange}
-                  placeholder="कंपनी का नाम"
-                />
-              </div>
-              <div>
-                <Label htmlFor="nameMr">Company Name (Marathi) (optional)</Label>
-                <Input
-                  id="nameMr"
-                  name="nameMr"
-                  type="text"
-                  value={formData.nameMr || ''}
-                  onChange={handleChange}
-                  placeholder="कंपनीचे नाव"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="nameOr">Company Name (Odia) (optional)</Label>
-                <Input
-                  id="nameOr"
-                  name="nameOr"
-                  type="text"
-                  value={formData.nameOr || ''}
-                  onChange={handleChange}
-                  placeholder="କମ୍ପାନି ନାମ"
-                />
               </div>
             </div>
 
@@ -402,143 +286,9 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({ isOpen, onClo
               </div>
             </div>
 
-            <div>
-              <Label>Multilingual Selection</Label>
-              <p className="text-xs text-slate-500 mt-1">
-                Selected languages will be available in department creation forms.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
-                {LANGUAGE_OPTIONS.map((language) => {
-                  const checked = formData.selectedLanguages?.includes(language.code) || false;
-                  const isEnglish = language.code === 'en';
 
-                  return (
-                    <div key={language.code} className="flex items-start space-x-2 p-2 border rounded-md">
-                      <input
-                        type="checkbox"
-                        id={`language-${language.code}`}
-                        checked={checked}
-                        onChange={() => handleLanguageToggle(language.code)}
-                        disabled={isEnglish}
-                        className="mt-1"
-                      />
-                      <div className="flex-1">
-                        <Label htmlFor={`language-${language.code}`} className="text-sm font-medium cursor-pointer">
-                          {language.label}
-                        </Label>
-                        {isEnglish && (
-                          <p className="text-[11px] text-slate-500">Required for core records.</p>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
 
-            {/* Admin Creation Section */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label className="text-base font-semibold">Create Company Admin</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowAdminForm(!showAdminForm)}
-                >
-                  {showAdminForm ? 'Remove Admin' : 'Add Admin'}
-                </Button>
-              </div>
-              
-              {showAdminForm && (
-                <div className="space-y-4 p-4 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="adminFirstName">Admin First Name *</Label>
-                      <Input
-                        id="adminFirstName"
-                        name="firstName"
-                        type="text"
-                        value={formData.admin?.firstName || ''}
-                        onChange={handleAdminChange}
-                        required
-                        placeholder="Admin first name"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="adminLastName">Admin Last Name *</Label>
-                      <Input
-                        id="adminLastName"
-                        name="lastName"
-                        type="text"
-                        value={formData.admin?.lastName || ''}
-                        onChange={handleAdminChange}
-                        required
-                        placeholder="Admin last name"
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="adminEmail">Admin Email *</Label>
-                      <Input
-                        id="adminEmail"
-                        name="email"
-                        type="email"
-                        value={formData.admin?.email || ''}
-                        onChange={handleAdminChange}
-                        required
-                        placeholder="admin@company.com"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="adminPassword">Admin Password *</Label>
-                      <Input
-                        id="adminPassword"
-                        name="password"
-                        type="password"
-                        value={formData.admin?.password || ''}
-                        onChange={handleAdminChange}
-                        minLength={6}
-                        maxLength={8}
-                        required
-                        placeholder="6-8 characters"
-                      />
-                      {formData.admin?.password && !validatePassword(formData.admin.password) && (
-                        <p className="text-xs text-red-500 mt-1">Password must be between 6 and 8 characters</p>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="adminPhone">Admin Phone</Label>
-                    <Input
-                      id="adminPhone"
-                      name="phone"
-                      type="tel"
-                      value={formData.admin?.phone || ''}
-                      onChange={(e) => {
-                        // Only allow digits, max 10
-                        const value = e.target.value.replace(/\D/g, '').slice(0, 10);
-                        setFormData(prev => ({
-                          ...prev,
-                          admin: {
-                            ...prev.admin!,
-                            phone: value
-                          }
-                        }));
-                      }}
-                      maxLength={10}
-                      placeholder="10 digit number (e.g., 9356150561)"
-                    />
-                    {formData.admin?.phone && !validatePhoneNumber(formData.admin.phone) && (
-                      <p className="text-xs text-red-500 mt-1">Phone number must be exactly 10 digits</p>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
+
 
             <div className="flex justify-end space-x-3 pt-6 border-t border-slate-200">
               <Button 

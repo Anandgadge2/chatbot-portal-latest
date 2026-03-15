@@ -187,7 +187,7 @@ export function hasAllPermissions(user: any, permissions: Permission[]): boolean
 /**
  * Check if user is SuperAdmin
  */
-export function isSuperAdmin(userRole: string): boolean {
+export function isSuperAdmin(userRole?: string): boolean {
   return userRole === 'SUPER_ADMIN';
 }
 
@@ -203,4 +203,13 @@ export function isCompanyAdminOrHigher(userRole: string): boolean {
  */
 export function isDepartmentAdminOrHigher(userRole: string): boolean {
   return userRole === UserRole.SUPER_ADMIN;
+}
+
+/**
+ * Check if a specific module is enabled
+ */
+export function hasModule(user: any, company: any, module: Module): boolean {
+  if (user?.role === 'SUPER_ADMIN' || user?.role === UserRole.SUPER_ADMIN) return true;
+  const modules = company?.enabledModules || user?.enabledModules || [];
+  return modules.includes(module);
 }

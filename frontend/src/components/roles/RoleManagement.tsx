@@ -24,6 +24,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -474,7 +475,7 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
                     className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
                   />
                 </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase w-12 text-center">
+                <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase w-12 text-center">
                   SR
                 </th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">
@@ -885,9 +886,9 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
                 <DialogTitle className="text-white font-black text-lg uppercase tracking-tight">
                   Role Directory
                 </DialogTitle>
-                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">
+                <DialogDescription className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">
                   Members assigned as {selectedRoleForUsers?.name}
-                </p>
+                </DialogDescription>
               </div>
             </div>
           </DialogHeader>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { userAPI, User } from '../../lib/api/user';
 import { departmentAPI, Department } from '../../lib/api/department';
@@ -389,15 +389,15 @@ export default function AssignmentDialog({
                 <UserCheck className="w-7 h-7 text-indigo-400" />
               </div>
               <div>
-                <h2 className="text-2xl font-black text-white tracking-tight">
+                <DialogTitle className="text-2xl font-black text-white tracking-tight">
                   Assign {itemType === 'grievance' ? 'Grievance' : 'Appointment'}
-                </h2>
-                <div className="flex items-center gap-2 mt-2">
-                  <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Currently With:</span>
+                </DialogTitle>
+                <DialogDescription className="text-slate-400 text-xs mt-2 flex items-center gap-2">
+                  <span className="font-bold uppercase tracking-widest">Currently With:</span>
                   <span className="px-3 py-1 bg-indigo-500/20 rounded-full text-[10px] font-black uppercase tracking-wider text-indigo-300 backdrop-blur-md border border-indigo-500/30">
                     {getCurrentAssigneeName()}
                   </span>
-                </div>
+                </DialogDescription>
               </div>
             </div>
             <button 

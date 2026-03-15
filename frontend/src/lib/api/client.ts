@@ -23,6 +23,14 @@ class APIClient {
           config.headers.Authorization = `Bearer ${token}`;
         }
         
+        // Add masquerade company ID if present
+        if (typeof window !== 'undefined') {
+          const masqueradeId = localStorage.getItem('masqueradeCompanyId');
+          if (masqueradeId) {
+            config.headers['x-company-id'] = masqueradeId;
+          }
+        }
+        
         // Emit request log
         this.emitLog({
           type: 'info',
@@ -109,6 +117,7 @@ class APIClient {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
+      localStorage.removeItem('masqueradeCompanyId');
     }
   }
 
@@ -121,6 +130,16 @@ class APIClient {
   public setRefreshToken(token: string): void {
     if (typeof window !== 'undefined') {
       localStorage.setItem('refreshToken', token);
+    }
+  }
+
+  public setMasqueradeCompany(companyId: string | null): void {
+    if (typeof window !== 'undefined') {
+      if (companyId) {
+        localStorage.setItem('masqueradeCompanyId', companyId);
+      } else {
+        localStorage.removeItem('masqueradeCompanyId');
+      }
     }
   }
 
