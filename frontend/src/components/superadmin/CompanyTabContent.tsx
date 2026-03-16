@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from "react";
+import Link from "next/link";
 import {
   Card,
   CardContent,
@@ -321,9 +322,14 @@ const CompanyTabContent: React.FC<CompanyTabContentProps> = ({
                         </span>
                       </td>
                       <td className="px-5 py-4 whitespace-nowrap">
-                        <div
-                          className={`cursor-pointer ${navigatingCompanyId ? "pointer-events-none" : ""}`}
-                          onClick={() => handleOpenCompanyDashboard(company._id)}
+                        <Link
+                          href={`/dashboard?companyId=${company._id}`}
+                          prefetch
+                          className={`block ${navigatingCompanyId ? "pointer-events-none" : ""}`}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleOpenCompanyDashboard(company._id);
+                          }}
                         >
                           <div className="text-sm font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-2">
                             {company.name}
@@ -332,9 +338,9 @@ const CompanyTabContent: React.FC<CompanyTabContentProps> = ({
                             )}
                           </div>
                           <div className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-tighter">
-                            Drill down to departments
+                            Open unified company workspace
                           </div>
-                        </div>
+                        </Link>
                       </td>
                       <td className="px-5 py-4 whitespace-nowrap">
                         <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded font-mono text-[10px] font-bold uppercase">
