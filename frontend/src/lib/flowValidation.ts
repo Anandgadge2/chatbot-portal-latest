@@ -464,10 +464,12 @@ function validateDelayNode(node: FlowNode, errors: ValidationError[]): void {
  * Find disconnected nodes (nodes with no incoming or outgoing edges)
  */
 function findDisconnectedNodes(nodes: FlowNode[], edges: FlowEdge[]): string[] {
+  const { incomingCount, outgoingCount } = buildEdgeIndexes(edges);
+
   return nodes
     .filter((node) => {
-      const hasIncoming = edges.some((e) => e.target === node.id);
-      const hasOutgoing = edges.some((e) => e.source === node.id);
+      const hasIncoming = (incomingCount.get(node.id) ?? 0) > 0;
+      const hasOutgoing = (outgoingCount.get(node.id) ?? 0) > 0;
       return !hasIncoming && !hasOutgoing && node.type !== 'start';
     })
     .map((node) => node.id);
@@ -481,9 +483,11 @@ function detectCycles(nodes: FlowNode[], edges: FlowEdge[]): string[] {
   const visited = new Set<string>();
   const recursionStack = new Set<string>();
   const path: string[] = [];
+  const nodeById = new Map(nodes.map((node) => [node.id, node]));
+  const { outgoingBySource } = buildEdgeIndexes(edges);
 
   function isManualEdge(edge: FlowEdge): boolean {
-    const sourceNode = nodes.find((n) => n.id === edge.source);
+    const sourceNode = nodeById.get(edge.source);
     if (!sourceNode) return false;
 
     // These handles imply a user must click/interact
@@ -501,7 +505,7 @@ function detectCycles(nodes: FlowNode[], edges: FlowEdge[]): string[] {
     recursionStack.add(nodeId);
     path.push(nodeId);
 
-    const outgoingEdges = edges.filter((e) => e.source === nodeId);
+    const outgoingEdges = outgoingBySource.get(nodeId) || [];
     for (const edge of outgoingEdges) {
       // If the loop contains a manual interaction, it's a navigational loop (SAFE)
       // We only care about loops that are completely automatic
@@ -537,6 +541,7 @@ function findUnreachableNodes(nodes: FlowNode[], edges: FlowEdge[]): string[] {
   const startNode = nodes.find((n) => n.type === 'start') || nodes[0];
   if (!startNode) return [];
 
+  const { outgoingBySource } = buildEdgeIndexes(edges);
   const reachable = new Set<string>();
   const queue = [startNode.id];
 
@@ -544,7 +549,7 @@ function findUnreachableNodes(nodes: FlowNode[], edges: FlowEdge[]): string[] {
     const current = queue.shift()!;
     reachable.add(current);
 
-    const outgoingEdges = edges.filter((e) => e.source === current);
+    const outgoingEdges = outgoingBySource.get(current) || [];
     outgoingEdges.forEach((edge) => {
       if (!reachable.has(edge.target)) {
         queue.push(edge.target);
@@ -553,4 +558,32 @@ function findUnreachableNodes(nodes: FlowNode[], edges: FlowEdge[]): string[] {
   }
 
   return nodes.filter((n) => !reachable.has(n.id)).map((n) => n.id);
+}
+
+function buildEdgeIndexes(edges: FlowEdge[]): {
+  incomingCount: Map<string, number>;
+  outgoingCount: Map<string, number>;
+  outgoingBySource: Map<string, FlowEdge[]>;
+} {
+  const incomingCount = new Map<string, number>();
+  const outgoingCount = new Map<string, number>();
+  const outgoingBySource = new Map<string, FlowEdge[]>();
+
+  edges.forEach((edge) => {
+    incomingCount.set(edge.target, (incomingCount.get(edge.target) ?? 0) + 1);
+    outgoingCount.set(edge.source, (outgoingCount.get(edge.source) ?? 0) + 1);
+
+    const sourceEdges = outgoingBySource.get(edge.source);
+    if (sourceEdges) {
+      sourceEdges.push(edge);
+    } else {
+      outgoingBySource.set(edge.source, [edge]);
+    }
+  });
+
+  return {
+    incomingCount,
+    outgoingCount,
+    outgoingBySource,
+  };
 }

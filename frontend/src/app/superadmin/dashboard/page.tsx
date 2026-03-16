@@ -176,6 +176,12 @@ export default function SuperAdminDashboard() {
     router.push(`/dashboard?companyId=${companyId}`);
   };
 
+  useEffect(() => {
+    companies.forEach((company) => {
+      router.prefetch(`/dashboard?companyId=${company._id}`);
+    });
+  }, [companies, router]);
+
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     title: string;
