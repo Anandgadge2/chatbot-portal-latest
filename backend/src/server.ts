@@ -94,8 +94,9 @@ const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false
 });
-app.use('/api/auth/login', authLimiter);
-app.use('/api/auth/sso', authLimiter);
+['/api/auth/login', '/api/auth/sso'].forEach((path) => {
+  app.use(path, authLimiter);
+});
 
 // Body parsing
 app.use(express.json({ limit: '10mb' }));
@@ -145,33 +146,38 @@ app.get('/', (_req: Request, res: Response) => {
 });
 
 // Webhook routes (must be before /api routes to avoid middleware blocking)
-app.use('/webhook', whatsappRoutes);
-app.use('/api/webhook', whatsappRoutes); // Added this to match your Meta config
-app.use('/api/whatsapp', whatsappRoutes); // Standard Meta alias
-
+['/webhook', '/api/webhook', '/api/whatsapp'].forEach((path) => {
+  app.use(path, whatsappRoutes);
+});
 
 // API routes
-app.use('/api/health', healthRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/companies', companyRoutes);
-app.use('/api/departments', departmentRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/grievances', grievanceRoutes);
-app.use('/api/appointments', appointmentRoutes);
-app.use('/api/analytics', analyticsRoutes);
-app.use('/api/import', importRoutes);
-app.use('/api/export', exportRoutes);
-app.use('/api/audit', auditRoutes);
-app.use('/api/assignments', assignmentRoutes);
-app.use('/api/status', statusRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/availability', availabilityRoutes);
-app.use('/api/chatbot-flows', chatbotFlowRoutes);
-app.use('/api/whatsapp-config', whatsappConfigRoutes);
-app.use('/api/email-config', emailConfigRoutes);
-app.use('/api/leads', leadRoutes);
-app.use('/api/roles', roleRoutes);
-app.use('/api/modules', moduleRoutes);
+const apiRouteRegistrations: Array<[string, any]> = [
+  ['/api/health', healthRoutes],
+  ['/api/auth', authRoutes],
+  ['/api/companies', companyRoutes],
+  ['/api/departments', departmentRoutes],
+  ['/api/users', userRoutes],
+  ['/api/grievances', grievanceRoutes],
+  ['/api/appointments', appointmentRoutes],
+  ['/api/analytics', analyticsRoutes],
+  ['/api/import', importRoutes],
+  ['/api/export', exportRoutes],
+  ['/api/audit', auditRoutes],
+  ['/api/assignments', assignmentRoutes],
+  ['/api/status', statusRoutes],
+  ['/api/dashboard', dashboardRoutes],
+  ['/api/availability', availabilityRoutes],
+  ['/api/chatbot-flows', chatbotFlowRoutes],
+  ['/api/whatsapp-config', whatsappConfigRoutes],
+  ['/api/email-config', emailConfigRoutes],
+  ['/api/leads', leadRoutes],
+  ['/api/roles', roleRoutes],
+  ['/api/modules', moduleRoutes]
+];
+
+apiRouteRegistrations.forEach(([path, routeHandler]) => {
+  app.use(path, routeHandler);
+});
 
 // ================================
 // Error Handling
