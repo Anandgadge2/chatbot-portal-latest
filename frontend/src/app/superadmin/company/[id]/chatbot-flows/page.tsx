@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCompanyContext } from "@/contexts/CompanyContext";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -29,16 +30,20 @@ import {
 } from "lucide-react";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { useFlows } from "@/lib/query/useFlows";
+import { useWhatsappConfig } from "@/lib/query/useWhatsappConfig";
 
 export default function ChatbotFlowsPage() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
   const companyId = params.id as string;
+  const { company } = useCompanyContext();
+  const { data: cachedFlows, isLoading: flowsLoading } = useFlows(companyId);
+  const { data: cachedWhatsappConfig } = useWhatsappConfig(companyId);
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [company, setCompany] = useState<any>(null);
   const [flows, setFlows] = useState<any[]>([]);
   const [whatsappConfig, setWhatsappConfig] = useState<any>(null);
   const [hasDefaultFlows, setHasDefaultFlows] = useState<boolean>(false);
@@ -67,6 +72,19 @@ export default function ChatbotFlowsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run when companyId/role change only
   }, [companyId, user]);
 
+  useEffect(() => {
+    if (cachedFlows) {
+      setFlows(cachedFlows);
+      setLoading(false);
+    }
+  }, [cachedFlows]);
+
+  useEffect(() => {
+    if (cachedWhatsappConfig !== undefined) {
+      setWhatsappConfig(cachedWhatsappConfig);
+    }
+  }, [cachedWhatsappConfig]);
+
   const fetchData = async (silent = false) => {
     try {
       if (silent) {
@@ -74,63 +92,6 @@ export default function ChatbotFlowsPage() {
       } else {
         setLoading(true);
       }
-
-      // Fetch company
-      const companyRes = await apiClient.get(`/companies/${companyId}`);
-      if (companyRes?.success && companyRes?.data?.company) {
-        setCompany(companyRes.data.company);
-      } else if (companyRes?.company) {
-        setCompany(companyRes.company);
-      } else if (companyRes?.data?.name) {
-        setCompany(companyRes.data);
-      }
-
-      // Fetch WhatsApp config
-      try {
-        const configRes = await apiClient.get(
-          `/whatsapp-config/company/${companyId}`,
-        );
-        if (configRes?.success && configRes?.data) {
-          setWhatsappConfig(configRes.data);
-        } else if (configRes?.data) {
-          setWhatsappConfig(configRes.data);
-        } else if (configRes?._id) {
-          setWhatsappConfig(configRes);
-        }
-      } catch (configError: any) {
-        if (configError.response?.status !== 404) {
-          console.error("Failed to load WhatsApp config:", configError);
-        }
-      }
-
-      // Load flows from backend API
-      try {
-        const flowsRes = await apiClient.get(
-          `/chatbot-flows?companyId=${companyId}`,
-        );
-        let flowsData = [];
-
-        if (flowsRes?.success && Array.isArray(flowsRes.data)) {
-          flowsData = flowsRes.data;
-        } else if (Array.isArray(flowsRes)) {
-          flowsData = flowsRes;
-        } else if (flowsRes?.data && Array.isArray(flowsRes.data)) {
-          flowsData = flowsRes.data;
-        } else if (
-          (flowsRes as any)?.flows &&
-          Array.isArray((flowsRes as any).flows)
-        ) {
-          flowsData = (flowsRes as any).flows;
-        }
-
-        console.log(`📥 Loaded ${flowsData.length} flows from API`);
-        setFlows(flowsData);
-      } catch (flowsError: any) {
-        console.error("❌ Failed to load flows from API:", flowsError);
-        toast.error("Failed to load chatbot flows");
-        setFlows([]);
-      }
-
       // Check if default flows exist
       try {
         const defaultsRes = await apiClient.get(
@@ -151,7 +112,7 @@ export default function ChatbotFlowsPage() {
       console.error("Failed to load data:", error);
       toast.error("Failed to load page data");
     } finally {
-      setLoading(false);
+      setLoading(flowsLoading);
       setRefreshing(false);
     }
   };

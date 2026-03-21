@@ -79,7 +79,8 @@ export const dashboard = async (req: Request, res: Response) => {
       subDepartmentCount,
       resolvedToday,
       highPriorityPending,
-      urgentPriorityPending
+      urgentPriorityPending,
+      deptCounts
     ] = await Promise.all([
       Grievance.countDocuments({ ...baseQuery }),
       Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.PENDING }),
@@ -143,7 +144,13 @@ export const dashboard = async (req: Request, res: Response) => {
       // More informative stats
       Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.RESOLVED, resolvedAt: { $gte: new Date().setHours(0,0,0,0) } }),
       Grievance.countDocuments({ ...baseQuery, priority: 'HIGH', status: { $ne: GrievanceStatus.RESOLVED } }),
-      Grievance.countDocuments({ ...baseQuery, priority: 'URGENT', status: { $ne: GrievanceStatus.RESOLVED } })
+      Grievance.countDocuments({ ...baseQuery, priority: 'URGENT', status: { $ne: GrievanceStatus.RESOLVED } }),
+      targetCompanyId
+        ? User.aggregate([
+            { $match: { companyId: new mongoose.Types.ObjectId(targetCompanyId.toString()) } },
+            { $group: { _id: '$departmentId', count: { $sum: 1 } } }
+          ])
+        : Promise.resolve([])
     ]);
 
     // Calculate resolution rate
@@ -322,6 +329,7 @@ export const dashboard = async (req: Request, res: Response) => {
         resolvedToday: resolvedToday,
         highPriorityPending: highPriorityPending + urgentPriorityPending,
         isHierarchicalEnabled: !!isHierarchicalEnabled,
+        deptCounts,
         usersByRole: usersByRole.reduce((acc: any[], current: any) => {
           const rawName = current._id || 'Unknown';
           const name = rawName.toString().replace(/_/g, ' ').toUpperCase();
@@ -350,7 +358,7 @@ export const grievancesByDepartment = async (req: Request, res: Response) => {
     const currentUser = req.user!;
     const { companyId } = req.query;
 
-    const matchQuery = getAnalyticsBaseQuery(currentUser, companyId);
+    const matchQuery = getAnalyticsBaseQuery(req, companyId);
 
     const distribution = await Grievance.aggregate([
       { $match: matchQuery },

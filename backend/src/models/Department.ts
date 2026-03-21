@@ -86,6 +86,8 @@ const DepartmentSchema: Schema = new Schema(
 
 // Compound indexes
 DepartmentSchema.index({ companyId: 1, name: 1 }, { unique: true });
+DepartmentSchema.index({ companyId: 1, status: 1 });
+DepartmentSchema.index({ companyId: 1, createdAt: -1 });
 
 // Pre-save hook to generate departmentId
 DepartmentSchema.pre('save', async function (next) {

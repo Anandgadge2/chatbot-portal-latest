@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCompanyContext } from "@/contexts/CompanyContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,6 +34,7 @@ import {
   getPhoneNumberFormats,
   isValidPhoneNumber,
 } from "@/lib/utils/phoneNumber";
+import { useWhatsappConfig } from "@/lib/query/useWhatsappConfig";
 
 /* ------------------------------------------------------------------
    Template Definitions
@@ -598,12 +600,13 @@ export default function WhatsAppConfigPage() {
   const router = useRouter();
   const { user } = useAuth();
   const companyId = params.id as string;
+  const { company } = useCompanyContext();
+  const { data: cachedConfig } = useWhatsappConfig(companyId);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [config, setConfig] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [company, setCompany] = useState<any>(null);
 
   // Templates state
   const [waTemplates, setWaTemplates] = useState<
@@ -640,35 +643,24 @@ export default function WhatsAppConfigPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [companyId, user]);
 
+  useEffect(() => {
+    if (cachedConfig) {
+      setConfig(cachedConfig);
+      setIsEditing(false);
+    }
+  }, [cachedConfig]);
+
   const fetchData = async () => {
     try {
       setLoading(true);
 
-      const [companyRes, configRes, templatesRes] = await Promise.all([
-        apiClient.get(`/companies/${companyId}`),
-        apiClient
-          .get(`/whatsapp-config/company/${companyId}`)
-          .catch(() => ({ success: false })),
+      const [templatesRes] = await Promise.all([
         apiClient
           .get(`/whatsapp-config/company/${companyId}/templates`)
           .catch(() => ({ success: false })),
       ]);
 
-      // Process Company
-      if (companyRes.success && companyRes.data?.company) {
-        setCompany(companyRes.data.company);
-      } else if (companyRes.data?.company) {
-        setCompany(companyRes.data.company);
-      }
-
-      // Process Config
-      if (configRes.success && configRes.data) {
-        setConfig(configRes.data);
-        setIsEditing(false);
-      } else if ((configRes as any).data) {
-        setConfig((configRes as any).data);
-        setIsEditing(false);
-      } else {
+      if (!cachedConfig) {
         setConfig(makeEmptyConfig());
         setIsEditing(true);
       }
