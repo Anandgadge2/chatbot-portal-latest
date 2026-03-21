@@ -14,23 +14,19 @@ import {
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { companyAPI, Company } from "@/lib/api/company";
-import { departmentAPI, Department } from "@/lib/api/department";
 import { userAPI, User } from "@/lib/api/user";
 import { apiClient } from "@/lib/api/client";
 import CreateCompanyDialog from "@/components/company/CreateCompanyDialog";
-import CreateDepartmentDialog from "@/components/department/CreateDepartmentDialog";
 import CreateUserDialog from "@/components/user/CreateUserDialog";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { StatsSkeleton, TableSkeleton } from "@/components/ui/GeneralSkeleton";
 import { Pagination } from "@/components/ui/Pagination";
 import RecentActivityPanel from "@/components/dashboard/RecentActivityPanel";
-import TerminalLogs from "@/components/dashboard/TerminalLogs";
 import RoleManagement from "@/components/roles/RoleManagement";
 import ModuleManagement from "@/components/superadmin/ModuleManagement";
 import DashboardStats from "@/components/superadmin/DashboardStats";
 import CompanyTabContent from "@/components/superadmin/CompanyTabContent";
-import DepartmentTabContent from "@/components/superadmin/DepartmentTabContent";
 import UserTabContent from "@/components/superadmin/UserTabContent";
 import {
   Shield,
@@ -40,22 +36,10 @@ import {
   X,
   BarChart2,
   Building,
-  Settings,
   Users,
   Box,
-  Terminal,
   User as UserIcon,
 } from "lucide-react";
-
-// Helper function to get company display text
-const getCompanyDisplay = (
-  companyId: string | { _id: string; name: string; companyId: string },
-): string => {
-  if (typeof companyId === "object" && companyId !== null) {
-    return `${companyId.name} (${companyId.companyId})`;
-  }
-  return companyId;
-};
 
 export default function SuperAdminDashboard() {
   const { user, loading, logout } = useAuth();
@@ -64,7 +48,6 @@ export default function SuperAdminDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
   const [companies, setCompanies] = useState<Company[]>([]);
   const [companiesLoading, setCompaniesLoading] = useState(false);
-  const [departments, setDepartments] = useState<Department[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [stats, setStats] = useState({
     companies: 0,
@@ -76,21 +59,13 @@ export default function SuperAdminDashboard() {
     systemStatus: "operational",
   });
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
-  const [editingDepartment, setEditingDepartment] = useState<Department | null>(
-    null,
-  );
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [showDepartmentDialog, setShowDepartmentDialog] = useState(false);
   const [showUserDialog, setShowUserDialog] = useState(false);
   const [userRoleFilter, setUserRoleFilter] = useState<string>("");
   const [userSearchTerm, setUserSearchTerm] = useState<string>("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>("");
   const [userCompanyFilter, setUserCompanyFilter] = useState<string>("");
-  const [deptSearchTerm, setDeptSearchTerm] = useState<string>("");
-  const [deptDebouncedSearchTerm, setDeptDebouncedSearchTerm] =
-    useState<string>("");
-  const [deptCompanyFilter, setDeptCompanyFilter] = useState<string>("");
   const [allCompanies, setAllCompanies] = useState<Company[]>([]);
   const [companySearchTerm, setCompanySearchTerm] = useState<string>("");
   const [companyDebouncedSearchTerm, setCompanyDebouncedSearchTerm] =
@@ -104,13 +79,6 @@ export default function SuperAdminDashboard() {
     total: 0,
     pages: 1,
     limit: 10,
-  });
-
-  const [departmentPage, setDepartmentPage] = useState(1);
-  const [departmentPagination, setDepartmentPagination] = useState({
-    total: 0,
-    pages: 1,
-    limit: 25,
   });
 
   const [userPage, setUserPage] = useState(1);
@@ -239,35 +207,6 @@ export default function SuperAdminDashboard() {
     ],
   );
 
-  const fetchDepartments = useCallback(
-    async (page = departmentPage) => {
-      try {
-        const response = await departmentAPI.getAll({
-          page,
-          limit: departmentPagination.limit,
-          search: deptDebouncedSearchTerm,
-          companyId: deptCompanyFilter,
-        });
-        if (response.success) {
-          setDepartments(response.data.departments);
-          setDepartmentPagination((prev) => ({
-            ...prev,
-            total: response.data.pagination.total,
-            pages: response.data.pagination.pages,
-          }));
-        }
-      } catch (error: any) {
-        toast.error("Failed to fetch departments");
-      }
-    },
-    [
-      departmentPage,
-      departmentPagination.limit,
-      deptDebouncedSearchTerm,
-      deptCompanyFilter,
-    ],
-  );
-
   const fetchUsers = useCallback(
     async (page = userPage) => {
       try {
@@ -346,38 +285,6 @@ export default function SuperAdminDashboard() {
     });
   };
 
-  const handleDeleteDepartment = (department: Department) => {
-    setConfirmDialog({
-      isOpen: true,
-      title: "Delete Department",
-      message: `Are you sure you want to delete "${department.name}"? This action cannot be undone and will delete all associated users, grievances, and appointments.`,
-      onConfirm: async () => {
-        try {
-          const response = await departmentAPI.delete(department._id);
-          if (response.success) {
-            toast.success("Department deleted successfully");
-            fetchDepartments();
-            setConfirmDialog({ ...confirmDialog, isOpen: false });
-          } else {
-            toast.error("Failed to delete department");
-          }
-        } catch (error: any) {
-          toast.error(
-            error?.response?.data?.message ||
-              error?.message ||
-              "Failed to delete department",
-          );
-        }
-      },
-      variant: "danger",
-    });
-  };
-
-  const handleEditDepartment = (department: Department) => {
-    setEditingDepartment(department);
-    setShowDepartmentDialog(true);
-  };
-
   const handleEditCompany = (company: Company) => {
     setEditingCompany(company);
     setShowCreateDialog(true);
@@ -402,23 +309,6 @@ export default function SuperAdminDashboard() {
       }
     } catch (error: any) {
       toast.error("Failed to update company status");
-    }
-  };
-
-  const toggleDepartmentStatus = async (dept: Department) => {
-    try {
-      const response = await departmentAPI.update(dept._id, {
-        isActive: !dept.isActive,
-      });
-      if (response.success) {
-        toast.success(
-          `Department ${!dept.isActive ? "activated" : "deactivated"} successfully`,
-        );
-        fetchDepartments();
-        fetchStats();
-      }
-    } catch (error: any) {
-      toast.error("Failed to update department status");
     }
   };
 
@@ -485,26 +375,6 @@ export default function SuperAdminDashboard() {
     companyDebouncedSearchTerm,
     companyStatusFilter,
     companyTypeFilter,
-  ]);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDeptDebouncedSearchTerm(deptSearchTerm);
-    }, 500);
-    return () => clearTimeout(handler);
-  }, [deptSearchTerm]);
-
-  useEffect(() => {
-    if (mounted && user) {
-      fetchDepartments(departmentPage);
-    }
-  }, [
-    mounted,
-    user,
-    departmentPage,
-    deptDebouncedSearchTerm,
-    deptCompanyFilter,
-    fetchDepartments,
   ]);
 
   useEffect(() => {
@@ -583,11 +453,9 @@ export default function SuperAdminDashboard() {
                   {[
                     { val: "overview", label: "Overview", icon: BarChart2 },
                     { val: "companies", label: "Companies", icon: Building },
-                    { val: "departments", label: "Departments", icon: Settings },
                     { val: "users", label: "Users", icon: Users },
                     { val: "roles", label: "Roles", icon: Shield },
                     { val: "features", label: "Features", icon: Box },
-                    { val: "terminal", label: "System Logs", icon: Terminal },
                   ].map((t) => (
                     <TabsTrigger
                       key={t.val}
@@ -613,7 +481,6 @@ export default function SuperAdminDashboard() {
                   fetchAllInitialData();
                   fetchStats();
                   fetchCompanies();
-                  fetchDepartments();
                   fetchUsers();
                 }}
                 disabled={loading || companiesLoading}
@@ -652,11 +519,9 @@ export default function SuperAdminDashboard() {
               {[
                 { val: "overview", label: "Overview", icon: BarChart2 },
                 { val: "companies", label: "Companies", icon: Building },
-                { val: "departments", label: "Departments", icon: Settings },
                 { val: "users", label: "Users", icon: Users },
                 { val: "roles", label: "Roles", icon: Shield },
                 { val: "features", label: "Features", icon: Box },
-                { val: "terminal", label: "System Logs", icon: Terminal },
               ].map((t) => (
                 <button
                   key={t.val}
@@ -823,32 +688,6 @@ export default function SuperAdminDashboard() {
             )}
           </TabsContent>
 
-          <TabsContent value="departments" className="space-y-4 outline-none">
-            {loading ? (
-              <TableSkeleton rows={10} cols={5} />
-            ) : (
-              <DepartmentTabContent
-                departments={departments}
-                deptSearchTerm={deptSearchTerm}
-                setDeptSearchTerm={setDeptSearchTerm}
-                deptCompanyFilter={deptCompanyFilter}
-                setDeptCompanyFilter={setDeptCompanyFilter}
-                allCompanies={allCompanies}
-                departmentPage={departmentPage}
-                setDepartmentPage={setDepartmentPage}
-                departmentPagination={departmentPagination}
-                setEditingDepartment={setEditingDepartment}
-                setShowDepartmentDialog={setShowDepartmentDialog}
-                handleEditDepartment={handleEditDepartment}
-                handleDeleteDepartment={handleDeleteDepartment}
-                toggleDepartmentStatus={toggleDepartmentStatus}
-                getCompanyDisplay={getCompanyDisplay}
-                router={router}
-                onRefresh={() => { fetchDepartments(); fetchStats(); }}
-              />
-            )}
-          </TabsContent>
-
           <TabsContent value="users" className="space-y-4 outline-none">
             {loading ? (
               <TableSkeleton rows={10} cols={5} />
@@ -934,9 +773,6 @@ export default function SuperAdminDashboard() {
             <ModuleManagement />
           </TabsContent>
 
-          <TabsContent value="terminal" className="space-y-4 outline-none">
-            <TerminalLogs />
-          </TabsContent>
         </Tabs>
 
         <CreateCompanyDialog
@@ -950,18 +786,6 @@ export default function SuperAdminDashboard() {
             setEditingCompany(null);
           }}
           editingCompany={editingCompany}
-        />
-        <CreateDepartmentDialog
-          isOpen={showDepartmentDialog}
-          onClose={() => {
-            setShowDepartmentDialog(false);
-            setEditingDepartment(null);
-          }}
-          onDepartmentCreated={() => {
-            fetchDepartments();
-            setEditingDepartment(null);
-          }}
-          editingDepartment={editingDepartment}
         />
         <ConfirmDialog
           isOpen={confirmDialog.isOpen}
