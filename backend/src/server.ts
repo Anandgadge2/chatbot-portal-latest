@@ -42,6 +42,7 @@ import moduleRoutes from './routes/module.routes';
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
 import { notFoundHandler } from './middleware/notFoundHandler';
+import { tenantLimiter } from './middleware/rateLimiter';
 
 
 
@@ -141,6 +142,9 @@ app.use('/api/auth/sso', authLimiter);
 // Body parsing
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Per-tenant API rate limiting
+app.use('/api', tenantLimiter);
 
 // Logging
 if (process.env.NODE_ENV === 'development') {

@@ -64,6 +64,7 @@ import UserList from "@/components/superadmin/drilldown/UserList";
 import GrievanceList from "@/components/superadmin/drilldown/GrievanceList";
 import AppointmentList from "@/components/superadmin/drilldown/AppointmentList";
 import LeadList from "@/components/superadmin/drilldown/LeadList";
+import { Pagination } from "@/components/ui/Pagination";
 
 const CompanyAnalytics = dynamic(
   () => import("@/components/superadmin/drilldown/CompanyAnalytics"),
@@ -170,7 +171,7 @@ export default function CompanyDrillDown() {
         if (
           companyRes.data.company.enabledModules?.includes(Module.LEAD_CAPTURE)
         ) {
-          fetchLeads(companyId);
+          fetchLeads(companyId, 1);
         }
       }
 
@@ -189,7 +190,17 @@ export default function CompanyDrillDown() {
           users: totalUsers,
           activeUsers,
           departments: totalDepts,
+          deptCounts = [],
         } = analyticsRes.data;
+        const counts: Record<string, number> = {};
+        for (const d of deptCounts) {
+          const deptId =
+            typeof d?._id === "object" && d?._id !== null
+              ? d._id.toString()
+              : d?._id;
+          if (deptId) counts[deptId] = d.count ?? 0;
+        }
+        setDeptUserCounts(counts);
         setStats({
           totalUsers: totalUsers || 0,
           totalDepartments: totalDepts || 0,
@@ -222,22 +233,6 @@ export default function CompanyDrillDown() {
         });
       }
 
-      // Fetch all users for this company to calculate accurate department counts (Super Admin view)
-      try {
-        const companyUsersRes = await userAPI.getAll({ companyId, limit: 1000 });
-        if (companyUsersRes.success) {
-          const counts: Record<string, number> = {};
-          for (const u of companyUsersRes.data.users) {
-            const dId = typeof u.departmentId === "object" && u.departmentId
-              ? (u.departmentId as any)._id || (u.departmentId as any).toString()
-              : u.departmentId;
-            if (dId) counts[dId] = (counts[dId] || 0) + 1;
-          }
-          setDeptUserCounts(counts);
-        }
-      } catch (err) {
-        console.error("Failed to fetch all users for department counts", err);
-      }
     } catch (error: any) {
       toast.error("Failed to load company data");
       console.error(error);
@@ -246,12 +241,13 @@ export default function CompanyDrillDown() {
     }
   };
 
-  const fetchLeads = async (companyId: string) => {
+  const fetchLeads = async (companyId: string, page = 1) => {
     setLoadingLeads(true);
     try {
-      const response = await apiClient.get(`/leads/company/${companyId}`);
+      const response = await apiClient.get(`/leads/company/${companyId}?page=${page}&limit=25`);
       if (response.success) {
         setLeads(response.data || []);
+        setLeadsTotal(response.pagination?.total || response.data?.length || 0);
       }
     } catch (error: any) {
       console.error("Failed to fetch leads:", error);
@@ -677,8 +673,18 @@ export default function CompanyDrillDown() {
             <LeadList 
               leads={leads} 
               exportToCSV={exportToCSV} 
-              onRefresh={() => fetchLeads(companyId)}
+              onRefresh={() => fetchLeads(companyId, 1)}
               refreshing={loadingLeads}
+            />
+            <Pagination
+              currentPage={leadsPage}
+              totalItems={leadsTotal}
+              pageSize={PAGE_SIZE}
+              onPageChange={(page) => {
+                setLeadsPage(page);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              loading={loadingLeads}
             />
           </TabsContent>
 

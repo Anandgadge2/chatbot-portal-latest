@@ -62,7 +62,7 @@ export default function GrievancesPage() {
   const fetchGrievances = async () => {
     try {
       setLoading(true);
-      const response = await grievanceAPI.getAll();
+      const response = await grievanceAPI.getAll({ limit: 25 });
       if (response.success) {
         setGrievances(response.data.grievances);
       }
@@ -75,7 +75,7 @@ export default function GrievancesPage() {
 
   const fetchDepartments = async () => {
     try {
-      const response = await departmentAPI.getAll({ companyId });
+      const response = await departmentAPI.getAll({ companyId, limit: 25 });
       if (response.success) {
         setDepartments(response.data.departments);
       }

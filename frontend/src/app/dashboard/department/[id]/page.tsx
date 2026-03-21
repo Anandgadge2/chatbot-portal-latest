@@ -139,7 +139,7 @@ export default function DepartmentDetail() {
         }
       }
 
-      const usersRes = await userAPI.getAll({ departmentId });
+      const usersRes = await userAPI.getAll({ departmentId, limit: 25 });
       if (usersRes.success) setUsers(usersRes.data.users);
 
       const grievancesRes = await grievanceAPI.getAll({
