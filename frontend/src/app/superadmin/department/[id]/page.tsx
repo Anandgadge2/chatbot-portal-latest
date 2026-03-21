@@ -317,7 +317,7 @@ export default function DepartmentDrillDown() {
                 variant="ghost"
                 onClick={() =>
                   companyId
-                    ? router.push(`/superadmin/company/${companyId}`)
+                    ? router.push(`/dashboard/company/${companyId}`)
                     : router.push("/superadmin/dashboard")
                 }
                 className="text-slate-400 hover:text-white hover:bg-white/10 transition-all -ml-2 h-10 w-10 p-0 rounded-xl border border-transparent hover:border-slate-800"
