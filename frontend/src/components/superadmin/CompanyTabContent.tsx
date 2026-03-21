@@ -332,7 +332,7 @@ const CompanyTabContent: React.FC<CompanyTabContentProps> = ({
                             )}
                           </div>
                           <div className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-tighter">
-                            Drill down to departments
+                            Open company dashboard view
                           </div>
                         </div>
                       </td>
