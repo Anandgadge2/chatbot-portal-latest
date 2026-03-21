@@ -207,6 +207,7 @@ const GrievanceSchema: Schema = new Schema(
 
 // Compound indexes
 GrievanceSchema.index({ companyId: 1, status: 1 });
+GrievanceSchema.index({ companyId: 1, createdAt: -1 });
 GrievanceSchema.index({ departmentId: 1, status: 1 });
 GrievanceSchema.index({ assignedTo: 1, status: 1 });
 GrievanceSchema.index({ createdAt: -1 });

@@ -3,6 +3,7 @@ import './globals.css'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { SpeedInsights } from '@vercel/speed-insights/next'
+import { QueryProvider } from '@/lib/query/cache'
 
 export const metadata: Metadata = {
   title: 'WhatsApp Chatbot Platform',
@@ -22,10 +23,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
-        <AuthProvider>
-          {children}
-          <Toaster position="top-right" />
-        </AuthProvider>
+        <QueryProvider>
+          <AuthProvider>
+            {children}
+            <Toaster position="top-right" />
+          </AuthProvider>
+        </QueryProvider>
         <SpeedInsights />
       </body>
     </html>
