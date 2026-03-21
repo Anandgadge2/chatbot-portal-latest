@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { canManageCompanySettings, getPortalHomePath } from "@/lib/portal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -596,7 +597,7 @@ Digital Appointment System`,
 export default function WhatsAppConfigPage() {
   const params = useParams();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const companyId = params.id as string;
 
   const [loading, setLoading] = useState(true);
@@ -632,13 +633,18 @@ export default function WhatsAppConfigPage() {
   >({});
 
   useEffect(() => {
-    if (user?.role !== "SUPER_ADMIN") {
-      router.push("/superadmin/dashboard");
+    if (authLoading) return;
+    if (!user) {
+      router.push('/');
+      return;
+    }
+    if (!canManageCompanySettings(user, companyId)) {
+      router.push(getPortalHomePath(user));
       return;
     }
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [companyId, user]);
+  }, [authLoading, companyId, user]);
 
   const fetchData = async () => {
     try {
@@ -912,7 +918,7 @@ export default function WhatsAppConfigPage() {
             <div className="flex items-center gap-3 sm:gap-4 min-w-0">
               <Button
                 variant="ghost"
-                onClick={() => router.push(`/superadmin/company/${companyId}`)}
+                onClick={() => router.push(`/portal/company/${companyId}`)}
                 className="text-slate-400 hover:text-white hover:bg-white/10 transition-all -ml-2 h-9 w-9 p-0 rounded-xl"
               >
                 <ArrowLeft className="w-5 h-5" />

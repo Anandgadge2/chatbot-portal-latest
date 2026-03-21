@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { canAccessCompanyPortal, canManageCompanyFlows, canManageCompanySettings, getPortalHomePath, hasPortalPermission, isSuperAdminUser } from "@/lib/portal";
 import {
   Card,
   CardContent,
@@ -80,10 +81,21 @@ const CompanyAnalytics = dynamic(
 // BulkImportModal moved to @/components/superadmin/drilldown/BulkImportModal
 
 export default function CompanyDrillDown() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const params = useParams();
   const companyId = params.id as string;
+  const isSuperAdminViewer = isSuperAdminUser(user);
+  const canAccessPortal = canAccessCompanyPortal(user, companyId);
+  const canManageSettings = canManageCompanySettings(user, companyId);
+  const canManageFlows = canManageCompanyFlows(user, companyId);
+  const canViewNotifications = isSuperAdminViewer || hasPortalPermission(user, 'SETTINGS', ['view', 'update', 'manage']);
+  const viewerHomePath = isSuperAdminViewer ? '/portal/admin' : getPortalHomePath(user);
+  const canViewDepartments = isSuperAdminViewer || hasPortalPermission(user, 'DEPARTMENTS', ['view']);
+  const canViewUsers = isSuperAdminViewer || hasPortalPermission(user, 'USER_MANAGEMENT', ['view']);
+  const canViewAnalytics = isSuperAdminViewer || hasPortalPermission(user, 'ANALYTICS', ['view']);
+  const canViewGrievances = isSuperAdminViewer || hasPortalPermission(user, 'GRIEVANCE', ['view']);
+  const canViewAppointments = isSuperAdminViewer || hasPortalPermission(user, 'APPOINTMENT', ['view']);
 
   const [company, setCompany] = useState<Company | null>(null);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -133,13 +145,18 @@ export default function CompanyDrillDown() {
   }>({ key: "", direction: null });
 
   useEffect(() => {
-    if (user?.role !== "SUPER_ADMIN") {
-      router.push("/superadmin/dashboard");
+    if (authLoading) return;
+    if (!user) {
+      router.push('/');
+      return;
+    }
+    if (!canAccessPortal) {
+      router.push(getPortalHomePath(user));
       return;
     }
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [companyId, user]);
+  }, [authLoading, companyId, user, canAccessPortal]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -359,7 +376,7 @@ export default function CompanyDrillDown() {
     return (
       <div className="flex min-h-screen items-center justify-center text-center">
         <h2 className="text-2xl font-bold mb-4">Company not found</h2>
-        <Button onClick={() => router.push("/superadmin/dashboard")}>
+        <Button onClick={() => router.push(viewerHomePath)}>
           Back
         </Button>
       </div>
@@ -399,7 +416,7 @@ export default function CompanyDrillDown() {
           <div className="flex items-center gap-3 lg:gap-6">
             <Button
               variant="ghost"
-              onClick={() => router.push("/superadmin/dashboard")}
+              onClick={() => router.push(viewerHomePath)}
               className="hidden md:flex bg-white bg-opacity-10 hover:bg-opacity-20 text-white h-11 px-4 rounded-xl border border-white border-opacity-10 transition-all group"
             >
               <ArrowLeft className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" />
@@ -419,46 +436,52 @@ export default function CompanyDrillDown() {
                   {company?.companyId || companyId || "..."}
                 </span>
                 <span className="hidden sm:inline text-[9px] lg:text-[10px] text-slate-400 font-bold uppercase tracking-widest opacity-60">
-                  • Super Admin Portal
+                  • {isSuperAdminViewer ? "Super Admin View" : "Company Portal"}
                 </span>
               </div>
             </div>
           </div>
           <div className="flex items-center gap-2 lg:gap-4">
-            {!loading && (
+            {!loading && (canManageSettings || canManageFlows) && (
               <div className="hidden md:flex bg-white/5 p-1 rounded-2xl border border-white/10 backdrop-blur-sm">
-                <Button
+                {canManageSettings && (
+                  <Button
+                    variant="ghost"
+                    className="h-9 px-4 hover:bg-white/10 text-white rounded-xl text-[10px] font-black uppercase tracking-wider"
+                    onClick={() =>
+                      router.push(
+                        `/portal/company/${companyId}/settings/whatsapp`,
+                      )
+                    }
+                  >
+                    <MessageSquare className="w-3.5 h-3.5 mr-2 text-indigo-400" />
+                    WhatsApp
+                  </Button>
+                )}
+                {canManageSettings && (
+                  <Button
                   variant="ghost"
                   className="h-9 px-4 hover:bg-white/10 text-white rounded-xl text-[10px] font-black uppercase tracking-wider"
                   onClick={() =>
-                    router.push(
-                      `/superadmin/company/${companyId}/whatsapp-config`,
-                    )
+                    router.push(`/portal/company/${companyId}/settings/email`)
                   }
                 >
-                  <MessageSquare className="w-3.5 h-3.5 mr-2 text-indigo-400" />
-                  WhatsApp
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="h-9 px-4 hover:bg-white/10 text-white rounded-xl text-[10px] font-black uppercase tracking-wider"
-                  onClick={() =>
-                    router.push(`/superadmin/company/${companyId}/email-config`)
-                  }
-                >
-                  <Mail className="w-3.5 h-3.5 mr-2 text-blue-400" />
-                  Email
-                </Button>
-                <Button
+                    <Mail className="w-3.5 h-3.5 mr-2 text-blue-400" />
+                    Email
+                  </Button>
+                )}
+                {canManageFlows && (
+                  <Button
                   variant="ghost"
                   className="h-9 px-5 bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all hover:scale-105"
                   onClick={() =>
-                    router.push(`/superadmin/company/${companyId}/chatbot-flows`)
+                    router.push(`/portal/company/${companyId}/flows`)
                   }
                 >
-                  <Workflow className="w-3.5 h-3.5 mr-2" />
-                  Flows
-                </Button>
+                    <Workflow className="w-3.5 h-3.5 mr-2" />
+                    Flows
+                  </Button>
+                )}
               </div>
             )}
             <div className="hidden md:block h-11 w-px bg-slate-700/50 mx-2"></div>
@@ -484,47 +507,53 @@ export default function CompanyDrillDown() {
         </div>
 
         {/* Mobile Menu Overlay for Company Portal */}
-        {isMobileMenuOpen && (
+        {isMobileMenuOpen && (canManageSettings || canManageFlows) && (
           <div className="md:hidden absolute top-20 left-0 w-full bg-slate-900 border-b border-slate-800 z-50 animate-in slide-in-from-top-4 duration-300 shadow-2xl">
             <div className="p-4 space-y-3">
               <div className="grid grid-cols-2 gap-2">
-                <Button
+                {canManageSettings && (
+                  <Button
+                    variant="ghost"
+                    className="w-full h-12 bg-white/5 hover:bg-white/10 text-white rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center"
+                    onClick={() =>
+                      router.push(
+                        `/portal/company/${companyId}/settings/whatsapp`,
+                      )
+                    }
+                  >
+                    <MessageSquare className="w-4 h-4 mr-2 text-indigo-400" />
+                    WhatsApp
+                  </Button>
+                )}
+                {canManageSettings && (
+                  <Button
                   variant="ghost"
                   className="w-full h-12 bg-white/5 hover:bg-white/10 text-white rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center"
                   onClick={() =>
-                    router.push(
-                      `/superadmin/company/${companyId}/whatsapp-config`,
-                    )
+                    router.push(`/portal/company/${companyId}/settings/email`)
                   }
                 >
-                  <MessageSquare className="w-4 h-4 mr-2 text-indigo-400" />
-                  WhatsApp
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="w-full h-12 bg-white/5 hover:bg-white/10 text-white rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center"
-                  onClick={() =>
-                    router.push(`/superadmin/company/${companyId}/email-config`)
-                  }
-                >
-                  <Mail className="w-4 h-4 mr-2 text-blue-400" />
-                  Email
-                </Button>
+                    <Mail className="w-4 h-4 mr-2 text-blue-400" />
+                    Email
+                  </Button>
+                )}
               </div>
-              <Button
+              {canManageFlows && (
+                <Button
                 variant="ghost"
                 className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[11px] font-black uppercase tracking-wider flex items-center justify-center shadow-lg shadow-indigo-600/20"
                 onClick={() =>
-                  router.push(`/superadmin/company/${companyId}/chatbot-flows`)
+                  router.push(`/portal/company/${companyId}/flows`)
                 }
               >
-                <Workflow className="w-4 h-4 mr-2" />
-                Flow Management
-              </Button>
+                  <Workflow className="w-4 h-4 mr-2" />
+                  Flow Management
+                </Button>
+              )}
               <div className="pt-3 border-t border-slate-800 flex items-center gap-2">
                 <Button
                   variant="ghost"
-                  onClick={() => router.push("/superadmin/dashboard")}
+                  onClick={() => router.push(viewerHomePath)}
                   className="flex-1 bg-white/5 hover:bg-white/10 text-white h-12 rounded-xl border border-white/10 text-[10px] font-black uppercase tracking-widest"
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
@@ -563,19 +592,23 @@ export default function CompanyDrillDown() {
             >
               Overview
             </TabsTrigger>
-            <TabsTrigger
-              value="departments"
-              className="px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-700 transition-all"
-            >
-              Departments
-            </TabsTrigger>
-            <TabsTrigger
-              value="users"
-              className="px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-700 transition-all"
-            >
-              Users
-            </TabsTrigger>
-            {(!company ||
+            {canViewDepartments && (
+              <TabsTrigger
+                value="departments"
+                className="px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-700 transition-all"
+              >
+                Departments
+              </TabsTrigger>
+            )}
+            {canViewUsers && (
+              <TabsTrigger
+                value="users"
+                className="px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-700 transition-all"
+              >
+                Users
+              </TabsTrigger>
+            )}
+            {canViewGrievances && (!company ||
               company.enabledModules?.includes(Module.GRIEVANCE)) && (
               <TabsTrigger
                 value="grievances"
@@ -584,7 +617,7 @@ export default function CompanyDrillDown() {
                 Grievances
               </TabsTrigger>
             )}
-            {(!company ||
+            {canViewAppointments && (!company ||
               company.enabledModules?.includes(Module.APPOINTMENT)) && (
               <TabsTrigger
                 value="appointments"
@@ -602,76 +635,90 @@ export default function CompanyDrillDown() {
                 Project Leads
               </TabsTrigger>
             )}
-            <TabsTrigger
-              value="analytics"
-              className="px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-700 transition-all"
-            >
-              Analytics
-            </TabsTrigger>
-            <TabsTrigger
-              value="roles"
-              className="px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-700 transition-all"
-            >
-              Roles
-            </TabsTrigger>
-            <TabsTrigger
-              value="notifications"
-              className="px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-700 transition-all border border-transparent data-[state=active]:border-indigo-100"
-            >
-              Notifications
-            </TabsTrigger>
+            {canViewAnalytics && (
+              <TabsTrigger
+                value="analytics"
+                className="px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-700 transition-all"
+              >
+                Analytics
+              </TabsTrigger>
+            )}
+            {isSuperAdminViewer && (
+              <TabsTrigger
+                value="roles"
+                className="px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-700 transition-all"
+              >
+                Roles
+              </TabsTrigger>
+            )}
+            {canViewNotifications && (
+              <TabsTrigger
+                value="notifications"
+                className="px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-700 transition-all border border-transparent data-[state=active]:border-indigo-100"
+              >
+                Notifications
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
             <StatsOverview stats={stats} setActiveTab={setActiveTab} />
           </TabsContent>
 
-          <TabsContent value="departments" className="mt-0">
-            <DepartmentList
-              departments={departments}
-              deptUserCounts={deptUserCounts}
-              setIsImportModalOpen={setIsImportModalOpen}
-              exportToCSV={exportToCSV}
-              onRefresh={fetchData}
-              refreshing={loading}
-            />
-          </TabsContent>
+          {canViewDepartments && (
+            <TabsContent value="departments" className="mt-0">
+              <DepartmentList
+                departments={departments}
+                deptUserCounts={deptUserCounts}
+                setIsImportModalOpen={setIsImportModalOpen}
+                exportToCSV={exportToCSV}
+                onRefresh={fetchData}
+                refreshing={loading}
+              />
+            </TabsContent>
+          )}
 
-          <TabsContent value="users" className="mt-0">
-            <UserList 
-              users={users}
-              filteredUsers={filteredUsers}
-              exportToCSV={exportToCSV}
-              setSelectedUserForDetails={setSelectedUserForDetails}
-              setShowUserDetailsDialog={setShowUserDetailsDialog}
-              onRefresh={fetchData}
-              refreshing={loading}
-            />
-          </TabsContent>
+          {canViewUsers && (
+            <TabsContent value="users" className="mt-0">
+              <UserList 
+                users={users}
+                filteredUsers={filteredUsers}
+                exportToCSV={exportToCSV}
+                setSelectedUserForDetails={setSelectedUserForDetails}
+                setShowUserDetailsDialog={setShowUserDetailsDialog}
+                onRefresh={fetchData}
+                refreshing={loading}
+              />
+            </TabsContent>
+          )}
 
-          <TabsContent value="grievances" className="mt-0">
-            <GrievanceList 
-              grievances={grievances}
-              filteredGrievances={filteredGrievances}
-              exportToCSV={exportToCSV}
-              setSelectedGrievance={setSelectedGrievance}
-              setShowGrievanceDetail={setShowGrievanceDetail}
-              onRefresh={fetchData}
-              refreshing={loading}
-            />
-          </TabsContent>
+          {canViewGrievances && (
+            <TabsContent value="grievances" className="mt-0">
+              <GrievanceList 
+                grievances={grievances}
+                filteredGrievances={filteredGrievances}
+                exportToCSV={exportToCSV}
+                setSelectedGrievance={setSelectedGrievance}
+                setShowGrievanceDetail={setShowGrievanceDetail}
+                onRefresh={fetchData}
+                refreshing={loading}
+              />
+            </TabsContent>
+          )}
 
-          <TabsContent value="appointments" className="mt-0">
-            <AppointmentList 
-              appointments={appointments}
-              filteredAppointments={filteredAppointments}
-              exportToCSV={exportToCSV}
-              setSelectedAppointment={setSelectedAppointment}
-              setShowAppointmentDetail={setShowAppointmentDetail}
-              onRefresh={fetchData}
-              refreshing={loading}
-            />
-          </TabsContent>
+          {canViewAppointments && (
+            <TabsContent value="appointments" className="mt-0">
+              <AppointmentList 
+                appointments={appointments}
+                filteredAppointments={filteredAppointments}
+                exportToCSV={exportToCSV}
+                setSelectedAppointment={setSelectedAppointment}
+                setShowAppointmentDetail={setShowAppointmentDetail}
+                onRefresh={fetchData}
+                refreshing={loading}
+              />
+            </TabsContent>
+          )}
 
           <TabsContent value="leads" className="mt-0">
             <LeadList 
@@ -682,20 +729,26 @@ export default function CompanyDrillDown() {
             />
           </TabsContent>
 
-          <TabsContent value="analytics" className="space-y-6">
-            <CompanyAnalytics
-              grievanceStatusData={grievanceStatusData}
-              userRoleData={userRoleData}
-            />
-          </TabsContent>
+          {canViewAnalytics && (
+            <TabsContent value="analytics" className="space-y-6">
+              <CompanyAnalytics
+                grievanceStatusData={grievanceStatusData}
+                userRoleData={userRoleData}
+              />
+            </TabsContent>
+          )}
 
-          <TabsContent value="roles" className="mt-0">
-            <RoleManagement companyId={companyId} />
-          </TabsContent>
+          {isSuperAdminViewer && (
+            <TabsContent value="roles" className="mt-0">
+              <RoleManagement companyId={companyId} />
+            </TabsContent>
+          )}
 
-          <TabsContent value="notifications" className="mt-0">
-            <NotificationManagement companyId={companyId} />
-          </TabsContent>
+          {canViewNotifications && (
+            <TabsContent value="notifications" className="mt-0">
+              <NotificationManagement companyId={companyId} />
+            </TabsContent>
+          )}
         </Tabs>
       </main>
       )}

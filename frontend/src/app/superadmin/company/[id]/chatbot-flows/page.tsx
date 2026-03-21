@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { canManageCompanyFlows, getPortalHomePath } from "@/lib/portal";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -33,7 +34,7 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog";
 export default function ChatbotFlowsPage() {
   const params = useParams();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const companyId = params.id as string;
 
   const [loading, setLoading] = useState(true);
@@ -59,13 +60,18 @@ export default function ChatbotFlowsPage() {
   });
 
   useEffect(() => {
-    if (user?.role !== "SUPER_ADMIN") {
-      router.push("/superadmin/dashboard");
+    if (authLoading) return;
+    if (!user) {
+      router.push('/');
+      return;
+    }
+    if (!canManageCompanyFlows(user, companyId)) {
+      router.push(getPortalHomePath(user));
       return;
     }
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run when companyId/role change only
-  }, [companyId, user]);
+  }, [authLoading, companyId, user]);
 
   const fetchData = async (silent = false) => {
     try {
@@ -157,7 +163,7 @@ export default function ChatbotFlowsPage() {
   };
 
   const handleCreateFlow = () => {
-    router.push(`/superadmin/company/${companyId}/chatbot-flows/create`);
+    router.push(`/portal/company/${companyId}/flows/create`);
   };
 
   const handleGenerateDefaultFlows = async () => {
@@ -213,13 +219,13 @@ export default function ChatbotFlowsPage() {
 
   const handleEditFlow = (flowId: string) => {
     router.push(
-      `/superadmin/company/${companyId}/chatbot-flows/${flowId}/edit`,
+      `/portal/company/${companyId}/flows/${flowId}/edit`,
     );
   };
 
   const handleViewFlow = (flowId: string) => {
     router.push(
-      `/superadmin/company/${companyId}/chatbot-flows/${flowId}/edit`,
+      `/portal/company/${companyId}/flows/${flowId}/edit`,
     );
   };
 
@@ -356,7 +362,7 @@ export default function ChatbotFlowsPage() {
             <div className="flex items-center gap-3 sm:gap-4 min-w-0">
               <Button
                 variant="ghost"
-                onClick={() => router.push(`/superadmin/company/${companyId}`)}
+                onClick={() => router.push(`/portal/company/${companyId}`)}
                 className="text-slate-400 hover:text-white hover:bg-white/10 transition-all -ml-2 h-9 w-9 p-0 rounded-xl"
               >
                 <ArrowLeft className="w-5 h-5" />
@@ -449,7 +455,7 @@ export default function ChatbotFlowsPage() {
                 <Button
                   onClick={() =>
                     router.push(
-                      `/superadmin/company/${companyId}/whatsapp-config`,
+                      `/portal/company/${companyId}/settings/whatsapp`,
                     )
                   }
                   className="bg-yellow-600 hover:bg-yellow-700 text-white rounded-xl"

@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { getPortalHomePath, hasPortalPermission, isSuperAdminUser, normalizeId } from "@/lib/portal";
 import {
   Card,
   CardContent,
@@ -47,12 +48,20 @@ const DeptAnalytics = dynamic(
 );
 
 export default function DepartmentDrillDown() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
   const departmentId = params.id as string;
   const companyId = searchParams.get("companyId");
+  const isSuperAdminViewer = isSuperAdminUser(user);
+  const userDepartmentId = normalizeId(user?.departmentId);
+  const canAccessDepartment = !!user && (isSuperAdminViewer || !userDepartmentId || userDepartmentId === departmentId);
+  const viewerHomePath = isSuperAdminViewer ? '/portal/admin' : getPortalHomePath(user);
+  const canViewUsers = isSuperAdminViewer || hasPortalPermission(user, 'USER_MANAGEMENT', ['view']);
+  const canViewGrievances = isSuperAdminViewer || hasPortalPermission(user, 'GRIEVANCE', ['view']);
+  const canViewAppointments = isSuperAdminViewer || hasPortalPermission(user, 'APPOINTMENT', ['view']);
+  const canViewAnalytics = isSuperAdminViewer || hasPortalPermission(user, 'ANALYTICS', ['view']);
 
   const [department, setDepartment] = useState<Department | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
@@ -87,13 +96,18 @@ export default function DepartmentDrillDown() {
   }>({ key: "", direction: null });
 
   useEffect(() => {
-    if (user?.role !== "SUPER_ADMIN") {
-      router.push("/superadmin/dashboard");
+    if (authLoading) return;
+    if (!user) {
+      router.push('/');
+      return;
+    }
+    if (!canAccessDepartment) {
+      router.push(getPortalHomePath(user));
       return;
     }
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [departmentId, companyId, user]);
+  }, [authLoading, departmentId, companyId, user, canAccessDepartment]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -266,7 +280,7 @@ export default function DepartmentDrillDown() {
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-4">Department not found</h2>
-          <Button onClick={() => router.push("/superadmin/dashboard")}>
+          <Button onClick={() => router.push(viewerHomePath)}>
             Back to Dashboard
           </Button>
         </div>
@@ -317,8 +331,8 @@ export default function DepartmentDrillDown() {
                 variant="ghost"
                 onClick={() =>
                   companyId
-                    ? router.push(`/superadmin/company/${companyId}`)
-                    : router.push("/superadmin/dashboard")
+                    ? router.push(`/portal/company/${companyId}`)
+                    : router.push(viewerHomePath)
                 }
                 className="text-slate-400 hover:text-white hover:bg-white/10 transition-all -ml-2 h-10 w-10 p-0 rounded-xl border border-transparent hover:border-slate-800"
               >
@@ -386,31 +400,39 @@ export default function DepartmentDrillDown() {
               >
                 Overview
               </TabsTrigger>
-              <TabsTrigger
-                value="users"
-                className="px-4 sm:px-6 h-8 text-[11px] font-black uppercase tracking-widest whitespace-nowrap data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
-              >
-                Users
-              </TabsTrigger>
-              <TabsTrigger
-                value="grievances"
-                className="px-4 sm:px-6 h-8 text-[11px] font-black uppercase tracking-widest whitespace-nowrap data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
-              >
-                Grievances
-              </TabsTrigger>
-              <TabsTrigger
-                value="appointments"
-                className="px-4 sm:px-6 h-8 text-[11px] font-black uppercase tracking-widest whitespace-nowrap data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
-              >
-                Appointments
-              </TabsTrigger>
-              <TabsTrigger
-                value="analytics"
-                className="px-4 sm:px-6 h-8 text-[11px] font-black uppercase tracking-widest whitespace-nowrap data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg flex items-center"
-              >
-                <TrendingUp className="w-3.5 h-3.5 mr-1.5" />
-                Analytics
-              </TabsTrigger>
+              {canViewUsers && (
+                <TabsTrigger
+                  value="users"
+                  className="px-4 sm:px-6 h-8 text-[11px] font-black uppercase tracking-widest whitespace-nowrap data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
+                >
+                  Users
+                </TabsTrigger>
+              )}
+              {canViewGrievances && (
+                <TabsTrigger
+                  value="grievances"
+                  className="px-4 sm:px-6 h-8 text-[11px] font-black uppercase tracking-widest whitespace-nowrap data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
+                >
+                  Grievances
+                </TabsTrigger>
+              )}
+              {canViewAppointments && (
+                <TabsTrigger
+                  value="appointments"
+                  className="px-4 sm:px-6 h-8 text-[11px] font-black uppercase tracking-widest whitespace-nowrap data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
+                >
+                  Appointments
+                </TabsTrigger>
+              )}
+              {canViewAnalytics && (
+                <TabsTrigger
+                  value="analytics"
+                  className="px-4 sm:px-6 h-8 text-[11px] font-black uppercase tracking-widest whitespace-nowrap data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg flex items-center"
+                >
+                  <TrendingUp className="w-3.5 h-3.5 mr-1.5" />
+                  Analytics
+                </TabsTrigger>
+              )}
             </TabsList>
           </div>
 
@@ -463,61 +485,66 @@ export default function DepartmentDrillDown() {
           </TabsContent>
 
           {/* Users Tab */}
-          <TabsContent value="users" className="space-y-6">
-            <DeptUserList
-              filteredUsers={filteredUsers}
-              searchTerm={searchTerm}
-              setSearchTerm={setSearchTerm}
-              roleFilter={roleFilter}
-              setRoleFilter={setRoleFilter}
-              statusFilter={statusFilter}
-              setStatusFilter={setStatusFilter}
-              handleSort={handleSort}
-              exportToCSV={exportToCSV}
-              onRefresh={fetchData}
-              refreshing={loading}
-            />
-          </TabsContent>
+          {canViewUsers && (
+            <TabsContent value="users" className="space-y-6">
+              <DeptUserList
+                filteredUsers={filteredUsers}
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+                roleFilter={roleFilter}
+                setRoleFilter={setRoleFilter}
+                statusFilter={statusFilter}
+                setStatusFilter={setStatusFilter}
+                handleSort={handleSort}
+                exportToCSV={exportToCSV}
+                onRefresh={fetchData}
+                refreshing={loading}
+              />
+            </TabsContent>
+          )}
 
-          {/* Grievances Tab */}
-          <TabsContent value="grievances" className="space-y-6">
-            <DeptGrievanceList
-              filteredGrievances={filteredGrievances}
-              searchTerm={searchTerm}
-              setSearchTerm={setSearchTerm}
-              statusFilter={statusFilter}
-              setStatusFilter={setStatusFilter}
-              setSelectedGrievance={setSelectedGrievance}
-               setShowGrievanceDetail={setShowGrievanceDetail}
-               exportToCSV={exportToCSV}
-               onRefresh={fetchData}
-               refreshing={loading}
-             />
-          </TabsContent>
+          {canViewGrievances && (
+            <TabsContent value="grievances" className="space-y-6">
+              <DeptGrievanceList
+                filteredGrievances={filteredGrievances}
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+                statusFilter={statusFilter}
+                setStatusFilter={setStatusFilter}
+                setSelectedGrievance={setSelectedGrievance}
+                setShowGrievanceDetail={setShowGrievanceDetail}
+                exportToCSV={exportToCSV}
+                onRefresh={fetchData}
+                refreshing={loading}
+              />
+            </TabsContent>
+          )}
 
-          {/* Appointments Tab */}
-          <TabsContent value="appointments" className="space-y-6">
-            <DeptAppointmentList
-              filteredAppointments={filteredAppointments}
-              searchTerm={searchTerm}
-              setSearchTerm={setSearchTerm}
-              statusFilter={statusFilter}
-              setStatusFilter={setStatusFilter}
-              setSelectedAppointment={setSelectedAppointment}
-               setShowAppointmentDetail={setShowAppointmentDetail}
-               exportToCSV={exportToCSV}
-               onRefresh={fetchData}
-               refreshing={loading}
-             />
-          </TabsContent>
+          {canViewAppointments && (
+            <TabsContent value="appointments" className="space-y-6">
+              <DeptAppointmentList
+                filteredAppointments={filteredAppointments}
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+                statusFilter={statusFilter}
+                setStatusFilter={setStatusFilter}
+                setSelectedAppointment={setSelectedAppointment}
+                setShowAppointmentDetail={setShowAppointmentDetail}
+                exportToCSV={exportToCSV}
+                onRefresh={fetchData}
+                refreshing={loading}
+              />
+            </TabsContent>
+          )}
 
-          {/* Analytics Tab */}
-          <TabsContent value="analytics" className="space-y-6">
-            <DeptAnalytics
-              grievanceStatusData={grievanceStatusData}
-              userRoleData={userRoleData}
-            />
-          </TabsContent>
+          {canViewAnalytics && (
+            <TabsContent value="analytics" className="space-y-6">
+              <DeptAnalytics
+                grievanceStatusData={grievanceStatusData}
+                userRoleData={userRoleData}
+              />
+            </TabsContent>
+          )}
         </Tabs>
       </main>
 

@@ -3,6 +3,7 @@
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { canManageCompanyFlows, getPortalHomePath } from "@/lib/portal";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Save, Workflow } from "lucide-react";
 import FlowCanvas from "@/components/flow-builder/FlowCanvas";
@@ -19,7 +20,7 @@ export default function CreateFlowPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   const companyId = params.id as string;
   const editFlowId = searchParams.get("edit");
@@ -62,7 +63,7 @@ export default function CreateFlowPage() {
         setInitialEdges(transformed.edges);
       } else {
         toast.error("Flow data not found");
-        router.push(`/superadmin/company/${companyId}/chatbot-flows`);
+        router.push(`/portal/company/${companyId}/flows`);
       }
     } catch (error) {
       console.error("Failed to load flow data:", error);
@@ -71,6 +72,17 @@ export default function CreateFlowPage() {
       setLoading(false);
     }
   }, [editFlowId, companyId, router]);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      router.push('/');
+      return;
+    }
+    if (!canManageCompanyFlows(user, companyId)) {
+      router.push(getPortalHomePath(user));
+    }
+  }, [authLoading, companyId, router, user]);
 
   useEffect(() => {
     if (isEditing) {
@@ -121,7 +133,7 @@ export default function CreateFlowPage() {
           }
 
           // Redirect back to flows list
-          router.push(`/superadmin/company/${companyId}/chatbot-flows`);
+          router.push(`/portal/company/${companyId}/flows`);
         }
       } catch (error: any) {
         console.error("Failed to save flow:", error);
@@ -167,7 +179,7 @@ export default function CreateFlowPage() {
               <Button
                 variant="ghost"
                 onClick={() =>
-                  router.push(`/superadmin/company/${companyId}/chatbot-flows`)
+                  router.push(`/portal/company/${companyId}/flows`)
                 }
                 className="text-white/80 hover:text-white hover:bg-white/10 transition-all px-2"
               >

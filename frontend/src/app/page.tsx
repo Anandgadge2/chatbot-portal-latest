@@ -37,11 +37,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!authLoading && user) {
-      if (user.role === "SUPER_ADMIN") {
-        router.push("/superadmin/dashboard");
-      } else {
-        router.push("/dashboard");
-      }
+      router.push("/portal");
     }
   }, [user, authLoading, router]);
 

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { authAPI, LoginCredentials } from '@/lib/api/auth';
 import { apiClient } from '@/lib/api/client';
 import toast from 'react-hot-toast';
+import { portalAPI } from '@/lib/api/portal';
 
 interface User {
   id: string;
@@ -82,11 +83,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         toast.success('Login successful!');
         
-        if (user.role === 'SUPER_ADMIN') {
-          router.push('/superadmin/dashboard');
-        } else {
-          router.push('/dashboard');
-        }
+        portalAPI.clearBootstrapCache();
+        router.push('/portal');
       } else {
         // Handle unsuccessful response
         toast.error(response.message || 'Login failed');
@@ -137,11 +135,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         toast.success('SSO Login successful!');
         
-        if (user.role === 'SUPER_ADMIN') {
-          router.push('/superadmin/dashboard');
-        } else {
-          router.push('/dashboard');
-        }
+        portalAPI.clearBootstrapCache();
+        router.push('/portal');
       }
     } catch (error: any) {
       const message = error.response?.data?.message || error.message || 'SSO Login failed.';
@@ -170,6 +165,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    portalAPI.clearBootstrapCache();
     authAPI.logout();
     setUser(null);
     router.push('/');

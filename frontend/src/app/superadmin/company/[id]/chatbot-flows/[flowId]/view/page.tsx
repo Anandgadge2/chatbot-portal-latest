@@ -12,7 +12,7 @@ export default function ViewFlowPage() {
 
   useEffect(() => {
     // Redirect to the edit page which opens the visual builder
-    router.replace(`/superadmin/company/${companyId}/chatbot-flows/${flowId}/edit`);
+    router.replace(`/portal/company/${companyId}/flows/${flowId}/edit`);
   }, [router, companyId, flowId]);
 
   return (

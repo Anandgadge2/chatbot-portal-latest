@@ -173,7 +173,7 @@ export default function SuperAdminDashboard() {
   const handleOpenCompanyDashboard = (companyId: string) => {
     if (navigatingCompanyId) return;
     setNavigatingCompanyId(companyId);
-    router.push(`/superadmin/company/${companyId}`);
+    router.push(`/portal/company/${companyId}`);
   };
 
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -198,7 +198,7 @@ export default function SuperAdminDashboard() {
     if (!loading && !user) {
       router.push("/");
     } else if (!loading && user && user.role !== "SUPER_ADMIN") {
-      router.push("/dashboard");
+      router.push("/portal");
     }
   }, [user, loading, router]);
 
