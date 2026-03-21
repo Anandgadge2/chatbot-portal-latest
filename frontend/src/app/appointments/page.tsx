@@ -73,7 +73,7 @@ export default function AppointmentsPage() {
   const fetchAppointments = async () => {
     try {
       setLoading(true);
-      const response = await appointmentAPI.getAll();
+      const response = await appointmentAPI.getAll({ limit: 25 });
       if (response.success) {
         setAppointments(response.data.appointments);
       }
@@ -86,7 +86,7 @@ export default function AppointmentsPage() {
 
   const fetchDepartments = async () => {
     try {
-      const response = await departmentAPI.getAll({ companyId });
+      const response = await departmentAPI.getAll({ companyId, limit: 25 });
       if (response.success) {
         setDepartments(response.data.departments);
       }

@@ -102,7 +102,7 @@ export default function DepartmentDrillDown() {
       const [deptRes, usersRes, grievancesRes, appointmentsRes, statsRes] =
         await Promise.all([
           departmentAPI.getById(departmentId),
-          userAPI.getAll({ departmentId }),
+          userAPI.getAll({ departmentId, limit: 25 }),
           grievanceAPI.getAll({ departmentId, limit: 100 }),
           appointmentAPI.getAll({ departmentId, limit: 100 }),
           apiClient.get(`/analytics/dashboard?departmentId=${departmentId}`),

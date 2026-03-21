@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCompanyContext } from "@/contexts/CompanyContext";
 import {
   Card,
   CardContent,
@@ -12,7 +13,6 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { companyAPI, Company } from "@/lib/api/company";
 import { departmentAPI, Department } from "@/lib/api/department";
 import { userAPI, User } from "@/lib/api/user";
 import { apiClient } from "@/lib/api/client";
@@ -64,6 +64,8 @@ import UserList from "@/components/superadmin/drilldown/UserList";
 import GrievanceList from "@/components/superadmin/drilldown/GrievanceList";
 import AppointmentList from "@/components/superadmin/drilldown/AppointmentList";
 import LeadList from "@/components/superadmin/drilldown/LeadList";
+import { Pagination } from "@/components/ui/Pagination";
+import { useWhatsappConfig } from "@/lib/query/useWhatsappConfig";
 
 const CompanyAnalytics = dynamic(
   () => import("@/components/superadmin/drilldown/CompanyAnalytics"),
@@ -78,14 +80,15 @@ const CompanyAnalytics = dynamic(
 );
 
 // BulkImportModal moved to @/components/superadmin/drilldown/BulkImportModal
+const PAGE_SIZE = 25;
 
 export default function CompanyDrillDown() {
   const { user } = useAuth();
   const router = useRouter();
   const params = useParams();
   const companyId = params.id as string;
-
-  const [company, setCompany] = useState<Company | null>(null);
+  const { company, isLoading: companyLoading } = useCompanyContext();
+  useWhatsappConfig(companyId || undefined);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [grievances, setGrievances] = useState<Grievance[]>([]);
@@ -101,6 +104,8 @@ export default function CompanyDrillDown() {
   });
   const [deptUserCounts, setDeptUserCounts] = useState<Record<string, number>>({});
   const [leads, setLeads] = useState<any[]>([]);
+  const [leadsPage, setLeadsPage] = useState(1);
+  const [leadsTotal, setLeadsTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadingLeads, setLoadingLeads] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
@@ -118,7 +123,6 @@ export default function CompanyDrillDown() {
     useState(false);
   const [selectedGrievanceForStatus, setSelectedGrievanceForStatus] =
     useState<Grievance | null>(null);
-  const [whatsappConfig, setWhatsappConfig] = useState<any>(null);
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -137,51 +141,28 @@ export default function CompanyDrillDown() {
       router.push("/superadmin/dashboard");
       return;
     }
-    fetchData();
+    if (companyId) {
+      fetchData();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [companyId, user]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      // 🚀 Optimization: parallelize data fetching
       const [
-        companyRes,
         deptRes,
         usersRes,
         analyticsRes,
-        grievancesRes,
-        appointmentsRes,
-        waRes,
       ] = await Promise.all([
-        companyAPI.getById(companyId),
         departmentAPI.getAll({ companyId, limit: 25 }),
         userAPI.getAll({ companyId, limit: 25 }),
         apiClient.get(`/analytics/dashboard?companyId=${companyId}`),
-        grievanceAPI.getAll({ companyId, limit: 25 }),
-        appointmentAPI.getAll({ companyId, limit: 25 }),
-        apiClient.get(`/whatsapp-config/company/${companyId}`).catch(() => ({ success: false })),
       ]);
-
-      if (waRes.success) setWhatsappConfig(waRes.data);
-
-      if (companyRes.success) {
-        setCompany(companyRes.data.company);
-        if (
-          companyRes.data.company.enabledModules?.includes(Module.LEAD_CAPTURE)
-        ) {
-          fetchLeads(companyId);
-        }
-      }
 
       if (deptRes.success) setDepartments(deptRes.data.departments || []);
       if (usersRes.success) setUsers(usersRes.data.users || []);
-      if (grievancesRes.success)
-        setGrievances(grievancesRes.data.grievances || []);
-      if (appointmentsRes.success)
-        setAppointments(appointmentsRes.data.appointments || []);
 
-      // Use the analytics response for the most accurate and efficient counts
       if (analyticsRes.success) {
         const {
           grievances,
@@ -189,7 +170,17 @@ export default function CompanyDrillDown() {
           users: totalUsers,
           activeUsers,
           departments: totalDepts,
+          deptCounts = [],
         } = analyticsRes.data;
+        const counts: Record<string, number> = {};
+        for (const d of deptCounts) {
+          const deptId =
+            typeof d?._id === "object" && d?._id !== null
+              ? d._id.toString()
+              : d?._id;
+          if (deptId) counts[deptId] = d.count ?? 0;
+        }
+        setDeptUserCounts(counts);
         setStats({
           totalUsers: totalUsers || 0,
           totalDepartments: totalDepts || 0,
@@ -200,7 +191,6 @@ export default function CompanyDrillDown() {
           resolvedGrievances: grievances?.resolved || 0,
         });
       } else {
-        // Fallback calculation if analytics fails
         setStats({
           totalUsers: usersRes.success
             ? usersRes.data.pagination?.total || usersRes.data.users?.length
@@ -208,35 +198,12 @@ export default function CompanyDrillDown() {
           totalDepartments: deptRes.success
             ? deptRes.data.pagination?.total || deptRes.data.departments?.length
             : 0,
-          totalGrievances: grievancesRes.success
-            ? grievancesRes.data.pagination?.total ||
-              grievancesRes.data.grievances?.length
-            : 0,
-          totalAppointments: appointmentsRes.success
-            ? appointmentsRes.data.pagination?.total ||
-              appointmentsRes.data.appointments?.length
-            : 0,
+          totalGrievances: grievances.length,
+          totalAppointments: appointments.length,
           activeUsers: 0,
           pendingGrievances: 0,
           resolvedGrievances: 0,
         });
-      }
-
-      // Fetch all users for this company to calculate accurate department counts (Super Admin view)
-      try {
-        const companyUsersRes = await userAPI.getAll({ companyId, limit: 1000 });
-        if (companyUsersRes.success) {
-          const counts: Record<string, number> = {};
-          for (const u of companyUsersRes.data.users) {
-            const dId = typeof u.departmentId === "object" && u.departmentId
-              ? (u.departmentId as any)._id || (u.departmentId as any).toString()
-              : u.departmentId;
-            if (dId) counts[dId] = (counts[dId] || 0) + 1;
-          }
-          setDeptUserCounts(counts);
-        }
-      } catch (err) {
-        console.error("Failed to fetch all users for department counts", err);
       }
     } catch (error: any) {
       toast.error("Failed to load company data");
@@ -246,12 +213,15 @@ export default function CompanyDrillDown() {
     }
   };
 
-  const fetchLeads = async (companyId: string) => {
+  const fetchLeads = async (companyId: string, page = 1) => {
     setLoadingLeads(true);
     try {
-      const response = await apiClient.get(`/leads/company/${companyId}`);
+      const response = await apiClient.get(
+        `/leads/company/${companyId}?page=${page}&limit=${PAGE_SIZE}`,
+      );
       if (response.success) {
         setLeads(response.data || []);
+        setLeadsTotal(response.pagination?.total || response.data?.length || 0);
       }
     } catch (error: any) {
       console.error("Failed to fetch leads:", error);
@@ -259,6 +229,49 @@ export default function CompanyDrillDown() {
       setLoadingLeads(false);
     }
   };
+
+  const fetchGrievances = async () => {
+    try {
+      const response = await grievanceAPI.getAll({ companyId, limit: 25 });
+      if (response.success) {
+        setGrievances(response.data.grievances || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch grievances:", error);
+    }
+  };
+
+  const fetchAppointments = async () => {
+    try {
+      const response = await appointmentAPI.getAll({ companyId, limit: 25 });
+      if (response.success) {
+        setAppointments(response.data.appointments || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch appointments:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (!company?.enabledModules?.includes(Module.LEAD_CAPTURE)) return;
+    if (activeTab !== "overview" && activeTab !== "leads") return;
+    fetchLeads(companyId, leadsPage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, companyId, leadsPage, company?.enabledModules]);
+
+  useEffect(() => {
+    if (!company?.enabledModules?.includes(Module.GRIEVANCE)) return;
+    if (activeTab !== "overview" && activeTab !== "grievances") return;
+    fetchGrievances();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, companyId, company?.enabledModules]);
+
+  useEffect(() => {
+    if (!company?.enabledModules?.includes(Module.APPOINTMENT)) return;
+    if (activeTab !== "overview" && activeTab !== "appointments") return;
+    fetchAppointments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, companyId, company?.enabledModules]);
 
   const handleSort = (key: string) => {
     let direction: "asc" | "desc" | null = "asc";
@@ -355,7 +368,7 @@ export default function CompanyDrillDown() {
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  if (!loading && !company)
+  if (!loading && !companyLoading && !company)
     return (
       <div className="flex min-h-screen items-center justify-center text-center">
         <h2 className="text-2xl font-bold mb-4">Company not found</h2>
@@ -545,7 +558,7 @@ export default function CompanyDrillDown() {
           </div>
         )}
       </header>
-      {loading && !company ? (
+      {loading || companyLoading ? (
         <div className="flex-1 flex items-center justify-center p-20 min-h-[60vh]">
           <LoadingSpinner text="Synchronizing neural dashboard..." />
         </div>
@@ -677,8 +690,18 @@ export default function CompanyDrillDown() {
             <LeadList 
               leads={leads} 
               exportToCSV={exportToCSV} 
-              onRefresh={() => fetchLeads(companyId)}
+              onRefresh={() => fetchLeads(companyId, 1)}
               refreshing={loadingLeads}
+            />
+            <Pagination
+              currentPage={leadsPage}
+              totalPages={Math.max(1, Math.ceil(leadsTotal / PAGE_SIZE))}
+              totalItems={leadsTotal}
+              itemsPerPage={PAGE_SIZE}
+              onPageChange={(page) => {
+                setLeadsPage(page);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
             />
           </TabsContent>
 

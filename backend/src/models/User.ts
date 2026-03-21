@@ -127,6 +127,8 @@ const UserSchema: Schema = new Schema(
 // Compound indexes
 UserSchema.index({ companyId: 1, role: 1 });
 UserSchema.index({ departmentId: 1, role: 1 });
+UserSchema.index({ companyId: 1, status: 1 });
+UserSchema.index({ companyId: 1, createdAt: -1 });
 
 // Compound unique indexes: email and phone must be unique within the same company
 // This allows the same email/phone to be used in different companies, but not in the same company

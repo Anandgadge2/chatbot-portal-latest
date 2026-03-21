@@ -75,7 +75,7 @@ router.use(authenticate);
  */
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const { companyId } = req.query;
+    const { companyId, page = 1, limit = 25 } = req.query;
     if (!companyId) return res.status(400).json({ success: false, message: 'companyId is required' });
 
     // ✅ Multi-Tenant Scoping Check
@@ -97,8 +97,23 @@ router.get('/', async (req: Request, res: Response) => {
       });
     }
 
-    const leads = await Lead.find({ companyId }).sort({ createdAt: -1 });
-    res.json({ success: true, data: leads });
+    const leads = await Lead.find({ companyId })
+      .sort({ createdAt: -1 })
+      .limit(Number(limit))
+      .skip((Number(page) - 1) * Number(limit));
+
+    const total = await Lead.countDocuments({ companyId });
+
+    res.json({
+      success: true,
+      data: leads,
+      pagination: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        pages: Math.ceil(total / Number(limit))
+      }
+    });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }

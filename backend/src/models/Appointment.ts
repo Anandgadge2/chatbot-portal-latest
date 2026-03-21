@@ -163,6 +163,7 @@ const AppointmentSchema: Schema = new Schema(
 
 // Compound indexes
 AppointmentSchema.index({ companyId: 1, status: 1 });
+AppointmentSchema.index({ companyId: 1, createdAt: -1 });
 AppointmentSchema.index({ departmentId: 1, appointmentDate: 1 });
 AppointmentSchema.index({ assignedTo: 1, appointmentDate: 1 });
 // ✅ Per-company uniqueness: allows APT00000001.. to restart per company safely
