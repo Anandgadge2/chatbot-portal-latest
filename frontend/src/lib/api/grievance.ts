@@ -39,6 +39,9 @@ export interface Grievance {
   slaBreached?: boolean;
   slaDueDate?: string;
   language?: 'en' | 'hi' | 'mr';
+  forest_range?: string;
+  forest_beat?: string;
+  forest_compartment?: string;
   createdAt: string;
   updatedAt: string;
   timeline?: Array<{

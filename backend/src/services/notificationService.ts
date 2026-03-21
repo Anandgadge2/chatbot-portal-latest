@@ -173,6 +173,9 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
     formattedAppointmentDate,
     appointmentDate: formattedAppointmentDate || data.appointmentDate, // Fallback for templates using old field
     resolutionTimeText,
+    forest_range: (data as any).forest_range || '',
+    forest_beat: (data as any).forest_beat || '',
+    forest_compartment: (data as any).forest_compartment || '',
     remarks: data.remarks || '' // Ensure it's at least an empty string for replacePlaceholders
   };
 }

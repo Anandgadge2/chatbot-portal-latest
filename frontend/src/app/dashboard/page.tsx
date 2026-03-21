@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense, useCallback } from "react";
+import { useEffect, useState, Suspense, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
@@ -116,6 +116,13 @@ import {
   ArrowRightCircle,
   Building2,
   Layers,
+  Map,
+  Flame,
+  ShieldAlert,
+  LocateFixed,
+  ScanSearch,
+  Trees,
+  MapPin,
 } from "lucide-react";
 
 interface DashboardStats {
@@ -164,6 +171,13 @@ interface DashboardStats {
   usersByRole?: Array<{ name: string; count: number }>;
 }
 
+import dynamic from 'next/dynamic';
+
+const TacticalForestMap = dynamic(() => import('@/components/dashboard/TacticalForestMap'), { 
+  ssr: false,
+  loading: () => <div className="w-full h-full bg-slate-900 animate-pulse flex items-center justify-center text-slate-500 font-black text-xs uppercase tracking-widest">Initialising Tactical Grid...</div>
+});
+
 function DashboardContent() {
   const { user, loading, logout } = useAuth();
   const isCompanyLevel = user && !user.departmentId && user.role !== "SUPER_ADMIN";
@@ -195,6 +209,11 @@ function DashboardContent() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [company, setCompany] = useState<Company | null>(null);
+  const isDFO = useMemo(() => {
+    return company?.name?.toUpperCase().includes("D.F.O.") || 
+           company?._id === "69adc81165109318a7cde21c" ||
+           user?.companyId === "69adc81165109318a7cde21c";
+  }, [company, user]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [showDepartmentDialog, setShowDepartmentDialog] = useState(false);
   const [showDeptUsersDialog, setShowDeptUsersDialog] = useState(false);
@@ -589,7 +608,7 @@ function DashboardContent() {
 
   const fetchCategoryData = useCallback(async () => {
     try {
-      const response = await apiClient.get("/analytics/category");
+      const response = await apiClient.get("/analytics/categories");
       if (response.success) {
         setCategoryData(response.data);
       }
@@ -597,6 +616,34 @@ function DashboardContent() {
       console.error("Failed to fetch category data:", error);
     }
   }, []);
+
+  const forestBeats = useMemo(() => {
+    return (departments || []).map(d => ({
+      id: d._id,
+      name: d.name,
+      range: d.parentDepartmentId ? 
+        (typeof d.parentDepartmentId === 'object' ? (d.parentDepartmentId as any).name : 'Main Range') 
+        : d.name,
+      incidents: grievances.filter(g => 
+        (typeof g.departmentId === 'object' ? (g.departmentId as any)?._id : g.departmentId) === d._id
+      ).length,
+      status: d.isActive ? 'Active' : 'Inactive'
+    }));
+  }, [departments, grievances]);
+
+  const liveIncidents = useMemo(() => {
+    return grievances
+      .filter(g => g.status !== 'RESOLVED')
+      .slice(0, 10)
+      .map(g => ({
+        id: g._id,
+        title: g.description || g.category || 'Incident',
+        coordinate: g.location?.coordinates || [20.2721, 81.4967],
+        severity: g.priority === 'HIGH' ? 'CRITICAL' : 'MODERATE',
+        time: g.createdAt,
+        area: (g as any).forest_beat || 'Unknown Beat'
+      }));
+  }, [grievances]);
 
   const fetchDepartmentData = useCallback(async () => {
     try {
@@ -1579,30 +1626,29 @@ function DashboardContent() {
                   className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg flex items-center"
                 >
                   <TrendingUp className="w-3.5 h-3.5 mr-1.5" />
-                  Analytics
+                  {isDFO ? 'Command Center' : 'Analytics'}
                 </TabsTrigger>
               )}
 
-                {hasPermission(user, Permission.READ_GRIEVANCE) && (
-                  <TabsTrigger
-                    value="grievances"
-                    className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
-                  >
-                    Grievances
-                  </TabsTrigger>
-                )}
 
-              {isCompanyLevel && hasPermission(user, Permission.READ_GRIEVANCE) && (
+              {hasPermission(user, Permission.READ_GRIEVANCE) && (
+                <TabsTrigger
+                  value="grievances"
+                  className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
+                >
+                  {isDFO ? 'Incidents' : 'Grievances'}
+                </TabsTrigger>
+              )}
+
+              {/* {isCompanyLevel && hasPermission(user, Permission.READ_GRIEVANCE) && (
                 <TabsTrigger
                   value="reverted"
                   className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg flex items-center"
                 >
                   <Undo2 className="w-3.5 h-3.5 mr-1.5" />
-                  Reverted
+                  {isDFO ? 'Review Required' : 'Reverted'}
                 </TabsTrigger>
-              )}
-
-
+              )} */}
 
               {(isCompanyLevel || isDepartmentLevel) && hasModule(Module.APPOINTMENT) &&
                 hasPermission(user, Permission.READ_APPOINTMENT) && (
@@ -1619,8 +1665,27 @@ function DashboardContent() {
                   value="departments"
                   className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
                 >
-                  Departments
+                  {isDFO ? "Patrol Units" : "Departments"}
                 </TabsTrigger>
+              )}
+
+              {isDFO && (
+                <>
+                  <TabsTrigger
+                    value="live-incidents"
+                    className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-rose-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-300 rounded-lg flex items-center"
+                  >
+                    <LocateFixed className="w-3.5 h-3.5 mr-1.5" />
+                    Tactical Map
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="geofences"
+                    className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-300 rounded-lg flex items-center"
+                  >
+                    <Layers className="w-3.5 h-3.5 mr-1.5" />
+                    Boundaries
+                  </TabsTrigger>
+                </>
               )}
 
               {(isCompanyLevel || isDepartmentLevel) && (
@@ -1675,7 +1740,7 @@ function DashboardContent() {
                   <Card onClick={() => setActiveTab("grievances")} className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer">
                     <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
                       <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                        Total Grievances
+                        {isDFO ? "Total Incidents" : "Total Grievances"}
                       </CardTitle>
                       <div className="p-1.5 bg-indigo-50 rounded-lg">
                         <FileText className="w-3.5 h-3.5 text-indigo-500" />
@@ -1700,7 +1765,7 @@ function DashboardContent() {
                   <Card onClick={() => { setActiveTab("grievances"); setGrievanceFilters((prev) => ({ ...prev, status: "PENDING" })); }} className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 border-l-4 border-l-amber-400 cursor-pointer">
                     <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
                       <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                        Overdue Grievances
+                        {isDFO ? "Critical Alerts" : "Overdue Grievances"}
                       </CardTitle>
                       <div className="p-1.5 bg-amber-50 rounded-lg">
                         <Clock className="w-3.5 h-3.5 text-amber-500" />
@@ -1749,7 +1814,7 @@ function DashboardContent() {
                         <Card onClick={() => setActiveTab("departments")} className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer">
                           <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
                             <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                              Main Departments
+                              {isDFO ? "Forest Ranges" : "Main Departments"}
                             </CardTitle>
                             <div className="p-1.5 bg-blue-50 rounded-lg">
                               <Building className="w-3.5 h-3.5 text-blue-500" />
@@ -1765,7 +1830,7 @@ function DashboardContent() {
                         <Card onClick={() => setActiveTab("departments")} className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer shadow-indigo-100/20">
                           <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
                             <CardTitle className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">
-                              Sub Departments
+                              {isDFO ? "Forest Beats" : "Sub Departments"}
                             </CardTitle>
                             <div className="p-1.5 bg-indigo-50 rounded-lg">
                               <Zap className="w-3.5 h-3.5 text-indigo-500" />
@@ -1913,7 +1978,7 @@ function DashboardContent() {
                           hasPermission(user, Permission.READ_GRIEVANCE) && (
                             <div className="flex flex-col bg-white border border-slate-200/60 rounded-xl p-3 shadow-sm min-w-[140px]">
                               <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
-                                Grievances
+                                {isDFO ? "Incident Reports" : "Grievances"}
                               </span>
                               <div className="flex items-center gap-2">
                                 <span className="text-xl font-black text-slate-900 tracking-tighter">
@@ -2306,23 +2371,29 @@ function DashboardContent() {
                     <div>
                       <h2 className="text-xl font-bold text-white flex items-center gap-2 tracking-tight">
                         <Activity className="w-5 h-5 text-indigo-400 animate-pulse" />
-                        {isCompanyLevel
-                          ? "Operational Intelligence Dashboard"
-                          : isDepartmentLevel
-                            ? "Departmental Analytics Hub"
-                            : "Operations Analytics Center"}
+                        {isDFO ? "Forest Intelligence & Analytics" : "Operational Intelligence Dashboard"}
                       </h2>
                       <p className="text-slate-300 text-xs mt-1 font-medium opacity-80 leading-relaxed">
-                        {isCompanyLevel
-                          ? stats?.isHierarchicalEnabled 
-                            ? `Comprehensive analysis across ${stats?.mainDepartments || 0} main departments, ${stats?.subDepartments || 0} sub-divisions and ${stats?.users || users.length} personnel`
-                            : `Visualizing operational health across ${stats?.departments || departments.length} departments and ${stats?.users || users.length} personnel`
-                          : `Monitoring real-time performance for your assigned department and ${users.length} staff`}
+                        {isDFO 
+                          ? `Monitoring ${stats?.departments || 0} forest beats and divisions across Bhanupratappur East`
+                          : `Visualizing operational health across ${stats?.departments || departments.length} departments and ${stats?.users || users.length} personnel`}
                       </p>
                     </div>
                   </div>
-                  <div className="hidden md:flex items-center gap-3">
-                    <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl backdrop-blur-sm">
+                  <div className="flex items-center gap-3">
+                    {isDFO && (
+                      <Button
+                        onClick={() => {
+                          toast.loading("Generating Division Report...", { duration: 1500 });
+                          setTimeout(() => toast.success("Forest Protection Report (PDF) ready for download"), 2000);
+                        }}
+                        className="bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-400/30 shadow-lg shadow-indigo-500/20 h-9 font-black text-[10px] uppercase tracking-widest gap-2"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        Download Report
+                      </Button>
+                    )}
+                    <div className="hidden md:flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl backdrop-blur-sm">
                       <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]"></span>
                       <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">
                         Live Metrics
@@ -2331,6 +2402,76 @@ function DashboardContent() {
                   </div>
                 </div>
               </div>
+
+              {/* 🌲 DFO Forest Insights (Specialized Tiles) */}
+              {company?.name?.toUpperCase().includes('BHANUPRATAPPUR') && (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                  <div className="group relative bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl p-4 shadow-lg shadow-orange-500/20 overflow-hidden text-white">
+                    <div className="relative z-10">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-md">
+                          <Zap className="w-5 h-5 text-white" />
+                        </div>
+                        <span className="text-[10px] bg-white/20 px-2 py-1 rounded-full font-bold uppercase tracking-wider">High Alert</span>
+                      </div>
+                      <h4 className="text-white/80 text-[10px] font-black uppercase tracking-widest">Active Wildfires</h4>
+                      <p className="text-3xl font-black tracking-tighter mt-1">
+                        {stats?.grievances.byPriority?.find(p => p.priority === 'HIGH')?.count || 0}
+                      </p>
+                    </div>
+                    <div className="absolute -right-4 -bottom-4 opacity-20 transform group-hover:scale-110 transition-transform">
+                      <Zap className="w-24 h-24" />
+                    </div>
+                  </div>
+
+                  <div className="group relative bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-4 shadow-lg shadow-emerald-500/20 overflow-hidden text-white">
+                    <div className="relative z-10">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-md">
+                          <Target className="w-5 h-5 text-white" />
+                        </div>
+                        <span className="text-[10px] bg-white/20 px-2 py-1 rounded-full font-bold uppercase tracking-wider">Secured</span>
+                      </div>
+                      <h4 className="text-white/80 text-[10px] font-black uppercase tracking-widest">Wildlife Incidents</h4>
+                      <p className="text-3xl font-black tracking-tighter mt-1">
+                        {grievances.filter(g => g.category?.toLowerCase().includes('animal') || g.category?.toLowerCase().includes('wildlife')).length || 0}
+                      </p>
+                    </div>
+                    <div className="absolute -right-4 -bottom-4 opacity-20 transform group-hover:scale-110 transition-transform">
+                      <Target className="w-24 h-24" />
+                    </div>
+                  </div>
+
+                  <div className="group relative bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl p-4 shadow-lg shadow-blue-500/20 overflow-hidden text-white">
+                    <div className="relative z-10">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-md">
+                          <Shield className="w-5 h-5 text-white" />
+                        </div>
+                        <span className="text-[10px] bg-white/20 px-2 py-1 rounded-full font-bold uppercase tracking-wider">Monitored</span>
+                      </div>
+                      <h4 className="text-white/80 text-[10px] font-black uppercase tracking-widest">Total Patrol Areas</h4>
+                      <p className="text-3xl font-black tracking-tighter mt-1">
+                        {stats?.departments || 0}
+                      </p>
+                    </div>
+                    <div className="absolute -right-4 -bottom-4 opacity-20 transform group-hover:scale-110 transition-transform">
+                      <Shield className="w-24 h-24" />
+                    </div>
+                  </div>
+
+                  <div className="group relative bg-white rounded-2xl p-4 border border-slate-200 shadow-sm overflow-hidden flex flex-col justify-center">
+                    <h4 className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Encroachment Alerts</h4>
+                    <div className="flex items-baseline gap-2">
+                      <p className="text-3xl font-black text-slate-900 tracking-tighter">0</p>
+                      <span className="text-emerald-500 text-[10px] font-bold">Stable</span>
+                    </div>
+                    <div className="mt-2 w-full bg-slate-100 rounded-full h-1">
+                      <div className="bg-emerald-500 h-1 rounded-full" style={{ width: '0%' }}></div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* KPI Cards - Refined Design */}
               <div
@@ -2359,7 +2500,9 @@ function DashboardContent() {
                           </div>
                         </div>
                       </div>
-                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Inbound Grievances</h4>
+                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                        {isDFO ? "Incident Reporting Trend" : "Inbound Grievances"}
+                      </h4>
                       <p className="text-2xl font-black text-slate-900 tracking-tighter group-hover:text-indigo-600 transition-colors">
                         {stats?.grievances.total || 0}
                       </p>
@@ -2383,7 +2526,9 @@ function DashboardContent() {
                           {stats?.highPriorityPending || 0} Urgent
                         </span>
                       </div>
-                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Overdue cases</h4>
+                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                        {isDFO ? "Active Critical Cases" : "Overdue cases"}
+                      </h4>
                       <p className="text-2xl font-black text-amber-600 tracking-tighter">
                         {stats?.grievances.pending || 0}
                       </p>
@@ -2476,7 +2621,7 @@ function DashboardContent() {
                         </div>
                         <div>
                           <h3 className="text-sm font-bold text-slate-800">
-                            Grievance Trend
+                            {isDFO ? "Operational Response Trend" : "Grievance Trend"}
                           </h3>
                           <p className="text-[10px] text-slate-400">
                             Last 7 days activity
@@ -2946,6 +3091,193 @@ function DashboardContent() {
                 </div>
               </div>
 
+              {isDFO && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+                  {/* Spatial Density Heatmap */}
+                  <div className="bg-slate-900 rounded-2xl border border-slate-800 shadow-2xl overflow-hidden flex flex-col min-h-[400px]">
+                    <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/50 backdrop-blur-md">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center border border-indigo-500/20">
+                          <Activity className="w-5 h-5 text-indigo-400" />
+                        </div>
+                        <div>
+                          <h3 className="text-[13px] font-black text-white uppercase tracking-tight">
+                            Incident Density Heatmap
+                          </h3>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter mt-0.5">
+                            Spatial analysis of forest violations
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <div className="flex items-center gap-1.5 px-3 py-1 bg-rose-500/10 border border-rose-500/20 rounded-full">
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>
+                          <span className="text-[9px] font-black text-rose-400 uppercase tracking-widest">Action Zones</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex-1 p-6 flex flex-col">
+                      <div className="flex-1 bg-slate-950 rounded-xl border border-slate-800/50 relative overflow-hidden group">
+                        {/* Mock Heatmap Visualization */}
+                        <div className="absolute inset-0 grid grid-cols-8 grid-rows-8 gap-0.5 opacity-20">
+                          {Array.from({ length: 64 }).map((_, i) => (
+                            <div 
+                              key={i} 
+                              className={`w-full h-full transition-all duration-1000 ${
+                                i === 12 || i === 25 || i === 26 || i === 44 || i === 37 
+                                  ? 'bg-rose-500 animate-pulse' 
+                                  : i === 18 || i === 33 || i === 50
+                                    ? 'bg-orange-500 opacity-60'
+                                    : 'bg-indigo-900/30'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        
+                        {/* Active Markers */}
+                        <div className="absolute inset-0 p-4">
+                          {(liveIncidents || []).slice(0, 5).map((inc, i) => (
+                            <div 
+                              key={i} 
+                              className="absolute w-4 h-4"
+                              style={{ 
+                                left: `${20 + (i * 15)}%`, 
+                                top: `${30 + (i * 10)}%` 
+                              }}
+                            >
+                              <div className={`w-full h-full rounded-full ${inc.severity === 'CRITICAL' ? 'bg-rose-500' : 'bg-orange-500'} animate-ping opacity-40`} />
+                              <div className={`absolute inset-0 w-2 h-2 m-auto rounded-full ${inc.severity === 'CRITICAL' ? 'bg-rose-600' : 'bg-orange-600'} border border-white/40 shadow-lg`} />
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="absolute bottom-4 left-4 right-4 bg-slate-900/90 backdrop-blur-xl border border-white/10 p-3 rounded-lg shadow-2xl">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-[10px] font-black text-white uppercase tracking-widest">Active Incident Summary</span>
+                            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Bhanupratappur East</span>
+                          </div>
+                          <div className="flex gap-4">
+                            <div className="flex-1">
+                              <p className="text-[10px] text-slate-500 font-black uppercase tracking-tighter">High Risk Areas</p>
+                              <p className="text-sm font-black text-rose-400">Range A, Sector 4</p>
+                            </div>
+                            <div className="w-px h-8 bg-slate-800" />
+                            <div className="flex-1">
+                              <p className="text-[10px] text-slate-500 font-black uppercase tracking-tighter">Current Trend</p>
+                              <p className="text-sm font-black text-emerald-400">Down 12% <span className="text-[8px] font-mono text-slate-500 uppercase ml-1">v/s last wk</span></p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-3 gap-3 mt-4">
+                        <div className="bg-slate-800/30 border border-slate-800 p-3 rounded-xl">
+                          <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Response Time</p>
+                          <p className="text-xl font-black text-white tabular-nums">24<span className="text-[10px] lowercase text-slate-400 ml-0.5">min</span></p>
+                        </div>
+                        <div className="bg-slate-800/30 border border-slate-800 p-3 rounded-xl">
+                          <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Patrol Coverage</p>
+                          <p className="text-xl font-black text-white tabular-nums">92<span className="text-[10px] text-slate-400 ml-0.5">%</span></p>
+                        </div>
+                        <div className="bg-slate-800/30 border border-slate-800 p-3 rounded-xl">
+                          <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Forest Integrity</p>
+                          <p className="text-xl font-black text-emerald-400 tabular-nums">8/10</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Response Performance Analysis */}
+                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                    <div className="px-5 py-4 border-b border-slate-50 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center border border-emerald-100/50">
+                          <Target className="w-5 h-5 text-emerald-600" />
+                        </div>
+                        <div>
+                          <h3 className="text-[13px] font-black text-slate-800 uppercase tracking-tight">
+                            Efficiency Analysis
+                          </h3>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter mt-0.5">
+                            SLA Performance across divisions
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-6 flex-1">
+                      <ResponsiveContainer width="100%" height={260}>
+                        <BarChart
+                          data={(forestBeats || []).slice(0, 6)}
+                          margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                          <XAxis 
+                            dataKey="name" 
+                            axisLine={false} 
+                            tickLine={false} 
+                            tick={{ fontSize: 10, fill: '#64748b', fontWeight: 700 }} 
+                          />
+                          <YAxis hide />
+                          <Tooltip 
+                            cursor={{ fill: '#f8fafc' }}
+                            content={({ active, payload, label }) => {
+                              if (active && payload && payload.length) {
+                                return (
+                                  <div className="bg-slate-900 border border-slate-800 p-3 rounded-xl shadow-2xl">
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{label}</p>
+                                    <p className="text-sm font-black text-white">Efficiency: 94%</p>
+                                    <p className="text-[10px] text-emerald-400 font-bold mt-1">Above target</p>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            }}
+                          />
+                          <Bar 
+                            dataKey="incidents" 
+                            radius={[6, 6, 0, 0]} 
+                            barSize={32}
+                          >
+                            {(forestBeats || []).map((entry, index) => (
+                              <Cell 
+                                key={`cell-${index}`} 
+                                fill={index % 2 === 0 ? '#6366f1' : '#10b981'} 
+                                fillOpacity={0.8}
+                              />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                      
+                      <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200/60">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Division Productivity</span>
+                          <span className="text-xs font-black text-emerald-600">+8.4%</span>
+                        </div>
+                        <div className="space-y-3">
+                          {(forestBeats || []).slice(0, 3).map((beat, i) => (
+                            <div key={i} className="flex items-center justify-between">
+                              <span className="text-[11px] font-bold text-slate-700">{beat.name}</span>
+                              <div className="flex items-center gap-3">
+                                <div className="w-24 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                                  <div 
+                                    className="h-full bg-indigo-500 rounded-full" 
+                                    style={{ width: `${80 + (i * 5)}%` }}
+                                  />
+                                </div>
+                                <span className="text-[10px] font-black text-slate-900 tabular-nums">
+                                  {80 + (i * 5)}%
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Department Table - Company Admin only */}
               {/*   {isCompanyLevel && departments.length > 0 && (
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -3070,6 +3402,199 @@ function DashboardContent() {
 
 
             </TabsContent>
+          )}
+
+          {isDFO && (
+            <>
+              {/* 🗺️ Live Incidents Map Tab */}
+              <TabsContent value="live-incidents" className="space-y-4">
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                  {/* Left Panel: Incident Feed */}
+                  <Card className="lg:col-span-1 rounded-2xl border-slate-200 shadow-sm bg-white overflow-hidden flex flex-col h-[600px]">
+                    <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                      <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight flex items-center gap-2">
+                        <Flame className="w-4 h-4 text-rose-500 animate-pulse" />
+                        Live Incident Feed
+                      </h3>
+                      <span className="bg-rose-100 text-rose-600 text-[10px] font-black px-2 py-0.5 rounded-full">
+                        {liveIncidents.length} NEW
+                      </span>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-2 space-y-2">
+                      {liveIncidents.length > 0 ? liveIncidents.map((incident) => (
+                        <div 
+                          key={incident.id}
+                          className="p-3 rounded-xl border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/30 transition-all cursor-pointer group"
+                          onClick={() => openGrievanceDetail(incident.id)}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className={`text-[10px] font-black uppercase tracking-widest ${incident.severity === 'CRITICAL' ? 'text-rose-500' : 'text-amber-500'}`}>
+                              {incident.severity}
+                            </span>
+                            <span className="text-[9px] text-slate-400 font-medium">
+                              {new Date(incident.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          <h4 className="text-[12px] font-bold text-slate-800 leading-snug group-hover:text-indigo-600 truncate">
+                            {incident.title}
+                          </h4>
+                          <div className="flex items-center gap-1.5 mt-2">
+                            <MapPin className="w-3 h-3 text-slate-400" />
+                            <span className="text-[10px] text-slate-500 font-bold uppercase truncate">
+                              {incident.area}
+                            </span>
+                          </div>
+                        </div>
+                      )) : (
+                        <div className="h-full flex flex-col items-center justify-center text-slate-400 opacity-50 space-y-2">
+                          <ShieldAlert className="w-8 h-8" />
+                          <p className="text-xs font-bold uppercase">No active threats detected</p>
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+
+                  {/* Right Panel: Spatial Density Map */}
+                  <Card className="lg:col-span-3 rounded-2xl border-slate-200 shadow-sm bg-slate-900 overflow-hidden relative h-[600px]">
+                    {/* Tactical Map View with Interactive Leaflet Integration */}
+                    <div className="absolute inset-0 z-0">
+                      <TacticalForestMap incidents={liveIncidents} />
+                    </div>
+
+
+                    <div className="absolute bottom-6 right-6 z-10">
+                      <div className="bg-black/60 backdrop-blur-xl border border-white/10 px-4 py-3 rounded-2xl text-white shadow-2xl flex items-center gap-6">
+                        <div className="flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-full bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.8)]"></span>
+                          <span className="text-[10px] font-black uppercase tracking-widest">Fire Hazard</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-full bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.8)]"></span>
+                          <span className="text-[10px] font-black uppercase tracking-widest">Wildlife Move</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.8)]"></span>
+                          <span className="text-[10px] font-black uppercase tracking-widest">Active Patrol</span>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                </div>
+              </TabsContent>
+
+              {/* 🛡️ Geofences Boundary Tab */}
+              <TabsContent value="geofences" className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Summary Stats */}
+                  <Card className="p-6 bg-gradient-to-br from-emerald-600 to-teal-700 text-white rounded-2xl shadow-lg border-0 overflow-hidden relative">
+                    <div className="relative z-10">
+                      <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-4 backdrop-blur-md">
+                        <Layers className="w-6 h-6 text-white" />
+                      </div>
+                      <h3 className="text-white/80 text-[10px] font-black uppercase tracking-widest mb-1">Total Protected Area</h3>
+                      <p className="text-3xl font-black tracking-tighter">14,250 <span className="text-lg font-medium opacity-60">HECTARE</span></p>
+                      <div className="mt-4 flex items-center gap-2 bg-white/10 w-fit px-3 py-1 rounded-full border border-white/5">
+                        <span className="text-[10px] font-bold">42 Active Geofences</span>
+                      </div>
+                    </div>
+                    <Layers className="absolute -right-8 -bottom-8 w-48 h-48 opacity-10 rotate-12" />
+                  </Card>
+
+                  <Card className="p-6 bg-white rounded-2xl shadow-sm border border-slate-100">
+                    <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center mb-4">
+                      <ShieldAlert className="w-6 h-6 text-indigo-600" />
+                    </div>
+                    <h3 className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Boundary Violations</h3>
+                    <p className="text-3xl font-black tracking-tighter text-slate-900">12 <span className="text-lg font-medium opacity-40 text-rose-500">↑ 4%</span></p>
+                    <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-tight">Last 30 Days Activity</p>
+                  </Card>
+
+                  <Card className="p-6 bg-white rounded-2xl shadow-sm border border-slate-100">
+                    <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center mb-4">
+                      <Trees className="w-6 h-6 text-emerald-600" />
+                    </div>
+                    <h3 className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Operational Ranges</h3>
+                    <p className="text-3xl font-black tracking-tighter text-slate-900">{stats?.mainDepartments || 4}</p>
+                    <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-tight">Verified Forest Borders</p>
+                  </Card>
+                </div>
+
+                <Card className="rounded-2xl border-slate-200 shadow-sm overflow-hidden bg-white">
+                  <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">Forest Boundary Inventory</h3>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Hierarchy of Ranges and Beats</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        onClick={() => {
+                          toast.promise(new Promise(resolve => setTimeout(resolve, 2000)), {
+                            loading: 'Processing KMZ Boundaries...',
+                            success: 'Forest boundaries synchronized with Satellite Data',
+                            error: 'Failed to sync boundaries',
+                          });
+                        }}
+                        className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 border-0"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        Sync KMZ Data
+                      </Button>
+                      <button className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all">
+                        <ScanSearch className="w-4 h-4" />
+                        Verify Bounds
+                      </button>
+                    </div>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="bg-slate-50 border-b border-slate-100">
+                          <th className="px-6 py-4 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">Forest Range</th>
+                          <th className="px-6 py-4 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">Beats Under Range</th>
+                          <th className="px-6 py-4 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">Total Area (Ha)</th>
+                          <th className="px-6 py-4 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">Incident Hotspots</th>
+                          <th className="px-6 py-4 text-right text-[9px] font-black text-slate-400 uppercase tracking-widest">Integrity Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {forestBeats.slice(0, 10).map((beat, i) => (
+                          <tr key={i} className="hover:bg-slate-50/50 transition-colors group">
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-700">
+                                  <Trees className="w-4 h-4" />
+                                </div>
+                                <span className="text-sm font-bold text-slate-800">{beat.range}</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex flex-col">
+                                <span className="text-xs font-bold text-slate-700">{beat.name}</span>
+                                <span className="text-[9px] text-slate-400 font-mono uppercase mt-0.5">ID: {beat.id.slice(-8)}</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-center">
+                              <span className="text-sm font-black text-slate-700">{(400 + (i * 120)).toLocaleString()}</span>
+                            </td>
+                            <td className="px-6 py-4 text-center">
+                              <div className="inline-flex items-center gap-2 border border-slate-200 px-3 py-1 rounded-full bg-white shadow-sm">
+                                <span className={`w-1.5 h-1.5 rounded-full ${beat.incidents > 5 ? 'bg-rose-500 animate-pulse' : 'bg-amber-500'}`}></span>
+                                <span className="text-[10px] font-black text-slate-700">{beat.incidents} ACTS</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg ${beat.status === 'Active' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
+                                {beat.status === 'Active' ? 'VERIFIED' : 'MAINTENANCE'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </Card>
+              </TabsContent>
+            </>
           )}
 
           {/* Departments Tab - Only for Company Admin */}

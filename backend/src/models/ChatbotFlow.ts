@@ -7,7 +7,7 @@ import mongoose, { Schema, Document, Model } from 'mongoose';
  * Fully customizable from superadmin dashboard
  */
 
-export interface IFlowStep {
+export interface IFlowStep {      
   stepId: string;
   stepType: 'start' | 'message' | 'buttons' | 'list' | 'input' | 'media' | 'condition' | 'api_call' | 'delay' | 'assign_department' | 'dynamic_response' | 'end';
   stepName: string;

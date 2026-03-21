@@ -11,6 +11,7 @@ export interface IGrievance extends Document {
   citizenWhatsApp?: string;
   description: string;
   category?: string;
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
   status: GrievanceStatus;
   statusHistory: Array<{
     status: GrievanceStatus;
@@ -25,6 +26,7 @@ export interface IGrievance extends Document {
     coordinates: [number, number]; // [longitude, latitude]
     address?: string;
   };
+  forestAreaId?: string; // 🌲 Reference to ForestArea model's areaId
   media: Array<{
     url: string;
     type: 'image' | 'document';
@@ -90,6 +92,12 @@ const GrievanceSchema: Schema = new Schema(
       type: String,
       trim: true
     },
+    priority: {
+      type: String,
+      enum: ['LOW', 'MEDIUM', 'HIGH', 'URGENT'],
+      default: 'MEDIUM',
+      index: true
+    },
    
     status: {
       type: String,
@@ -130,6 +138,10 @@ const GrievanceSchema: Schema = new Schema(
         index: '2dsphere'
       },
       address: String
+    },
+    forestAreaId: {
+      type: String,
+      index: true
     },
     media: [{
       url: {

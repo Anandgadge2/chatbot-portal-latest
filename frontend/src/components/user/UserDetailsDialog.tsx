@@ -31,9 +31,17 @@ export default function UserDetailsDialog({
   if (!isOpen || !user) return null;
 
   const createdDate = user?.createdAt || "";
-  const timeAgo = formatDistanceToNow(new Date(createdDate), {
-    addSuffix: true,
-  });
+  let timeAgo = "Unknown";
+  try {
+    const dateObj = new Date(createdDate);
+    if (createdDate && !isNaN(dateObj.getTime())) {
+      timeAgo = formatDistanceToNow(dateObj, {
+        addSuffix: true,
+      });
+    }
+  } catch (e) {
+    console.error("Error formatting date:", e);
+  }
   const updatedDate = user?.updatedAt || null;
 
   // Get role color

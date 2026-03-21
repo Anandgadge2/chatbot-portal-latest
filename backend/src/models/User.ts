@@ -22,6 +22,7 @@ export interface IUser extends Document {
     email: boolean;
     whatsapp: boolean;
   };
+  responsibleAreas?: string[]; // 🌲 Added for Forest FSM Module (e.g. ['COMP_12', 'BEAT_WEST'])
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -111,6 +112,11 @@ const UserSchema: Schema = new Schema(
     notificationSettings: {
       email: { type: Boolean, default: true },
       whatsapp: { type: Boolean, default: true }
+    },
+    responsibleAreas: {
+      type: [String],
+      default: [],
+      index: true
     }
   },
   {

@@ -15,6 +15,7 @@ import {
 } from './notificationService';
 import { GrievanceStatus, AppointmentStatus, UserRole } from '../config/constants';
 import { updateSession } from './sessionService';
+import { ForestService } from './forestService';
 
 /**
  * Action Service
@@ -113,9 +114,42 @@ export class ActionService {
           address: session.data.locationAddress || ''
         } : undefined,
         status: GrievanceStatus.PENDING,
+        priority: (session.data.category?.toLowerCase().includes('fire') || 
+                   session.data.category?.toLowerCase().includes('wildlife') || 
+                   session.data.category?.toLowerCase().includes('animal')) ? 'HIGH' : 'MEDIUM',
         language: session.language || 'en'
       };
       
+      // 🌲 Forest-Specific Logic: Auto-Lookup Area and Officer
+      let forestArea = null;
+      const hasCoords = session.data.latitude && session.data.longitude && 
+                       Number(session.data.latitude) !== 0 && Number(session.data.longitude) !== 0;
+
+      if (hasCoords) {
+        forestArea = await ForestService.findAreaByLocation(
+          Number(session.data.longitude),
+          Number(session.data.latitude),
+          company._id
+        );
+        if (forestArea) {
+          (grievanceData as any).forestAreaId = forestArea.areaId;
+          // Store area details for placeholders/notifications
+          session.data.forest_range = forestArea.metadata.range || 'Unknown Range';
+          session.data.forest_beat = forestArea.metadata.beat || 'Unknown Beat';
+          session.data.forest_compartment = forestArea.name || forestArea.areaId;
+        } else {
+          console.warn(`📍 ActionService: Location [${session.data.latitude}, ${session.data.longitude}] is outside forest boundaries.`);
+          session.data.forest_range = 'Outside Area';
+          session.data.forest_beat = 'Unmapped';
+          session.data.forest_compartment = 'N/A';
+        }
+      } else {
+        // Fallback for no location
+        session.data.forest_range = 'N/A';
+        session.data.forest_beat = 'N/A';
+        session.data.forest_compartment = 'Not Shared';
+      }
+
       const grievance = new Grievance(grievanceData);
       
       try {
@@ -153,16 +187,43 @@ export class ActionService {
       await updateSession(session);
 
       // ✅ AUTO-ASSIGNMENT (Designated Officer / Dept Admin)
-      const targetDeptId = session.data.subDepartmentId || departmentId;
-      if (targetDeptId) {
-        const potentialAdmins = await getHierarchicalDepartmentAdmins(targetDeptId);
-        if (potentialAdmins && potentialAdmins.length > 0) {
-          const targetAdmin = potentialAdmins[0]; // Pick the primary/level-specific admin
-          grievance.assignedTo = targetAdmin._id;
+      let autoAssigned = false;
+
+      // 🌲 Forest-Specific Assignment & Multi-Notification
+      if (forestArea) {
+        const forestOfficers = await ForestService.findOfficersByArea(forestArea.areaId, company._id);
+        if (forestOfficers && forestOfficers.length > 0) {
+          // Point the grievance to the first officer primarily (for display), 
+          // but we will notify ALL of them.
+          const primaryOfficer = forestOfficers[0];
+          grievance.assignedTo = primaryOfficer._id;
           grievance.status = GrievanceStatus.ASSIGNED;
           await grievance.save();
+          autoAssigned = true;
+          session.data.assignedToName = forestOfficers.map(o => o.getFullName()).join(', ');
+          
+          // Store all target officers for the notification loop below
+          (grievance as any)._allTargetOfficers = forestOfficers;
         }
       }
+
+      // Fallback to Department Admin assignment
+      if (!autoAssigned) {
+        const targetDeptId = session.data.subDepartmentId || departmentId;
+        if (targetDeptId) {
+          const potentialAdmins = await getHierarchicalDepartmentAdmins(targetDeptId);
+          if (potentialAdmins && potentialAdmins.length > 0) {
+            const targetAdmin = potentialAdmins[0]; // Pick the primary/level-specific admin
+            grievance.assignedTo = targetAdmin._id;
+            grievance.status = GrievanceStatus.ASSIGNED;
+            await grievance.save();
+            autoAssigned = true;
+            session.data.assignedToName = targetAdmin.getFullName();
+          }
+        }
+      }
+      
+      await updateSession(session);
       
       // ✅ PREPARE NOTIFICATIONS
       const notificationData = {
@@ -179,7 +240,10 @@ export class ActionService {
         subDepartmentName: subDept ? subDept.name : undefined,
         evidenceUrls: (session.data.media || []).map((m: any) => m.url).filter(Boolean),
         createdAt: grievance.createdAt,
-        timeline: grievance.timeline
+        timeline: grievance.timeline,
+        forest_range: session.data.forest_range,
+        forest_beat: session.data.forest_beat,
+        forest_compartment: session.data.forest_compartment
       };
 
       // ✅ EXECUTE NOTIFICATIONS IN PARALLEL
@@ -201,15 +265,19 @@ export class ActionService {
         }).catch(err => console.error('⚠️ ActionService: notifyDepartmentAdminOnCreation failed:', err)));
 
         // 3. Auto-assignment Notification
-        if (grievance.status === GrievanceStatus.ASSIGNED && grievance.assignedTo) {
-          notifications.push(notifyUserOnAssignment({
-            ...notificationData,
-            type: 'grievance',
-            action: 'assigned',
-            assignedTo: grievance.assignedTo,
-            assignedByName: 'System (Auto-assign)',
-            assignedAt: new Date()
-          } as any).catch(err => console.error('⚠️ ActionService: notifyUserOnAssignment failed:', err)));
+        if (grievance.status === GrievanceStatus.ASSIGNED) {
+          const targetOfficers = (grievance as any)._allTargetOfficers || [grievance.assignedTo];
+          for (const officer of targetOfficers) {
+            if (!officer) continue;
+            notifications.push(notifyUserOnAssignment({
+              ...notificationData,
+              type: 'grievance',
+              action: 'assigned',
+              assignedTo: officer._id || officer,
+              assignedByName: 'System (Auto-assign)',
+              assignedAt: new Date()
+            } as any).catch(err => console.error('⚠️ ActionService: notifyUserOnAssignment failed for user:', officer._id, err)));
+          }
         }
       }
 
