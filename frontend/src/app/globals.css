@@ -65,7 +65,6 @@
       BlinkMacSystemFont,
       "Segoe UI",
       sans-serif;
-    zoom: 0.9;
   }
 }
 
@@ -141,4 +140,14 @@
 input[type="password"]::-ms-reveal,
 input[type="password"]::-ms-clear {
   display: none;
+}
+
+@media (max-width: 640px) {
+  html {
+    font-size: 100%;
+  }
+
+  body {
+    min-width: 320px;
+  }
 }
