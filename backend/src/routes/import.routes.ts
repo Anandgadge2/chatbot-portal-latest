@@ -645,13 +645,13 @@ router.post(
           if (row.email) existingUser = userCache.get(`${companyId}:email:${row.email.toLowerCase()}`);
           if (!existingUser && row.phone) existingUser = userCache.get(`${companyId}:phone:${row.phone}`);
 
-          const rawPassword = row.password || '111111';
+          const inputPassword = row.password || '111111';
           const normalizedRoleName = row.role ? normalizeRoleName(String(row.role)) : '';
           const matchingRole = normalizedRoleName ? roleCache.get(`${companyId}:${normalizedRoleName}`) : null;
-          let hashedPassword = passwordHashCache.get(rawPassword);
+          let hashedPassword = passwordHashCache.get(inputPassword);
           if (!hashedPassword) {
-            hashedPassword = await bcrypt.hash(rawPassword, 10);
-            passwordHashCache.set(rawPassword, hashedPassword);
+            hashedPassword = await bcrypt.hash(inputPassword, 10);
+            passwordHashCache.set(inputPassword, hashedPassword);
           }
 
           if (existingUser) {

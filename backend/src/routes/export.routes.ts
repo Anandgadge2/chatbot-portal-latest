@@ -10,6 +10,7 @@ import Department from '../models/Department';
 import User from '../models/User';
 import Grievance from '../models/Grievance';
 import Appointment from '../models/Appointment';
+import { scopeToUser } from '../utils/accessControl';
 
 const router = express.Router();
 
@@ -80,7 +81,7 @@ router.get('/departments', requirePermission(Permission.EXPORT_DATA), async (req
     if (currentUser.isSuperAdmin) {
       if (companyId) query.companyId = companyId;
     } else {
-      query.companyId = currentUser.companyId;
+      Object.assign(query, scopeToUser(req));
     }
 
     const departments = await Department.find(query).populate('companyId', 'name companyId');
@@ -131,7 +132,7 @@ router.get('/users', requirePermission(Permission.EXPORT_DATA), async (req: Requ
       if (companyId) query.companyId = companyId;
       if (departmentId) query.departmentId = departmentId;
     } else {
-      query.companyId = currentUser.companyId;
+      Object.assign(query, scopeToUser(req));
       if (currentUser.departmentId) {
         query.departmentId = currentUser.departmentId;
       } else if (departmentId) {
@@ -194,7 +195,7 @@ router.get('/grievances', requirePermission(Permission.EXPORT_DATA), async (req:
       if (companyId) query.companyId = companyId;
       if (departmentId) query.departmentId = departmentId;
     } else {
-      query.companyId = currentUser.companyId;
+      Object.assign(query, scopeToUser(req));
       if (currentUser.departmentId) {
         // Dynamic check: Users without assignment permission (like basic Operators) only export their own items
         const canAssign = req.checkPermission(Permission.ASSIGN_GRIEVANCE);
@@ -265,7 +266,7 @@ router.get('/appointments', requirePermission(Permission.EXPORT_DATA), async (re
       if (companyId) query.companyId = companyId;
       if (departmentId) query.departmentId = departmentId;
     } else {
-      query.companyId = currentUser.companyId;
+      Object.assign(query, scopeToUser(req));
       if (currentUser.departmentId) {
         // Dynamic check: restricted to assigned items if lacks high-level management rights
         const canManage = req.checkPermission(Permission.STATUS_CHANGE_APPOINTMENT);

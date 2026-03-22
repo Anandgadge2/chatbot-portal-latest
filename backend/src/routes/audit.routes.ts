@@ -5,6 +5,7 @@ import { authenticate } from '../middleware/auth';
 import { requirePermission } from '../middleware/rbac';
 import { requireDatabaseConnection } from '../middleware/dbConnection';
 import { Permission, UserRole } from '../config/constants';
+import { scopeToUser } from '../utils/accessControl';
 
 
 const router = express.Router();
@@ -25,8 +26,7 @@ router.get('/', requirePermission(Permission.VIEW_AUDIT_LOGS), async (req: Reque
 
     // Scope based on user role
     if (!currentUser.isSuperAdmin) {
-      // Non-SuperAdmin users can only see logs for their company
-      query.companyId = currentUser.companyId;
+      Object.assign(query, scopeToUser(req));
     } else if (companyId) {
       // SuperAdmin can filter by company
       query.companyId = companyId;

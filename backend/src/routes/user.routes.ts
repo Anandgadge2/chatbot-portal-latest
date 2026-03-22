@@ -4,9 +4,9 @@ import { authenticate } from '../middleware/auth';
 import { requirePermission } from '../middleware/rbac';
 import { requireDatabaseConnection } from '../middleware/dbConnection';
 import { logUserAction } from '../utils/auditLogger';
-import { AuditAction, Permission, UserRole } from '../config/constants';
+import { AuditAction, Permission } from '../config/constants';
 import Role from '../models/Role';
-import { canAssignRole } from '../utils/accessControl';
+import { canAssignRole, scopeToUser } from '../utils/accessControl';
 
 const router = express.Router();
 
@@ -36,8 +36,7 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
         }
       }
     } else {
-      // All other users are scoped by their company
-      query.companyId = currentUser.companyId;
+      Object.assign(query, scopeToUser(req));
       
       // If the current user is restricted to a department, scope them.
       // Otherwise (like a Company Admin), they can see all users in company or filter by dept.
@@ -111,7 +110,6 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
     console.log('Request body:', JSON.stringify(req.body, null, 2));
     
     const currentUser = req.user!;
-    console.log('Current user:', { id: currentUser._id, role: currentUser.role, companyId: currentUser.companyId });
     
     // Access is determined by CREATE_USER permission (already checked in middleware)
     // Permission-based RBAC is now the single source of truth.
