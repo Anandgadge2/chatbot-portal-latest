@@ -13,6 +13,7 @@ declare global {
 }
 
 const attachRequestAuth = (req: Request, user: IUser, auth: AuthContext) => {
+  (user as any).role = auth.isSuperAdmin ? 'SUPER_ADMIN' : undefined;
   req.user = user;
   req.auth = auth;
 };
