@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken } from '../utils/jwt';
 import User, { IUser } from '../models/User';
-import { AuthContext } from '../utils/accessControl';
+import { AuthContext, isPlatformSuperAdminUser } from '../utils/accessControl';
 
 declare global {
   namespace Express {
@@ -13,7 +13,9 @@ declare global {
 }
 
 const attachRequestAuth = (req: Request, user: IUser, auth: AuthContext) => {
-  (user as any).role = auth.isSuperAdmin ? 'SUPER_ADMIN' : undefined;
+  if (auth.isSuperAdmin || isPlatformSuperAdminUser(user)) {
+    (user as any).role = 'SUPER_ADMIN';
+  }
   req.user = user;
   req.auth = auth;
 };
@@ -54,9 +56,11 @@ export const authenticate = async (
       return;
     }
 
+    const normalizedIsSuperAdmin = decoded.isSuperAdmin || isPlatformSuperAdminUser(user);
+
     attachRequestAuth(req, user, {
       userId: decoded.userId,
-      isSuperAdmin: decoded.isSuperAdmin,
+      isSuperAdmin: normalizedIsSuperAdmin,
       companyId: decoded.companyId,
       departmentId: decoded.departmentId,
       subDepartmentId: decoded.subDepartmentId,
@@ -100,9 +104,11 @@ export const optionalAuth = async (
       const user = await User.findById(decoded.userId);
 
       if (user && user.isActive) {
+        const normalizedIsSuperAdmin = decoded.isSuperAdmin || isPlatformSuperAdminUser(user);
+
         attachRequestAuth(req, user, {
           userId: decoded.userId,
-          isSuperAdmin: decoded.isSuperAdmin,
+          isSuperAdmin: normalizedIsSuperAdmin,
           companyId: decoded.companyId,
           departmentId: decoded.departmentId,
           subDepartmentId: decoded.subDepartmentId,

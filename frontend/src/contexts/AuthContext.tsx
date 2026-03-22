@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { authAPI, LoginCredentials } from '@/lib/api/auth';
 import { apiClient } from '@/lib/api/client';
@@ -43,14 +43,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    // Check if user is logged in on mount
-    const currentUser = authAPI.getCurrentUser();
-    if (currentUser) {
-      setUser(currentUser);
-    }
-    setLoading(false);
-  }, []);
 
   const login = async (credentials: LoginCredentials) => {
     const startTime = Date.now();
@@ -153,7 +145,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     try {
       const response = await authAPI.getCurrentProfile();
       if (response.success && response.data.user) {
@@ -167,7 +159,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('Failed to refresh user profile:', error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    // Check if user is logged in on mount
+    const hydrateUser = async () => {
+      const currentUser = authAPI.getCurrentUser();
+      if (currentUser) {
+        setUser(currentUser);
+
+        if (!currentUser.role && typeof window !== 'undefined' && localStorage.getItem('accessToken')) {
+          await refreshUser();
+        }
+      }
+      setLoading(false);
+    };
+
+    void hydrateUser();
+  }, [refreshUser]);
 
   const logout = () => {
     authAPI.logout();

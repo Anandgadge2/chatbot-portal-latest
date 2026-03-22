@@ -28,6 +28,11 @@ export interface ResolvedAccessContext {
   filteredPermissions: AuthPermission[];
 }
 
+
+export const isPlatformSuperAdminUser = (user: Pick<IUser, 'isSuperAdmin' | 'role'> | null | undefined): boolean => (
+  Boolean(user?.isSuperAdmin) || String(user?.role || '').toUpperCase() === 'SUPER_ADMIN'
+);
+
 const normalizePermission = (permission: IPermission | AuthPermission): AuthPermission => ({
   module: permission.module,
   actions: Array.from(new Set(permission.actions || []))
@@ -75,7 +80,7 @@ export const canAssignRole = async (
   assignerUser: IUser,
   targetRoleLevel: number
 ): Promise<boolean> => {
-  if (assignerUser.isSuperAdmin) {
+  if (isPlatformSuperAdminUser(assignerUser)) {
     return true;
   }
 
@@ -135,36 +140,38 @@ export const buildAuthContext = (
   filteredPermissions: AuthPermission[]
 ): AuthContext => ({
   userId: user._id.toString(),
-  isSuperAdmin: user.isSuperAdmin,
+  isSuperAdmin: isPlatformSuperAdminUser(user),
   companyId: user.companyId ? user.companyId.toString() : null,
   departmentId: user.departmentId ? user.departmentId.toString() : null,
   subDepartmentId: user.subDepartmentId ? user.subDepartmentId.toString() : null,
   roleId: role ? role._id.toString() : user.customRoleId ? user.customRoleId.toString() : null,
   level: role?.level ?? 0,
-  scope: role?.scope ?? (user.isSuperAdmin ? 'platform' : 'company'),
+  scope: role?.scope ?? (isPlatformSuperAdminUser(user) ? 'platform' : 'company'),
   filteredPermissions
 });
 
 export const resolveUserAccessContext = async (user: IUser): Promise<ResolvedAccessContext> => {
-  const company = user.isSuperAdmin || !user.companyId
+  const isPlatformSuperAdmin = isPlatformSuperAdminUser(user);
+
+  const company = isPlatformSuperAdmin || !user.companyId
     ? null
     : await Company.findById(user.companyId).select('enabledModules isActive isSuspended');
 
-  const role = user.isSuperAdmin
+  const role = isPlatformSuperAdmin
     ? await Role.findOne({ scope: 'platform', level: 0 })
     : user.customRoleId
       ? await Role.findById(user.customRoleId)
       : null;
 
-  if (!user.isSuperAdmin && !role) {
+  if (!isPlatformSuperAdmin && !role) {
     throw new Error('Assigned role not found');
   }
 
-  if (!user.isSuperAdmin && !company) {
+  if (!isPlatformSuperAdmin && !company) {
     throw new Error('Company not found');
   }
 
-  if (!user.isSuperAdmin && role?.requiredModule) {
+  if (!isPlatformSuperAdmin && role?.requiredModule) {
     const enabledModules = company?.enabledModules || [];
     if (!enabledModules.includes(role.requiredModule)) {
       const error = new Error(`Your role requires the ${role.requiredModule} module which is not enabled`);
@@ -173,7 +180,7 @@ export const resolveUserAccessContext = async (user: IUser): Promise<ResolvedAcc
     }
   }
 
-  const filteredPermissions = user.isSuperAdmin
+  const filteredPermissions = isPlatformSuperAdmin
     ? []
     : filterPermissionsByModules(role?.permissions || [], company?.enabledModules || []);
 

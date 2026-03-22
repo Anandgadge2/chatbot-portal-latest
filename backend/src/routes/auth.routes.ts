@@ -7,6 +7,7 @@ import { authenticate } from '../middleware/auth';
 import {
   buildAuthContext,
   ensurePlatformSuperAdminRole,
+  isPlatformSuperAdminUser,
   resolveUserAccessContext
 } from '../utils/accessControl';
 
@@ -39,7 +40,8 @@ const buildAuthResponse = async (user: any, loginType: 'PASSWORD' | 'SSO') => {
       lastName: user.lastName,
       email: user.email,
       phone: user.phone,
-      isSuperAdmin: user.isSuperAdmin,
+      isSuperAdmin: isPlatformSuperAdminUser(user),
+      role: isPlatformSuperAdminUser(user) ? 'SUPER_ADMIN' : role?.name || null,
       companyId: user.companyId,
       departmentId: user.departmentId || null,
       subDepartmentId: user.subDepartmentId || null,
@@ -124,7 +126,7 @@ router.post('/sso/login', async (req: Request, res: Response) => {
       return res.status(403).json({ success: false, message: 'Your account is inactive. Please contact administrator.' });
     }
 
-    if (user.isSuperAdmin) {
+    if (isPlatformSuperAdminUser(user)) {
       await ensurePlatformSuperAdminRole();
     }
 
@@ -210,7 +212,7 @@ router.post('/login', async (req: Request, res: Response) => {
       });
     }
 
-    if (user.isSuperAdmin) {
+    if (isPlatformSuperAdminUser(user)) {
       await ensurePlatformSuperAdminRole();
     }
 
