@@ -1,44 +1,49 @@
 import { Request, Response, NextFunction } from 'express';
 import { UserRole } from '../config/constants';
-import Role from '../models/Role';
+import { permissionAllows } from '../utils/accessControl';
 
-/**
- * Mapping of legacy Permission identifiers to new Module/Action structure.
- * This allows routes to remain unchanged while the backend logic became dynamic.
- */
 const LEGACY_PERMISSIONS: Record<string, { module: string; action: string }> = {
-  'READ_GRIEVANCE': { module: 'GRIEVANCE', action: 'view' },
-  'CREATE_GRIEVANCE': { module: 'GRIEVANCE', action: 'create' },
-  'UPDATE_GRIEVANCE': { module: 'GRIEVANCE', action: 'update' },
-  'DELETE_GRIEVANCE': { module: 'GRIEVANCE', action: 'delete' },
-  'ASSIGN_GRIEVANCE': { module: 'GRIEVANCE', action: 'assign' },
-  'STATUS_CHANGE_GRIEVANCE': { module: 'GRIEVANCE', action: 'status_change' },
-  'REVERT_GRIEVANCE': { module: 'GRIEVANCE', action: 'revert' },
-  
-  'READ_APPOINTMENT': { module: 'APPOINTMENT', action: 'view' },
-  'CREATE_APPOINTMENT': { module: 'APPOINTMENT', action: 'create' },
-  'UPDATE_APPOINTMENT': { module: 'APPOINTMENT', action: 'update' },
-  'DELETE_APPOINTMENT': { module: 'APPOINTMENT', action: 'delete' },
-  'STATUS_CHANGE_APPOINTMENT': { module: 'APPOINTMENT', action: 'status_change' },
-  
-  'CREATE_USER': { module: 'USER_MANAGEMENT', action: 'create' },
-  'READ_USER': { module: 'USER_MANAGEMENT', action: 'view' },
-  'UPDATE_USER': { module: 'USER_MANAGEMENT', action: 'update' },
-  'DELETE_USER': { module: 'USER_MANAGEMENT', action: 'delete' },
-  
-  'CREATE_DEPARTMENT': { module: 'DEPARTMENTS', action: 'create' },
-  'READ_DEPARTMENT': { module: 'DEPARTMENTS', action: 'view' },
-  'UPDATE_DEPARTMENT': { module: 'DEPARTMENTS', action: 'update' },
-  'DELETE_DEPARTMENT': { module: 'DEPARTMENTS', action: 'delete' },
-  
-  'VIEW_ANALYTICS': { module: 'ANALYTICS', action: 'view' },
-  'EXPORT_DATA': { module: 'ANALYTICS', action: 'export' },
-  
-  'CONFIGURE_CHATBOT': { module: 'FLOW_BUILDER', action: 'view' },
-  'MANAGE_SETTINGS': { module: 'SETTINGS', action: 'update' },
-  'VIEW_AUDIT_LOGS': { module: 'SETTINGS', action: 'view_audit' },
-  'EXPORT_ALL_DATA': { module: 'ANALYTICS', action: 'export' },
-  'IMPORT_DATA': { module: 'SETTINGS', action: 'update' }
+  READ_GRIEVANCE: { module: 'GRIEVANCE', action: 'view' },
+  CREATE_GRIEVANCE: { module: 'GRIEVANCE', action: 'create' },
+  UPDATE_GRIEVANCE: { module: 'GRIEVANCE', action: 'update' },
+  DELETE_GRIEVANCE: { module: 'GRIEVANCE', action: 'delete' },
+  ASSIGN_GRIEVANCE: { module: 'GRIEVANCE', action: 'assign' },
+  STATUS_CHANGE_GRIEVANCE: { module: 'GRIEVANCE', action: 'status_change' },
+  REVERT_GRIEVANCE: { module: 'GRIEVANCE', action: 'revert' },
+  READ_APPOINTMENT: { module: 'APPOINTMENT', action: 'view' },
+  CREATE_APPOINTMENT: { module: 'APPOINTMENT', action: 'create' },
+  UPDATE_APPOINTMENT: { module: 'APPOINTMENT', action: 'update' },
+  DELETE_APPOINTMENT: { module: 'APPOINTMENT', action: 'delete' },
+  STATUS_CHANGE_APPOINTMENT: { module: 'APPOINTMENT', action: 'status_change' },
+  CREATE_USER: { module: 'USER_MANAGEMENT', action: 'create' },
+  READ_USER: { module: 'USER_MANAGEMENT', action: 'view' },
+  UPDATE_USER: { module: 'USER_MANAGEMENT', action: 'update' },
+  DELETE_USER: { module: 'USER_MANAGEMENT', action: 'delete' },
+  CREATE_DEPARTMENT: { module: 'DEPARTMENTS', action: 'create' },
+  READ_DEPARTMENT: { module: 'DEPARTMENTS', action: 'view' },
+  UPDATE_DEPARTMENT: { module: 'DEPARTMENTS', action: 'update' },
+  DELETE_DEPARTMENT: { module: 'DEPARTMENTS', action: 'delete' },
+  VIEW_ANALYTICS: { module: 'ANALYTICS', action: 'view' },
+  EXPORT_DATA: { module: 'ANALYTICS', action: 'export' },
+  CONFIGURE_CHATBOT: { module: 'FLOW_BUILDER', action: 'view' },
+  MANAGE_SETTINGS: { module: 'SETTINGS', action: 'update' },
+  VIEW_AUDIT_LOGS: { module: 'SETTINGS', action: 'view_audit' },
+  EXPORT_ALL_DATA: { module: 'ANALYTICS', action: 'export' },
+  IMPORT_DATA: { module: 'SETTINGS', action: 'update' }
+};
+
+const normalizePermissionArgs = (module: string, action?: string) => {
+  if (action && !LEGACY_PERMISSIONS[module]) {
+    return [{ module, action }];
+  }
+
+  const rawArgs = [module, action].filter((value): value is string => Boolean(value));
+  return rawArgs
+    .map((value) => LEGACY_PERMISSIONS[value] || (value.includes(':') ? {
+      module: value.split(':')[0],
+      action: value.split(':')[1]
+    } : null))
+    .filter((value): value is { module: string; action: string } => Boolean(value));
 };
 
 export const requireRole = (...roles: string[]) => {
@@ -57,68 +62,48 @@ export const requireRole = (...roles: string[]) => {
   };
 };
 
-export const requirePermission = (...permissions: string[]) => {
-  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    if (!req.user) {
+export const requirePermission = (module: string, action?: string) => {
+  const requiredChecks = normalizePermissionArgs(module, action);
+
+  return (req: Request, res: Response, next: NextFunction): void => {
+    if (!req.user || !req.auth) {
       res.status(401).json({ success: false, message: 'Authentication required.' });
       return;
     }
 
-    // Attach a helper function to the request to check permissions dynamically
-    const user = req.user as any;
-    
-    // 1. SuperAdmin bypass
-    if (user.role?.toUpperCase() === UserRole.SUPER_ADMIN) {
+    if (req.auth.isSuperAdmin) {
       req.checkPermission = () => true;
       next();
       return;
     }
 
-    // 2. Dynamic Permission Check
-    // We'll cache the role metadata on the request to avoid multiple lookups in the same request
-    if (!req.resolvedRole) {
-      let roleToFind = user.customRoleId;
-      
-      if (!roleToFind && user.role && user.companyId) {
-        try {
-          const systemRole = await Role.findOne({ 
-            companyId: user.companyId, 
-            $or: [
-              { key: user.role.toUpperCase() },
-              { name: { $regex: new RegExp(`^${user.role.replace(/_/g, ' ')}$`, 'i') } }
-            ]
-          });
-          if (systemRole) roleToFind = systemRole._id;
-        } catch (e) {
-          console.warn('Fallback role lookup failed:', e);
-        }
+    req.checkPermission = (permission: string) => {
+      const legacyCheck = LEGACY_PERMISSIONS[permission] || (permission.includes(':') ? {
+        module: permission.split(':')[0],
+        action: permission.split(':')[1]
+      } : null);
+
+      if (!legacyCheck) {
+        return false;
       }
 
-      if (roleToFind) {
-        req.resolvedRole = await Role.findById(roleToFind);
-      }
-    }
-
-    const checkPerm = (p: string): boolean => {
-      if (!req.resolvedRole) return false;
-      
-      const mapped = LEGACY_PERMISSIONS[p] || (p.includes(':') ? { module: p.split(':')[0], action: p.split(':')[1] } : null);
-      if (!mapped) return false;
-
-      const modPerm = req.resolvedRole.permissions.find((perm: any) => perm.module === mapped.module);
-      if (!modPerm) return false;
-
-      return modPerm.actions.includes(mapped.action) || 
-             modPerm.actions.includes('manage') || 
-             modPerm.actions.includes('all');
+      return permissionAllows(req.auth!.filteredPermissions, legacyCheck.module, legacyCheck.action);
     };
 
-    req.checkPermission = checkPerm;
+    const isAllowed = requiredChecks.some((check) => (
+      permissionAllows(req.auth!.filteredPermissions, check.module, check.action)
+    ));
 
-    const authorized = permissions.some(p => checkPerm(p));
-
-    if (authorized) {
+    if (isAllowed) {
       next();
+      return;
+    }
+
+    if (requiredChecks.length === 1 && action && !LEGACY_PERMISSIONS[module]) {
+      res.status(403).json({
+        success: false,
+        message: `Insufficient permissions for ${module}:${action}`
+      });
       return;
     }
 
@@ -129,7 +114,6 @@ export const requirePermission = (...permissions: string[]) => {
   };
 };
 
-// Add checkPermission to Request interface
 declare global {
   namespace Express {
     interface Request {
@@ -140,40 +124,35 @@ declare global {
 }
 
 export const requireSuperAdmin = (req: Request, res: Response, next: NextFunction) => {
-  const userRole = req.user?.role?.toUpperCase();
-  if (userRole !== UserRole.SUPER_ADMIN) {
+  if (!req.auth?.isSuperAdmin) {
     return res.status(403).json({ success: false, message: 'SuperAdmin access required.' });
   }
   next();
 };
 
 export const requireCompanyAccess = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.user) return res.status(401).json({ success: false, message: 'Auth required.' });
-  if (req.user.role === UserRole.SUPER_ADMIN) return next();
+  if (!req.user || !req.auth) return res.status(401).json({ success: false, message: 'Auth required.' });
+  if (req.auth.isSuperAdmin) return next();
 
   const companyId = req.params.companyId || req.body.companyId;
-  if (req.user.companyId?.toString() !== companyId) {
+  if (req.auth.companyId !== companyId) {
     return res.status(403).json({ success: false, message: 'Access denied to this company.' });
   }
   next();
 };
 
 export const requireDepartmentAccess = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.user) return res.status(401).json({ success: false, message: 'Auth required.' });
-  
-  // SuperAdmin bypass
-  if (req.user.role?.toUpperCase() === UserRole.SUPER_ADMIN) return next();
+  if (!req.user || !req.auth) return res.status(401).json({ success: false, message: 'Auth required.' });
+  if (req.auth.isSuperAdmin) return next();
+  if (!req.auth.departmentId && req.auth.companyId) return next();
 
-  // If the user has no department assigned, we assume they are at the Company level
-  // and have access to all departments in their company.
-  if (!req.user.departmentId && req.user.companyId) {
-    return next();
-  }
-
-  // Otherwise, restrict to their assigned department
   const departmentId = req.params.departmentId || req.body.departmentId || req.query.departmentId;
-  if (req.user.departmentId?.toString() !== departmentId?.toString()) {
+  if (req.auth.departmentId !== departmentId?.toString()) {
     return res.status(403).json({ success: false, message: 'Access denied to this department.' });
   }
   next();
 };
+
+export const requirePlatformOrLegacySuperAdmin = (req: Request) => (
+  req.auth?.isSuperAdmin || req.user?.role?.toUpperCase() === UserRole.SUPER_ADMIN
+);

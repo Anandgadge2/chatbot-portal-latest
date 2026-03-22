@@ -679,9 +679,11 @@ export async function notifyUserOnAssignment(
           `*${fullData.companyName}*\n` +
           `Digital Grievance Redressal System`;
       }
-      await safeSendWhatsApp(company, user.phone, message);
-      if (data.evidenceUrls && data.evidenceUrls.length > 0) {
-        await sendMediaIfAvailable(company, user.phone, data.evidenceUrls, `Files for Assignment: ${fullData.grievanceId || fullData.appointmentId}`);
+      if (user.phone) {
+        await safeSendWhatsApp(company, user.phone, message);
+        if (data.evidenceUrls && data.evidenceUrls.length > 0) {
+          await sendMediaIfAvailable(company, user.phone, data.evidenceUrls, `Files for Assignment: ${fullData.grievanceId || fullData.appointmentId}`);
+        }
       }
     }
 
@@ -1087,7 +1089,7 @@ export async function notifyHierarchyOnStatusChange(
         const tasks: Promise<any>[] = [];
 
         // 📱 WhatsApp
-        if (canNotify(company, user, 'whatsapp')) {
+        if (user.phone && canNotify(company, user, 'whatsapp')) {
           tasks.push(safeSendWhatsApp(company, user.phone, hierarchyMessage));
           if (data.evidenceUrls && data.evidenceUrls.length > 0) {
             tasks.push(sendMediaIfAvailable(company, user.phone, data.evidenceUrls, `Hierarchy Update: ${fullData.grievanceId || fullData.appointmentId}`));
