@@ -7,6 +7,7 @@ import { requirePermission } from '../middleware/rbac';
 import { requireDatabaseConnection } from '../middleware/dbConnection';
 import { logUserAction } from '../utils/auditLogger';
 import { AuditAction, Permission, UserRole, GrievanceStatus } from '../config/constants';
+import { scopeToUser } from '../utils/accessControl';
 
 const router = express.Router();
 
@@ -29,8 +30,7 @@ router.get('/', requirePermission(Permission.READ_GRIEVANCE), async (req: Reques
       // SuperAdmin can see all grievances, but can filter by companyId if provided
       if (companyId) query.companyId = companyId;
     } else {
-      // All other users are scoped by their company
-      query.companyId = currentUser.companyId;
+      Object.assign(query, scopeToUser(req));
 
       if (currentUser.departmentId) {
         // Dynamic check: If they don't have assignment permission, they can only see their own assigned grievances

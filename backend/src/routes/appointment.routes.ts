@@ -6,6 +6,7 @@ import { requirePermission } from '../middleware/rbac';
 import { requireDatabaseConnection } from '../middleware/dbConnection';
 import { logUserAction } from '../utils/auditLogger';
 import { AuditAction, Permission, UserRole, AppointmentStatus } from '../config/constants';
+import { scopeToUser } from '../utils/accessControl';
 
 const router = express.Router();
 
@@ -28,8 +29,7 @@ router.get('/', requirePermission(Permission.READ_APPOINTMENT), async (req: Requ
       // SuperAdmin can see all appointments, but can filter by companyId if provided
       if (companyId) query.companyId = companyId;
     } else {
-      // All other roles are scoped by their company
-      query.companyId = currentUser.companyId;
+      Object.assign(query, scopeToUser(req));
 
       if (currentUser.departmentId) {
         // Dynamic check: Users without status change permission (like basic Operators) only see their own items

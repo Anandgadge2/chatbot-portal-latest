@@ -5,6 +5,7 @@ import { requirePermission } from '../middleware/rbac';
 import { requireDatabaseConnection } from '../middleware/dbConnection';
 import { logUserAction } from '../utils/auditLogger';
 import { AuditAction, Permission, UserRole } from '../config/constants';
+import { scopeToUser } from '../utils/accessControl';
 
 const router = express.Router();
 
@@ -26,8 +27,7 @@ router.get('/', requirePermission(Permission.READ_DEPARTMENT), async (req: Reque
     if (user.isSuperAdmin) {
       if (companyId) query.companyId = companyId;
     } else {
-      // All other users are scoped by their company
-      query.companyId = user.companyId;
+      Object.assign(query, scopeToUser(req));
 
       // If restricted to a department, only show that department
       if (user.departmentId) {

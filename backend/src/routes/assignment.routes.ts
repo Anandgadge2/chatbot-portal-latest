@@ -8,6 +8,7 @@ import Appointment from '../models/Appointment';
 import User from '../models/User';
 import { logUserAction } from '../utils/auditLogger';
 import { AuditAction } from '../config/constants';
+import { scopeToUser } from '../utils/accessControl';
 
 const router = express.Router();
 
@@ -425,7 +426,7 @@ router.get('/users/available', async (req: Request, res: Response) => {
     if (currentUser.isSuperAdmin) {
       // SuperAdmin can see anyone
     } else {
-      query.companyId = currentUser.companyId;
+      Object.assign(query, scopeToUser(req));
       if (currentUser.departmentId) {
         query.departmentId = currentUser.departmentId;
       }
