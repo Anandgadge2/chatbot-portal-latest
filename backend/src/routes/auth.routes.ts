@@ -1,14 +1,106 @@
 import express, { Request, Response } from 'express';
 import User from '../models/User';
-import Role from '../models/Role';
 import { generateToken, generateRefreshToken } from '../utils/jwt';
 import { logUserAction } from '../utils/auditLogger';
 import { AuditAction } from '../config/constants';
-import mongoose from 'mongoose';
 import { authenticate } from '../middleware/auth';
-
+import { clearLoginRateLimit, loginRateLimiter } from '../middleware/rateLimiter';
+import { getAccessValidationError, resolveAccessContext } from '../utils/accessControl';
 
 const router = express.Router();
+
+const logLoginFailure = (req: Request, userId: string | undefined, reason: string) => {
+  console.warn('LOGIN_FAIL', { requestId: req.requestId, userId, reason });
+};
+
+const toObjectIdString = (value: any): string | undefined => {
+  if (!value) return undefined;
+  if (typeof value === 'string') return value;
+  if (value._id) return String(value._id);
+  if (typeof value.toString === 'function') return value.toString();
+  return undefined;
+};
+
+const buildUserResponse = (user: any, accessContext: Awaited<ReturnType<typeof resolveAccessContext>>, loginType?: 'SSO' | 'PASSWORD') => ({
+  id: user._id,
+  userId: user.userId,
+  firstName: user.firstName,
+  lastName: user.lastName,
+  email: user.email,
+  phone: user.phone,
+  role: (user.isSuperAdmin || user.role === 'SUPER_ADMIN') ? 'SUPER_ADMIN' : accessContext.role?.name,
+  companyId: user.companyId?._id || user.companyId,
+  departmentId: user.departmentId,
+  subDepartmentId: user.subDepartmentId,
+  enabledModules: accessContext.company?.enabledModules || [],
+  isActive: user.isActive,
+  ...(loginType ? { loginType } : {}),
+  customRoleId: user.customRoleId,
+  isSuperAdmin: user.isSuperAdmin || user.role === 'SUPER_ADMIN',
+  permissions: accessContext.filteredPermissions,
+  notificationSettings: user.notificationSettings
+});
+
+const buildTokenPayload = (user: any, accessContext: Awaited<ReturnType<typeof resolveAccessContext>>) => ({
+  userId: user._id.toString(),
+  phone: user.phone,
+  email: user.email,
+  isSuperAdmin: user.isSuperAdmin || user.role === 'SUPER_ADMIN',
+  companyId: toObjectIdString(user.companyId),
+  departmentId: toObjectIdString(user.departmentId),
+  subDepartmentId: toObjectIdString(user.subDepartmentId),
+  roleId: accessContext.role?._id?.toString(),
+  level: accessContext.level,
+  scope: accessContext.scope,
+  filteredPermissions: accessContext.filteredPermissions,
+  permissionsVersion: accessContext.company?.permissionsVersion
+});
+
+const completeLogin = async (
+  req: Request,
+  res: Response,
+  user: any,
+  loginType: 'SSO' | 'PASSWORD',
+  successMessage: string
+) => {
+  user.isSuperAdmin = user.isSuperAdmin || user.role === 'SUPER_ADMIN';
+  const accessContext = await resolveAccessContext(user);
+
+  const accessError = getAccessValidationError(user, accessContext);
+  if (accessError) {
+    logLoginFailure(req, user?._id?.toString(), accessError.message.toUpperCase().replace(/[^A-Z0-9]+/g, '_'));
+    return res.status(accessError.statusCode).json({ success: false, message: accessError.message });
+  }
+
+  user.lastLogin = new Date();
+  await user.save();
+
+  const tokenPayload = buildTokenPayload(user, accessContext);
+  if (loginType === 'PASSWORD') {
+    await clearLoginRateLimit(req);
+  }
+
+  const accessToken = generateToken(tokenPayload as any);
+  const refreshToken = generateRefreshToken(tokenPayload as any);
+
+  await logUserAction(
+    { user, ip: req.ip, get: req.get.bind(req) } as any,
+    AuditAction.LOGIN,
+    'User',
+    user._id.toString(),
+    { loginMethod: loginType }
+  );
+
+  return res.json({
+    success: true,
+    message: successMessage,
+    data: {
+      user: buildUserResponse(user, accessContext, loginType),
+      accessToken,
+      refreshToken
+    }
+  });
+};
 
 // @route   POST /api/auth/sso/login
 // @desc    SSO Login from main dashboard (SSO Token Required - SECURE)
@@ -17,376 +109,112 @@ router.post('/sso/login', async (req: Request, res: Response) => {
   try {
     const ssoToken = req.body.ssoToken || req.body.token;
 
-    // SECURITY: Require SSO token - NEVER accept phone directly
     if (!ssoToken) {
-      console.log('❌ SSO login attempted without token');
-      res.status(400).json({
-        success: false,
-        message: 'SSO token is required'
-      });
+      res.status(400).json({ success: false, message: 'SSO token is required' });
       return;
     }
 
-    console.log('🔐 SSO Login attempt with token');
-
-    // Get SSO secret from environment
     const ssoSecret = process.env.JWT_SECRET;
-    console.log('JWT_SECRET:', ssoSecret);
     if (!ssoSecret) {
-      console.error('❌ SSO_SECRET not configured');
-      
-      res.status(500).json({
-        success: false,
-        message: 'SSO authentication not configured'
-      });
+      res.status(500).json({ success: false, message: 'SSO authentication not configured' });
       return;
     }
 
     const jwt = await import('jsonwebtoken');
-    
-    // STEP 1: Verify SSO token signature and expiry
+
     let decoded: any;
     try {
       decoded = jwt.verify(ssoToken, ssoSecret);
-      console.log('✅ SSO token verified:', { phone: decoded.phone, source: decoded.source });
     } catch (err: any) {
-      console.error('❌ SSO token verification failed:', err.message);
-      
       if (err.name === 'TokenExpiredError') {
-        res.status(401).json({
-          success: false,
-          message: 'SSO token expired. Please login again from main dashboard.'
-        });
+        res.status(401).json({ success: false, message: 'SSO token expired. Please login again from main dashboard.' });
         return;
       }
-      
-      res.status(401).json({
-        success: false,
-        message: 'Invalid SSO token'
-      });
+
+      res.status(401).json({ success: false, message: 'Invalid SSO token' });
       return;
     }
 
-    // STEP 2: Validate token source (must come from MAIN_DASHBOARD)
-    // if (decoded.source !== 'MAIN_DASHBOARD') {
-    //   console.error('❌ Invalid SSO token source:', decoded.source);
-    //   res.status(401).json({
-    //     success: false,
-    //     message: 'Invalid SSO token source'
-    //   });
-    //   return;
-    // }
-
-    // STEP 3: Extract phone from verified token (NOT from request body)
     const { phone } = decoded;
-    
     if (!phone) {
-      console.error('❌ No phone number in SSO token payload');
-      res.status(400).json({
-        success: false,
-        message: 'Invalid SSO token payload'
-      });
+      res.status(400).json({ success: false, message: 'Invalid SSO token payload' });
       return;
     }
 
-    console.log('📱 SSO Login for verified phone:', phone);
-
-    // STEP 4: Find user in database
-    const user = await User.findOne({ 
-      phone
-    }).populate('companyId');
-
+    const user = await User.findOne({ phone }).populate('companyId');
     if (!user) {
-      console.log('❌ User not found for phone:', phone);
-      res.status(404).json({
-        success: false,
-        message: 'No account found with this phone number'
-      });
+      logLoginFailure(req, undefined, 'USER_NOT_FOUND');
+      res.status(404).json({ success: false, message: 'No account found with this phone number' });
       return;
     }
 
-    // STEP 5: Check if user is active
     if (!user.isActive) {
-      console.log('❌ User account is inactive:', phone);
-      res.status(403).json({
-        success: false,
-        message: 'Your account is inactive. Please contact administrator.'
-      });
+      logLoginFailure(req, user._id?.toString(), 'INACTIVE_USER');
+      res.status(403).json({ success: false, message: 'Your account is inactive. Please contact administrator.' });
       return;
     }
 
-    console.log('✅ SSO authentication successful for:', phone);
-    
-    // STEP 6: Update last login
-    user.lastLogin = new Date();
-    await user.save();
-
-    // STEP 7: Generate NEW session tokens (DO NOT reuse SSO token)
-    const sessionPayload = {
-      userId: user._id.toString(),
-      phone: user.phone,
-      email: user.email,
-      role: user.role || 'CUSTOM',
-      companyId: user.companyId instanceof mongoose.Types.ObjectId 
-        ? user.companyId.toString() 
-        : (user.companyId as any)?._id?.toString() || (user.companyId as any)?.toString(),
-      departmentId: user.departmentId instanceof mongoose.Types.ObjectId
-        ? user.departmentId.toString()
-        : (user.departmentId as any)?._id?.toString() || (user.departmentId as any)?.toString(),
-      loginType: 'SSO' // Track login method
-    };
-
-    const accessToken = generateToken(sessionPayload);
-    const refreshToken = generateRefreshToken(sessionPayload);
-
-    // STEP 8: Audit log with SSO login type
-    await logUserAction(
-      { user, ip: req.ip, get: req.get.bind(req) } as any,
-      AuditAction.LOGIN,
-      'User',
-      user._id.toString(),
-      { loginMethod: 'SSO', source: 'MAIN_DASHBOARD' }
-    );
-
-    console.log('✅ SSO login completed for:', user.userId);
-
-    // Fetch permissions for the user's role
-    let permissions: any[] = [];
-    if (user.customRoleId) {
-      const roleDoc = await Role.findById(user.customRoleId);
-      if (roleDoc) permissions = roleDoc.permissions;
-    } else if (user.companyId) {
-      const companyId = user.companyId instanceof mongoose.Types.ObjectId ? user.companyId : (user.companyId as any)._id;
-      const roleKey = (user.role || 'CUSTOM').toUpperCase();
-      
-      // Try finding by key first
-      let systemRole = await Role.findOne({ companyId, key: roleKey });
-      
-      // Fallback: search by name if it's a standard role but key is missing
-      if (!systemRole && roleKey !== 'CUSTOM') {
-        const humanizedName = roleKey.replace(/_/g, ' ')
-                                   .toLowerCase()
-                                   .split(' ')
-                                   .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                                   .join(' ');
-        
-        systemRole = await Role.findOne({ 
-          companyId, 
-          name: new RegExp(`^${humanizedName}$`, 'i') 
-        });
-      }
-      
-      if (systemRole) permissions = systemRole.permissions;
-    }
-
-    res.json({
-      success: true,
-      message: 'SSO login successful',
-      data: {
-        user: {
-          id: user._id,
-          userId: user.userId,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-          phone: user.phone,
-          role: user.role,
-          companyId: user.companyId?._id || user.companyId,
-          departmentId: user.departmentId,
-          enabledModules: (user.companyId as any)?.enabledModules || [],
-          isActive: user.isActive,
-          loginType: 'SSO',
-          customRoleId: user.customRoleId,
-          permissions: permissions,
-          notificationSettings: user.notificationSettings
-        },
-        accessToken,
-        refreshToken
-      }
-    });
-
+    await completeLogin(req, res, user, 'SSO', 'SSO login successful');
   } catch (error: any) {
     console.error('❌ SSO login error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'SSO login failed',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'SSO login failed' });
   }
 });
-  
+
 // @route   POST /api/auth/login
 // @desc    Login user with phone and password
 // @access  Public
-router.post('/login', async (req: Request, res: Response) => {
+router.post('/login', loginRateLimiter, async (req: Request, res: Response) => {
   try {
-    const { phone, email, password } = req.body;
+    const { phone, password } = req.body;
+    const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : undefined;
 
-    // Validation - require either phone or email, plus password
     if ((!phone && !email) || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Phone number or email and password are required'
-      });
+      return res.status(400).json({ success: false, message: 'Phone number or email and password are required' });
     }
 
-    // Validate password length
-    if (password && password.length < 6) {
-      return res.status(400).json({
-        success: false,
-        message: 'Password must be at least 6 characters'
-      });
+    if (password.length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
     }
 
-    // Validate and normalize phone number if provided (add 91 prefix if 10 digits)
     let normalizedPhone = phone;
     if (phone && phone.trim()) {
       const { validatePhoneNumber, normalizePhoneNumber } = await import('../utils/phoneUtils');
       const phoneTrimmed = phone.trim();
       if (!validatePhoneNumber(phoneTrimmed)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Phone number must be 10 digits or 12 digits (with country code)'
-        });
+        return res.status(400).json({ success: false, message: 'Phone number must be 10 digits or 12 digits (with country code)' });
       }
       normalizedPhone = normalizePhoneNumber(phoneTrimmed);
     }
 
-    console.log('🔐 Login attempt for:', normalizedPhone || email);
-
-    // Find user by phone or email (exclude soft-deleted)
-    const query: any = {};
-    if (email) {
-      query.email = email;
-    } else {
-      query.phone = normalizedPhone;
-    }
-
-    const user = await User.findOne(query).select('+password').populate('companyId'); // IMPORTANT
+    const query: any = email ? { email } : { phone: normalizedPhone };
+    const user = await User.findOne(query).select('+password').populate('companyId');
 
     if (!user) {
-      console.log('❌ User not found for:', phone || email);
+      logLoginFailure(req, undefined, 'USER_NOT_FOUND');
       return res.status(401).json({
         success: false,
-        message: email 
+        message: email
           ? 'Email is incorrect. Please check and try again.'
           : 'Phone number is incorrect. Please check and try again.'
       });
     }
 
-    // Check active
     if (!user.isActive) {
-      return res.status(403).json({
-        success: false,
-        message: 'Your account is inactive. Contact administrator.'
-      });
+      logLoginFailure(req, user._id?.toString(), 'INACTIVE_USER');
+      return res.status(403).json({ success: false, message: 'Your account is inactive. Contact administrator.' });
     }
 
-    // Verify password using User model method
     const isPasswordValid = await user.comparePassword(password);
-
     if (!isPasswordValid) {
-      console.log('❌ Invalid password for:', phone);
-      return res.status(401).json({
-        success: false,
-        message: 'Password is incorrect. Please check and try again.'
-      });
+      logLoginFailure(req, user._id?.toString(), 'INVALID_PASSWORD');
+      return res.status(401).json({ success: false, message: 'Password is incorrect. Please check and try again.' });
     }
 
-    console.log('✅ Password verified. Login successful for:', phone);
-
-    // Update last login
-    user.lastLogin = new Date();
-    await user.save();
-
-    // Token payload
-    const tokenPayload = {
-      userId: user._id.toString(),
-      phone: user.phone,
-      email: user.email,
-      role: user.role || 'CUSTOM',
-      companyId: user.companyId instanceof mongoose.Types.ObjectId 
-        ? user.companyId.toString() 
-        : (user.companyId as any)?._id?.toString() || (user.companyId as any)?.toString(),
-      departmentId: user.departmentId instanceof mongoose.Types.ObjectId
-        ? user.departmentId.toString()
-        : (user.departmentId as any)?._id?.toString() || (user.departmentId as any)?.toString(),
-      loginType: 'PASSWORD' // Track login method
-    };
-
-    const accessToken = generateToken(tokenPayload);
-    const refreshToken = generateRefreshToken(tokenPayload);
-
-    // Audit log
-    await logUserAction(
-      { user, ip: req.ip, get: req.get.bind(req) } as any,
-      AuditAction.LOGIN,
-      'User',
-      user._id.toString(),
-      { loginMethod: 'PASSWORD' }
-    );
-
-    // Fetch permissions for the user's role
-    let permissions: any[] = [];
-    if (user.customRoleId) {
-      const roleDoc = await Role.findById(user.customRoleId);
-      if (roleDoc) permissions = roleDoc.permissions;
-    } else if (user.companyId) {
-      const companyId = user.companyId instanceof mongoose.Types.ObjectId ? user.companyId : (user.companyId as any)._id;
-      const roleKey = (user.role || 'CUSTOM').toUpperCase();
-      
-      // Try finding by key first
-      let systemRole = await Role.findOne({ companyId, key: roleKey });
-      
-      // Fallback: search by name if it's a standard role but key is missing
-      if (!systemRole && roleKey !== 'CUSTOM') {
-        const humanizedName = roleKey.replace(/_/g, ' ')
-                                   .toLowerCase()
-                                   .split(' ')
-                                   .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
-                                   .join(' ');
-        
-        systemRole = await Role.findOne({ 
-          companyId, 
-          name: new RegExp(`^${humanizedName}$`, 'i') 
-        });
-      }
-      
-      if (systemRole) permissions = systemRole.permissions;
-    }
-
-    return res.json({
-      success: true,
-      message: 'Login successful',
-      data: {
-        user: {
-          id: user._id,
-          userId: user.userId,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-          phone: user.phone,
-          role: user.role,
-          companyId: user.companyId?._id || user.companyId,
-          departmentId: user.departmentId,
-          enabledModules: (user.companyId as any)?.enabledModules || [],
-          isActive: user.isActive,
-          loginType: 'PASSWORD',
-          customRoleId: user.customRoleId,
-          permissions: permissions,
-          notificationSettings: user.notificationSettings
-        },
-        accessToken,
-        refreshToken
-      }
-    });
-
+    return completeLogin(req, res, user, 'PASSWORD', 'Login successful');
   } catch (error: any) {
     console.error('❌ Login error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Login failed'
-    });
+    return res.status(500).json({ success: false, message: 'Login failed' });
   }
 });
 
@@ -405,61 +233,18 @@ router.get('/me', authenticate, async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // Fetch permissions for the user's role
-    let permissions: any[] = [];
-    if (user.customRoleId) {
-      const roleDoc = await Role.findById(user.customRoleId);
-      if (roleDoc) permissions = roleDoc.permissions;
-    } else if (user.companyId) {
-      const companyId = user.companyId instanceof mongoose.Types.ObjectId ? user.companyId : (user.companyId as any)._id;
-      const roleKey = (user.role || 'CUSTOM').toUpperCase();
-      
-      // Try finding by key first
-      let systemRole = await Role.findOne({ companyId, key: roleKey });
-      
-      // Fallback: search by name if it's a standard role but key is missing
-      if (!systemRole && roleKey !== 'CUSTOM') {
-        const humanizedName = roleKey.replace(/_/g, ' ')
-                                   .toLowerCase()
-                                   .split(' ')
-                                   .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
-                                   .join(' ');
-        
-        systemRole = await Role.findOne({ 
-          companyId, 
-          name: new RegExp(`^${humanizedName}$`, 'i') 
-        });
-      }
-      
-      if (systemRole) permissions = systemRole.permissions;
-    }
+    const accessContext = await resolveAccessContext(user);
 
     res.json({
       success: true,
       data: {
-        user: {
-          id: user._id,
-          userId: user.userId,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-          phone: user.phone,
-          role: user.role,
-          companyId: user.companyId?._id || user.companyId,
-          departmentId: user.departmentId,
-          enabledModules: (user.companyId as any)?.enabledModules || [],
-          isActive: user.isActive,
-          customRoleId: user.customRoleId,
-          permissions: permissions,
-          notificationSettings: user.notificationSettings
-        }
+        user: buildUserResponse(user, accessContext)
       }
     });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
-
 
 // @route   POST /api/auth/register
 // @desc    Register new user (Admin only)

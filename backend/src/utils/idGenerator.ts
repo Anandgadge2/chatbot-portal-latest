@@ -1,6 +1,30 @@
 import mongoose from 'mongoose';
 import Counter from '../models/Counter';
 
+
+export async function getNextCompanyId(): Promise<string> {
+  const result = await Counter.findOneAndUpdate(
+    { name: 'company', companyId: { $exists: false } },
+    { $inc: { value: 1 } },
+    { upsert: true, new: true }
+  );
+
+  return `CMP${String(result.value).padStart(6, '0')}`;
+}
+
+export async function getNextRoleId(companyId?: mongoose.Types.ObjectId): Promise<string> {
+  const query = companyId
+    ? { name: 'role', companyId }
+    : { name: 'role', companyId: { $exists: false } };
+
+  const result = await Counter.findOneAndUpdate(
+    query,
+    { $inc: { value: 1 } },
+    { upsert: true, new: true }
+  );
+
+  return `ROLE${String(result.value).padStart(4, '0')}`;
+}
 /**
  * Atomically generate the next sequential ID for grievances (per-company)
  */

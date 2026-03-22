@@ -1,6 +1,20 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+
+export class APIClientError extends Error {
+  status?: number;
+  data?: any;
+  response?: { status?: number; data?: any };
+
+  constructor(message: string, status?: number, data?: any) {
+    super(message);
+    this.name = 'APIClientError';
+    this.status = status;
+    this.data = data;
+    this.response = { status, data };
+  }
+}
 
 class APIClient {
   private client: AxiosInstance;
@@ -15,15 +29,13 @@ class APIClient {
       },
     });
 
-    // Request interceptor
     this.client.interceptors.request.use(
       (config) => {
         const token = this.getToken();
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
-        
-        // Emit request log
+
         this.emitLog({
           type: 'info',
           source: 'API_REQ',
@@ -40,14 +52,12 @@ class APIClient {
           message: `Request failed: ${error.message}`,
           timestamp: new Date().toISOString()
         });
-        return Promise.reject(error);
+        return Promise.reject(this.normalizeError(error));
       }
     );
 
-    // Response interceptor
     this.client.interceptors.response.use(
       (response) => {
-        // Emit success log
         this.emitLog({
           type: 'success',
           source: 'API_RES',
@@ -57,22 +67,23 @@ class APIClient {
         return response;
       },
       (error) => {
-        const status = error.response?.status || 'ERR';
+        const normalizedError = this.normalizeError(error);
+        const status = normalizedError.status || 'ERR';
         const method = error.config?.method?.toUpperCase() || '???';
         const url = error.config?.url || '???';
 
         this.emitLog({
           type: 'error',
           source: 'API_RES',
-          message: `${method} ${url} ${status} - ${error.response?.data?.message || error.message}`,
+          message: `${method} ${url} ${status} - ${normalizedError.message}`,
           timestamp: new Date().toISOString()
         });
 
-        if (error.response?.status === 401) {
+        if (normalizedError.status === 401) {
           const currentToken = this.getToken();
-          const isLoginRequest = error.config?.url?.includes('/auth/login') || 
-                                 error.config?.url?.includes('/auth/sso');
-          
+          const isLoginRequest = error.config?.url?.includes('/auth/login') ||
+            error.config?.url?.includes('/auth/sso');
+
           if (currentToken && !isLoginRequest) {
             this.removeToken();
             if (typeof window !== 'undefined') {
@@ -80,12 +91,34 @@ class APIClient {
             }
           }
         }
-        return Promise.reject(error);
+
+        if (normalizedError.status === 403) {
+          this.emitLog({
+            type: 'warning',
+            source: 'API_RES',
+            message: `${method} ${url} 403 - Permission denied`,
+            timestamp: new Date().toISOString()
+          });
+        }
+
+        return Promise.reject(normalizedError);
       }
     );
   }
 
-  // Log Subscription System
+  private normalizeError(error: AxiosError | Error | any): APIClientError {
+    if (axios.isAxiosError(error)) {
+      const message = error.response?.data?.message || error.message || 'Request failed';
+      return new APIClientError(message, error.response?.status, error.response?.data);
+    }
+
+    if (error instanceof APIClientError) {
+      return error;
+    }
+
+    return new APIClientError(error?.message || 'Request failed');
+  }
+
   private emitLog(log: any) {
     this.listeners.forEach(cb => cb(log));
   }

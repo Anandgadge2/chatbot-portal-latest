@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import 'express-async-errors';
+import { randomUUID } from 'crypto';
 
 // Load environment variables
 dotenv.config();
@@ -46,17 +47,30 @@ import { tenantLimiter } from './middleware/rateLimiter';
 
 
 
+declare global {
+  namespace Express {
+    interface Request {
+      requestId?: string;
+    }
+  }
+}
+
 const app: Application = express();
 const PORT = process.env.PORT || 5001;
 
 // Trust proxy (required when behind Vercel/nginx; fixes express-rate-limit X-Forwarded-For validation)
 app.set('trust proxy', 1);
 
+app.use((req, _res, next) => {
+  req.requestId = randomUUID();
+  next();
+});
+
 // Custom logging middleware to see ALL traffic
 app.use((req, res, next) => {
-  logger.info(`🌐 Incoming Request: ${req.method} ${req.url}`);
+  logger.info(`🌐 Incoming Request: ${req.method} ${req.url}`, { requestId: req.requestId });
   if (req.method === 'POST') {
-    logger.info(`📦 Headers: ${JSON.stringify(req.headers)}`);
+    logger.info(`📦 Headers: ${JSON.stringify(req.headers)}`, { requestId: req.requestId });
   }
   next();
 });

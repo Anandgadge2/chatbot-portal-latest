@@ -1,8 +1,9 @@
 import { Request, Response } from 'express';
 import Company from '../models/Company';
 import User from '../models/User';
-import { logUserAction } from '../utils/auditLogger';
+import { logRBACChange, logUserAction } from '../utils/auditLogger';
 import { AuditAction } from '../config/constants';
+import { invalidateCompanyRBACCache, seedDefaultRoles } from '../utils/accessControl';
 
 const ALLOWED_LANGUAGES = ['en', 'hi', 'or', 'mr'] as const;
 
@@ -43,32 +44,22 @@ export const list = async (req: Request, res: Response) => {
       .skip((Number(page) - 1) * Number(limit))
       .sort({ createdAt: -1 });
 
-    // Dynamically identify company administrators based on their permissions or role names
+    // Identify company administrators using superadmin flag and level-1 roles only
     const companyIds = companies.map(c => c._id);
     const Role = (await import('../models/Role')).default;
     const companyAdminRoles = await Role.find({
       companyId: { $in: companyIds },
-      $or: [
-        { name: { $regex: /admin|head|manager|supervisor|collector|official/i } },
-        { 
-          'permissions.module': { $in: ['SETTINGS', 'USER_MANAGEMENT', 'DEPARTMENTS'] },
-          'permissions.actions': { $in: ['update', 'all', 'manage'] }
-        }
-      ]
-    }).select('_id name');
+      level: 1
+    }).select('_id');
 
     const adminRoleIds = companyAdminRoles.map(r => r._id);
-    const adminRoleNames = companyAdminRoles.map(r => r.name);
 
     const admins = await User.find({
       companyId: { $in: companyIds },
       isActive: true,
-      $or: [
-        { customRoleId: { $in: adminRoleIds } },
-        { role: { $in: [...adminRoleNames, 'Admin', 'COMPANY_ADMIN', 'COMPANY_HEAD', 'HEAD'] } },
-        { role: { $regex: /admin|head/i } }
-      ]
-    }).select('firstName lastName email phone companyId role customRoleId').sort({ createdAt: 1 });
+      isSuperAdmin: false,
+      customRoleId: { $in: adminRoleIds }
+    }).select('firstName lastName email phone companyId customRoleId').sort({ createdAt: 1 });
 
     const companiesWithHead = companies.map(c => {
       const admin = admins.find(a => a.companyId?.toString() === c._id.toString());
@@ -198,8 +189,11 @@ export const create = async (req: Request, res: Response) => {
 
     console.log('Company created successfully:', company._id);
 
-    // Seeding logic removed per user request. 
-    // SuperAdmin will manually create roles for the company from the dashboard.
+    const actorId = req.user?._id;
+    const seededRoles = actorId
+      ? await seedDefaultRoles(company._id, actorId, company.enabledModules || [])
+      : [];
+    const defaultAdminRole = seededRoles.find((role) => role.level === 1) || null;
 
     // Create company admin if admin data is provided
     let adminUser: any = null;
@@ -207,22 +201,22 @@ export const create = async (req: Request, res: Response) => {
       console.log('Creating admin user for company:', admin.email);
 
       try {
-        // Create admin user (password will be hashed by pre-save hook)
         adminUser = await User.create({
           firstName: admin.firstName,
           lastName: admin.lastName,
           email: admin.email,
-          password: admin.password, // Pre-save hook will hash this
+          password: admin.password,
           phone: normalizedAdminPhone || normalizedContactPhone || undefined,
-          role: 'Admin', // General legacy fallback
           companyId: company._id,
-          isActive: true
+          isSuperAdmin: false,
+          customRoleId: defaultAdminRole?._id,
+          isActive: true,
+          createdBy: actorId
         });
 
         console.log('Admin user created successfully:', adminUser._id);
       } catch (userError: any) {
         console.error('Failed to create admin user:', userError);
-        // Don't fail the whole company creation if admin creation fails
         console.warn('Company created but admin user creation failed');
       }
     }
@@ -254,7 +248,7 @@ export const create = async (req: Request, res: Response) => {
           adminUser._id.toString(),
           { 
             email: adminUser.email,
-            role: adminUser.role,
+            customRoleId: adminUser.customRoleId,
             companyId: company._id
           }
         );
@@ -371,11 +365,32 @@ export const update = async (req: Request, res: Response) => {
       updateData.contactPhone = normalizeTelephone(updateData.contactPhone);
     }
 
-    const company = await Company.findByIdAndUpdate(
-      req.params.id,
-      updateData,
-      { new: true, runValidators: true }
-    );
+    const existingCompany = await Company.findById(req.params.id);
+
+    if (!existingCompany) {
+      return res.status(404).json({
+        success: false,
+        message: 'Company not found'
+      });
+    }
+
+    const modulesChanged = updateData.enabledModules !== undefined
+      && JSON.stringify([...(existingCompany.enabledModules || [])].sort()) !== JSON.stringify([...(updateData.enabledModules || [])].sort());
+
+    Object.assign(existingCompany, updateData);
+    if (modulesChanged) {
+      existingCompany.permissionsVersion = (existingCompany.permissionsVersion || 1) + 1;
+    }
+
+    const company = await existingCompany.save();
+
+    if (modulesChanged) {
+      await invalidateCompanyRBACCache(company._id);
+      await logRBACChange(req, 'MODULE_CHANGED', company._id.toString(), company._id.toString(), {
+        enabledModules: company.enabledModules,
+        permissionsVersion: company.permissionsVersion
+      });
+    }
 
     if (!company) {
       return res.status(404).json({

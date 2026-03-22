@@ -3,16 +3,19 @@ import { AuditAction } from '../config/constants';
 
 export interface IAuditLog extends Document {
   userId?: mongoose.Types.ObjectId;
-  // Removed: userEmail, userName - can be populated from userId reference
-  action: AuditAction;
-  resource: string; // e.g., 'Company', 'Grievance', 'User'
+  actorUserId?: string;
+  action: string;
+  resource: string;
   resourceId?: string;
+  targetId?: string;
   companyId?: mongoose.Types.ObjectId;
   departmentId?: mongoose.Types.ObjectId;
   details?: any;
+  changes?: any;
   ipAddress?: string;
   userAgent?: string;
   timestamp: Date;
+  createdAt?: Date;
 }
 
 const AuditLogSchema: Schema = new Schema(
@@ -22,10 +25,13 @@ const AuditLogSchema: Schema = new Schema(
       ref: 'User',
       index: true
     },
-    // Removed: userEmail, userName - can be populated from userId reference
+    actorUserId: {
+      type: String,
+      index: true
+    },
     action: {
       type: String,
-      enum: Object.values(AuditAction),
+      enum: [...Object.values(AuditAction), 'ROLE_CREATED', 'ROLE_UPDATED', 'ROLE_DELETED', 'MODULE_CHANGED'],
       required: true,
       index: true
     },
@@ -35,6 +41,10 @@ const AuditLogSchema: Schema = new Schema(
       index: true
     },
     resourceId: {
+      type: String,
+      index: true
+    },
+    targetId: {
       type: String,
       index: true
     },
@@ -51,6 +61,9 @@ const AuditLogSchema: Schema = new Schema(
     details: {
       type: Schema.Types.Mixed
     },
+    changes: {
+      type: Schema.Types.Mixed
+    },
     ipAddress: {
       type: String
     },
@@ -61,17 +74,22 @@ const AuditLogSchema: Schema = new Schema(
       type: Date,
       default: Date.now,
       index: true
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now,
+      index: true
     }
   },
   {
-    timestamps: false // Using custom timestamp field
+    timestamps: false
   }
 );
 
-// Compound indexes for common queries
 AuditLogSchema.index({ userId: 1, timestamp: -1 });
 AuditLogSchema.index({ companyId: 1, action: 1, timestamp: -1 });
 AuditLogSchema.index({ resource: 1, resourceId: 1, timestamp: -1 });
+AuditLogSchema.index({ createdAt: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 90 });
 
 const AuditLog: Model<IAuditLog> = mongoose.model<IAuditLog>('AuditLog', AuditLogSchema);
 
