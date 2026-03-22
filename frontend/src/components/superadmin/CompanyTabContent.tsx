@@ -41,6 +41,7 @@ interface CompanyTabContentProps {
   navigatingCompanyId: string | null;
   setShowCreateDialog: (val: boolean) => void;
   handleOpenCompanyDashboard: (id: string) => void;
+  prefetchCompanyDashboard?: (id: string) => void;
   handleEditCompany: (company: Company) => void;
   handleDeleteCompany: (company: Company) => void;
   toggleCompanyStatus: (company: Company) => void;
@@ -62,6 +63,7 @@ const CompanyTabContent: React.FC<CompanyTabContentProps> = ({
   navigatingCompanyId,
   setShowCreateDialog,
   handleOpenCompanyDashboard,
+  prefetchCompanyDashboard,
   handleEditCompany,
   handleDeleteCompany,
   toggleCompanyStatus,
@@ -321,8 +323,11 @@ const CompanyTabContent: React.FC<CompanyTabContentProps> = ({
                         </span>
                       </td>
                       <td className="px-5 py-4 whitespace-nowrap">
-                        <div
-                          className={`cursor-pointer ${navigatingCompanyId ? "pointer-events-none" : ""}`}
+                        <button
+                          type="button"
+                          className={`text-left ${navigatingCompanyId ? "pointer-events-none" : ""}`}
+                          onMouseEnter={() => prefetchCompanyDashboard?.(company._id)}
+                          onFocus={() => prefetchCompanyDashboard?.(company._id)}
                           onClick={() => handleOpenCompanyDashboard(company._id)}
                         >
                           <div className="text-sm font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-2">
@@ -334,7 +339,7 @@ const CompanyTabContent: React.FC<CompanyTabContentProps> = ({
                           <div className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-tighter">
                             Open company dashboard view
                           </div>
-                        </div>
+                        </button>
                       </td>
                       <td className="px-5 py-4 whitespace-nowrap">
                         <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded font-mono text-[10px] font-bold uppercase">

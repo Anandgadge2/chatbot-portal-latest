@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompanyContext } from "@/contexts/CompanyContext";
@@ -108,6 +108,10 @@ export default function CompanyDrillDown() {
   const [leadsTotal, setLeadsTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadingLeads, setLoadingLeads] = useState(false);
+  const [loadingDepartments, setLoadingDepartments] = useState(false);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [loadingGrievances, setLoadingGrievances] = useState(false);
+  const [loadingAppointments, setLoadingAppointments] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedGrievance, setSelectedGrievance] = useState<Grievance | null>(
     null,
@@ -136,32 +140,10 @@ export default function CompanyDrillDown() {
     direction: "asc" | "desc" | null;
   }>({ key: "", direction: null });
 
-  useEffect(() => {
-    if (user?.role !== "SUPER_ADMIN") {
-      router.push("/superadmin/dashboard");
-      return;
-    }
-    if (companyId) {
-      fetchData();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [companyId, user]);
-
-  const fetchData = async () => {
+  const fetchOverview = useCallback(async () => {
     setLoading(true);
     try {
-      const [
-        deptRes,
-        usersRes,
-        analyticsRes,
-      ] = await Promise.all([
-        departmentAPI.getAll({ companyId, limit: 25 }),
-        userAPI.getAll({ companyId, limit: 25 }),
-        apiClient.get(`/analytics/dashboard?companyId=${companyId}`),
-      ]);
-
-      if (deptRes.success) setDepartments(deptRes.data.departments || []);
-      if (usersRes.success) setUsers(usersRes.data.users || []);
+      const analyticsRes = await apiClient.get(`/analytics/dashboard?companyId=${companyId}`);
 
       if (analyticsRes.success) {
         const {
@@ -190,20 +172,6 @@ export default function CompanyDrillDown() {
           pendingGrievances: grievances?.pending || 0,
           resolvedGrievances: grievances?.resolved || 0,
         });
-      } else {
-        setStats({
-          totalUsers: usersRes.success
-            ? usersRes.data.pagination?.total || usersRes.data.users?.length
-            : 0,
-          totalDepartments: deptRes.success
-            ? deptRes.data.pagination?.total || deptRes.data.departments?.length
-            : 0,
-          totalGrievances: grievances.length,
-          totalAppointments: appointments.length,
-          activeUsers: 0,
-          pendingGrievances: 0,
-          resolvedGrievances: 0,
-        });
       }
     } catch (error: any) {
       toast.error("Failed to load company data");
@@ -211,7 +179,54 @@ export default function CompanyDrillDown() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [companyId]);
+
+  const fetchDepartments = useCallback(async () => {
+    setLoadingDepartments(true);
+    try {
+      const deptRes = await departmentAPI.getAll({ companyId, limit: 25 });
+      if (deptRes.success) {
+        setDepartments(deptRes.data.departments || []);
+        setStats((prev) => ({
+          ...prev,
+          totalDepartments:
+            deptRes.data.pagination?.total || deptRes.data.departments?.length || prev.totalDepartments,
+        }));
+      }
+    } catch (error) {
+      console.error("Failed to fetch departments:", error);
+    } finally {
+      setLoadingDepartments(false);
+    }
+  }, [companyId]);
+
+  const fetchUsers = useCallback(async () => {
+    setLoadingUsers(true);
+    try {
+      const usersRes = await userAPI.getAll({ companyId, limit: 25 });
+      if (usersRes.success) {
+        setUsers(usersRes.data.users || []);
+        setStats((prev) => ({
+          ...prev,
+          totalUsers: usersRes.data.pagination?.total || usersRes.data.users?.length || prev.totalUsers,
+        }));
+      }
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
+    } finally {
+      setLoadingUsers(false);
+    }
+  }, [companyId]);
+
+  useEffect(() => {
+    if (user?.role !== "SUPER_ADMIN") {
+      router.push("/superadmin/dashboard");
+      return;
+    }
+    if (companyId) {
+      fetchOverview();
+    }
+  }, [companyId, fetchOverview, router, user]);
 
   const fetchLeads = async (companyId: string, page = 1) => {
     setLoadingLeads(true);
@@ -230,7 +245,8 @@ export default function CompanyDrillDown() {
     }
   };
 
-  const fetchGrievances = async () => {
+  const fetchGrievances = useCallback(async () => {
+    setLoadingGrievances(true);
     try {
       const response = await grievanceAPI.getAll({ companyId, limit: 25 });
       if (response.success) {
@@ -238,10 +254,13 @@ export default function CompanyDrillDown() {
       }
     } catch (error) {
       console.error("Failed to fetch grievances:", error);
+    } finally {
+      setLoadingGrievances(false);
     }
-  };
+  }, [companyId]);
 
-  const fetchAppointments = async () => {
+  const fetchAppointments = useCallback(async () => {
+    setLoadingAppointments(true);
     try {
       const response = await appointmentAPI.getAll({ companyId, limit: 25 });
       if (response.success) {
@@ -249,29 +268,58 @@ export default function CompanyDrillDown() {
       }
     } catch (error) {
       console.error("Failed to fetch appointments:", error);
+    } finally {
+      setLoadingAppointments(false);
     }
-  };
+  }, [companyId]);
 
   useEffect(() => {
     if (!company?.enabledModules?.includes(Module.LEAD_CAPTURE)) return;
-    if (activeTab !== "overview" && activeTab !== "leads") return;
+    if (activeTab !== "leads") return;
     fetchLeads(companyId, leadsPage);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, companyId, leadsPage, company?.enabledModules]);
 
   useEffect(() => {
     if (!company?.enabledModules?.includes(Module.GRIEVANCE)) return;
-    if (activeTab !== "overview" && activeTab !== "grievances") return;
+    if (activeTab !== "grievances") return;
     fetchGrievances();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, companyId, company?.enabledModules]);
+  }, [activeTab, company?.enabledModules, fetchGrievances]);
 
   useEffect(() => {
     if (!company?.enabledModules?.includes(Module.APPOINTMENT)) return;
-    if (activeTab !== "overview" && activeTab !== "appointments") return;
+    if (activeTab !== "appointments") return;
     fetchAppointments();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, companyId, company?.enabledModules]);
+  }, [activeTab, company?.enabledModules, fetchAppointments]);
+
+  useEffect(() => {
+    if (activeTab !== "departments") return;
+    if (departments.length > 0 || loadingDepartments) return;
+    fetchDepartments();
+  }, [activeTab, departments.length, fetchDepartments, loadingDepartments]);
+
+  useEffect(() => {
+    if (activeTab !== "users") return;
+    if (users.length > 0 || loadingUsers) return;
+    fetchUsers();
+  }, [activeTab, fetchUsers, loadingUsers, users.length]);
+
+  const refreshDepartments = useCallback(async () => {
+    await Promise.all([fetchOverview(), fetchDepartments()]);
+  }, [fetchDepartments, fetchOverview]);
+
+  const refreshUsers = useCallback(async () => {
+    await Promise.all([fetchOverview(), fetchUsers()]);
+  }, [fetchOverview, fetchUsers]);
+
+  const refreshGrievances = useCallback(async () => {
+    await Promise.all([fetchOverview(), fetchGrievances()]);
+  }, [fetchGrievances, fetchOverview]);
+
+  const refreshAppointments = useCallback(async () => {
+    await Promise.all([fetchOverview(), fetchAppointments()]);
+  }, [fetchAppointments, fetchOverview]);
 
   const handleSort = (key: string) => {
     let direction: "asc" | "desc" | null = "asc";
@@ -477,7 +525,7 @@ export default function CompanyDrillDown() {
             <div className="hidden md:block h-11 w-px bg-slate-700/50 mx-2"></div>
             <Button
               variant="ghost"
-              onClick={fetchData}
+              onClick={fetchOverview}
               disabled={loading}
               className="hidden sm:flex h-11 w-11 p-0 text-slate-400 hover:text-white rounded-xl hover:bg-white/10 border border-transparent hover:border-white/10 items-center justify-center"
             >
@@ -645,8 +693,8 @@ export default function CompanyDrillDown() {
               deptUserCounts={deptUserCounts}
               setIsImportModalOpen={setIsImportModalOpen}
               exportToCSV={exportToCSV}
-              onRefresh={fetchData}
-              refreshing={loading}
+              onRefresh={refreshDepartments}
+              refreshing={loadingDepartments}
             />
           </TabsContent>
 
@@ -657,8 +705,8 @@ export default function CompanyDrillDown() {
               exportToCSV={exportToCSV}
               setSelectedUserForDetails={setSelectedUserForDetails}
               setShowUserDetailsDialog={setShowUserDetailsDialog}
-              onRefresh={fetchData}
-              refreshing={loading}
+              onRefresh={refreshUsers}
+              refreshing={loadingUsers}
             />
           </TabsContent>
 
@@ -669,8 +717,8 @@ export default function CompanyDrillDown() {
               exportToCSV={exportToCSV}
               setSelectedGrievance={setSelectedGrievance}
               setShowGrievanceDetail={setShowGrievanceDetail}
-              onRefresh={fetchData}
-              refreshing={loading}
+              onRefresh={refreshGrievances}
+              refreshing={loadingGrievances}
             />
           </TabsContent>
 
@@ -681,8 +729,8 @@ export default function CompanyDrillDown() {
               exportToCSV={exportToCSV}
               setSelectedAppointment={setSelectedAppointment}
               setShowAppointmentDetail={setShowAppointmentDetail}
-              onRefresh={fetchData}
-              refreshing={loading}
+              onRefresh={refreshAppointments}
+              refreshing={loadingAppointments}
             />
           </TabsContent>
 

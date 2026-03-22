@@ -138,8 +138,13 @@ export default function SuperAdminDashboard() {
     );
   };
 
+  const prefetchCompanyDashboard = useCallback((companyId: string) => {
+    router.prefetch(`/dashboard/company/${companyId}`);
+  }, [router]);
+
   const handleOpenCompanyDashboard = (companyId: string) => {
     if (navigatingCompanyId) return;
+    prefetchCompanyDashboard(companyId);
     setNavigatingCompanyId(companyId);
     router.push(`/dashboard/company/${companyId}`);
   };
@@ -680,6 +685,7 @@ export default function SuperAdminDashboard() {
                 navigatingCompanyId={navigatingCompanyId}
                 setShowCreateDialog={setShowCreateDialog}
                 handleOpenCompanyDashboard={handleOpenCompanyDashboard}
+                prefetchCompanyDashboard={prefetchCompanyDashboard}
                 handleEditCompany={handleEditCompany}
                 handleDeleteCompany={handleDeleteCompany}
                 toggleCompanyStatus={toggleCompanyStatus}
