@@ -1,228 +1,147 @@
 import express, { Request, Response } from 'express';
 import User from '../models/User';
-import Role from '../models/Role';
 import { generateToken, generateRefreshToken } from '../utils/jwt';
 import { logUserAction } from '../utils/auditLogger';
 import { AuditAction } from '../config/constants';
-import mongoose from 'mongoose';
 import { authenticate } from '../middleware/auth';
-
+import {
+  buildAuthContext,
+  ensurePlatformSuperAdminRole,
+  resolveUserAccessContext
+} from '../utils/accessControl';
 
 const router = express.Router();
 
-// @route   POST /api/auth/sso/login
-// @desc    SSO Login from main dashboard (SSO Token Required - SECURE)
-// @access  Public (but requires valid SSO token)
-router.post('/sso/login', async (req: Request, res: Response) => {
+const buildAuthResponse = async (user: any, loginType: 'PASSWORD' | 'SSO') => {
+  const { role, company, filteredPermissions } = await resolveUserAccessContext(user);
+  const authContext = buildAuthContext(user, role, filteredPermissions);
+
+  const tokenPayload = {
+    ...authContext,
+    email: user.email,
+    phone: user.phone
+  };
+
+  const accessToken = generateToken(tokenPayload);
+  const refreshToken = generateRefreshToken(tokenPayload);
+
+  return {
+    accessToken,
+    refreshToken,
+    filteredPermissions,
+    role,
+    company,
+    authContext,
+    user: {
+      id: user._id,
+      userId: user.userId,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      phone: user.phone,
+      isSuperAdmin: user.isSuperAdmin,
+      companyId: user.companyId,
+      departmentId: user.departmentId || null,
+      subDepartmentId: user.subDepartmentId || null,
+      enabledModules: (company as any)?.enabledModules || [],
+      isActive: user.isActive,
+      loginType,
+      customRoleId: user.customRoleId,
+      roleId: authContext.roleId,
+      level: authContext.level,
+      scope: authContext.scope,
+      permissions: filteredPermissions,
+      notificationSettings: user.notificationSettings
+    }
+  };
+};
+
+const handleResolvedLogin = async (
+  req: Request,
+  res: Response,
+  user: any,
+  loginType: 'PASSWORD' | 'SSO'
+) => {
   try {
-    const ssoToken = req.body.ssoToken || req.body.token;
+    const response = await buildAuthResponse(user, loginType);
 
-    // SECURITY: Require SSO token - NEVER accept phone directly
-    if (!ssoToken) {
-      console.log('❌ SSO login attempted without token');
-      res.status(400).json({
-        success: false,
-        message: 'SSO token is required'
-      });
-      return;
-    }
-
-    console.log('🔐 SSO Login attempt with token');
-
-    // Get SSO secret from environment
-    const ssoSecret = process.env.JWT_SECRET;
-    console.log('JWT_SECRET:', ssoSecret);
-    if (!ssoSecret) {
-      console.error('❌ SSO_SECRET not configured');
-      
-      res.status(500).json({
-        success: false,
-        message: 'SSO authentication not configured'
-      });
-      return;
-    }
-
-    const jwt = await import('jsonwebtoken');
-    
-    // STEP 1: Verify SSO token signature and expiry
-    let decoded: any;
-    try {
-      decoded = jwt.verify(ssoToken, ssoSecret);
-      console.log('✅ SSO token verified:', { phone: decoded.phone, source: decoded.source });
-    } catch (err: any) {
-      console.error('❌ SSO token verification failed:', err.message);
-      
-      if (err.name === 'TokenExpiredError') {
-        res.status(401).json({
-          success: false,
-          message: 'SSO token expired. Please login again from main dashboard.'
-        });
-        return;
-      }
-      
-      res.status(401).json({
-        success: false,
-        message: 'Invalid SSO token'
-      });
-      return;
-    }
-
-    // STEP 2: Validate token source (must come from MAIN_DASHBOARD)
-    // if (decoded.source !== 'MAIN_DASHBOARD') {
-    //   console.error('❌ Invalid SSO token source:', decoded.source);
-    //   res.status(401).json({
-    //     success: false,
-    //     message: 'Invalid SSO token source'
-    //   });
-    //   return;
-    // }
-
-    // STEP 3: Extract phone from verified token (NOT from request body)
-    const { phone } = decoded;
-    
-    if (!phone) {
-      console.error('❌ No phone number in SSO token payload');
-      res.status(400).json({
-        success: false,
-        message: 'Invalid SSO token payload'
-      });
-      return;
-    }
-
-    console.log('📱 SSO Login for verified phone:', phone);
-
-    // STEP 4: Find user in database
-    const user = await User.findOne({ 
-      phone
-    }).populate('companyId');
-
-    if (!user) {
-      console.log('❌ User not found for phone:', phone);
-      res.status(404).json({
-        success: false,
-        message: 'No account found with this phone number'
-      });
-      return;
-    }
-
-    // STEP 5: Check if user is active
-    if (!user.isActive) {
-      console.log('❌ User account is inactive:', phone);
-      res.status(403).json({
-        success: false,
-        message: 'Your account is inactive. Please contact administrator.'
-      });
-      return;
-    }
-
-    console.log('✅ SSO authentication successful for:', phone);
-    
-    // STEP 6: Update last login
     user.lastLogin = new Date();
     await user.save();
 
-    // STEP 7: Generate NEW session tokens (DO NOT reuse SSO token)
-    const sessionPayload = {
-      userId: user._id.toString(),
-      phone: user.phone,
-      email: user.email,
-      role: user.role || 'CUSTOM',
-      companyId: user.companyId instanceof mongoose.Types.ObjectId 
-        ? user.companyId.toString() 
-        : (user.companyId as any)?._id?.toString() || (user.companyId as any)?.toString(),
-      departmentId: user.departmentId instanceof mongoose.Types.ObjectId
-        ? user.departmentId.toString()
-        : (user.departmentId as any)?._id?.toString() || (user.departmentId as any)?.toString(),
-      loginType: 'SSO' // Track login method
-    };
-
-    const accessToken = generateToken(sessionPayload);
-    const refreshToken = generateRefreshToken(sessionPayload);
-
-    // STEP 8: Audit log with SSO login type
     await logUserAction(
       { user, ip: req.ip, get: req.get.bind(req) } as any,
       AuditAction.LOGIN,
       'User',
       user._id.toString(),
-      { loginMethod: 'SSO', source: 'MAIN_DASHBOARD' }
+      { loginMethod: loginType }
     );
 
-    console.log('✅ SSO login completed for:', user.userId);
-
-    // Fetch permissions for the user's role
-    let permissions: any[] = [];
-    if (user.customRoleId) {
-      const roleDoc = await Role.findById(user.customRoleId);
-      if (roleDoc) permissions = roleDoc.permissions;
-    } else if (user.companyId) {
-      const companyId = user.companyId instanceof mongoose.Types.ObjectId ? user.companyId : (user.companyId as any)._id;
-      const roleKey = (user.role || 'CUSTOM').toUpperCase();
-      
-      // Try finding by key first
-      let systemRole = await Role.findOne({ companyId, key: roleKey });
-      
-      // Fallback: search by name if it's a standard role but key is missing
-      if (!systemRole && roleKey !== 'CUSTOM') {
-        const humanizedName = roleKey.replace(/_/g, ' ')
-                                   .toLowerCase()
-                                   .split(' ')
-                                   .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                                   .join(' ');
-        
-        systemRole = await Role.findOne({ 
-          companyId, 
-          name: new RegExp(`^${humanizedName}$`, 'i') 
-        });
-      }
-      
-      if (systemRole) permissions = systemRole.permissions;
-    }
-
-    res.json({
+    return res.json({
       success: true,
-      message: 'SSO login successful',
+      message: `${loginType === 'SSO' ? 'SSO login' : 'Login'} successful`,
       data: {
-        user: {
-          id: user._id,
-          userId: user.userId,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-          phone: user.phone,
-          role: user.role,
-          companyId: user.companyId?._id || user.companyId,
-          departmentId: user.departmentId,
-          enabledModules: (user.companyId as any)?.enabledModules || [],
-          isActive: user.isActive,
-          loginType: 'SSO',
-          customRoleId: user.customRoleId,
-          permissions: permissions,
-          notificationSettings: user.notificationSettings
-        },
-        accessToken,
-        refreshToken
+        user: response.user,
+        accessToken: response.accessToken,
+        refreshToken: response.refreshToken
       }
     });
-
   } catch (error: any) {
-    console.error('❌ SSO login error:', error);
-    res.status(500).json({
+    const statusCode = error.statusCode || 500;
+    return res.status(statusCode).json({
       success: false,
-      message: 'SSO login failed',
-      error: error.message
+      message: statusCode === 500 ? `${loginType === 'SSO' ? 'SSO login' : 'Login'} failed` : error.message,
+      error: statusCode === 500 ? error.message : undefined
     });
   }
+};
+
+router.post('/sso/login', async (req: Request, res: Response) => {
+  try {
+    const ssoToken = req.body.ssoToken || req.body.token;
+    if (!ssoToken) {
+      return res.status(400).json({ success: false, message: 'SSO token is required' });
+    }
+
+    const ssoSecret = process.env.JWT_SECRET;
+    if (!ssoSecret) {
+      return res.status(500).json({ success: false, message: 'SSO authentication not configured' });
+    }
+
+    const jwt = await import('jsonwebtoken');
+    const decoded = jwt.verify(ssoToken, ssoSecret) as { phone?: string; email?: string };
+    const identifierQuery = decoded.phone ? { phone: decoded.phone } : decoded.email ? { email: decoded.email } : null;
+
+    if (!identifierQuery) {
+      return res.status(400).json({ success: false, message: 'Invalid SSO token payload' });
+    }
+
+    const user = await User.findOne(identifierQuery).select('+password');
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'No account found for this SSO identity' });
+    }
+
+    if (!user.isActive) {
+      return res.status(403).json({ success: false, message: 'Your account is inactive. Please contact administrator.' });
+    }
+
+    if (user.isSuperAdmin) {
+      await ensurePlatformSuperAdminRole();
+    }
+
+    return handleResolvedLogin(req, res, user, 'SSO');
+  } catch (error: any) {
+    const message = error.name === 'TokenExpiredError'
+      ? 'SSO token expired. Please login again from main dashboard.'
+      : 'Invalid SSO token';
+
+    return res.status(error.name === 'TokenExpiredError' ? 401 : 401).json({ success: false, message });
+  }
 });
-  
-// @route   POST /api/auth/login
-// @desc    Login user with phone and password
-// @access  Public
+
 router.post('/login', async (req: Request, res: Response) => {
   try {
     const { phone, email, password } = req.body;
 
-    // Validation - require either phone or email, plus password
     if ((!phone && !email) || !password) {
       return res.status(400).json({
         success: false,
@@ -230,15 +149,13 @@ router.post('/login', async (req: Request, res: Response) => {
       });
     }
 
-    // Validate password length
-    if (password && password.length < 6) {
+    if (password.length < 6) {
       return res.status(400).json({
         success: false,
         message: 'Password must be at least 6 characters'
       });
     }
 
-    // Validate and normalize phone number if provided (add 91 prefix if 10 digits)
     let normalizedPhone = phone;
     if (phone && phone.trim()) {
       const { validatePhoneNumber, normalizePhoneNumber } = await import('../utils/phoneUtils');
@@ -252,29 +169,21 @@ router.post('/login', async (req: Request, res: Response) => {
       normalizedPhone = normalizePhoneNumber(phoneTrimmed);
     }
 
-    console.log('🔐 Login attempt for:', normalizedPhone || email);
+    const identifierQuery = email
+      ? { email: email.toLowerCase().trim() }
+      : { phone: normalizedPhone };
 
-    // Find user by phone or email (exclude soft-deleted)
-    const query: any = {};
-    if (email) {
-      query.email = email;
-    } else {
-      query.phone = normalizedPhone;
-    }
-
-    const user = await User.findOne(query).select('+password').populate('companyId'); // IMPORTANT
+    const user = await User.findOne(identifierQuery).select('+password');
 
     if (!user) {
-      console.log('❌ User not found for:', phone || email);
       return res.status(401).json({
         success: false,
-        message: email 
+        message: email
           ? 'Email is incorrect. Please check and try again.'
           : 'Phone number is incorrect. Please check and try again.'
       });
     }
 
-    // Check active
     if (!user.isActive) {
       return res.status(403).json({
         success: false,
@@ -282,273 +191,93 @@ router.post('/login', async (req: Request, res: Response) => {
       });
     }
 
-    // Verify password using User model method
-    const isPasswordValid = await user.comparePassword(password);
+    if (!user.isSuperAdmin && user.companyId) {
+      const Company = (await import('../models/Company')).default;
+      const company = await Company.findById(user.companyId).select('isActive isSuspended');
+      if (!company || !company.isActive || company.isSuspended) {
+        return res.status(403).json({
+          success: false,
+          message: 'Your company account is inactive or suspended.'
+        });
+      }
+    }
 
+    const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
-      console.log('❌ Invalid password for:', phone);
       return res.status(401).json({
         success: false,
         message: 'Password is incorrect. Please check and try again.'
       });
     }
 
-    console.log('✅ Password verified. Login successful for:', phone);
-
-    // Update last login
-    user.lastLogin = new Date();
-    await user.save();
-
-    // Token payload
-    const tokenPayload = {
-      userId: user._id.toString(),
-      phone: user.phone,
-      email: user.email,
-      role: user.role || 'CUSTOM',
-      companyId: user.companyId instanceof mongoose.Types.ObjectId 
-        ? user.companyId.toString() 
-        : (user.companyId as any)?._id?.toString() || (user.companyId as any)?.toString(),
-      departmentId: user.departmentId instanceof mongoose.Types.ObjectId
-        ? user.departmentId.toString()
-        : (user.departmentId as any)?._id?.toString() || (user.departmentId as any)?.toString(),
-      loginType: 'PASSWORD' // Track login method
-    };
-
-    const accessToken = generateToken(tokenPayload);
-    const refreshToken = generateRefreshToken(tokenPayload);
-
-    // Audit log
-    await logUserAction(
-      { user, ip: req.ip, get: req.get.bind(req) } as any,
-      AuditAction.LOGIN,
-      'User',
-      user._id.toString(),
-      { loginMethod: 'PASSWORD' }
-    );
-
-    // Fetch permissions for the user's role
-    let permissions: any[] = [];
-    if (user.customRoleId) {
-      const roleDoc = await Role.findById(user.customRoleId);
-      if (roleDoc) permissions = roleDoc.permissions;
-    } else if (user.companyId) {
-      const companyId = user.companyId instanceof mongoose.Types.ObjectId ? user.companyId : (user.companyId as any)._id;
-      const roleKey = (user.role || 'CUSTOM').toUpperCase();
-      
-      // Try finding by key first
-      let systemRole = await Role.findOne({ companyId, key: roleKey });
-      
-      // Fallback: search by name if it's a standard role but key is missing
-      if (!systemRole && roleKey !== 'CUSTOM') {
-        const humanizedName = roleKey.replace(/_/g, ' ')
-                                   .toLowerCase()
-                                   .split(' ')
-                                   .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
-                                   .join(' ');
-        
-        systemRole = await Role.findOne({ 
-          companyId, 
-          name: new RegExp(`^${humanizedName}$`, 'i') 
-        });
-      }
-      
-      if (systemRole) permissions = systemRole.permissions;
+    if (user.isSuperAdmin) {
+      await ensurePlatformSuperAdminRole();
     }
 
-    return res.json({
-      success: true,
-      message: 'Login successful',
-      data: {
-        user: {
-          id: user._id,
-          userId: user.userId,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-          phone: user.phone,
-          role: user.role,
-          companyId: user.companyId?._id || user.companyId,
-          departmentId: user.departmentId,
-          enabledModules: (user.companyId as any)?.enabledModules || [],
-          isActive: user.isActive,
-          loginType: 'PASSWORD',
-          customRoleId: user.customRoleId,
-          permissions: permissions,
-          notificationSettings: user.notificationSettings
-        },
-        accessToken,
-        refreshToken
-      }
-    });
-
+    return handleResolvedLogin(req, res, user, 'PASSWORD');
   } catch (error: any) {
-    console.error('❌ Login error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Login failed'
+      message: 'Login failed',
+      error: error.message
     });
   }
 });
 
-// @route   GET /api/auth/me
-// @desc    Get current user profile & permissions
-// @access  Private
 router.get('/me', authenticate, async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?._id;
+    const userId = req.user?._id;
     if (!userId) {
       return res.status(401).json({ success: false, message: 'Not authenticated' });
     }
 
-    const user = await User.findById(userId).populate('companyId');
+    const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // Fetch permissions for the user's role
-    let permissions: any[] = [];
-    if (user.customRoleId) {
-      const roleDoc = await Role.findById(user.customRoleId);
-      if (roleDoc) permissions = roleDoc.permissions;
-    } else if (user.companyId) {
-      const companyId = user.companyId instanceof mongoose.Types.ObjectId ? user.companyId : (user.companyId as any)._id;
-      const roleKey = (user.role || 'CUSTOM').toUpperCase();
-      
-      // Try finding by key first
-      let systemRole = await Role.findOne({ companyId, key: roleKey });
-      
-      // Fallback: search by name if it's a standard role but key is missing
-      if (!systemRole && roleKey !== 'CUSTOM') {
-        const humanizedName = roleKey.replace(/_/g, ' ')
-                                   .toLowerCase()
-                                   .split(' ')
-                                   .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
-                                   .join(' ');
-        
-        systemRole = await Role.findOne({ 
-          companyId, 
-          name: new RegExp(`^${humanizedName}$`, 'i') 
-        });
-      }
-      
-      if (systemRole) permissions = systemRole.permissions;
-    }
+    const response = await buildAuthResponse(user, 'PASSWORD');
 
-    res.json({
+    return res.json({
       success: true,
       data: {
-        user: {
-          id: user._id,
-          userId: user.userId,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-          phone: user.phone,
-          role: user.role,
-          companyId: user.companyId?._id || user.companyId,
-          departmentId: user.departmentId,
-          enabledModules: (user.companyId as any)?.enabledModules || [],
-          isActive: user.isActive,
-          customRoleId: user.customRoleId,
-          permissions: permissions,
-          notificationSettings: user.notificationSettings
-        }
+        user: response.user
       }
     });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.statusCode ? error.message : 'Server error',
+      error: error.statusCode ? undefined : error.message
+    });
   }
 });
 
-
-// @route   POST /api/auth/register
-// @desc    Register new user (Admin only)
-// @access  Private
 router.post('/register', async (req: Request, res: Response) => {
   try {
-    const { firstName, lastName, email, password, phone, role, companyId, departmentId } = req.body;
+    const { firstName, lastName, email, password, phone, companyId, departmentId, subDepartmentId, customRoleId } = req.body;
 
-    // Validation
-    if (!firstName || !lastName || !phone || !role) {
-      res.status(400).json({
+    if (!firstName || !lastName || !password || (!phone && !email) || !customRoleId) {
+      return res.status(400).json({
         success: false,
-        message: 'Please provide first name, last name, phone, and role'
+        message: 'Please provide first name, last name, password, one login identifier, and customRoleId'
       });
-      return;
     }
 
-    // Check if user already exists by phone in the same company
-    // Allow same phone/email across different companies, but not within the same company
-    // For SUPER_ADMIN (companyId = null), keep phone/email globally unique
-    const phoneQuery: any = { 
-      phone
-    };
-    
-    if (companyId) {
-      phoneQuery.companyId = companyId;
-    } else {
-      // SUPER_ADMIN: check globally (companyId is null or undefined)
-      phoneQuery.$or = [
-        { companyId: null },
-        { companyId: { $exists: false } }
-      ];
-    }
-    
-    const existingUser = await User.findOne(phoneQuery);
-
-    if (existingUser) {
-      const message = companyId 
-        ? 'User with this phone number already exists in this company'
-        : 'User with this phone number already exists';
-      res.status(400).json({
-        success: false,
-        message
-      });
-      return;
-    }
-
-    // Check if email already exists in the same company if provided
-    if (email) {
-      const emailQuery: any = { 
-        email: email.toLowerCase().trim()
-      };
-      
-      if (companyId) {
-        emailQuery.companyId = companyId;
-      } else {
-        // SUPER_ADMIN: check globally (companyId is null or undefined)
-        emailQuery.$or = [
-          { companyId: null },
-          { companyId: { $exists: false } }
-        ];
-      }
-      
-      const existingEmail = await User.findOne(emailQuery);
-      if (existingEmail) {
-        const message = companyId 
-          ? 'User with this email already exists in this company'
-          : 'User with this email already exists';
-        res.status(400).json({
-          success: false,
-          message
-        });
-        return;
-      }
-    }
-
-    // Create user
     const user = await User.create({
       firstName,
       lastName,
-      email,
+      email: email?.toLowerCase().trim(),
       password,
       phone,
-      role,
       companyId,
-      departmentId
+      departmentId,
+      subDepartmentId,
+      customRoleId,
+      isSuperAdmin: false
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: 'User registered successfully',
       data: {
@@ -559,19 +288,18 @@ router.post('/register', async (req: Request, res: Response) => {
           lastName: user.lastName,
           email: user.email,
           phone: user.phone,
-          role: user.role
+          customRoleId: user.customRoleId,
+          isSuperAdmin: user.isSuperAdmin
         }
       }
     });
   } catch (error: any) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Registration failed',
       error: error.message
     });
   }
 });
-
-
 
 export default router;
