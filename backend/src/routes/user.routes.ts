@@ -5,6 +5,8 @@ import { requirePermission } from '../middleware/rbac';
 import { requireDatabaseConnection } from '../middleware/dbConnection';
 import { logUserAction } from '../utils/auditLogger';
 import { AuditAction, Permission, UserRole } from '../config/constants';
+import Role from '../models/Role';
+import { canAssignRole } from '../utils/accessControl';
 
 const router = express.Router();
 
@@ -23,7 +25,7 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
     const query: any = {};
 
     // Scope based on user role
-    if (currentUser.role === UserRole.SUPER_ADMIN) {
+    if (currentUser.isSuperAdmin) {
       // SuperAdmin can see all users, optionally filter by company/dept
       if (companyId) query.companyId = companyId;
       if (departmentId) {
@@ -60,7 +62,7 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
     }
 
     if (role) {
-      query.role = role;
+      query.customRoleId = role;
     }
 
     if (status === 'active') {
@@ -114,11 +116,11 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
     // Access is determined by CREATE_USER permission (already checked in middleware)
     // Permission-based RBAC is now the single source of truth.
     
-    const { firstName, lastName, email, password, phone, role, departmentId, customRoleId, designation } = req.body;
+    const { firstName, lastName, email, password, phone, departmentId, subDepartmentId, customRoleId, designation, isSuperAdmin } = req.body;
     let companyId = req.body.companyId;
 
     // Validation
-    if (!firstName || !lastName || !email || !password || (!role && !customRoleId)) {
+    if (!firstName || !lastName || !email || !password || (!isSuperAdmin && !customRoleId)) {
       console.log('❌ Validation failed: Missing required fields');
       return res.status(400).json({
         success: false,
@@ -154,7 +156,7 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
 
     // Scope validation and role-specific requirements
     // Scope validation
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       // Non-SuperAdmins can only create users in their own company
       if (companyId && companyId !== currentUser.companyId?.toString()) {
         return res.status(403).json({
@@ -172,7 +174,7 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
       }
 
       // Prohibit creating SuperAdmins
-      if (role === UserRole.SUPER_ADMIN) {
+      if (isSuperAdmin) {
         return res.status(403).json({
           success: false,
           message: 'You cannot create SuperAdmin users'
@@ -197,7 +199,7 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
     }
 
     // Company ID remains mandatory for all roles except SuperAdmin
-    if (!finalCompanyId && role !== UserRole.SUPER_ADMIN) {
+    if (!finalCompanyId && !isSuperAdmin) {
       return res.status(400).json({
         success: false,
         message: 'Company ID is required'
@@ -205,6 +207,20 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
     }
     
     console.log('✅ Scope validation passed');
+
+    if (customRoleId) {
+      const targetRole = await Role.findById(customRoleId).select('level companyId');
+      if (!targetRole) {
+        return res.status(404).json({ success: false, message: 'Assigned role not found' });
+      }
+      if (!currentUser.isSuperAdmin && targetRole.companyId?.toString() !== finalCompanyId?.toString()) {
+        return res.status(400).json({ success: false, message: 'Assigned role does not belong to this company' });
+      }
+      const allowedToAssignRole = await canAssignRole(currentUser, targetRole.level);
+      if (!allowedToAssignRole) {
+        return res.status(403).json({ success: false, message: 'You can only assign roles strictly below your own level' });
+      }
+    }
     
     // Check if email already exists in the same company
     // Allow same email/phone across different companies, but not within the same company
@@ -270,7 +286,7 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
     }
     console.log('✅ Phone is unique');
     
-    console.log('Creating user with data:', { firstName, lastName, email, role, companyId: finalCompanyId, departmentId });
+    console.log('Creating user with data:', { firstName, lastName, email, customRoleId, isSuperAdmin, companyId: finalCompanyId, departmentId, subDepartmentId });
     
     // Database connection is already checked by middleware
 
@@ -283,13 +299,13 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
         email: email.toLowerCase().trim(),
         password,
         phone: normalizedPhone,
-        role: role || (customRoleId ? 'CUSTOM' : undefined), // Default to 'CUSTOM' if customRoleId is provided and role is not
+        isSuperAdmin: Boolean(isSuperAdmin),
         designation,
         customRoleId: customRoleId || undefined,
         companyId: finalCompanyId || undefined,
         departmentId: departmentId || undefined,
+        subDepartmentId: subDepartmentId || undefined,
         isActive: true,
-        rawPassword: password,
         createdBy: currentUser._id // Track who created this user for hierarchical rights
       });
       console.log('✅ User created successfully in database:', user.userId);
@@ -350,7 +366,7 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
       const finalPhone = normalizePhoneNumber(phone || '');
       
       // Update if explicit permission or if role implies it
-      const isDeptAdmin = role && role.toLowerCase().includes('admin');
+      const isDeptAdmin = false;
       
       if (req.checkPermission(Permission.UPDATE_DEPARTMENT) || isDeptAdmin) {
         try {
@@ -377,7 +393,8 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
           firstName: user.firstName,
           lastName: user.lastName,
           email: user.email,
-          role: user.role,
+          isSuperAdmin: user.isSuperAdmin,
+          customRoleId: user.customRoleId,
           isActive: user.isActive
         }
       }
@@ -416,7 +433,7 @@ router.get('/:id', requirePermission(Permission.READ_USER), async (req: Request,
     }
 
     // Check access
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       if (user.companyId?._id.toString() !== currentUser.companyId?.toString()) {
         res.status(403).json({ success: false, message: 'Access denied' });
         return;
@@ -473,10 +490,10 @@ router.put('/:id', requirePermission(Permission.UPDATE_USER), async (req: Reques
 
     // Prevent users from editing their own role and department
     if (existingUser._id.toString() === currentUser._id.toString()) {
-      if (req.body.role && req.body.role !== existingUser.role) {
+      if (req.body.isSuperAdmin !== undefined && req.body.isSuperAdmin !== existingUser.isSuperAdmin) {
         res.status(403).json({
           success: false,
-          message: 'You cannot change your own role'
+          message: 'You cannot change your own superadmin status'
         });
         return;
       }
@@ -501,7 +518,7 @@ router.put('/:id', requirePermission(Permission.UPDATE_USER), async (req: Reques
     }
 
     // Check access based on company/department scope
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       if (existingUser.companyId?.toString() !== currentUser.companyId?.toString()) {
         res.status(403).json({ success: false, message: 'Access denied' });
         return;
@@ -513,7 +530,7 @@ router.put('/:id', requirePermission(Permission.UPDATE_USER), async (req: Reques
     }
 
     // Hierarchical Rights Enforcement (Dynamic)
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       // 1. Level Check: Department users cannot edit Company-level users
       if (currentUser.departmentId && !existingUser.departmentId) {
         res.status(403).json({
@@ -531,7 +548,7 @@ router.put('/:id', requirePermission(Permission.UPDATE_USER), async (req: Reques
 
       if (isSameLevel && !isSelf) {
          const targetCreatorId = existingUser.createdBy?.toString();
-         const isCreatedBySuperAdmin = !targetCreatorId || (await User.findById(targetCreatorId))?.role === UserRole.SUPER_ADMIN;
+         const isCreatedBySuperAdmin = !targetCreatorId || (await User.findById(targetCreatorId))?.isSuperAdmin === true;
 
          // Primary admins (created by SuperAdmin) can only be edited by SuperAdmin
          if (isCreatedBySuperAdmin) {
@@ -554,13 +571,8 @@ router.put('/:id', requirePermission(Permission.UPDATE_USER), async (req: Reques
     }
 
     // Role-based restrictions for role changes
-    if (req.body.role) {
-      const newRole = req.body.role;
-      
-      // Prevent regular users from assigning SuperAdmin
-      if (currentUser.role !== UserRole.SUPER_ADMIN && newRole === UserRole.SUPER_ADMIN) {
-        return res.status(403).json({ success: false, message: 'You cannot assign SuperAdmin role' });
-      }
+    if (req.body.isSuperAdmin === true && !currentUser.isSuperAdmin) {
+      return res.status(403).json({ success: false, message: 'You cannot assign SuperAdmin role' });
     }
 
     // Don't allow password update through this route
@@ -668,7 +680,7 @@ router.put('/:id', requirePermission(Permission.UPDATE_USER), async (req: Reques
     if (user && user.departmentId) {
       const Role = (await import('../models/Role')).default;
       const customRole = user.customRoleId ? await Role.findById(user.customRoleId) : null;
-      const roleName = customRole ? customRole.name : (user.role || '');
+      const roleName = customRole ? customRole.name : '';
       
       const managementRole = customRole ? await Role.findOne({
         _id: user.customRoleId,
@@ -733,7 +745,7 @@ router.delete('/:id', requirePermission(Permission.DELETE_USER), async (req: Req
     }
 
     // Check access based on company/department scope
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       if (existingUser.companyId?.toString() !== currentUser.companyId?.toString()) {
         res.status(403).json({ success: false, message: 'Access denied' });
         return;
@@ -751,7 +763,7 @@ router.delete('/:id', requirePermission(Permission.DELETE_USER), async (req: Req
     }
 
     // 2. Hierarchical Rights Enforcement (Dynamic)
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       // 2.1 Level Check: Department users cannot delete Company-level users
       if (currentUser.departmentId && !existingUser.departmentId) {
         res.status(403).json({
@@ -767,7 +779,7 @@ router.delete('/:id', requirePermission(Permission.DELETE_USER), async (req: Req
 
       if (isSameLevel && !isSelf) {
          const targetCreatorId = existingUser.createdBy?.toString();
-         const isCreatedBySuperAdmin = !targetCreatorId || (await User.findById(targetCreatorId))?.role === UserRole.SUPER_ADMIN;
+         const isCreatedBySuperAdmin = !targetCreatorId || (await User.findById(targetCreatorId))?.isSuperAdmin === true;
 
          if (isCreatedBySuperAdmin) {
            res.status(403).json({
@@ -836,7 +848,7 @@ router.put('/:id/activate', requirePermission(Permission.UPDATE_USER), async (re
     }
 
     // 1. Hierarchical Rights: Check if the user can activate/deactivate the target user
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       // 1.1 Level Check: Department users cannot manage Company-level users
       if (currentUser.departmentId && !existingUser.departmentId) {
         res.status(403).json({
@@ -852,7 +864,7 @@ router.put('/:id/activate', requirePermission(Permission.UPDATE_USER), async (re
 
       if (isSameLevel && !isSelf) {
          const targetCreatorId = existingUser.createdBy?.toString();
-         const isCreatedBySuperAdmin = !targetCreatorId || (await User.findById(targetCreatorId))?.role === UserRole.SUPER_ADMIN;
+         const isCreatedBySuperAdmin = !targetCreatorId || (await User.findById(targetCreatorId))?.isSuperAdmin === true;
 
          if (isCreatedBySuperAdmin) {
            res.status(403).json({

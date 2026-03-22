@@ -9,9 +9,21 @@ import { AuditAction, Permission, UserRole } from '../config/constants';
 import Company from '../models/Company';
 import Department from '../models/Department';
 import User from '../models/User';
+import Role from '../models/Role';
 import bcrypt from 'bcryptjs';
 
 const router = express.Router();
+const normalizeRoleName = (value: string): string => value.trim().toLowerCase().replace(/[_\s-]+/g, ' ');
+
+const getImportedRoleLevel = (rawRole: string, hasSubDepartment = false): number => {
+  const normalized = normalizeRoleName(String(rawRole || ''));
+  if (normalized.includes('sub') && normalized.includes('admin')) return 3;
+  if (normalized.includes('dept') && normalized.includes('admin')) return 2;
+  if (normalized.includes('department admin')) return 2;
+  if (normalized.includes('operator')) return 4;
+  if (normalized.includes('admin')) return hasSubDepartment ? 3 : 2;
+  return 4;
+};
 
 const getCellValue = (row: Record<string, any>, keys: string[]): string => {
   for (const key of keys) {
@@ -58,7 +70,7 @@ router.post(
     try {
       const currentUser = req.user!;
 
-      if (currentUser.role === UserRole.SUPER_ADMIN && !req.body.companyId) {
+      if (currentUser.isSuperAdmin && !req.body.companyId) {
         res.status(400).json({
           success: false,
           message: 'companyId is required for SuperAdmin imports'
@@ -74,7 +86,7 @@ router.post(
         return;
       }
 
-      const companyId = currentUser.role === UserRole.SUPER_ADMIN
+      const companyId = currentUser.isSuperAdmin
         ? req.body.companyId
         : currentUser.companyId?.toString();
 
@@ -92,10 +104,13 @@ router.post(
       const data = XLSX.utils.sheet_to_json(worksheet);
 
       // 🚀 Optimization: Pre-fetch all departments and users to avoid redundant database calls in the loop
-      const [allDepartments, allUsers] = await Promise.all([
+      const [allDepartments, allUsers, companyRoles] = await Promise.all([
         Department.find({ companyId }),
-        User.find({ companyId }).select('+password')
+        User.find({ companyId }).select('+password'),
+        Role.find({ companyId }).select('_id level')
       ]);
+
+      const roleIdByLevel = new Map(companyRoles.map(role => [role.level, role._id]));
 
       const deptCache = new Map<string, any>();
       allDepartments.forEach(d => {
@@ -114,6 +129,7 @@ router.post(
         if (u.phone) userCache.set(`phone:${u.phone}`, u);
       });
 
+
       const results = {
         total: data.length,
         success: 0,
@@ -127,20 +143,6 @@ router.post(
         const parts = normalized.split(' ');
         if (parts.length === 1) return { firstName: parts[0], lastName: '-' };
         return { firstName: parts.slice(0, -1).join(' '), lastName: parts[parts.length - 1] };
-      };
-
-      const mapRole = (rawRole: string, hasSubDepartment: boolean) => {
-        const normalized = String(rawRole || '').toLowerCase();
-        if (normalized.includes('sub') && normalized.includes('admin')) {
-          return 'SUB_DEPARTMENT_ADMIN';
-        }
-        if (normalized.includes('dept') && normalized.includes('admin')) {
-          return 'DEPARTMENT_ADMIN';
-        }
-        if (normalized.includes('admin')) {
-          return hasSubDepartment ? 'SUB_DEPARTMENT_ADMIN' : 'DEPARTMENT_ADMIN';
-        }
-        return 'DEPARTMENT_ADMIN';
       };
 
       const newUsersToCreate: any[] = [];
@@ -241,7 +243,9 @@ router.post(
 
           // Prepare User Data
           const { firstName, lastName } = splitOfficerName(officerName);
-          const role = mapRole(rowRole, Boolean(subDepartmentName));
+          const roleLevel = getImportedRoleLevel(rowRole, Boolean(subDepartmentName));
+          const customRoleId = roleIdByLevel.get(roleLevel);
+          if (!customRoleId) throw new Error(`No role configured at level ${roleLevel} for this company`);
 
           let existingUser = null;
           if (email) existingUser = userCache.get(`email:${email.toLowerCase()}`);
@@ -254,9 +258,10 @@ router.post(
               email: email ? email.toLowerCase() : undefined,
               phone,
               designation: designation || undefined,
-              role,
+              customRoleId,
               companyId,
-              departmentId: targetDepartment._id
+              departmentId: targetDepartment._id,
+              isSuperAdmin: false
             });
           } else {
             const changes: any = {};
@@ -264,8 +269,9 @@ router.post(
             if (lastName && existingUser.lastName !== lastName) changes.lastName = lastName;
             if (phone && existingUser.phone !== phone) changes.phone = phone;
             if (designation && existingUser.designation !== designation) changes.designation = designation;
-            if (existingUser.role !== role) changes.role = role;
+            if (String(existingUser.customRoleId) !== String(customRoleId)) changes.customRoleId = customRoleId;
             if (String(existingUser.departmentId) !== String(targetDepartment._id)) changes.departmentId = targetDepartment._id;
+            changes.isSuperAdmin = false;
             
             if (Object.keys(changes).length > 0) {
               changes.updatedAt = new Date();
@@ -296,7 +302,6 @@ router.post(
             ...u,
             userId: `USER${String(currentIdNum++).padStart(6, '0')}`,
             password: defaultPasswordHash,
-            rawPassword: '111111',
             isActive: true,
             createdAt: now,
             updatedAt: now
@@ -352,7 +357,7 @@ router.post(
     try {
       const currentUser = req.user!;
 
-      if (currentUser.role !== UserRole.SUPER_ADMIN) {
+      if (!currentUser.isSuperAdmin) {
         res.status(403).json({
           success: false,
           message: 'Only SuperAdmin can import companies'
@@ -372,6 +377,7 @@ router.post(
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       const data = XLSX.utils.sheet_to_json(worksheet);
+
 
       const results = {
         total: data.length,
@@ -456,12 +462,13 @@ router.post(
       const data = XLSX.utils.sheet_to_json(worksheet);
 
       // 🚀 Optimization: Pre-fetch all departments for this company
-      const companyId = currentUser.role === UserRole.SUPER_ADMIN ? null : currentUser.companyId?.toString();
+      const companyId = currentUser.isSuperAdmin ? null : currentUser.companyId?.toString();
       const existingDepts = await Department.find(companyId ? { companyId } : {});
       const deptCache = new Map<string, any>();
       existingDepts.forEach(d => {
         deptCache.set(`${d.companyId}:${d.name.toLowerCase()}`, d);
       });
+
 
       const results = {
         total: data.length,
@@ -478,7 +485,7 @@ router.post(
         try {
           let targetCompanyId = row.companyId;
 
-          if (currentUser.role !== UserRole.SUPER_ADMIN) {
+          if (!currentUser.isSuperAdmin) {
             targetCompanyId = currentUser.companyId?.toString();
           }
 
@@ -582,10 +589,11 @@ router.post(
       const data = XLSX.utils.sheet_to_json(worksheet);
 
       // 🚀 Optimization: Pre-fetch all users and departments for faster lookups
-      const searchCompanyId = currentUser.role === UserRole.SUPER_ADMIN ? null : currentUser.companyId?.toString();
-      const [existingUsers, allDepts] = await Promise.all([
+      const searchCompanyId = currentUser.isSuperAdmin ? null : currentUser.companyId?.toString();
+      const [existingUsers, allDepts, existingRoles] = await Promise.all([
         User.find(searchCompanyId ? { companyId: searchCompanyId } : {}),
-        Department.find(searchCompanyId ? { companyId: searchCompanyId } : {})
+        Department.find(searchCompanyId ? { companyId: searchCompanyId } : {}),
+        Role.find(searchCompanyId ? { companyId: searchCompanyId } : {}).select('_id companyId name level')
       ]);
 
       const userCache = new Map<string, any>();
@@ -600,6 +608,7 @@ router.post(
       });
 
       const passwordHashCache = new Map<string, string>();
+      const roleCache = new Map(existingRoles.map(role => [`${role.companyId?.toString()}:${normalizeRoleName(role.name)}`, role]));
 
       const results = {
         total: data.length,
@@ -620,7 +629,7 @@ router.post(
           if (currentUser.departmentId) {
              companyId = currentUser.companyId?.toString();
              departmentId = currentUser.departmentId?.toString();
-          } else if (currentUser.role !== UserRole.SUPER_ADMIN) {
+          } else if (!currentUser.isSuperAdmin) {
              companyId = currentUser.companyId?.toString();
           }
 
@@ -637,6 +646,8 @@ router.post(
           if (!existingUser && row.phone) existingUser = userCache.get(`${companyId}:phone:${row.phone}`);
 
           const rawPassword = row.password || '111111';
+          const normalizedRoleName = row.role ? normalizeRoleName(String(row.role)) : '';
+          const matchingRole = normalizedRoleName ? roleCache.get(`${companyId}:${normalizedRoleName}`) : null;
           let hashedPassword = passwordHashCache.get(rawPassword);
           if (!hashedPassword) {
             hashedPassword = await bcrypt.hash(rawPassword, 10);
@@ -648,10 +659,10 @@ router.post(
             if (row.firstName || row.first_name) changes.firstName = row.firstName || row.first_name;
             if (row.lastName || row.last_name) changes.lastName = row.lastName || row.last_name;
             if (row.designation) changes.designation = row.designation;
-            if (row.role) changes.role = row.role;
+            if (matchingRole && String(existingUser.customRoleId) !== String(matchingRole._id)) changes.customRoleId = matchingRole._id;
             if (departmentId && String(existingUser.departmentId) !== String(departmentId)) changes.departmentId = departmentId;
             changes.password = hashedPassword;
-            changes.rawPassword = rawPassword;
+            changes.isSuperAdmin = false;
             changes.updatedAt = new Date();
 
             userUpdateOps.push({
@@ -667,11 +678,11 @@ router.post(
               email: row.email ? row.email.toLowerCase() : undefined,
               phone: row.phone,
               designation: row.designation,
-              role: row.role || 'CUSTOM',
+              customRoleId: matchingRole?._id,
               companyId,
               departmentId,
               password: hashedPassword,
-              rawPassword: rawPassword,
+              isSuperAdmin: false,
               isActive: row.isActive !== false
             });
           }

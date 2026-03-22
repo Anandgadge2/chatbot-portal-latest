@@ -6,7 +6,6 @@ import User from '../models/User';
 import { sendEmail, getNotificationEmailContent, getNotificationWhatsAppMessage } from './emailService';
 import { sendWhatsAppMessage, sendWhatsAppMedia } from './whatsappService';
 import { logger } from '../config/logger';
-import { UserRole } from '../config/constants';
 
 /**
  * Notification Service
@@ -263,18 +262,22 @@ function canNotify(company: any, user: any, type: 'email' | 'whatsapp'): boolean
     return populatedRole.notificationSettings[type];
   }
 
-  // 3. Company Default / Legacy Role Map
-  const role = user?.role;
-  if (!role) return true; 
+  // 3. Company Default / Role Display Name Map
+  const roleLabel =
+    (typeof user?.customRoleId === 'object' && user?.customRoleId?.name)
+      ? user.customRoleId.name
+      : user?.role;
+
+  if (!roleLabel) return true;
   if (!company?.notificationSettings?.roles) return true;
 
   const rolesMap = company.notificationSettings.roles;
   let roleSettings;
 
   if (typeof rolesMap.get === 'function') {
-    roleSettings = rolesMap.get(role);
+    roleSettings = rolesMap.get(roleLabel);
   } else {
-    roleSettings = rolesMap[role];
+    roleSettings = rolesMap[roleLabel];
   }
 
   if (!roleSettings) return true;
@@ -439,8 +442,10 @@ export async function getHierarchicalDepartmentAdmins(departmentId: any): Promis
       // 🔍 3. Sort Admins: Prioritize "Head", "Chief", "HOD", "Dist" in designation/role
       levelAdmins.sort((a, b) => {
         const headTerms = /head|chief|hod|manager|collector|dist|registrar/i;
-        const isAHead = headTerms.test(a.designation || '') || headTerms.test(a.role || '');
-        const isBHead = headTerms.test(b.designation || '') || headTerms.test(b.role || '');
+        const roleNameA = typeof a.customRoleId === 'object' && a.customRoleId ? ((a.customRoleId as any).name || '') : '';
+        const roleNameB = typeof b.customRoleId === 'object' && b.customRoleId ? ((b.customRoleId as any).name || '') : '';
+        const isAHead = headTerms.test(a.designation || '') || headTerms.test(roleNameA);
+        const isBHead = headTerms.test(b.designation || '') || headTerms.test(roleNameB);
         
         if (isAHead && !isBHead) return -1;
         if (!isAHead && isBHead) return 1;
@@ -679,9 +684,11 @@ export async function notifyUserOnAssignment(
           `*${fullData.companyName}*\n` +
           `Digital Grievance Redressal System`;
       }
-      await safeSendWhatsApp(company, user.phone, message);
-      if (data.evidenceUrls && data.evidenceUrls.length > 0) {
-        await sendMediaIfAvailable(company, user.phone, data.evidenceUrls, `Files for Assignment: ${fullData.grievanceId || fullData.appointmentId}`);
+      if (user.phone) {
+        await safeSendWhatsApp(company, user.phone, message);
+        if (data.evidenceUrls && data.evidenceUrls.length > 0) {
+          await sendMediaIfAvailable(company, user.phone, data.evidenceUrls, `Files for Assignment: ${fullData.grievanceId || fullData.appointmentId}`);
+        }
       }
     }
 
@@ -1087,7 +1094,7 @@ export async function notifyHierarchyOnStatusChange(
         const tasks: Promise<any>[] = [];
 
         // 📱 WhatsApp
-        if (canNotify(company, user, 'whatsapp')) {
+        if (user.phone && canNotify(company, user, 'whatsapp')) {
           tasks.push(safeSendWhatsApp(company, user.phone, hierarchyMessage));
           if (data.evidenceUrls && data.evidenceUrls.length > 0) {
             tasks.push(sendMediaIfAvailable(company, user.phone, data.evidenceUrls, `Hierarchy Update: ${fullData.grievanceId || fullData.appointmentId}`));

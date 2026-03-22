@@ -24,7 +24,7 @@ router.get('/', requirePermission(Permission.READ_APPOINTMENT), async (req: Requ
     const query: any = {};
 
     // Scope based on user role
-    if (currentUser.role === UserRole.SUPER_ADMIN) {
+    if (currentUser.isSuperAdmin) {
       // SuperAdmin can see all appointments, but can filter by companyId if provided
       if (companyId) query.companyId = companyId;
     } else {
@@ -206,7 +206,7 @@ router.get('/:id', requirePermission(Permission.READ_APPOINTMENT), async (req: R
     }
 
     // Check access
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       const apptCompanyId = appointment.companyId?._id?.toString() || appointment.companyId?.toString();
       if (apptCompanyId && apptCompanyId !== currentUser.companyId?.toString()) {
         res.status(403).json({ success: false, message: 'Access denied' });
@@ -283,7 +283,7 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_APPOINTMENT
     }
 
     // ✅ Multi-Tenant Scoping Check
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       if (appointment.companyId.toString() !== currentUser.companyId?.toString()) {
         res.status(403).json({ success: false, message: 'Access denied' });
         return;
@@ -445,7 +445,7 @@ router.put('/:id', requirePermission(Permission.UPDATE_APPOINTMENT), async (req:
     }
 
     // ✅ Multi-Tenant Scoping Check
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       if (appointment.companyId.toString() !== currentUser.companyId?.toString()) {
         return res.status(403).json({ success: false, message: 'Access denied - cross-company access prohibited' });
       }
@@ -500,7 +500,7 @@ router.delete('/bulk', requirePermission(Permission.DELETE_APPOINTMENT), async (
     const currentUser = req.user!;
 
     // Only Super Admin can delete
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       res.status(403).json({
         success: false,
         message: 'Only Super Admin can delete appointments'
@@ -551,7 +551,7 @@ router.delete('/:id', requirePermission(Permission.DELETE_APPOINTMENT), async (r
   const currentUser = req.user!;
   
   // Only Super Admin can delete
-  if (currentUser.role !== UserRole.SUPER_ADMIN) {
+  if (!currentUser.isSuperAdmin) {
     res.status(403).json({
       success: false,
       message: 'Only Super Admin can delete appointments'

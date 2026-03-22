@@ -1,25 +1,19 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
-/**
- * Role Model
- *
- * Company-scoped custom roles with granular permissions.
- * Each company can define their own roles (e.g. "Finance Supervisor", "Field Officer").
- * Only SUPER_ADMIN remains a static platform-wide system role.
- */
-
 export interface IPermission {
-  module: string;   // e.g. 'grievances', 'appointments', 'users', 'departments', 'reports', 'flow_builder', 'settings', 'analytics'
-  actions: string[]; // e.g. ['view', 'create', 'update', 'delete', 'assign', 'export']
+  module: string;
+  actions: string[];
 }
 
 export interface IRole extends Document {
   roleId: string;
-  key?: string;              // legacy identifier for system roles (e.g. 'COMPANY_ADMIN')
-  companyId: mongoose.Types.ObjectId;
+  companyId?: mongoose.Types.ObjectId | null;
   name: string;
   description?: string;
-  isSystem: boolean;         // true = cannot be deleted (e.g. default Company Admin role)
+  level: number;
+  scope: 'platform' | 'company';
+  requiredModule?: string;
+  isSystem: boolean;
   permissions: IPermission[];
   notificationSettings?: {
     email: boolean;
@@ -42,14 +36,11 @@ const RoleSchema: Schema = new Schema(
       type: String,
       index: true
     },
-    key: {
-      type: String,
-      index: true
-    },
     companyId: {
       type: Schema.Types.ObjectId,
       ref: 'Company',
-      required: true,
+      required: false,
+      default: null,
       index: true
     },
     name: {
@@ -58,6 +49,21 @@ const RoleSchema: Schema = new Schema(
       trim: true
     },
     description: {
+      type: String,
+      trim: true
+    },
+    level: {
+      type: Number,
+      required: true,
+      index: true
+    },
+    scope: {
+      type: String,
+      enum: ['platform', 'company'],
+      required: true,
+      index: true
+    },
+    requiredModule: {
       type: String,
       trim: true
     },
@@ -88,15 +94,47 @@ const RoleSchema: Schema = new Schema(
   }
 );
 
-// Compound uniqueness: role name must be unique per company
 RoleSchema.index({ companyId: 1, name: 1 }, { unique: true });
+RoleSchema.index({ companyId: 1, level: 1 }, { unique: true });
 
-// Pre-save hook to generate roleId
+RoleSchema.pre('validate', async function (next) {
+  const roleDoc = this as unknown as IRole;
+
+  if (roleDoc.scope === 'platform') {
+    roleDoc.companyId = null;
+  }
+
+  if (roleDoc.scope === 'company' && !roleDoc.companyId) {
+    return next(new Error('companyId is required for company-scoped roles'));
+  }
+
+  if (roleDoc.scope === 'platform' && roleDoc.level !== 0) {
+    return next(new Error('Platform-scoped roles must use level 0'));
+  }
+
+  if (roleDoc.scope === 'company' && !roleDoc.isSystem && (roleDoc.level === undefined || roleDoc.level === null || roleDoc.level < 5)) {
+    const latestRole = await mongoose.model('Role')
+      .findOne<{ level?: number }>({ companyId: roleDoc.companyId, scope: 'company' })
+      .sort({ level: -1 })
+      .select('level')
+      .lean();
+
+    roleDoc.level = Math.max(((latestRole?.level as number | undefined) || 4) + 1, 5);
+  }
+
+  next();
+});
+
 RoleSchema.pre('save', async function (next) {
   if (this.isNew && !this.roleId) {
-    const count = await mongoose.model('Role').countDocuments({ companyId: this.companyId });
-    this.roleId = `ROLE${String(count + 1).padStart(4, '0')}`;
+    try {
+      const { getNextRoleId } = await import('../utils/idGenerator');
+      this.roleId = await getNextRoleId((this.companyId as mongoose.Types.ObjectId | null) || null);
+    } catch (error) {
+      return next(error as any);
+    }
   }
+
   next();
 });
 

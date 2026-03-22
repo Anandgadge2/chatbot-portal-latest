@@ -23,7 +23,7 @@ router.get('/', requirePermission(Permission.READ_DEPARTMENT), async (req: Reque
     const query: any = {};
 
     // SuperAdmin can see all departments
-    if (user.role === UserRole.SUPER_ADMIN) {
+    if (user.isSuperAdmin) {
       if (companyId) query.companyId = companyId;
     } else {
       // All other users are scoped by their company
@@ -67,16 +67,12 @@ router.get('/', requirePermission(Permission.READ_DEPARTMENT), async (req: Reque
       'permissions.actions': { $in: ['update', 'all', 'manage'] }
     }).select('_id name');
     const adminRoleIds = adminRoles.map(r => r._id);
-    const adminRoleNames = adminRoles.map(r => r.name);
 
     // 2. Find users with those roles in the relevant departments
     const admins = await User.find({
       companyId: user.companyId || { $exists: true }, // Ensure company match
       departmentId: { $in: deptIds },
-      $or: [
-        { customRoleId: { $in: adminRoleIds } },
-        { role: { $in: [...adminRoleNames, 'DEPARTMENT_ADMIN', 'SUB_DEPARTMENT_ADMIN', 'DEPARTMENT ADMIN', 'SUB DEPARTMENT ADMIN'] } }
-      ]
+      customRoleId: { $in: adminRoleIds }
     }).select('firstName lastName email phone departmentId');
 
     // 3. Get accurate user counts for each department
@@ -182,7 +178,7 @@ router.post('/', requirePermission(Permission.CREATE_DEPARTMENT), async (req: Re
     }
 
     // Non-SuperAdmin users can only create departments for their own company
-    if (user.role !== UserRole.SUPER_ADMIN && companyId !== user.companyId?.toString()) {
+    if (!user.isSuperAdmin && companyId !== user.companyId?.toString()) {
       res.status(403).json({
         success: false,
         message: 'You can only create departments for your own company'
@@ -245,7 +241,7 @@ router.get('/:id', requirePermission(Permission.READ_DEPARTMENT), async (req: Re
     }
 
     // Check access
-    if (user.role !== UserRole.SUPER_ADMIN && department.companyId._id.toString() !== user.companyId?.toString()) {
+    if (!user.isSuperAdmin && department.companyId._id.toString() !== user.companyId?.toString()) {
       res.status(403).json({
         success: false,
         message: 'Access denied'
@@ -261,15 +257,11 @@ router.get('/:id', requirePermission(Permission.READ_DEPARTMENT), async (req: Re
       'permissions.actions': { $in: ['update', 'all', 'manage'] }
     }).select('_id name');
     const adminRoleIds = adminRoles.map(r => r._id);
-    const adminRoleNames = adminRoles.map(r => r.name);
 
     const User = (await import('../models/User')).default;
     const admin = await User.findOne({
       departmentId: department._id,
-      $or: [
-        { customRoleId: { $in: adminRoleIds } },
-        { role: { $in: adminRoleNames } }
-      ]
+      customRoleId: { $in: adminRoleIds }
     }).select('firstName lastName email phone');
 
     const deptObj: any = department.toObject();
@@ -315,7 +307,7 @@ router.put('/:id', requirePermission(Permission.UPDATE_DEPARTMENT), async (req: 
     }
 
     // Check access
-    if (user.role !== UserRole.SUPER_ADMIN && existingDepartment.companyId.toString() !== user.companyId?.toString()) {
+    if (!user.isSuperAdmin && existingDepartment.companyId.toString() !== user.companyId?.toString()) {
       res.status(403).json({
         success: false,
         message: 'Access denied'
@@ -382,7 +374,7 @@ router.delete('/:id', requirePermission(Permission.DELETE_DEPARTMENT), async (re
     }
 
     // Check access
-    if (user.role !== UserRole.SUPER_ADMIN && existingDepartment.companyId.toString() !== user.companyId?.toString()) {
+    if (!user.isSuperAdmin && existingDepartment.companyId.toString() !== user.companyId?.toString()) {
       res.status(403).json({
         success: false,
         message: 'Access denied'

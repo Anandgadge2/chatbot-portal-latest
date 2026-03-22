@@ -125,7 +125,7 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
 
     // Prevent updates to resolved/rejected grievances (frozen) - except for super admin
     const oldStatus = grievance.status;
-    if ((oldStatus === GrievanceStatus.RESOLVED || oldStatus === GrievanceStatus.REJECTED) && currentUser.role !== UserRole.SUPER_ADMIN) {
+    if ((oldStatus === GrievanceStatus.RESOLVED || oldStatus === GrievanceStatus.REJECTED) && !currentUser.isSuperAdmin) {
       return res.status(403).json({
         success: false,
         message: 'Cannot update a resolved or rejected grievance. Grievance is frozen.'
@@ -134,7 +134,7 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
 
     // Permission checks
     // Permission checks
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       if (grievance.companyId._id.toString() !== currentUser.companyId?.toString()) {
         return res.status(403).json({ success: false, message: 'Access denied to this company' });
       }
@@ -337,7 +337,7 @@ router.put('/appointment/:id', requirePermission(Permission.STATUS_CHANGE_APPOIN
 
     // Permission checks
     // Permission checks
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       if (appointment.companyId._id.toString() !== currentUser.companyId?.toString()) {
         return res.status(403).json({ success: false, message: 'Access denied to this company' });
       }

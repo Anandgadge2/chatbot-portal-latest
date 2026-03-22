@@ -1,15 +1,21 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken } from '../utils/jwt';
 import User, { IUser } from '../models/User';
+import { AuthContext, buildAuthContext, resolveUserAccessContext } from '../utils/accessControl';
 
-// Extend Express Request to include user
 declare global {
   namespace Express {
     interface Request {
       user?: IUser;
+      auth?: AuthContext;
     }
   }
 }
+
+const attachRequestAuth = (req: Request, user: IUser, auth: AuthContext) => {
+  req.user = user;
+  req.auth = auth;
+};
 
 export const authenticate = async (
   req: Request,
@@ -17,7 +23,6 @@ export const authenticate = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    // Get token from header
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -28,12 +33,8 @@ export const authenticate = async (
       return;
     }
 
-    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-
-    // Verify token
+    const token = authHeader.substring(7);
     const decoded = verifyToken(token);
-
-    // Find user
     const user = await User.findById(decoded.userId).select('+password');
 
     if (!user) {
@@ -52,22 +53,26 @@ export const authenticate = async (
       return;
     }
 
-    // Attach user to request
-    req.user = user;
+    const { role, filteredPermissions } = await resolveUserAccessContext(user);
+    const auth = buildAuthContext(user, role, filteredPermissions);
+
+    attachRequestAuth(req, user, auth);
     next();
   } catch (error: any) {
     if (error.name === 'JsonWebTokenError') {
-      res.status(401).json({
-        success: false,
-        message: 'Invalid token.'
-      });
+      res.status(401).json({ success: false, message: 'Invalid token.' });
       return;
     }
 
     if (error.name === 'TokenExpiredError') {
-      res.status(401).json({
+      res.status(401).json({ success: false, message: 'Token expired. Please login again.' });
+      return;
+    }
+
+    if (error.statusCode) {
+      res.status(error.statusCode).json({
         success: false,
-        message: 'Token expired. Please login again.'
+        message: error.message
       });
       return;
     }
@@ -92,15 +97,15 @@ export const optionalAuth = async (
       const token = authHeader.substring(7);
       const decoded = verifyToken(token);
       const user = await User.findById(decoded.userId);
-      
+
       if (user && user.isActive) {
-        req.user = user;
+        const { role, filteredPermissions } = await resolveUserAccessContext(user);
+        attachRequestAuth(req, user, buildAuthContext(user, role, filteredPermissions));
       }
     }
 
     next();
-  } catch (error) {
-    // Silently fail for optional auth
+  } catch (_error) {
     next();
   }
 };

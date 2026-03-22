@@ -25,7 +25,7 @@ router.get('/', requirePermission(Permission.READ_GRIEVANCE), async (req: Reques
     const query: any = {};
 
     // Scope based on user role
-    if (currentUser.role === UserRole.SUPER_ADMIN) {
+    if (currentUser.isSuperAdmin) {
       // SuperAdmin can see all grievances, but can filter by companyId if provided
       if (companyId) query.companyId = companyId;
     } else {
@@ -229,7 +229,7 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
       return res.status(404).json({ success: false, message: 'Grievance not found' });
     }
 
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       const grievanceCompanyId = (grievance.companyId as any)?._id?.toString() || grievance.companyId?.toString();
       if (grievanceCompanyId !== currentUser.companyId?.toString()) {
         return res.status(403).json({ success: false, message: 'Access denied to this company' });
@@ -321,7 +321,7 @@ router.get('/:id', requirePermission(Permission.READ_GRIEVANCE), async (req: Req
     }
 
     // Check access - enforce company isolation for all non-superadmin roles
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       // Always enforce company scope first
       const grievanceCompanyId = (grievance.companyId as any)?._id?.toString() || grievance.companyId?.toString();
       if (grievanceCompanyId && currentUser.companyId && grievanceCompanyId !== currentUser.companyId.toString()) {
@@ -402,7 +402,7 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_GRIEVANCE, 
     }
 
     // ✅ Multi-Tenant Scoping Check
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       if (grievance.companyId?.toString() !== currentUser.companyId?.toString()) {
         res.status(403).json({ success: false, message: 'Access denied' });
         return;
@@ -553,7 +553,7 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
 
     // ✅ Multi-Tenant Scoping Check
     const currentUser = req.user!;
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       if (grievance.companyId?.toString() !== currentUser.companyId?.toString()) {
         res.status(403).json({ success: false, message: 'Access denied' });
         return;
@@ -718,7 +718,7 @@ router.put('/:id', requirePermission(Permission.UPDATE_GRIEVANCE), async (req: R
     }
 
     // ✅ Multi-Tenant Scoping Check
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       if (grievance.companyId?.toString() !== currentUser.companyId?.toString()) {
         res.status(403).json({ success: false, message: 'Access denied' });
         return;
@@ -773,7 +773,7 @@ router.delete('/bulk', requirePermission(Permission.DELETE_GRIEVANCE), async (re
     const currentUser = req.user!;
 
     // Only Super Admin can delete
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       res.status(403).json({
         success: false,
         message: 'Only Super Admin can delete grievances'
@@ -824,7 +824,7 @@ router.delete('/:id', requirePermission(Permission.DELETE_GRIEVANCE), async (req
   const currentUser = req.user!;
   
   // Only Super Admin can delete
-  if (currentUser.role !== UserRole.SUPER_ADMIN) {
+  if (!currentUser.isSuperAdmin) {
     res.status(403).json({
       success: false,
       message: 'Only Super Admin can delete grievances'

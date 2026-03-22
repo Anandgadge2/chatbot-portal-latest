@@ -14,7 +14,7 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
     const { departmentId, companyId: queryCompanyId } = req.query;
     // Super Admin may pass companyId in query; others use their own companyId
     const companyId =
-      (req.user?.role === UserRole.SUPER_ADMIN && typeof queryCompanyId === 'string' && queryCompanyId)
+      (req.user?.isSuperAdmin && typeof queryCompanyId === 'string' && queryCompanyId)
         ? queryCompanyId
         : req.user?.companyId;
 
