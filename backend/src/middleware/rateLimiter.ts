@@ -8,7 +8,7 @@ export const tenantLimiter = rateLimit({
   keyGenerator: (req: any) => req.user?.companyId?.toString() || req.ip,
   message: {
     success: false,
-    error: 'Too many requests, please try again later'
+    message: 'Too many requests, please try again later'
   },
   standardHeaders: true,
   legacyHeaders: false,

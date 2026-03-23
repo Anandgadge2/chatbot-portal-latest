@@ -45,7 +45,9 @@ const buildUserResponse = (user: any, accessContext: Awaited<ReturnType<typeof r
   lastName: user.lastName,
   email: user.email,
   phone: user.phone,
-  role: (user.isSuperAdmin || user.role === 'SUPER_ADMIN') ? 'SUPER_ADMIN' : accessContext.role?.name,
+  roleDisplayName: (user.isSuperAdmin || user.role === 'SUPER_ADMIN')
+    ? 'SUPER_ADMIN'
+    : user.roleDisplayName || accessContext.role?.name,
   companyId: user.companyId?._id || user.companyId,
   departmentId: user.departmentId,
   subDepartmentId: user.subDepartmentId,
@@ -66,6 +68,7 @@ const buildTokenPayload = (user: any, accessContext: Awaited<ReturnType<typeof r
   companyId: toObjectIdString(user.companyId),
   departmentId: toObjectIdString(user.departmentId),
   subDepartmentId: toObjectIdString(user.subDepartmentId),
+  // roleId is for reference only, not for authorization logic
   roleId: accessContext.role?._id?.toString(),
   level: accessContext.level,
   scope: accessContext.scope,
@@ -268,19 +271,33 @@ router.get('/me', authenticate, async (req: Request, res: Response) => {
 // @route   POST /api/auth/register
 // @desc    Register new user (Admin only)
 // @access  Private
-router.post('/register', async (req: Request, res: Response) => {
+router.post('/register', authenticate, async (req: Request, res: Response) => {
   try {
+    if (!req.user?.isSuperAdmin && req.access?.level !== 1) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only company admin can create users'
+      });
+    }
+
     const firstName = getTrimmedString(req.body?.firstName);
     const lastName = getTrimmedString(req.body?.lastName);
     const email = getTrimmedString(req.body?.email)?.toLowerCase();
     const password = getTrimmedString(req.body?.password);
     const phone = getTrimmedString(req.body?.phone);
     const role = getTrimmedString(req.body?.role);
-    const companyId = getValidObjectId(req.body?.companyId);
+    const requestedCompanyId = getValidObjectId(req.body?.companyId);
     const departmentId = getValidObjectId(req.body?.departmentId);
+    const companyId = req.user?.isSuperAdmin
+      ? requestedCompanyId
+      : getValidObjectId(req.user?.companyId);
 
-    if (req.body?.companyId !== undefined && !companyId) {
+    if (req.body?.companyId !== undefined && req.user?.isSuperAdmin && !requestedCompanyId) {
       return res.status(400).json({ success: false, message: 'Invalid companyId' });
+    }
+
+    if (!req.user?.isSuperAdmin && !companyId) {
+      return res.status(403).json({ success: false, message: 'Only company admin can create users' });
     }
 
     if (req.body?.departmentId !== undefined && !departmentId) {
@@ -351,6 +368,7 @@ router.post('/register', async (req: Request, res: Response) => {
       password,
       phone,
       role,
+      roleDisplayName: role,
       ...(companyId ? { companyId } : {}),
       ...(departmentId ? { departmentId } : {})
     });
@@ -373,8 +391,7 @@ router.post('/register', async (req: Request, res: Response) => {
   } catch (error: any) {
     res.status(500).json({
       success: false,
-      message: 'Registration failed',
-      error: error.message
+      message: error.message || 'Registration failed'
     });
   }
 });

@@ -10,6 +10,7 @@ export interface JWTPayload {
   email?: string;
   phone: string;
   role?: string;
+  // roleId is for reference only, not for authorization logic
   roleId?: string;
   isSuperAdmin?: boolean;
   companyId?: string;

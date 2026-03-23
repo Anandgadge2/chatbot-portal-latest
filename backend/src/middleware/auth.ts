@@ -31,7 +31,7 @@ const attachAccessContext = async (user: IUser): Promise<{ user: IUser; accessCo
     user.filteredPermissions = [{ module: '*', actions: ['*'] }];
     user.level = 0;
     user.scope = 'platform';
-    user.role = 'SUPER_ADMIN';
+    user.roleDisplayName = 'SUPER_ADMIN';
 
     return {
       user,
@@ -53,7 +53,7 @@ const attachAccessContext = async (user: IUser): Promise<{ user: IUser; accessCo
   user.filteredPermissions = accessContext.filteredPermissions;
   user.level = accessContext.level;
   user.scope = accessContext.scope;
-  user.role = accessContext.role?.name || 'CUSTOM';
+  user.roleDisplayName = accessContext.role?.name || 'CUSTOM';
 
   return {
     user,

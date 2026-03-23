@@ -10,6 +10,7 @@ export interface IUser extends Document {
   phone: string;
   designation?: string; // 🏢 Added designation field
   role?: string; // Legacy response-only field
+  roleDisplayName?: string;
   isSuperAdmin: boolean;
   companyId?: mongoose.Types.ObjectId;
   departmentId?: mongoose.Types.ObjectId;
