@@ -67,7 +67,7 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
     const query: any = {};
 
     // If not superadmin, filter by user's company
-    if (user.role !== 'SUPER_ADMIN' && user.companyId) {
+    if (!user.isSuperAdmin && user.companyId) {
       query.companyId = user.companyId;
     } else if (companyId) {
       // Convert string companyId to ObjectId if valid
@@ -132,7 +132,7 @@ router.get('/:id', authenticate, async (req: Request, res: Response) => {
     }
 
     // Check access - non-SUPER_ADMIN users can only view flows from their own company
-    if (user.role !== 'SUPER_ADMIN') {
+    if (!user.isSuperAdmin) {
       const flowCompanyId = flow.companyId?._id?.toString() || flow.companyId?.toString();
       const userCompanyId = user.companyId?.toString();
       

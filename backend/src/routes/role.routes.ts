@@ -1,166 +1,102 @@
 import { Router, Request, Response } from 'express';
-import mongoose from 'mongoose';
 import Role from '../models/Role';
 import User from '../models/User';
-import { UserRole, AuditAction } from '../config/constants';
-import { createAuditLog, logUserAction } from '../utils/auditLogger';
+import { AuditAction } from '../config/constants';
+import { logUserAction } from '../utils/auditLogger';
 import { authenticate } from '../middleware/auth';
 import { requireDatabaseConnection } from '../middleware/dbConnection';
+import {
+  canAssignRole,
+  creatorPermissionsContain,
+  filterPermissionsByModules,
+  resolveUserAccessContext
+} from '../utils/accessControl';
 
 const router = Router();
 
-// Apply middleware to all routes
 router.use(requireDatabaseConnection);
 router.use(authenticate);
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function isOwnOrSuperAdmin(req: Request, targetCompanyId: string): boolean {
-  const user = req.user;
-  if (!user) return false;
-  if (user.role === UserRole.SUPER_ADMIN) return true;
-  return user.companyId?.toString() === targetCompanyId;
+function isOwnOrSuperAdmin(req: Request, targetCompanyId?: string | null): boolean {
+  if (req.auth?.isSuperAdmin) return true;
+  return !!targetCompanyId && req.auth?.companyId === targetCompanyId;
 }
-
-// ─── GET /roles?companyId=... ─────────────────────────────────────────────────
 
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const user = req.user!;
-    const rawCompanyId = req.query.companyId as string;
+    const rawCompanyId = req.query.companyId as string | undefined;
+    const companyId = req.auth?.isSuperAdmin ? rawCompanyId : req.auth?.companyId || undefined;
 
-    // Determine which company to fetch roles for
-    const companyId =
-      user.role === UserRole.SUPER_ADMIN && rawCompanyId
-        ? rawCompanyId
-        : user.companyId?.toString();
-
-    // If SUPER_ADMIN but no companyId provided, we can return an empty list or system roles
     if (!companyId) {
-      // If we want to return a 400, it's safer for now as roles are company-scoped
-      return res.status(400).json({ success: false, message: 'companyId is required to fetch roles' });
+      return res.status(400).json({ success: false, message: 'companyId is required to fetch company roles' });
     }
 
     if (!isOwnOrSuperAdmin(req, companyId)) {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
-    const roles = await Role.find({ companyId }).sort({ isSystem: -1, name: 1 });
+    const roles = await Role.find({ companyId, scope: 'company' }).sort({ level: 1, name: 1 });
+    const roleIds = roles.map((role) => role._id);
+    const userCounts = await User.aggregate([
+      { $match: { customRoleId: { $in: roleIds } } },
+      { $group: { _id: '$customRoleId', count: { $sum: 1 } } }
+    ]);
 
-    // Attach user count per role
-    const enriched = await Promise.all(
-      roles.map(async (role: any) => {
-        // Count users who have this specific role assigned 
-        // OR legacy users who have the string role identifier that matches this role's key
-        // We use the companyId from the role itself or the request query
-        const targetCompanyId = role.companyId || companyId;
-        const countQuery: any = { companyId: targetCompanyId };
-        
-        if (role.key) {
-          const roleRegex = new RegExp(`^${role.key.replace(/_/g, '[\\s_]')}$`, 'i');
-          const nameRegex = new RegExp(`^${role.name.replace(/_/g, '[\\s_]')}$`, 'i');
-          countQuery.$or = [
-            { customRoleId: role._id },
-            { role: roleRegex },
-            { role: nameRegex }
-          ];
-        } else {
-          countQuery.$or = [
-            { customRoleId: role._id },
-            { role: new RegExp(`^${role.name}$`, 'i') }
-          ];
-        }
+    const countsByRoleId = new Map(userCounts.map((entry) => [entry._id.toString(), entry.count]));
+    const enriched = roles.map((role) => ({
+      ...role.toObject(),
+      userCount: countsByRoleId.get(role._id.toString()) || 0
+    }));
 
-        const userCount = await User.countDocuments(countQuery);
-        console.log(`[RoleCount] Role: ${role.name}, Key: ${role.key}, Company: ${targetCompanyId}, Query: ${JSON.stringify(countQuery)}, Result: ${userCount}`);
-        return { ...role.toObject(), userCount };
-      })
-    );
-
-    res.json({ success: true, data: { roles: enriched } });
+    return res.json({ success: true, data: { roles: enriched } });
   } catch (err: any) {
-    console.error('❌ GET /roles error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    return res.status(500).json({ success: false, message: err.message });
   }
 });
-
-// ─── GET /roles/:id ───────────────────────────────────────────────────────────
 
 router.get('/:id', async (req: Request, res: Response) => {
   try {
     const role = await Role.findById(req.params.id);
     if (!role) return res.status(404).json({ success: false, message: 'Role not found' });
 
-    if (!isOwnOrSuperAdmin(req, role.companyId.toString())) {
+    if (!isOwnOrSuperAdmin(req, role.companyId?.toString() || null)) {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
-    const countQuery: any = { companyId: role.companyId };
-    if (role.key) {
-      countQuery.$or = [
-        { customRoleId: role._id },
-        { role: role.key }
-      ];
-    } else {
-      countQuery.customRoleId = role._id;
-    }
-
-    const userCount = await User.countDocuments(countQuery);
-    res.json({ success: true, data: { role: { ...role.toObject(), userCount } } });
+    const userCount = await User.countDocuments({ customRoleId: role._id });
+    return res.json({ success: true, data: { role: { ...role.toObject(), userCount } } });
   } catch (err: any) {
-    console.error('❌ GET /roles/:id error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    return res.status(500).json({ success: false, message: err.message });
   }
 });
-
-// ─── GET /roles/:id/users ─────────────────────────────────────────────────────
 
 router.get('/:id/users', async (req: Request, res: Response) => {
   try {
     const role = await Role.findById(req.params.id);
     if (!role) return res.status(404).json({ success: false, message: 'Role not found' });
 
-    if (!isOwnOrSuperAdmin(req, role.companyId.toString())) {
+    if (!isOwnOrSuperAdmin(req, role.companyId?.toString() || null)) {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
-    const query: any = { companyId: role.companyId };
-    
-    if (role.key) {
-      const roleRegex = new RegExp(`^${role.key.replace(/_/g, '[\\s_]')}$`, 'i');
-      const nameRegex = new RegExp(`^${role.name.replace(/_/g, '[\\s_]')}$`, 'i');
-      query.$or = [
-        { customRoleId: role._id },
-        { role: roleRegex },
-        { role: nameRegex }
-      ];
-    } else {
-      query.$or = [
-        { customRoleId: role._id },
-        { role: new RegExp(`^${role.name}$`, 'i') }
-      ];
-    }
-
-    const users = await User.find(query)
-      .select('-password -rawPassword')
+    const users = await User.find({ customRoleId: role._id })
+      .select('-password')
       .populate('departmentId', 'name')
+      .populate('subDepartmentId', 'name')
       .sort({ firstName: 1 });
 
-    res.json({ success: true, data: users });
+    return res.json({ success: true, data: users });
   } catch (err: any) {
-    console.error('❌ GET /roles/:id/users error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    return res.status(500).json({ success: false, message: err.message });
   }
 });
-
-// ─── POST /roles ──────────────────────────────────────────────────────────────
 
 router.post('/', async (req: Request, res: Response) => {
   try {
     const user = req.user!;
-    const { companyId, name, description, permissions } = req.body;
+    const { companyId, name, description, permissions, requiredModule } = req.body;
+    const targetCompanyId = req.auth?.isSuperAdmin ? companyId : req.auth?.companyId;
 
-    const targetCompanyId = companyId || user.companyId?.toString();
     if (!targetCompanyId) {
       return res.status(400).json({ success: false, message: 'companyId is required' });
     }
@@ -173,31 +109,46 @@ router.post('/', async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: 'Role name is required' });
     }
 
+    const Company = (await import('../models/Company')).default;
+    const company = await Company.findById(targetCompanyId).select('enabledModules');
+    if (!company) {
+      return res.status(404).json({ success: false, message: 'Company not found' });
+    }
+
+    if (requiredModule && !company.enabledModules.includes(requiredModule)) {
+      return res.status(400).json({ success: false, message: `Module ${requiredModule} is not enabled for this company` });
+    }
+
+    if (!req.auth?.isSuperAdmin) {
+      const accessContext = await resolveUserAccessContext(user);
+      if (!creatorPermissionsContain(accessContext.filteredPermissions, permissions || [])) {
+        return res.status(403).json({ success: false, message: 'You cannot grant permissions you do not have' });
+      }
+    }
+
     const role = new Role({
       companyId: targetCompanyId,
+      scope: 'company',
       name: name.trim(),
       description: description?.trim(),
-      permissions: permissions || [],
+      permissions: filterPermissionsByModules(permissions || [], company.enabledModules),
       notificationSettings: req.body.notificationSettings || { email: true, whatsapp: true },
+      requiredModule: requiredModule || undefined,
       isSystem: false,
       createdBy: user._id
     });
 
     await role.save();
+    await logUserAction(req, AuditAction.CREATE, 'Role', role._id.toString(), { roleName: role.name, level: role.level });
 
-    await logUserAction(req, AuditAction.CREATE, 'Role', role._id.toString(), { roleName: role.name });
-
-    res.status(201).json({ success: true, data: { role }, message: 'Role created successfully' });
+    return res.status(201).json({ success: true, data: { role }, message: 'Role created successfully' });
   } catch (err: any) {
     if (err.code === 11000) {
-      return res.status(409).json({ success: false, message: 'A role with this name already exists in this company' });
+      return res.status(409).json({ success: false, message: 'A role with this name or level already exists in this company' });
     }
-    console.error('❌ POST /roles error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    return res.status(500).json({ success: false, message: err.message });
   }
 });
-
-// ─── PUT /roles/:id ───────────────────────────────────────────────────────────
 
 router.put('/:id', async (req: Request, res: Response) => {
   try {
@@ -205,92 +156,91 @@ router.put('/:id', async (req: Request, res: Response) => {
     const role = await Role.findById(req.params.id);
 
     if (!role) return res.status(404).json({ success: false, message: 'Role not found' });
-    if (!isOwnOrSuperAdmin(req, role.companyId.toString())) {
+    if (!isOwnOrSuperAdmin(req, role.companyId?.toString() || null)) {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
-    const { name, description, permissions } = req.body;
+    const Company = (await import('../models/Company')).default;
+    const company = role.companyId ? await Company.findById(role.companyId).select('enabledModules') : null;
 
-    if (name) role.name = name.trim();
-    if (description !== undefined) role.description = description?.trim();
-    if (permissions !== undefined) role.permissions = permissions;
+    if (!req.auth?.isSuperAdmin) {
+      const accessContext = await resolveUserAccessContext(user);
+      if (req.body.permissions !== undefined && !creatorPermissionsContain(accessContext.filteredPermissions, req.body.permissions)) {
+        return res.status(403).json({ success: false, message: 'You cannot grant permissions you do not have' });
+      }
+    }
+
+    if (req.body.name) role.name = req.body.name.trim();
+    if (req.body.description !== undefined) role.description = req.body.description?.trim();
+    if (req.body.permissions !== undefined) {
+      role.permissions = company
+        ? filterPermissionsByModules(req.body.permissions, company.enabledModules)
+        : req.body.permissions;
+    }
+    if (req.body.requiredModule !== undefined) role.requiredModule = req.body.requiredModule || undefined;
     if (req.body.notificationSettings !== undefined) role.notificationSettings = req.body.notificationSettings;
     role.updatedBy = user._id;
 
     await role.save();
+    await logUserAction(req, AuditAction.UPDATE, 'Role', role._id.toString(), { roleName: role.name, level: role.level });
 
-    await logUserAction(req, AuditAction.UPDATE, 'Role', role._id.toString(), { roleName: role.name });
-
-    res.json({ success: true, data: { role }, message: 'Role updated successfully' });
+    return res.json({ success: true, data: { role }, message: 'Role updated successfully' });
   } catch (err: any) {
     if (err.code === 11000) {
-      return res.status(409).json({ success: false, message: 'A role with this name already exists in this company' });
+      return res.status(409).json({ success: false, message: 'A role with this name or level already exists in this company' });
     }
-    console.error('❌ PUT /roles/:id error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    return res.status(500).json({ success: false, message: err.message });
   }
 });
 
-// ─── DELETE /roles/:id ────────────────────────────────────────────────────────
-
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
-    const user = req.user!;
     const role = await Role.findById(req.params.id);
-
     if (!role) return res.status(404).json({ success: false, message: 'Role not found' });
     if (role.isSystem) {
       return res.status(403).json({ success: false, message: 'System roles cannot be deleted' });
     }
-    if (!isOwnOrSuperAdmin(req, role.companyId.toString())) {
+    if (!isOwnOrSuperAdmin(req, role.companyId?.toString() || null)) {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
-    // Unassign users from this role before deleting
-    const usersWithRole = await User.countDocuments({ customRoleId: role._id });
-    if (usersWithRole > 0) {
-      await User.updateMany({ customRoleId: role._id }, { $unset: { customRoleId: '' } });
-      console.log(`Snapshot: Unassigned role from ${usersWithRole} user(s)`);
-    }
-
+    await User.updateMany({ customRoleId: role._id }, { $unset: { customRoleId: '' } });
     await Role.findByIdAndDelete(req.params.id);
+    await logUserAction(req, AuditAction.DELETE, 'Role', role._id.toString(), { roleName: role.name, level: role.level });
 
-    await logUserAction(req, AuditAction.DELETE, 'Role', role._id.toString(), { roleName: role.name });
-
-    res.json({ success: true, message: 'Role deleted successfully' });
+    return res.json({ success: true, message: 'Role deleted successfully' });
   } catch (err: any) {
-    console.error('❌ DELETE /roles/:id error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    return res.status(500).json({ success: false, message: err.message });
   }
 });
 
-// ─── POST /roles/:id/assign-user ─────────────────────────────────────────────
-
 router.post('/:id/assign-user', async (req: Request, res: Response) => {
   try {
-    const user = req.user!;
-    const { userId } = req.body;
-
     const role = await Role.findById(req.params.id);
     if (!role) return res.status(404).json({ success: false, message: 'Role not found' });
 
-    if (!isOwnOrSuperAdmin(req, role.companyId.toString())) {
+    if (!isOwnOrSuperAdmin(req, role.companyId?.toString() || null)) {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
-    const targetUser = await User.findById(userId);
+    const targetUser = await User.findById(req.body.userId);
     if (!targetUser) return res.status(404).json({ success: false, message: 'User not found' });
-    if (targetUser.companyId?.toString() !== role.companyId.toString()) {
+    if (targetUser.companyId?.toString() !== role.companyId?.toString()) {
       return res.status(400).json({ success: false, message: 'User does not belong to this company' });
     }
 
+    const allowed = await canAssignRole(req.user!, role.level);
+    if (!allowed) {
+      return res.status(403).json({ success: false, message: 'You can only assign roles strictly below your own level' });
+    }
+
     targetUser.customRoleId = role._id;
+    targetUser.isSuperAdmin = false;
     await targetUser.save();
 
-    res.json({ success: true, message: `Role "${role.name}" assigned to user` });
+    return res.json({ success: true, message: `Role assigned to user`, data: { roleId: role._id } });
   } catch (err: any) {
-    console.error('❌ POST /roles/:id/assign-user error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    return res.status(500).json({ success: false, message: err.message });
   }
 });
 

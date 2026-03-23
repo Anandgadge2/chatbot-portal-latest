@@ -6,6 +6,7 @@ import { requirePermission } from '../middleware/rbac';
 import { requireDatabaseConnection } from '../middleware/dbConnection';
 import { logUserAction } from '../utils/auditLogger';
 import { AuditAction, Permission, UserRole, AppointmentStatus } from '../config/constants';
+import { scopeToUser } from '../utils/accessControl';
 
 const router = express.Router();
 
@@ -24,12 +25,11 @@ router.get('/', requirePermission(Permission.READ_APPOINTMENT), async (req: Requ
     const query: any = {};
 
     // Scope based on user role
-    if (currentUser.role === UserRole.SUPER_ADMIN) {
+    if (currentUser.isSuperAdmin) {
       // SuperAdmin can see all appointments, but can filter by companyId if provided
       if (companyId) query.companyId = companyId;
     } else {
-      // All other roles are scoped by their company
-      query.companyId = currentUser.companyId;
+      Object.assign(query, scopeToUser(req));
 
       if (currentUser.departmentId) {
         // Dynamic check: Users without status change permission (like basic Operators) only see their own items
@@ -206,7 +206,7 @@ router.get('/:id', requirePermission(Permission.READ_APPOINTMENT), async (req: R
     }
 
     // Check access
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       const apptCompanyId = appointment.companyId?._id?.toString() || appointment.companyId?.toString();
       if (apptCompanyId && apptCompanyId !== currentUser.companyId?.toString()) {
         res.status(403).json({ success: false, message: 'Access denied' });
@@ -283,7 +283,7 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_APPOINTMENT
     }
 
     // ✅ Multi-Tenant Scoping Check
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       if (appointment.companyId.toString() !== currentUser.companyId?.toString()) {
         res.status(403).json({ success: false, message: 'Access denied' });
         return;
@@ -445,7 +445,7 @@ router.put('/:id', requirePermission(Permission.UPDATE_APPOINTMENT), async (req:
     }
 
     // ✅ Multi-Tenant Scoping Check
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       if (appointment.companyId.toString() !== currentUser.companyId?.toString()) {
         return res.status(403).json({ success: false, message: 'Access denied - cross-company access prohibited' });
       }
@@ -455,10 +455,50 @@ router.put('/:id', requirePermission(Permission.UPDATE_APPOINTMENT), async (req:
       }
     }
 
-    // Update appointment
+    const appointmentUpdates: Record<string, unknown> = {};
+
+    if (typeof req.body.citizenName === 'string') appointmentUpdates.citizenName = req.body.citizenName.trim();
+    if (typeof req.body.citizenPhone === 'string') appointmentUpdates.citizenPhone = req.body.citizenPhone.trim();
+    if (typeof req.body.citizenWhatsApp === 'string') appointmentUpdates.citizenWhatsApp = req.body.citizenWhatsApp.trim();
+    if (typeof req.body.citizenEmail === 'string') appointmentUpdates.citizenEmail = req.body.citizenEmail.trim().toLowerCase();
+    if (typeof req.body.purpose === 'string') appointmentUpdates.purpose = req.body.purpose.trim();
+    if (typeof req.body.appointmentTime === 'string') appointmentUpdates.appointmentTime = req.body.appointmentTime.trim();
+    if (typeof req.body.location === 'string') appointmentUpdates.location = req.body.location.trim();
+    if (typeof req.body.notes === 'string') appointmentUpdates.notes = req.body.notes;
+    if (typeof req.body.cancellationReason === 'string') appointmentUpdates.cancellationReason = req.body.cancellationReason;
+    if (typeof req.body.status === 'string') appointmentUpdates.status = req.body.status;
+    if (typeof req.body.duration === 'number') appointmentUpdates.duration = req.body.duration;
+    if (typeof req.body.assignedTo === 'string' || req.body.assignedTo === null) appointmentUpdates.assignedTo = req.body.assignedTo;
+    if (typeof req.body.departmentId === 'string' || req.body.departmentId === null) appointmentUpdates.departmentId = req.body.departmentId;
+    if (typeof req.body.subDepartmentId === 'string' || req.body.subDepartmentId === null) appointmentUpdates.subDepartmentId = req.body.subDepartmentId;
+
+    if (req.body.appointmentDate !== undefined) {
+      const appointmentDate = new Date(req.body.appointmentDate);
+      if (Number.isNaN(appointmentDate.getTime())) {
+        return res.status(400).json({ success: false, message: 'Invalid appointment date' });
+      }
+      appointmentUpdates.appointmentDate = appointmentDate;
+    }
+
+    if (req.body.cancelledAt !== undefined) {
+      const cancelledAt = new Date(req.body.cancelledAt);
+      if (Number.isNaN(cancelledAt.getTime())) {
+        return res.status(400).json({ success: false, message: 'Invalid cancellation date' });
+      }
+      appointmentUpdates.cancelledAt = cancelledAt;
+    }
+
+    if (req.body.completedAt !== undefined) {
+      const completedAt = new Date(req.body.completedAt);
+      if (Number.isNaN(completedAt.getTime())) {
+        return res.status(400).json({ success: false, message: 'Invalid completion date' });
+      }
+      appointmentUpdates.completedAt = completedAt;
+    }
+
     const updatedAppointment = await Appointment.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      { $set: appointmentUpdates },
       { new: true, runValidators: true }
     );
 
@@ -474,7 +514,7 @@ router.put('/:id', requirePermission(Permission.UPDATE_APPOINTMENT), async (req:
       AuditAction.UPDATE,
       'Appointment',
       updatedAppointment._id.toString(),
-      { updates: req.body }
+      { updates: appointmentUpdates }
     );
 
     res.json({
@@ -500,7 +540,7 @@ router.delete('/bulk', requirePermission(Permission.DELETE_APPOINTMENT), async (
     const currentUser = req.user!;
 
     // Only Super Admin can delete
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       res.status(403).json({
         success: false,
         message: 'Only Super Admin can delete appointments'
@@ -551,7 +591,7 @@ router.delete('/:id', requirePermission(Permission.DELETE_APPOINTMENT), async (r
   const currentUser = req.user!;
   
   // Only Super Admin can delete
-  if (currentUser.role !== UserRole.SUPER_ADMIN) {
+  if (!currentUser.isSuperAdmin) {
     res.status(403).json({
       success: false,
       message: 'Only Super Admin can delete appointments'

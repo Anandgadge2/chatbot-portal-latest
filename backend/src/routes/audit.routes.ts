@@ -5,6 +5,7 @@ import { authenticate } from '../middleware/auth';
 import { requirePermission } from '../middleware/rbac';
 import { requireDatabaseConnection } from '../middleware/dbConnection';
 import { Permission, UserRole } from '../config/constants';
+import { scopeToUser } from '../utils/accessControl';
 
 
 const router = express.Router();
@@ -24,9 +25,8 @@ router.get('/', requirePermission(Permission.VIEW_AUDIT_LOGS), async (req: Reque
     const query: any = {};
 
     // Scope based on user role
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
-      // Non-SuperAdmin users can only see logs for their company
-      query.companyId = currentUser.companyId;
+    if (!currentUser.isSuperAdmin) {
+      Object.assign(query, scopeToUser(req));
     } else if (companyId) {
       // SuperAdmin can filter by company
       query.companyId = companyId;
@@ -90,7 +90,7 @@ router.get('/stats', requirePermission(Permission.VIEW_AUDIT_LOGS), async (req: 
 
     // Enforce company-level isolation for all non-superadmin users.
     // They can only access statistics for their own company regardless of query params.
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       matchQuery.companyId = currentUser.companyId;
     } else if (companyId) {
       matchQuery.companyId = new mongoose.Types.ObjectId(companyId as string);

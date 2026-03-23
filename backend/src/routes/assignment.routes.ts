@@ -8,6 +8,7 @@ import Appointment from '../models/Appointment';
 import User from '../models/User';
 import { logUserAction } from '../utils/auditLogger';
 import { AuditAction } from '../config/constants';
+import { scopeToUser } from '../utils/accessControl';
 
 const router = express.Router();
 
@@ -86,7 +87,7 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
     }
 
     // Permission checks - ensure users stay within their scope
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       // Must be in same company
       if (grievance.companyId._id.toString() !== currentUser.companyId?.toString()) {
         return res.status(403).json({ success: false, message: 'Access denied to this company' });
@@ -289,7 +290,7 @@ router.put('/appointment/:id/assign', requirePermission(Permission.UPDATE_APPOIN
     }
 
     // Permission checks
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       if (appointment.companyId._id.toString() !== currentUser.companyId?.toString()) {
         return res.status(403).json({ success: false, message: 'Access denied' });
       }
@@ -422,10 +423,10 @@ router.get('/users/available', async (req: Request, res: Response) => {
       _id: { $ne: currentUser._id }
     };
 
-    if (currentUser.role === UserRole.SUPER_ADMIN) {
+    if (currentUser.isSuperAdmin) {
       // SuperAdmin can see anyone
     } else {
-      query.companyId = currentUser.companyId;
+      Object.assign(query, scopeToUser(req));
       if (currentUser.departmentId) {
         query.departmentId = currentUser.departmentId;
       }

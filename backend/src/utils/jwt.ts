@@ -1,17 +1,14 @@
 import jwt from 'jsonwebtoken';
+import { AuthContext } from './accessControl';
 
-export interface JWTPayload {
-  userId: string;
+export interface JWTPayload extends AuthContext {
   email?: string;
-  phone: string;
-  role: string;
-  companyId?: string;
-  departmentId?: string;
+  phone?: string;
 }
 
 export const generateToken = (payload: JWTPayload): string => {
   const secret = process.env.JWT_SECRET;
-  
+
   if (!secret) {
     throw new Error('JWT_SECRET is not defined');
   }
@@ -23,7 +20,7 @@ export const generateToken = (payload: JWTPayload): string => {
 
 export const generateRefreshToken = (payload: JWTPayload): string => {
   const secret = process.env.JWT_REFRESH_SECRET;
-  
+
   if (!secret) {
     throw new Error('JWT_REFRESH_SECRET is not defined');
   }
@@ -35,7 +32,7 @@ export const generateRefreshToken = (payload: JWTPayload): string => {
 
 export const verifyToken = (token: string): JWTPayload => {
   const secret = process.env.JWT_SECRET;
-  
+
   if (!secret) {
     throw new Error('JWT_SECRET is not defined');
   }
@@ -45,7 +42,7 @@ export const verifyToken = (token: string): JWTPayload => {
 
 export const verifyRefreshToken = (token: string): JWTPayload => {
   const secret = process.env.JWT_REFRESH_SECRET;
-  
+
   if (!secret) {
     throw new Error('JWT_REFRESH_SECRET is not defined');
   }

@@ -5,6 +5,30 @@ import { authenticate } from '../middleware/auth';
 
 const router = Router();
 
+const sanitizeModulePermissions = (input: unknown): Array<{ action: string; label: string }> => {
+  const safePermissions: Array<{ action: string; label: string }> = [];
+
+  if (!Array.isArray(input)) {
+    return safePermissions;
+  }
+
+  for (const permission of input) {
+    if (
+      permission &&
+      typeof permission === 'object' &&
+      typeof (permission as any).action === 'string' &&
+      typeof (permission as any).label === 'string'
+    ) {
+      safePermissions.push({
+        action: (permission as any).action,
+        label: (permission as any).label
+      });
+    }
+  }
+
+  return safePermissions;
+};
+
 // Apply authentication to all module management routes
 router.use(authenticate);
 
@@ -59,7 +83,21 @@ router.post('/', requireSuperAdmin, async (req: Request, res: Response) => {
  */
 router.put('/:id', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
-    const module = await Module.findByIdAndUpdate(req.params.id, req.body, {
+    const updates: Record<string, unknown> = {};
+
+    if (typeof req.body.key === 'string') updates.key = req.body.key.toUpperCase();
+    if (typeof req.body.name === 'string') updates.name = req.body.name;
+    if (typeof req.body.description === 'string') updates.description = req.body.description;
+    if (typeof req.body.category === 'string') updates.category = req.body.category;
+    if (typeof req.body.icon === 'string') updates.icon = req.body.icon;
+    if (typeof req.body.isActive === 'boolean') updates.isActive = req.body.isActive;
+    if (typeof req.body.isSystem === 'boolean') updates.isSystem = req.body.isSystem;
+
+    if (req.body.permissions !== undefined) {
+      updates.permissions = sanitizeModulePermissions(req.body.permissions);
+    }
+
+    const module = await Module.findByIdAndUpdate(req.params.id, { $set: updates }, {
       new: true,
       runValidators: true
     });

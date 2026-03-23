@@ -1,16 +1,19 @@
 import { Request, Response } from 'express';
 import Company from '../models/Company';
 import User from '../models/User';
+import Role from '../models/Role';
 import { logUserAction } from '../utils/auditLogger';
 import { AuditAction } from '../config/constants';
+import { normalizePhoneNumber, validatePassword, validatePhoneNumber, validateTelephone, normalizeTelephone } from '../utils/phoneUtils';
+import { seedDefaultRoleDefinitions } from '../utils/accessControl';
 
 const ALLOWED_LANGUAGES = ['en', 'hi', 'or', 'mr'] as const;
 
 const normalizeSelectedLanguages = (languages: unknown): string[] => {
   const normalized = Array.isArray(languages)
-    ? languages.filter((language): language is string =>
+    ? languages.filter((language): language is string => (
       typeof language === 'string' && ALLOWED_LANGUAGES.includes(language as any)
-    )
+    ))
     : [];
 
   if (!normalized.includes('en')) normalized.unshift('en');
@@ -20,7 +23,6 @@ const normalizeSelectedLanguages = (languages: unknown): string[] => {
 export const list = async (req: Request, res: Response) => {
   try {
     const { page = 1, limit = 20, search, companyType, isActive } = req.query;
-
     const query: any = {};
 
     if (search) {
@@ -43,38 +45,24 @@ export const list = async (req: Request, res: Response) => {
       .skip((Number(page) - 1) * Number(limit))
       .sort({ createdAt: -1 });
 
-    // Dynamically identify company administrators based on their permissions or role names
-    const companyIds = companies.map(c => c._id);
-    const Role = (await import('../models/Role')).default;
+    const companyIds = companies.map((company) => company._id);
     const companyAdminRoles = await Role.find({
       companyId: { $in: companyIds },
-      $or: [
-        { name: { $regex: /admin|head|manager|supervisor|collector|official/i } },
-        { 
-          'permissions.module': { $in: ['SETTINGS', 'USER_MANAGEMENT', 'DEPARTMENTS'] },
-          'permissions.actions': { $in: ['update', 'all', 'manage'] }
-        }
-      ]
-    }).select('_id name');
+      level: 1,
+      scope: 'company'
+    }).select('_id companyId');
 
-    const adminRoleIds = companyAdminRoles.map(r => r._id);
-    const adminRoleNames = companyAdminRoles.map(r => r.name);
-
+    const adminRoleIds = companyAdminRoles.map((role) => role._id);
     const admins = await User.find({
       companyId: { $in: companyIds },
       isActive: true,
-      $or: [
-        { customRoleId: { $in: adminRoleIds } },
-        { role: { $in: [...adminRoleNames, 'Admin', 'COMPANY_ADMIN', 'COMPANY_HEAD', 'HEAD'] } },
-        { role: { $regex: /admin|head/i } }
-      ]
-    }).select('firstName lastName email phone companyId role customRoleId').sort({ createdAt: 1 });
+      customRoleId: { $in: adminRoleIds }
+    }).select('firstName lastName email phone companyId').sort({ createdAt: 1 });
 
-    const companiesWithHead = companies.map(c => {
-      const admin = admins.find(a => a.companyId?.toString() === c._id.toString());
-      const companyObj = c.toObject();
-      
-      // Attach admin info as 'companyHead'
+    const companiesWithHead = companies.map((company) => {
+      const admin = admins.find((candidate) => candidate.companyId?.toString() === company._id.toString());
+      const companyObj = company.toObject();
+
       if (admin) {
         (companyObj as any).companyHead = {
           name: `${admin.firstName} ${admin.lastName}`,
@@ -82,13 +70,13 @@ export const list = async (req: Request, res: Response) => {
           phone: admin.phone
         };
       }
-      
+
       return companyObj;
     });
 
     const total = await Company.countDocuments(query);
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         companies: companiesWithHead,
@@ -101,45 +89,38 @@ export const list = async (req: Request, res: Response) => {
       }
     });
   } catch (error: any) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Failed to fetch companies',
       error: error.message
     });
   }
-
 };
 
 export const create = async (req: Request, res: Response) => {
   try {
-    console.log('Company creation request body:', req.body);
-    
-    const { 
-      name, 
+    const {
+      name,
       nameHi,
       nameOr,
       nameMr,
-      companyType, 
-      contactEmail, 
-      contactPhone, 
-      address, 
+      companyType,
+      contactEmail,
+      contactPhone,
+      address,
       enabledModules,
       selectedLanguages,
       theme,
-      admin // Admin user data
+      admin
     } = req.body;
 
-    // Validate required fields (only name and companyType; contact email/phone are optional)
     if (!name || !companyType) {
-      console.log('Validation failed: missing required fields');
       return res.status(400).json({
         success: false,
         message: 'Please provide company name and type'
       });
     }
 
-    // Validate and normalize contact phone if provided (telephone: landline or mobile)
-    const { validateTelephone, normalizeTelephone } = await import('../utils/phoneUtils');
     let normalizedContactPhone: string | undefined = contactPhone;
     if (contactPhone) {
       if (!validateTelephone(contactPhone)) {
@@ -151,21 +132,15 @@ export const create = async (req: Request, res: Response) => {
       normalizedContactPhone = normalizeTelephone(contactPhone);
     }
 
-    // Validate admin password if admin is provided
-    if (admin && admin.password) {
-      const { validatePassword } = await import('../utils/phoneUtils');
-      if (!validatePassword(admin.password)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Admin password must be at least 6 characters'
-        });
-      }
+    if (admin?.password && !validatePassword(admin.password)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Admin password must be at least 6 characters'
+      });
     }
 
-    // Validate and normalize admin phone if provided (10-digit mobile)
     let normalizedAdminPhone = admin?.phone;
-    if (admin && admin.phone) {
-      const { validatePhoneNumber, normalizePhoneNumber } = await import('../utils/phoneUtils');
+    if (admin?.phone) {
       if (!validatePhoneNumber(admin.phone)) {
         return res.status(400).json({
           success: false,
@@ -175,9 +150,6 @@ export const create = async (req: Request, res: Response) => {
       normalizedAdminPhone = normalizePhoneNumber(admin.phone);
     }
 
-    console.log('Creating company with data:', { name, companyType, contactEmail, contactPhone: normalizedContactPhone });
-
-    // Create company
     const company = await Company.create({
       name,
       nameHi: nameHi || undefined,
@@ -196,100 +168,75 @@ export const create = async (req: Request, res: Response) => {
       isSuspended: false
     });
 
-    console.log('Company created successfully:', company._id);
+    const actorId = req.user?._id;
+    if (!actorId) {
+      return res.status(401).json({ success: false, message: 'Authentication required' });
+    }
 
-    // Seeding logic removed per user request. 
-    // SuperAdmin will manually create roles for the company from the dashboard.
+    const defaultRoles = seedDefaultRoleDefinitions(actorId).map((role) => ({
+      ...role,
+      companyId: company._id
+    }));
 
-    // Create company admin if admin data is provided
+    const createdRoles = await Role.insertMany(defaultRoles, { ordered: true });
+    const companyAdminRole = createdRoles.find((role) => role.level === 1) || null;
+
     let adminUser: any = null;
-    if (admin && admin.email && admin.password && admin.firstName && admin.lastName) {
-      console.log('Creating admin user for company:', admin.email);
-
-      try {
-        // Create admin user (password will be hashed by pre-save hook)
-        adminUser = await User.create({
-          firstName: admin.firstName,
-          lastName: admin.lastName,
-          email: admin.email,
-          password: admin.password, // Pre-save hook will hash this
-          phone: normalizedAdminPhone || normalizedContactPhone || undefined,
-          role: 'Admin', // General legacy fallback
-          companyId: company._id,
-          isActive: true
-        });
-
-        console.log('Admin user created successfully:', adminUser._id);
-      } catch (userError: any) {
-        console.error('Failed to create admin user:', userError);
-        // Don't fail the whole company creation if admin creation fails
-        console.warn('Company created but admin user creation failed');
-      }
+    if (admin && admin.email && admin.password && admin.firstName && admin.lastName && companyAdminRole) {
+      adminUser = await User.create({
+        firstName: admin.firstName,
+        lastName: admin.lastName,
+        email: admin.email.toLowerCase().trim(),
+        password: admin.password,
+        phone: normalizedAdminPhone || normalizedContactPhone,
+        designation: admin.designation,
+        companyId: company._id,
+        customRoleId: companyAdminRole._id,
+        isSuperAdmin: false,
+        isActive: true,
+        createdBy: actorId
+      });
     }
 
-    // Log company creation
-    try {
-      await logUserAction(
-        req,
-        AuditAction.CREATE,
-        'Company',
-        company._id.toString(),
-        { 
-          companyName: company.name,
-          companyType: company.companyType,
-          adminCreated: !!adminUser
-        }
-      );
-    } catch (logError) {
-      console.error('Failed to log company creation:', logError);
-    }
+    await logUserAction(req, AuditAction.CREATE, 'Company', company._id.toString(), {
+      companyName: company.name,
+      companyType: company.companyType,
+      seededDefaultRoles: createdRoles.length,
+      adminCreated: !!adminUser
+    });
 
-    // Log admin creation if admin was created
     if (adminUser) {
-      try {
-        await logUserAction(
-          req,
-          AuditAction.CREATE,
-          'User',
-          adminUser._id.toString(),
-          { 
-            email: adminUser.email,
-            role: adminUser.role,
-            companyId: company._id
-          }
-        );
-      } catch (logError) {
-        console.error('Failed to log admin creation:', logError);
-      }
+      await logUserAction(req, AuditAction.CREATE, 'User', adminUser._id.toString(), {
+        email: adminUser.email,
+        customRoleId: adminUser.customRoleId,
+        companyId: company._id
+      });
     }
 
-    console.log('Sending successful response');
     return res.status(201).json({
       success: true,
       message: 'Company created successfully' + (adminUser ? ' with admin user' : ''),
-      data: { 
+      data: {
         company,
+        roles: createdRoles,
         admin: adminUser ? {
           id: adminUser._id,
           userId: adminUser.userId,
           firstName: adminUser.firstName,
           lastName: adminUser.lastName,
           email: adminUser.email,
-          role: adminUser.role,
+          customRoleId: adminUser.customRoleId,
           companyId: adminUser.companyId
         } : null
       }
     });
   } catch (error: any) {
-    console.error('Company creation error:', error);
-    console.error('Error stack:', error.stack);
     return res.status(500).json({
       success: false,
       message: 'Failed to create company',
       error: error.message
     });
   }
-
 };
 
 export const me = async (req: Request, res: Response) => {
@@ -304,137 +251,119 @@ export const me = async (req: Request, res: Response) => {
     }
 
     const company = await Company.findById(currentUser.companyId);
-
     if (!company) {
-      return res.status(404).json({
-        success: false,
-        message: 'Company not found'
-      });
+      return res.status(404).json({ success: false, message: 'Company not found' });
     }
 
-    return res.json({
-      success: true,
-      data: { company }
-    });
+    return res.json({ success: true, data: { company } });
   } catch (error: any) {
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to fetch company',
-      error: error.message
-    });
+    return res.status(500).json({ success: false, message: 'Failed to fetch company', error: error.message });
   }
-
 };
 
 export const getById = async (req: Request, res: Response) => {
   try {
     const company = await Company.findById(req.params.id);
-
     if (!company) {
-      return res.status(404).json({
-        success: false,
-        message: 'Company not found'
-      });
+      return res.status(404).json({ success: false, message: 'Company not found' });
     }
 
-    return res.json({
-      success: true,
-      data: { company }
-    });
+    return res.json({ success: true, data: { company } });
   } catch (error: any) {
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to fetch company',
-      error: error.message
-    });
+    return res.status(500).json({ success: false, message: 'Failed to fetch company', error: error.message });
   }
-
 };
 
 export const update = async (req: Request, res: Response) => {
   try {
-    // Normalize phone numbers if provided in update
-    const updateData: any = { ...req.body };
+    const updateData: Record<string, unknown> = {};
+
+    if (typeof req.body.name === 'string') updateData.name = req.body.name.trim();
+    if (typeof req.body.nameHi === 'string') updateData.nameHi = req.body.nameHi.trim();
+    if (typeof req.body.nameOr === 'string') updateData.nameOr = req.body.nameOr.trim();
+    if (typeof req.body.nameMr === 'string') updateData.nameMr = req.body.nameMr.trim();
+    if (typeof req.body.companyType === 'string') updateData.companyType = req.body.companyType;
+    if (typeof req.body.contactEmail === 'string') updateData.contactEmail = req.body.contactEmail.trim().toLowerCase();
+    if (typeof req.body.address === 'string') updateData.address = req.body.address.trim();
+    if (typeof req.body.isActive === 'boolean') updateData.isActive = req.body.isActive;
+    if (typeof req.body.isSuspended === 'boolean') updateData.isSuspended = req.body.isSuspended;
+
+    if (Array.isArray(req.body.enabledModules)) {
+      updateData.enabledModules = req.body.enabledModules.filter((module: unknown): module is string => typeof module === 'string');
+    }
 
     if (req.body.selectedLanguages !== undefined) {
       updateData.selectedLanguages = normalizeSelectedLanguages(req.body.selectedLanguages);
     }
-    
-    if (updateData.contactPhone) {
-      const { validateTelephone, normalizeTelephone } = await import('../utils/phoneUtils');
-      if (!validateTelephone(updateData.contactPhone)) {
+
+    if (req.body.theme && typeof req.body.theme === 'object') {
+      const theme = req.body.theme as Record<string, unknown>;
+      if (typeof theme.primaryColor === 'string') updateData['theme.primaryColor'] = theme.primaryColor;
+      if (typeof theme.secondaryColor === 'string') updateData['theme.secondaryColor'] = theme.secondaryColor;
+      if (typeof theme.logoUrl === 'string') updateData['theme.logoUrl'] = theme.logoUrl;
+    }
+
+    if (req.body.notificationSettings && typeof req.body.notificationSettings === 'object') {
+      const roles = (req.body.notificationSettings as Record<string, unknown>).roles;
+      const safeRoles: Record<string, { email: boolean; whatsapp: boolean }> = {};
+
+      if (roles && typeof roles === 'object') {
+        for (const [roleKey, value] of Object.entries(roles as Record<string, unknown>)) {
+          if (
+            value &&
+            typeof value === 'object' &&
+            typeof (value as Record<string, unknown>).email === 'boolean' &&
+            typeof (value as Record<string, unknown>).whatsapp === 'boolean'
+          ) {
+            safeRoles[roleKey] = {
+              email: (value as Record<string, boolean>).email,
+              whatsapp: (value as Record<string, boolean>).whatsapp
+            };
+          }
+        }
+      }
+
+      updateData.notificationSettings = { roles: safeRoles };
+    }
+
+    if (typeof req.body.contactPhone === 'string' && req.body.contactPhone.trim()) {
+      if (!validateTelephone(req.body.contactPhone)) {
         return res.status(400).json({
           success: false,
           message: 'Contact phone must be 6–15 digits (e.g. 0721-2662926 or 9356150561)'
         });
       }
-      updateData.contactPhone = normalizeTelephone(updateData.contactPhone);
+      updateData.contactPhone = normalizeTelephone(req.body.contactPhone);
     }
 
     const company = await Company.findByIdAndUpdate(
       req.params.id,
-      updateData,
+      { $set: updateData },
       { new: true, runValidators: true }
     );
-
     if (!company) {
-      return res.status(404).json({
-        success: false,
-        message: 'Company not found'
-      });
+      return res.status(404).json({ success: false, message: 'Company not found' });
     }
 
-    await logUserAction(
-      req,
-      AuditAction.UPDATE,
-      'Company',
-      company._id.toString(),
-      { updates: req.body }
-    );
+    await logUserAction(req, AuditAction.UPDATE, 'Company', company._id.toString(), { updates: updateData });
 
-    return res.json({
-      success: true,
-      message: 'Company updated successfully',
-      data: { company }
-    });
+    return res.json({ success: true, message: 'Company updated successfully', data: { company } });
   } catch (error: any) {
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to update company',
-      error: error.message
-    });
+    return res.status(500).json({ success: false, message: 'Failed to update company', error: error.message });
   }
-
 };
 
 export const remove = async (req: Request, res: Response) => {
   try {
     const company = await Company.findByIdAndDelete(req.params.id);
-
     if (!company) {
-      return res.status(404).json({
-        success: false,
-        message: 'Company not found'
-      });
+      return res.status(404).json({ success: false, message: 'Company not found' });
     }
 
-    await logUserAction(
-      req,
-      AuditAction.DELETE,
-      'Company',
-      company._id.toString()
-    );
+    await logUserAction(req, AuditAction.DELETE, 'Company', company._id.toString());
 
-    return res.json({
-      success: true,
-      message: 'Company deleted successfully'
-    });
+    return res.json({ success: true, message: 'Company deleted successfully' });
   } catch (error: any) {
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to delete company',
-      error: error.message
-    });
+    return res.status(500).json({ success: false, message: 'Failed to delete company', error: error.message });
   }
-
 };

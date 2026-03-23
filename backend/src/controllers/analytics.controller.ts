@@ -10,7 +10,7 @@ const getAnalyticsBaseQuery = (req: any, companyId?: any, departmentId?: any) =>
   const query: any = {};
   const currentUser = req.user;
 
-  if (currentUser.role === UserRole.SUPER_ADMIN) {
+  if (currentUser.isSuperAdmin) {
     if (companyId) query.companyId = new mongoose.Types.ObjectId(companyId.toString());
     if (departmentId) query.departmentId = new mongoose.Types.ObjectId(departmentId.toString());
   } else {
@@ -280,7 +280,7 @@ export const dashboard = async (req: Request, res: Response) => {
       { $unwind: { path: '$customRole', preserveNullAndEmptyArrays: true } },
       {
         $group: {
-          _id: { $ifNull: ['$customRole.name', '$role'] },
+          _id: { $cond: [{ $eq: ['$isSuperAdmin', true] }, 'Platform Superadmin', '$customRole.name'] },
           count: { $sum: 1 }
         }
       },

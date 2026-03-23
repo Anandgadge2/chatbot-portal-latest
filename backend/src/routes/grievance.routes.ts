@@ -7,6 +7,7 @@ import { requirePermission } from '../middleware/rbac';
 import { requireDatabaseConnection } from '../middleware/dbConnection';
 import { logUserAction } from '../utils/auditLogger';
 import { AuditAction, Permission, UserRole, GrievanceStatus } from '../config/constants';
+import { scopeToUser } from '../utils/accessControl';
 
 const router = express.Router();
 
@@ -25,12 +26,11 @@ router.get('/', requirePermission(Permission.READ_GRIEVANCE), async (req: Reques
     const query: any = {};
 
     // Scope based on user role
-    if (currentUser.role === UserRole.SUPER_ADMIN) {
+    if (currentUser.isSuperAdmin) {
       // SuperAdmin can see all grievances, but can filter by companyId if provided
       if (companyId) query.companyId = companyId;
     } else {
-      // All other users are scoped by their company
-      query.companyId = currentUser.companyId;
+      Object.assign(query, scopeToUser(req));
 
       if (currentUser.departmentId) {
         // Dynamic check: If they don't have assignment permission, they can only see their own assigned grievances
@@ -229,7 +229,7 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
       return res.status(404).json({ success: false, message: 'Grievance not found' });
     }
 
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       const grievanceCompanyId = (grievance.companyId as any)?._id?.toString() || grievance.companyId?.toString();
       if (grievanceCompanyId !== currentUser.companyId?.toString()) {
         return res.status(403).json({ success: false, message: 'Access denied to this company' });
@@ -321,7 +321,7 @@ router.get('/:id', requirePermission(Permission.READ_GRIEVANCE), async (req: Req
     }
 
     // Check access - enforce company isolation for all non-superadmin roles
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       // Always enforce company scope first
       const grievanceCompanyId = (grievance.companyId as any)?._id?.toString() || grievance.companyId?.toString();
       if (grievanceCompanyId && currentUser.companyId && grievanceCompanyId !== currentUser.companyId.toString()) {
@@ -402,7 +402,7 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_GRIEVANCE, 
     }
 
     // ✅ Multi-Tenant Scoping Check
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       if (grievance.companyId?.toString() !== currentUser.companyId?.toString()) {
         res.status(403).json({ success: false, message: 'Access denied' });
         return;
@@ -553,7 +553,7 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
 
     // ✅ Multi-Tenant Scoping Check
     const currentUser = req.user!;
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       if (grievance.companyId?.toString() !== currentUser.companyId?.toString()) {
         res.status(403).json({ success: false, message: 'Access denied' });
         return;
@@ -718,7 +718,7 @@ router.put('/:id', requirePermission(Permission.UPDATE_GRIEVANCE), async (req: R
     }
 
     // ✅ Multi-Tenant Scoping Check
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       if (grievance.companyId?.toString() !== currentUser.companyId?.toString()) {
         res.status(403).json({ success: false, message: 'Access denied' });
         return;
@@ -735,10 +735,65 @@ router.put('/:id', requirePermission(Permission.UPDATE_GRIEVANCE), async (req: R
       }
     }
 
-    // Update grievance
+    const grievanceUpdates: Record<string, unknown> = {};
+
+    if (typeof req.body.citizenName === 'string') grievanceUpdates.citizenName = req.body.citizenName.trim();
+    if (typeof req.body.citizenPhone === 'string') grievanceUpdates.citizenPhone = req.body.citizenPhone.trim();
+    if (typeof req.body.citizenWhatsApp === 'string') grievanceUpdates.citizenWhatsApp = req.body.citizenWhatsApp.trim();
+    if (typeof req.body.description === 'string') grievanceUpdates.description = req.body.description;
+    if (typeof req.body.category === 'string') grievanceUpdates.category = req.body.category.trim();
+    if (typeof req.body.priority === 'string') grievanceUpdates.priority = req.body.priority;
+    if (typeof req.body.status === 'string') grievanceUpdates.status = req.body.status;
+    if (typeof req.body.assignedTo === 'string' || req.body.assignedTo === null) grievanceUpdates.assignedTo = req.body.assignedTo;
+    if (typeof req.body.departmentId === 'string' || req.body.departmentId === null) grievanceUpdates.departmentId = req.body.departmentId;
+    if (typeof req.body.subDepartmentId === 'string' || req.body.subDepartmentId === null) grievanceUpdates.subDepartmentId = req.body.subDepartmentId;
+    if (typeof req.body.resolution === 'string') grievanceUpdates.resolution = req.body.resolution;
+    if (typeof req.body.language === 'string') grievanceUpdates.language = req.body.language;
+    if (typeof req.body.forestAreaId === 'string') grievanceUpdates.forestAreaId = req.body.forestAreaId;
+
+    if (req.body.slaDueDate !== undefined) {
+      const slaDueDate = new Date(req.body.slaDueDate);
+      if (Number.isNaN(slaDueDate.getTime())) {
+        return res.status(400).json({ success: false, message: 'Invalid SLA due date' });
+      }
+      grievanceUpdates.slaDueDate = slaDueDate;
+    }
+
+    if (req.body.location && typeof req.body.location === 'object') {
+      const location = req.body.location as Record<string, unknown>;
+      if (
+        location.type === 'Point' &&
+        Array.isArray(location.coordinates) &&
+        location.coordinates.length === 2 &&
+        location.coordinates.every((coordinate: unknown) => typeof coordinate === 'number')
+      ) {
+        grievanceUpdates.location = {
+          type: 'Point',
+          coordinates: location.coordinates as [number, number],
+          ...(typeof location.address === 'string' ? { address: location.address } : {})
+        };
+      }
+    }
+
+    if (Array.isArray(req.body.media)) {
+      grievanceUpdates.media = req.body.media
+        .filter((media: unknown) =>
+          media &&
+          typeof media === 'object' &&
+          typeof (media as any).url === 'string' &&
+          typeof (media as any).type === 'string'
+        )
+        .map((media: any) => ({
+          url: media.url,
+          type: media.type,
+          ...(media.uploadedAt ? { uploadedAt: new Date(media.uploadedAt) } : {}),
+          ...(typeof media.uploadedBy === 'string' ? { uploadedBy: media.uploadedBy } : {})
+        }));
+    }
+
     const updatedGrievance = await Grievance.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      { $set: grievanceUpdates },
       { new: true, runValidators: true }
     );
 
@@ -747,7 +802,7 @@ router.put('/:id', requirePermission(Permission.UPDATE_GRIEVANCE), async (req: R
       AuditAction.UPDATE,
       'Grievance',
       updatedGrievance!._id.toString(),
-      { updates: req.body }
+      { updates: grievanceUpdates }
     );
 
     res.json({
@@ -773,7 +828,7 @@ router.delete('/bulk', requirePermission(Permission.DELETE_GRIEVANCE), async (re
     const currentUser = req.user!;
 
     // Only Super Admin can delete
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       res.status(403).json({
         success: false,
         message: 'Only Super Admin can delete grievances'
@@ -824,7 +879,7 @@ router.delete('/:id', requirePermission(Permission.DELETE_GRIEVANCE), async (req
   const currentUser = req.user!;
   
   // Only Super Admin can delete
-  if (currentUser.role !== UserRole.SUPER_ADMIN) {
+  if (!currentUser.isSuperAdmin) {
     res.status(403).json({
       success: false,
       message: 'Only Super Admin can delete grievances'

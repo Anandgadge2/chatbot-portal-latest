@@ -1,14 +1,11 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
-import { CompanyType, Module } from '../config/constants';
+import { CompanyType } from '../config/constants';
 
 export interface ICompany extends Document {
   companyId: string;
   name: string;
-  /** Display name in Hindi */
   nameHi?: string;
-  /** Display name in Odia */
   nameOr?: string;
-  /** Display name in Marathi */
   nameMr?: string;
   companyType: CompanyType;
   enabledModules: string[];
@@ -29,8 +26,6 @@ export interface ICompany extends Document {
       };
     };
   };
-  // Note: whatsappConfig moved to CompanyWhatsAppConfig model
-  // Note: chatbotConfig moved to ChatbotFlow model
   isActive: boolean;
   isSuspended: boolean;
   createdAt: Date;
@@ -58,9 +53,7 @@ const CompanySchema: Schema = new Schema(
       enum: Object.values(CompanyType),
       required: true
     },
-    enabledModules: [{
-      type: String
-    }],
+    enabledModules: [{ type: String }],
     selectedLanguages: [{
       type: String,
       enum: ['en', 'hi', 'or', 'mr']
@@ -102,8 +95,6 @@ const CompanySchema: Schema = new Schema(
         default: {}
       }
     },
-    // Removed: whatsappConfig - now in CompanyWhatsAppConfig model
-    // Removed: chatbotConfig - now in ChatbotFlow model
     isActive: {
       type: Boolean,
       default: true
@@ -118,7 +109,6 @@ const CompanySchema: Schema = new Schema(
   }
 );
 
-// Indexes
 CompanySchema.index({ companyType: 1 });
 CompanySchema.index({ isActive: 1, isSuspended: 1 });
 
@@ -137,24 +127,16 @@ CompanySchema.pre('validate', function (next) {
   next();
 });
 
-// Pre-save hook to generate companyId
 CompanySchema.pre('save', async function (next) {
   if (this.isNew && !this.companyId) {
-    // Find the last companyId globally, including soft-deleted ones
-    const lastCompany = await mongoose.model('Company')
-      .findOne({}, { companyId: 1 })
-      .sort({ companyId: -1 });
-
-    let nextNum = 1;
-    if (lastCompany && lastCompany.companyId) {
-      const match = lastCompany.companyId.match(/^CMP(\d+)$/);
-      if (match) {
-        nextNum = parseInt(match[1], 10) + 1;
-      }
+    try {
+      const { getNextCompanyId } = await import('../utils/idGenerator');
+      this.companyId = await getNextCompanyId();
+    } catch (error) {
+      return next(error as any);
     }
-
-    this.companyId = `CMP${String(nextNum).padStart(6, '0')}`;
   }
+
   next();
 });
 

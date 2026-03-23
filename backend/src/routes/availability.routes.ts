@@ -8,13 +8,86 @@ import Company from '../models/Company';
 
 const router = Router();
 
+const sanitizeTimeSlot = (slot: unknown) => {
+  if (!slot || typeof slot !== 'object') {
+    return undefined;
+  }
+
+  const safeSlot: Record<string, unknown> = {};
+  const slotRecord = slot as Record<string, unknown>;
+
+  if (typeof slotRecord.enabled === 'boolean') safeSlot.enabled = slotRecord.enabled;
+  if (typeof slotRecord.startTime === 'string') safeSlot.startTime = slotRecord.startTime;
+  if (typeof slotRecord.endTime === 'string') safeSlot.endTime = slotRecord.endTime;
+
+  return Object.keys(safeSlot).length > 0 ? safeSlot : undefined;
+};
+
+const sanitizeDayAvailability = (day: unknown) => {
+  if (!day || typeof day !== 'object') {
+    return undefined;
+  }
+
+  const safeDay: Record<string, unknown> = {};
+  const dayRecord = day as Record<string, unknown>;
+
+  if (typeof dayRecord.isAvailable === 'boolean') safeDay.isAvailable = dayRecord.isAvailable;
+
+  const morning = sanitizeTimeSlot(dayRecord.morning);
+  if (morning) safeDay.morning = morning;
+
+  const afternoon = sanitizeTimeSlot(dayRecord.afternoon);
+  if (afternoon) safeDay.afternoon = afternoon;
+
+  const evening = sanitizeTimeSlot(dayRecord.evening);
+  if (evening) safeDay.evening = evening;
+
+  return Object.keys(safeDay).length > 0 ? safeDay : undefined;
+};
+
+const sanitizeSpecialDate = (input: unknown) => {
+  if (!input || typeof input !== 'object') {
+    return undefined;
+  }
+
+  const specialDate = input as Record<string, unknown>;
+  const parsedDate = new Date(String(specialDate.date));
+
+  if (
+    Number.isNaN(parsedDate.getTime()) ||
+    (specialDate.type !== 'holiday' && specialDate.type !== 'custom') ||
+    typeof specialDate.isAvailable !== 'boolean'
+  ) {
+    return undefined;
+  }
+
+  const safeSpecialDate: Record<string, unknown> = {
+    date: parsedDate,
+    type: specialDate.type,
+    isAvailable: specialDate.isAvailable
+  };
+
+  if (typeof specialDate.name === 'string') safeSpecialDate.name = specialDate.name;
+
+  const morning = sanitizeTimeSlot(specialDate.morning);
+  if (morning) safeSpecialDate.morning = morning;
+
+  const afternoon = sanitizeTimeSlot(specialDate.afternoon);
+  if (afternoon) safeSpecialDate.afternoon = afternoon;
+
+  const evening = sanitizeTimeSlot(specialDate.evening);
+  if (evening) safeSpecialDate.evening = evening;
+
+  return safeSpecialDate;
+};
+
 // Get availability settings for a company/department
 router.get('/', authenticate, async (req: Request, res: Response) => {
   try {
     const { departmentId, companyId: queryCompanyId } = req.query;
     // Super Admin may pass companyId in query; others use their own companyId
     const companyId =
-      (req.user?.role === UserRole.SUPER_ADMIN && typeof queryCompanyId === 'string' && queryCompanyId)
+      (req.user?.isSuperAdmin && typeof queryCompanyId === 'string' && queryCompanyId)
         ? queryCompanyId
         : req.user?.companyId;
 
@@ -422,7 +495,7 @@ router.get('/available-dates/:companyId', async (req: Request, res: Response) =>
 router.put('/', authenticate, async (req: Request, res: Response) => {
   try {
     const companyId = req.user?.companyId;
-    const { departmentId, ...updateData } = req.body;
+    const { departmentId } = req.body;
 
     if (!companyId) {
       return res.status(400).json({ success: false, message: 'Company ID is required' });
@@ -435,9 +508,34 @@ router.put('/', authenticate, async (req: Request, res: Response) => {
       query.departmentId = { $exists: false };
     }
 
+    const safeUpdateData: Record<string, unknown> = {};
+
+    if (req.body.weeklySchedule && typeof req.body.weeklySchedule === 'object') {
+      const weeklySchedule = req.body.weeklySchedule as Record<string, unknown>;
+      const safeWeeklySchedule: Record<string, unknown> = {};
+
+      for (const day of ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']) {
+        const sanitizedDay = sanitizeDayAvailability(weeklySchedule[day]);
+        if (sanitizedDay) {
+          safeWeeklySchedule[day] = sanitizedDay;
+        }
+      }
+
+      if (Object.keys(safeWeeklySchedule).length > 0) {
+        safeUpdateData.weeklySchedule = safeWeeklySchedule;
+      }
+    }
+
+    if (typeof req.body.slotDuration === 'number') safeUpdateData.slotDuration = req.body.slotDuration;
+    if (typeof req.body.bufferMinutes === 'number') safeUpdateData.bufferMinutes = req.body.bufferMinutes;
+    if (typeof req.body.maxAdvanceDays === 'number') safeUpdateData.maxAdvanceDays = req.body.maxAdvanceDays;
+    if (typeof req.body.minAdvanceBookingHours === 'number') safeUpdateData.minAdvanceBookingHours = req.body.minAdvanceBookingHours;
+    if (typeof req.body.maxConcurrentAppointments === 'number') safeUpdateData.maxConcurrentAppointments = req.body.maxConcurrentAppointments;
+    if (typeof req.body.isActive === 'boolean') safeUpdateData.isActive = req.body.isActive;
+
     const availability = await AppointmentAvailability.findOneAndUpdate(
       query,
-      { $set: updateData },
+      { $set: safeUpdateData },
       { new: true, upsert: true }
     );
 
@@ -467,9 +565,14 @@ router.post('/special-date', authenticate, async (req: Request, res: Response) =
       query.departmentId = { $exists: false };
     }
 
+    const safeSpecialDate = sanitizeSpecialDate(specialDate);
+    if (!safeSpecialDate) {
+      return res.status(400).json({ success: false, message: 'Invalid special date payload' });
+    }
+
     const availability = await AppointmentAvailability.findOneAndUpdate(
       query,
-      { $push: { specialDates: specialDate } },
+      { $push: { specialDates: safeSpecialDate } },
       { new: true, upsert: true }
     );
 

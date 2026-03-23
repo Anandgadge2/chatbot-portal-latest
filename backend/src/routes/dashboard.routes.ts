@@ -56,7 +56,7 @@ router.get('/superadmin', authenticate, requireSuperAdminDashboard, async (req: 
 router.get('/company-admin', authenticate, requireCompanyAdminDashboard, async (req: Request, res: Response) => {
   try {
     let companyFilter = {};
-    if (req.user?.role !== UserRole.SUPER_ADMIN) {
+    if (!req.user?.isSuperAdmin) {
       companyFilter = { companyId: req.user?.companyId };
     }
 
@@ -68,7 +68,7 @@ router.get('/company-admin', authenticate, requireCompanyAdminDashboard, async (
 
     // Get company info if not SuperAdmin
     let company = null;
-    if (req.user?.role !== UserRole.SUPER_ADMIN && req.user?.companyId) {
+    if (!req.user?.isSuperAdmin && req.user?.companyId) {
       company = await Company.findById(req.user.companyId);
     }
 
@@ -102,7 +102,7 @@ router.get('/company-admin', authenticate, requireCompanyAdminDashboard, async (
 router.get('/department-admin', authenticate, requireDepartmentAdminDashboard, async (req: Request, res: Response) => {
   try {
     let filter: any = {};
-    if (req.user?.role === UserRole.SUPER_ADMIN) {
+    if (req.user?.isSuperAdmin) {
        // No mandatory filter for SuperAdmin, but can filter by query params if needed
     } else if (req.user?.departmentId) {
       // Scoped to specific department
@@ -186,7 +186,7 @@ router.get('/any/:dashboardType', canAccessAnyDashboard, async (req: Request, re
           email: req.user?.email,
           role: req.user?.role
         },
-        accessLevel: req.user?.role === UserRole.SUPER_ADMIN ? 'full' : 'limited'
+        accessLevel: req.user?.isSuperAdmin ? 'full' : 'limited'
       }
     });
   } catch (error: any) {

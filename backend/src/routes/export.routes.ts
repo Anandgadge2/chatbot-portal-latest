@@ -10,6 +10,7 @@ import Department from '../models/Department';
 import User from '../models/User';
 import Grievance from '../models/Grievance';
 import Appointment from '../models/Appointment';
+import { scopeToUser } from '../utils/accessControl';
 
 const router = express.Router();
 
@@ -24,7 +25,7 @@ router.get('/companies', requirePermission(Permission.EXPORT_ALL_DATA), async (r
   try {
     const currentUser = req.user!;
 
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       res.status(403).json({
         success: false,
         message: 'Only SuperAdmin can export companies'
@@ -77,10 +78,10 @@ router.get('/departments', requirePermission(Permission.EXPORT_DATA), async (req
 
     const query: any = {};
 
-    if (currentUser.role === UserRole.SUPER_ADMIN) {
+    if (currentUser.isSuperAdmin) {
       if (companyId) query.companyId = companyId;
     } else {
-      query.companyId = currentUser.companyId;
+      Object.assign(query, scopeToUser(req));
     }
 
     const departments = await Department.find(query).populate('companyId', 'name companyId');
@@ -127,11 +128,11 @@ router.get('/users', requirePermission(Permission.EXPORT_DATA), async (req: Requ
 
     const query: any = {};
 
-    if (currentUser.role === UserRole.SUPER_ADMIN) {
+    if (currentUser.isSuperAdmin) {
       if (companyId) query.companyId = companyId;
       if (departmentId) query.departmentId = departmentId;
     } else {
-      query.companyId = currentUser.companyId;
+      Object.assign(query, scopeToUser(req));
       if (currentUser.departmentId) {
         query.departmentId = currentUser.departmentId;
       } else if (departmentId) {
@@ -142,6 +143,7 @@ router.get('/users', requirePermission(Permission.EXPORT_DATA), async (req: Requ
     const users = await User.find(query)
       .populate('companyId', 'name companyId')
       .populate('departmentId', 'name departmentId')
+      .populate('customRoleId', 'name level')
       .select('-password');
 
     const data = users.map(user => ({
@@ -150,7 +152,8 @@ router.get('/users', requirePermission(Permission.EXPORT_DATA), async (req: Requ
       lastName: user.lastName,
       email: user.email,
       phone: user.phone,
-      role: user.role,
+      roleName: (user.customRoleId as any)?.name || (user.isSuperAdmin ? 'Platform Superadmin' : ''),
+      roleLevel: (user.customRoleId as any)?.level ?? (user.isSuperAdmin ? 0 : null),
       companyId: (user.companyId as any)?._id,
       companyName: (user.companyId as any)?.name,
       departmentId: (user.departmentId as any)?._id,
@@ -188,11 +191,11 @@ router.get('/grievances', requirePermission(Permission.EXPORT_DATA), async (req:
 
     const query: any = {};
 
-    if (currentUser.role === UserRole.SUPER_ADMIN) {
+    if (currentUser.isSuperAdmin) {
       if (companyId) query.companyId = companyId;
       if (departmentId) query.departmentId = departmentId;
     } else {
-      query.companyId = currentUser.companyId;
+      Object.assign(query, scopeToUser(req));
       if (currentUser.departmentId) {
         // Dynamic check: Users without assignment permission (like basic Operators) only export their own items
         const canAssign = req.checkPermission(Permission.ASSIGN_GRIEVANCE);
@@ -259,11 +262,11 @@ router.get('/appointments', requirePermission(Permission.EXPORT_DATA), async (re
 
     const query: any = {};
 
-    if (currentUser.role === UserRole.SUPER_ADMIN) {
+    if (currentUser.isSuperAdmin) {
       if (companyId) query.companyId = companyId;
       if (departmentId) query.departmentId = departmentId;
     } else {
-      query.companyId = currentUser.companyId;
+      Object.assign(query, scopeToUser(req));
       if (currentUser.departmentId) {
         // Dynamic check: restricted to assigned items if lacks high-level management rights
         const canManage = req.checkPermission(Permission.STATUS_CHANGE_APPOINTMENT);
