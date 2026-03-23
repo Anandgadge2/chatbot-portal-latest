@@ -33,6 +33,7 @@ export interface ICompany extends Document {
   // Note: chatbotConfig moved to ChatbotFlow model
   isActive: boolean;
   isSuspended: boolean;
+  permissionsVersion: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -111,6 +112,10 @@ const CompanySchema: Schema = new Schema(
     isSuspended: {
       type: Boolean,
       default: false
+    },
+    permissionsVersion: {
+      type: Number,
+      default: 1
     }
   },
   {
@@ -140,20 +145,25 @@ CompanySchema.pre('validate', function (next) {
 // Pre-save hook to generate companyId
 CompanySchema.pre('save', async function (next) {
   if (this.isNew && !this.companyId) {
-    // Find the last companyId globally, including soft-deleted ones
-    const lastCompany = await mongoose.model('Company')
-      .findOne({}, { companyId: 1 })
-      .sort({ companyId: -1 });
+    try {
+      const { getNextCompanyId } = await import('../utils/idGenerator');
+      this.companyId = await getNextCompanyId();
+    } catch (error) {
+      console.error('❌ Error generating company ID:', error);
+      const lastCompany = await mongoose.model('Company')
+        .findOne({}, { companyId: 1 })
+        .sort({ companyId: -1 });
 
-    let nextNum = 1;
-    if (lastCompany && lastCompany.companyId) {
-      const match = lastCompany.companyId.match(/^CMP(\d+)$/);
-      if (match) {
-        nextNum = parseInt(match[1], 10) + 1;
+      let nextNum = 1;
+      if (lastCompany && lastCompany.companyId) {
+        const match = lastCompany.companyId.match(/^CMP(\d+)$/);
+        if (match) {
+          nextNum = parseInt(match[1], 10) + 1;
+        }
       }
-    }
 
-    this.companyId = `CMP${String(nextNum).padStart(6, '0')}`;
+      this.companyId = `CMP${String(nextNum).padStart(6, '0')}`;
+    }
   }
   next();
 });

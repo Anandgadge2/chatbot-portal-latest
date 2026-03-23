@@ -1,9 +1,23 @@
 import { Router, Request, Response } from 'express';
+import mongoose from 'mongoose';
 import Module from '../models/Module';
 import { requireSuperAdmin } from '../middleware/rbac';
 import { authenticate } from '../middleware/auth';
 
 const router = Router();
+
+const getTrimmedString = (value: unknown): string | undefined => {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+};
+
+const getValidObjectId = (value: unknown): mongoose.Types.ObjectId | undefined => {
+  const trimmed = getTrimmedString(value);
+  if (!trimmed || !mongoose.Types.ObjectId.isValid(trimmed)) return undefined;
+  return new mongoose.Types.ObjectId(trimmed);
+};
+
 
 // Apply authentication to all module management routes
 router.use(authenticate);
@@ -29,7 +43,16 @@ router.get('/', requireSuperAdmin, async (req: Request, res: Response) => {
  */
 router.post('/', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
-    const { key, name, description, category, permissions, icon } = req.body;
+    const key = getTrimmedString(req.body?.key);
+    const name = getTrimmedString(req.body?.name);
+    const description = getTrimmedString(req.body?.description);
+    const category = getTrimmedString(req.body?.category);
+    const permissions = Array.isArray(req.body?.permissions) ? req.body.permissions : [];
+    const icon = getTrimmedString(req.body?.icon);
+
+    if (!key || !name) {
+      return res.status(400).json({ success: false, message: 'Module key and name are required' });
+    }
 
     const existing = await Module.findOne({ key: key.toUpperCase() });
     if (existing) {
@@ -59,7 +82,27 @@ router.post('/', requireSuperAdmin, async (req: Request, res: Response) => {
  */
 router.put('/:id', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
-    const module = await Module.findByIdAndUpdate(req.params.id, req.body, {
+    const moduleId = getValidObjectId(req.params.id);
+    if (!moduleId) {
+      return res.status(400).json({ success: false, message: 'Invalid module ID' });
+    }
+
+    const updates: Record<string, unknown> = {};
+    const key = getTrimmedString(req.body?.key);
+    const name = getTrimmedString(req.body?.name);
+    const description = req.body?.description === undefined ? undefined : getTrimmedString(req.body?.description) || '';
+    const category = req.body?.category === undefined ? undefined : getTrimmedString(req.body?.category) || '';
+    const permissions = req.body?.permissions;
+    const icon = req.body?.icon === undefined ? undefined : getTrimmedString(req.body?.icon) || '';
+
+    if (key) updates.key = key.toUpperCase();
+    if (name) updates.name = name;
+    if (req.body?.description !== undefined) updates.description = description;
+    if (req.body?.category !== undefined) updates.category = category;
+    if (Array.isArray(permissions)) updates.permissions = permissions;
+    if (req.body?.icon !== undefined) updates.icon = icon;
+
+    const module = await Module.findByIdAndUpdate(moduleId, updates, {
       new: true,
       runValidators: true
     });
@@ -81,7 +124,12 @@ router.put('/:id', requireSuperAdmin, async (req: Request, res: Response) => {
  */
 router.delete('/:id', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
-    const module = await Module.findById(req.params.id);
+    const moduleId = getValidObjectId(req.params.id);
+    if (!moduleId) {
+      return res.status(400).json({ success: false, message: 'Invalid module ID' });
+    }
+
+    const module = await Module.findById(moduleId);
 
     if (!module) {
       return res.status(404).json({ success: false, message: 'Module not found' });

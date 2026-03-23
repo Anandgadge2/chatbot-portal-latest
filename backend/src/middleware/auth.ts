@@ -1,15 +1,66 @@
+import mongoose from 'mongoose';
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken } from '../utils/jwt';
 import User, { IUser } from '../models/User';
+import { getAccessValidationError, resolveAccessContext } from '../utils/accessControl';
 
-// Extend Express Request to include user
 declare global {
   namespace Express {
     interface Request {
       user?: IUser;
+      access?: {
+        isSuperAdmin: boolean;
+        filteredPermissions: Array<{ module: string; actions: string[] }>;
+        level: number;
+        scope: 'platform' | 'company';
+      };
     }
   }
 }
+
+const getValidObjectId = (value: unknown): mongoose.Types.ObjectId | undefined => {
+  const normalized = typeof value === 'string' ? value.trim() : value instanceof mongoose.Types.ObjectId ? value.toString() : undefined;
+  if (!normalized || !mongoose.Types.ObjectId.isValid(normalized)) return undefined;
+  return new mongoose.Types.ObjectId(normalized);
+};
+
+const attachAccessContext = async (user: IUser): Promise<{ user: IUser; accessContext: Awaited<ReturnType<typeof resolveAccessContext>>; accessError: ReturnType<typeof getAccessValidationError> | null }> => {
+  user.isSuperAdmin = user.isSuperAdmin || user.role === 'SUPER_ADMIN';
+
+  if (user.isSuperAdmin) {
+    user.filteredPermissions = [{ module: '*', actions: ['*'] }];
+    user.level = 0;
+    user.scope = 'platform';
+    user.roleDisplayName = 'SUPER_ADMIN';
+
+    return {
+      user,
+      accessContext: {
+        company: null,
+        role: null,
+        filteredPermissions: user.filteredPermissions,
+        level: 0,
+        scope: 'platform',
+        requiredModuleMissing: false,
+        roleMissing: false
+      },
+      accessError: null
+    };
+  }
+
+  const accessContext = await resolveAccessContext(user);
+
+  user.filteredPermissions = accessContext.filteredPermissions;
+  user.level = accessContext.level;
+  user.scope = accessContext.scope;
+  user.roleDisplayName = accessContext.role?.name || 'CUSTOM';
+
+  return {
+    user,
+    accessContext,
+    accessError: getAccessValidationError(user, accessContext)
+  };
+};
 
 export const authenticate = async (
   req: Request,
@@ -17,7 +68,6 @@ export const authenticate = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    // Get token from header
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -28,32 +78,44 @@ export const authenticate = async (
       return;
     }
 
-    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-
-    // Verify token
+    const token = authHeader.substring(7);
     const decoded = verifyToken(token);
 
-    // Find user
-    const user = await User.findById(decoded.userId).select('+password');
+    const userId = getValidObjectId(decoded.userId);
+    if (!userId) {
+      res.status(401).json({ success: false, message: 'Invalid token.' });
+      return;
+    }
 
-    if (!user) {
+    const user = await User.findById(userId).select('+password');
+
+    if (!user || !user.isActive) {
       res.status(401).json({
         success: false,
-        message: 'User not found. Invalid token.'
+        message: 'User no longer active'
       });
       return;
     }
 
-    if (!user.isActive) {
-      res.status(401).json({
-        success: false,
-        message: 'User account is inactive.'
-      });
+    const { user: resolvedUser, accessContext, accessError } = await attachAccessContext(user);
+
+    if (!resolvedUser.isSuperAdmin && decoded.permissionsVersion !== accessContext.company?.permissionsVersion) {
+      res.status(401).json({ success: false, message: 'Session expired. Please login again.' });
       return;
     }
 
-    // Attach user to request
-    req.user = user;
+    if (accessError) {
+      res.status(accessError.statusCode).json({ success: false, message: accessError.message });
+      return;
+    }
+
+    req.user = resolvedUser;
+    req.access = {
+      isSuperAdmin: resolvedUser.isSuperAdmin,
+      filteredPermissions: resolvedUser.filteredPermissions || [],
+      level: resolvedUser.level || 0,
+      scope: resolvedUser.scope || 'company'
+    };
     next();
   } catch (error: any) {
     if (error.name === 'JsonWebTokenError') {
@@ -74,8 +136,7 @@ export const authenticate = async (
 
     res.status(500).json({
       success: false,
-      message: 'Authentication error.',
-      error: error.message
+      message: 'Authentication error.'
     });
   }
 };
@@ -91,16 +152,29 @@ export const optionalAuth = async (
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.substring(7);
       const decoded = verifyToken(token);
-      const user = await User.findById(decoded.userId);
-      
+      const userId = getValidObjectId(decoded.userId);
+      if (!userId) {
+        return next();
+      }
+
+      const user = await User.findById(userId);
+
       if (user && user.isActive) {
-        req.user = user;
+        const { user: resolvedUser, accessError } = await attachAccessContext(user);
+        if (!accessError) {
+          req.user = resolvedUser;
+          req.access = {
+            isSuperAdmin: resolvedUser.isSuperAdmin,
+            filteredPermissions: resolvedUser.filteredPermissions || [],
+            level: resolvedUser.level || 0,
+            scope: resolvedUser.scope || 'company'
+          };
+        }
       }
     }
 
     next();
-  } catch (error) {
-    // Silently fail for optional auth
+  } catch (_error) {
     next();
   }
 };

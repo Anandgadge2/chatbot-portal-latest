@@ -28,7 +28,7 @@ const seedSuperAdmin = async () => {
     const existingUser = await User.findOne({ phone });
 
     if (existingUser) {
-      if (existingUser.role === UserRole.SUPER_ADMIN) {
+      if (existingUser.isSuperAdmin || existingUser.role === UserRole.SUPER_ADMIN) {
         logger.info('✅ SuperAdmin with these credentials already exists.');
         
         // Optional: Update password if needed, but usually seeding shouldn't override existing data unless requested
@@ -40,6 +40,7 @@ const seedSuperAdmin = async () => {
         logger.info('Promoting existing user to SuperAdmin...');
         
         existingUser.role = UserRole.SUPER_ADMIN;
+        existingUser.isSuperAdmin = true;
         existingUser.password = password; // This will be hashed by the pre-save hook
         await existingUser.save();
         
@@ -56,6 +57,7 @@ const seedSuperAdmin = async () => {
       phone: phone,
       password: password, 
       role: UserRole.SUPER_ADMIN,
+      isSuperAdmin: true,
       isActive: true
     });
 

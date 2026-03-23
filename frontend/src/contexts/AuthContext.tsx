@@ -164,8 +164,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         authAPI.saveUser(updatedUser);
         setUser(updatedUser);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to refresh user profile:', error);
+      if (error?.status === 401 || error?.status === 403) {
+        authAPI.logout();
+        setUser(null);
+      }
     }
   };
 

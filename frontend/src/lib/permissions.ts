@@ -139,8 +139,9 @@ export const LEGACY_TO_DYNAMIC: Record<string, { module: string; action: string 
 export function hasPermission(user: any, permission: Permission): boolean {
   if (!user) return false;
   const userRole = user.role;
+  const userIsSuperAdmin = Boolean(user.isSuperAdmin) || userRole === UserRole.SUPER_ADMIN;
   
-  if (userRole === UserRole.SUPER_ADMIN) {
+  if (userIsSuperAdmin) {
     return true; // SuperAdmin has all permissions
   }
 
@@ -148,9 +149,10 @@ export function hasPermission(user: any, permission: Permission): boolean {
   if (user.permissions && Array.isArray(user.permissions)) {
     const mapped = LEGACY_TO_DYNAMIC[permission];
     if (mapped) {
-      const modPerm = user.permissions.find((p: any) => p.module === mapped.module);
+      const modPerm = user.permissions.find((p: any) => p.module === '*' || p.module === mapped.module);
       if (modPerm) {
-        return modPerm.actions.includes(mapped.action) || 
+        return modPerm.actions.includes('*') ||
+               modPerm.actions.includes(mapped.action) || 
                modPerm.actions.includes('manage') || 
                modPerm.actions.includes('all');
       }
@@ -160,7 +162,7 @@ export function hasPermission(user: any, permission: Permission): boolean {
   }
   
   // 2. Fallback to Static Permissions (SUPER_ADMIN only)
-  if (userRole === UserRole.SUPER_ADMIN) {
+  if (userIsSuperAdmin) {
     return true;
   }
 

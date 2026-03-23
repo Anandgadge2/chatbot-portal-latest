@@ -63,3 +63,36 @@ export const logUserAction = async (
     console.error('Failed to log user action:', error);
   }
 };
+
+export const logRBACChange = async (
+  req: Request,
+  action: 'ROLE_CREATED' | 'ROLE_UPDATED' | 'ROLE_DELETED' | 'MODULE_CHANGED',
+  companyId: string | undefined,
+  targetId: string | undefined,
+  changes?: any
+): Promise<void> => {
+  try {
+    const user = req.user as IUser;
+
+    await AuditLog.create({
+      userId: user?._id,
+      actorUserId: user?.userId,
+      action,
+      resource: 'RBAC',
+      resourceId: targetId,
+      targetId,
+      companyId: companyId || (user?.companyId as any)?.toString?.() || user?.companyId,
+      departmentId: user?.departmentId instanceof Object && '_id' in user.departmentId
+        ? (user.departmentId as any)._id
+        : user?.departmentId,
+      details: changes,
+      changes,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+      timestamp: new Date(),
+      createdAt: new Date()
+    });
+  } catch (error) {
+    console.error('Failed to log RBAC change:', error);
+  }
+};

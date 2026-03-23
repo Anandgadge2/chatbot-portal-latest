@@ -1,6 +1,5 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
 import bcrypt from 'bcryptjs';
-import { UserRole } from '../config/constants';
 
 export interface IUser extends Document {
   userId: string;
@@ -10,11 +9,14 @@ export interface IUser extends Document {
   password?: string;
   phone: string;
   designation?: string; // 🏢 Added designation field
-  role?: string;
+  role?: string; // Legacy response-only field
+  roleDisplayName?: string;
+  isSuperAdmin: boolean;
   companyId?: mongoose.Types.ObjectId;
   departmentId?: mongoose.Types.ObjectId;
+  subDepartmentId?: mongoose.Types.ObjectId;
   isActive: boolean;
-  rawPassword?: string; // For administrator visibility
+  rawPassword?: string; // Legacy read-only field for backward compatibility
   lastLogin?: Date;
   createdBy?: mongoose.Types.ObjectId; // Track who created this user for hierarchical rights
   customRoleId?: mongoose.Types.ObjectId; // Optional: points to a company-defined Role for custom permissions
@@ -22,6 +24,9 @@ export interface IUser extends Document {
     email: boolean;
     whatsapp: boolean;
   };
+  filteredPermissions?: Array<{ module: string; actions: string[] }>;
+  level?: number;
+  scope?: 'platform' | 'company';
   responsibleAreas?: string[]; // 🌲 Added for Forest FSM Module (e.g. ['COMP_12', 'BEAT_WEST'])
   createdAt: Date;
   updatedAt: Date;
@@ -70,19 +75,22 @@ const UserSchema: Schema = new Schema(
       type: String,
       trim: true
     },
-    role: {
-      type: String,
-      required: false,
-      default: 'CUSTOM',
+    isSuperAdmin: {
+      type: Boolean,
+      default: false,
       index: true
     },
 
     companyId: {
       type: Schema.Types.ObjectId,
-      ref: 'Company',
-      index: true
+      ref: 'Company'
     },
     departmentId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Department',
+      index: true
+    },
+    subDepartmentId: {
       type: Schema.Types.ObjectId,
       ref: 'Department',
       index: true
@@ -90,10 +98,6 @@ const UserSchema: Schema = new Schema(
     isActive: {
       type: Boolean,
       default: true
-    },
-    rawPassword: {
-      type: String,
-      required: false
     },
     lastLogin: {
       type: Date
@@ -106,7 +110,6 @@ const UserSchema: Schema = new Schema(
     customRoleId: {
       type: Schema.Types.ObjectId,
       ref: 'Role',
-      index: true,
       default: null
     },
     notificationSettings: {
@@ -125,8 +128,11 @@ const UserSchema: Schema = new Schema(
 );
 
 // Compound indexes
-UserSchema.index({ companyId: 1, role: 1 });
-UserSchema.index({ departmentId: 1, role: 1 });
+UserSchema.index({ companyId: 1 });
+UserSchema.index({ customRoleId: 1 });
+UserSchema.index({ companyId: 1, isSuperAdmin: 1 });
+UserSchema.index({ departmentId: 1, isSuperAdmin: 1 });
+UserSchema.index({ subDepartmentId: 1, isSuperAdmin: 1 });
 UserSchema.index({ companyId: 1, status: 1 });
 UserSchema.index({ companyId: 1, createdAt: -1 });
 
