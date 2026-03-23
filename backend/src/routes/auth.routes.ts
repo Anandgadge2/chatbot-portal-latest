@@ -205,8 +205,9 @@ router.post('/login', loginRateLimiter, async (req: Request, res: Response) => {
       normalizedPhone = normalizePhoneNumber(phoneTrimmed);
     }
 
-    const query: Record<string, string> = email ? { email } : { phone: normalizedPhone || '' };
-    const user = await User.findOne(query).select('+password').populate('companyId');
+    const user = email
+      ? await User.findOne({ email }).select('+password').populate('companyId')
+      : await User.findOne({ phone: normalizedPhone || '' }).select('+password').populate('companyId');
 
     if (!user) {
       logLoginFailure(req, undefined, 'USER_NOT_FOUND');
@@ -298,21 +299,15 @@ router.post('/register', async (req: Request, res: Response) => {
     // Check if user already exists by phone in the same company
     // Allow same phone/email across different companies, but not within the same company
     // For SUPER_ADMIN (companyId = null), keep phone/email globally unique
-    const phoneQuery: any = { 
-      phone
-    };
-    
-    if (companyId) {
-      phoneQuery.companyId = companyId;
-    } else {
-      // SUPER_ADMIN: check globally (companyId is null or undefined)
-      phoneQuery.$or = [
-        { companyId: null },
-        { companyId: { $exists: false } }
-      ];
-    }
-    
-    const existingUser = await User.findOne(phoneQuery);
+    const existingUser = companyId
+      ? await User.findOne({
+          phone,
+          companyId
+        })
+      : await User.findOne({
+          phone,
+          companyId: { $in: [null, undefined] }
+        });
 
     if (existingUser) {
       const message = companyId 
@@ -327,21 +322,15 @@ router.post('/register', async (req: Request, res: Response) => {
 
     // Check if email already exists in the same company if provided
     if (email) {
-      const emailQuery: any = { 
-        email
-      };
-      
-      if (companyId) {
-        emailQuery.companyId = companyId;
-      } else {
-        // SUPER_ADMIN: check globally (companyId is null or undefined)
-        emailQuery.$or = [
-          { companyId: null },
-          { companyId: { $exists: false } }
-        ];
-      }
-      
-      const existingEmail = await User.findOne(emailQuery);
+      const existingEmail = companyId
+        ? await User.findOne({
+            email,
+            companyId
+          })
+        : await User.findOne({
+            email,
+            companyId: { $in: [null, undefined] }
+          });
       if (existingEmail) {
         const message = companyId 
           ? 'User with this email already exists in this company'
