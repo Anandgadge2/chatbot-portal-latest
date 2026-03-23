@@ -11,6 +11,10 @@ export interface User {
   phone?: string;
   designation?: string;
   role?: string;
+  roleId?: string;
+  isSuperAdmin?: boolean;
+  level?: number;
+  scope?: 'platform' | 'company' | 'department' | 'subdepartment' | 'assigned';
   companyId?: string | { _id: string; name: string; companyId: string };
   departmentId?: string | { _id: string; name: string; departmentId: string; parentDepartmentId?: string | { _id: string; name: string } };
   isActive: boolean;
@@ -32,6 +36,10 @@ export interface CreateUserData {
   phone?: string;
   designation?: string;
   role?: string;
+  roleId?: string;
+  isSuperAdmin?: boolean;
+  level?: number;
+  scope?: 'platform' | 'company' | 'department' | 'subdepartment' | 'assigned';
   customRoleId?: string | null;
   companyId?: string;
   departmentId?: string;
@@ -68,6 +76,10 @@ export const userAPI = {
     limit?: number;
     search?: string;
     role?: string;
+  roleId?: string;
+  isSuperAdmin?: boolean;
+  level?: number;
+  scope?: 'platform' | 'company' | 'department' | 'subdepartment' | 'assigned';
     status?: 'active' | 'inactive';
     companyId?: string;
     departmentId?: string;

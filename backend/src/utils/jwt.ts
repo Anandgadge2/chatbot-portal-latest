@@ -1,12 +1,19 @@
 import jwt from 'jsonwebtoken';
+import { IPermission } from '../models/Role';
 
 export interface JWTPayload {
   userId: string;
   email?: string;
   phone: string;
-  role: string;
   companyId?: string;
   departmentId?: string;
+  subDepartmentId?: string;
+  roleId?: string;
+  isSuperAdmin: boolean;
+  level: number;
+  scope: 'platform' | 'company' | 'department' | 'subdepartment' | 'assigned';
+  filteredPermissions: IPermission[];
+  permissionsVersion: number;
 }
 
 export const generateToken = (payload: JWTPayload): string => {

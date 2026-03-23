@@ -33,6 +33,7 @@ export interface ICompany extends Document {
   // Note: chatbotConfig moved to ChatbotFlow model
   isActive: boolean;
   isSuspended: boolean;
+  permissionsVersion: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -111,6 +112,11 @@ const CompanySchema: Schema = new Schema(
     isSuspended: {
       type: Boolean,
       default: false
+    },
+    permissionsVersion: {
+      type: Number,
+      default: 1,
+      index: true
     }
   },
   {

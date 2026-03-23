@@ -138,19 +138,20 @@ export const LEGACY_TO_DYNAMIC: Record<string, { module: string; action: string 
  */
 export function hasPermission(user: any, permission: Permission): boolean {
   if (!user) return false;
-  const userRole = user.role;
-  
-  if (userRole === UserRole.SUPER_ADMIN) {
-    return true; // SuperAdmin has all permissions
+  if (user.isSuperAdmin) {
+    return true;
   }
 
   // 1. Check Dynamic Permissions if available
-  if (user.permissions && Array.isArray(user.permissions)) {
+  const effectivePermissions = Array.isArray(user.filteredPermissions) ? user.filteredPermissions : user.permissions;
+
+  if (effectivePermissions && Array.isArray(effectivePermissions)) {
     const mapped = LEGACY_TO_DYNAMIC[permission];
     if (mapped) {
-      const modPerm = user.permissions.find((p: any) => p.module === mapped.module);
+      const modPerm = effectivePermissions.find((p: any) => p.module === '*' || p.module === mapped.module);
       if (modPerm) {
-        return modPerm.actions.includes(mapped.action) || 
+        return modPerm.actions.includes('*') ||
+               modPerm.actions.includes(mapped.action) || 
                modPerm.actions.includes('manage') || 
                modPerm.actions.includes('all');
       }
@@ -159,13 +160,7 @@ export function hasPermission(user: any, permission: Permission): boolean {
     }
   }
   
-  // 2. Fallback to Static Permissions (SUPER_ADMIN only)
-  if (userRole === UserRole.SUPER_ADMIN) {
-    return true;
-  }
-
-  const rolePermissions = ROLE_PERMISSIONS[userRole as string] || [];
-  return rolePermissions.includes(permission);
+  return false;
 }
 
 /**
@@ -187,20 +182,20 @@ export function hasAllPermissions(user: any, permissions: Permission[]): boolean
 /**
  * Check if user is SuperAdmin
  */
-export function isSuperAdmin(userRole: string): boolean {
-  return userRole === 'SUPER_ADMIN';
+export function isSuperAdmin(user: { isSuperAdmin?: boolean }): boolean {
+  return Boolean(user?.isSuperAdmin);
 }
 
 /**
  * Check if user is CompanyAdmin or higher
  */
-export function isCompanyAdminOrHigher(userRole: string): boolean {
-  return userRole === UserRole.SUPER_ADMIN;
+export function isCompanyAdminOrHigher(user: { isSuperAdmin?: boolean; level?: number }): boolean {
+  return Boolean(user?.isSuperAdmin) || (user?.level ?? Number.MAX_SAFE_INTEGER) <= 1;
 }
 
 /**
  * Check if user is DepartmentAdmin or higher
  */
-export function isDepartmentAdminOrHigher(userRole: string): boolean {
-  return userRole === UserRole.SUPER_ADMIN;
+export function isDepartmentAdminOrHigher(user: { isSuperAdmin?: boolean; level?: number }): boolean {
+  return Boolean(user?.isSuperAdmin) || (user?.level ?? Number.MAX_SAFE_INTEGER) <= 2;
 }

@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from 'express';
-import { UserRole } from '../config/constants';
 import mongoose from 'mongoose';
 import { IUser } from '../models/User';
 
@@ -9,7 +8,7 @@ export const requireSuperAdminDashboard = (
   next: NextFunction
 ): void => {
   // SuperAdmin can access all dashboards
-  if (req.user?.role === UserRole.SUPER_ADMIN) {
+  if (req.user?.isSuperAdmin) {
     next();
     return;
   }
@@ -27,7 +26,7 @@ export const requireCompanyAdminDashboard = (
   next: NextFunction
 ): void => {
   // SuperAdmin can access all dashboards
-  if (req.user?.role === UserRole.SUPER_ADMIN) {
+  if (req.user?.isSuperAdmin) {
     next();
     return;
   }
@@ -50,7 +49,7 @@ export const requireDepartmentAdminDashboard = (
   next: NextFunction
 ): void => {
   // SuperAdmin can access all dashboards
-  if (req.user?.role === UserRole.SUPER_ADMIN) {
+  if (req.user?.isSuperAdmin) {
     next();
     return;
   }
@@ -86,7 +85,12 @@ export const canAccessAnyDashboard = (
       firstName: 'Super',
       lastName: 'Admin',
       email: 'superadmin@dashboard.com',
-      role: UserRole.SUPER_ADMIN,
+      role: 'SUPER_ADMIN',
+      isSuperAdmin: true,
+      level: 0,
+      scope: 'platform',
+      filteredPermissions: [{ module: '*', actions: ['*'] }],
+      permissionsVersion: 1,
       isActive: true
     } as Partial<IUser> as IUser;
     next();

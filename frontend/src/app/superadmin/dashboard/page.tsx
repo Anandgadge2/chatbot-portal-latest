@@ -157,7 +157,7 @@ export default function SuperAdminDashboard() {
   }, []);
 
   useEffect(() => {
-    if (mounted && user && user.role === "SUPER_ADMIN") {
+    if (mounted && user && user.isSuperAdmin) {
       fetchAllInitialData();
     }
   }, [mounted, user, fetchAllInitialData]);
@@ -173,7 +173,7 @@ export default function SuperAdminDashboard() {
   const handleOpenCompanyDashboard = (companyId: string) => {
     if (navigatingCompanyId) return;
     setNavigatingCompanyId(companyId);
-    router.push(`/superadmin/company/${companyId}`);
+    router.push(`/dashboard/company/${companyId}`);
   };
 
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -197,7 +197,7 @@ export default function SuperAdminDashboard() {
   useEffect(() => {
     if (!loading && !user) {
       router.push("/");
-    } else if (!loading && user && user.role !== "SUPER_ADMIN") {
+    } else if (!loading && user && !user.isSuperAdmin) {
       router.push("/dashboard");
     }
   }, [user, loading, router]);
@@ -542,7 +542,7 @@ export default function SuperAdminDashboard() {
     );
   }
 
-  if (!user || user.role !== "SUPER_ADMIN") {
+  if (!user || !user.isSuperAdmin) {
     return null;
   }
 

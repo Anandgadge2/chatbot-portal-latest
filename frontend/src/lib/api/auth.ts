@@ -18,9 +18,16 @@ export interface LoginResponse {
       email?: string;
       phone: string;
       role: string;
+      roleId?: string;
       companyId?: string;
       departmentId?: string;
       isActive: boolean;
+      isSuperAdmin?: boolean;
+      level?: number;
+      scope?: 'platform' | 'company' | 'department' | 'subdepartment' | 'assigned';
+      permissions?: { module: string; actions: string[] }[];
+      filteredPermissions?: { module: string; actions: string[] }[];
+      permissionsVersion?: number;
     };
     accessToken: string;
     refreshToken: string;

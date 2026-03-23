@@ -86,7 +86,7 @@ export default function CompanyDrillDown() {
   const { user } = useAuth();
   const router = useRouter();
   const params = useParams();
-  const companyId = params.id as string;
+  const companyId = (params.id || params.companyId) as string;
   const { company, isLoading: companyLoading } = useCompanyContext();
   useWhatsappConfig(companyId || undefined);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -137,8 +137,8 @@ export default function CompanyDrillDown() {
   }>({ key: "", direction: null });
 
   useEffect(() => {
-    if (user?.role !== "SUPER_ADMIN") {
-      router.push("/superadmin/dashboard");
+    if (!user?.isSuperAdmin) {
+      router.push("/dashboard");
       return;
     }
     if (companyId) {

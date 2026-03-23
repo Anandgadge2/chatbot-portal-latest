@@ -59,6 +59,7 @@ import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { StatsSkeleton, TableSkeleton } from "@/components/ui/GeneralSkeleton";
 import { Pagination } from "@/components/ui/Pagination";
 import AvailabilityCalendar from "@/components/availability/AvailabilityCalendar";
+import SuperAdminDashboard from "@/app/superadmin/dashboard/page";
 
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
@@ -180,9 +181,9 @@ const TacticalForestMap = dynamic(() => import('@/components/dashboard/TacticalF
 
 function DashboardContent() {
   const { user, loading, logout } = useAuth();
-  const isCompanyLevel = user && !user.departmentId && user.role !== "SUPER_ADMIN";
-  const isDepartmentLevel = user && !!user.departmentId && user.role !== "SUPER_ADMIN";
-  const isSuperAdmin = user?.role === "SUPER_ADMIN";
+  const isCompanyLevel = user && !user.departmentId && !user.isSuperAdmin;
+  const isDepartmentLevel = user && !!user.departmentId && !user.isSuperAdmin;
+  const isSuperAdmin = Boolean(user?.isSuperAdmin);
   const router = useRouter();
   const searchParams = useSearchParams();
   const [mounted, setMounted] = useState(false);
@@ -381,7 +382,7 @@ function DashboardContent() {
   // Helper to check module access - prioritizes latest company config over user session
   const hasModule = useCallback(
     (module: Module) => {
-      if (user?.role === "SUPER_ADMIN") return true;
+      if (user?.isSuperAdmin) return true;
       const modules = company?.enabledModules || user?.enabledModules || [];
       return modules.includes(module);
     },
@@ -554,8 +555,6 @@ function DashboardContent() {
   useEffect(() => {
     if (!loading && !user) {
       router.push("/");
-    } else if (!loading && user && user.role === "SUPER_ADMIN") {
-      router.push("/superadmin/dashboard");
     }
   }, [user, loading, router]);
 
@@ -691,7 +690,7 @@ function DashboardContent() {
   }, []);
 
   const fetchCompany = useCallback(async () => {
-    if (!user || user.role === "SUPER_ADMIN") return;
+    if (!user || user.isSuperAdmin) return;
 
     try {
       const response = await companyAPI.getMyCompany();
@@ -998,7 +997,7 @@ function DashboardContent() {
 
   // 1. Initial Dashboard Stats & Page-independent data
   useEffect(() => {
-    if (mounted && user && user.role !== "SUPER_ADMIN") {
+    if (mounted && user && !user.isSuperAdmin) {
       fetchDashboardData();
       if (user.companyId) {
         fetchCompany();
@@ -1009,25 +1008,25 @@ function DashboardContent() {
 
   // 2. Specialized effects for each paginated module
   useEffect(() => {
-    if (mounted && user && user.role !== "SUPER_ADMIN") {
+    if (mounted && user && !user.isSuperAdmin) {
       fetchDepartments(departmentPage);
     }
   }, [mounted, user, departmentPage, fetchDepartments]);
 
   useEffect(() => {
-    if (mounted && user && user.role !== "SUPER_ADMIN") {
+    if (mounted && user && !user.isSuperAdmin) {
       fetchUsers(userPage);
     }
   }, [mounted, user, userPage, fetchUsers]);
 
   useEffect(() => {
-    if (mounted && user && user.role !== "SUPER_ADMIN" && hasModule(Module.GRIEVANCE) && hasPermission(user, Permission.READ_GRIEVANCE)) {
+    if (mounted && user && !user.isSuperAdmin && hasModule(Module.GRIEVANCE) && hasPermission(user, Permission.READ_GRIEVANCE)) {
       fetchGrievances(grievancePage);
     }
   }, [mounted, user, grievancePage, fetchGrievances, hasModule]);
 
   useEffect(() => {
-    if (mounted && user && user.role !== "SUPER_ADMIN" && hasModule(Module.APPOINTMENT) && hasPermission(user, Permission.READ_APPOINTMENT)) {
+    if (mounted && user && !user.isSuperAdmin && hasModule(Module.APPOINTMENT) && hasPermission(user, Permission.READ_APPOINTMENT)) {
       fetchAppointments(appointmentPage);
     }
   }, [mounted, user, appointmentPage, fetchAppointments, hasModule]);
@@ -1040,7 +1039,7 @@ function DashboardContent() {
 
   // 3. Polling isolated from initial load triggers
   useEffect(() => {
-    if (mounted && user && user.role !== "SUPER_ADMIN") {
+    if (mounted && user && !user.isSuperAdmin) {
       const pollInterval = setInterval(async () => {
         try {
           const promises = [];
@@ -1505,7 +1504,11 @@ function DashboardContent() {
     );
   }
 
-  if (!user || user.role === "SUPER_ADMIN") {
+  if (user?.isSuperAdmin) {
+    return <SuperAdminDashboard />;
+  }
+
+  if (!user) {
     return null;
   }
 
@@ -4566,7 +4569,7 @@ function DashboardContent() {
                                                 u.role ===
                                                   "SUB_DEPARTMENT_ADMIN"
                                               ? "Sub Department Admin"
-                                              : u.role === "SUPER_ADMIN"
+                                              : u.isSuperAdmin
                                                 ? "Super Admin"
                                                 : u.role === "COMPANY_ADMIN"
                                                   ? "Company Admin"
@@ -5089,7 +5092,7 @@ function DashboardContent() {
                       </span>
 
                       {/* Bulk Delete Button (Super Admin only) */}
-                      {user?.role === "SUPER_ADMIN" &&
+                      {user?.isSuperAdmin &&
                         selectedGrievances.size > 0 && (
                           <Button
                             variant="destructive"
@@ -5139,7 +5142,7 @@ function DashboardContent() {
                           <table className="w-full relative border-collapse">
                             <thead className="sticky top-0 z-20 bg-[#fcfdfe] border-b border-slate-200">
                               <tr className="whitespace-nowrap">
-                                {user?.role === "SUPER_ADMIN" && (
+                                {user?.isSuperAdmin && (
                                   <th className="px-3 py-4 text-center">
                                     <input
                                       type="checkbox"
@@ -5266,7 +5269,7 @@ function DashboardContent() {
                                     key={grievance._id}
                                     className="hover:bg-gradient-to-r hover:from-indigo-50/50 hover:to-purple-50/50 transition-all duration-200 group/row"
                                   >
-                                    {user?.role === "SUPER_ADMIN" && (
+                                    {user?.isSuperAdmin && (
                                       <td className="px-3 py-4 text-center">
                                         <input
                                           type="checkbox"
@@ -6036,7 +6039,7 @@ function DashboardContent() {
                       </span>
 
                       {/* Bulk Delete Button (Super Admin only) */}
-                      {user?.role === "SUPER_ADMIN" &&
+                      {user?.isSuperAdmin &&
                         selectedAppointments.size > 0 && (
                           <Button
                             variant="destructive"
@@ -6086,7 +6089,7 @@ function DashboardContent() {
                           <table className="w-full relative border-collapse">
                             <thead className="sticky top-0 z-20 bg-[#fcfdfe] border-b border-slate-200">
                               <tr className="whitespace-nowrap">
-                                {user?.role === "SUPER_ADMIN" && (
+                                {user?.isSuperAdmin && (
                                   <th className="px-3 py-4 text-center">
                                     <input
                                       type="checkbox"

@@ -14,6 +14,12 @@ interface User {
   email?: string;
   phone: string;
   role: string;
+  roleId?: string;
+  isSuperAdmin?: boolean;
+  level?: number;
+  scope?: 'platform' | 'company' | 'department' | 'subdepartment' | 'assigned';
+  filteredPermissions?: { module: string; actions: string[] }[];
+  permissionsVersion?: number;
   companyId?: string | { _id: string; name: string };
   departmentId?: string | { _id: string; name: string };
   isActive: boolean;
@@ -82,11 +88,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         toast.success('Login successful!');
         
-        if (user.role === 'SUPER_ADMIN') {
-          router.push('/superadmin/dashboard');
-        } else {
-          router.push('/dashboard');
-        }
+        router.push('/dashboard');
       } else {
         // Handle unsuccessful response
         toast.error(response.message || 'Login failed');
@@ -137,11 +139,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         toast.success('SSO Login successful!');
         
-        if (user.role === 'SUPER_ADMIN') {
-          router.push('/superadmin/dashboard');
-        } else {
-          router.push('/dashboard');
-        }
+        router.push('/dashboard');
       }
     } catch (error: any) {
       const message = error.response?.data?.message || error.message || 'SSO Login failed.';

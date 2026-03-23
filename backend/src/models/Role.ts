@@ -17,6 +17,8 @@ export interface IRole extends Document {
   roleId: string;
   key?: string;              // legacy identifier for system roles (e.g. 'COMPANY_ADMIN')
   companyId: mongoose.Types.ObjectId;
+  level: number;
+  scope: 'company' | 'department' | 'subdepartment' | 'assigned';
   name: string;
   description?: string;
   isSystem: boolean;         // true = cannot be deleted (e.g. default Company Admin role)
@@ -51,6 +53,17 @@ const RoleSchema: Schema = new Schema(
       ref: 'Company',
       required: true,
       index: true
+    },
+    level: {
+      type: Number,
+      required: true,
+      default: 5,
+      index: true
+    },
+    scope: {
+      type: String,
+      enum: ['company', 'department', 'subdepartment', 'assigned'],
+      default: 'company'
     },
     name: {
       type: String,
