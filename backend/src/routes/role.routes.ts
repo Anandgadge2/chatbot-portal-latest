@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import mongoose from 'mongoose';
 import Role from '../models/Role';
 import User from '../models/User';
 import Company from '../models/Company';
@@ -20,6 +21,18 @@ const router = Router();
 router.use(requireDatabaseConnection);
 router.use(authenticate);
 
+const getTrimmedString = (value: unknown): string | undefined => {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+};
+
+const getValidObjectId = (value: unknown): mongoose.Types.ObjectId | undefined => {
+  const trimmed = getTrimmedString(value);
+  if (!trimmed || !mongoose.Types.ObjectId.isValid(trimmed)) return undefined;
+  return new mongoose.Types.ObjectId(trimmed);
+};
+
 function isOwnOrSuperAdmin(req: Request, targetCompanyId: string): boolean {
   const user = req.user;
   if (!user) return false;
@@ -30,8 +43,12 @@ function isOwnOrSuperAdmin(req: Request, targetCompanyId: string): boolean {
 router.get('/', async (req: Request, res: Response) => {
   try {
     const user = req.user!;
-    const rawCompanyId = req.query.companyId as string;
+    const rawCompanyId = getTrimmedString(req.query.companyId);
     const companyId = user.isSuperAdmin && rawCompanyId ? rawCompanyId : user.companyId?.toString();
+
+    if (rawCompanyId && !mongoose.Types.ObjectId.isValid(rawCompanyId)) {
+      return res.status(400).json({ success: false, message: 'Invalid companyId' });
+    }
 
     if (!companyId) {
       return res.status(400).json({ success: false, message: 'companyId is required to fetch roles' });
@@ -41,11 +58,12 @@ router.get('/', async (req: Request, res: Response) => {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
-    const roles = await Role.find({ companyId, scope: 'company' }).sort({ isSystem: -1, level: 1, name: 1 });
+    const companyObjectId = new mongoose.Types.ObjectId(companyId);
+    const roles = await Role.find({ companyId: companyObjectId, scope: 'company' }).sort({ isSystem: -1, level: 1, name: 1 });
     const enriched = await Promise.all(
       roles.map(async (role: any) => ({
         ...role.toObject(),
-        userCount: await User.countDocuments({ companyId, customRoleId: role._id })
+        userCount: await User.countDocuments({ companyId: companyObjectId, customRoleId: role._id })
       }))
     );
 
@@ -58,7 +76,10 @@ router.get('/', async (req: Request, res: Response) => {
 
 router.get('/:id', async (req: Request, res: Response) => {
   try {
-    const role = await Role.findById(req.params.id);
+    const roleId = getValidObjectId(req.params.id);
+    if (!roleId) return res.status(400).json({ success: false, message: 'Invalid role ID' });
+
+    const role = await Role.findById(roleId);
     if (!role) return res.status(404).json({ success: false, message: 'Role not found' });
 
     if (!role.companyId || !isOwnOrSuperAdmin(req, role.companyId.toString())) {
@@ -75,7 +96,10 @@ router.get('/:id', async (req: Request, res: Response) => {
 
 router.get('/:id/users', async (req: Request, res: Response) => {
   try {
-    const role = await Role.findById(req.params.id);
+    const roleId = getValidObjectId(req.params.id);
+    if (!roleId) return res.status(400).json({ success: false, message: 'Invalid role ID' });
+
+    const role = await Role.findById(roleId);
     if (!role) return res.status(404).json({ success: false, message: 'Role not found' });
 
     if (!role.companyId || !isOwnOrSuperAdmin(req, role.companyId.toString())) {
@@ -97,9 +121,17 @@ router.get('/:id/users', async (req: Request, res: Response) => {
 router.post('/', async (req: Request, res: Response) => {
   try {
     const user = req.user!;
-    const { companyId, name, description, permissions, requiredModule } = req.body;
+    const companyId = getValidObjectId(req.body?.companyId);
+    const name = getTrimmedString(req.body?.name);
+    const description = getTrimmedString(req.body?.description);
+    const permissions = req.body?.permissions;
+    const requiredModule = getTrimmedString(req.body?.requiredModule);
 
-    const targetCompanyId = user.isSuperAdmin && companyId ? companyId : user.companyId?.toString();
+    if (req.body?.companyId !== undefined && !companyId) {
+      return res.status(400).json({ success: false, message: 'Invalid companyId' });
+    }
+
+    const targetCompanyId = user.isSuperAdmin && companyId ? companyId.toString() : user.companyId?.toString();
     if (!targetCompanyId) {
       return res.status(400).json({ success: false, message: 'companyId is required' });
     }
@@ -121,12 +153,12 @@ router.post('/', async (req: Request, res: Response) => {
 
     const level = await getNextRoleLevel(targetCompanyId);
     const role = new Role({
-      companyId: targetCompanyId,
+      companyId: new mongoose.Types.ObjectId(targetCompanyId),
       name: name.trim(),
       description: description?.trim(),
       permissions: normalizedPermissions,
       requiredModule: requiredModule?.trim()?.toUpperCase(),
-      notificationSettings: req.body.notificationSettings || { email: true, whatsapp: true },
+      notificationSettings: req.body?.notificationSettings || { email: true, whatsapp: true },
       isSystem: false,
       level,
       scope: 'company',
@@ -150,15 +182,18 @@ router.post('/', async (req: Request, res: Response) => {
 router.put('/:id', async (req: Request, res: Response) => {
   try {
     const user = req.user!;
-    const role = await Role.findById(req.params.id);
+    const roleId = getValidObjectId(req.params.id);
+    if (!roleId) return res.status(400).json({ success: false, message: 'Invalid role ID' });
+
+    const role = await Role.findById(roleId);
 
     if (!role) return res.status(404).json({ success: false, message: 'Role not found' });
     if (!role.companyId || !isOwnOrSuperAdmin(req, role.companyId.toString())) {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
-    const normalizedPermissions = req.body.permissions !== undefined ? normalizePermissions(req.body.permissions) : role.permissions;
-    const permissionsChanged = req.body.permissions !== undefined
+    const normalizedPermissions = req.body?.permissions !== undefined ? normalizePermissions(req.body.permissions) : role.permissions;
+    const permissionsChanged = req.body?.permissions !== undefined
       && JSON.stringify(normalizedPermissions) !== JSON.stringify(normalizePermissions(role.permissions));
     const accessContext = await resolveAccessContext(user);
 
@@ -166,11 +201,15 @@ router.put('/:id', async (req: Request, res: Response) => {
       return res.status(403).json({ success: false, message: 'Role permissions must be a subset of your permissions' });
     }
 
-    if (req.body.name) role.name = req.body.name.trim();
-    if (req.body.description !== undefined) role.description = req.body.description?.trim();
-    if (req.body.permissions !== undefined) role.permissions = normalizedPermissions;
-    if (req.body.requiredModule !== undefined) role.requiredModule = req.body.requiredModule?.trim()?.toUpperCase();
-    if (req.body.notificationSettings !== undefined) role.notificationSettings = req.body.notificationSettings;
+    const nextName = getTrimmedString(req.body?.name);
+    const nextDescription = req.body?.description === undefined ? undefined : getTrimmedString(req.body?.description) || '';
+    const nextRequiredModule = req.body?.requiredModule === undefined ? undefined : getTrimmedString(req.body?.requiredModule)?.toUpperCase() || '';
+
+    if (nextName) role.name = nextName;
+    if (req.body?.description !== undefined) role.description = nextDescription;
+    if (req.body?.permissions !== undefined) role.permissions = normalizedPermissions;
+    if (req.body?.requiredModule !== undefined) role.requiredModule = nextRequiredModule;
+    if (req.body?.notificationSettings !== undefined) role.notificationSettings = req.body.notificationSettings;
     role.updatedBy = user._id;
 
     await role.save();
@@ -196,7 +235,10 @@ router.put('/:id', async (req: Request, res: Response) => {
 
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
-    const role = await Role.findById(req.params.id);
+    const roleId = getValidObjectId(req.params.id);
+    if (!roleId) return res.status(400).json({ success: false, message: 'Invalid role ID' });
+
+    const role = await Role.findById(roleId);
 
     if (!role) return res.status(404).json({ success: false, message: 'Role not found' });
     if (role.isSystem) {
@@ -211,7 +253,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
       await User.updateMany({ customRoleId: role._id }, { $unset: { customRoleId: '' } });
     }
 
-    await Role.findByIdAndDelete(req.params.id);
+    await Role.findByIdAndDelete(roleId);
     if (role.companyId) {
       const company = await Company.findByIdAndUpdate(role.companyId, { $inc: { permissionsVersion: 1 } }, { new: true }).select('permissionsVersion');
       await invalidateCompanyRBACCache(role.companyId);
@@ -231,9 +273,16 @@ router.delete('/:id', async (req: Request, res: Response) => {
 router.post('/:id/assign-user', async (req: Request, res: Response) => {
   try {
     const user = req.user!;
-    const { userId } = req.body;
+    const userId = getValidObjectId(req.body?.userId);
 
-    const role = await Role.findById(req.params.id);
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'Invalid user ID' });
+    }
+
+    const roleId = getValidObjectId(req.params.id);
+    if (!roleId) return res.status(400).json({ success: false, message: 'Invalid role ID' });
+
+    const role = await Role.findById(roleId);
     if (!role) return res.status(404).json({ success: false, message: 'Role not found' });
 
     if (!role.companyId || !isOwnOrSuperAdmin(req, role.companyId.toString())) {

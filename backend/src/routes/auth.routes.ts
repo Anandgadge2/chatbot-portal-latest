@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import User from '../models/User';
 import { generateToken, generateRefreshToken } from '../utils/jwt';
 import { logUserAction } from '../utils/auditLogger';
@@ -19,6 +20,22 @@ const toObjectIdString = (value: any): string | undefined => {
   if (value._id) return String(value._id);
   if (typeof value.toString === 'function') return value.toString();
   return undefined;
+};
+
+const getTrimmedString = (value: unknown): string | undefined => {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+};
+
+const getValidObjectId = (value: unknown): mongoose.Types.ObjectId | undefined => {
+  const normalized = typeof value === 'string'
+    ? value.trim()
+    : value instanceof mongoose.Types.ObjectId
+      ? value.toString()
+      : undefined;
+  if (!normalized || !mongoose.Types.ObjectId.isValid(normalized)) return undefined;
+  return new mongoose.Types.ObjectId(normalized);
 };
 
 const buildUserResponse = (user: any, accessContext: Awaited<ReturnType<typeof resolveAccessContext>>, loginType?: 'SSO' | 'PASSWORD') => ({
@@ -135,7 +152,7 @@ router.post('/sso/login', async (req: Request, res: Response) => {
       return;
     }
 
-    const { phone } = decoded;
+    const phone = getTrimmedString(decoded?.phone);
     if (!phone) {
       res.status(400).json({ success: false, message: 'Invalid SSO token payload' });
       return;
@@ -166,8 +183,9 @@ router.post('/sso/login', async (req: Request, res: Response) => {
 // @access  Public
 router.post('/login', loginRateLimiter, async (req: Request, res: Response) => {
   try {
-    const { phone, password } = req.body;
-    const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : undefined;
+    const phone = getTrimmedString(req.body?.phone);
+    const password = getTrimmedString(req.body?.password);
+    const email = getTrimmedString(req.body?.email)?.toLowerCase();
 
     if ((!phone && !email) || !password) {
       return res.status(400).json({ success: false, message: 'Phone number or email and password are required' });
@@ -178,16 +196,16 @@ router.post('/login', loginRateLimiter, async (req: Request, res: Response) => {
     }
 
     let normalizedPhone = phone;
-    if (phone && phone.trim()) {
+    if (phone) {
       const { validatePhoneNumber, normalizePhoneNumber } = await import('../utils/phoneUtils');
-      const phoneTrimmed = phone.trim();
+      const phoneTrimmed = phone;
       if (!validatePhoneNumber(phoneTrimmed)) {
         return res.status(400).json({ success: false, message: 'Phone number must be 10 digits or 12 digits (with country code)' });
       }
       normalizedPhone = normalizePhoneNumber(phoneTrimmed);
     }
 
-    const query: any = email ? { email } : { phone: normalizedPhone };
+    const query: Record<string, string> = email ? { email } : { phone: normalizedPhone || '' };
     const user = await User.findOne(query).select('+password').populate('companyId');
 
     if (!user) {
@@ -223,7 +241,7 @@ router.post('/login', loginRateLimiter, async (req: Request, res: Response) => {
 // @access  Private
 router.get('/me', authenticate, async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?._id;
+    const userId = getValidObjectId((req as any).user?._id);
     if (!userId) {
       return res.status(401).json({ success: false, message: 'Not authenticated' });
     }
@@ -251,7 +269,22 @@ router.get('/me', authenticate, async (req: Request, res: Response) => {
 // @access  Private
 router.post('/register', async (req: Request, res: Response) => {
   try {
-    const { firstName, lastName, email, password, phone, role, companyId, departmentId } = req.body;
+    const firstName = getTrimmedString(req.body?.firstName);
+    const lastName = getTrimmedString(req.body?.lastName);
+    const email = getTrimmedString(req.body?.email)?.toLowerCase();
+    const password = getTrimmedString(req.body?.password);
+    const phone = getTrimmedString(req.body?.phone);
+    const role = getTrimmedString(req.body?.role);
+    const companyId = getValidObjectId(req.body?.companyId);
+    const departmentId = getValidObjectId(req.body?.departmentId);
+
+    if (req.body?.companyId !== undefined && !companyId) {
+      return res.status(400).json({ success: false, message: 'Invalid companyId' });
+    }
+
+    if (req.body?.departmentId !== undefined && !departmentId) {
+      return res.status(400).json({ success: false, message: 'Invalid departmentId' });
+    }
 
     // Validation
     if (!firstName || !lastName || !phone || !role) {
@@ -295,7 +328,7 @@ router.post('/register', async (req: Request, res: Response) => {
     // Check if email already exists in the same company if provided
     if (email) {
       const emailQuery: any = { 
-        email: email.toLowerCase().trim()
+        email
       };
       
       if (companyId) {
@@ -329,8 +362,8 @@ router.post('/register', async (req: Request, res: Response) => {
       password,
       phone,
       role,
-      companyId,
-      departmentId
+      ...(companyId ? { companyId } : {}),
+      ...(departmentId ? { departmentId } : {})
     });
 
     res.status(201).json({

@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken } from '../utils/jwt';
 import User, { IUser } from '../models/User';
@@ -16,6 +17,12 @@ declare global {
     }
   }
 }
+
+const getValidObjectId = (value: unknown): mongoose.Types.ObjectId | undefined => {
+  const normalized = typeof value === 'string' ? value.trim() : value instanceof mongoose.Types.ObjectId ? value.toString() : undefined;
+  if (!normalized || !mongoose.Types.ObjectId.isValid(normalized)) return undefined;
+  return new mongoose.Types.ObjectId(normalized);
+};
 
 const attachAccessContext = async (user: IUser): Promise<{ user: IUser; accessContext: Awaited<ReturnType<typeof resolveAccessContext>>; accessError: ReturnType<typeof getAccessValidationError> | null }> => {
   user.isSuperAdmin = user.isSuperAdmin || user.role === 'SUPER_ADMIN';
@@ -74,7 +81,13 @@ export const authenticate = async (
     const token = authHeader.substring(7);
     const decoded = verifyToken(token);
 
-    const user = await User.findById(decoded.userId).select('+password');
+    const userId = getValidObjectId(decoded.userId);
+    if (!userId) {
+      res.status(401).json({ success: false, message: 'Invalid token.' });
+      return;
+    }
+
+    const user = await User.findById(userId).select('+password');
 
     if (!user || !user.isActive) {
       res.status(401).json({
@@ -139,7 +152,12 @@ export const optionalAuth = async (
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.substring(7);
       const decoded = verifyToken(token);
-      const user = await User.findById(decoded.userId);
+      const userId = getValidObjectId(decoded.userId);
+      if (!userId) {
+        return next();
+      }
+
+      const user = await User.findById(userId);
 
       if (user && user.isActive) {
         const { user: resolvedUser, accessError } = await attachAccessContext(user);

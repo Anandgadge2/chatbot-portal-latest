@@ -40,9 +40,22 @@ const RBAC_CACHE_TTL_SECONDS = 300;
 
 const getCompanyRBACCacheKey = (companyId: string) => `company:${companyId}:rbac`;
 
+const toObjectId = (value?: string | mongoose.Types.ObjectId | null): mongoose.Types.ObjectId | null => {
+  if (!value) return null;
+  if (value instanceof mongoose.Types.ObjectId) return value;
+  const normalized = typeof value === 'string' ? value.trim() : String(value);
+  if (!mongoose.Types.ObjectId.isValid(normalized)) return null;
+  return new mongoose.Types.ObjectId(normalized);
+};
+
 const getCompanyRBACSnapshot = async (companyId: string): Promise<CompanyRBACSnapshot | null> => {
+  const companyObjectId = toObjectId(companyId);
+  if (!companyObjectId) {
+    return null;
+  }
+
   const redis = getRedisClient();
-  const cacheKey = getCompanyRBACCacheKey(companyId);
+  const cacheKey = getCompanyRBACCacheKey(companyObjectId.toString());
 
   if (redis) {
     try {
@@ -55,7 +68,7 @@ const getCompanyRBACSnapshot = async (companyId: string): Promise<CompanyRBACSna
     }
   }
 
-  const company = await Company.findById(companyId).select('enabledModules isActive isSuspended permissionsVersion');
+  const company = await Company.findById(companyObjectId).select('enabledModules isActive isSuspended permissionsVersion');
   if (!company) {
     return null;
   }
@@ -84,8 +97,11 @@ export const invalidateCompanyRBACCache = async (companyId?: string | mongoose.T
   const redis = getRedisClient();
   if (!redis) return;
 
+  const companyObjectId = toObjectId(companyId);
+  if (!companyObjectId) return;
+
   try {
-    await redis.del(getCompanyRBACCacheKey(companyId.toString()));
+    await redis.del(getCompanyRBACCacheKey(companyObjectId.toString()));
   } catch (err) {
     console.error('REDIS_FAIL', err);
   }
@@ -160,7 +176,9 @@ export const hasPermission = (
 };
 
 export async function resolveAccessContext(user: Pick<IUser, 'isSuperAdmin' | 'customRoleId' | 'companyId' | 'role'>): Promise<AccessContext> {
-  const company = user.companyId ? await getCompanyRBACSnapshot(user.companyId.toString()) : null;
+  const companyId = toObjectId(user.companyId || null);
+  const roleId = toObjectId(user.customRoleId || null);
+  const company = companyId ? await getCompanyRBACSnapshot(companyId.toString()) : null;
   const isSuperAdmin = hasLegacySuperAdminFlag(user);
 
   if (isSuperAdmin) {
@@ -175,7 +193,7 @@ export async function resolveAccessContext(user: Pick<IUser, 'isSuperAdmin' | 'c
     };
   }
 
-  const role = user.customRoleId ? await Role.findById(user.customRoleId) : null;
+  const role = roleId ? await Role.findById(roleId) : null;
   const filteredPermissions = filterPermissionsByModules(role?.permissions || [], company?.enabledModules || []);
   const requiredModule = normalizeModuleKey(role?.requiredModule);
 
@@ -186,7 +204,7 @@ export async function resolveAccessContext(user: Pick<IUser, 'isSuperAdmin' | 'c
     level: typeof role?.level === 'number' ? role.level : Number.MAX_SAFE_INTEGER,
     scope: role?.scope === 'platform' ? 'platform' : 'company',
     requiredModuleMissing: Boolean(requiredModule && !new Set((company?.enabledModules || []).map((module) => normalizeModuleKey(module))).has(requiredModule)),
-    roleMissing: Boolean(user.customRoleId && !role)
+    roleMissing: Boolean(roleId && !role)
   };
 }
 
@@ -272,7 +290,12 @@ export const isPermissionSubset = (
 };
 
 export async function getNextRoleLevel(companyId: string | mongoose.Types.ObjectId): Promise<number> {
-  const highestRole = await Role.findOne({ companyId, scope: 'company' }).sort({ level: -1 }).select('level');
+  const companyObjectId = toObjectId(companyId);
+  if (!companyObjectId) {
+    return 5;
+  }
+
+  const highestRole = await Role.findOne({ companyId: companyObjectId, scope: 'company' }).sort({ level: -1 }).select('level');
   const highestLevel = typeof highestRole?.level === 'number' ? highestRole.level : 4;
   return highestLevel + 1;
 }
