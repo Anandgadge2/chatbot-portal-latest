@@ -46,6 +46,8 @@ const DeptAnalytics = dynamic(
   },
 );
 
+import { isSuperAdmin } from "@/lib/permissions";
+
 export default function DepartmentDrillDown() {
   const { user } = useAuth();
   const router = useRouter();
@@ -87,7 +89,7 @@ export default function DepartmentDrillDown() {
   }>({ key: "", direction: null });
 
   useEffect(() => {
-    if (user?.role !== "SUPER_ADMIN") {
+    if (!isSuperAdmin(user)) {
       router.push("/superadmin/dashboard");
       return;
     }

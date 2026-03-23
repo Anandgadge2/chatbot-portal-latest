@@ -23,15 +23,15 @@ router.get('/', requirePermission(Permission.READ_APPOINTMENT), async (req: Requ
 
     const query: any = {};
 
-    // Scope based on user role
-    if (currentUser.role === UserRole.SUPER_ADMIN) {
-      // SuperAdmin can see all appointments, but can filter by companyId if provided
-      if (companyId) query.companyId = companyId;
-    } else {
-      // All other roles are scoped by their company
-      query.companyId = currentUser.companyId;
+    // Determine target companyId for scoping
+    const targetCompanyId = (currentUser.role === UserRole.SUPER_ADMIN && companyId) ? companyId : currentUser.companyId;
 
-      if (currentUser.departmentId) {
+    // Strict multi-tenant scoping
+    if (targetCompanyId) {
+      query.companyId = targetCompanyId;
+      
+      // Additional scoping for department-level users
+      if (currentUser.departmentId && currentUser.role !== UserRole.SUPER_ADMIN) {
         // Dynamic check: Users without status change permission (like basic Operators) only see their own items
         const canManage = req.checkPermission(Permission.STATUS_CHANGE_APPOINTMENT);
         if (!canManage) {
@@ -40,14 +40,29 @@ router.get('/', requirePermission(Permission.READ_APPOINTMENT), async (req: Requ
           query.departmentId = currentUser.departmentId;
         }
       }
+    } else if (currentUser.role !== UserRole.SUPER_ADMIN) {
+      // Safety check: Non-SuperAdmins MUST have a companyId
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized: User missing company assignment'
+      });
     }
+    // If Super Admin and NO targetCompanyId, query remains empty (sees everything)
 
     // Apply filters
     if (status) query.status = status;
     // Note: departmentId filter removed - appointments are CEO-only (no department)
     // For Company Admin, show all appointments including CEO appointments (null departmentId)
     // MongoDB query will return appointments with null/undefined departmentId automatically
-    if (assignedTo) query.assignedTo = assignedTo;
+    if (assignedTo) {
+      if (assignedTo === 'NONE') {
+        query.assignedTo = null;
+      } else if (assignedTo === 'ANY') {
+        query.assignedTo = { $ne: null };
+      } else {
+        query.assignedTo = assignedTo;
+      }
+    }
     if (date) {
       const startDate = new Date(date as string);
       const endDate = new Date(startDate);

@@ -16,7 +16,7 @@ import { companyAPI, Company } from "@/lib/api/company";
 import { departmentAPI, Department } from "@/lib/api/department";
 import { roleAPI, Role } from "@/lib/api/role";
 import { useAuth } from "@/contexts/AuthContext";
-import { UserRole, UserRoleType, Permission, hasPermission } from "@/lib/permissions";
+import { UserRole, UserRoleType, Permission, hasPermission, isSuperAdmin } from "@/lib/permissions";
 import toast from "react-hot-toast";
 import {
   validatePhoneNumber,
@@ -80,7 +80,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
 
     // Special case: Only Super Admin can assign the Super Admin role
     // This is a system-level role, not a company-level custom role
-    if (user.role === UserRole.SUPER_ADMIN) {
+    if (isSuperAdmin(user)) {
       options.push({ value: "SUPER_ADMIN", label: "Super Admin" });
     }
 
@@ -90,7 +90,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
   const canCreateUsers = (): boolean => {
     if (!user) return false;
     // Only SUPER_ADMIN and users with specific CREATE_USER permission can create users
-    return user.role === UserRole.SUPER_ADMIN || hasPermission(user, Permission.CREATE_USER);
+    return isSuperAdmin(user) || hasPermission(user, Permission.CREATE_USER);
   };
 
   const fetchCompanies = useCallback(async () => {
@@ -98,9 +98,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
       const response = await companyAPI.getAll();
       if (response.success) {
         let filteredCompanies = response.data.companies;
-        const currentRole = user?.role as string;
-
-        if (currentRole !== UserRole.SUPER_ADMIN) {
+        if (!isSuperAdmin(user)) {
           const userCompanyId = user?.companyId
             ? typeof user.companyId === "object"
               ? user.companyId._id
@@ -124,9 +122,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
       const response = await departmentAPI.getAll({ companyId, limit: 1000 });
       if (response.success) {
         let filteredDepartments = response.data.departments;
-        const currentRole = user?.role as string;
-
-        if (currentRole !== UserRole.SUPER_ADMIN) {
+        if (!isSuperAdmin(user)) {
           // If user is restricted to a department, scope them
           const userDeptId = user?.departmentId ? (typeof user.departmentId === "object" ? (user.departmentId as any)._id : user.departmentId) : "";
           if (userDeptId) {
@@ -417,7 +413,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
               <div className="flex-1 h-px bg-slate-100"></div>
             </div>
 
-            {user?.role === UserRole.SUPER_ADMIN && (
+            {isSuperAdmin(user) && (
                 <div>
                     <Label htmlFor="companyId">Company *</Label>
                     <select id="companyId" name="companyId" value={formData.companyId} onChange={handleChange} className="w-full p-2 border rounded-md bg-white focus:ring-2 focus:ring-indigo-500" required>

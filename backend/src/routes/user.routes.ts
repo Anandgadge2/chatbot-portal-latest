@@ -22,33 +22,39 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
 
     const query: any = {};
 
-    // Scope based on user role
-    if (currentUser.role === UserRole.SUPER_ADMIN) {
-      // SuperAdmin can see all users, optionally filter by company/dept
-      if (companyId) query.companyId = companyId;
-      if (departmentId) {
-        if (typeof departmentId === 'string' && departmentId.includes(',')) {
-          query.departmentId = { $in: departmentId.split(',') };
-        } else {
-          query.departmentId = departmentId;
-        }
-      }
-    } else {
-      // All other users are scoped by their company
-      query.companyId = currentUser.companyId;
+    // Determine target companyId for scoping
+    const targetCompanyId = (currentUser.role === UserRole.SUPER_ADMIN && companyId) ? companyId : currentUser.companyId;
+
+    // Strict multi-tenant scoping
+    if (targetCompanyId) {
+      query.companyId = targetCompanyId;
       
-      // If the current user is restricted to a department, scope them.
-      // Otherwise (like a Company Admin), they can see all users in company or filter by dept.
-      if (currentUser.departmentId) {
+      // If restricted to a department (for non-Super Admins), scope them.
+      if (currentUser.departmentId && currentUser.role !== UserRole.SUPER_ADMIN) {
         query.departmentId = currentUser.departmentId;
       } else if (departmentId) {
+        // Even Company Admins or Super Admins in drilldown can filter by department
         if (typeof departmentId === 'string' && departmentId.includes(',')) {
           query.departmentId = { $in: departmentId.split(',') };
         } else {
           query.departmentId = departmentId;
         }
       }
+    } else if (currentUser.role !== UserRole.SUPER_ADMIN) {
+      // Safety check: Non-SuperAdmins MUST have a companyId
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized: User missing company assignment'
+      });
+    } else if (departmentId) {
+       // Global Super Admin (no companyId) filtering by department
+       if (typeof departmentId === 'string' && departmentId.includes(',')) {
+         query.departmentId = { $in: departmentId.split(',') };
+       } else {
+         query.departmentId = departmentId;
+       }
     }
+    // If Super Admin and NO targetCompanyId, query remains empty (sees everything)
 
     if (search) {
       query.$or = [

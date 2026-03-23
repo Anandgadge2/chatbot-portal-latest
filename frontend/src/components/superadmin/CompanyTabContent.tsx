@@ -18,6 +18,7 @@ import {
   CheckSquare,
   Square,
   AlertTriangle,
+  Settings,
 } from "lucide-react";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { Pagination } from "@/components/ui/Pagination";
@@ -25,6 +26,9 @@ import { Company } from "@/lib/api/company";
 import { companyAPI } from "@/lib/api/company";
 import toast from "react-hot-toast";
 import { formatTo10Digits } from "@/lib/utils/phoneUtils";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import WhatsAppConfigTab from "@/components/superadmin/drilldown/tabs/WhatsAppConfigTab";
+import { CompanyProvider } from "@/contexts/CompanyContext";
 
 interface CompanyTabContentProps {
   companies: Company[];
@@ -70,6 +74,8 @@ const CompanyTabContent: React.FC<CompanyTabContentProps> = ({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [showBulkConfirm, setShowBulkConfirm] = useState(false);
+  const [showWAConfigDialog, setShowWAConfigDialog] = useState(false);
+  const [waConfigCompanyId, setWaConfigCompanyId] = useState<string | null>(null);
 
   const allSelected = companies.length > 0 && selectedIds.size === companies.length;
   const someSelected = selectedIds.size > 0 && !allSelected;
@@ -332,7 +338,7 @@ const CompanyTabContent: React.FC<CompanyTabContentProps> = ({
                             )}
                           </div>
                           <div className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-tighter">
-                            Drill down to departments
+                            Open Organisation Dashboard
                           </div>
                         </div>
                       </td>
@@ -370,8 +376,20 @@ const CompanyTabContent: React.FC<CompanyTabContentProps> = ({
                           {company.isActive ? "ACTIVE" : "SUSPENDED"}
                         </button>
                       </td>
-                      <td className="px-5 py-4 whitespace-nowrap text-right">
+                       <td className="px-5 py-4 whitespace-nowrap text-right">
                         <div className="flex items-center justify-end gap-1.5 transition-opacity">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setWaConfigCompanyId(company._id);
+                              setShowWAConfigDialog(true);
+                            }}
+                            className="h-8 w-8 p-0 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg"
+                            title="WhatsApp Configuration"
+                          >
+                            <Settings className="w-3.5 h-3.5" />
+                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"
@@ -414,6 +432,26 @@ const CompanyTabContent: React.FC<CompanyTabContentProps> = ({
           </div>
         )}
       </CardContent>
+
+      <Dialog open={showWAConfigDialog} onOpenChange={setShowWAConfigDialog}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto p-0 border-0 bg-slate-50">
+          <DialogHeader className="p-6 bg-slate-900 border-b border-slate-800 sticky top-0 z-10 rounded-t-lg">
+            <DialogTitle className="text-lg font-black text-white uppercase tracking-widest flex items-center gap-3">
+              <div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center border border-indigo-500/20 shadow-inner">
+                <Settings className="w-5 h-5 text-indigo-400" />
+              </div>
+              WhatsApp Configuration Setting
+            </DialogTitle>
+          </DialogHeader>
+          <div className="p-6">
+            {waConfigCompanyId && (
+              <CompanyProvider companyId={waConfigCompanyId}>
+                <WhatsAppConfigTab companyId={waConfigCompanyId} />
+              </CompanyProvider>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

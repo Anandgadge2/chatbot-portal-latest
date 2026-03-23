@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { isCompanyAdminOrHigher } from "@/lib/permissions";
 
 
 import { apiClient } from "@/lib/api/client";
@@ -287,8 +288,11 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
         fetchRoles();
         
         // If we edited current user's role, refresh the session
-        if (editingRole && currentUser && (currentUser.customRoleId === editingRole._id || currentUser.role === editingRole.key)) {
-          refreshUser();
+        if (editingRole && currentUser) {
+          const currentCustomRoleId = typeof currentUser.customRoleId === 'object' ? (currentUser.customRoleId as any)._id : currentUser.customRoleId;
+          if (currentCustomRoleId === editingRole._id || currentUser.role === editingRole.key) {
+            refreshUser();
+          }
         }
       } else {
         toast.error(data.message || "Failed to save role");
@@ -474,7 +478,7 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
                     className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
                   />
                 </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase w-12 text-center">
+                <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase w-12 text-center">
                   SR
                 </th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">
@@ -700,7 +704,7 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
                 </div>
 
                 {/* Notification Settings - Super Admin and Company Admin */}
-                {(currentUser?.role === "SUPER_ADMIN" || currentUser?.role === "COMPANY_ADMIN") && (
+                {isCompanyAdminOrHigher(currentUser) && (
                   <div className="space-y-6">
                     <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
                       <div className="w-1 h-4 bg-amber-500 rounded-full"></div>

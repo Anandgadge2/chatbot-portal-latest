@@ -23,6 +23,7 @@ import CitizenDetailsModal from "../../components/grievance/CitizenDetailsModal"
 import AssignmentDialog from "../../components/assignment/AssignmentDialog";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
 import { formatDate, formatDateTime, formatISTTime } from "../../lib/utils";
+import { isCompanyAdminOrHigher } from "@/lib/permissions";
 
 export default function GrievancesPage() {
   const { user } = useAuth();
@@ -482,7 +483,7 @@ export default function GrievancesPage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-center space-x-2">
-                          {user?.role === "COMPANY_ADMIN" && (
+                          {isCompanyAdminOrHigher(user) && (
                             <button
                               onClick={() => handleAssignClick(grievance)}
                               title="Assign Officer"

@@ -29,7 +29,7 @@ import ChangePermissionsDialog from "@/components/user/ChangePermissionsDialog";
 import UserDetailsDialog from "@/components/user/UserDetailsDialog";
 import { ProtectedButton } from "@/components/ui/ProtectedButton";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
-import { Permission, hasPermission, Module } from "@/lib/permissions";
+import { Permission, hasPermission, Module, isDepartmentAdminOrHigher, isCompanyAdminOrHigher, isSuperAdmin } from "@/lib/permissions";
 import toast from "react-hot-toast";
 import {
   LineChart,
@@ -60,6 +60,12 @@ import { StatsSkeleton, TableSkeleton } from "@/components/ui/GeneralSkeleton";
 import { Pagination } from "@/components/ui/Pagination";
 import AvailabilityCalendar from "@/components/availability/AvailabilityCalendar";
 import SuperAdminDashboard from "@/app/superadmin/dashboard/page";
+import WhatsAppConfigTab from "@/components/superadmin/drilldown/tabs/WhatsAppConfigTab";
+import EmailConfigTab from "@/components/superadmin/drilldown/tabs/EmailConfigTab";
+import ChatbotFlowsTab from "@/components/superadmin/drilldown/tabs/ChatbotFlowsTab";
+import RoleManagement from "@/components/roles/RoleManagement";
+import NotificationManagement from "@/components/superadmin/drilldown/NotificationManagement";
+import { CompanyProvider } from "@/contexts/CompanyContext";
 
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
@@ -124,6 +130,10 @@ import {
   ScanSearch,
   Trees,
   MapPin,
+  Settings,
+  MessageSquare,
+  Bot,
+  BellRing,
 } from "lucide-react";
 
 interface DashboardStats {
@@ -183,19 +193,24 @@ function DashboardContent() {
   const { user, loading, logout } = useAuth();
   const isCompanyLevel = user && !user.departmentId && !user.isSuperAdmin;
   const isDepartmentLevel = user && !!user.departmentId && !user.isSuperAdmin;
-  const isSuperAdmin = Boolean(user?.isSuperAdmin);
+  const isSuperAdminUser = !!user?.isSuperAdmin;
   const router = useRouter();
   const searchParams = useSearchParams();
+  const companyIdParam = searchParams.get("companyId");
+  const targetCompanyId = companyIdParam || (user?.companyId && typeof user.companyId === 'object' ? (user.companyId as any)._id : user?.companyId);
+  const isViewingCompany = isCompanyLevel || (isSuperAdminUser && !!companyIdParam);
+
   const [mounted, setMounted] = useState(false);
   // Get initial tab from URL search params, default based on role
   const getDefaultTab = () => {
-    if (!hasPermission(user, Permission.VIEW_ANALYTICS) && !isSuperAdmin) {
+    if (companyIdParam) return "overview";
+    if (!hasPermission(user, Permission.VIEW_ANALYTICS) && !isSuperAdminUser) {
       if (hasPermission(user, Permission.READ_GRIEVANCE)) return "grievances";
       return "profile";
     }
     return "overview";
   };
-  const initialTab = searchParams?.get("tab") || getDefaultTab();
+  const initialTab = getDefaultTab();
   const [activeTab, setActiveTab] = useState(initialTab);
   const [previousTab, setPreviousTab] = useState<string>("overview");
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -213,7 +228,7 @@ function DashboardContent() {
   const isDFO = useMemo(() => {
     return company?.name?.toUpperCase().includes("D.F.O.") || 
            company?._id === "69adc81165109318a7cde21c" ||
-           user?.companyId === "69adc81165109318a7cde21c";
+           (user?.companyId && (typeof user.companyId === 'object' ? (user.companyId as any)._id : user.companyId) === "69adc81165109318a7cde21c");
   }, [company, user]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [showDepartmentDialog, setShowDepartmentDialog] = useState(false);
@@ -248,6 +263,10 @@ function DashboardContent() {
   });
   const [loadingStats, setLoadingStats] = useState(false);
   const [loadingGrievances, setLoadingGrievances] = useState(false);
+
+  // Sync state with URL manually updated
+  // Tab state is handled locally for a pure SPA experience as requested
+  // URL parameters like ?tab=... have been removed.
   const [loadingAppointments, setLoadingAppointments] = useState(false);
   const [loadingLeads, setLoadingLeads] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -379,14 +398,27 @@ function DashboardContent() {
   const [appointmentSearch, setAppointmentSearch] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Helper to check module access - prioritizes latest company config over user session
+  // Helper to check module access - strictly respects company config if viewing a specific company
   const hasModule = useCallback(
     (module: Module) => {
-      if (user?.isSuperAdmin) return true;
-      const modules = company?.enabledModules || user?.enabledModules || [];
-      return modules.includes(module);
+      // If we are viewing a specific company dashboard (either as Company Admin or Super Admin drilldown)
+      // we MUST respect the specific company's enabled modules configuration.
+      if (isViewingCompany) {
+        // If company data is not loaded yet, do NOT show the module tab
+        // to prevent flickering of unauthorized modules for SuperAdmin.
+        if (!company) return false;
+        
+        const enabledModules = (company.enabledModules || []) as string[];
+        return enabledModules.includes(module as string);
+      }
+      
+      // Fallback for regular session view (Global SuperAdmin overview)
+      if (isSuperAdminUser) return true;
+      
+      const modules = (company?.enabledModules || user?.enabledModules || []) as string[];
+      return modules.includes(module as string);
     },
-    [user, company],
+    [user, company, isViewingCompany, isSuperAdminUser],
   );
 
   // Export functions
@@ -560,20 +592,16 @@ function DashboardContent() {
 
   // Redirect away from overview if no analytics permission
   useEffect(() => {
-    if (user && !hasPermission(user, Permission.VIEW_ANALYTICS) && !isSuperAdmin && activeTab === "overview") {
+    if (user && !hasPermission(user, Permission.VIEW_ANALYTICS) && !isSuperAdminUser && activeTab === "overview") {
       const nextTab = hasPermission(user, Permission.READ_GRIEVANCE) ? "grievances" : "profile";
       setActiveTab(nextTab);
     }
-  }, [user, activeTab, isSuperAdmin]);
+  }, [user, activeTab, isSuperAdminUser]);
 
-  // Update URL when tab changes to persist state
+  // Persist tab state only for the current session without URL modification
   useEffect(() => {
-    if (mounted && activeTab) {
-      const url = new URL(window.location.href);
-      url.searchParams.set("tab", activeTab);
-      window.history.replaceState({}, "", url.toString());
-    }
-  }, [activeTab, mounted]);
+    setMounted(true);
+  }, []);
 
   // Track previous counts for real-time notifications
   const [prevGrievanceCount, setPrevGrievanceCount] = useState<number | null>(
@@ -585,36 +613,42 @@ function DashboardContent() {
 
   const fetchPerformanceData = useCallback(async () => {
     try {
-      const response = await apiClient.get("/analytics/performance");
+      const response = await apiClient.get(`/analytics/performance${companyIdParam ? "?companyId=" + companyIdParam : ""}`);
       if (response.success) {
         setPerformanceData(response.data);
       }
     } catch (error: any) {
-      console.error("Failed to fetch performance data:", error);
+      if (error?.response?.status !== 403) {
+        console.error("Failed to fetch performance data:", error);
+      }
     }
-  }, []);
+  }, [companyIdParam]);
 
   const fetchHourlyData = useCallback(async () => {
     try {
-      const response = await apiClient.get("/analytics/hourly?days=7");
+      const response = await apiClient.get(`/analytics/hourly?days=7${companyIdParam ? "&companyId=" + companyIdParam : ""}`);
       if (response.success) {
         setHourlyData(response.data);
       }
     } catch (error: any) {
-      console.error("Failed to fetch hourly data:", error);
+      if (error?.response?.status !== 403) {
+        console.error("Failed to fetch hourly data:", error);
+      }
     }
-  }, []);
+  }, [companyIdParam]);
 
   const fetchCategoryData = useCallback(async () => {
     try {
-      const response = await apiClient.get("/analytics/categories");
+      const response = await apiClient.get(`/analytics/category${companyIdParam ? "?companyId=" + companyIdParam : ""}`);
       if (response.success) {
         setCategoryData(response.data);
       }
     } catch (error: any) {
-      console.error("Failed to fetch category data:", error);
+      if (error?.response?.status !== 403) {
+        console.error("Failed to fetch category data:", error);
+      }
     }
-  }, []);
+  }, [companyIdParam]);
 
   const forestBeats = useMemo(() => {
     return (departments || []).map(d => ({
@@ -646,17 +680,17 @@ function DashboardContent() {
 
   const fetchDepartmentData = useCallback(async () => {
     try {
-      const response = await apiClient.get("/analytics/grievances/by-department");
+      const response = await apiClient.get(`/analytics/grievances/by-department${companyIdParam ? "?companyId=" + companyIdParam : ""}`);
       if (response.success) {
         setDepartmentData(response.data);
       }
     } catch (error: any) {
       console.error("Failed to fetch department data:", error);
     }
-  }, []);
+  }, [companyIdParam]);
 
   const fetchRoles = useCallback(async () => {
-    const cid = user?.companyId ? (typeof user.companyId === 'object' ? (user.companyId as any)._id : user.companyId) : null;
+    const cid = targetCompanyId;
     if (!cid) {
       setRoles([]);
       return;
@@ -669,7 +703,7 @@ function DashboardContent() {
     } catch (error) {
       console.error("Failed to fetch roles:", error);
     }
-  }, [user]);
+  }, [targetCompanyId]);
 
   const fetchDashboardData = useCallback(async (refresh = false) => {
     if (!refresh) setLoadingStats(true);
@@ -677,20 +711,36 @@ function DashboardContent() {
       const response = await apiClient.get<{
         success: boolean;
         data: DashboardStats;
-      }>("/analytics/dashboard");
+      }>(`/analytics/dashboard${companyIdParam ? "?companyId=" + companyIdParam : ""}`);
       if (response.success) {
         setStats(response.data);
       }
     } catch (error: any) {
-      console.error("Failed to fetch dashboard stats:", error);
-      toast.error("Failed to load dashboard statistics");
+      if (error?.response?.status !== 403) {
+        console.error("Failed to fetch dashboard stats:", error);
+        toast.error("Failed to load dashboard statistics");
+      }
     } finally {
       if (!refresh) setLoadingStats(false);
     }
-  }, []);
+  }, [companyIdParam]);
 
   const fetchCompany = useCallback(async () => {
-    if (!user || user.isSuperAdmin) return;
+    if (!user) return;
+    
+    if (isSuperAdminUser && companyIdParam) {
+      try {
+        const response = await companyAPI.getById(companyIdParam);
+        if (response.success) {
+          setCompany(response.data.company);
+        }
+      } catch (error: any) {
+        console.log("Company details not available:", error.message);
+      }
+      return;
+    }
+
+    if (user.isSuperAdmin) return;
 
     try {
       const response = await companyAPI.getMyCompany();
@@ -701,17 +751,18 @@ function DashboardContent() {
       // CompanyAdmin might not have company associated
       console.log("Company details not available:", error.message);
     }
-  }, [user]);
+  }, [user, isSuperAdminUser, companyIdParam]);
 
   const fetchDepartments = useCallback(
     async (page = departmentPage, isSilent = false) => {
       if (!isSilent) setLoadingDepartments(true);
       try {
         // For company admin, fetch ALL departments (no pagination limit)
-        const fetchLimit = isCompanyLevel ? 1000 : departmentPagination.limit;
+        const fetchLimit = isCompanyLevel || (isSuperAdminUser && companyIdParam) ? 1000 : departmentPagination.limit;
         const response = await departmentAPI.getAll({
-          page: isCompanyLevel ? 1 : page,
+          page: isCompanyLevel || (isSuperAdminUser && companyIdParam) ? 1 : page,
           limit: fetchLimit,
+          companyId: isSuperAdminUser && companyIdParam ? companyIdParam : undefined,
         });
         if (response.success) {
           let filteredDepartments = response.data.departments;
@@ -763,6 +814,8 @@ function DashboardContent() {
       isDepartmentLevel,
       isCompanyLevel,
       user?.departmentId,
+      isSuperAdminUser,
+      companyIdParam,
     ],
   );
 
@@ -792,6 +845,7 @@ function DashboardContent() {
           role: serverRoleFilter,
           status: (userFilters.status as 'active' | 'inactive') || undefined,
           departmentId: selectedDepartmentId,
+          companyId: isSuperAdminUser && companyIdParam ? companyIdParam : undefined,
         });
         if (response.success) {
           let filteredUsers = response.data.users;
@@ -801,8 +855,8 @@ function DashboardContent() {
             const userDeptId =
               typeof user.departmentId === "object" &&
               user.departmentId !== null
-                ? user.departmentId._id
-                : user.departmentId;
+                  ? user.departmentId._id
+                  : user.departmentId;
 
             filteredUsers = filteredUsers.filter((u: any) => {
               const uDeptId =
@@ -852,6 +906,8 @@ function DashboardContent() {
       userFilters,
       departments,
       getParentDepartmentId,
+      isSuperAdminUser,
+      companyIdParam,
     ],
   );
 
@@ -879,6 +935,7 @@ function DashboardContent() {
           status: grievanceFilters.status || undefined,
           departmentId: (grievanceFilters.subDeptId || grievanceFilters.mainDeptId || grievanceFilters.department) || undefined,
           assignedTo: grievanceFilters.assignmentStatus === "assigned" ? "ANY" : grievanceFilters.assignmentStatus === "unassigned" ? "NONE" : undefined,
+          companyId: isSuperAdminUser && companyIdParam ? companyIdParam : undefined,
         });
         if (response.success) {
           setGrievances(response.data.grievances);
@@ -897,7 +954,7 @@ function DashboardContent() {
         if (!isSilent) setLoadingGrievances(false);
       }
     },
-    [grievancePage, grievancePagination.limit, user, hasModule, grievanceFilters],
+    [grievancePage, grievancePagination.limit, user, hasModule, grievanceFilters, isSuperAdminUser, companyIdParam],
   );
 
   const fetchAppointments = useCallback(
@@ -911,6 +968,7 @@ function DashboardContent() {
         const response = await appointmentAPI.getAll({
           page,
           limit: appointmentPagination.limit,
+          companyId: isSuperAdminUser && companyIdParam ? companyIdParam : undefined,
         });
         if (response.success) {
           setAppointments(response.data.appointments);
@@ -929,18 +987,14 @@ function DashboardContent() {
         if (!isSilent) setLoadingAppointments(false);
       }
     },
-    [appointmentPage, appointmentPagination.limit, user, hasModule],
+    [appointmentPage, appointmentPagination.limit, user, hasModule, isSuperAdminUser, companyIdParam],
   );
 
   const fetchLeads = useCallback(async () => {
-    if (!user?.companyId) return;
+    if (!targetCompanyId) return;
     setLoadingLeads(true);
     try {
-      const companyId =
-        typeof user.companyId === "object"
-          ? user.companyId._id
-          : user.companyId;
-      const response = await leadAPI.getAll({ companyId });
+      const response = await leadAPI.getAll({ companyId: targetCompanyId });
       if (response.success) {
         setLeads(response.data);
       }
@@ -950,7 +1004,7 @@ function DashboardContent() {
     } finally {
       setLoadingLeads(false);
     }
-  }, [user?.companyId]);
+  }, [targetCompanyId]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -997,39 +1051,41 @@ function DashboardContent() {
 
   // 1. Initial Dashboard Stats & Page-independent data
   useEffect(() => {
-    if (mounted && user && !user.isSuperAdmin) {
-      fetchDashboardData();
-      if (user.companyId) {
+    if (mounted && user) {
+      if (isSuperAdminUser || (hasPermission(user, Permission.VIEW_ANALYTICS))) {
+        fetchDashboardData();
+      }
+      if (user.companyId || (isSuperAdminUser && companyIdParam)) {
         fetchCompany();
         fetchRoles();
       }
     }
-  }, [mounted, user, fetchDashboardData, fetchCompany, fetchRoles]);
+  }, [mounted, user, fetchDashboardData, fetchCompany, fetchRoles, isSuperAdminUser, companyIdParam]);
 
   // 2. Specialized effects for each paginated module
   useEffect(() => {
-    if (mounted && user && !user.isSuperAdmin) {
+    if (mounted && user && (isSuperAdminUser || hasPermission(user, Permission.READ_DEPARTMENT))) {
       fetchDepartments(departmentPage);
     }
-  }, [mounted, user, departmentPage, fetchDepartments]);
+  }, [mounted, user, departmentPage, fetchDepartments, isSuperAdminUser]);
 
   useEffect(() => {
-    if (mounted && user && !user.isSuperAdmin) {
+    if (mounted && user && (isSuperAdminUser || hasPermission(user, Permission.READ_USER))) {
       fetchUsers(userPage);
     }
-  }, [mounted, user, userPage, fetchUsers]);
+  }, [mounted, user, userPage, fetchUsers, isSuperAdminUser]);
 
   useEffect(() => {
-    if (mounted && user && !user.isSuperAdmin && hasModule(Module.GRIEVANCE) && hasPermission(user, Permission.READ_GRIEVANCE)) {
+    if (mounted && user && (isSuperAdminUser || (hasModule(Module.GRIEVANCE) && hasPermission(user, Permission.READ_GRIEVANCE)))) {
       fetchGrievances(grievancePage);
     }
-  }, [mounted, user, grievancePage, fetchGrievances, hasModule]);
+  }, [mounted, user, grievancePage, fetchGrievances, hasModule, isSuperAdminUser]);
 
   useEffect(() => {
-    if (mounted && user && !user.isSuperAdmin && hasModule(Module.APPOINTMENT) && hasPermission(user, Permission.READ_APPOINTMENT)) {
+    if (mounted && user && (isSuperAdminUser || (hasModule(Module.APPOINTMENT) && hasPermission(user, Permission.READ_APPOINTMENT)))) {
       fetchAppointments(appointmentPage);
     }
-  }, [mounted, user, appointmentPage, fetchAppointments, hasModule]);
+  }, [mounted, user, appointmentPage, fetchAppointments, hasModule, isSuperAdminUser]);
 
   useEffect(() => {
     if (mounted && user && hasModule(Module.LEAD_CAPTURE)) {
@@ -1039,26 +1095,27 @@ function DashboardContent() {
 
   // 3. Polling isolated from initial load triggers
   useEffect(() => {
-    if (mounted && user && !user.isSuperAdmin) {
+    if (mounted && user) {
       const pollInterval = setInterval(async () => {
         try {
           const promises = [];
           
-          if (hasModule(Module.GRIEVANCE) && hasPermission(user, Permission.READ_GRIEVANCE)) {
+          if (isSuperAdminUser || (hasModule(Module.GRIEVANCE) && hasPermission(user, Permission.READ_GRIEVANCE))) {
             promises.push(grievanceAPI.getAll({ page: 1, limit: 10 }));
-          } else {
-            promises.push(Promise.resolve({ success: false, data: null }));
           }
           
-          if (hasModule(Module.APPOINTMENT) && hasPermission(user, Permission.READ_APPOINTMENT)) {
+          if (isSuperAdminUser || (hasModule(Module.APPOINTMENT) && hasPermission(user, Permission.READ_APPOINTMENT))) {
             promises.push(appointmentAPI.getAll({ page: 1, limit: 10 }));
-          } else {
-            promises.push(Promise.resolve({ success: false, data: null }));
           }
+          
+          if (promises.length === 0) return;
+          
+          const results = await Promise.all(promises);
+          
+          const grievanceRes = results[0] as any; // Assuming grievance is always first if included
+          const appointmentRes = results[1] as any; // Assuming appointment is always second if included
 
-          const [grievanceRes, appointmentRes] = await Promise.all(promises) as any;
-
-          if (grievanceRes.success && prevGrievanceCount !== null) {
+          if (grievanceRes?.success && prevGrievanceCount !== null) {
             const newCount = grievanceRes.data.pagination.total;
             if (newCount > prevGrievanceCount) {
               toast.success(
@@ -1117,6 +1174,8 @@ function DashboardContent() {
     prevGrievanceCount,
     prevAppointmentCount,
     hasModule,
+    companyIdParam,
+    isSuperAdminUser,
   ]);
 
   useEffect(() => {
@@ -1149,8 +1208,8 @@ function DashboardContent() {
   const getSortedData = (data: any[], tab: string) => {
     let filteredData = data;
 
-    // For operators, only show items assigned to them
-    if (user?.role === "OPERATOR" && user.id) {
+    // For lower level users (Operators, Sub-Department etc.), only show items assigned to them
+    if (user && !isDepartmentAdminOrHigher(user) && user.id) {
       if (tab === "grievances" || tab === "appointments") {
         filteredData = data.filter((item) => {
           const assignedToId = item.assignedTo?._id || item.assignedTo;
@@ -1504,7 +1563,7 @@ function DashboardContent() {
     );
   }
 
-  if (user?.isSuperAdmin) {
+  if (user?.isSuperAdmin && !companyIdParam) {
     return <SuperAdminDashboard />;
   }
 
@@ -1544,10 +1603,14 @@ function DashboardContent() {
                 </div>
                 <div className="hidden sm:block">
                   <h1 className="text-sm font-black text-white tracking-tight leading-none uppercase">
-                    {isCompanyLevel && (company?.name || "Company Level")}
-                    {isDepartmentLevel && "Department"}
-                    {!hasPermission(user, Permission.VIEW_ANALYTICS) && !isSuperAdmin && "Operations Center"}
-                    {hasPermission(user, Permission.VIEW_ANALYTICS) && !isCompanyLevel && !isSuperAdmin && " Portal"}
+                    {isSuperAdminUser && companyIdParam ? `Viewing: ${company?.name || '...'}` : (
+                      <>
+                        {isCompanyLevel && (company?.name || "Company Level")}
+                        {isDepartmentLevel && "Department"}
+                        {!hasPermission(user, Permission.VIEW_ANALYTICS) && !isSuperAdminUser && "Operations Center"}
+                        {hasPermission(user, Permission.VIEW_ANALYTICS) && !isCompanyLevel && !isSuperAdminUser && " Portal"}
+                      </>
+                    )}
                   </h1>
                   <div className="flex items-center gap-2 mt-1">
                     <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">
@@ -1573,15 +1636,27 @@ function DashboardContent() {
 
               <div className="w-px h-6 bg-slate-800 hidden lg:block mr-2"></div>
 
-              <Button
-                onClick={logout}
-                variant="ghost"
-                size="sm"
-                className="h-10 w-10 p-0 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all border border-transparent hover:border-slate-700 shadow-sm"
-                title="Logout System"
-              >
-                <Power className="w-4 h-4" />
-              </Button>
+              {isSuperAdminUser && companyIdParam && (
+                <Link
+                  href="/superadmin/dashboard"
+                  className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700 transition-all duration-300 text-[10px] font-black uppercase tracking-widest shadow-xl"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  Back to Master Admin
+                </Link>
+              )}
+              <div className="flex items-center gap-3">
+                <Button
+                  onClick={logout}
+                  variant="ghost"
+                  className="h-10 w-10 p-0 text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all duration-300 border border-transparent hover:border-rose-500/20"
+                >
+                  <Power className="w-5 h-5" />
+                </Button>
+                <div className="h-10 w-10 bg-indigo-600/10 rounded-xl flex items-center justify-center border border-indigo-500/20 shadow-inner group">
+                  <UserIcon className="w-5 h-5 text-indigo-400 group-hover:scale-110 transition-transform duration-300" />
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1595,19 +1670,36 @@ function DashboardContent() {
             if (activeTab !== value) {
               setPreviousTab(activeTab);
               
-              // Clear 'REVERTED' status filter when leaving the specialized Reverted tab
+              // Filter logic for specialized tabs
               if (activeTab === "reverted") {
                 setGrievanceFilters(prev => ({ ...prev, status: "" }));
               }
+              if (value === "reverted") {
+                setGrievanceFilters((prev) => ({ ...prev, status: "REVERTED" }));
+              }
+              if (activeTab === "overview" && value === "grievances") {
+                setGrievanceFilters(prev => ({ ...prev, status: "" }));
+              }
             }
-            if (value === "reverted") {
-              setGrievanceFilters((prev) => ({ ...prev, status: "REVERTED" }));
-            }
-            // Also reset filters if going specifically to grievances from overview
-            if (activeTab === "overview" && value === "grievances") {
-              setGrievanceFilters(prev => ({ ...prev, status: "" }));
-            }
+
             setActiveTab(value);
+
+            // Automatic content loading triggered on tab click for SPA experience
+            if (mounted && user) {
+               if (value === "overview" && (isSuperAdminUser || hasPermission(user, Permission.VIEW_ANALYTICS))) fetchDashboardData();
+               else if (value === "analytics") {
+                 fetchHourlyData();
+                 fetchCategoryData();
+                 fetchDashboardData();
+                 fetchDepartmentData();
+               }
+               else if (value === "grievances") fetchGrievances(1);
+               else if (value === "appointments") fetchAppointments(1);
+               else if (value === "departments") fetchDepartments(1);
+               else if (value === "users") fetchUsers(1);
+               else if (value === "leads") fetchLeads();
+               else if (value === "roles" && isSuperAdminUser) fetchRoles();
+            }
           }}
           className="space-y-4 sm:space-y-6"
         >
@@ -1623,7 +1715,7 @@ function DashboardContent() {
               )}
 
               {/* Analytics Tab - Professional Monitoring */}
-              {!isSuperAdmin && (
+               {(!isSuperAdminUser || (isSuperAdminUser && companyIdParam)) && (
                 <TabsTrigger
                   value="analytics"
                   className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg flex items-center"
@@ -1653,7 +1745,7 @@ function DashboardContent() {
                 </TabsTrigger>
               )} */}
 
-              {(isCompanyLevel || isDepartmentLevel) && hasModule(Module.APPOINTMENT) &&
+              {(isCompanyLevel || isDepartmentLevel || (isSuperAdminUser && companyIdParam)) && hasModule(Module.APPOINTMENT) &&
                 hasPermission(user, Permission.READ_APPOINTMENT) && (
                   <TabsTrigger
                     value="appointments"
@@ -1663,7 +1755,7 @@ function DashboardContent() {
                   </TabsTrigger>
                 )}
 
-              {isCompanyLevel && (
+              {isViewingCompany && (
                 <TabsTrigger
                   value="departments"
                   className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
@@ -1691,7 +1783,7 @@ function DashboardContent() {
                 </>
               )}
 
-              {(isCompanyLevel || isDepartmentLevel) && (
+              {(isViewingCompany || isDepartmentLevel) && (
                 <TabsTrigger
                   value="users"
                   className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
@@ -1700,7 +1792,7 @@ function DashboardContent() {
                 </TabsTrigger>
               )}
 
-              {hasModule(Module.LEAD_CAPTURE) && isCompanyLevel && (
+              {hasModule(Module.LEAD_CAPTURE) && isViewingCompany && (
                 <TabsTrigger
                   value="leads"
                   className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
@@ -1709,7 +1801,47 @@ function DashboardContent() {
                 </TabsTrigger>
               )}
 
-              {!hasPermission(user, Permission.VIEW_ANALYTICS) && !isSuperAdmin && (
+              {isSuperAdminUser && companyIdParam && (
+                <>
+                  <TabsTrigger
+                    value="whatsapp"
+                    className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg flex items-center"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5 mr-1.5" />
+                    WhatsApp
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="chatbot"
+                    className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-indigo-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg flex items-center"
+                  >
+                    <Bot className="w-3.5 h-3.5 mr-1.5" />
+                    Chatbot
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="roles"
+                    className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg flex items-center"
+                  >
+                    <Shield className="w-3.5 h-3.5 mr-1.5" />
+                    Roles
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="notifications"
+                    className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-orange-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg flex items-center"
+                  >
+                    <BellRing className="w-3.5 h-3.5 mr-1.5" />
+                    Notifications
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="email"
+                    className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg flex items-center"
+                  >
+                    <Mail className="w-3.5 h-3.5 mr-1.5" />
+                    Email
+                  </TabsTrigger>
+                </>
+              )}
+
+              {!hasPermission(user, Permission.VIEW_ANALYTICS) && !isSuperAdminUser && (
                 <TabsTrigger
                   value="profile"
                   className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
@@ -1809,8 +1941,8 @@ function DashboardContent() {
 
 
 
-                {/* Departments (Company Level) */}
-                {isCompanyLevel && (
+                {/* Departments (Mirroring Logic) */}
+                {isViewingCompany && (
                   <>
                     {stats?.isHierarchicalEnabled ? (
                       <>
@@ -1869,7 +2001,7 @@ function DashboardContent() {
                 )}
 
                 {/* Reverted Grievances (Company Level) */}
-                {isCompanyLevel && hasPermission(user, Permission.READ_GRIEVANCE) && (
+                {isViewingCompany && hasPermission(user, Permission.READ_GRIEVANCE) && (
                   <Card onClick={() => { setActiveTab("reverted"); setGrievanceFilters((prev) => ({ ...prev, status: "REVERTED" })); }} className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 border-l-4 border-l-rose-400 cursor-pointer">
                     <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
                       <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
@@ -1891,7 +2023,7 @@ function DashboardContent() {
             </div>
 
             {/* Company Info (for Company Admin) - Beautified Modern Design */}
-            {isCompanyLevel && company && (
+            {isViewingCompany && company && (
               <Card className="overflow-hidden border border-slate-200 shadow-sm bg-white rounded-xl">
                 <div className="bg-slate-900 px-6 py-5">
                   <div className="relative flex items-center justify-between">
@@ -2264,7 +2396,7 @@ function DashboardContent() {
                 </div>
               </CardHeader>
               <CardContent className="p-4 space-y-2">
-                {isCompanyLevel && (
+                {isViewingCompany && (
                   <>
                     <ProtectedButton
                       permission={Permission.CREATE_DEPARTMENT}
@@ -2356,7 +2488,7 @@ function DashboardContent() {
           </TabsContent>
 
           {/* Analytics Page - Role-Aware Real Analytics */}
-          {!isSuperAdmin && (
+          {(!isSuperAdminUser || (isSuperAdminUser && companyIdParam)) && (
             <TabsContent value="analytics" className="space-y-4">
               {/* Header Banner */}
               <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-4 border border-slate-800 shadow-lg mb-4">
@@ -2480,7 +2612,7 @@ function DashboardContent() {
               <div
                 className={cn(
                   "grid gap-4",
-                  stats?.isHierarchicalEnabled && isCompanyLevel 
+                  stats?.isHierarchicalEnabled && isViewingCompany 
                     ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5" 
                     : "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5"
                 )}
@@ -2564,9 +2696,9 @@ function DashboardContent() {
                 )}
 
                 {/* Pending Appointments - Modern Card */}
-                {hasModule(Module.APPOINTMENT) && isCompanyLevel && (
-                  <div 
-                    onClick={() => { setActiveTab("appointments"); setAppointmentFilters((prev) => ({ ...prev, status: "SCHEDULED" })); }} 
+                {hasModule(Module.APPOINTMENT) && isViewingCompany && (
+                  <div
+                    onClick={() => { setActiveTab("appointments"); setAppointmentFilters((prev) => ({ ...prev, status: "SCHEDULED" })); }}
                     className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-4 transition-all duration-500 hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden"
                   >
                     <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-blue-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
@@ -2581,16 +2713,16 @@ function DashboardContent() {
                       </div>
                       <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Pending Appts</h4>
                       <p className="text-2xl font-black text-slate-900 tracking-tighter">
-                        {appointments?.filter((a) => a.status === "SCHEDULED").length || 0}
+                        {stats?.appointments.pending || 0}
                       </p>
                     </div>
                   </div>
                 )}
 
                 {/* Appointments - Modern Card */}
-                {hasModule(Module.APPOINTMENT) && isCompanyLevel && (
-                  <div 
-                    onClick={() => setActiveTab("appointments")} 
+                {hasModule(Module.APPOINTMENT) && isViewingCompany && (
+                  <div
+                    onClick={() => setActiveTab("appointments")}
                     className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-4 transition-all duration-500 hover:shadow-xl hover:shadow-purple-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden"
                   >
                     <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-purple-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
@@ -2763,9 +2895,9 @@ function DashboardContent() {
                                     strokeWidth={0}
                                   >
                                     {chart.map((entry, i) => (
-                                      <Cell 
-                                        key={i} 
-                                        fill={entry.color} 
+                                      <Cell
+                                        key={i}
+                                        fill={entry.color}
                                         className="outline-none hover:opacity-80 transition-opacity"
                                       />
                                     ))}
@@ -2832,7 +2964,7 @@ function DashboardContent() {
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* High Grievance Departments */}
-                {isCompanyLevel && departmentData && departmentData.length > 0 && (
+                {hasModule(Module.GRIEVANCE) && isViewingCompany && (
                   <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
                     <div className="px-4 py-3 border-b border-slate-50 flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -2887,7 +3019,7 @@ function DashboardContent() {
                 )}
 
                 {/* Appointments by Status - Company Admin only */}
-                {hasModule(Module.APPOINTMENT) && isCompanyLevel && (
+                {hasModule(Module.APPOINTMENT) && isViewingCompany && (
                   <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
                     <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-3">
                       <div className="w-8 h-8 bg-violet-50 rounded-lg flex items-center justify-center">
@@ -3008,7 +3140,7 @@ function DashboardContent() {
                         Staff by Role
                       </h3>
                       <p className="text-[10px] text-slate-400">
-                        {isCompanyLevel
+                        {isViewingCompany
                           ? "Across all departments"
                           : "In your department"}
                       </p>
@@ -3600,8 +3732,8 @@ function DashboardContent() {
             </>
           )}
 
-          {/* Departments Tab - Only for Company Admin */}
-          {isCompanyLevel && (
+          {/* Departments Tab - For Company Admin & Superadmin Drilldown */}
+          {isViewingCompany && (
             <TabsContent value="departments" className="space-y-4">
               <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
                 {/* Header */}
@@ -4073,7 +4205,7 @@ function DashboardContent() {
           )}
 
           {/* Leads Tab Content */}
-          {hasModule(Module.LEAD_CAPTURE) && isCompanyLevel && (
+          {hasModule(Module.LEAD_CAPTURE) && isViewingCompany && (
             <TabsContent value="leads" className="space-y-6">
               <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
                 <CardHeader className="bg-slate-900 px-4 sm:px-6 py-4">
@@ -4227,7 +4359,7 @@ function DashboardContent() {
           )}
 
           {/* Users Tab Content (existing) */}
-          {(isCompanyLevel || isDepartmentLevel) && (
+          {(isViewingCompany || isDepartmentLevel) && (
             <TabsContent value="users" className="space-y-6">
               <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
                 <CardHeader className="bg-slate-900 px-4 sm:px-6 py-4">
@@ -4241,7 +4373,7 @@ function DashboardContent() {
                           User Management
                         </CardTitle>
                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-                          {isCompanyLevel
+                          {isViewingCompany
                             ? "Manage users in your company"
                             : "Manage users in your department"}
                         </p>
@@ -4316,7 +4448,7 @@ function DashboardContent() {
                         {roles.map(r => (
                           <option key={r._id} value={`CUSTOM:${r._id}`}>{r.name}</option>
                         ))}
-                        {isSuperAdmin && <option value="SUPER_ADMIN">Super Admin</option>}
+                        {isSuperAdminUser && <option value="SUPER_ADMIN">Super Admin</option>}
                       </select>
                       <select
                         value={userFilters.status}
@@ -4502,7 +4634,7 @@ function DashboardContent() {
                                           {formatTo10Digits(u.phone)}
                                         </div>
                                       )}
-                                  {isSuperAdmin && u.notificationSettings && (
+                                  {isSuperAdminUser && u.notificationSettings && (
                                     <div className="flex items-center gap-2 mt-2">
                                       <div 
                                         title={`Email Notifications: ${u.notificationSettings.email ? 'Enabled' : 'Disabled'}`}
@@ -4535,24 +4667,21 @@ function DashboardContent() {
                                       <div className="flex">
                                         <span
                                           className={`px-2.5 py-0.5 inline-flex items-center text-[10px] font-bold rounded-full border shadow-sm ${
-                                            u.role === "COMPANY_ADMIN"
+                                            u.level === 1
                                               ? "bg-red-50 text-red-700 border-red-100 ring-1 ring-red-200"
                                               : typeof u.customRoleId ===
                                                     "object" && u.customRoleId
-                                                ? "bg-indigo-50 text-indigo-700 border-indigo-100 ring-1 ring-indigo-200"
-                                                : (u.role ===
-                                                      "DEPARTMENT_ADMIN" &&
+                                                ? "bg-indigo-50 text-indigo-700 border-indigo-100 ring-1 ring-indigo-200 shadow-indigo-900/5"
+                                                : (u.level === 2 &&
                                                       typeof u.departmentId ===
                                                         "object" &&
                                                       (u.departmentId as any)
                                                         ?.parentDepartmentId) ||
-                                                    u.role ===
-                                                      "SUB_DEPARTMENT_ADMIN"
+                                                    u.level === 3
                                                   ? "bg-purple-50 text-purple-700 border-purple-100 ring-1 ring-purple-200 shadow-purple-900/5"
-                                                  : u.role ===
-                                                      "DEPARTMENT_ADMIN"
+                                                  : u.level === 2
                                                     ? "bg-blue-50 text-blue-700 border-blue-100 ring-1 ring-blue-200"
-                                                    : u.role === "OPERATOR"
+                                                    : u.level === 4
                                                       ? "bg-emerald-50 text-emerald-700 border-emerald-100 ring-1 ring-emerald-200"
                                                       : "bg-slate-50 text-slate-700 border-slate-200"
                                           }`}
@@ -4561,25 +4690,22 @@ function DashboardContent() {
                                           {typeof u.customRoleId === "object" &&
                                           u.customRoleId
                                             ? (u.customRoleId as any).name
-                                            : (u.role === "DEPARTMENT_ADMIN" &&
+                                            : (u.level === 2 &&
                                                   typeof u.departmentId ===
                                                     "object" &&
                                                   (u.departmentId as any)
                                                     ?.parentDepartmentId) ||
-                                                u.role ===
-                                                  "SUB_DEPARTMENT_ADMIN"
+                                                u.level === 3
                                               ? "Sub Department Admin"
-                                              : u.isSuperAdmin
+                                              : isSuperAdmin(u)
                                                 ? "Super Admin"
-                                                : u.role === "COMPANY_ADMIN"
+                                                : u.level === 1
                                                   ? "Company Admin"
-                                                  : u.role ===
-                                                      "DEPARTMENT_ADMIN"
+                                                  : u.level === 2
                                                     ? "Department Admin"
-                                                    : u.role === "OPERATOR"
+                                                    : u.level === 4
                                                       ? "Operator"
-                                                      : u.role ===
-                                                          "ANALYTICS_VIEWER"
+                                                      : u.level === 5
                                                         ? "Analytics Viewer"
                                                         : (
                                                             u.role || ""
@@ -4814,11 +4940,9 @@ function DashboardContent() {
             </TabsContent>
           )}
 
-          {/* Grievances Tab */}
-          {user &&
-            (user.enabledModules?.includes(Module.GRIEVANCE) ||
-              !user.companyId) && (
-              <TabsContent value="grievances" className="space-y-6">
+          {/* Grievances Tab - Sophisticated Professional Inbox */}
+          {hasModule(Module.GRIEVANCE) && (isViewingCompany || isDepartmentLevel) && (
+            <TabsContent value="grievances" className="space-y-4">
                 {/* Back Button - Show when coming from overview (not for operators) */}
                 {/* {previousTab === "overview" && hasPermission(user, Permission.VIEW_ANALYTICS) && (
                   <Button
@@ -5864,12 +5988,9 @@ function DashboardContent() {
             </TabsContent>
           )}
 
-          {/* Appointments Tab - show if module active or SuperAdmin */}
-          {user &&
-            (user.enabledModules?.includes(Module.APPOINTMENT) ||
-              !user.companyId) &&
-            (isCompanyLevel || isDepartmentLevel) && (
-              <TabsContent value="appointments" className="space-y-6">
+          {/* Appointments Tab - Modern Specialized Calendar Integration */}
+          {hasModule(Module.APPOINTMENT) && (isViewingCompany || isDepartmentLevel) && (
+            <TabsContent value="appointments" className="space-y-4">
                 <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
                   <CardHeader className="bg-slate-900 px-6 py-4">
                     <div className="flex items-center justify-between">
@@ -5888,7 +6009,7 @@ function DashboardContent() {
                       </div>
                       <div className="flex items-center gap-2">
 
-                        {(isCompanyLevel || isDepartmentLevel) && (
+                        {(isViewingCompany || isDepartmentLevel) && (
                           <Button
                             onClick={() => setShowAvailabilityCalendar(true)}
                             className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-8 text-[10px] font-bold uppercase tracking-widest rounded-lg px-4 shadow-md"
@@ -6957,6 +7078,35 @@ function DashboardContent() {
               </div>
             </div>
           </TabsContent>
+
+          {isSuperAdminUser && companyIdParam && (
+            <CompanyProvider companyId={companyIdParam}>
+              <TabsContent value="whatsapp" className="space-y-4">
+                <WhatsAppConfigTab companyId={companyIdParam} />
+              </TabsContent>
+
+              <TabsContent value="chatbot" className="space-y-4">
+                <ChatbotFlowsTab companyId={companyIdParam} />
+              </TabsContent>
+
+              <TabsContent value="roles" className="space-y-4">
+                <Card className="border-0 shadow-xl rounded-2xl overflow-hidden bg-white text-left">
+                  <CardContent className="p-6">
+                    <RoleManagement companyId={companyIdParam} />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="notifications" className="space-y-4">
+                <NotificationManagement companyId={companyIdParam} />
+              </TabsContent>
+
+              <TabsContent value="email" className="space-y-4">
+                <EmailConfigTab companyId={companyIdParam} />
+              </TabsContent>
+            </CompanyProvider>
+          )}
+
         </Tabs>
 
         {/* Dialogs */}
@@ -7191,9 +7341,9 @@ function DashboardContent() {
           isOpen={showAvailabilityCalendar}
           onClose={() => setShowAvailabilityCalendar(false)}
           departmentId={
-            user?.role === "DEPARTMENT_ADMIN" && user?.departmentId
+            !isCompanyAdminOrHigher(user) && user?.departmentId
               ? typeof user.departmentId === "object"
-                ? user.departmentId._id
+                ? (user.departmentId as any)._id
                 : user.departmentId
               : undefined
           }
@@ -7233,7 +7383,7 @@ function DashboardContent() {
             fetchDashboardData(true);
           }}
           grievanceVariant={
-            user?.role === "OPERATOR" ? "operator" : "department-admin"
+            !isDepartmentAdminOrHigher(user) ? "operator" : "department-admin"
           }
         />
 

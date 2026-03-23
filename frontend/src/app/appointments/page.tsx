@@ -25,6 +25,8 @@ import AssignmentDialog from "@/components/assignment/AssignmentDialog";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { formatDate, formatDateTime, formatISTTime } from "@/lib/utils";
 
+import { isCompanyAdminOrHigher, Permission } from "@/lib/permissions";
+
 export default function AppointmentsPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -53,7 +55,7 @@ export default function AppointmentsPage() {
 
   // Restrict access to Company Admin only
   useEffect(() => {
-    if (!authLoading && user && user.role !== "COMPANY_ADMIN") {
+    if (!authLoading && user && !isCompanyAdminOrHigher(user)) {
       toast.error(
         "Access denied. Appointments are only available for Company Admins.",
       );
@@ -62,8 +64,8 @@ export default function AppointmentsPage() {
   }, [user, authLoading, router]);
 
   useEffect(() => {
-    // Only fetch data if user is Company Admin
-    if (user && user.role === "COMPANY_ADMIN") {
+    // Only fetch data if user is Company Admin or Higher
+    if (user && isCompanyAdminOrHigher(user)) {
       fetchAppointments();
       fetchDepartments();
     }
@@ -211,8 +213,8 @@ export default function AppointmentsPage() {
     );
   }
 
-  // Restrict access to Company Admin only
-  if (!user || user.role !== "COMPANY_ADMIN") {
+  // Restrict access to Company Admin or Higher
+  if (!user || !isCompanyAdminOrHigher(user)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-purple-50/30">
         <div className="text-center max-w-md mx-auto p-8 bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-200/50 shadow-xl">
@@ -568,7 +570,7 @@ export default function AppointmentsPage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-center gap-1">
-                          {user?.role === "COMPANY_ADMIN" &&
+                          {isCompanyAdminOrHigher(user) &&
                             appointment.status !== "COMPLETED" &&
                             appointment.status !== "CANCELLED" && (
                               <button

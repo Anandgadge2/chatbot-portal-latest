@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/card";
 import { User, userAPI } from "@/lib/api/user";
 import { formatRoleLabel } from "@/lib/utils/roleLabel";
+import { isSuperAdmin } from "@/lib/permissions";
 import { Users, Search, Download, ArrowUpDown, RefreshCw, CheckSquare, Square, Trash2, AlertTriangle } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -249,12 +250,12 @@ const DeptUserList: React.FC<DeptUserListProps> = ({
                       return (
                         <span
                           className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
-                            u.role === "SUPER_ADMIN"
+                            isSuperAdmin(u)
                               ? "bg-red-50 text-red-700 border-red-100"
                               : "bg-emerald-50 text-emerald-700 border-emerald-100"
                           }`}
                         >
-                          {u.role === "SUPER_ADMIN" ? "Super Admin" : roleLabel}
+                          {isSuperAdmin(u) ? "Super Admin" : roleLabel}
                         </span>
                       );
                     })()}
@@ -361,12 +362,12 @@ const DeptUserList: React.FC<DeptUserListProps> = ({
                         return (
                           <span
                             className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
-                              u.role === "SUPER_ADMIN"
+                              isSuperAdmin(u)
                                 ? "bg-red-50 text-red-700 border-red-100"
                                 : "bg-emerald-50 text-emerald-700 border-emerald-100"
                             }`}
                           >
-                            {u.role === "SUPER_ADMIN" ? "Super Admin" : roleLabel}
+                            {isSuperAdmin(u) ? "Super Admin" : roleLabel}
                           </span>
                         );
                       })()}

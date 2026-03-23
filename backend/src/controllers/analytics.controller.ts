@@ -11,8 +11,22 @@ const getAnalyticsBaseQuery = (req: any, companyId?: any, departmentId?: any) =>
   const currentUser = req.user;
 
   if (currentUser.role === UserRole.SUPER_ADMIN) {
-    if (companyId) query.companyId = new mongoose.Types.ObjectId(companyId.toString());
-    if (departmentId) query.departmentId = new mongoose.Types.ObjectId(departmentId.toString());
+    // For SuperAdmin, if companyId is provided, scope to that company
+    if (companyId) {
+      query.companyId = new mongoose.Types.ObjectId(companyId.toString());
+      
+      // If departmentId is also provided, scope within that company
+      if (departmentId) {
+        query.departmentId = new mongoose.Types.ObjectId(departmentId.toString());
+      }
+    } else if (departmentId) {
+      // ⚠️ Critical: If ONLY departmentId is provided for SuperAdmin, 
+      // we must still find which company that department belongs to 
+      // to maintain strict platform partitioning.
+      // For now, we'll assume the request must provide companyId in drilldown scenarios.
+      query.departmentId = new mongoose.Types.ObjectId(departmentId.toString());
+      console.warn('[AnalyticsScoping] SuperAdmin filtering by department without specific companyId');
+    }
   } else {
     // All other roles are strictly scoped to their company
     query.companyId = currentUser.companyId;
@@ -413,8 +427,7 @@ export const grievancesByStatus = async (req: Request, res: Response) => {
   try {
     const currentUser = req.user!;
     const { companyId, departmentId } = req.query;
-
-    const matchQuery = getAnalyticsBaseQuery(currentUser, companyId, departmentId);
+    const matchQuery = getAnalyticsBaseQuery(req, companyId, departmentId);
 
     const distribution = await Grievance.aggregate([
       { $match: matchQuery },
@@ -445,8 +458,7 @@ export const grievancesTrends = async (req: Request, res: Response) => {
   try {
     const currentUser = req.user!;
     const { companyId, departmentId, days = 30 } = req.query;
-
-    const matchQuery = getAnalyticsBaseQuery(currentUser, companyId, departmentId);
+    const matchQuery = getAnalyticsBaseQuery(req, companyId, departmentId);
     matchQuery.createdAt = {
       $gte: new Date(Date.now() - Number(days) * 24 * 60 * 60 * 1000)
     };

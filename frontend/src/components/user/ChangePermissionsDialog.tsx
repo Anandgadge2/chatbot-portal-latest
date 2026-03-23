@@ -15,7 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { UserRole } from "@/lib/permissions";
+import { UserRole, isSuperAdmin } from "@/lib/permissions";
 import { Shield } from "lucide-react";
 
 interface ChangePermissionsDialogProps {
@@ -105,7 +105,7 @@ const ChangePermissionsDialog: React.FC<ChangePermissionsDialogProps> = ({
     let roles: { value: string; label: string }[] = [];
 
     // 1. Add System Roles if current user is SuperAdmin
-    if (currentUser?.role === "SUPER_ADMIN") {
+    if (isSuperAdmin(currentUser)) {
       roles.push({ value: "SUPER_ADMIN", label: "Super Admin" });
     }
 

@@ -14,6 +14,7 @@ import {
 import { departmentAPI, Department } from "@/lib/api/department";
 import { companyAPI, Company } from "@/lib/api/company";
 import { useAuth } from "@/contexts/AuthContext";
+import { isSuperAdmin } from "@/lib/permissions";
 import { Building, Shield, Languages, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -149,7 +150,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
   const syncLanguagesForCompany = useCallback(
     async (companyId?: string) => {
       try {
-        if (user?.role === "SUPER_ADMIN") {
+        if (isSuperAdmin(user)) {
           if (!companyId) {
             setCompanyLanguages(FALLBACK_LANGUAGES);
             return;
@@ -313,7 +314,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
         <CardContent className="flex-1 overflow-y-auto p-6 custom-scrollbar">
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Company selector - only shown to SuperAdmin */}
-            {user?.role === "SUPER_ADMIN" ? (
+            {isSuperAdmin(user) ? (
               <div>
                 <Label htmlFor="companyId" className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5 block">Company *</Label>
                 <select

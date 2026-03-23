@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { isSuperAdmin } from "@/lib/permissions";
 import { useCompanyContext } from "@/contexts/CompanyContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -64,7 +65,7 @@ export default function ChatbotFlowsPage() {
   });
 
   useEffect(() => {
-    if (user?.role !== "SUPER_ADMIN") {
+    if (!isSuperAdmin(user)) {
       router.push("/superadmin/dashboard");
       return;
     }

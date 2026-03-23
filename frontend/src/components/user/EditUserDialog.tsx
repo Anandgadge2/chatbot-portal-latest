@@ -8,6 +8,7 @@ import { userAPI, User } from "@/lib/api/user";
 import { departmentAPI, Department } from "@/lib/api/department";
 import { roleAPI, Role } from "@/lib/api/role";
 import { useAuth } from "@/contexts/AuthContext";
+import { isSuperAdmin } from "@/lib/permissions";
 import toast from "react-hot-toast";
 import { User as UserIcon, Mail, MessageSquare, X } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
@@ -197,7 +198,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
     options.push(...customRoleOptions);
 
     // Keep system-level Super Admin role available for Super Admins
-    if (currentUser?.role === "SUPER_ADMIN") {
+    if (isSuperAdmin(currentUser)) {
       options.push({ value: "SUPER_ADMIN", label: "Super Admin" });
     }
 

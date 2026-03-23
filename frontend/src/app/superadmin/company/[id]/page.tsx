@@ -48,6 +48,7 @@ import {
   Mail,
   Workflow,
   Plus,
+  Eye,
   ChevronRight,
   Menu,
   X,
@@ -66,6 +67,11 @@ import AppointmentList from "@/components/superadmin/drilldown/AppointmentList";
 import LeadList from "@/components/superadmin/drilldown/LeadList";
 import { Pagination } from "@/components/ui/Pagination";
 import { useWhatsappConfig } from "@/lib/query/useWhatsappConfig";
+import WhatsAppConfigTab from "@/components/superadmin/drilldown/tabs/WhatsAppConfigTab";
+import EmailConfigTab from "@/components/superadmin/drilldown/tabs/EmailConfigTab";
+import ChatbotFlowsTab from "@/components/superadmin/drilldown/tabs/ChatbotFlowsTab";
+import { useFlows } from "@/lib/query/useFlows";
+import FlowSimulator from "@/components/flow-builder/FlowSimulator";
 
 const CompanyAnalytics = dynamic(
   () => import("@/components/superadmin/drilldown/CompanyAnalytics"),
@@ -106,6 +112,10 @@ export default function CompanyDrillDown() {
   const [leads, setLeads] = useState<any[]>([]);
   const [leadsPage, setLeadsPage] = useState(1);
   const [leadsTotal, setLeadsTotal] = useState(0);
+  const { data: flows } = useFlows(companyId);
+  const activeFlow = useMemo(() => flows?.find((f: any) => f.isActive), [flows]);
+  const [simulatorOpen, setSimulatorOpen] = useState(false);
+
   const [loading, setLoading] = useState(true);
   const [loadingLeads, setLoadingLeads] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
@@ -412,12 +422,12 @@ export default function CompanyDrillDown() {
           <div className="flex items-center gap-3 lg:gap-6">
             <Button
               variant="ghost"
-              onClick={() => router.push("/superadmin/dashboard")}
+              onClick={() => router.push("/dashboard")}
               className="hidden md:flex bg-white bg-opacity-10 hover:bg-opacity-20 text-white h-11 px-4 rounded-xl border border-white border-opacity-10 transition-all group"
             >
               <ArrowLeft className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" />
               <span className="text-xs font-bold uppercase tracking-tight">
-                Dashboard
+                Back to Dashboard
               </span>
             </Button>
             <div className="w-10 h-10 lg:w-11 lg:h-11 bg-white bg-opacity-10 rounded-xl flex items-center justify-center backdrop-blur-sm border border-white border-opacity-10 shadow-lg">
@@ -432,48 +442,12 @@ export default function CompanyDrillDown() {
                   {company?.companyId || companyId || "..."}
                 </span>
                 <span className="hidden sm:inline text-[9px] lg:text-[10px] text-slate-400 font-bold uppercase tracking-widest opacity-60">
-                  • Super Admin Portal
+                  • System Management
                 </span>
               </div>
             </div>
           </div>
           <div className="flex items-center gap-2 lg:gap-4">
-            {!loading && (
-              <div className="hidden md:flex bg-white/5 p-1 rounded-2xl border border-white/10 backdrop-blur-sm">
-                <Button
-                  variant="ghost"
-                  className="h-9 px-4 hover:bg-white/10 text-white rounded-xl text-[10px] font-black uppercase tracking-wider"
-                  onClick={() =>
-                    router.push(
-                      `/superadmin/company/${companyId}/whatsapp-config`,
-                    )
-                  }
-                >
-                  <MessageSquare className="w-3.5 h-3.5 mr-2 text-indigo-400" />
-                  WhatsApp
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="h-9 px-4 hover:bg-white/10 text-white rounded-xl text-[10px] font-black uppercase tracking-wider"
-                  onClick={() =>
-                    router.push(`/superadmin/company/${companyId}/email-config`)
-                  }
-                >
-                  <Mail className="w-3.5 h-3.5 mr-2 text-blue-400" />
-                  Email
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="h-9 px-5 bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all hover:scale-105"
-                  onClick={() =>
-                    router.push(`/superadmin/company/${companyId}/chatbot-flows`)
-                  }
-                >
-                  <Workflow className="w-3.5 h-3.5 mr-2" />
-                  Flows
-                </Button>
-              </div>
-            )}
             <div className="hidden md:block h-11 w-px bg-slate-700/50 mx-2"></div>
             <Button
               variant="ghost"
@@ -483,6 +457,15 @@ export default function CompanyDrillDown() {
             >
               <RefreshCw className={`w-5 h-5 ${loading ? "animate-spin" : ""}`} />
             </Button>
+            {activeFlow && (
+              <Button
+                onClick={() => setSimulatorOpen(true)}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white h-11 px-6 rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg shadow-emerald-900/20 border border-emerald-500/30 flex items-center justify-center transition-all group active:scale-95"
+              >
+                <Eye className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" />
+                Simulate Live Bot
+              </Button>
+            )}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="md:hidden p-2 text-white bg-white/10 rounded-lg"
@@ -500,44 +483,10 @@ export default function CompanyDrillDown() {
         {isMobileMenuOpen && (
           <div className="md:hidden absolute top-20 left-0 w-full bg-slate-900 border-b border-slate-800 z-50 animate-in slide-in-from-top-4 duration-300 shadow-2xl">
             <div className="p-4 space-y-3">
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant="ghost"
-                  className="w-full h-12 bg-white/5 hover:bg-white/10 text-white rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center"
-                  onClick={() =>
-                    router.push(
-                      `/superadmin/company/${companyId}/whatsapp-config`,
-                    )
-                  }
-                >
-                  <MessageSquare className="w-4 h-4 mr-2 text-indigo-400" />
-                  WhatsApp
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="w-full h-12 bg-white/5 hover:bg-white/10 text-white rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center"
-                  onClick={() =>
-                    router.push(`/superadmin/company/${companyId}/email-config`)
-                  }
-                >
-                  <Mail className="w-4 h-4 mr-2 text-blue-400" />
-                  Email
-                </Button>
-              </div>
-              <Button
-                variant="ghost"
-                className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[11px] font-black uppercase tracking-wider flex items-center justify-center shadow-lg shadow-indigo-600/20"
-                onClick={() =>
-                  router.push(`/superadmin/company/${companyId}/chatbot-flows`)
-                }
-              >
-                <Workflow className="w-4 h-4 mr-2" />
-                Flow Management
-              </Button>
               <div className="pt-3 border-t border-slate-800 flex items-center gap-2">
                 <Button
                   variant="ghost"
-                  onClick={() => router.push("/superadmin/dashboard")}
+                  onClick={() => router.push("/dashboard")}
                   className="flex-1 bg-white/5 hover:bg-white/10 text-white h-12 rounded-xl border border-white/10 text-[10px] font-black uppercase tracking-widest"
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
@@ -606,6 +555,25 @@ export default function CompanyDrillDown() {
                 Appointments
               </TabsTrigger>
             )}
+
+            <TabsTrigger
+              value="whatsapp"
+              className="px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-700 transition-all"
+            >
+              WhatsApp
+            </TabsTrigger>
+            <TabsTrigger
+              value="email"
+              className="px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-700 transition-all"
+            >
+              Email
+            </TabsTrigger>
+            <TabsTrigger
+              value="flows"
+              className="px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-700 transition-all"
+            >
+              Flows
+            </TabsTrigger>
             {(!company ||
               company.enabledModules?.includes(Module.LEAD_CAPTURE)) && (
               <TabsTrigger
@@ -719,6 +687,18 @@ export default function CompanyDrillDown() {
           <TabsContent value="notifications" className="mt-0">
             <NotificationManagement companyId={companyId} />
           </TabsContent>
+
+          <TabsContent value="whatsapp" className="space-y-4 pt-4 animate-in fade-in slide-in-from-bottom-2">
+             <WhatsAppConfigTab companyId={companyId} />
+          </TabsContent>
+
+          <TabsContent value="email" className="space-y-4 pt-4 animate-in fade-in slide-in-from-bottom-2">
+             <EmailConfigTab companyId={companyId} />
+          </TabsContent>
+
+          <TabsContent value="flows" className="space-y-4 pt-4 animate-in fade-in slide-in-from-bottom-2">
+             <ChatbotFlowsTab companyId={companyId} />
+          </TabsContent>
         </Tabs>
       </main>
       )}
@@ -766,6 +746,15 @@ export default function CompanyDrillDown() {
         companyId={companyId}
         onSuccess={fetchData}
       />
+
+      {simulatorOpen && activeFlow && (
+        <FlowSimulator
+          nodes={activeFlow.nodes || []}
+          edges={activeFlow.edges || []}
+          flowName={activeFlow.flowName || activeFlow.name || "Live Bot Simulation"}
+          onClose={() => setSimulatorOpen(false)}
+        />
+      )}
     </div>
   );
 }

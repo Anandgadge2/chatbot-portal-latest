@@ -56,7 +56,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { Permission, hasPermission, Module } from "@/lib/permissions";
+import { Permission, hasPermission, Module, isSuperAdmin, isCompanyAdminOrHigher } from "@/lib/permissions";
 import { formatTo10Digits } from "@/lib/utils/phoneUtils";
 
 const COLORS = ["#6366f1", "#10b981", "#f59e0b", "#f43f5e"];
@@ -109,7 +109,7 @@ export default function DepartmentDetail() {
   }>({ key: "", direction: null });
 
   useEffect(() => {
-    if (!user || user.role === "SUPER_ADMIN") {
+    if (!user || isSuperAdmin(user)) {
       router.push("/dashboard");
       return;
     }
@@ -133,7 +133,7 @@ export default function DepartmentDetail() {
             ? deptRes.data.department.companyId?._id
             : deptRes.data.department.companyId;
 
-        if (deptCompanyId && user?.role === "COMPANY_ADMIN") {
+        if (deptCompanyId && isCompanyAdminOrHigher(user)) {
           const companyRes = await companyAPI.getMyCompany();
           if (companyRes.success) setCompany(companyRes.data.company);
         }
@@ -852,14 +852,22 @@ export default function DepartmentDetail() {
                           <td className="px-4 py-3">
                             <span
                               className={`px-2.5 py-1 rounded-full text-[9px] font-bold border shadow-sm ${
-                                (u.role === "DEPARTMENT_ADMIN" && department?.parentDepartmentId) || u.role === "SUB_DEPARTMENT_ADMIN"
+                                (u.level === 2 && department?.parentDepartmentId) || u.level === 3
                                   ? "bg-purple-50 text-purple-700 border-purple-100 ring-1 ring-purple-200"
                                   : "bg-indigo-50 text-indigo-700 border-indigo-100 uppercase tracking-wide"
                               }`}
                             >
-                              {(u.role === "DEPARTMENT_ADMIN" && department?.parentDepartmentId) || u.role === "SUB_DEPARTMENT_ADMIN"
+                              {(u.level === 2 && department?.parentDepartmentId) || u.level === 3
                                 ? "Sub Department Admin"
-                                : u.role?.replace(/_/g, " ")}
+                                : isSuperAdmin(u)
+                                  ? "Super Admin"
+                                  : u.level === 1
+                                    ? "Company Admin"
+                                    : u.level === 2
+                                      ? "Department Admin"
+                                      : u.level === 4
+                                        ? "Operator"
+                                        : u.role?.replace(/_/g, " ")}
                             </span>
                           </td>
                           <td className="px-4 py-3 text-center">

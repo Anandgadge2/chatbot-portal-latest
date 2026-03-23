@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import Department from '../models/Department';
 import { authenticate } from '../middleware/auth';
 import { requirePermission } from '../middleware/rbac';
@@ -59,10 +60,11 @@ router.get('/', requirePermission(Permission.READ_DEPARTMENT), async (req: Reque
     const User = (await import('../models/User')).default;
     const Role = (await import('../models/Role')).default;
     const deptIds = departments.map(d => d._id);
+    const targetCompanyId = (user.role === UserRole.SUPER_ADMIN && companyId) ? companyId : user.companyId;
 
     // 1. Identify roles that represent "Department Admins" (manage permissions)
     const adminRoles = await Role.find({
-      companyId: user.companyId || { $exists: true },
+      companyId: targetCompanyId || { $exists: true },
       'permissions.module': 'DEPARTMENTS',
       'permissions.actions': { $in: ['update', 'all', 'manage'] }
     }).select('_id name');
@@ -71,7 +73,7 @@ router.get('/', requirePermission(Permission.READ_DEPARTMENT), async (req: Reque
 
     // 2. Find users with those roles in the relevant departments
     const admins = await User.find({
-      companyId: user.companyId || { $exists: true }, // Ensure company match
+      companyId: targetCompanyId || { $exists: true }, // Ensure company match
       departmentId: { $in: deptIds },
       $or: [
         { customRoleId: { $in: adminRoleIds } },
@@ -83,7 +85,7 @@ router.get('/', requirePermission(Permission.READ_DEPARTMENT), async (req: Reque
     const userCounts = await User.aggregate([
       { 
         $match: { 
-          companyId: user.companyId || { $exists: true }, 
+          companyId: targetCompanyId ? new mongoose.Types.ObjectId(targetCompanyId.toString()) : { $exists: true }, 
           departmentId: { $in: deptIds }
         } 
       },

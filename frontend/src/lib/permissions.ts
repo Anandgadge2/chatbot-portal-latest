@@ -179,23 +179,21 @@ export function hasAllPermissions(user: any, permissions: Permission[]): boolean
   return permissions.every(permission => hasPermission(user, permission));
 }
 
-/**
- * Check if user is SuperAdmin
- */
-export function isSuperAdmin(user: { isSuperAdmin?: boolean }): boolean {
-  return Boolean(user?.isSuperAdmin);
+export function isSuperAdmin(user?: { isSuperAdmin?: boolean; level?: number } | null): boolean {
+  if (!user) return false;
+  return Boolean(user.isSuperAdmin) || user.level === 0;
 }
 
 /**
  * Check if user is CompanyAdmin or higher
  */
-export function isCompanyAdminOrHigher(user: { isSuperAdmin?: boolean; level?: number }): boolean {
+export function isCompanyAdminOrHigher(user?: { isSuperAdmin?: boolean; level?: number } | null): boolean {
   return Boolean(user?.isSuperAdmin) || (user?.level ?? Number.MAX_SAFE_INTEGER) <= 1;
 }
 
 /**
  * Check if user is DepartmentAdmin or higher
  */
-export function isDepartmentAdminOrHigher(user: { isSuperAdmin?: boolean; level?: number }): boolean {
+export function isDepartmentAdminOrHigher(user?: { isSuperAdmin?: boolean; level?: number } | null): boolean {
   return Boolean(user?.isSuperAdmin) || (user?.level ?? Number.MAX_SAFE_INTEGER) <= 2;
 }

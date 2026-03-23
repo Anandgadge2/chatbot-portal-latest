@@ -84,16 +84,17 @@ router.get('/', async (req: Request, res: Response) => {
       return res.status(403).json({ success: false, message: 'Access denied - you can only view leads for your own company' });
     }
 
-    // Validate that the company has the LEAD_CAPTURE module enabled
+    // Validate that the company has the LEAD_CAPTURE module enabled (except for SuperAdmin)
     const company = await Company.findById(companyId);
     if (!company) {
       return res.status(404).json({ success: false, message: 'Company not found' });
     }
 
-    if (!company.enabledModules?.includes(Module.LEAD_CAPTURE)) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Lead Capture module is not enabled for this company' 
+    // Non-SuperAdmins must have the module enabled
+    if (currentUser.role !== UserRole.SUPER_ADMIN && !company.enabledModules?.includes(Module.LEAD_CAPTURE)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Lead Capture module is not enabled for this company'
       });
     }
 

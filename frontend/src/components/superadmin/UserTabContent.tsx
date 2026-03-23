@@ -27,20 +27,28 @@ import { Company } from "@/lib/api/company";
 import { formatRoleLabel } from "@/lib/utils/roleLabel";
 import toast from "react-hot-toast";
 import { formatTo10Digits } from "@/lib/utils/phoneUtils";
+import { isSuperAdmin } from "@/lib/permissions";
 
 function getRoleLabel(u: User): string {
   if (u.customRoleId && typeof u.customRoleId === "object" && (u.customRoleId as any).name) {
     return (u.customRoleId as any).name;
   }
   
+  if (isSuperAdmin(u)) return "Super Admin";
+  if (u.level === 1) return "Company Admin";
+  if (u.level === 2) return "Department Admin";
+  if (u.level === 3) return "Sub Department Admin";
+  if (u.level === 4) return "Operator";
+  
   return formatRoleLabel(u.role);
 }
 
-function getRoleColor(role: string) {
-  switch (role) {
-    case "SUPER_ADMIN": return "bg-amber-50 text-amber-700 border-amber-100";
-    default: return "bg-slate-50 text-slate-700 border-slate-200";
-  }
+function getRoleColor(u: User) {
+  if (isSuperAdmin(u)) return "bg-amber-50 text-amber-700 border-amber-100";
+  if (u.level === 1) return "bg-red-50 text-red-700 border-red-100";
+  if (u.level === 2) return "bg-blue-50 text-blue-700 border-blue-100";
+  
+  return "bg-slate-50 text-slate-700 border-slate-200";
 }
 
 interface UserTabContentProps {
@@ -265,7 +273,7 @@ const UserTabContent: React.FC<UserTabContentProps> = ({
                 {users.map((u, idx) => {
                   const isSelected = selectedIds.has(u._id);
                   const roleLabel = getRoleLabel(u);
-                  const roleColor = getRoleColor(u.role || "");
+                  const roleColor = getRoleColor(u);
                   return (
                     <tr key={u._id} className={`hover:bg-slate-50 transition-colors group ${isSelected ? "bg-indigo-50/40" : ""}`}>
                       {/* Checkbox */}

@@ -7,6 +7,7 @@ import { Users, Download } from "lucide-react";
 import { User, userAPI } from "@/lib/api/user";
 import { formatRoleLabel } from "@/lib/utils/roleLabel";
 import { RefreshCw, CheckSquare, Square, Trash2, AlertTriangle } from "lucide-react";
+import { isSuperAdmin } from "@/lib/permissions";
 import toast from "react-hot-toast";
 
 interface UserListProps {
@@ -234,12 +235,12 @@ export default function UserList({
                     <td className="px-6 py-4">
                       <span
                         className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest border ${
-                          u.role === "SUPER_ADMIN"
+                          isSuperAdmin(u)
                             ? "bg-red-50 text-red-700 border-red-100"
                             : "bg-indigo-50 text-indigo-700 border-indigo-100"
                         }`}
                       >
-                        {u.role === "SUPER_ADMIN" ? "Super Admin" : roleLabel}
+                        {isSuperAdmin(u) ? "Super Admin" : roleLabel}
                       </span>
                     </td>
                     <td className="px-6 py-4">

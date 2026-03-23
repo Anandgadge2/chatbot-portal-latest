@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { isSuperAdmin } from "@/lib/permissions";
 import toast from "react-hot-toast";
 import {
   Card,
@@ -157,7 +158,7 @@ export default function SuperAdminDashboard() {
   }, []);
 
   useEffect(() => {
-    if (mounted && user && user.isSuperAdmin) {
+    if (mounted && user && isSuperAdmin(user)) {
       fetchAllInitialData();
     }
   }, [mounted, user, fetchAllInitialData]);
@@ -173,7 +174,7 @@ export default function SuperAdminDashboard() {
   const handleOpenCompanyDashboard = (companyId: string) => {
     if (navigatingCompanyId) return;
     setNavigatingCompanyId(companyId);
-    router.push(`/dashboard/company/${companyId}`);
+    router.push(`/dashboard?companyId=${companyId}`);
   };
 
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -197,7 +198,7 @@ export default function SuperAdminDashboard() {
   useEffect(() => {
     if (!loading && !user) {
       router.push("/");
-    } else if (!loading && user && !user.isSuperAdmin) {
+    } else if (!loading && user && !isSuperAdmin(user)) {
       router.push("/dashboard");
     }
   }, [user, loading, router]);

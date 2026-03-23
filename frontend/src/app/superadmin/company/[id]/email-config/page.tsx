@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { isSuperAdmin } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -78,7 +79,7 @@ export default function EmailConfigPage() {
   const [showTestInput, setShowTestInput] = useState(false);
 
   useEffect(() => {
-    if (user?.role !== "SUPER_ADMIN") {
+    if (!isSuperAdmin(user)) {
       router.push("/superadmin/dashboard");
       return;
     }

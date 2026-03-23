@@ -24,16 +24,19 @@ router.get('/', requirePermission(Permission.READ_GRIEVANCE), async (req: Reques
 
     const query: any = {};
 
-    // Scope based on user role
-    if (currentUser.role === UserRole.SUPER_ADMIN) {
-      // SuperAdmin can see all grievances, but can filter by companyId if provided
-      if (companyId) query.companyId = companyId;
-    } else {
-      // All other users are scoped by their company
-      query.companyId = currentUser.companyId;
+    // Determine target companyId for scoping
+    const targetCompanyId = (currentUser.role === UserRole.SUPER_ADMIN && companyId) ? companyId : currentUser.companyId;
 
-      if (currentUser.departmentId) {
-        // Dynamic check: If they don't have assignment permission, they can only see their own assigned grievances
+    // Strict multi-tenant scoping
+    if (targetCompanyId) {
+      query.companyId = targetCompanyId;
+      
+      // If SuperAdmin is filtering by department/status, ensure it stays within this company
+      if (currentUser.role === UserRole.SUPER_ADMIN) {
+        if (departmentId) query.departmentId = departmentId;
+        if (status) query.status = status;
+      } else if (currentUser.departmentId) {
+        // Additional scoping for department-level users (non-SuperAdmin)
         const canAssign = req.checkPermission(Permission.ASSIGN_GRIEVANCE);
         
         if (!canAssign) {
@@ -45,18 +48,38 @@ router.get('/', requirePermission(Permission.READ_GRIEVANCE), async (req: Reques
             { subDepartmentId: currentUser.departmentId }
           ];
         }
-      } else if (status === GrievanceStatus.REVERTED) {
+      } else if (!currentUser.departmentId && status === GrievanceStatus.REVERTED) {
           // For Company Admin (who has no departmentId), 
           // they should see REVERTED grievances that have no departmentId (reverted to them)
           query.status = GrievanceStatus.REVERTED;
           query.departmentId = null;
       }
+    } else if (currentUser.role !== UserRole.SUPER_ADMIN) {
+      // Safety check: Non-SuperAdmins MUST have a companyId
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized: User missing company assignment'
+      });
+    } else if (departmentId || status || assignedTo) {
+      // 🚨 SuperAdmin trying to filter globally without a company context
+      // This is often a sign of a missing companyId in a drilldown request
+      console.warn(`[GrievanceScoping] SuperAdmin global filter detected: dept=${departmentId}, status=${status}`);
+      // If we are in a drilldown (indicated by presence of filters), but no companyId, 
+      // we should probably fail or at least be very careful.
     }
 
     // Apply filters
     if (status && !query.status) query.status = status;
     if (departmentId) query.departmentId = departmentId;
-    if (assignedTo) query.assignedTo = assignedTo;
+    if (assignedTo) {
+      if (assignedTo === 'NONE') {
+        query.assignedTo = null;
+      } else if (assignedTo === 'ANY') {
+        query.assignedTo = { $ne: null };
+      } else {
+        query.assignedTo = assignedTo;
+      }
+    }
     if (priority) query.priority = priority;
 
     const grievances = await Grievance.find(query)

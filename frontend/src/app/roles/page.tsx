@@ -4,6 +4,7 @@ import RoleManagement from '@/components/roles/RoleManagement';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { isDepartmentAdminOrHigher } from '@/lib/permissions';
 
 export default function RolesPage() {
   const { user } = useAuth();
@@ -11,8 +12,8 @@ export default function RolesPage() {
 
   useEffect(() => {
     if (!user) return;
-    // Only SUPER_ADMIN and COMPANY_ADMIN can manage roles
-    if (user.role !== 'SUPER_ADMIN' && user.role !== 'COMPANY_ADMIN' && user.role !== 'DEPT_ADMIN') {
+    // Only SUPER_ADMIN, COMPANY_ADMIN, and DEPT_ADMIN can manage roles
+    if (!isDepartmentAdminOrHigher(user)) {
       router.replace('/dashboard');
     }
   }, [user, router]);
