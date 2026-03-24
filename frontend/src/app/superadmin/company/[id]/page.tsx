@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, Suspense } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompanyContext } from "@/contexts/CompanyContext";
@@ -82,7 +82,7 @@ const CompanyAnalytics = dynamic(
 // BulkImportModal moved to @/components/superadmin/drilldown/BulkImportModal
 const PAGE_SIZE = 25;
 
-export default function CompanyDrillDown() {
+function CompanyDrillDownContent() {
   const { user } = useAuth();
   const router = useRouter();
   const params = useParams();
@@ -775,5 +775,13 @@ export default function CompanyDrillDown() {
         onSuccess={fetchData}
       />
     </div>
+  );
+}
+
+export default function CompanyDrillDown() {
+  return (
+    <Suspense fallback={<LoadingSpinner text="Initializing Sector Node..." />}>
+      <CompanyDrillDownContent />
+    </Suspense>
   );
 }

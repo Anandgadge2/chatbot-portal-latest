@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import toast from "react-hot-toast";
@@ -57,7 +57,7 @@ const getCompanyDisplay = (
   return companyId;
 };
 
-export default function SuperAdminDashboard() {
+function SuperAdminDashboardContent() {
   const { user, loading, logout } = useAuth();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -990,5 +990,13 @@ export default function SuperAdminDashboard() {
         />
       </main>
     </div>
+  );
+}
+
+export default function SuperAdminDashboard() {
+  return (
+    <Suspense fallback={<LoadingSpinner text="Initializing Dashboard Structure..." />}>
+      <SuperAdminDashboardContent />
+    </Suspense>
   );
 }
