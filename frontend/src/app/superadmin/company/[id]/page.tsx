@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompanyContext } from "@/contexts/CompanyContext";
 import {
@@ -88,6 +88,15 @@ export default function CompanyDrillDown() {
   const params = useParams();
   const companyId = params.id as string;
   const { company, isLoading: companyLoading } = useCompanyContext();
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "overview");
+
+  // Sync tab to URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    params.set("tab", activeTab);
+    window.history.replaceState(null, "", `${window.location.pathname}?${params.toString()}`);
+  }, [activeTab]);
   useWhatsappConfig(companyId || undefined);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -108,7 +117,6 @@ export default function CompanyDrillDown() {
   const [leadsTotal, setLeadsTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadingLeads, setLoadingLeads] = useState(false);
-  const [activeTab, setActiveTab] = useState("overview");
   const [selectedGrievance, setSelectedGrievance] = useState<Grievance | null>(
     null,
   );
