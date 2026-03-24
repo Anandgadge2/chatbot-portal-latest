@@ -158,6 +158,27 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
     }
   }
 
+  // Format Appointment Time as AM/PM
+  let formattedAppointmentTime = '';
+  if (data.appointmentTime) {
+    try {
+      // Expecting HH:mm format
+      const parts = String(data.appointmentTime).split(':');
+      if (parts.length >= 2) {
+        let hour = parseInt(parts[0], 10);
+        const minute = parts[1].substring(0, 2); // Get first 2 digits for minutes
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        hour = hour % 12;
+        hour = hour ? hour : 12; // the hour '0' should be '12'
+        formattedAppointmentTime = `${hour.toString().padStart(2, '0')}:${minute} ${ampm}`;
+      } else {
+        formattedAppointmentTime = String(data.appointmentTime);
+      }
+    } catch (e) {
+      formattedAppointmentTime = String(data.appointmentTime);
+    }
+  }
+
   return {
     ...data,
     companyName: company?.name || 'Portal Admin',
@@ -171,7 +192,9 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
     formattedDate,
     formattedResolvedDate,
     formattedAppointmentDate,
+    formattedAppointmentTime,
     appointmentDate: formattedAppointmentDate || data.appointmentDate, // Fallback for templates using old field
+    appointmentTime: formattedAppointmentTime || data.appointmentTime, // Fallback for templates using old field
     resolutionTimeText,
     'Submitted On': formattedDate,
     submittedOn: formattedDate,
@@ -1155,7 +1178,7 @@ export async function notifyCitizenOnAppointmentStatusChange(data: {
         : `Your appointment request status has been updated to *${statusLabel}*.`;
 
       const dateStr = fullData.formattedAppointmentDate || 'TBD';
-      const timeStr = data.appointmentTime || 'TBD';
+      const timeStr = fullData.formattedAppointmentTime || data.appointmentTime || 'TBD';
       const remarksText = data.remarks ? `\n📝 *Remarks:* ${data.remarks}` : '';
 
       message =
