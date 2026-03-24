@@ -234,10 +234,10 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
         timeline: grievance.timeline
       });
 
-      // Notify hierarchy about status change
+      // Notify hierarchy about status change for ALL updates
       await notifyHierarchyOnStatusChange({
         type: 'grievance',
-        action: 'resolved',
+        action: (status === GrievanceStatus.RESOLVED ? 'resolved' : 'status_update') as any,
         grievanceId: grievance.grievanceId,
         citizenName: grievance.citizenName,
         citizenPhone: grievance.citizenPhone,
@@ -251,9 +251,12 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
         resolvedAt: grievance.resolvedAt,
         createdAt: grievance.createdAt,
         assignedAt: grievance.assignedAt,
-        timeline: grievance.timeline
+        timeline: grievance.timeline,
+        resolvedByName: currentUser.getFullName()
       }, oldStatus, status);
-    } else if (oldStatus !== status && [GrievanceStatus.ASSIGNED, GrievanceStatus.REJECTED, GrievanceStatus.PENDING, GrievanceStatus.REVERTED].includes(status as any)) {
+    } 
+    
+    if (oldStatus !== status && [GrievanceStatus.ASSIGNED, GrievanceStatus.REJECTED, GrievanceStatus.PENDING, GrievanceStatus.REVERTED].includes(status as any)) {
       // Notify citizen for ASSIGNED, REJECTED, PENDING (RESOLVED uses notifyCitizenOnResolution above)
       const { notifyCitizenOnGrievanceStatusChange } = await import('../services/notificationService');
       const departmentName = (grievance.departmentId as any)?.name || 'Department';
@@ -416,26 +419,24 @@ router.put('/appointment/:id', requirePermission(Permission.STATUS_CHANGE_APPOIN
         purpose: appointment.purpose
       });
 
-      // ✅ Hierarchical Admin Notification: If appointment is completed or cancelled
-      if (status === AppointmentStatus.COMPLETED || status === AppointmentStatus.CANCELLED) {
-        const { notifyHierarchyOnStatusChange } = await import('../services/notificationService');
-        await notifyHierarchyOnStatusChange({
-          type: 'appointment',
-          action: status === AppointmentStatus.COMPLETED ? 'resolved' : 'resolved', 
-          appointmentId: appointment.appointmentId,
-          citizenName: appointment.citizenName,
-          citizenPhone: appointment.citizenPhone,
-          departmentId: appointment.departmentId,
-          companyId: appointment.companyId,
-          remarks: remarks || '',
-          resolvedBy: currentUser._id,
-          resolvedAt: new Date(),
-          createdAt: appointment.createdAt,
-          appointmentDate: appointment.appointmentDate,
-          appointmentTime: appointment.appointmentTime,
-          timeline: appointment.timeline
-        }, oldStatus, status);
-      }
+      // ✅ Hierarchical Admin Notification: For ALL status changes
+      const { notifyHierarchyOnStatusChange } = await import('../services/notificationService');
+      await notifyHierarchyOnStatusChange({
+        type: 'appointment',
+        action: (status === AppointmentStatus.COMPLETED || status === AppointmentStatus.CANCELLED) ? 'resolved' : 'status_update', 
+        appointmentId: appointment.appointmentId,
+        citizenName: appointment.citizenName,
+        citizenPhone: appointment.citizenPhone,
+        departmentId: appointment.departmentId,
+        companyId: appointment.companyId,
+        remarks: remarks || '',
+        resolvedBy: currentUser._id,
+        resolvedAt: new Date(),
+        createdAt: appointment.createdAt,
+        appointmentDate: appointment.appointmentDate,
+        appointmentTime: appointment.appointmentTime,
+        timeline: appointment.timeline
+      }, oldStatus, status);
     }
 
     await logUserAction(

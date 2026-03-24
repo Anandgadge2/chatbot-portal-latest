@@ -15,7 +15,7 @@ import { UserRole } from '../config/constants';
 
 interface NotificationData {
   type: 'grievance' | 'appointment';
-  action: 'created' | 'assigned' | 'resolved' | 'confirmation';
+  action: 'created' | 'assigned' | 'resolved' | 'confirmation' | 'status_change' | 'status_update' | string;
   grievanceId?: string;
   appointmentId?: string;
   recipientName?: string;
@@ -37,6 +37,7 @@ interface NotificationData {
   remarks?: string;
   assignedTo?: any;
   assignedByName?: string;
+  resolvedByName?: string;
   resolvedBy?: any;
   resolvedAt?: Date | string;
   createdAt?: Date | string;
