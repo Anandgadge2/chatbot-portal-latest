@@ -453,12 +453,14 @@
           {
             "id": "submit_grv_en",
             "text": "✅ Confirm Submit",
-            "type": "quick_reply"
+            "type": "quick_reply",
+            "nextStepId": "grv_success_en"
           },
           {
             "id": "cancel_grv_en",
             "text": "❌ Cancel",
-            "type": "quick_reply"
+            "type": "quick_reply",
+            "nextStepId": "main_menu_en"
           }
         ]
       }
@@ -587,12 +589,14 @@
           {
             "id": "submit_grv_hi",
             "text": "✅ भेजें",
-            "type": "quick_reply"
+            "type": "quick_reply",
+            "nextStepId": "grv_success_hi"
           },
           {
             "id": "cancel_grv_hi",
             "text": "❌ रद्द करें",
-            "type": "quick_reply"
+            "type": "quick_reply",
+            "nextStepId": "main_menu_hi"
           }
         ]
       }
@@ -721,12 +725,14 @@
           {
             "id": "submit_grv_or",
             "text": "✅ ଦାଖଲ କରନ୍ତୁ",
-            "type": "quick_reply"
+            "type": "quick_reply",
+            "nextStepId": "grv_success_or"
           },
           {
             "id": "cancel_grv_or",
             "text": "❌ ବାତିଲ୍",
-            "type": "quick_reply"
+            "type": "quick_reply",
+            "nextStepId": "main_menu_or"
           }
         ]
       }
@@ -794,12 +800,14 @@
           {
             "id": "confirm_apt_en",
             "text": "✅ Confirm Request",
-            "type": "quick_reply"
+            "type": "quick_reply",
+            "nextStepId": "apt_success_en"
           },
           {
             "id": "cancel_apt_en",
             "text": "❌ Cancel",
-            "type": "quick_reply"
+            "type": "quick_reply",
+            "nextStepId": "main_menu_en"
           }
         ]
       }
@@ -915,12 +923,14 @@
           {
             "id": "confirm_apt_hi",
             "text": "✅ पुष्टि करें",
-            "type": "quick_reply"
+            "type": "quick_reply",
+            "nextStepId": "apt_success_hi"
           },
           {
             "id": "cancel_apt_hi",
             "text": "❌ रद्द करें",
-            "type": "quick_reply"
+            "type": "quick_reply",
+            "nextStepId": "main_menu_hi"
           }
         ]
       }
@@ -1036,12 +1046,14 @@
           {
             "id": "confirm_apt_or",
             "text": "✅ ନିଶ୍ଚିତ କରନ୍ତୁ",
-            "type": "quick_reply"
+            "type": "quick_reply",
+            "nextStepId": "apt_success_or"
           },
           {
             "id": "cancel_apt_or",
             "text": "❌ ବାତିଲ୍",
-            "type": "quick_reply"
+            "type": "quick_reply",
+            "nextStepId": "main_menu_or"
           }
         ]
       }
@@ -1092,6 +1104,78 @@
             "type": "quick_reply"
           }
         ]
+      }
+    },
+    {
+      "id": "grv_success_en",
+      "type": "end",
+      "position": {
+        "x": 3150,
+        "y": 0
+      },
+      "data": {
+        "label": "Grievance Success (EN)",
+        "messageText": ""
+      }
+    },
+    {
+      "id": "grv_success_hi",
+      "type": "end",
+      "position": {
+        "x": 3150,
+        "y": 300
+      },
+      "data": {
+        "label": "Grievance Success (HI)",
+        "messageText": ""
+      }
+    },
+    {
+      "id": "grv_success_or",
+      "type": "end",
+      "position": {
+        "x": 3150,
+        "y": 600
+      },
+      "data": {
+        "label": "Grievance Success (OR)",
+        "messageText": ""
+      }
+    },
+    {
+      "id": "apt_success_en",
+      "type": "end",
+      "position": {
+        "x": 2650,
+        "y": 350
+      },
+      "data": {
+        "label": "Appointment Success (EN)",
+        "messageText": ""
+      }
+    },
+    {
+      "id": "apt_success_hi",
+      "type": "end",
+      "position": {
+        "x": 2650,
+        "y": 600
+      },
+      "data": {
+        "label": "Appointment Success (HI)",
+        "messageText": ""
+      }
+    },
+    {
+      "id": "apt_success_or",
+      "type": "end",
+      "position": {
+        "x": 2650,
+        "y": 1000
+      },
+      "data": {
+        "label": "Appointment Success (OR)",
+        "messageText": ""
       }
     }
   ],
@@ -1473,6 +1557,48 @@
       "source": "helpdesk_or",
       "target": "main_menu_or",
       "sourceHandle": "back_to_menu_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_en_grv_success",
+      "source": "grv_confirm_en",
+      "target": "grv_success_en",
+      "sourceHandle": "submit_grv_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_hi_grv_success",
+      "source": "grv_confirm_hi",
+      "target": "grv_success_hi",
+      "sourceHandle": "submit_grv_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_or_grv_success",
+      "source": "grv_confirm_or",
+      "target": "grv_success_or",
+      "sourceHandle": "submit_grv_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_en_apt_success",
+      "source": "apt_confirm_en",
+      "target": "apt_success_en",
+      "sourceHandle": "confirm_apt_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_hi_apt_success",
+      "source": "apt_confirm_hi",
+      "target": "apt_success_hi",
+      "sourceHandle": "confirm_apt_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_or_apt_success",
+      "source": "apt_confirm_or",
+      "target": "apt_success_or",
+      "sourceHandle": "confirm_apt_or",
       "type": "smoothstep"
     }
   ]

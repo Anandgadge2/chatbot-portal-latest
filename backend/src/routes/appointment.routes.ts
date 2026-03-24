@@ -172,7 +172,7 @@ router.post('/', async (req: Request, res: Response) => {
 
     res.status(201).json({
       success: true,
-      message: 'Appointment booked successfully',
+      message: 'Appointment request submitted successfully',
       data: { appointment }
     });
   } catch (error: any) {
