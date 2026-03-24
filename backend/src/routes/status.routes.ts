@@ -211,9 +211,9 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
 
     await grievance.save();
 
-    // Notify citizen and hierarchy if status changed to RESOLVED
+    // Notify citizen if status changed to RESOLVED
     if (oldStatus !== GrievanceStatus.RESOLVED && status === GrievanceStatus.RESOLVED) {
-      const { notifyCitizenOnResolution, notifyHierarchyOnStatusChange } = await import('../services/notificationService');
+      const { notifyCitizenOnResolution } = await import('../services/notificationService');
       
       await notifyCitizenOnResolution({
         type: 'grievance',
@@ -234,7 +234,11 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
         timeline: grievance.timeline
       });
 
-      // Notify hierarchy about status change for ALL updates
+    }
+
+    // Notify hierarchy about status change for ALL grievance updates
+    if (oldStatus !== status) {
+      const { notifyHierarchyOnStatusChange } = await import('../services/notificationService');
       await notifyHierarchyOnStatusChange({
         type: 'grievance',
         action: (status === GrievanceStatus.RESOLVED ? 'resolved' : 'status_update') as any,
@@ -254,7 +258,7 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
         timeline: grievance.timeline,
         resolvedByName: currentUser.getFullName()
       }, oldStatus, status);
-    } 
+    }
     
     if (oldStatus !== status && [GrievanceStatus.ASSIGNED, GrievanceStatus.REJECTED, GrievanceStatus.PENDING, GrievanceStatus.REVERTED].includes(status as any)) {
       // Notify citizen for ASSIGNED, REJECTED, PENDING (RESOLVED uses notifyCitizenOnResolution above)

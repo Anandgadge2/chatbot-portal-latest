@@ -315,6 +315,14 @@ function normalizePhone(phone?: string): string | null {
   return null;
 }
 
+function normalizeId(value: any): any {
+  if (!value) return value;
+  if (typeof value === 'object' && value !== null) {
+    return value._id || value.id || value;
+  }
+  return value;
+}
+
 /**
  * Shared helper to send multiple media URLs to a recipient
  */
@@ -519,12 +527,13 @@ export async function notifyDepartmentAdminOnCreation(
   data: NotificationData
 ): Promise<void> {
   try {
-    const company = await getCompanyWithWhatsAppConfig(data.companyId);
+    const companyId = normalizeId(data.companyId);
+    const company = await getCompanyWithWhatsAppConfig(companyId);
     if (!company) return;
 
     const adminsToNotify: any[] = [];
 
-    const targetChainId = data.subDepartmentId || data.departmentId;
+    const targetChainId = normalizeId(data.subDepartmentId || data.departmentId);
     if (targetChainId) {
       const deptAdmins = await getHierarchicalDepartmentAdmins(targetChainId);
       deptAdmins.forEach(admin => adminsToNotify.push({ user: admin, type: 'DEPT_ADMIN' }));
@@ -535,7 +544,7 @@ export async function notifyDepartmentAdminOnCreation(
     // roles with general GRIEVANCE management permissions, or roles explicitly named Admin.
     const Role = (await import('../models/Role')).default;
     const companyAdminRoles = await Role.find({
-      companyId: data.companyId,
+      companyId,
       $or: [
         {
           permissions: {
@@ -565,7 +574,7 @@ export async function notifyDepartmentAdminOnCreation(
     // Do NOT force departmentId:null; in many setups the company admin may be attached
     // to a default department but should still receive company-level notifications.
     const companyAdmins = await User.find({
-      companyId: data.companyId,
+      companyId,
       $or: [
         ...(companyAdminRoleIds.length > 0 ? [{ customRoleId: { $in: companyAdminRoleIds } }] : []),
         ...(companyAdminRoleNames.length > 0 ? [{ role: { $in: companyAdminRoleNames } }] : []),
@@ -601,9 +610,9 @@ export async function notifyDepartmentAdminOnCreation(
         const emailAddress = user.email;
         if (emailAddress && canNotify(company, user, 'email')) {
           const emailTask = (async () => {
-            const email = await getNotificationEmailContent(data.companyId, data.type, 'created', notificationData, true);
+            const email = await getNotificationEmailContent(companyId, data.type, 'created', notificationData, true);
             if (email) {
-              const result = await sendEmail(emailAddress, email.subject, email.html, email.text, { companyId: data.companyId });
+              const result = await sendEmail(emailAddress, email.subject, email.html, email.text, { companyId });
               if (result.success) {
                 logger.info(`✅ Email sent to ${type} ${user.getFullName()} (${emailAddress})`);
               }
@@ -616,7 +625,7 @@ export async function notifyDepartmentAdminOnCreation(
         if (canNotify(company, user, 'whatsapp')) {
           const whatsappTask = (async () => {
             const fullData = await populateNotificationData(notificationData);
-            let message = await getNotificationWhatsAppMessage(data.companyId, data.type, 'created', fullData);
+            let message = await getNotificationWhatsAppMessage(companyId, data.type, 'created', fullData);
             if (!message) {
               const typeLabel = data.type === 'grievance' ? 'GRIEVANCE' : 'APPOINTMENT';
               const categoryText = fullData.category ? `\n📂 *Category:* ${fullData.category}\n` : '';
@@ -979,14 +988,16 @@ export async function notifyHierarchyOnStatusChange(
   newStatus: string
 ): Promise<void> {
   try {
-    const company = await getCompanyWithWhatsAppConfig(data.companyId);
+    const companyId = normalizeId(data.companyId);
+    const company = await getCompanyWithWhatsAppConfig(companyId);
     if (!company) return;
 
     // All name lookups, date formatting, and resolution time done centrally
     const fullData = await populateNotificationData(data);
 
     // Find ALL relevant admins interested in the status change
-    const admins = await getHierarchicalDepartmentAdmins(data.departmentId);
+    const hierarchyDepartmentId = normalizeId(data.subDepartmentId || data.departmentId);
+    const admins = await getHierarchicalDepartmentAdmins(hierarchyDepartmentId);
     const adminIds = admins.map(a => a._id.toString());
 
     // 1. Identify roles that represent "Company Admins"
@@ -994,7 +1005,7 @@ export async function notifyHierarchyOnStatusChange(
     // or roles explicitly named Admin.
     const Role = (await import('../models/Role')).default;
     const companyAdminRoles = await Role.find({
-      companyId: data.companyId,
+      companyId,
       $or: [
         {
           permissions: {
@@ -1016,7 +1027,7 @@ export async function notifyHierarchyOnStatusChange(
       $or: [
         // Company admins (do not force departmentId:null; many deployments attach admin users to a default department)
         {
-          companyId: data.companyId,
+          companyId,
           $or: [
             ...(companyAdminRoleIds.length > 0 ? [{ customRoleId: { $in: companyAdminRoleIds } }] : []),
             ...(companyAdminRoleNames.length > 0 ? [{ role: { $in: companyAdminRoleNames } }] : []),
@@ -1058,9 +1069,9 @@ export async function notifyHierarchyOnStatusChange(
         };
 
         // 📱 WhatsApp — Get message for this specific user to ensure correct personalization
-        let hierarchyMessage = await getNotificationWhatsAppMessage(data.companyId, data.type, statusAction as any, userFullData);
+        let hierarchyMessage = await getNotificationWhatsAppMessage(companyId, data.type, statusAction as any, userFullData);
         if (!hierarchyMessage && (newStatus === 'RESOLVED' || newStatus === 'COMPLETED')) {
-          hierarchyMessage = await getNotificationWhatsAppMessage(data.companyId, data.type, 'resolved', userFullData);
+          hierarchyMessage = await getNotificationWhatsAppMessage(companyId, data.type, 'resolved', userFullData);
         }
 
         if (!hierarchyMessage) {
@@ -1120,13 +1131,13 @@ export async function notifyHierarchyOnStatusChange(
               oldStatus
             };
             
-            let email = await getNotificationEmailContent(data.companyId, data.type, statusAction as any, emailPayload, true);
+            let email = await getNotificationEmailContent(companyId, data.type, statusAction as any, emailPayload, true);
             if (!email && (newStatus === 'RESOLVED' || newStatus === 'COMPLETED')) {
-               email = await getNotificationEmailContent(data.companyId, data.type, 'resolved', emailPayload, true);
+               email = await getNotificationEmailContent(companyId, data.type, 'resolved', emailPayload, true);
             }
 
             if (email) {
-              const result = await sendEmail(emailAddress, email.subject, email.html, email.text, { companyId: data.companyId });
+              const result = await sendEmail(emailAddress, email.subject, email.html, email.text, { companyId });
               if (result.success) {
                 logger.info(`✅ Email sent to hierarchy user: ${emailAddress}`);
               }
@@ -1238,5 +1249,4 @@ export async function notifyCitizenOnAppointmentStatusChange(data: {
     logger.error('❌ notifyCitizenOnAppointmentStatusChange failed:', error);
   }
 }
-
 
