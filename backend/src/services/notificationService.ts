@@ -186,7 +186,7 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
     departmentName: department
       ? department.name
       : (data.departmentName || (data.type === 'appointment' ? 'Collector Office' : 'General')),
-    subDepartmentName: subDept ? subDept.name : (data.subDepartmentName || 'N/A'),
+    subDepartmentName: subDept ? subDept.name : (data.subDepartmentName || ''),
     assignedByName,
     resolvedByName,
     formattedDate,
@@ -1035,48 +1035,14 @@ export async function notifyHierarchyOnStatusChange(
     // e.g., 'confirmed' -> 'appointment_confirmed' or 'grievance_confirmed'
     const statusAction = newStatus.toLowerCase();
     
-    // 📱 WhatsApp — use DB template first (try status-specific, then fallback to 'resolved')
-    let hierarchyMessage = await getNotificationWhatsAppMessage(data.companyId, data.type, statusAction as any, fullData);
-    if (!hierarchyMessage && (newStatus === 'RESOLVED' || newStatus === 'COMPLETED')) {
-      hierarchyMessage = await getNotificationWhatsAppMessage(data.companyId, data.type, 'resolved', fullData);
-    }
-    
-    if (!hierarchyMessage) {
-      const typeLabel = data.type === 'grievance' ? 'GRIEVANCE' : 'APPOINTMENT';
-      const deptLine = fullData.subDepartmentName && fullData.subDepartmentName !== 'N/A'
-        ? `🏢 *Department:* ${fullData.departmentName}\n🏢 *Sub-Dept:* ${fullData.subDepartmentName}`
-        : `🏢 *Department:* ${fullData.departmentName}`;
-      const remarksText = data.remarks ? `\n\n*Officer's Remarks:*\n${data.remarks}` : '';
-      const resolutionTimeLine = fullData.resolutionTimeText ? `\n⏱️ *Resolution Time:* ${fullData.resolutionTimeText}` : '';
-      const evidenceText = data.evidenceUrls && data.evidenceUrls.length > 0
-        ? `\n\n📎 *Support Documents (tap to open):*\n${data.evidenceUrls.map((u: string, i: number) => `📄 Download Document ${i + 1}: ${u}`).join('\n')}`
-        : '';
-
-      hierarchyMessage =
-        `*${fullData.companyName}*\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-        `📊 *STATUS UPDATE - ${typeLabel} ${newStatus}*\n\n` +
-        `Sir/Madam,\n\n` +
-        `The following ${data.type} status has been updated.\n\n` +
-        `🎫 *ID:* ${fullData.grievanceId || fullData.appointmentId}\n` +
-        `👤 *Citizen:* ${fullData.citizenName}\n` +
-        `${deptLine}\n` +
-        `📊 *Status Change:* ${oldStatus} → ${newStatus}\n` +
-        `👨‍💼 *Updated By:* ${fullData.resolvedByName || 'Administrator'}\n` +
-        `📅 *Updated On:* ${fullData.formattedResolvedDate || fullData.formattedDate}${resolutionTimeLine}${remarksText}${evidenceText}\n\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `Digital System`;
-    }
-
-    // Determine if we should use CTA button (only if message doesn't have a custom DB template that might already have links)
-    // Actually, the user wants the button for "Access Dashboard".
+    // Determine if we should use CTA button
     const ctaButton = {
       title: 'Access Dashboard',
       url: 'https://chatbot-portal-latest-frontend.vercel.app/'
     };
 
     // ✅ CONCURRENT NOTIFICATIONS
-    // Filter out the citizen from hierarchy notifications to prevent double-messaging if they are also an admin
+    // Filter out the citizen from hierarchy notifications
     const citizenPhoneNormalized = data.citizenWhatsApp?.replace(/\D/g, '') || data.citizenPhone?.replace(/\D/g, '');
     
     await Promise.allSettled(users.filter(u => {
@@ -1084,13 +1050,59 @@ export async function notifyHierarchyOnStatusChange(
       return userPhoneNormalized !== citizenPhoneNormalized;
     }).map(async (user) => {
       try {
+        // Personalize data for each admin recipient
+        const userFullData: Record<string, any> = {
+          ...fullData,
+          recipientName: user.getFullName()
+        };
+
+        // 📱 WhatsApp — Get message for this specific user to ensure correct personalization
+        let hierarchyMessage = await getNotificationWhatsAppMessage(data.companyId, data.type, statusAction as any, userFullData);
+        if (!hierarchyMessage && (newStatus === 'RESOLVED' || newStatus === 'COMPLETED')) {
+          hierarchyMessage = await getNotificationWhatsAppMessage(data.companyId, data.type, 'resolved', userFullData);
+        }
+
+        if (!hierarchyMessage) {
+          const typeLabel = data.type === 'grievance' ? 'GRIEVANCE' : 'APPOINTMENT';
+          // Only show sub-dept if it's meaningful
+          const hasSubDept = userFullData.subDepartmentName && 
+                            userFullData.subDepartmentName !== 'N/A' && 
+                            userFullData.subDepartmentName !== '' && 
+                            userFullData.subDepartmentName !== 'null';
+
+          const deptLine = hasSubDept
+            ? `🏢 *Department:* ${userFullData.departmentName}\n🏢 *Sub-Dept:* ${userFullData.subDepartmentName}`
+            : `🏢 *Department:* ${userFullData.departmentName}`;
+          
+          const remarksText = data.remarks ? `\n\n*Officer's Remarks:*\n${data.remarks}` : '';
+          const resolutionTimeLine = userFullData.resolutionTimeText ? `\n⏱️ *Resolution Time:* ${userFullData.resolutionTimeText}` : '';
+          const evidenceText = data.evidenceUrls && data.evidenceUrls.length > 0
+            ? `\n\n📎 *Support Documents (tap to open):*\n${data.evidenceUrls.map((u: string, i: number) => `📄 Download Document ${i + 1}: ${u}`).join('\n')}`
+            : '';
+
+          hierarchyMessage =
+            `*${userFullData.companyName}*\n` +
+            `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+            `📊 *STATUS UPDATE - ${typeLabel} ${newStatus}*\n\n` +
+            `Sir/Madam,\n\n` +
+            `The following ${data.type} status has been updated.\n\n` +
+            `🎫 *ID:* ${userFullData.grievanceId || userFullData.appointmentId}\n` +
+            `👤 *Citizen:* ${userFullData.citizenName}\n` +
+            `${deptLine}\n` +
+            `📊 *Status Change:* ${oldStatus} → ${newStatus}\n` +
+            `👨‍💼 *Updated By:* ${userFullData.resolvedByName || 'Administrator'}\n` +
+            `📅 *Updated On:* ${userFullData.formattedResolvedDate || userFullData.formattedDate}${resolutionTimeLine}${remarksText}${evidenceText}\n\n` +
+            `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+            `Digital System`;
+        }
+
         const tasks: Promise<any>[] = [];
 
         // 📱 WhatsApp
         if (canNotify(company, user, 'whatsapp')) {
           tasks.push(safeSendWhatsApp(company, user.phone, hierarchyMessage, ctaButton));
           if (data.evidenceUrls && data.evidenceUrls.length > 0) {
-            tasks.push(sendMediaIfAvailable(company, user.phone, data.evidenceUrls, `Hierarchy Update: ${fullData.grievanceId || fullData.appointmentId}`));
+            tasks.push(sendMediaIfAvailable(company, user.phone, data.evidenceUrls, `Hierarchy Update: ${userFullData.grievanceId || userFullData.appointmentId}`));
           }
         }
 
