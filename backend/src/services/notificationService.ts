@@ -392,16 +392,23 @@ export async function getHierarchicalDepartmentAdmins(departmentId: any): Promis
       const dept = await Department.findById(currentDeptId);
       if (!dept) break;
 
-      // 🔍 1. Find Roles with Department Management Permissions
+      // 🔍 1. Identify roles that represent "Admins" for this department level.
+      // We look for roles that either have direct management rights on DEPARTMENTS,
+      // or management rights on GRIEVANCE/APPOINTMENT modules.
       const Role = (await import('../models/Role')).default;
       const adminRoles = await Role.find({
         companyId: dept.companyId,
-        permissions: {
-          $elemMatch: {
-            module: { $regex: /^departments$/i },
-            actions: { $in: ['update', 'all', 'manage', 'UPDATE', 'ALL', 'MANAGE'] }
-          }
-        }
+        $or: [
+          {
+            permissions: {
+              $elemMatch: {
+                module: { $regex: /^(departments|grievance|appointment)$/i },
+                actions: { $in: ['update', 'all', 'manage', 'UPDATE', 'ALL', 'MANAGE', 'status_change', 'assign'] }
+              }
+            }
+          },
+          { name: { $regex: /admin|head|manager|supervisor|collector|officer/i } }
+        ]
       }).select('_id name');
       
       const adminRoleIds = adminRoles.map(r => r._id);
@@ -422,7 +429,7 @@ export async function getHierarchicalDepartmentAdmins(departmentId: any): Promis
           { role: { $in: adminRoleNamesRegex } },
           { role: { $in: adminRoleNames } },
           // 🛡️ HARDCODED FALLBACKS for standard nomenclature
-          { role: { $regex: /^(SUB_)?DEPARTMENT_ADMIN|COMPANY_ADMIN$/i } },
+          { role: { $regex: /^(SUB_)?DEPARTMENT_ADMIN|COMPANY_ADMIN|ADMIN|HEAD|MANAGER|SUPERVISOR$/i } },
           { role: 'SUB_DEPARTMENT_ADMIN' },
           { role: 'DEPARTMENT_ADMIN' }
         ]
@@ -490,8 +497,8 @@ export async function notifyDepartmentAdminOnCreation(
     }
 
     // 1. Identify roles that represent "Company Admins".
-    // Keep the permission-based lookup, but do not rely on it exclusively because
-    // many deployments use custom role names without SETTINGS/manage action mapping.
+    // We broaden this to include roles with SETTINGS/manage permissions,
+    // roles with general GRIEVANCE management permissions, or roles explicitly named Admin.
     const Role = (await import('../models/Role')).default;
     const companyAdminRoles = await Role.find({
       companyId: data.companyId,
@@ -499,12 +506,12 @@ export async function notifyDepartmentAdminOnCreation(
         {
           permissions: {
             $elemMatch: {
-              module: { $regex: /^settings$/i },
-              actions: { $in: ['update', 'all', 'manage', 'UPDATE', 'ALL', 'MANAGE'] }
+              module: { $regex: /^(settings|grievance|appointment)$/i },
+              actions: { $in: ['update', 'all', 'manage', 'UPDATE', 'ALL', 'MANAGE', 'status_change', 'assign'] }
             }
           }
         },
-        { key: { $in: ['COMPANY_ADMIN', 'ADMIN', 'COMPANY_HEAD'] } },
+        { key: { $in: ['COMPANY_ADMIN', 'ADMIN', 'COMPANY_HEAD', 'SUPER_ADMIN'] } },
         { name: { $regex: /company\s*admin|admin|head|manager|supervisor/i } }
       ]
     }).select('_id name');
@@ -1013,11 +1020,23 @@ export async function notifyHierarchyOnStatusChange(
     const adminIds = admins.map(a => a._id.toString());
 
     // 1. Identify roles that represent "Company Admins"
+    // We broaden this to include roles with SETTINGS, GRIEVANCE, or APPOINTMENT manage permissions,
+    // or roles explicitly named Admin.
     const Role = (await import('../models/Role')).default;
     const companyAdminRoles = await Role.find({
       companyId: data.companyId,
-      'permissions.module': 'SETTINGS',
-      'permissions.actions': { $in: ['update', 'all', 'manage'] }
+      $or: [
+        {
+          permissions: {
+            $elemMatch: {
+              module: { $regex: /^(settings|grievance|appointment)$/i },
+              actions: { $in: ['update', 'all', 'manage', 'UPDATE', 'ALL', 'MANAGE', 'status_change', 'assign'] }
+            }
+          }
+        },
+        { key: { $in: ['COMPANY_ADMIN', 'ADMIN', 'COMPANY_HEAD', 'SUPER_ADMIN'] } },
+        { name: { $regex: /company\s*admin|admin|head|manager|supervisor/i } }
+      ]
     }).select('_id name');
     const companyAdminRoleIds = companyAdminRoles.map(r => r._id);
     const companyAdminRoleNames = companyAdminRoles.map(r => r.name);

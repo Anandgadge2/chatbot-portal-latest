@@ -147,7 +147,7 @@ const AppointmentDetailDialog: React.FC<AppointmentDetailDialogProps> = ({
         {/* Scrollable Content */}
         <div className="overflow-y-auto flex-1 p-5 space-y-5 custom-scrollbar">
           {/* Quick Info Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-3 border border-blue-100">
               <div className="flex items-center gap-2 mb-1.5">
                 <div className="w-7 h-7 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -203,19 +203,7 @@ const AppointmentDetailDialog: React.FC<AppointmentDetailDialogProps> = ({
               </p>
             </div>
 
-            <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-3 border border-amber-100">
-              <div className="flex items-center gap-2 mb-1.5">
-                <div className="w-7 h-7 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Clock className="w-3.5 h-3.5 text-amber-600" />
-                </div>
-                <span className="text-[10px] font-bold text-amber-600 uppercase">
-                  Time
-                </span>
-              </div>
-              <p className="text-sm font-bold text-gray-900">
-                {appointment.appointmentTime}
-              </p>
-            </div>
+          
           </div>
           {/* Citizen Information */}
           <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">

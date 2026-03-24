@@ -360,7 +360,6 @@ Respected {citizenName},
 📊 *Status:* RESOLVED
 👨‍💼 *Resolved By:* {resolvedByName}
 📅 *Resolved On:* {formattedResolvedDate}
-⏱️ *Resolution Time:* {resolutionTimeText}
 📝 *Remarks:* {remarks}
 
 Thank you for your patience.
@@ -421,7 +420,6 @@ Details:
 🎫 *Reference ID:* {appointmentId}
 👤 *Citizen:* {citizenName}
 🎯 *Purpose:* {purpose}
-
 👨‍💼 *Assigned By:* {assignedByName}
 📅 *Assigned On:* {formattedDate}
 
@@ -469,7 +467,7 @@ Digital Grievance Redressal System`,
 
   appointment_confirmation: `*{companyName}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✅ *APPOINTMENT BOOKED SUCCESSFULLY*
+✅ *APPOINTMENT REQUESTED SUCCESSFULLY*
 
 Respected {citizenName},
 
@@ -482,7 +480,6 @@ Your appointment request has been received.
 
 Please note your Reference ID: *{appointmentId}*
 We will notify you once it's scheduled/confirmed.
-
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 *{companyName}*
 Digital Appointment System`,

@@ -247,14 +247,30 @@ export class ActionService {
       };
 
       // ✅ EXECUTE NOTIFICATIONS IN PARALLEL
+      const createdAt = grievance.createdAt || new Date();
+      const formattedDate = new Intl.DateTimeFormat('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      }).format(new Date(createdAt));
+
+      session.data.formattedDate = formattedDate;
+      session.data.fullData = session.data.fullData || {};
+      session.data.fullData.formattedDate = formattedDate;
+      session.data.date = new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
+      session.data.time = new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' });
+      await updateSession(session);
+
       const notifications = [];
 
-      // 1. Citizen Confirmation (Priority)
-      notifications.push(notifyCitizenOnCreation({
-        ...notificationData,
-        type: 'grievance',
-        action: 'confirmation' 
-      }).catch(err => console.error('⚠️ ActionService: notifyCitizenOnCreation failed:', err)));
+      // 1. Citizen Confirmation - SKIP if from flow (flow sends its own success message)
+      // notifyCitizenOnCreation is skipped here to avoid duplicates.
+      // Notifications for admins and assigned users are still sent.
 
       if (departmentId) {
         // 2. Admin Creation Notification
@@ -351,26 +367,38 @@ export class ActionService {
         timeline: appointment.timeline
       };
 
+      const createdAt = appointment.createdAt || new Date();
+      const formattedDate = new Intl.DateTimeFormat('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      }).format(new Date(createdAt));
+
+      session.data.formattedDate = formattedDate;
+      session.data.fullData = session.data.fullData || {};
+      session.data.fullData.formattedDate = formattedDate;
+      session.data.date = new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
+      session.data.time = new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' });
+      await updateSession(session);
+
       const notifications = [];
 
-      // 1. Citizen Confirmation
-      notifications.push(notifyCitizenOnCreation({
-        ...notificationData,
-        action: 'confirmation'
-      } as any).catch(err => console.error('⚠️ ActionService: notifyCitizenOnCreation failed:', err)));
+      // 1. Citizen Confirmation - SKIP if from flow (flow sends its own success message)
+      // notifyCitizenOnCreation is skipped here to avoid duplicates.
 
-      // 2. Admin Notification
+      // 2. Admin Creation Notification
       notifications.push(notifyDepartmentAdminOnCreation({
         ...notificationData,
-        action: 'created'
-      } as any).catch(err => console.error('⚠️ ActionService: notifyDepartmentAdminOnCreation failed:', err)));
+        type: 'appointment',
+        action: 'created',
+      }).catch(err => console.error('⚠️ ActionService: notifyDepartmentAdminOnCreation failed:', err)));
 
       await Promise.allSettled(notifications);
-
-      // Prevent duplicate citizen-facing appointment success copy from flow message steps.
-      // Chatbot flow should continue, but success wording should come from WhatsApp template/notification.
-      session.data.skipFlowAppointmentSuccessMessage = true;
-      await updateSession(session);
 
     } catch (err: any) {
       console.error('❌ ActionService: Error creating appointment:', err);
