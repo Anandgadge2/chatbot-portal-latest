@@ -415,7 +415,7 @@ function generateTimelineHTML(timeline: any[] | undefined, resolvedBy: any, reso
  */
 export function replacePlaceholders(str: string, data: Record<string, any>): string {
   if (!str || typeof str !== 'string') return str;
-  return str.replace(/\{(\w+)\}/g, (_, key) => {
+  return str.replace(/\{([^{}]+)\}/g, (_, key) => {
     const v = data[key];
     // Return the value if it exists, otherwise provide a user-friendly fallback
     return (v != null && v !== '') ? String(v) : 'Not provided';

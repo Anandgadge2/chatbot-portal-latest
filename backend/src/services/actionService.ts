@@ -243,7 +243,9 @@ export class ActionService {
         timeline: grievance.timeline,
         forest_range: session.data.forest_range,
         forest_beat: session.data.forest_beat,
-        forest_compartment: session.data.forest_compartment
+        type: 'grievance' as const,
+        action: 'confirmation' as const,
+        citizenEmail: session.data.citizenEmail
       };
 
       // ✅ EXECUTE NOTIFICATIONS IN PARALLEL
@@ -264,13 +266,16 @@ export class ActionService {
       session.data.fullData.formattedDate = formattedDate;
       session.data.date = new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
       session.data.time = new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' });
+      session.data['Submitted On'] = formattedDate;
+      session.data.submittedOn = formattedDate;
       await updateSession(session);
 
       const notifications = [];
 
-      // 1. Citizen Confirmation - SKIP if from flow (flow sends its own success message)
-      // notifyCitizenOnCreation is skipped here to avoid duplicates.
-      // Notifications for admins and assigned users are still sent.
+      const { notifyCitizenOnCreation, notifyDepartmentAdminOnCreation, notifyUserOnAssignment } = await import('./notificationService');
+      
+      // Notify citizen about grievance creation
+      await notifyCitizenOnCreation(notificationData);
 
       if (departmentId) {
         // 2. Admin Creation Notification
@@ -352,7 +357,7 @@ export class ActionService {
 
       // ✅ PREPARE NOTIFICATIONS
       const notificationData = {
-        type: 'appointment',
+        type: 'appointment' as const,
         appointmentId: appointment.appointmentId,
         citizenName: session.data.citizenName,
         citizenPhone: userPhone,
@@ -364,7 +369,8 @@ export class ActionService {
         appointmentDate: appointment.appointmentDate,
         appointmentTime: appointment.appointmentTime,
         createdAt: appointment.createdAt,
-        timeline: appointment.timeline
+        timeline: appointment.timeline,
+        action: 'confirmation' as const
       };
 
       const createdAt = appointment.createdAt || new Date();
@@ -384,12 +390,16 @@ export class ActionService {
       session.data.fullData.formattedDate = formattedDate;
       session.data.date = new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
       session.data.time = new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' });
+      session.data['Submitted On'] = formattedDate;
+      session.data.submittedOn = formattedDate;
       await updateSession(session);
 
       const notifications = [];
 
-      // 1. Citizen Confirmation - SKIP if from flow (flow sends its own success message)
-      // notifyCitizenOnCreation is skipped here to avoid duplicates.
+      const { notifyCitizenOnCreation, notifyDepartmentAdminOnCreation } = await import('./notificationService');
+      
+      // Notify citizen about appointment creation
+      await notifyCitizenOnCreation(notificationData);
 
       // 2. Admin Creation Notification
       notifications.push(notifyDepartmentAdminOnCreation({

@@ -253,7 +253,7 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
         assignedAt: grievance.assignedAt,
         timeline: grievance.timeline
       }, oldStatus, status);
-    } else if (oldStatus !== status && [GrievanceStatus.ASSIGNED, GrievanceStatus.REJECTED, GrievanceStatus.PENDING].includes(status)) {
+    } else if (oldStatus !== status && [GrievanceStatus.ASSIGNED, GrievanceStatus.REJECTED, GrievanceStatus.PENDING, GrievanceStatus.REVERTED].includes(status as any)) {
       // Notify citizen for ASSIGNED, REJECTED, PENDING (RESOLVED uses notifyCitizenOnResolution above)
       const { notifyCitizenOnGrievanceStatusChange } = await import('../services/notificationService');
       const departmentName = (grievance.departmentId as any)?.name || 'Department';

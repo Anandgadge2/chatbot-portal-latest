@@ -173,6 +173,8 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
     formattedAppointmentDate,
     appointmentDate: formattedAppointmentDate || data.appointmentDate, // Fallback for templates using old field
     resolutionTimeText,
+    'Submitted On': formattedDate,
+    submittedOn: formattedDate,
     forest_range: (data as any).forest_range || '',
     forest_beat: (data as any).forest_beat || '',
     forest_compartment: (data as any).forest_compartment || '',
@@ -321,7 +323,8 @@ async function sendMediaIfAvailable(company: any, to: string, urls?: string[], c
 async function safeSendWhatsApp(
   company: any,
   rawPhone: string | undefined,
-  message: string
+  message: string,
+  ctaButton?: { title: string; url: string }
 ): Promise<{ success: boolean; error?: string }> {
   if (!rawPhone) {
     logger.warn('⚠️ No phone number provided for WhatsApp notification');
@@ -345,7 +348,14 @@ async function safeSendWhatsApp(
   }
 
   try {
-    const result = await sendWhatsAppMessage(company, phone, message);
+    let result;
+    if (ctaButton) {
+      const { sendWhatsAppCTA } = await import('./whatsappService');
+      result = await sendWhatsAppCTA(company, phone, message, ctaButton.title, ctaButton.url);
+    } else {
+      result = await sendWhatsAppMessage(company, phone, message);
+    }
+
     if (result.success) {
       logger.info('✅ WhatsApp sent successfully', { to: phone, messageId: result.messageId });
       return { success: true };
@@ -604,13 +614,13 @@ export async function notifyDepartmentAdminOnCreation(
                 `\n📅 *Received On:* ${fullData.formattedDate}\n\n` +
                 `*Action Required:*\n` +
                 `Please review this ${data.type} promptly. Resolution should be provided as per SLA.\n\n` +
-                `🔗 *Access Dashboard:* https://chatbot-portal-latest-frontend.vercel.app/\n\n` +
                 `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-                `*${fullData.companyName}*\n` +
-                `Digital Grievance Redressal System\n` +
-                `This is an automated notification.`;
+                `Digital System`;
             }
-            await safeSendWhatsApp(company, user.phone, message);
+            await safeSendWhatsApp(company, user.phone, message, {
+              title: 'Access Dashboard',
+              url: 'https://chatbot-portal-latest-frontend.vercel.app/'
+            });
             // Send attachments if any
             if (data.evidenceUrls && data.evidenceUrls.length > 0) {
               await sendMediaIfAvailable(company, user.phone, data.evidenceUrls, `Evidence for ${fullData.grievanceId || fullData.appointmentId}`);
@@ -681,12 +691,13 @@ export async function notifyUserOnAssignment(
           `👨‍💼 *Assigned By:* ${fullData.assignedByName}\n` +
           `📅 *Assigned On:* ${fullData.formattedDate}\n\n` +
           `Please investigate and take required action.\n\n` +
-          `🔗 *Access Dashboard:* https://chatbot-portal-latest-frontend.vercel.app/\n\n` +
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-          `*${fullData.companyName}*\n` +
-          `Digital Grievance Redressal System`;
+          `Digital System`;
       }
-      await safeSendWhatsApp(company, user.phone, message);
+      await safeSendWhatsApp(company, user.phone, message, {
+        title: 'Access Dashboard',
+        url: 'https://chatbot-portal-latest-frontend.vercel.app/'
+      });
       if (data.evidenceUrls && data.evidenceUrls.length > 0) {
         await sendMediaIfAvailable(company, user.phone, data.evidenceUrls, `Files for Assignment: ${fullData.grievanceId || fullData.appointmentId}`);
       }
@@ -754,6 +765,7 @@ export async function notifyCitizenOnResolution(
         `*Resolution Details:*\n` +
         `🎫 *Reference ID:* ${fullData.grievanceId || fullData.appointmentId}\n` +
         `${deptLine}\n` +
+        `📅 *Submitted On:* ${fullData.formattedDate}\n` +
         `📊 *Status:* RESOLVED\n` +
         `👨‍💼 *Resolved By:* ${fullData.resolvedByName}\n` +
         `📅 *Resolved On:* ${fullData.formattedResolvedDate}${resolutionTimeLine}${remarksText}${evidenceText}\n\n` +
@@ -801,12 +813,15 @@ export async function notifyCitizenOnCreation(
 
     // 📱 WhatsApp
     const actionKey = data.action || 'confirmation';
+    const typeLabel = data.type === 'grievance' ? 'GRIEVANCE' : 'APPOINTMENT';
+    const idLabel = data.type === 'grievance' ? 'Grievance ID' : 'Appointment ID';
+    const refId = data.grievanceId || data.appointmentId;
+
+    // Check if there's a custom template in the database first
     let message = await getNotificationWhatsAppMessage(data.companyId, data.type, actionKey, fullData);
+
     if (!message) {
-      const typeLabel = data.type === 'grievance' ? 'GRIEVANCE' : 'APPOINTMENT';
-      const idLabel = data.type === 'grievance' ? 'Grievance ID' : 'Appointment ID';
-      const refId = data.grievanceId || data.appointmentId;
-      
+      // ✅ Fallback to Premium Jharsuguda Style
       message =
         `*${fullData.companyName}*\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
@@ -822,7 +837,9 @@ export async function notifyCitizenOnCreation(
         `*${fullData.companyName}*\n` +
         `Digital Portal`;
     }
+
     await safeSendWhatsApp(company, data.citizenWhatsApp || data.citizenPhone, message);
+
     if (data.evidenceUrls && data.evidenceUrls.length > 0) {
       await sendMediaIfAvailable(company, data.citizenWhatsApp || data.citizenPhone, data.evidenceUrls, 'Submission Evidence');
     }
@@ -856,95 +873,31 @@ export async function notifyCitizenOnGrievanceStatusChange(data: {
     const company = await getCompanyWithWhatsAppConfig(data.companyId);
     if (!company) return;
 
-    // Look up department/sub-department names if IDs are provided
-    let departmentName = data.departmentName || 'Department';
-    let subDepartmentName = data.subDepartmentName || '';
-
-    if (data.departmentId) {
-      try {
-        const deptId = typeof data.departmentId === 'object' && data.departmentId._id
-          ? data.departmentId._id : data.departmentId;
-        const dept = await Department.findById(deptId).select('name');
-        if (dept) departmentName = dept.name;
-      } catch (e) {}
-    }
-    if (data.subDepartmentId) {
-      try {
-        const sdId = typeof data.subDepartmentId === 'object' && data.subDepartmentId._id
-          ? data.subDepartmentId._id : data.subDepartmentId;
-        const sdept = await Department.findById(sdId).select('name');
-        if (sdept) subDepartmentName = sdept.name;
-      } catch (e) {}
-    }
-
-    const remarksText = data.remarks ? `\n\n📝 *Remarks:*\n${data.remarks}` : '';
-    const evidenceText = data.evidenceUrls && data.evidenceUrls.length > 0
-      ? `\n\n📎 *Support Documents (tap to open):*\n${data.evidenceUrls.map((u, i) => `📄 Download Document ${i + 1}: ${u}`).join('\n')}`
-      : '';
-    const statusLabel =
-      data.newStatus === 'ASSIGNED' ? 'Assigned' :
-      data.newStatus === 'REJECTED' ? 'Rejected' :
-      data.newStatus === 'PENDING'  ? 'Pending'  : data.newStatus;
-
-    // Try DB template for status_update key first (custom key for grievance status changes)
-    const templateData: Record<string, any> = {
-      companyName: company.name,
-      citizenName: data.citizenName,
-      recipientName: data.citizenName, // Ensure compatibility with admin templates
-      citizenPhone: data.citizenPhone,
-      grievanceId: data.grievanceId,
-      departmentName,
-      subDepartmentName: subDepartmentName || 'N/A',
-      newStatus: statusLabel,
-      remarks: data.remarks || '',
-    };
-
-    let message: string | null = null;
-
-    // For citizens, we want to avoid using admin-facing templates like 'grievance_created' or 'grievance_assigned'
-    // which often say "New grievance received" or "Assigned to you".
-    const statusKey = data.newStatus === 'PENDING' ? 'grievance_confirmation' : `grievance_status_${data.newStatus.toLowerCase()}`;
-    const fallbackStatusKey = 'grievance_status_update';
+    // Use centralized data population (includes formattedDate for "Submitted On")
+    const fullData = await populateNotificationData({ ...data, type: 'grievance', action: 'confirmation' });
     
-    try {
-      const { default: CompanyWhatsAppTemplate } = await import('../models/CompanyWhatsAppTemplate');
-      const { replacePlaceholders } = await import('./emailService');
-      const cid = mongoose.Types.ObjectId.isValid(String(data.companyId))
-        ? new mongoose.Types.ObjectId(String(data.companyId))
-        : data.companyId;
-
-      // Try specific key first
-      let tmpl = await CompanyWhatsAppTemplate.findOne({
-        companyId: cid,
-        templateKey: statusKey as any,
-        isActive: true
-      });
-
+    // Check for custom template in DB: grievance_status_{status}
+    const statusKey = `grievance_status_${data.newStatus.toLowerCase()}`;
+    const fallbackKey = 'grievance_status_update';
+    
+    let message = await getNotificationWhatsAppMessage(data.companyId, 'grievance', statusKey, fullData);
+    
+    if (!message) {
       // Try fallback key
-      if (!tmpl) {
-        tmpl = await CompanyWhatsAppTemplate.findOne({
-          companyId: cid,
-          templateKey: fallbackStatusKey as any,
-          isActive: true
-        });
-      }
-
-      if (tmpl && tmpl.message && tmpl.message.trim()) {
-        message = replacePlaceholders(tmpl.message.trim(), templateData);
-        if (evidenceText) {
-          message += `${evidenceText}`;
-        }
-      }
-    } catch (e) { /* fallback */ }
+      message = await getNotificationWhatsAppMessage(data.companyId, 'grievance', fallbackKey, fullData);
+    }
 
     if (!message) {
-      // Hardcoded fallback
-      const isNew = data.newStatus === 'PENDING' || data.remarks === 'Automatic confirmation on registration';
-      const title = isNew ? 'GRIEVANCE REGISTERED' : 'GRIEVANCE STATUS UPDATE';
-      const intro = isNew ? 'Your grievance has been successfully registered.' : 'Your grievance status has been updated.';
+      // Premium Fallback with "Submitted On"
+      const statusLabel = data.newStatus.charAt(0) + data.newStatus.slice(1).toLowerCase();
+      const title = data.newStatus === 'RESOLVED' ? '✅ GRIEVANCE RESOLVED' : '🔄 GRIEVANCE STATUS UPDATE';
+      const intro = data.newStatus === 'RESOLVED' 
+        ? 'Great news! Your grievance has been successfully resolved.'
+        : `We would like to inform you that the status of your grievance has been updated to *${statusLabel}*.`;
 
-      const subDeptLine = subDepartmentName && subDepartmentName !== 'N/A'
-        ? `\n🏢 *Sub-Dept:* ${subDepartmentName}` : '';
+      const subDeptLine = fullData.subDepartmentName && fullData.subDepartmentName !== 'N/A' ? ` / ${fullData.subDepartmentName}` : '';
+      const remarksText = data.remarks ? `\n\n📝 *Remarks:* ${data.remarks}` : '';
+
       message =
         `*${company.name}*\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
@@ -953,45 +906,38 @@ export async function notifyCitizenOnGrievanceStatusChange(data: {
         `${intro}\n\n` +
         `*Details:*\n` +
         `🎫 *Ref No:* \`${data.grievanceId}\`\n` +
-        `🏢 *Department:* ${departmentName}${subDeptLine}\n` +
-        `📊 *Status:* ${statusLabel}${remarksText}${evidenceText}\n\n` +
+        `🏢 *Department:* ${fullData.departmentName}${subDeptLine}\n` +
+        `📅 *Submitted On:* ${fullData.formattedDate}\n` +
+        `📊 *Status:* ${statusLabel}${remarksText}\n\n` +
         `You will receive further updates via WhatsApp.\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `*${company.name}*\n` +
-        `Digital Grievance Redressal System`;
+        `*${company.name}*`;
     }
 
-    const result = await safeSendWhatsApp(company, data.citizenWhatsApp || data.citizenPhone, message);
-    if (result.success) {
-      logger.info(`✅ Grievance status notification sent to ${data.citizenName} (${data.citizenPhone})`);
-      if (data.evidenceUrls && data.evidenceUrls.length > 0) {
-        await sendMediaIfAvailable(company, data.citizenWhatsApp || data.citizenPhone, data.evidenceUrls, `Status update: ${statusLabel}`);
-      }
-    } else {
-      logger.error(`❌ Failed to send grievance status notification: ${result.error}`);
+    await safeSendWhatsApp(company, data.citizenWhatsApp || data.citizenPhone, message);
+
+    if (data.evidenceUrls && data.evidenceUrls.length > 0) {
+      await sendMediaIfAvailable(company, data.citizenWhatsApp || data.citizenPhone, data.evidenceUrls, 'Status Update Evidence');
     }
 
     // 📧 Email
-    if (data.citizenEmail && canNotify(company, data, 'email')) {
+    if (data.citizenEmail) {
       try {
         const emailData = {
-          ...templateData,
-          companyName: company.name,
-          recipientName: data.citizenName,
+          ...fullData,
           action: data.newStatus.toLowerCase()
         };
 
         let email = await getNotificationEmailContent(data.companyId, 'grievance', statusKey, emailData, false);
-        if (!email && fallbackStatusKey) {
-          email = await getNotificationEmailContent(data.companyId, 'grievance', fallbackStatusKey, emailData, false);
+        if (!email) {
+          email = await getNotificationEmailContent(data.companyId, 'grievance', fallbackKey, emailData, false);
         }
 
         if (email) {
           await sendEmail(data.citizenEmail, email.subject, email.html, email.text, { companyId: data.companyId });
-          logger.info(`✅ Grievance status email sent to citizen: ${data.citizenEmail}`);
         }
       } catch (err) {
-        logger.error(`❌ Error sending grievance status email to citizen:`, err);
+        logger.error(`❌ Error sending status email to citizen:`, err);
       }
     }
   } catch (error) {
@@ -1095,19 +1041,31 @@ export async function notifyHierarchyOnStatusChange(
         `📊 *Status Change:* ${oldStatus} → ${newStatus}\n` +
         `👨‍💼 *Updated By:* ${fullData.resolvedByName || 'Administrator'}\n` +
         `📅 *Updated On:* ${fullData.formattedResolvedDate || fullData.formattedDate}${resolutionTimeLine}${remarksText}${evidenceText}\n\n` +
-        `🔗 *Access Dashboard:* https://chatbot-portal-latest-frontend.vercel.app/\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
         `Digital System`;
     }
 
+    // Determine if we should use CTA button (only if message doesn't have a custom DB template that might already have links)
+    // Actually, the user wants the button for "Access Dashboard".
+    const ctaButton = {
+      title: 'Access Dashboard',
+      url: 'https://chatbot-portal-latest-frontend.vercel.app/'
+    };
+
     // ✅ CONCURRENT NOTIFICATIONS
-    await Promise.allSettled(users.map(async (user) => {
+    // Filter out the citizen from hierarchy notifications to prevent double-messaging if they are also an admin
+    const citizenPhoneNormalized = data.citizenWhatsApp?.replace(/\D/g, '') || data.citizenPhone?.replace(/\D/g, '');
+    
+    await Promise.allSettled(users.filter(u => {
+      const userPhoneNormalized = u.phone?.replace(/\D/g, '');
+      return userPhoneNormalized !== citizenPhoneNormalized;
+    }).map(async (user) => {
       try {
         const tasks: Promise<any>[] = [];
 
         // 📱 WhatsApp
         if (canNotify(company, user, 'whatsapp')) {
-          tasks.push(safeSendWhatsApp(company, user.phone, hierarchyMessage));
+          tasks.push(safeSendWhatsApp(company, user.phone, hierarchyMessage, ctaButton));
           if (data.evidenceUrls && data.evidenceUrls.length > 0) {
             tasks.push(sendMediaIfAvailable(company, user.phone, data.evidenceUrls, `Hierarchy Update: ${fullData.grievanceId || fullData.appointmentId}`));
           }
@@ -1172,204 +1130,72 @@ export async function notifyCitizenOnAppointmentStatusChange(data: {
 }): Promise<void> {
   try {
     const company = await getCompanyWithWhatsAppConfig(data.companyId);
-    if (!company) {
-      logger.warn('Company not found for appointment status notification');
-      return;
-    }
+    if (!company) return;
 
-    const { AppointmentStatus } = await import('../config/constants');
-
-    const appointmentDate = new Date(data.appointmentDate);
-    const dateDisplay = appointmentDate.toLocaleDateString('en-IN', {
-      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-      timeZone: 'Asia/Kolkata'
-    });
-
-    const formatTime12Hr = (time: string) => {
-      const [hours, minutes] = time.split(':').map(Number);
-      const period = hours >= 12 ? 'PM' : 'AM';
-      const displayHours = hours % 12 || 12;
-      return `${displayHours}:${String(minutes || 0).padStart(2, '0')} ${period}`;
-    };
-    const timeDisplay = formatTime12Hr(data.appointmentTime);
-    const remarksText = data.remarks ? `\n📝 *Remarks:*\n${data.remarks}` : '';
-
-    // For citizens, try specific confirmation/update keys first to avoid admin templates
-    const statusKey =
-      data.newStatus === AppointmentStatus.REQUESTED  ? 'appointment_confirmation' :
-      data.newStatus === AppointmentStatus.SCHEDULED  ? 'appointment_scheduled_update' :
-      data.newStatus === AppointmentStatus.CONFIRMED  ? 'appointment_confirmed_update' :
-      data.newStatus === AppointmentStatus.CANCELLED  ? 'appointment_cancelled_update' :
-      data.newStatus === AppointmentStatus.COMPLETED  ? 'appointment_completed_update' : null;
-
-    const fallbackStatusKey = 'appointment_status_update';
-
-    const templateData: Record<string, any> = {
-      companyName: company.name,
-      citizenName: data.citizenName,
-      recipientName: data.citizenName, // For compatibility
-      citizenPhone: data.citizenPhone,
-      appointmentId: data.appointmentId,
-      appointmentDate: dateDisplay,
-      appointmentTime: timeDisplay,
-      purpose: data.purpose || 'Meeting with CEO',
-      newStatus: data.newStatus,
-      remarks: data.remarks || '',
-    };
-
-    let message: string | null = null;
-
-    if (statusKey) {
-      try {
-        const { default: CompanyWhatsAppTemplate } = await import('../models/CompanyWhatsAppTemplate');
-        const { replacePlaceholders } = await import('./emailService');
-        const cid = mongoose.Types.ObjectId.isValid(String(data.companyId))
-          ? new mongoose.Types.ObjectId(String(data.companyId))
-          : data.companyId;
-        let tmpl = await CompanyWhatsAppTemplate.findOne({
-          companyId: cid,
-          templateKey: statusKey as any,
-          isActive: true
-        });
-
-        if (!tmpl && fallbackStatusKey) {
-          tmpl = await CompanyWhatsAppTemplate.findOne({
-            companyId: cid,
-            templateKey: fallbackStatusKey as any,
-            isActive: true
-          });
-        }
-
-        if (tmpl && tmpl.message && tmpl.message.trim()) {
-          message = replacePlaceholders(tmpl.message.trim(), templateData);
-        }
-      } catch (e) { /* fallback */ }
+    // Use centralized data population (includes formattedDate for "Submitted On")
+    const fullData = await populateNotificationData({ ...data, type: 'appointment', action: 'confirmation' });
+    
+    // Check for custom template in DB: appointment_status_{status}
+    const statusKey = `appointment_status_${data.newStatus.toLowerCase()}`;
+    const fallbackKey = 'appointment_status_update';
+    
+    let message = await getNotificationWhatsAppMessage(data.companyId, 'appointment', statusKey, fullData);
+    
+    if (!message) {
+      // Try fallback key
+      message = await getNotificationWhatsAppMessage(data.companyId, 'appointment', fallbackKey, fullData);
     }
 
     if (!message) {
-      // Hardcoded fallback — keeps same content as before but is only used when no DB template exists
-      if (data.newStatus === AppointmentStatus.REQUESTED) {
-        message =
-          `*${company.name}*\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-          `📋 *APPOINTMENT REQUEST RECEIVED*\n\n` +
-          `Respected ${data.citizenName},\n\n` +
-          `Your appointment request has been successfully received.\n\n` +
-          `*Details:*\n` +
-          `🎫 *Ref No:* \`${data.appointmentId}\`\n` +
-          `📅 *Preferred Date:* ${dateDisplay}\n` +
-          `⏰ *Preferred Time:* ${timeDisplay}\n` +
-          `🎯 *Purpose:* ${data.purpose || 'Meeting with CEO'}\n\n` +
-          `Our team will review your request and confirm soon.\n\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-          `*${company.name}*\n` +
-          `Digital Appointment System`;
+      // Fallback
+      const statusLabel = data.newStatus.charAt(0) + data.newStatus.slice(1).toLowerCase();
+      const title = data.newStatus === 'CONFIRMED' ? '✅ APPOINTMENT CONFIRMED' : '📅 APPOINTMENT STATUS UPDATE';
+      const intro = data.newStatus === 'CONFIRMED'
+        ? 'Your appointment request has been reviewed and confirmed. Please find the updated schedule below.'
+        : `Your appointment request status has been updated to *${statusLabel}*.`;
 
-      } else if (data.newStatus === AppointmentStatus.SCHEDULED) {
-        message =
-          `*${company.name}*\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-          `📅 *APPOINTMENT SCHEDULED*\n\n` +
-          `Respected ${data.citizenName},\n\n` +
-          `Your appointment request has been scheduled.\n\n` +
-          `*Appointment Details:*\n` +
-          `🎫 *Ref No:* \`${data.appointmentId}\`\n` +
-          `👤 *Name:* ${data.citizenName}\n` +
-          `📅 *Date:* ${dateDisplay}\n` +
-          `⏰ *Time:* ${timeDisplay}\n` +
-          `🎯 *Purpose:* ${data.purpose || 'Meeting with CEO'}\n` +
-          `📊 *Status:* SCHEDULED${remarksText}\n\n` +
-          `Please wait for confirmation.\n\n` +
-          `Thank you for using our services.\n\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-          `*${company.name}*\n` +
-          `Digital Appointment System`;
+      const dateStr = fullData.formattedAppointmentDate || 'TBD';
+      const timeStr = data.appointmentTime || 'TBD';
+      const remarksText = data.remarks ? `\n📝 *Remarks:* ${data.remarks}` : '';
 
-      } else if (data.newStatus === AppointmentStatus.CONFIRMED) {
-        message =
-          `*${company.name}*\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-          `✅ *APPOINTMENT CONFIRMED*\n\n` +
-          `Respected ${data.citizenName},\n` +
-          `Your appointment has been confirmed\n\n` +
-          `*Appointment Details:*\n` +
-          `🎫 *Ref No:* \`${data.appointmentId}\`\n` +
-          `👤 *Name:* ${data.citizenName}\n` +
-          `📅 *Date:* ${dateDisplay}\n` +
-          `⏰ *Time:* ${timeDisplay}\n` +
-          `🎯 *Purpose:* ${data.purpose || 'Meeting with collector'}\n` +
-          `📊 *Status:* CONFIRMED${remarksText}\n` +
-          `Please arrive 15 minutes early with valid ID.\n` +
-          `Thank you for using our services.\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-          `*${company.name}*\n` +
-          `Digital Appointment System`;
-
-      } else if (data.newStatus === AppointmentStatus.CANCELLED) {
-        message =
-          `*${company.name}*\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-          `❌ *APPOINTMENT CANCELLED*\n\n` +
-          `Respected ${data.citizenName},\n` +
-          `We regret to inform you that your appointment request has been cancelled.\n` +
-          `*Appointment Details:*\n` +
-          `🎫 *Ref No:* \`${data.appointmentId}\`\n` +
-          `📅 *Date:* ${dateDisplay}\n` +
-          `⏰ *Time:* ${timeDisplay}\n` +
-          `🎯 *Purpose:* ${data.purpose || 'Meeting with CEO'}${remarksText}\n` +
-          `We apologize for any inconvenience caused.\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-          `*${company.name}*\n` +
-          `Digital Appointment System`;
-
-      } else if (data.newStatus === AppointmentStatus.COMPLETED) {
-        message =
-          `*${company.name}*\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-          `✅ *APPOINTMENT COMPLETED*\n\n` +
-          `Respected ${data.citizenName},\n\n` +
-          `Your appointment has been marked as completed.\n` +
-          `*Appointment Details:*\n` +
-          `🎫 *Ref No:* \`${data.appointmentId}\`\n` +
-          `📅 *Date:* ${dateDisplay}\n` +
-          `⏰ *Time:* ${timeDisplay}${remarksText}\n` +
-          `Thank you for visiting us. We hope your concern was addressed satisfactorily.` +
-          `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-          `*${company.name}*\n` +
-          `Digital Appointment System`;
-      }
+      message =
+        `*${company.name}*\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+        `📋 *${title}*\n\n` +
+        `Respected ${data.citizenName},\n\n` +
+        `${intro}\n\n` +
+        `*Scheduled Slot:*\n` +
+        `📅 *Date:* ${dateStr}\n` +
+        `🕒 *Time:* ${timeStr}\n\n` +
+        `*Details:*\n` +
+        `🎫 *Ref No:* \`${data.appointmentId}\`\n` +
+        `📅 *Submitted On:* ${fullData.formattedDate}\n` +
+        `📊 *Status:* ${statusLabel}${remarksText}\n\n` +
+        `You will receive further updates here.\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `*${company.name}*`;
     }
 
-    if (message) {
-      const result = await safeSendWhatsApp(company, data.citizenWhatsApp || data.citizenPhone, message);
-      if (result.success) {
-        logger.info(`✅ Appointment status notification sent to ${data.citizenName}`);
-      } else {
-        logger.error(`❌ Failed to send appointment status notification: ${result.error}`);
-      }
-    } else {
-      logger.warn(`⚠️ No notification message generated for status: ${data.oldStatus} → ${data.newStatus}`);
-    }
+    await safeSendWhatsApp(company, data.citizenWhatsApp || data.citizenPhone, message);
 
     // 📧 Email
-    if (data.citizenEmail && canNotify(company, data, 'email')) {
+    if (data.citizenEmail) {
       try {
         const emailData = {
-          ...templateData,
+          ...fullData,
           action: data.newStatus.toLowerCase()
         };
 
-        let email = await getNotificationEmailContent(data.companyId, 'appointment', statusKey as any, emailData, false);
-        if (!email && fallbackStatusKey) {
-          email = await getNotificationEmailContent(data.companyId, 'appointment', fallbackStatusKey as any, emailData, false);
+        let email = await getNotificationEmailContent(data.companyId, 'appointment', statusKey, emailData, false);
+        if (!email) {
+          email = await getNotificationEmailContent(data.companyId, 'appointment', fallbackKey, emailData, false);
         }
 
         if (email) {
           await sendEmail(data.citizenEmail, email.subject, email.html, email.text, { companyId: data.companyId });
-          logger.info(`✅ Appointment status email sent to citizen: ${data.citizenEmail}`);
         }
       } catch (err) {
-        logger.error(`❌ Error sending appointment status email to citizen:`, err);
+        logger.error(`❌ Error sending status email to citizen:`, err);
       }
     }
   } catch (error) {

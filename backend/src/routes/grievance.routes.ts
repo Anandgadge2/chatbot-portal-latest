@@ -460,24 +460,21 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_GRIEVANCE, 
     await grievance.save();
 
     if (oldStatus !== status) {
-      const { 
-        notifyCitizenOnResolution, 
-        notifyHierarchyOnStatusChange, 
-        notifyCitizenOnGrievanceStatusChange 
-      } = await import('../services/notificationService');
-
+      // Hierarchy notifications are still useful here if this route is called directly,
+      // but to prevent double messaging when using the unified status update,
+      // we check if it's already handled. However, removing it for citizens is the main goal.
+      // We'll keep hierarchy update for now but remove citizen update.
+      const { notifyHierarchyOnStatusChange } = await import('../services/notificationService');
+      
       const payload = {
         type: 'grievance' as const,
-        action: 'resolved' as any,
+        action: 'status_change' as any,
         grievanceId: grievance.grievanceId,
         citizenName: grievance.citizenName,
         citizenPhone: grievance.citizenPhone,
-        citizenWhatsApp: grievance.citizenWhatsApp,
         departmentId: grievance.departmentId,
-        subDepartmentId: grievance.subDepartmentId,
         companyId: grievance.companyId,
         assignedTo: grievance.assignedTo,
-        resolvedBy: currentUser._id,
         resolvedAt: grievance.resolvedAt,
         createdAt: grievance.createdAt,
         assignedAt: grievance.assignedAt,
@@ -485,27 +482,7 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_GRIEVANCE, 
         remarks: remarks || ''
       };
 
-      // 1. Notify Hierarchy (Admins) for ANY status change
       await notifyHierarchyOnStatusChange(payload, oldStatus, status).catch(e => console.error('Admin notification failed:', e));
-
-      // 2. Notify Citizen
-      if (status === GrievanceStatus.RESOLVED) {
-        await notifyCitizenOnResolution(payload).catch(e => console.error('Citizen resolution notification failed:', e));
-      } else {
-        const dept = grievance.departmentId ? await Department.findById(grievance.departmentId) : null;
-        await notifyCitizenOnGrievanceStatusChange({
-          companyId: grievance.companyId,
-          grievanceId: grievance.grievanceId,
-          citizenName: grievance.citizenName,
-          citizenPhone: grievance.citizenPhone,
-          citizenWhatsApp: grievance.citizenWhatsApp,
-          departmentId: grievance.departmentId,
-          subDepartmentId: grievance.subDepartmentId,
-          departmentName: dept ? dept.name : undefined,
-          newStatus: status,
-          remarks
-        }).catch(e => console.error('Citizen status notification failed:', e));
-      }
     }
 
     await logUserAction(

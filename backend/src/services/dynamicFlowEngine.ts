@@ -2110,35 +2110,54 @@ export class DynamicFlowEngine {
           String(buttonId).startsWith("lead_confirm_yes") ||
           String(buttonId).startsWith("submit_lead");
 
-        if (isGrievanceConfirm && isGrievanceSuccess && isSubmitClick) {
+        // Case 1: Grievance
+        if (isGrievanceConfirm && isSubmitClick) {
           console.log(`🎯 Triggering createGrievance for button: ${buttonId}`);
-          await ActionService.createGrievance(
-            this.session,
-            this.company,
-            this.userPhone,
-          );
-        } else if (
-          isAppointmentConfirm &&
-          isAppointmentSubmitted &&
-          isApptSubmitClick
-        ) {
-          console.log(
-            `🎯 Triggering createAppointment for button: ${buttonId}`,
-          );
-          await ActionService.createAppointment(
-            this.session,
-            this.company,
-            this.userPhone,
-          );
-        } else if (isLeadConfirm && isLeadSuccess && isLeadSubmitClick) {
-          console.log(`🎯 Triggering createLead for button: ${buttonId}`);
-          await ActionService.createLead(
-            this.session,
-            this.company,
-            this.userPhone,
-          );
+          await ActionService.createGrievance(this.session, this.company, this.userPhone);
+          // If the flow has a success node, move to it. Otherwise, end session here.
+          if (isGrievanceSuccess) {
+            await this.runNextStepIfDifferent(nextStepId, currentStep.stepId);
+          } else {
+            this.session.data.stepQueue = [];
+            this.session.data.lastStepId = "end";
+            await updateSession(this.session);
+          }
+          return;
         }
-        await this.runNextStepIfDifferent(nextStepId, currentStep.stepId);
+
+        // Case 2: Appointment
+        if (isAppointmentConfirm && isApptSubmitClick) {
+          console.log(`🎯 Triggering createAppointment for button: ${buttonId}`);
+          await ActionService.createAppointment(this.session, this.company, this.userPhone);
+          // Move to success node or end session
+          if (isAppointmentSubmitted) {
+            await this.runNextStepIfDifferent(nextStepId, currentStep.stepId);
+          } else {
+            this.session.data.stepQueue = [];
+            this.session.data.lastStepId = "end";
+            await updateSession(this.session);
+          }
+          return;
+        }
+
+        // Case 3: Lead
+        if (isLeadConfirm && isLeadSubmitClick) {
+          console.log(`🎯 Triggering createLead for button: ${buttonId}`);
+          await ActionService.createLead(this.session, this.company, this.userPhone);
+          if (isLeadSuccess) {
+            await this.runNextStepIfDifferent(nextStepId, currentStep.stepId);
+          } else {
+            this.session.data.stepQueue = [];
+            this.session.data.lastStepId = "end";
+            await updateSession(this.session);
+          }
+          return;
+        }
+
+        // Default: If no action triggered but we have a next step, go there
+        if (nextStepId) {
+          await this.runNextStepIfDifferent(nextStepId, currentStep.stepId);
+        }
         return;
       } else {
         console.log(
