@@ -28,6 +28,7 @@ import {
   CheckCircle,
   Loader2,
   Zap,
+  RefreshCw,
 } from "lucide-react";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -339,6 +340,15 @@ export default function ChatbotFlowsPage() {
               </div>
             </div>
             <div className="flex w-full md:w-auto items-center justify-end gap-2">
+              <Button
+                onClick={() => fetchData()}
+                variant="outline"
+                className="h-9 sm:h-10 px-3 bg-white text-slate-700 border-slate-200 hover:bg-slate-50 rounded-xl transition-all"
+                title="Refresh Flows"
+                disabled={loading || refreshing}
+              >
+                <RefreshCw className={`w-4 h-4 ${(loading || refreshing) ? "animate-spin" : ""}`} />
+              </Button>
               <Button
                 onClick={handleCreateFlow}
                 className="h-9 sm:h-10 px-4 sm:px-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all shadow-lg shadow-indigo-900/20 font-bold text-[11px] uppercase tracking-wider border-0"

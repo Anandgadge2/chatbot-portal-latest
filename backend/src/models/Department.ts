@@ -92,9 +92,9 @@ DepartmentSchema.index({ companyId: 1, createdAt: -1 });
 // Pre-save hook to generate departmentId
 DepartmentSchema.pre('save', async function (next) {
   if (this.isNew && !this.departmentId) {
-    // Find the last departmentId globally, including soft-deleted docs
+    // Only consider IDs that follow our pattern to find the highest number
     const lastDept = await mongoose.model('Department')
-      .findOne({}, { departmentId: 1 })
+      .findOne({ departmentId: { $regex: /^DEPT\d+$/ } }, { departmentId: 1 })
       .sort({ departmentId: -1 });
 
     let nextNum = 1;

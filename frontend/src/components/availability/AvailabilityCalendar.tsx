@@ -530,7 +530,7 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
   if (!isOpen) return null;
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[95vw] md:max-w-5xl h-[90vh] p-0 overflow-hidden bg-slate-50 border-0 rounded-[2.5rem] shadow-3xl flex flex-col gap-0">
+      <DialogContent hideClose={true} className="max-w-[95vw] md:max-w-5xl h-[90vh] p-0 overflow-hidden bg-slate-50 border-0 rounded-[2.5rem] shadow-3xl flex flex-col gap-0">
         <div className="flex flex-col h-full bg-slate-50 relative">
           {/* Dashboard-style Header */}
           <div className="bg-slate-900 px-8 py-8 relative overflow-hidden shrink-0">
@@ -550,6 +550,13 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
                   <p className="text-slate-400 text-sm font-medium">Manage your schedule, holidays, and appointment slots</p>
                 </div>
               </div>
+              
+              <button
+                onClick={onClose}
+                className="w-12 h-12 bg-white/5 hover:bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/10 transition-all duration-300 group shadow-lg"
+              >
+                <X className="w-6 h-6 text-white/40 group-hover:text-white transition-colors" />
+              </button>
             </div>
           </div>
 

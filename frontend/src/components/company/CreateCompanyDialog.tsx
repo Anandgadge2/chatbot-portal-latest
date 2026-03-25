@@ -10,7 +10,7 @@ import toast from 'react-hot-toast';
 import { validatePhoneNumber, validatePassword, validateTelephone } from '@/lib/utils/phoneUtils';
 import { Module } from '@/lib/permissions';
 import { AVAILABLE_MODULES } from '@/config/modules';
-import { Building, X } from 'lucide-react';
+import { Building, X, Plus } from 'lucide-react';
 
 const LANGUAGE_OPTIONS = [
   { code: 'en', label: 'English' },
@@ -295,42 +295,75 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({ isOpen, onClo
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="nameHi">Company Name (Hindi) (optional)</Label>
-                <Input
-                  id="nameHi"
-                  name="nameHi"
-                  type="text"
-                  value={formData.nameHi || ''}
-                  onChange={handleChange}
-                  placeholder="कंपनी का नाम"
-                />
-              </div>
-              <div>
-                <Label htmlFor="nameMr">Company Name (Marathi) (optional)</Label>
-                <Input
-                  id="nameMr"
-                  name="nameMr"
-                  type="text"
-                  value={formData.nameMr || ''}
-                  onChange={handleChange}
-                  placeholder="कंपनीचे नाव"
-                />
+            {/* Language Selection - User wants this before foreign names */}
+            <div>
+              <Label className="text-sm font-bold text-slate-700">Supported Languages</Label>
+              <div className="flex flex-wrap gap-4 mt-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                {LANGUAGE_OPTIONS.map((language) => {
+                  const checked = formData.selectedLanguages?.includes(language.code) || false;
+                  const isEnglish = language.code === 'en';
+
+                  return (
+                    <div key={language.code} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id={`lang-${language.code}`}
+                        checked={checked}
+                        onChange={() => handleLanguageToggle(language.code)}
+                        disabled={isEnglish}
+                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <Label htmlFor={`lang-${language.code}`} className="text-sm font-medium cursor-pointer">
+                        {language.label}
+                        {isEnglish && <span className="ml-1 text-[10px] text-slate-400">(Default)</span>}
+                      </Label>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="nameOr">Company Name (Odia) (optional)</Label>
-                <Input
-                  id="nameOr"
-                  name="nameOr"
-                  type="text"
-                  value={formData.nameOr || ''}
-                  onChange={handleChange}
-                  placeholder="କମ୍ପାନି ନାମ"
-                />
-              </div>
+
+            {/* Conditional Name Fields */}
+            <div className="space-y-4">
+              {formData.selectedLanguages?.includes('hi') && (
+                <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                  <Label htmlFor="nameHi">Company Name (Hindi)</Label>
+                  <Input
+                    id="nameHi"
+                    name="nameHi"
+                    type="text"
+                    value={formData.nameHi || ''}
+                    onChange={handleChange}
+                    placeholder="कंपनी का नाम"
+                  />
+                </div>
+              )}
+              {formData.selectedLanguages?.includes('mr') && (
+                <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                  <Label htmlFor="nameMr">Company Name (Marathi)</Label>
+                  <Input
+                    id="nameMr"
+                    name="nameMr"
+                    type="text"
+                    value={formData.nameMr || ''}
+                    onChange={handleChange}
+                    placeholder="कंपनीचे नाव"
+                  />
+                </div>
+              )}
+              {formData.selectedLanguages?.includes('or') && (
+                <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                  <Label htmlFor="nameOr">Company Name (Odia)</Label>
+                  <Input
+                    id="nameOr"
+                    name="nameOr"
+                    type="text"
+                    value={formData.nameOr || ''}
+                    onChange={handleChange}
+                    placeholder="କମ୍ପାନି ନାମ"
+                  />
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -353,15 +386,11 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({ isOpen, onClo
                   type="tel"
                   value={formData.contactPhone}
                   onChange={(e) => {
-                    // Allow digits, spaces, hyphens, plus for telephone (landline/mobile)
                     const value = e.target.value.replace(/[^\d\s\-+]/g, '');
                     setFormData(prev => ({ ...prev, contactPhone: value }));
                   }}
-                  placeholder="e.g. 0721-2662926 or 9356150561"
+                  placeholder="e.g. 0721-2662926"
                 />
-                {formData.contactPhone && !validateTelephone(formData.contactPhone) && (
-                  <p className="text-xs text-red-500 mt-1">Contact phone must be 6–15 digits</p>
-                )}
               </div>
             </div>
 
@@ -372,128 +401,85 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({ isOpen, onClo
                 name="address"
                 value={formData.address}
                 onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
-                rows={3}
-                className="w-full p-2 border rounded-md"
-                placeholder="Company address"
+                rows={2}
+                className="w-full p-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                placeholder="Full operational address..."
               />
             </div>
 
-            {/* Modules Selection */}
-            <div>
-              <Label>Enabled Modules</Label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
-                {AVAILABLE_MODULES.map((module) => (
-                  <div key={module.id} className="flex items-start space-x-2 p-2 border rounded-md">
-                    <input
-                      type="checkbox"
-                      id={module.id}
-                      checked={formData.enabledModules?.includes(module.id) || false}
-                      onChange={() => handleModuleToggle(module.id)}
-                      className="mt-1"
-                    />
-                    <div className="flex-1">
-                      <Label htmlFor={module.id} className="text-sm font-medium cursor-pointer">
-                        {module.name}
-                      </Label>
-                      <p className="text-xs text-gray-500">{module.description}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <Label>Multilingual Selection</Label>
-              <p className="text-xs text-slate-500 mt-1">
-                Selected languages will be available in department creation forms.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
-                {LANGUAGE_OPTIONS.map((language) => {
-                  const checked = formData.selectedLanguages?.includes(language.code) || false;
-                  const isEnglish = language.code === 'en';
-
-                  return (
-                    <div key={language.code} className="flex items-start space-x-2 p-2 border rounded-md">
-                      <input
-                        type="checkbox"
-                        id={`language-${language.code}`}
-                        checked={checked}
-                        onChange={() => handleLanguageToggle(language.code)}
-                        disabled={isEnglish}
-                        className="mt-1"
-                      />
-                      <div className="flex-1">
-                        <Label htmlFor={`language-${language.code}`} className="text-sm font-medium cursor-pointer">
-                          {language.label}
-                        </Label>
-                        {isEnglish && (
-                          <p className="text-[11px] text-slate-500">Required for core records.</p>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
             {/* Admin Creation Section */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label className="text-base font-semibold">Create Company Admin</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowAdminForm(!showAdminForm)}
-                >
-                  {showAdminForm ? 'Remove Admin' : 'Add Admin'}
-                </Button>
+            <div className="pt-2">
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-sm font-bold text-slate-700">Organization Administrator</Label>
+                {!showAdminForm && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowAdminForm(true)}
+                    className="h-8 text-[11px] font-bold uppercase tracking-wider border-blue-200 text-blue-600 hover:bg-blue-50"
+                  >
+                    <Plus className="w-3 h-3 mr-1.5" />
+                    Add Admin
+                  </Button>
+                )}
               </div>
               
               {showAdminForm && (
-                <div className="space-y-4 p-4 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100">
+                <div className="space-y-4 p-5 rounded-2xl bg-slate-50 border border-slate-200 shadow-inner relative animate-in zoom-in-95 duration-200">
+                  <button 
+                    type="button"
+                    onClick={() => setShowAdminForm(false)}
+                    className="absolute top-3 right-3 p-1 hover:bg-slate-200 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                  
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="adminFirstName">Admin First Name *</Label>
+                      <Label htmlFor="adminFirstName" className="text-xs font-bold uppercase text-slate-500">First Name *</Label>
                       <Input
                         id="adminFirstName"
                         name="firstName"
                         type="text"
                         value={formData.admin?.firstName || ''}
                         onChange={handleAdminChange}
-                        required
-                        placeholder="Admin first name"
+                        required={showAdminForm}
+                        className="h-9 text-sm"
+                        placeholder="e.g. Rajesh"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="adminLastName">Admin Last Name *</Label>
+                      <Label htmlFor="adminLastName" className="text-xs font-bold uppercase text-slate-500">Last Name *</Label>
                       <Input
                         id="adminLastName"
                         name="lastName"
                         type="text"
                         value={formData.admin?.lastName || ''}
                         onChange={handleAdminChange}
-                        required
-                        placeholder="Admin last name"
+                        required={showAdminForm}
+                        className="h-9 text-sm"
+                        placeholder="e.g. Kumar"
                       />
                     </div>
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="adminEmail">Admin Email *</Label>
+                      <Label htmlFor="adminEmail" className="text-xs font-bold uppercase text-slate-500">Official Email *</Label>
                       <Input
                         id="adminEmail"
                         name="email"
                         type="email"
                         value={formData.admin?.email || ''}
                         onChange={handleAdminChange}
-                        required
-                        placeholder="admin@company.com"
+                        required={showAdminForm}
+                        className="h-9 text-sm"
+                        placeholder="admin@organization.gov.in"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="adminPassword">Admin Password *</Label>
+                      <Label htmlFor="adminPassword" className="text-xs font-bold uppercase text-slate-500">Access Password *</Label>
                       <Input
                         id="adminPassword"
                         name="password"
@@ -502,42 +488,68 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({ isOpen, onClo
                         onChange={handleAdminChange}
                         minLength={6}
                         maxLength={8}
-                        required
-                        placeholder="6-8 characters"
+                        required={showAdminForm}
+                        className="h-9 text-sm"
+                        placeholder="6-8 Characters"
                       />
-                      {formData.admin?.password && !validatePassword(formData.admin.password) && (
-                        <p className="text-xs text-red-500 mt-1">Password must be between 6 and 8 characters</p>
-                      )}
                     </div>
                   </div>
                   
                   <div>
-                    <Label htmlFor="adminPhone">Admin Phone</Label>
+                    <Label htmlFor="adminPhone" className="text-xs font-bold uppercase text-slate-500">WhatsApp / Contact Number</Label>
                     <Input
                       id="adminPhone"
                       name="phone"
                       type="tel"
                       value={formData.admin?.phone || ''}
                       onChange={(e) => {
-                        // Only allow digits, max 10
                         const value = e.target.value.replace(/\D/g, '').slice(0, 10);
                         setFormData(prev => ({
                           ...prev,
-                          admin: {
-                            ...prev.admin!,
-                            phone: value
-                          }
+                          admin: { ...prev.admin!, phone: value }
                         }));
                       }}
                       maxLength={10}
-                      placeholder="10 digit number (e.g., 9356150561)"
+                      className="h-9 text-sm"
+                      placeholder="10 digit mobile number"
                     />
-                    {formData.admin?.phone && !validatePhoneNumber(formData.admin.phone) && (
-                      <p className="text-xs text-red-500 mt-1">Phone number must be exactly 10 digits</p>
-                    )}
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* Modules Selection - Moved below as requested */}
+            <div className="pt-2">
+              <Label className="text-sm font-bold text-slate-700">Digital Modules Allocation</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+                {AVAILABLE_MODULES.map((module) => (
+                  <div 
+                    key={module.id} 
+                    className={`flex items-start space-x-3 p-3 border rounded-xl transition-all cursor-pointer ${
+                      formData.enabledModules?.includes(module.id) 
+                        ? 'bg-blue-50 border-blue-200 shadow-sm' 
+                        : 'bg-white border-slate-200 hover:border-slate-300'
+                    }`}
+                    onClick={() => handleModuleToggle(module.id)}
+                  >
+                    <div className="pt-0.5">
+                      <input
+                        type="checkbox"
+                        id={module.id}
+                        checked={formData.enabledModules?.includes(module.id) || false}
+                        onChange={(e) => { e.stopPropagation(); handleModuleToggle(module.id); }}
+                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <Label htmlFor={module.id} className="text-xs font-bold text-slate-800 cursor-pointer">
+                        {module.name}
+                      </Label>
+                      <p className="text-[10px] text-slate-500 leading-tight mt-0.5">{module.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div className="flex justify-end space-x-3 pt-6 border-t border-slate-200">

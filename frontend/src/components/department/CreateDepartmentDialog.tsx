@@ -178,7 +178,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
         setCompanyLanguages(FALLBACK_LANGUAGES);
       }
     },
-    [companies, user?.role],
+    [companies, user],
   );
 
   useEffect(() => {

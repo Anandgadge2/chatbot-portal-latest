@@ -6,24 +6,35 @@ import { authenticate } from '../middleware/auth';
 import { requireSuperAdmin } from '../middleware/rbac';
 
 const BUILTIN_TEMPLATE_KEYS = [
-  { key: 'grievance_created',       label: 'Grievance Received (to dept admin)' },
-  { key: 'grievance_assigned',      label: 'Grievance Assigned (to assigned user)' },
-  { key: 'grievance_resolved',      label: 'Grievance Resolved (to citizen + hierarchy)' },
-  { key: 'grievance_confirmation',  label: 'Grievance Confirmation (to citizen)' },
-  { key: 'grievance_status_update', label: 'Grievance Status Update (to citizen)' },
-  { key: 'appointment_created',     label: 'Appointment Received (to admin)' },
-  { key: 'appointment_assigned',    label: 'Appointment Assigned (to assigned user)' },
-  { key: 'appointment_resolved',    label: 'Appointment Resolved (to citizen)' },
-  { key: 'appointment_confirmation', label: 'Appointment Confirmation (to citizen)' },
-  { key: 'appointment_scheduled_update', label: 'Appointment Scheduled (to citizen)' },
-  { key: 'appointment_confirmed_update', label: 'Appointment Confirmed (to citizen)' },
-  { key: 'appointment_cancelled_update', label: 'Appointment Cancelled (to citizen)' },
-  { key: 'appointment_completed_update', label: 'Appointment Completed (to citizen)' },
-  { key: 'appointment_status_update',    label: 'Appointment Status Update (to citizen)' },
-  { key: 'cmd_stop',                label: 'Command: Stop Flow (e.g. stop, quit)' },
-  { key: 'cmd_restart',             label: 'Command: Restart Flow (e.g. restart, start over)' },
-  { key: 'cmd_menu',                label: 'Command: Main Menu (e.g. menu, home)' },
-  { key: 'cmd_back',                label: 'Command: Go Back (e.g. back, previous)' },
+  // Grievance Admin
+  { key: 'grievance_created_admin',    label: 'Grievance Received (Admin/Hierarchy)' },
+  { key: 'grievance_assigned_admin',   label: 'Grievance Assigned (Admin/Hierarchy)' },
+  { key: 'grievance_resolved_admin',   label: 'Grievance Resolved (Admin/Hierarchy)' },
+  { key: 'grievance_rejected_admin',   label: 'Grievance Rejected (Admin/Hierarchy)' },
+
+  // Grievance Citizen
+  { key: 'grievance_confirmation',     label: 'Grievance Confirmation (Citizen)' },
+  { key: 'grievance_status_update',    label: 'Grievance Status Update (Citizen)' },
+  { key: 'grievance_resolved',         label: 'Grievance Resolved (Citizen)' },
+  { key: 'grievance_rejected',         label: 'Grievance Rejected (Citizen)' },
+
+  // Appointment Admin
+  { key: 'appointment_created_admin',   label: 'Appointment Received (Company Admin)' },
+  { key: 'appointment_confirmed_admin', label: 'Appointment Confirmed (Company Admin)' },
+  { key: 'appointment_cancelled_admin', label: 'Appointment Cancelled (Company Admin)' },
+  { key: 'appointment_completed_admin', label: 'Appointment Completed (Company Admin)' },
+
+  // Appointment Citizen
+  { key: 'appointment_confirmation',      label: 'Appointment Requested (Citizen)' },
+  { key: 'appointment_scheduled_update',  label: 'Appointment Scheduled (Citizen)' },
+  { key: 'appointment_cancelled_update',  label: 'Appointment Cancelled (Citizen)' },
+  { key: 'appointment_completed_update',  label: 'Appointment Completed (Citizen)' },
+
+  // Chatbot Commands
+  { key: 'cmd_stop',                 label: 'Stop / End Conversation' },
+  { key: 'cmd_restart',              label: 'Restart Conversation' },
+  { key: 'cmd_menu',                 label: 'Main Menu' },
+  { key: 'cmd_back',                 label: 'Go Back' },
 ];
 
 const router = express.Router();
@@ -608,6 +619,7 @@ router.put('/company/:companyId/templates', authenticate, requireSuperAdmin, asy
         label?: string; 
         message: string;
         keywords?: string[];
+        isActive?: boolean;
       }> 
     };
     let cid: mongoose.Types.ObjectId;
@@ -632,7 +644,7 @@ router.put('/company/:companyId/templates', authenticate, requireSuperAdmin, asy
           message: t.message ?? '', 
           label: t.label ?? builtinEntry?.label ?? key, 
           keywords: Array.isArray(t.keywords) ? t.keywords : [],
-          isActive: true 
+          isActive: t.isActive !== false // Default to true if not provided
         },
         { upsert: true, new: true }
       );

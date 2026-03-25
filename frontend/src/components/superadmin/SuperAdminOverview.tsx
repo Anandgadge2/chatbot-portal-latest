@@ -19,19 +19,14 @@ import { departmentAPI, Department } from "@/lib/api/department";
 import { userAPI, User } from "@/lib/api/user";
 import { apiClient } from "@/lib/api/client";
 import CreateCompanyDialog from "@/components/company/CreateCompanyDialog";
-import CreateDepartmentDialog from "@/components/department/CreateDepartmentDialog";
 import CreateUserDialog from "@/components/user/CreateUserDialog";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { StatsSkeleton, TableSkeleton } from "@/components/ui/GeneralSkeleton";
 import { Pagination } from "@/components/ui/Pagination";
 import RecentActivityPanel from "@/components/dashboard/RecentActivityPanel";
-import TerminalLogs from "@/components/dashboard/TerminalLogs";
-import RoleManagement from "@/components/roles/RoleManagement";
-import ModuleManagement from "@/components/superadmin/ModuleManagement";
 import DashboardStats from "@/components/superadmin/DashboardStats";
 import CompanyTabContent from "@/components/superadmin/CompanyTabContent";
-import DepartmentTabContent from "@/components/superadmin/DepartmentTabContent";
 import UserTabContent from "@/components/superadmin/UserTabContent";
 import {
   Shield,
@@ -41,10 +36,7 @@ import {
   X,
   BarChart2,
   Building,
-  Settings,
   Users,
-  Box,
-  Terminal,
   User as UserIcon,
 } from "lucide-react";
 
@@ -58,7 +50,7 @@ const getCompanyDisplay = (
   return companyId;
 };
 
-function SuperAdminDashboardContent() {
+function SuperAdminOverviewContent() {
   const { user, loading, logout } = useAuth();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -592,11 +584,7 @@ function SuperAdminDashboardContent() {
                   {[
                     { val: "overview", label: "Overview", icon: BarChart2 },
                     { val: "companies", label: "Companies", icon: Building },
-                    { val: "departments", label: "Departments", icon: Settings },
                     { val: "users", label: "Users", icon: Users },
-                    { val: "roles", label: "Roles", icon: Shield },
-                    { val: "features", label: "Features", icon: Box },
-                    { val: "terminal", label: "System Logs", icon: Terminal },
                   ].map((t) => (
                     <TabsTrigger
                       key={t.val}
@@ -661,11 +649,7 @@ function SuperAdminDashboardContent() {
               {[
                 { val: "overview", label: "Overview", icon: BarChart2 },
                 { val: "companies", label: "Companies", icon: Building },
-                { val: "departments", label: "Departments", icon: Settings },
                 { val: "users", label: "Users", icon: Users },
-                { val: "roles", label: "Roles", icon: Shield },
-                { val: "features", label: "Features", icon: Box },
-                { val: "terminal", label: "System Logs", icon: Terminal },
               ].map((t) => (
                 <button
                   key={t.val}
@@ -730,79 +714,10 @@ function SuperAdminDashboardContent() {
 
             {loading ? <StatsSkeleton /> : <DashboardStats stats={stats} setActiveTab={setActiveTab} />}
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
-                {loading ? <TableSkeleton rows={8} cols={4} /> : <RecentActivityPanel />}
-              </div>
-
-              <div className="space-y-6">
-                <Card className="border border-slate-200 shadow-sm overflow-hidden bg-white text-left">
-                  <CardHeader className="bg-slate-50/50 border-b border-slate-100 p-4">
-                    <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                      <UserIcon className="w-4 h-4 text-blue-600" />
-                      Session Profile
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-5">
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-4 text-left">
-                        <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-blue-600 rounded-full flex items-center justify-center text-white font-black text-lg shadow-md">
-                          {user.firstName[0]}
-                          {user.lastName[0]}
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-slate-900 leading-none">
-                            {user.firstName} {user.lastName}
-                          </p>
-                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">
-                            {user.role}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="pt-4 border-t border-slate-100 space-y-3">
-                        <div className="flex justify-between items-center text-[11px]">
-                          <span className="font-bold text-slate-500 uppercase">User ID</span>
-                          <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">{user.userId}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-[11px]">
-                          <span className="font-bold text-slate-500 uppercase">Email</span>
-                          <span className="text-slate-700 font-medium">{user.email}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-[11px]">
-                          <span className="font-bold text-slate-500 uppercase">Access</span>
-                          <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full font-bold">Unrestricted</span>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="border border-slate-200 shadow-sm overflow-hidden bg-white text-left">
-                  <CardHeader className="bg-slate-50/50 border-b border-slate-100 p-4">
-                    <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                      <RefreshCw className="w-4 h-4 text-emerald-600" />
-                      System Health
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-5">
-                    <div className="flex items-center justify-between mb-4 text-left">
-                      <span className="text-xs font-bold text-slate-500 uppercase">API Status</span>
-                      <span className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-bold">
-                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
-                        Healthy
-                      </span>
-                    </div>
-                    <div className="w-full bg-slate-100 rounded-full h-1.5 mb-1">
-                      <div className="bg-indigo-600 h-1.5 rounded-full w-[98%] shadow-[0_0_8px_rgba(79,70,229,0.3)]" />
-                    </div>
-                    <div className="flex justify-between items-center mt-2">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">Uptime</span>
-                      <span className="text-[10px] font-bold text-slate-900 uppercase">99.9%</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+            <div className="mt-6">
+              {loading ? <TableSkeleton rows={8} cols={4} /> : <RecentActivityPanel />}
             </div>
+
           </TabsContent>
 
           <TabsContent value="companies" className="space-y-4 outline-none">
@@ -832,31 +747,6 @@ function SuperAdminDashboardContent() {
             )}
           </TabsContent>
 
-          <TabsContent value="departments" className="space-y-4 outline-none">
-            {loading ? (
-              <TableSkeleton rows={10} cols={5} />
-            ) : (
-              <DepartmentTabContent
-                departments={departments}
-                deptSearchTerm={deptSearchTerm}
-                setDeptSearchTerm={setDeptSearchTerm}
-                deptCompanyFilter={deptCompanyFilter}
-                setDeptCompanyFilter={setDeptCompanyFilter}
-                allCompanies={allCompanies}
-                departmentPage={departmentPage}
-                setDepartmentPage={setDepartmentPage}
-                departmentPagination={departmentPagination}
-                setEditingDepartment={setEditingDepartment}
-                setShowDepartmentDialog={setShowDepartmentDialog}
-                handleEditDepartment={handleEditDepartment}
-                handleDeleteDepartment={handleDeleteDepartment}
-                toggleDepartmentStatus={toggleDepartmentStatus}
-                getCompanyDisplay={getCompanyDisplay}
-                router={router}
-                onRefresh={() => { fetchDepartments(); fetchStats(); }}
-              />
-            )}
-          </TabsContent>
 
           <TabsContent value="users" className="space-y-4 outline-none">
             {loading ? (
@@ -886,66 +776,6 @@ function SuperAdminDashboardContent() {
             )}
           </TabsContent>
 
-          <TabsContent value="roles" className="space-y-4 outline-none">
-            <Card className="border-0 shadow-xl rounded-2xl overflow-hidden bg-white text-left">
-              <CardHeader className="bg-slate-50 border-b border-slate-100 p-6">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div>
-                    <CardTitle className="text-xl font-black text-slate-800 tracking-tight uppercase">
-                      Role Governance
-                    </CardTitle>
-                    <CardDescription className="text-slate-500 font-medium">
-                      Manage access control across the network
-                    </CardDescription>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
-                      Select<br />Entity
-                    </span>
-                    <select
-                      className="bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700 shadow-sm min-w-[200px]"
-                      value={selectedRoleCompanyId}
-                      onChange={(e) => setSelectedRoleCompanyId(e.target.value)}
-                    >
-                      <option value="">Select Company...</option>
-                      {allCompanies.map((c) => (
-                        <option key={c._id} value={c._id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="p-6">
-                {selectedRoleCompanyId ? (
-                  <RoleManagement companyId={selectedRoleCompanyId} />
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
-                    <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center">
-                      <Shield className="w-8 h-8 text-slate-300" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-black text-slate-400 uppercase tracking-tight">
-                        No Entity Selected
-                      </h3>
-                      <p className="text-slate-400 text-sm max-w-[280px] font-medium">
-                        Please select a company from the dropdown above to manage its roles and permissions.
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="features" className="space-y-6 outline-none">
-            <ModuleManagement />
-          </TabsContent>
-
-          <TabsContent value="terminal" className="space-y-4 outline-none">
-            <TerminalLogs />
-          </TabsContent>
         </Tabs>
 
         <CreateCompanyDialog
@@ -959,18 +789,6 @@ function SuperAdminDashboardContent() {
             setEditingCompany(null);
           }}
           editingCompany={editingCompany}
-        />
-        <CreateDepartmentDialog
-          isOpen={showDepartmentDialog}
-          onClose={() => {
-            setShowDepartmentDialog(false);
-            setEditingDepartment(null);
-          }}
-          onDepartmentCreated={() => {
-            fetchDepartments();
-            setEditingDepartment(null);
-          }}
-          editingDepartment={editingDepartment}
         />
         <ConfirmDialog
           isOpen={confirmDialog.isOpen}
@@ -994,10 +812,10 @@ function SuperAdminDashboardContent() {
   );
 }
 
-export default function SuperAdminDashboard() {
+export default function SuperAdminOverview() {
   return (
     <Suspense fallback={<LoadingSpinner text="Initializing Dashboard Structure..." />}>
-      <SuperAdminDashboardContent />
+      <SuperAdminOverviewContent />
     </Suspense>
   );
 }

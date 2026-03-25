@@ -550,23 +550,6 @@ export class DynamicFlowEngine {
   private async executeMessageStep(step: IFlowStep): Promise<void> {
     const stepId = step.stepId || "";
     const messageText = step.messageText || "";
-    const shouldSuppressAppointmentSuccessMessage =
-      this.session.data?.skipFlowAppointmentSuccessMessage === true &&
-      (/appointment_submitted|appointment_success|apt_success/i.test(stepId) ||
-        /appointment request submitted|appointment booked successfully|अपॉइंटमेंट अनुरोध|ଆପଏଣ୍ଟମେଣ୍ଟ/.test(
-          messageText,
-        ));
-
-    if (shouldSuppressAppointmentSuccessMessage) {
-      console.log(
-        `⏭️ Suppressing flow appointment success message for step ${stepId}; using configured WhatsApp template only`,
-      );
-      this.session.data.skipFlowAppointmentSuccessMessage = false;
-      this.session.data.currentStepId = step.stepId;
-      await updateSession(this.session);
-      await this.runNextStepIfDifferent(step.nextStepId, step.stepId);
-      return;
-    }
 
     // Simple message step - no special ID fallbacks for departments anymore to avoid duplicates
     // Rely exclusively on step.stepType === 'list' with isDynamic: true in the flow.
@@ -1817,7 +1800,12 @@ export class DynamicFlowEngine {
     }
 
     const message = this.replacePlaceholders(
-      getLocalText(step, lang) || "📅 Please select a date:",
+      getLocalText(step, lang) ||
+        (lang === "hi"
+          ? "🗓️ कृपया एक तारीख चुनें:"
+          : lang === "or"
+            ? "🗓️ ଦୟାକରି ଏକ ତାରିଖ ବାଛନ୍ତୁ:"
+            : "📅 Please select a date:"),
     );
     await sendWhatsAppList(
       this.company,
@@ -1880,7 +1868,12 @@ export class DynamicFlowEngine {
     }
 
     const message = this.replacePlaceholders(
-      getLocalText(step, lang) || "⏰ Please select a time:",
+      getLocalText(step, lang) ||
+        (lang === "hi"
+          ? "⏰ कृपया एक समय चुनें:"
+          : lang === "or"
+            ? "⏰ ଦୟାକରି ଏକ ସମୟ ବାଛନ୍ତୁ:"
+            : "⏰ Please select a time:"),
     );
     await sendWhatsAppList(
       this.company,
@@ -2117,35 +2110,54 @@ export class DynamicFlowEngine {
           String(buttonId).startsWith("lead_confirm_yes") ||
           String(buttonId).startsWith("submit_lead");
 
-        if (isGrievanceConfirm && isGrievanceSuccess && isSubmitClick) {
+        // Case 1: Grievance
+        if (isGrievanceConfirm && isSubmitClick) {
           console.log(`🎯 Triggering createGrievance for button: ${buttonId}`);
-          await ActionService.createGrievance(
-            this.session,
-            this.company,
-            this.userPhone,
-          );
-        } else if (
-          isAppointmentConfirm &&
-          isAppointmentSubmitted &&
-          isApptSubmitClick
-        ) {
-          console.log(
-            `🎯 Triggering createAppointment for button: ${buttonId}`,
-          );
-          await ActionService.createAppointment(
-            this.session,
-            this.company,
-            this.userPhone,
-          );
-        } else if (isLeadConfirm && isLeadSuccess && isLeadSubmitClick) {
-          console.log(`🎯 Triggering createLead for button: ${buttonId}`);
-          await ActionService.createLead(
-            this.session,
-            this.company,
-            this.userPhone,
-          );
+          await ActionService.createGrievance(this.session, this.company, this.userPhone);
+          // If the flow has a success node, move to it. Otherwise, end session here.
+          if (isGrievanceSuccess) {
+            await this.runNextStepIfDifferent(nextStepId, currentStep.stepId);
+          } else {
+            this.session.data.stepQueue = [];
+            this.session.data.lastStepId = "end";
+            await updateSession(this.session);
+          }
+          return;
         }
-        await this.runNextStepIfDifferent(nextStepId, currentStep.stepId);
+
+        // Case 2: Appointment
+        if (isAppointmentConfirm && isApptSubmitClick) {
+          console.log(`🎯 Triggering createAppointment for button: ${buttonId}`);
+          await ActionService.createAppointment(this.session, this.company, this.userPhone);
+          // Move to success node or end session
+          if (isAppointmentSubmitted) {
+            await this.runNextStepIfDifferent(nextStepId, currentStep.stepId);
+          } else {
+            this.session.data.stepQueue = [];
+            this.session.data.lastStepId = "end";
+            await updateSession(this.session);
+          }
+          return;
+        }
+
+        // Case 3: Lead
+        if (isLeadConfirm && isLeadSubmitClick) {
+          console.log(`🎯 Triggering createLead for button: ${buttonId}`);
+          await ActionService.createLead(this.session, this.company, this.userPhone);
+          if (isLeadSuccess) {
+            await this.runNextStepIfDifferent(nextStepId, currentStep.stepId);
+          } else {
+            this.session.data.stepQueue = [];
+            this.session.data.lastStepId = "end";
+            await updateSession(this.session);
+          }
+          return;
+        }
+
+        // Default: If no action triggered but we have a next step, go there
+        if (nextStepId) {
+          await this.runNextStepIfDifferent(nextStepId, currentStep.stepId);
+        }
         return;
       } else {
         console.log(

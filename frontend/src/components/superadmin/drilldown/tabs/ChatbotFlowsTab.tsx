@@ -334,20 +334,7 @@ export default function ChatbotFlowsTab({ companyId }: ChatbotFlowsTabProps) {
         </Card>
       )}
 
-      {/* Initialize defaults if none exist */}
-      {!hasDefaultFlows && (
-         <Card className="rounded-xl border border-indigo-200 bg-indigo-50 border-dashed">
-            <CardContent className="p-6 flex flex-col items-center justify-center text-center">
-               <Workflow className="w-10 h-10 text-indigo-400 mb-3" />
-               <h3 className="text-sm font-bold text-slate-800 uppercase tracking-tight">Provision Standard Pipelines</h3>
-               <p className="text-xs text-slate-600 mt-1 mb-4 max-w-sm">Automatically generate pre-built templates for grievance reporting, tracking, and appointment booking.</p>
-               <Button onClick={handleGenerateDefaultFlows} disabled={checkingDefaults} className="bg-indigo-600 hover:bg-indigo-700 h-9 px-6 rounded-xl font-bold text-[10px] uppercase tracking-wider">
-                  {checkingDefaults ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-2" /> : <Plus className="w-3.5 h-3.5 mr-2" />}
-                  {checkingDefaults ? "Provisioning Matrix..." : "Initialize Core Flows"}
-               </Button>
-            </CardContent>
-         </Card>
-      )}
+
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="space-y-4">
         <TabsList className="bg-slate-100 p-1 rounded-xl h-10 border border-slate-200">

@@ -34,7 +34,6 @@ const UserSchema: Schema = new Schema(
     userId: {
       type: String,
       required: false,
-      unique: true,
       index: true
     },
     firstName: {
@@ -134,6 +133,7 @@ UserSchema.index({ companyId: 1, createdAt: -1 });
 // This allows the same email/phone to be used in different companies, but not in the same company
 UserSchema.index({ email: 1, companyId: 1 }, { unique: true, sparse: true });
 UserSchema.index({ phone: 1, companyId: 1 }, { unique: true });
+UserSchema.index({ userId: 1, companyId: 1 }, { unique: true });
 
 // Pre-validate hook to generate userId (per-company)
 UserSchema.pre('validate', async function (next) {
@@ -155,7 +155,7 @@ UserSchema.pre('validate', async function (next) {
       }
       
       const lastUser = await mongoose.model('User')
-        .findOne(query, { userId: 1 })
+        .findOne({ ...query, userId: { $regex: /^USER\d+$/ } }, { userId: 1 })
         .sort({ userId: -1 });
 
       let nextNum = 1;

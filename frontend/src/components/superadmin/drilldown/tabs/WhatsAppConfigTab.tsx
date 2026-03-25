@@ -739,30 +739,6 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
             </CardContent>
           </Card>
 
-          <Card className="rounded-xl border-slate-200 overflow-hidden bg-slate-50/50 border-dashed">
-            <CardContent className="p-5">
-              <div className="flex items-start gap-3">
-                <Info className="w-5 h-5 text-indigo-500 mt-0.5" />
-                <div>
-                  <h4 className="text-[11px] font-black text-slate-800 uppercase tracking-tight">
-                    Webhook Web Matrix
-                  </h4>
-                  <p className="text-[10px] text-slate-600 font-medium leading-relaxed mt-1">
-                    Point your Meta Webhook to:
-                    <code className="block mt-2 p-2 bg-white rounded border border-slate-200 text-indigo-600 font-bold break-all">
-                      https://chatbot-portal-latest.onrender.com/api/webhooks/whatsapp
-                    </code>
-                  </p>
-                  <p className="text-[9px] text-slate-400 font-bold uppercase mt-3">
-                    Verify Token:
-                    <span className="text-slate-800 ml-1">
-                      {config?.verifyToken || "chatbot_verify_token_2024"}
-                    </span>
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Center/Right Col: Notifications Designer */}

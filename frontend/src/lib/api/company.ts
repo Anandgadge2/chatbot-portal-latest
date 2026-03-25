@@ -58,6 +58,8 @@ export interface CreateCompanyData {
     password: string;
     phone?: string;
   };
+  isActive?: boolean;
+  isSuspended?: boolean;
 }
 
 export interface CompaniesResponse {

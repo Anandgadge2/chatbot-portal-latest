@@ -204,26 +204,55 @@ export const create = async (req: Request, res: Response) => {
     // Create company admin if admin data is provided
     let adminUser: any = null;
     if (admin && admin.email && admin.password && admin.firstName && admin.lastName) {
-      console.log('Creating admin user for company:', admin.email);
+      console.log('Provisioning administrative ecosystem for company:', admin.email);
 
       try {
-        // Create admin user (password will be hashed by pre-save hook)
+        const Role = (await import('../models/Role')).default;
+        
+        // 1. Create a primary "Company Administrator" role with full access to allocated modules
+        const permissions: any[] = (enabledModules || []).map((m: string) => ({
+          module: m.toUpperCase(),
+          actions: ['*']
+        }));
+        
+        // Ensure core management modules are always available to the primary admin
+        const mandatoryModules = ['SETTINGS', 'USER_MANAGEMENT', 'DEPARTMENTS', 'ANALYTICS'];
+        mandatoryModules.forEach(m => {
+          if (!permissions.find(p => p.module === m)) {
+            permissions.push({ module: m, actions: ['*'] });
+          }
+        });
+
+        const defaultRole = await Role.create({
+          companyId: company._id,
+          level: 1, // Root level for this company
+          scope: 'company',
+          name: 'Company Administrator',
+          description: 'Primary administrative account with global rights over company assets.',
+          isSystem: true,
+          permissions,
+          createdBy: req.user!._id
+        });
+
+        // 2. Create the actual admin user linked to this role
         adminUser = await User.create({
           firstName: admin.firstName,
           lastName: admin.lastName,
           email: admin.email,
-          password: admin.password, // Pre-save hook will hash this
+          password: admin.password,
           phone: normalizedAdminPhone || normalizedContactPhone || undefined,
-          role: 'Admin', // General legacy fallback
+          role: defaultRole.name,
+          customRoleId: defaultRole._id,
           companyId: company._id,
-          isActive: true
+          isActive: true,
+          rawPassword: admin.password,
+          createdBy: req.user!._id
         });
 
-        console.log('Admin user created successfully:', adminUser._id);
-      } catch (userError: any) {
-        console.error('Failed to create admin user:', userError);
-        // Don't fail the whole company creation if admin creation fails
-        console.warn('Company created but admin user creation failed');
+        console.log('✅ Admin user and primary role provisioned successfully');
+      } catch (provisionError: any) {
+        console.error('❌ Hierarchy provisioning failed:', provisionError);
+        // We still return success for company creation since the company record was saved
       }
     }
 

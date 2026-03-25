@@ -286,6 +286,84 @@ export async function sendWhatsAppButtons(
 
 /**
  * ============================================================
+ * SEND CTA URL BUTTON (1 ACTION BUTTON)
+ * ============================================================
+ */
+export async function sendWhatsAppCTA(
+  company: any,
+  to: string,
+  message: string,
+  buttonTitle: string,
+  url: string,
+  headerText?: string,
+  footerText?: string
+): Promise<any> {
+  try {
+    const { url: apiURL, headers } = getWhatsAppConfig(company);
+
+    const normalizedTo = normalizePhoneNumber(to);
+    const payload: any = {
+      messaging_product: 'whatsapp',
+      to: normalizedTo,
+      recipient_type: 'individual',
+      type: 'interactive',
+      interactive: {
+        type: 'cta_url',
+        body: {
+          text: safeText(message, 1024)
+        },
+        action: {
+          name: 'cta_url',
+          parameters: {
+            display_text: buttonTitle.slice(0, 20),
+            url: url
+          }
+        }
+      }
+    };
+
+    if (headerText) {
+      payload.interactive.header = {
+        type: 'text',
+        text: safeText(headerText, 60)
+      };
+    }
+
+    if (footerText) {
+      payload.interactive.footer = {
+        text: safeText(footerText, 60)
+      };
+    }
+
+    const response = await axios.post(apiURL, payload, { headers });
+
+    console.log(`✅ WhatsApp CTA sent → ${to} (Button: ${buttonTitle})`);
+
+    // Log to audit for SuperAdmin terminal
+    await logOutgoingMessage(company, to, message, 'cta_url');
+
+    return {
+      success: true,
+      messageId: response.data.messages?.[0]?.id
+    };
+
+  } catch (error: any) {
+    logMetaError(error, {
+      action: 'send_cta_url',
+      to,
+      company: company?.name,
+      buttonTitle,
+      url
+    });
+
+    // Fallback to text
+    const fallbackText = `${message}\n\n🔗 ${buttonTitle}: ${url}`;
+    return sendWhatsAppMessage(company, to, fallbackText);
+  }
+}
+
+/**
+ * ============================================================
  * SEND LIST MESSAGE
  * ============================================================
  */

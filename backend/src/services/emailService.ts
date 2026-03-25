@@ -415,7 +415,7 @@ function generateTimelineHTML(timeline: any[] | undefined, resolvedBy: any, reso
  */
 export function replacePlaceholders(str: string, data: Record<string, any>): string {
   if (!str || typeof str !== 'string') return str;
-  return str.replace(/\{(\w+)\}/g, (_, key) => {
+  return str.replace(/\{([^{}]+)\}/g, (_, key) => {
     const v = data[key];
     // Return the value if it exists, otherwise provide a user-friendly fallback
     return (v != null && v !== '') ? String(v) : 'Not provided';
@@ -465,9 +465,14 @@ export async function getNotificationWhatsAppMessage(
     ? new mongoose.Types.ObjectId(companyId)
     : companyId;
     
+  const lang = data.language || data.lang || 'en';
+  
   const attemptKeys = [
-    `${type}_${action}`,
+    `${type}_${action}_${lang}`,
+    `${type}_${action}`, 
+    action === 'confirmation' ? `${type}_created_${lang}` : '',
     action === 'confirmation' ? `${type}_created` : '',
+    action === 'created' ? `${type}_confirmation_${lang}` : '',
     action === 'created' ? `${type}_confirmation` : ''
   ].filter(Boolean);
 

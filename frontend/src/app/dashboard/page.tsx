@@ -59,7 +59,7 @@ import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { StatsSkeleton, TableSkeleton } from "@/components/ui/GeneralSkeleton";
 import { Pagination } from "@/components/ui/Pagination";
 import AvailabilityCalendar from "@/components/availability/AvailabilityCalendar";
-import SuperAdminDashboard from "@/app/superadmin/dashboard/page";
+import SuperAdminOverview from "@/components/superadmin/SuperAdminOverview";
 import WhatsAppConfigTab from "@/components/superadmin/drilldown/tabs/WhatsAppConfigTab";
 import EmailConfigTab from "@/components/superadmin/drilldown/tabs/EmailConfigTab";
 import ChatbotFlowsTab from "@/components/superadmin/drilldown/tabs/ChatbotFlowsTab";
@@ -134,6 +134,7 @@ import {
   MessageSquare,
   Bot,
   BellRing,
+  Workflow,
 } from "lucide-react";
 
 interface DashboardStats {
@@ -203,10 +204,18 @@ function DashboardContent() {
   const [mounted, setMounted] = useState(false);
   // Get initial tab from URL search params, default based on role
   const getDefaultTab = () => {
+    // Priority 1: Check URL Parameters for state restoration
+    const tabFromUrl = searchParams.get("tab");
+    if (tabFromUrl) return tabFromUrl;
+
+    // Priority 2: Company drilldown defaults
     if (companyIdParam) return "overview";
+
+    // Priority 3: Role-based defaults
     if (!hasPermission(user, Permission.VIEW_ANALYTICS) && !isSuperAdminUser) {
       if (hasPermission(user, Permission.READ_GRIEVANCE)) return "grievances";
-      return "profile";
+      if (hasPermission(user, Permission.READ_APPOINTMENT)) return "appointments";
+      return "overview";
     }
     return "overview";
   };
@@ -593,12 +602,19 @@ function DashboardContent() {
   // Redirect away from overview if no analytics permission
   useEffect(() => {
     if (user && !hasPermission(user, Permission.VIEW_ANALYTICS) && !isSuperAdminUser && activeTab === "overview") {
-      const nextTab = hasPermission(user, Permission.READ_GRIEVANCE) ? "grievances" : "profile";
+      const nextTab = hasPermission(user, Permission.READ_GRIEVANCE) ? "grievances" : "appointments";
       setActiveTab(nextTab);
     }
   }, [user, activeTab, isSuperAdminUser]);
 
-  // Persist tab state only for the current session without URL modification
+  // Handle browser back/forward navigation persistence
+  useEffect(() => {
+    const tabFromUrl = searchParams.get("tab");
+    if (tabFromUrl && tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [searchParams, activeTab]);
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -1062,36 +1078,45 @@ function DashboardContent() {
     }
   }, [mounted, user, fetchDashboardData, fetchCompany, fetchRoles, isSuperAdminUser, companyIdParam]);
 
-  // 2. Specialized effects for each paginated module
+  // 2. Specialized effects for each paginated module (Gated by activeTab for SPA performance)
   useEffect(() => {
-    if (mounted && user && (isSuperAdminUser || hasPermission(user, Permission.READ_DEPARTMENT))) {
+    if (activeTab === "analytics" && mounted && user) {
+      fetchHourlyData();
+      fetchCategoryData();
+      fetchDepartmentData();
+    }
+  }, [activeTab, mounted, user, fetchHourlyData, fetchCategoryData, fetchDepartmentData]);
+
+  useEffect(() => {
+    const shouldFetch = (activeTab === "departments") || (activeTab === "overview" && isDepartmentLevel);
+    if (shouldFetch && mounted && user && (isSuperAdminUser || hasPermission(user, Permission.READ_DEPARTMENT) || isDepartmentLevel)) {
       fetchDepartments(departmentPage);
     }
-  }, [mounted, user, departmentPage, fetchDepartments, isSuperAdminUser]);
+  }, [activeTab, mounted, user, departmentPage, fetchDepartments, isSuperAdminUser, isDepartmentLevel]);
 
   useEffect(() => {
-    if (mounted && user && (isSuperAdminUser || hasPermission(user, Permission.READ_USER))) {
+    if (activeTab === "users" && mounted && user && (isSuperAdminUser || hasPermission(user, Permission.READ_USER))) {
       fetchUsers(userPage);
     }
-  }, [mounted, user, userPage, fetchUsers, isSuperAdminUser]);
+  }, [activeTab, mounted, user, userPage, fetchUsers, isSuperAdminUser]);
 
   useEffect(() => {
-    if (mounted && user && (isSuperAdminUser || (hasModule(Module.GRIEVANCE) && hasPermission(user, Permission.READ_GRIEVANCE)))) {
+    if (activeTab === "grievances" && mounted && user && (isSuperAdminUser || (hasModule(Module.GRIEVANCE) && hasPermission(user, Permission.READ_GRIEVANCE)))) {
       fetchGrievances(grievancePage);
     }
-  }, [mounted, user, grievancePage, fetchGrievances, hasModule, isSuperAdminUser]);
+  }, [activeTab, mounted, user, grievancePage, fetchGrievances, hasModule, isSuperAdminUser]);
 
   useEffect(() => {
-    if (mounted && user && (isSuperAdminUser || (hasModule(Module.APPOINTMENT) && hasPermission(user, Permission.READ_APPOINTMENT)))) {
+    if (activeTab === "appointments" && mounted && user && (isSuperAdminUser || (hasModule(Module.APPOINTMENT) && hasPermission(user, Permission.READ_APPOINTMENT)))) {
       fetchAppointments(appointmentPage);
     }
-  }, [mounted, user, appointmentPage, fetchAppointments, hasModule, isSuperAdminUser]);
+  }, [activeTab, mounted, user, appointmentPage, fetchAppointments, hasModule, isSuperAdminUser]);
 
   useEffect(() => {
-    if (mounted && user && hasModule(Module.LEAD_CAPTURE)) {
+    if (activeTab === "leads" && mounted && user && hasModule(Module.LEAD_CAPTURE)) {
       fetchLeads();
     }
-  }, [mounted, user, fetchLeads, hasModule]);
+  }, [activeTab, mounted, user, fetchLeads, hasModule]);
 
   // 3. Polling isolated from initial load triggers
   useEffect(() => {
@@ -1564,7 +1589,7 @@ function DashboardContent() {
   }
 
   if (user?.isSuperAdmin && !companyIdParam) {
-    return <SuperAdminDashboard />;
+    return <SuperAdminOverview />;
   }
 
   if (!user) {
@@ -1638,7 +1663,7 @@ function DashboardContent() {
 
               {isSuperAdminUser && companyIdParam && (
                 <Link
-                  href="/superadmin/dashboard"
+                  href="/dashboard"
                   className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700 transition-all duration-300 text-[10px] font-black uppercase tracking-widest shadow-xl"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
@@ -1684,28 +1709,16 @@ function DashboardContent() {
 
             setActiveTab(value);
 
-            // Automatic content loading triggered on tab click for SPA experience
-            if (mounted && user) {
-               if (value === "overview" && (isSuperAdminUser || hasPermission(user, Permission.VIEW_ANALYTICS))) fetchDashboardData();
-               else if (value === "analytics") {
-                 fetchHourlyData();
-                 fetchCategoryData();
-                 fetchDashboardData();
-                 fetchDepartmentData();
-               }
-               else if (value === "grievances") fetchGrievances(1);
-               else if (value === "appointments") fetchAppointments(1);
-               else if (value === "departments") fetchDepartments(1);
-               else if (value === "users") fetchUsers(1);
-               else if (value === "leads") fetchLeads();
-               else if (value === "roles" && isSuperAdminUser) fetchRoles();
-            }
+            // Sync with URL for state persistence across refreshes
+            const params = new URLSearchParams(window.location.search);
+            params.set("tab", value);
+            router.replace(`${window.location.pathname}?${params.toString()}`, { scroll: false });
           }}
           className="space-y-4 sm:space-y-6"
         >
           <div className="mb-4 sticky top-[64px] z-40 bg-slate-50/95 backdrop-blur-sm py-3 -mx-4 px-4 sm:mx-0 sm:px-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <TabsList className="w-full sm:w-auto bg-slate-200/50 p-1 border border-slate-300/50 h-10 shadow-sm overflow-x-auto no-scrollbar max-w-full">
-              {hasPermission(user, Permission.VIEW_ANALYTICS) && (
+              {(isSuperAdminUser || hasPermission(user, Permission.VIEW_ANALYTICS)) && (
                 <TabsTrigger
                   value="overview"
                   className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
@@ -1755,7 +1768,7 @@ function DashboardContent() {
                   </TabsTrigger>
                 )}
 
-              {isViewingCompany && (
+              {isViewingCompany && !isSuperAdminUser && (
                 <TabsTrigger
                   value="departments"
                   className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
@@ -1811,18 +1824,11 @@ function DashboardContent() {
                     WhatsApp
                   </TabsTrigger>
                   <TabsTrigger
-                    value="chatbot"
-                    className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-indigo-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg flex items-center"
+                    value="flows"
+                    className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-violet-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg flex items-center"
                   >
-                    <Bot className="w-3.5 h-3.5 mr-1.5" />
-                    Chatbot
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="roles"
-                    className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg flex items-center"
-                  >
-                    <Shield className="w-3.5 h-3.5 mr-1.5" />
-                    Roles
+                    <Workflow className="w-3.5 h-3.5 mr-1.5" />
+                    Flows
                   </TabsTrigger>
                   <TabsTrigger
                     value="notifications"
@@ -1841,14 +1847,6 @@ function DashboardContent() {
                 </>
               )}
 
-              {!hasPermission(user, Permission.VIEW_ANALYTICS) && !isSuperAdminUser && (
-                <TabsTrigger
-                  value="profile"
-                  className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
-                >
-                  My Profile
-                </TabsTrigger>
-              )}
             </TabsList>
             <Button
               onClick={handleRefresh}
@@ -6657,427 +6655,6 @@ function DashboardContent() {
             )}
 
 
-          <TabsContent value="profile" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-1">
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                  <div className="bg-slate-900 px-6 py-4 border-b border-slate-800">
-                    <h3 className="text-white text-sm font-bold uppercase tracking-tight flex items-center gap-2">
-                      <UserIcon className="w-4 h-4 text-indigo-400" />
-                      Official Identity
-                    </h3>
-                  </div>
-                  <div className="p-6">
-                    <div className="flex flex-col items-center text-center">
-                      <div className="w-24 h-24 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl mb-4">
-                        <span className="text-3xl font-bold text-white uppercase">
-                          {user?.firstName?.[0]}
-                          {user?.lastName?.[0]}
-                        </span>
-                      </div>
-                      <h3 className="text-xl font-bold text-gray-900 mb-1">
-                        {user?.firstName} {user?.lastName}
-                      </h3>
-                      <span className="px-3 py-1 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-xs font-bold rounded-full uppercase tracking-wide mb-4">
-                        {user?.role?.replace("_", " ")}
-                      </span>
-
-                      <div className="w-full space-y-3 mt-4 text-left">
-                        <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
-                          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                            <Mail className="w-5 h-5 text-blue-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
-                              Email
-                            </p>
-                            <p className="text-sm font-medium text-gray-900 truncate">
-                              {user?.email}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
-                          <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                            <Phone className="w-5 h-5 text-green-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
-                              Phone
-                            </p>
-                            <p className="text-sm font-medium text-gray-900">
-                              {user?.phone || "Not provided"}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
-                          <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                            <Building className="w-5 h-5 text-purple-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
-                              Department
-                            </p>
-                            <p className="text-sm font-medium text-gray-900 truncate">
-                              {typeof user?.departmentId === "object" &&
-                              user?.departmentId
-                                ? (user.departmentId as any).name
-                                : departments.find(
-                                    (d) => d._id === user?.departmentId,
-                                  )?.name || "Not assigned"}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
-                          <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
-                            <Shield className="w-5 h-5 text-amber-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
-                              User ID
-                            </p>
-                            <p className="text-xs font-mono text-gray-600 truncate">
-                              {user?.id}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Performance Statistics */}
-              <div className="lg:col-span-2 space-y-6">
-                {/* Stats Overview */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="relative overflow-hidden bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 rounded-2xl p-5 text-white shadow-lg">
-                    <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2" />
-                    <div className="relative z-10">
-                      <p className="text-sm font-medium text-white/80">
-                        Assigned Grievances
-                      </p>
-                      <p className="text-3xl font-black mt-1">
-                        {
-                          grievances.filter((g) => {
-                            const assignedId =
-                              typeof g.assignedTo === "object" && g.assignedTo
-                                ? (g.assignedTo as any)._id
-                                : g.assignedTo;
-                            return assignedId === user?.id;
-                          }).length
-                        }
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 via-green-500 to-teal-500 rounded-2xl p-5 text-white shadow-lg">
-                    <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2" />
-                    <div className="relative z-10">
-                      <p className="text-sm font-medium text-white/80">
-                        Resolved Grievances
-                      </p>
-                      <p className="text-3xl font-black mt-1">
-                        {
-                          grievances.filter((g) => {
-                            const assignedId =
-                              typeof g.assignedTo === "object" && g.assignedTo
-                                ? (g.assignedTo as any)._id
-                                : g.assignedTo;
-                            return (
-                              assignedId === user?.id && g.status === "RESOLVED"
-                            );
-                          }).length
-                        }
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="relative overflow-hidden bg-gradient-to-br from-purple-500 via-fuchsia-500 to-pink-500 rounded-2xl p-5 text-white shadow-lg">
-                    <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2" />
-                    <div className="relative z-10">
-                      <p className="text-sm font-medium text-white/80">
-                        Assigned Appointments
-                      </p>
-                      <p className="text-3xl font-black mt-1">
-                        {
-                          appointments.filter((a) => {
-                            const assignedId =
-                              typeof a.assignedTo === "object" && a.assignedTo
-                                ? (a.assignedTo as any)._id
-                                : a.assignedTo;
-                            return assignedId === user?.id;
-                          }).length
-                        }
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="relative overflow-hidden bg-gradient-to-br from-amber-500 via-orange-500 to-red-500 rounded-2xl p-5 text-white shadow-lg">
-                    <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2" />
-                    <div className="relative z-10">
-                      <p className="text-sm font-medium text-white/80">
-                        Completed Appointments
-                      </p>
-                      <p className="text-3xl font-black mt-1">
-                        {
-                          appointments.filter((a) => {
-                            const assignedId =
-                              typeof a.assignedTo === "object" && a.assignedTo
-                                ? (a.assignedTo as any)._id
-                                : a.assignedTo;
-                            return (
-                              assignedId === user?.id &&
-                              a.status === "COMPLETED"
-                            );
-                          }).length
-                        }
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Detailed Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Grievances Breakdown */}
-                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-5 border border-blue-100 shadow-lg">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center shadow-md">
-                        <FileText className="w-5 h-5 text-white" />
-                      </div>
-                      <h4 className="text-lg font-bold text-gray-900">
-                        Grievances Breakdown
-                      </h4>
-                    </div>
-
-                    <div className="space-y-3">
-                      {(() => {
-                        const myGrievances = grievances.filter((g) => {
-                          const assignedId =
-                            typeof g.assignedTo === "object" && g.assignedTo
-                              ? (g.assignedTo as any)._id
-                              : g.assignedTo;
-                          return assignedId === user?.id;
-                        });
-                        const pending = myGrievances.filter(
-                          (g) => g.status === "PENDING",
-                        ).length;
-                        const assigned = myGrievances.filter(
-                          (g) => g.status === "ASSIGNED",
-                        ).length;
-                        const resolved = myGrievances.filter(
-                          (g) => g.status === "RESOLVED",
-                        ).length;
-                        const total = myGrievances.length;
-
-                        return (
-                          <>
-                            <div className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-100">
-                              <span className="text-sm text-gray-600 flex items-center gap-2">
-                                <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
-                                Pending
-                              </span>
-                              <span className="font-bold text-gray-900">
-                                {pending}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-100">
-                              <span className="text-sm text-gray-600 flex items-center gap-2">
-                                <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                                In Progress
-                              </span>
-                              <span className="font-bold text-gray-900">
-                                {assigned}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-100">
-                              <span className="text-sm text-gray-600 flex items-center gap-2">
-                                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                                Resolved
-                              </span>
-                              <span className="font-bold text-gray-900">
-                                {resolved}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center p-3 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl text-white mt-2">
-                              <span className="text-sm font-medium">
-                                Resolution Rate
-                              </span>
-                              <span className="font-bold text-lg">
-                                {total > 0
-                                  ? ((resolved / total) * 100).toFixed(1)
-                                  : "0.0"}
-                                %
-                              </span>
-                            </div>
-                          </>
-                        );
-                      })()}
-                    </div>
-                  </div>
-
-                  {/* Appointments Breakdown */}
-                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-5 border border-purple-100 shadow-lg">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-10 h-10 bg-purple-500 rounded-xl flex items-center justify-center shadow-md">
-                        <CalendarClock className="w-5 h-5 text-white" />
-                      </div>
-                      <h4 className="text-lg font-bold text-gray-900">
-                        Appointments Breakdown
-                      </h4>
-                    </div>
-
-                    <div className="space-y-3">
-                      {(() => {
-                        const myAppointments = appointments.filter((a) => {
-                          const assignedId =
-                            typeof a.assignedTo === "object" && a.assignedTo
-                              ? (a.assignedTo as any)._id
-                              : a.assignedTo;
-                          return assignedId === user?.id;
-                        });
-                        const scheduled = myAppointments.filter(
-                          (a) => a.status === "SCHEDULED",
-                        ).length;
-                        const completed = myAppointments.filter(
-                          (a) => a.status === "COMPLETED",
-                        ).length;
-                        const cancelled = myAppointments.filter(
-                          (a) => a.status === "CANCELLED",
-                        ).length;
-                        const total = myAppointments.length;
-
-                        return (
-                          <>
-                            <div className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-100">
-                              <span className="text-sm text-gray-600 flex items-center gap-2">
-                                <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                                Scheduled
-                              </span>
-                              <span className="font-bold text-gray-900">
-                                {scheduled}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-100">
-                              <span className="text-sm text-gray-600 flex items-center gap-2">
-                                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                                Completed
-                              </span>
-                              <span className="font-bold text-gray-900">
-                                {completed}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-100">
-                              <span className="text-sm text-gray-600 flex items-center gap-2">
-                                <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-                                Cancelled
-                              </span>
-                              <span className="font-bold text-gray-900">
-                                {cancelled}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center p-3 bg-gradient-to-r from-purple-500 to-fuchsia-500 rounded-xl text-white mt-2">
-                              <span className="text-sm font-medium">
-                                Completion Rate
-                              </span>
-                              <span className="font-bold text-lg">
-                                {total > 0
-                                  ? ((completed / total) * 100).toFixed(1)
-                                  : "0.0"}
-                                %
-                              </span>
-                            </div>
-                          </>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Performance Summary */}
-                <div className="bg-gradient-to-r from-slate-50 via-gray-50 to-slate-50 rounded-2xl p-5 border border-slate-200 shadow-lg">
-                  <h4 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-indigo-600" />
-                    Performance Summary
-                  </h4>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {(() => {
-                      const myGrievances = grievances.filter((g) => {
-                        const assignedId =
-                          typeof g.assignedTo === "object" && g.assignedTo
-                            ? (g.assignedTo as any)._id
-                            : g.assignedTo;
-                        return assignedId === user?.id;
-                      });
-                      const myAppointments = appointments.filter((a) => {
-                        const assignedId =
-                          typeof a.assignedTo === "object" && a.assignedTo
-                            ? (a.assignedTo as any)._id
-                            : a.assignedTo;
-                        return assignedId === user?.id;
-                      });
-                      const totalTasks =
-                        myGrievances.length + myAppointments.length;
-                      const completedTasks =
-                        myGrievances.filter((g) => g.status === "RESOLVED")
-                          .length +
-                        myAppointments.filter((a) => a.status === "COMPLETED")
-                          .length;
-                      const pendingTasks =
-                        totalTasks -
-                        completedTasks -
-                        myAppointments.filter((a) => a.status === "CANCELLED")
-                          .length;
-
-                      return (
-                        <>
-                          <div className="text-center p-4 bg-white rounded-xl border border-gray-100">
-                            <p className="text-3xl font-black text-indigo-600">
-                              {totalTasks}
-                            </p>
-                            <p className="text-xs font-medium text-gray-500 uppercase mt-1">
-                              Total Tasks
-                            </p>
-                          </div>
-                          <div className="text-center p-4 bg-white rounded-xl border border-gray-100">
-                            <p className="text-3xl font-black text-emerald-600">
-                              {completedTasks}
-                            </p>
-                            <p className="text-xs font-medium text-gray-500 uppercase mt-1">
-                              Completed
-                            </p>
-                          </div>
-                          <div className="text-center p-4 bg-white rounded-xl border border-gray-100">
-                            <p className="text-3xl font-black text-amber-600">
-                              {pendingTasks}
-                            </p>
-                            <p className="text-xs font-medium text-gray-500 uppercase mt-1">
-                              Pending
-                            </p>
-                          </div>
-                          <div className="text-center p-4 bg-white rounded-xl border border-gray-100">
-                            <p className="text-3xl font-black text-purple-600">
-                              {totalTasks > 0
-                                ? ((completedTasks / totalTasks) * 100).toFixed(
-                                    0,
-                                  )
-                                : "0"}
-                              %
-                            </p>
-                            <p className="text-xs font-medium text-gray-500 uppercase mt-1">
-                              Efficiency
-                            </p>
-                          </div>
-                        </>
-                      );
-                    })()}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </TabsContent>
 
           {isSuperAdminUser && companyIdParam && (
             <CompanyProvider companyId={companyIdParam}>
@@ -7085,7 +6662,7 @@ function DashboardContent() {
                 <WhatsAppConfigTab companyId={companyIdParam} />
               </TabsContent>
 
-              <TabsContent value="chatbot" className="space-y-4">
+              <TabsContent value="flows" className="space-y-4">
                 <ChatbotFlowsTab companyId={companyIdParam} />
               </TabsContent>
 

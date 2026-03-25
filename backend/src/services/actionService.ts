@@ -243,18 +243,39 @@ export class ActionService {
         timeline: grievance.timeline,
         forest_range: session.data.forest_range,
         forest_beat: session.data.forest_beat,
-        forest_compartment: session.data.forest_compartment
+        type: 'grievance' as const,
+        action: 'confirmation' as const,
+        citizenEmail: session.data.citizenEmail
       };
 
       // ✅ EXECUTE NOTIFICATIONS IN PARALLEL
+      const createdAt = grievance.createdAt || new Date();
+      const formattedDate = new Intl.DateTimeFormat('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      }).format(new Date(createdAt));
+
+      session.data.formattedDate = formattedDate;
+      session.data.fullData = session.data.fullData || {};
+      session.data.fullData.formattedDate = formattedDate;
+      session.data.date = new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
+      session.data.time = new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' });
+      session.data['Submitted On'] = formattedDate;
+      session.data.submittedOn = formattedDate;
+      await updateSession(session);
+
       const notifications = [];
 
-      // 1. Citizen Confirmation (Priority)
-      notifications.push(notifyCitizenOnCreation({
-        ...notificationData,
-        type: 'grievance',
-        action: 'confirmation' 
-      }).catch(err => console.error('⚠️ ActionService: notifyCitizenOnCreation failed:', err)));
+      const { notifyCitizenOnCreation, notifyDepartmentAdminOnCreation, notifyUserOnAssignment } = await import('./notificationService');
+      
+      // Notify citizen about grievance creation
+      await notifyCitizenOnCreation(notificationData);
 
       if (departmentId) {
         // 2. Admin Creation Notification
@@ -336,7 +357,7 @@ export class ActionService {
 
       // ✅ PREPARE NOTIFICATIONS
       const notificationData = {
-        type: 'appointment',
+        type: 'appointment' as const,
         appointmentId: appointment.appointmentId,
         citizenName: session.data.citizenName,
         citizenPhone: userPhone,
@@ -348,29 +369,46 @@ export class ActionService {
         appointmentDate: appointment.appointmentDate,
         appointmentTime: appointment.appointmentTime,
         createdAt: appointment.createdAt,
-        timeline: appointment.timeline
+        timeline: appointment.timeline,
+        action: 'confirmation' as const
       };
+
+      const createdAt = appointment.createdAt || new Date();
+      const formattedDate = new Intl.DateTimeFormat('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      }).format(new Date(createdAt));
+
+      session.data.formattedDate = formattedDate;
+      session.data.fullData = session.data.fullData || {};
+      session.data.fullData.formattedDate = formattedDate;
+      session.data.date = new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
+      session.data.time = new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' });
+      session.data['Submitted On'] = formattedDate;
+      session.data.submittedOn = formattedDate;
+      await updateSession(session);
 
       const notifications = [];
 
-      // 1. Citizen Confirmation
-      notifications.push(notifyCitizenOnCreation({
-        ...notificationData,
-        action: 'confirmation'
-      } as any).catch(err => console.error('⚠️ ActionService: notifyCitizenOnCreation failed:', err)));
+      const { notifyCitizenOnCreation, notifyDepartmentAdminOnCreation } = await import('./notificationService');
+      
+      // Notify citizen about appointment creation
+      await notifyCitizenOnCreation(notificationData);
 
-      // 2. Admin Notification
+      // 2. Admin Creation Notification
       notifications.push(notifyDepartmentAdminOnCreation({
         ...notificationData,
-        action: 'created'
-      } as any).catch(err => console.error('⚠️ ActionService: notifyDepartmentAdminOnCreation failed:', err)));
+        type: 'appointment',
+        action: 'created',
+      }).catch(err => console.error('⚠️ ActionService: notifyDepartmentAdminOnCreation failed:', err)));
 
       await Promise.allSettled(notifications);
-
-      // Prevent duplicate citizen-facing appointment success copy from flow message steps.
-      // Chatbot flow should continue, but success wording should come from WhatsApp template/notification.
-      session.data.skipFlowAppointmentSuccessMessage = true;
-      await updateSession(session);
 
     } catch (err: any) {
       console.error('❌ ActionService: Error creating appointment:', err);

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useEffect, useState, useMemo, Suspense } from "react";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompanyContext } from "@/contexts/CompanyContext";
 import {
@@ -88,12 +88,21 @@ const CompanyAnalytics = dynamic(
 // BulkImportModal moved to @/components/superadmin/drilldown/BulkImportModal
 const PAGE_SIZE = 25;
 
-export default function CompanyDrillDown() {
+function CompanyDrillDownContent() {
   const { user } = useAuth();
   const router = useRouter();
   const params = useParams();
   const companyId = (params.id || params.companyId) as string;
   const { company, isLoading: companyLoading } = useCompanyContext();
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "overview");
+
+  // Sync tab to URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    params.set("tab", activeTab);
+    window.history.replaceState(null, "", `${window.location.pathname}?${params.toString()}`);
+  }, [activeTab]);
   useWhatsappConfig(companyId || undefined);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -118,7 +127,6 @@ export default function CompanyDrillDown() {
 
   const [loading, setLoading] = useState(true);
   const [loadingLeads, setLoadingLeads] = useState(false);
-  const [activeTab, setActiveTab] = useState("overview");
   const [selectedGrievance, setSelectedGrievance] = useState<Grievance | null>(
     null,
   );
@@ -756,5 +764,13 @@ export default function CompanyDrillDown() {
         />
       )}
     </div>
+  );
+}
+
+export default function CompanyDrillDown() {
+  return (
+    <Suspense fallback={<LoadingSpinner text="Initializing Sector Node..." />}>
+      <CompanyDrillDownContent />
+    </Suspense>
   );
 }

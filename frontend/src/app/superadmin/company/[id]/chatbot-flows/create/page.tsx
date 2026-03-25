@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, Suspense } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Save, Workflow } from "lucide-react";
@@ -15,7 +15,7 @@ import {
 } from "@/lib/flowTransform";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
-export default function CreateFlowPage() {
+function CreateFlowPageContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -227,5 +227,13 @@ export default function CreateFlowPage() {
         />
       </div>
     </div>
+  );
+}
+
+export default function CreateFlowPage() {
+  return (
+    <Suspense fallback={<LoadingSpinner text="Initializing Flow Builder..." />}>
+      <CreateFlowPageContent />
+    </Suspense>
   );
 }

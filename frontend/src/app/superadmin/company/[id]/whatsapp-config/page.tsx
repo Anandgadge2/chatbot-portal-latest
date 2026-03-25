@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { isSuperAdmin } from "@/lib/permissions";
@@ -45,19 +45,31 @@ import { useWhatsappConfig } from "@/lib/query/useWhatsappConfig";
 const TEMPLATE_GROUPS = [
   {
     label: "🏛️ Grievance Notifications (Admin)",
-    description: "Sent to admin staff when a grievance is submitted or assigned",
+    description: "Sent to admin staff and department hierarchy",
     keys: [
       {
-        key: "grievance_created",
-        label: "Grievance Received",
-        to: "Department Admin & Company Admin",
+        key: "grievance_created_admin",
+        label: "Grievance Received (Admin/Hierarchy)",
+        to: "Hierarchy & Company Admin",
         when: "A citizen submits a new grievance through the chatbot",
       },
       {
-        key: "grievance_assigned",
-        label: "Grievance Assigned",
-        to: "Assigned Officer",
+        key: "grievance_assigned_admin",
+        label: "Grievance Assigned (Admin/Hierarchy)",
+        to: "Hierarchy & Company Admin",
         when: "A grievance is assigned to a department officer",
+      },
+      {
+        key: "grievance_resolved_admin",
+        label: "Grievance Resolved (Admin/Hierarchy)",
+        to: "Hierarchy & Company Admin",
+        when: "A grievance is marked as RESOLVED by an officer",
+      },
+      {
+        key: "grievance_rejected_admin",
+        label: "Grievance Rejected (Admin/Hierarchy)",
+        to: "Hierarchy & Company Admin",
+        when: "A grievance is marked as REJECTED",
       },
     ],
   },
@@ -67,87 +79,99 @@ const TEMPLATE_GROUPS = [
     keys: [
       {
         key: "grievance_confirmation",
-        label: "Grievance Confirmation",
+        label: "Grievance Confirmation (Citizen)",
         to: "Citizen (submitter)",
         when: "Immediately after a grievance is submitted",
       },
       {
-        key: "grievance_resolved",
-        label: "Grievance Resolved",
+        key: "grievance_status_update",
+        label: "Grievance Status Update (Citizen)",
         to: "Citizen (submitter)",
-        when: "The assigned officer marks a grievance as resolved",
+        when: "Grievance status changes (e.g. Assigned, Forwarded, Pending)",
       },
       {
-        key: "grievance_status_update",
-        label: "Grievance Status Update",
+        key: "grievance_resolved",
+        label: "Grievance Resolved (Citizen)",
         to: "Citizen (submitter)",
-        when: "Grievance status changes (e.g. Pending → Assigned → Rejected)",
+        when: "The grievance is successfully resolved",
+      },
+      {
+        key: "grievance_rejected",
+        label: "Grievance Rejected (Citizen)",
+        to: "Citizen (submitter)",
+        when: "The grievance is rejected/closed without resolution",
       },
     ],
   },
   {
-    label: "📅 Appointment Notifications (Admin)",
-    description: "Sent to admin staff for appointment events",
+    label: "📅 Appointment Notification (Company Admin)",
+    description: "Sent to company admin for appointment events",
     keys: [
       {
-        key: "appointment_created",
-        label: "Appointment Received",
+        key: "appointment_created_admin",
+        label: "Appointment Received (Company Admin)",
         to: "Company Admin",
         when: "A citizen books an appointment through the chatbot",
       },
       {
-        key: "appointment_assigned",
-        label: "Appointment Assigned",
-        to: "Assigned Officer",
-        when: "An appointment is assigned to a staff member",
+        key: "appointment_scheduled_admin",
+        label: "Appointment Scheduled (Company Admin)",
+        to: "Company Admin",
+        when: "An appointment date/time is scheduled",
+      },
+      {
+        key: "appointment_confirmed_admin",
+        label: "Appointment Confirmed (Company Admin)",
+        to: "Company Admin",
+        when: "An appointment is confirmed/finalized",
+      },
+      {
+        key: "appointment_cancelled_admin",
+        label: "Appointment Cancelled (Company Admin)",
+        to: "Company Admin",
+        when: "An appointment is cancelled",
+      },
+      {
+        key: "appointment_completed_admin",
+        label: "Appointment Completed (Company Admin)",
+        to: "Company Admin",
+        when: "An appointment is marked as completed",
       },
     ],
   },
   {
-    label: "👤 Appointment Notifications (Citizen)",
+    label: "👤 Appointment Notification (Citizen)",
     description: "Sent to citizens about their appointment status",
     keys: [
       {
         key: "appointment_confirmation",
-        label: "Appointment Confirmation",
+        label: "Appointment Requested (Citizen)",
         to: "Citizen (submitter)",
         when: "Immediately after an appointment is booked",
       },
       {
         key: "appointment_scheduled_update",
-        label: "Appointment Scheduled",
+        label: "Appointment Scheduled (Citizen)",
         to: "Citizen (submitter)",
         when: "Admin schedules a date & time for the appointment",
       },
       {
         key: "appointment_confirmed_update",
-        label: "Appointment Confirmed",
+        label: "Appointment Confirmed (Citizen)",
         to: "Citizen (submitter)",
-        when: "Admin confirms the appointment",
+        when: "Admin confirms the appointment details",
       },
       {
         key: "appointment_cancelled_update",
-        label: "Appointment Cancelled",
+        label: "Appointment Cancelled (Citizen)",
         to: "Citizen (submitter)",
-        when: "Admin cancels an appointment",
+        when: "Appointment is cancelled by the admin",
       },
       {
         key: "appointment_completed_update",
-        label: "Appointment Completed",
+        label: "Appointment Completed (Citizen)",
         to: "Citizen (submitter)",
-        when: "Admin marks appointment as completed",
-      },
-      {
-        key: "appointment_status_update",
-        label: "Appointment Status Update",
-        to: "Citizen (submitter)",
-        when: "Appointment status changes",
-      },
-      {
-        key: "appointment_resolved",
-        label: "Appointment Resolved (Legacy)",
-        to: "Citizen (submitter)",
-        when: "Backend fallback for completed appointments",
+        when: "Appointment is marked as completed",
       },
     ],
   },
@@ -298,16 +322,16 @@ const WA_PLACEHOLDERS: Array<{
    Default system message bodies
 ------------------------------------------------------------------ */
 const DEFAULT_WA_MESSAGES: Record<string, string> = {
-  grievance_created: `*{companyName}*
+  grievance_created_admin: `*{companyName}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📋 *NEW GRIEVANCE RECEIVED*
 
 Respected {recipientName},
+A new grievance has been submitted by a citizen.
 
-Details:
+*Details:*
 🎫 *Reference ID:* {grievanceId}
 👤 *Citizen Name:* {citizenName}
-📞 *Contact Number:* {citizenPhone}
 🏢 *Department:* {departmentName}
 🏢 *Sub-Dept:* {subDepartmentName}
 📝 *Description:*
@@ -316,15 +340,12 @@ Details:
 
 *Action Required:*
 Please review this grievance promptly. Resolution should be provided as per SLA.
-
-🔗 *Access Dashboard:* https://chatbot-portal-latest-frontend.vercel.app/
-
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 *{companyName}*
 Digital Grievance Redressal System
 This is an automated notification.`,
 
-  grievance_assigned: `*{companyName}*
+  grievance_assigned_admin: `*{companyName}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 👤 *GRIEVANCE ASSIGNED TO YOU*
 
@@ -337,34 +358,68 @@ Details:
 🏢 *Sub-Dept:* {subDepartmentName}
 📝 *Description:*
 {description}
-
 👨‍💼 *Assigned By:* {assignedByName}
 📅 *Assigned On:* {formattedDate}
 
 Please investigate and take required action.
-
-🔗 *Access Dashboard:* https://chatbot-portal-latest-frontend.vercel.app/
-
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 *{companyName}*
 Digital Grievance Redressal System`,
 
-  grievance_resolved: `*{companyName}*
+  grievance_resolved_admin: `*{companyName}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ✅ *GRIEVANCE RESOLVED*
 
-Respected {citizenName},
+Respected {recipientName},
 
+The following grievance has been marked as *RESOLVED*.
+
+*Details:*
 🎫 *Reference ID:* {grievanceId}
+👤 *Citizen:* {citizenName}
 🏢 *Department:* {departmentName}
 🏢 *Sub-Dept:* {subDepartmentName}
 📊 *Status:* RESOLVED
 👨‍💼 *Resolved By:* {resolvedByName}
 📅 *Resolved On:* {formattedResolvedDate}
-⏱️ *Resolution Time:* {resolutionTimeText}
-📝 *Remarks:* {remarks}
+⏱️ *Time Taken:* {resolutionTimeText}
+📝 *Resolution Remarks:*
+{remarks}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*Digital Grievance System*`,
 
-Thank you for your patience.
+  grievance_rejected_admin: `*{companyName}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+❌ *GRIEVANCE REJECTED*
+
+Respected {recipientName},
+
+The following grievance has been *REJECTED*.
+
+*Details:*
+🎫 *Ref No:* {grievanceId}
+👤 *Citizen:* {citizenName}
+🏢 *Department:* {departmentName}
+📊 *Status:* REJECTED
+👨‍💼 *Action By:* {resolvedByName}
+📝 *Reason:* {remarks}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*{companyName}*`,
+
+  grievance_confirmation: `*{companyName}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ *GRIEVANCE SUBMITTED SUCCESSFULLY*
+
+Respected {citizenName},
+Thank you for reaching out. Your grievance has been registered.
+*Details:*
+🎫 *Reference ID:* {grievanceId}
+🏢 *Department:* {departmentName}
+🏢 *Sub-Dept:* {subDepartmentName}
+📅 *Submitted On:* {formattedDate}
+
+You can track your status using the Reference ID: *{grievanceId}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 *{companyName}*
 Digital Grievance Redressal System`,
@@ -389,7 +444,43 @@ You will receive further updates via WhatsApp.
 *{companyName}*
 Digital Grievance Redressal System`,
 
-  appointment_created: `*{companyName}*
+  grievance_resolved: `*{companyName}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ *GRIEVANCE RESOLVED*
+
+Respected {citizenName},
+
+🎫 *Reference ID:* {grievanceId}
+🏢 *Department:* {departmentName}
+🏢 *Sub-Dept:* {subDepartmentName}
+📊 *Status:* RESOLVED
+👨‍💼 *Resolved By:* {resolvedByName}
+📅 *Resolved On:* {formattedResolvedDate}
+📝 *Remarks:* {remarks}
+
+Thank you for your patience.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*{companyName}*
+Digital Grievance Redressal System`,
+
+  grievance_rejected: `*{companyName}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+❌ *GRIEVANCE REJECTED*
+
+Respected {citizenName},
+
+We regret to inform you that your grievance has been rejected.
+
+*Details:*
+🎫 *Ref No:* {grievanceId}
+🏢 *Department:* {departmentName}
+📊 *Status:* REJECTED
+📝 *Remarks:* {remarks}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*{companyName}*`,
+
+  appointment_created_admin: `*{companyName}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📋 *NEW APPOINTMENT RECEIVED*
 
@@ -404,17 +495,14 @@ Details:
 
 *Action Required:*
 Please review this appointment promptly.
-
-🔗 *Access Dashboard:* https://chatbot-portal-latest-frontend.vercel.app/
-
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 *{companyName}*
 Digital Appointment System
 This is an automated notification.`,
 
-  appointment_assigned: `*{companyName}*
+  appointment_confirmed_admin: `*{companyName}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-👤 *APPOINTMENT ASSIGNED TO YOU*
+✅ *APPOINTMENT CONFIRMED*
 
 Respected {recipientName},
 
@@ -422,55 +510,55 @@ Details:
 🎫 *Reference ID:* {appointmentId}
 👤 *Citizen:* {citizenName}
 🎯 *Purpose:* {purpose}
-
-👨‍💼 *Assigned By:* {assignedByName}
-📅 *Assigned On:* {formattedDate}
-
-Please investigate and take required action.
-
-🔗 *Access Dashboard:* https://chatbot-portal-latest-frontend.vercel.app/
+📅 *Date:* {appointmentDate}
+⏰ *Time:* {appointmentTime}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-*{companyName}*
-Digital Appointment System`,
+*{companyName}*`,
 
-  appointment_resolved: `*{companyName}*
+  appointment_cancelled_admin: `*{companyName}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+❌ *APPOINTMENT CANCELLED*
+
+Respected {recipientName},
+
+The following appointment has been *CANCELLED*.
+
+*Details:*
+🎫 *Reference ID:* {appointmentId}
+👤 *Citizen:* {citizenName}
+🎯 *Purpose:* {purpose}
+📊 *Status:* CANCELLED
+👨‍💼 *Updated By:* {resolvedByName}
+📅 *Updated On:* {formattedResolvedDate}
+📝 *Cancellation Remarks:*
+{remarks}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*Digital Appointment System*`,
+
+  appointment_completed_admin: `*{companyName}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ✅ *APPOINTMENT COMPLETED*
 
-Respected {citizenName},
+Respected {recipientName},
 
+The following appointment has been marked as *COMPLETED*.
+
+*Details:*
 🎫 *Reference ID:* {appointmentId}
+👤 *Citizen:* {citizenName}
+🎯 *Purpose:* {purpose}
 📊 *Status:* COMPLETED
 👨‍💼 *Completed By:* {resolvedByName}
 📅 *Completed On:* {formattedResolvedDate}
-📝 *Remarks:* {remarks}
-
-Thank you for visiting us.
+📝 *Resolution Remarks:*
+{remarks}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-*{companyName}*
-Digital Appointment System`,
-
-  grievance_confirmation: `*{companyName}*
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✅ *GRIEVANCE SUBMITTED SUCCESSFULLY*
-
-Respected {citizenName},
-Thank you for reaching out. Your grievance has been registered.
-*Details:*
-🎫 *Reference ID:* {grievanceId}
-🏢 *Department:* {departmentName}
-🏢 *Sub-Dept:* {subDepartmentName}
-📅 *Submitted On:* {formattedDate}
-
-You can track your status using the Reference ID: *{grievanceId}*
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-*{companyName}*
-Digital Grievance Redressal System`,
+*Digital Appointment System*`,
 
   appointment_confirmation: `*{companyName}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✅ *APPOINTMENT BOOKED SUCCESSFULLY*
+✅ *APPOINTMENT REQUESTED SUCCESSFULLY*
 
 Respected {citizenName},
 
@@ -483,7 +571,6 @@ Your appointment request has been received.
 
 Please note your Reference ID: *{appointmentId}*
 We will notify you once it's scheduled/confirmed.
-
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 *{companyName}*
 Digital Appointment System`,
@@ -593,6 +680,7 @@ Digital Appointment System`,
   cmd_back: "🔙 Going back to the previous step.",
 };
 
+
 /* ------------------------------------------------------------------
    Component
 ------------------------------------------------------------------ */
@@ -616,8 +704,20 @@ export default function WhatsAppConfigPage() {
       label?: string;
       message?: string;
       keywords?: string[];
+      isActive?: boolean;
     }>
   >([]);
+  const [isMobile, setIsMobile] = useState(false);
+  const editorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 1024);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+
   const [selectedWaTemplate, setSelectedWaTemplate] =
     useState<string>("grievance_created");
   const [savingTemplates, setSavingTemplates] = useState(false);
@@ -630,13 +730,29 @@ export default function WhatsAppConfigPage() {
   // Keywords input state (local to avoid typing issues with arrays)
   const [keywordsInput, setKeywordsInput] = useState("");
 
-  // Group collapse state
+  // Group collapse state - all collapsed by default for cleaner UI
   const [collapsedGroups, setCollapsedGroups] = useState<
     Record<string, boolean>
-  >({});
+  >(() => {
+    const initial: Record<string, boolean> = { custom: true };
+    TEMPLATE_GROUPS.forEach(g => {
+      initial[g.label] = true;
+    });
+    // Keep the first group open by default for better UX
+    if (TEMPLATE_GROUPS.length > 0) {
+      initial[TEMPLATE_GROUPS[0].label] = false;
+    }
+    return initial;
+  });
 
   useEffect(() => {
-    if (!isSuperAdmin(user)) {
+    if (isMobile && editorRef.current) {
+      editorRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [selectedWaTemplate, isMobile]);
+
+  useEffect(() => {
+    if (user?.role !== "SUPER_ADMIN") {
       router.push("/superadmin/dashboard");
       return;
     }
@@ -715,6 +831,7 @@ export default function WhatsAppConfigPage() {
       templateKey: key,
       label: KEY_META[key]?.label ?? key,
       keywords: [],
+      isActive: true,
     }));
   }
 
@@ -805,6 +922,7 @@ export default function WhatsAppConfigPage() {
             label: t.label || t.templateKey,
             message: t.message ?? "",
             keywords: t.keywords ?? [],
+            isActive: t.isActive !== false,
           })),
       });
       toast.success("✅ Notification templates saved successfully");
@@ -833,6 +951,7 @@ export default function WhatsAppConfigPage() {
         label: newTemplateLabel.trim() || newTemplateKey.trim(),
         message: "",
         keywords: [],
+        isActive: true,
       },
     ]);
     setSelectedWaTemplate(key);
@@ -1202,9 +1321,9 @@ export default function WhatsAppConfigPage() {
                   </div>
                 </div>
 
-                <div className="flex flex-col xl:flex-row xl:min-h-[960px]">
+                <div className="flex flex-col lg:flex-row lg:min-h-[800px]">
                   {/* ---- Left sidebar: template browser ---- */}
-                  <div className="w-full xl:w-72 xl:shrink-0 border-b xl:border-b-0 xl:border-r border-slate-200 overflow-y-auto bg-slate-50/60 max-h-[420px] xl:max-h-none">
+                  <div className="w-full lg:w-80 lg:shrink-0 border-b lg:border-b-0 lg:border-r border-slate-200 overflow-y-auto bg-slate-50/60 max-h-[320px] lg:max-h-none shadow-inner lg:shadow-none">
                     {/* Add custom template */}
                     <div className="p-3 border-b border-slate-200">
                       {isAddingTemplate ? (
@@ -1323,50 +1442,70 @@ export default function WhatsAppConfigPage() {
                       (t) => !BUILTIN_KEYS.includes(t.templateKey),
                     ).length > 0 && (
                       <div className="border-b border-slate-200 last:border-0">
-                        <div className="px-3 py-2.5">
+                        <button
+                          onClick={() =>
+                            setCollapsedGroups((prev) => ({
+                              ...prev,
+                              custom: !prev.custom,
+                            }))
+                          }
+                          className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-slate-100 transition-colors"
+                        >
                           <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
                             🔧 Custom Templates
                           </span>
-                        </div>
-                        {waTemplates
-                          .filter((t) => !BUILTIN_KEYS.includes(t.templateKey))
-                          .map((t) => {
-                            const hasContent = !!(
-                              t.message && t.message.trim()
-                            );
-                            return (
-                              <button
-                                key={t.templateKey}
-                                onClick={() =>
-                                  setSelectedWaTemplate(t.templateKey)
-                                }
-                                className={`w-full text-left px-3 py-2.5 transition-all ${
-                                  selectedWaTemplate === t.templateKey
-                                    ? "bg-emerald-600 text-white"
-                                    : "hover:bg-slate-100 text-slate-700"
-                                }`}
-                              >
-                                <div className="flex items-center gap-2">
-                                  <span
-                                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                                      hasContent
-                                        ? "bg-emerald-400"
-                                        : "bg-slate-300"
-                                    } ${selectedWaTemplate === t.templateKey ? "bg-white" : ""}`}
-                                  />
-                                  <span className="text-xs font-medium leading-tight">
-                                    {t.label || t.templateKey}
-                                  </span>
-                                </div>
-                              </button>
-                            );
-                          })}
+                          {collapsedGroups.custom ? (
+                            <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                          ) : (
+                            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                          )}
+                        </button>
+                        {!collapsedGroups.custom && (
+                          <div className="pb-1">
+                            {waTemplates
+                              .filter((t) => !BUILTIN_KEYS.includes(t.templateKey))
+                              .map((t) => {
+                                const hasContent = !!(
+                                  t.message && t.message.trim()
+                                );
+                                return (
+                                  <button
+                                    key={t.templateKey}
+                                    onClick={() =>
+                                      setSelectedWaTemplate(t.templateKey)
+                                    }
+                                    className={`w-full text-left px-3 py-2.5 transition-all ${
+                                      selectedWaTemplate === t.templateKey
+                                        ? "bg-emerald-600 text-white"
+                                        : "hover:bg-slate-100 text-slate-700"
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <span
+                                        className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                                          hasContent
+                                            ? "bg-emerald-400"
+                                            : "bg-slate-300"
+                                        } ${selectedWaTemplate === t.templateKey ? "bg-white" : ""}`}
+                                      />
+                                      <span className="text-xs font-medium leading-tight">
+                                        {t.label || t.templateKey}
+                                      </span>
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
 
                   {/* ---- Right panel: editor ---- */}
-                  <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+                  <div 
+                    ref={editorRef}
+                    className="flex-1 min-w-0 flex flex-col overflow-hidden"
+                  >
                     {/* Template header */}
                     <div className="px-4 sm:px-6 py-4 border-b border-slate-100 bg-white">
                       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
@@ -1401,7 +1540,25 @@ export default function WhatsAppConfigPage() {
                             </div>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+                        <div className="flex items-center gap-4 shrink-0 w-full sm:w-auto">
+                          <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg border border-slate-200">
+                            <span className="text-[10px] font-bold uppercase text-slate-500">
+                              Active:
+                            </span>
+                            <Switch
+                              checked={selectedTemplate?.isActive !== false}
+                              onCheckedChange={(checked) => {
+                                const key = selectedWaTemplate;
+                                setWaTemplates((prev) =>
+                                  prev.map((t) =>
+                                    t.templateKey === key
+                                      ? { ...t, isActive: checked }
+                                      : t,
+                                  ),
+                                );
+                              }}
+                            />
+                          </div>
                           <Button
                             onClick={() => {
                               const defaultMsg =
@@ -1553,7 +1710,7 @@ export default function WhatsAppConfigPage() {
                       </div>
 
                       <textarea
-                        rows={35}
+                        rows={isMobile ? 12 : 30}
                         placeholder={
                           DEFAULT_WA_MESSAGES[selectedWaTemplate]
                             ? 'Click "Load Default" to start from the system template...'
