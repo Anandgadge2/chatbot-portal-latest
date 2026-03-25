@@ -52,9 +52,6 @@ import AppointmentDetailDialog from "@/components/appointment/AppointmentDetailD
 import AssignmentDialog from "@/components/assignment/AssignmentDialog";
 import StatusUpdateModal from "@/components/grievance/StatusUpdateModal";
 import RevertGrievanceDialog from "@/components/grievance/RevertGrievanceDialog";
-import MetricInfoDialog, {
-  MetricInfo,
-} from "@/components/analytics/MetricInfoDialog";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { StatsSkeleton, TableSkeleton } from "@/components/ui/GeneralSkeleton";
 import { Pagination } from "@/components/ui/Pagination";
@@ -335,8 +332,6 @@ function DashboardContent() {
     selectedAppointmentForAssignment,
     setSelectedAppointmentForAssignment,
   ] = useState<Appointment | null>(null);
-  const [showMetricDialog, setShowMetricDialog] = useState(false);
-  const [selectedMetric, setSelectedMetric] = useState<MetricInfo | null>(null);
   const [showAvailabilityCalendar, setShowAvailabilityCalendar] =
     useState(false);
 
@@ -6906,12 +6901,6 @@ function DashboardContent() {
           />
         )}
 
-        {/* Metric Info Dialog */}
-        <MetricInfoDialog
-          isOpen={showMetricDialog}
-          onClose={() => setShowMetricDialog(false)}
-          metric={selectedMetric}
-        />
 
         {/* Availability Calendar */}
         <AvailabilityCalendar
