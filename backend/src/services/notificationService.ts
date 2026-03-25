@@ -1025,14 +1025,14 @@ export async function notifyHierarchyOnStatusChange(
     // 2. Find ALL relevant admins interested in the status change
     const users = await User.find({
       $or: [
-        // Company admins (do not force departmentId:null; many deployments attach admin users to a default department)
+        // Company admins
         {
           companyId,
           $or: [
             ...(companyAdminRoleIds.length > 0 ? [{ customRoleId: { $in: companyAdminRoleIds } }] : []),
             ...(companyAdminRoleNames.length > 0 ? [{ role: { $in: companyAdminRoleNames } }] : []),
-            { role: { $in: ['Admin', 'COMPANY_ADMIN', 'COMPANY_HEAD', 'HEAD', 'MANAGER', 'SUPERVISOR'] } },
-            { role: { $regex: /admin|head|manager|supervisor/i } }
+            { role: { $in: ['Admin', 'COMPANY_ADMIN', 'COMPANY_HEAD', 'HEAD', 'MANAGER', 'SUPERVISOR', 'OFFICER', 'COLLECTOR'] } },
+            { role: { $regex: /admin|head|manager|supervisor|collector|officer/i } }
           ]
         },
         // Department hierarchy admins
@@ -1042,6 +1042,8 @@ export async function notifyHierarchyOnStatusChange(
       ],
       isActive: true
     }).populate('customRoleId');
+
+    logger.info(`🔍 Found ${users.length} potential hierarchy recipients for ${data.type} status change to ${newStatus}`);
 
     // Dynamically choose status key based on newStatus
     // e.g., 'confirmed' -> 'appointment_confirmed' or 'grievance_confirmed'
@@ -1059,7 +1061,8 @@ export async function notifyHierarchyOnStatusChange(
     
     await Promise.allSettled(users.filter(u => {
       const userPhoneNormalized = u.phone?.replace(/\D/g, '');
-      return userPhoneNormalized !== citizenPhoneNormalized;
+      // Ensure we don't notify the citizen themselves, and ensure the user HAS a phone
+      return userPhoneNormalized && userPhoneNormalized !== citizenPhoneNormalized;
     }).map(async (user) => {
       try {
         // Personalize data for each admin recipient
@@ -1069,8 +1072,15 @@ export async function notifyHierarchyOnStatusChange(
         };
 
         // 📱 WhatsApp — Get message for this specific user to ensure correct personalization
-        let hierarchyMessage = await getNotificationWhatsAppMessage(companyId, data.type, statusAction as any, userFullData);
+        // Try admin-specific key first, then fallback to general key
+        let hierarchyMessage = await getNotificationWhatsAppMessage(companyId, data.type, `${statusAction}_admin`, userFullData);
+        
+        if (!hierarchyMessage) {
+          hierarchyMessage = await getNotificationWhatsAppMessage(companyId, data.type, statusAction as any, userFullData);
+        }
+        
         if (!hierarchyMessage && (newStatus === 'RESOLVED' || newStatus === 'COMPLETED')) {
+          // Additional fallback for legacy resolved keys
           hierarchyMessage = await getNotificationWhatsAppMessage(companyId, data.type, 'resolved', userFullData);
         }
 

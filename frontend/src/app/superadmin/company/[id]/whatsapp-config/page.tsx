@@ -58,6 +58,24 @@ const TEMPLATE_GROUPS = [
         to: "Assigned Officer",
         when: "A grievance is assigned to a department officer",
       },
+      {
+        key: "grievance_resolved_admin",
+        label: "Grievance Resolved (Admin/Hierarchy)",
+        to: "Hierarchy & Company Admin",
+        when: "A grievance is marked as RESOLVED by an officer",
+      },
+      {
+        key: "appointment_completed_admin",
+        label: "Appointment Completed (Admin/Hierarchy)",
+        to: "Hierarchy & Company Admin",
+        when: "An appointment is marked as COMPLETED",
+      },
+      {
+        key: "appointment_cancelled_admin",
+        label: "Appointment Cancelled (Admin/Hierarchy)",
+        to: "Hierarchy & Company Admin",
+        when: "An appointment is marked as CANCELLED",
+      },
     ],
   },
   {
@@ -447,6 +465,80 @@ Thank you for visiting us.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 *{companyName}*
 Digital Appointment System`,
+
+  grievance_resolved_admin: `*{companyName}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ *GRIEVANCE RESOLVED*
+
+Respected {recipientName},
+
+The following grievance has been marked as *RESOLVED*.
+
+*Details:*
+🎫 *Reference ID:* {grievanceId}
+👤 *Citizen:* {citizenName}
+🏢 *Department:* {departmentName}
+🏢 *Sub-Dept:* {subDepartmentName}
+📊 *Status:* RESOLVED
+👨‍💼 *Resolved By:* {resolvedByName}
+📅 *Resolved On:* {formattedResolvedDate}
+⏱️ *Time Taken:* {resolutionTimeText}
+
+*Resolution Remarks:*
+{remarks}
+
+🔗 *Review on Dashboard:* https://chatbot-portal-latest-frontend.vercel.app/
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*Digital Grievance System*`,
+
+  appointment_completed_admin: `*{companyName}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ *APPOINTMENT COMPLETED*
+
+Respected {recipientName},
+
+The following appointment has been marked as *COMPLETED*.
+
+*Details:*
+🎫 *Reference ID:* {appointmentId}
+👤 *Citizen:* {citizenName}
+🎯 *Purpose:* {purpose}
+📊 *Status:* COMPLETED
+👨‍💼 *Completed By:* {resolvedByName}
+📅 *Completed On:* {formattedResolvedDate}
+
+*Resolution Remarks:*
+{remarks}
+
+🔗 *Review on Dashboard:* https://chatbot-portal-latest-frontend.vercel.app/
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*Digital Appointment System*`,
+
+  appointment_cancelled_admin: `*{companyName}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+❌ *APPOINTMENT CANCELLED*
+
+Respected {recipientName},
+
+The following appointment has been *CANCELLED*.
+
+*Details:*
+🎫 *Reference ID:* {appointmentId}
+👤 *Citizen:* {citizenName}
+🎯 *Purpose:* {purpose}
+📊 *Status:* CANCELLED
+👨‍💼 *Updated By:* {resolvedByName}
+📅 *Updated On:* {formattedResolvedDate}
+
+*Cancellation Remarks:*
+{remarks}
+
+🔗 *View on Dashboard:* https://chatbot-portal-latest-frontend.vercel.app/
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*Digital Appointment System*`,
 
   grievance_confirmation: `*{companyName}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
