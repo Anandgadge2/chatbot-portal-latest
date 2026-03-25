@@ -212,6 +212,11 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
     await grievance.save();
 
     // Notify citizen if status changed to RESOLVED
+    // ✅ FIX: Normalize populated IDs for citizen resolution too
+    const resolvedCompanyId = (grievance.companyId as any)?._id || grievance.companyId;
+    const resolvedDeptId = (grievance.departmentId as any)?._id || grievance.departmentId;
+    const resolvedSubDeptId = (grievance.subDepartmentId as any)?._id || grievance.subDepartmentId;
+
     if (oldStatus !== GrievanceStatus.RESOLVED && status === GrievanceStatus.RESOLVED) {
       const { notifyCitizenOnResolution } = await import('../services/notificationService');
       
@@ -222,9 +227,9 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
         citizenName: grievance.citizenName,
         citizenPhone: grievance.citizenPhone,
         citizenWhatsApp: grievance.citizenWhatsApp,
-        departmentId: grievance.departmentId,
-        subDepartmentId: grievance.subDepartmentId,
-        companyId: grievance.companyId,
+        departmentId: resolvedDeptId,
+        subDepartmentId: resolvedSubDeptId,
+        companyId: resolvedCompanyId,
         remarks: remarks,
         evidenceUrls: uploadedDocumentUrls,
         resolvedBy: currentUser._id,
@@ -239,15 +244,21 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
     // Notify hierarchy about status change for ALL grievance updates
     if (oldStatus !== status) {
       const { notifyHierarchyOnStatusChange } = await import('../services/notificationService');
+      // ✅ FIX: Normalize populated Mongoose objects to plain IDs before passing.
+      // grievance was fetched with .populate(), so companyId/departmentId/subDepartmentId
+      // are full objects. getCompanyWithWhatsAppConfig() will reject them unless we extract _id.
+      const normalizedCompanyId = (grievance.companyId as any)?._id || grievance.companyId;
+      const normalizedDeptId = (grievance.departmentId as any)?._id || grievance.departmentId;
+      const normalizedSubDeptId = (grievance.subDepartmentId as any)?._id || grievance.subDepartmentId;
       await notifyHierarchyOnStatusChange({
         type: 'grievance',
         action: (status === GrievanceStatus.RESOLVED ? 'resolved' : 'status_update') as any,
         grievanceId: grievance.grievanceId,
         citizenName: grievance.citizenName,
         citizenPhone: grievance.citizenPhone,
-        departmentId: grievance.departmentId,
-        subDepartmentId: grievance.subDepartmentId,
-        companyId: grievance.companyId,
+        departmentId: normalizedDeptId,
+        subDepartmentId: normalizedSubDeptId,
+        companyId: normalizedCompanyId,
         assignedTo: grievance.assignedTo,
         remarks: remarks,
         evidenceUrls: uploadedDocumentUrls,
@@ -255,8 +266,7 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
         resolvedAt: grievance.resolvedAt,
         createdAt: grievance.createdAt,
         assignedAt: grievance.assignedAt,
-        timeline: grievance.timeline,
-        resolvedByName: currentUser.getFullName()
+        timeline: grievance.timeline
       }, oldStatus, status);
     }
     
@@ -265,13 +275,13 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
       const { notifyCitizenOnGrievanceStatusChange } = await import('../services/notificationService');
       const departmentName = (grievance.departmentId as any)?.name || 'Department';
       await notifyCitizenOnGrievanceStatusChange({
-        companyId: grievance.companyId,
+        companyId: resolvedCompanyId,
         grievanceId: grievance.grievanceId,
         citizenName: grievance.citizenName,
         citizenPhone: grievance.citizenPhone,
         citizenWhatsApp: grievance.citizenWhatsApp,
-        departmentId: grievance.departmentId,
-        subDepartmentId: grievance.subDepartmentId,
+        departmentId: resolvedDeptId,
+        subDepartmentId: resolvedSubDeptId,
         departmentName,
         newStatus: status,
         remarks: remarks || undefined,

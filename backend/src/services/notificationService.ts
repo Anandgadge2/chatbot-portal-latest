@@ -1056,14 +1056,11 @@ export async function notifyHierarchyOnStatusChange(
     };
 
     // ✅ CONCURRENT NOTIFICATIONS
-    // Filter out the citizen from hierarchy notifications
+    // Filter out the citizen from hierarchy notifications, but DON'T drop admins with no phone.
+    // Admins without a phone will still receive EMAIL notifications.
     const citizenPhoneNormalized = data.citizenWhatsApp?.replace(/\D/g, '') || data.citizenPhone?.replace(/\D/g, '');
     
-    await Promise.allSettled(users.filter(u => {
-      const userPhoneNormalized = u.phone?.replace(/\D/g, '');
-      // Ensure we don't notify the citizen themselves, and ensure the user HAS a phone
-      return userPhoneNormalized && userPhoneNormalized !== citizenPhoneNormalized;
-    }).map(async (user) => {
+    await Promise.allSettled(users.map(async (user) => {
       try {
         // Personalize data for each admin recipient
         const userFullData: Record<string, any> = {
@@ -1120,15 +1117,22 @@ export async function notifyHierarchyOnStatusChange(
 
         const tasks: Promise<any>[] = [];
 
-        // 📱 WhatsApp
-        if (canNotify(company, user, 'whatsapp')) {
+        // 📱 WhatsApp — only if user has a phone AND it doesn't match the citizen's phone
+        const userPhoneNormalized = user.phone?.replace(/\D/g, '');
+        const isCitizenPhone = userPhoneNormalized && userPhoneNormalized === citizenPhoneNormalized;
+
+        if (!userPhoneNormalized) {
+          logger.warn(`⚠️ Hierarchy admin ${user.email} (${user.getFullName()}) has NO phone number — skipping WhatsApp, will try email.`);
+        } else if (isCitizenPhone) {
+          logger.warn(`⚠️ Skipping WhatsApp for ${user.email} — phone matches citizen's phone (avoiding duplicate).`);
+        } else if (canNotify(company, user, 'whatsapp')) {
           tasks.push(safeSendWhatsApp(company, user.phone, hierarchyMessage, ctaButton));
           if (data.evidenceUrls && data.evidenceUrls.length > 0) {
             tasks.push(sendMediaIfAvailable(company, user.phone, data.evidenceUrls, `Hierarchy Update: ${userFullData.grievanceId || userFullData.appointmentId}`));
           }
         }
 
-        // 📧 Email
+        // 📧 Email — always attempt, regardless of phone availability
         const emailAddress = user.email;
         if (emailAddress && canNotify(company, user, 'email')) {
           const emailTask = (async () => {
@@ -1161,6 +1165,7 @@ export async function notifyHierarchyOnStatusChange(
         logger.error(`❌ Error notifying hierarchy user ${user.email}:`, err);
       }
     }));
+
 
   } catch (error) {
     logger.error('❌ notifyHierarchyOnStatusChange failed:', error);
