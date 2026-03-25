@@ -465,9 +465,14 @@ export async function getNotificationWhatsAppMessage(
     ? new mongoose.Types.ObjectId(companyId)
     : companyId;
     
+  const lang = data.language || data.lang || 'en';
+  
   const attemptKeys = [
-    `${type}_${action}`,
+    `${type}_${action}_${lang}`,
+    `${type}_${action}`, 
+    action === 'confirmation' ? `${type}_created_${lang}` : '',
     action === 'confirmation' ? `${type}_created` : '',
+    action === 'created' ? `${type}_confirmation_${lang}` : '',
     action === 'created' ? `${type}_confirmation` : ''
   ].filter(Boolean);
 

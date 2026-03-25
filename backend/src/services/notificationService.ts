@@ -625,7 +625,7 @@ export async function notifyDepartmentAdminOnCreation(
         if (canNotify(company, user, 'whatsapp')) {
           const whatsappTask = (async () => {
             const fullData = await populateNotificationData(notificationData);
-            let message = await getNotificationWhatsAppMessage(companyId, data.type, 'created', fullData);
+            let message = await getNotificationWhatsAppMessage(companyId, data.type, 'created_admin', fullData);
             if (!message) {
               const typeLabel = data.type === 'grievance' ? 'GRIEVANCE' : 'APPOINTMENT';
               const categoryText = fullData.category ? `\n📂 *Category:* ${fullData.category}\n` : '';
@@ -704,7 +704,7 @@ export async function notifyUserOnAssignment(
 
     // 📱 WhatsApp — use DB template first, then fallback
     if (canNotify(company, user, 'whatsapp')) {
-      let message = await getNotificationWhatsAppMessage(data.companyId, data.type, 'assigned', fullData);
+      let message = await getNotificationWhatsAppMessage(data.companyId, data.type, 'assigned_admin', fullData);
       if (!message) {
         const typeLabel = data.type === 'grievance' ? 'GRIEVANCE' : 'APPOINTMENT';
         const deptLine = fullData.subDepartmentName && fullData.subDepartmentName !== 'N/A'
