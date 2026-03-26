@@ -110,5 +110,9 @@ export const userAPI = {
 
   delete: async (id: string): Promise<{ success: boolean; message: string }> => {
     return apiClient.delete(`/users/${id}`);
+  },
+
+  deleteBulk: async (ids: string[]): Promise<{ success: boolean; message: string; data: { deletedCount: number } }> => {
+    return apiClient.delete('/users/bulk', { ids });
   }
 };

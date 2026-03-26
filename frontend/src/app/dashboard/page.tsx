@@ -188,7 +188,7 @@ function DashboardContent() {
   const { user, loading, logout } = useAuth();
   const isCompanyLevel = user && !user.departmentId && !user.isSuperAdmin;
   const isDepartmentLevel = user && !!user.departmentId && !user.isSuperAdmin;
-  const isSuperAdminUser = !!user?.isSuperAdmin;
+  const isSuperAdminUser = isSuperAdmin(user);
   const router = useRouter();
   const searchParams = useSearchParams();
   const companyIdParam = searchParams.get("companyId");
@@ -311,6 +311,10 @@ function DashboardContent() {
     new Set(),
   );
   const [selectedAppointments, setSelectedAppointments] = useState<Set<string>>(
+    new Set(),
+  );
+  const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
+  const [selectedDepartments, setSelectedDepartments] = useState<Set<string>>(
     new Set(),
   );
   const [isDeleting, setIsDeleting] = useState(false);
@@ -571,6 +575,78 @@ function DashboardContent() {
     }
   };
 
+  const handleBulkDeleteUsers = async () => {
+    if (selectedUsers.size === 0) return;
+
+    if (
+      !confirm(
+        `Are you sure you want to delete ${selectedUsers.size} user(s)? This action cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const response = await userAPI.deleteBulk(Array.from(selectedUsers));
+      if (response.success) {
+        toast.success(response.message);
+        const deletedIds = Array.from(selectedUsers);
+        setUsers((prev) => prev.filter((u) => !deletedIds.includes(u._id)));
+        setSelectedUsers(new Set());
+        fetchUsers(userPage, true);
+        fetchDashboardData(true);
+      } else {
+        toast.error("Failed to delete users");
+      }
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Failed to delete users",
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleBulkDeleteDepartments = async () => {
+    if (selectedDepartments.size === 0) return;
+
+    if (
+      !confirm(
+        `Are you sure you want to delete ${selectedDepartments.size} department(s)? This action cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const response = await departmentAPI.deleteBulk(
+        Array.from(selectedDepartments),
+      );
+      if (response.success) {
+        toast.success(response.message);
+        const deletedIds = Array.from(selectedDepartments);
+        setDepartments((prev) => prev.filter((d) => !deletedIds.includes(d._id)));
+        setSelectedDepartments(new Set());
+        fetchDepartments(departmentPage, true);
+        fetchDashboardData(true);
+      } else {
+        toast.error("Failed to delete departments");
+      }
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Failed to delete departments",
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   // Appointments Filters
   const [appointmentFilters, setAppointmentFilters] = useState({
     status: "",
@@ -603,7 +679,22 @@ function DashboardContent() {
     if (tabFromUrl && tabFromUrl !== activeTab) {
       setActiveTab(tabFromUrl);
     }
-  }, [searchParams, activeTab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  // Sync tab state to URL
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    const currentUrlTab = params.get("tab");
+    
+    if (activeTab && activeTab !== "overview" && currentUrlTab !== activeTab) {
+      params.set("tab", activeTab);
+      router.replace(`${window.location.pathname}?${params.toString()}`, { scroll: false });
+    } else if (activeTab === "overview" && currentUrlTab) {
+      params.delete("tab");
+      router.replace(`${window.location.pathname}?${params.toString()}`, { scroll: false });
+    }
+  }, [activeTab, router, searchParams]);
 
   useEffect(() => {
     setMounted(true);
@@ -742,6 +833,7 @@ function DashboardContent() {
         const response = await departmentAPI.getAll({
           page: isCompanyLevel || (isSuperAdminUser && companyIdParam) ? 1 : page,
           limit: fetchLimit,
+          search: (deptSearch || "").trim(),
           companyId: isSuperAdminUser && companyIdParam ? companyIdParam : undefined,
         });
         if (response.success) {
@@ -821,7 +913,7 @@ function DashboardContent() {
         const response = await userAPI.getAll({
           page,
           limit: userPagination.limit,
-          search: userSearch,
+          search: (userSearch || "").trim(),
           role: serverRoleFilter,
           status: (userFilters.status as 'active' | 'inactive') || undefined,
           departmentId: selectedDepartmentId,
@@ -913,6 +1005,7 @@ function DashboardContent() {
           page,
           limit: grievancePagination.limit,
           status: grievanceFilters.status || undefined,
+          search: (grievanceSearch || "").trim(),
           departmentId: (grievanceFilters.subDeptId || grievanceFilters.mainDeptId || grievanceFilters.department) || undefined,
           assignedTo: grievanceFilters.assignmentStatus === "assigned" ? "ANY" : grievanceFilters.assignmentStatus === "unassigned" ? "NONE" : undefined,
           companyId: isSuperAdminUser && companyIdParam ? companyIdParam : undefined,
@@ -948,6 +1041,7 @@ function DashboardContent() {
         const response = await appointmentAPI.getAll({
           page,
           limit: appointmentPagination.limit,
+          search: (appointmentSearch || "").trim(),
           companyId: isSuperAdminUser && companyIdParam ? companyIdParam : undefined,
         });
         if (response.success) {
@@ -1431,7 +1525,7 @@ function DashboardContent() {
         filteredData = filteredData.filter((u: User) => {
           if (userFilters.role.startsWith("CUSTOM:")) {
             const roleId = userFilters.role.split(":")[1];
-            const uRoleId = typeof u.customRoleId === "object" ? (u.customRoleId as any)._id : u.customRoleId;
+            const uRoleId = (u.customRoleId && typeof u.customRoleId === "object") ? (u.customRoleId as any)._id : u.customRoleId;
             return uRoleId === roleId;
           }
           return u.role === userFilters.role;
@@ -1542,7 +1636,7 @@ function DashboardContent() {
     );
   }
 
-  if (user?.isSuperAdmin && !companyIdParam) {
+  if (isSuperAdminUser && !companyIdParam) {
     return <SuperAdminOverview />;
   }
 
@@ -1558,20 +1652,12 @@ function DashboardContent() {
   ].filter(Boolean).length;
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-white">
       {/* Header with Gradient */}
       {/* Classic White Header */}
       {/* Premium Admin Header */}
       <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 transition-all duration-300 shadow-2xl overflow-hidden">
-        {/* Subtle Background Pattern */}
-        <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
-          <div
-            className="absolute inset-0"
-            style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-            }}
-          ></div>
-        </div>
+        {/* Removed blue pattern backdrop */}
 
         <div className="max-w-[1600px] mx-auto px-4 lg:px-6 relative z-10">
           <div className="flex items-center justify-between h-16">
@@ -1659,18 +1745,13 @@ function DashboardContent() {
               if (activeTab === "overview" && value === "grievances") {
                 setGrievanceFilters(prev => ({ ...prev, status: "" }));
               }
+              
+              setActiveTab(value);
             }
-
-            setActiveTab(value);
-
-            // Sync with URL for state persistence across refreshes
-            const params = new URLSearchParams(window.location.search);
-            params.set("tab", value);
-            router.replace(`${window.location.pathname}?${params.toString()}`, { scroll: false });
           }}
           className="space-y-4 sm:space-y-6"
         >
-          <div className="mb-4 sticky top-[64px] z-40 bg-slate-50/95 backdrop-blur-sm py-3 -mx-4 px-4 sm:mx-0 sm:px-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="mb-4 sticky top-[64px] z-40 bg-white/95 backdrop-blur-sm py-3 -mx-4 px-4 sm:mx-0 sm:px-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <TabsList className="w-full sm:w-auto bg-slate-200/50 p-1 border border-slate-300/50 h-10 shadow-sm overflow-x-auto no-scrollbar max-w-full">
               {(isSuperAdminUser || hasPermission(user, Permission.VIEW_ANALYTICS)) && (
                 <TabsTrigger
@@ -1713,7 +1794,7 @@ function DashboardContent() {
                   </TabsTrigger>
                 )}
 
-              {isViewingCompany && !isSuperAdminUser && (
+              {isViewingCompany && (
                 <TabsTrigger
                   value="departments"
                   className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
@@ -1747,6 +1828,15 @@ function DashboardContent() {
                   className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
                 >
                   Users
+                </TabsTrigger>
+              )}
+
+              {isSuperAdminUser && companyIdParam && (
+                <TabsTrigger
+                  value="roles"
+                  className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
+                >
+                  Roles
                 </TabsTrigger>
               )}
 
@@ -3706,14 +3796,16 @@ function DashboardContent() {
                       >
                         <RefreshCw className="w-3.5 h-3.5" />
                       </button>
-                      <ProtectedButton
-                        permission={Permission.CREATE_DEPARTMENT}
-                        onClick={() => setShowDepartmentDialog(true)}
-                        className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-8 text-[10px] font-bold uppercase tracking-widest rounded-lg px-4 shadow-md"
-                      >
-                        <Building className="w-3.5 h-3.5 mr-1.5" />
-                        Add Department
-                      </ProtectedButton>
+                                     {(isSuperAdminUser || hasPermission(user, Permission.CREATE_DEPARTMENT)) && (
+                        <Button
+                          type="button"
+                          onClick={() => setShowDepartmentDialog(true)}
+                          className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-8 text-[10px] font-bold uppercase tracking-widest rounded-lg px-4 shadow-md"
+                        >
+                          <Building className="w-3.5 h-3.5 mr-1.5" />
+                          Add Department
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </CardHeader>
@@ -3787,6 +3879,19 @@ function DashboardContent() {
                         }{" "}
                         Sub
                       </span>
+                      {isSuperAdminUser &&
+                        selectedDepartments.size > 0 && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={handleBulkDeleteDepartments}
+                            disabled={isDeleting}
+                            className="text-[9px] font-black h-7 px-3 bg-red-600 hover:bg-red-700 text-white rounded-lg border border-red-700 shadow-sm transition-all animate-in zoom-in duration-200"
+                          >
+                            <Trash2 className="w-3 h-3 mr-1" />
+                            Delete ({selectedDepartments.size})
+                          </Button>
+                        )}
                     </div>
                   </div>
 
@@ -3810,6 +3915,36 @@ function DashboardContent() {
                         <table className="w-full relative border-collapse min-w-[900px]">
                           <thead className="sticky top-0 z-20 bg-[#fcfdfe] border-b border-slate-200">
                             <tr>
+                              {isSuperAdminUser && (
+                                <th className="px-3 py-3 text-center border-b border-slate-100">
+                                  <input
+                                    type="checkbox"
+                                    checked={
+                                      selectedDepartments.size > 0 &&
+                                      selectedDepartments.size ===
+                                        getSortedData(
+                                          departments,
+                                          "departments",
+                                        ).length
+                                    }
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setSelectedDepartments(
+                                          new Set(
+                                            getSortedData(
+                                              departments,
+                                              "departments",
+                                            ).map((d) => d._id),
+                                          ),
+                                        );
+                                      } else {
+                                        setSelectedDepartments(new Set());
+                                      }
+                                    }}
+                                    className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer"
+                                  />
+                                </th>
+                              )}
                               <th className="px-3 py-3 text-center text-[9px] font-black text-slate-400 border-b border-slate-100 uppercase tracking-widest w-12">
                                 Sr.
                               </th>
@@ -3860,6 +3995,28 @@ function DashboardContent() {
                                   key={dept._id}
                                   className="hover:bg-indigo-50/30 transition-all duration-150 group/row"
                                 >
+                                  {/* Checkbox */}
+                                  {isSuperAdminUser && (
+                                    <td className="px-3 py-4 text-center">
+                                      <input
+                                        type="checkbox"
+                                        checked={selectedDepartments.has(
+                                          dept._id,
+                                        )}
+                                        onChange={() => {
+                                          const next = new Set(
+                                            selectedDepartments,
+                                          );
+                                          if (next.has(dept._id))
+                                            next.delete(dept._id);
+                                          else next.add(dept._id);
+                                          setSelectedDepartments(next);
+                                        }}
+                                        className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer"
+                                      />
+                                    </td>
+                                  )}
+
                                   {/* # */}
                                   <td className="px-3 py-4 text-center">
                                     <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-slate-100 text-slate-500 text-[10px] font-black group-hover/row:bg-indigo-100 group-hover/row:text-indigo-700 transition-colors">
@@ -4086,6 +4243,11 @@ function DashboardContent() {
                                                 if (response.success) {
                                                   toast.success(
                                                     "Department deleted successfully",
+                                                  );
+                                                  setDepartments((prev) =>
+                                                    prev.filter(
+                                                      (d) => d._id !== dept._id,
+                                                    ),
                                                   );
                                                   fetchDepartments(1, false);
                                                 }
@@ -4323,18 +4485,27 @@ function DashboardContent() {
                       </div>
                     </div>
                     {hasPermission(user, Permission.CREATE_USER) && (
-                      <Button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setShowUserDialog(true);
-                        }}
-                        className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-8 text-[10px] font-bold uppercase tracking-widest rounded-lg px-4 shadow-md"
-                      >
-                        <UserPlus className="w-3.5 h-3.5 mr-1.5" />
-                        Add User
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        {isSuperAdminUser && selectedUsers.size > 0 && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={handleBulkDeleteUsers}
+                            className="h-8 text-[10px] font-bold uppercase tracking-widest bg-red-600 hover:bg-red-700 shadow-md px-4"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                            Delete ({selectedUsers.size})
+                          </Button>
+                        )}
+                        <Button
+                          type="button"
+                          onClick={() => setShowUserDialog(true)}
+                          className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-8 text-[10px] font-bold uppercase tracking-widest rounded-lg px-4 shadow-md"
+                        >
+                          <UserPlus className="w-3.5 h-3.5 mr-1.5" />
+                          Add User
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </CardHeader>
@@ -4383,15 +4554,24 @@ function DashboardContent() {
                     <div className={`${showUserFiltersOnMobile ? "grid" : "hidden"} sm:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-2 w-full`}>
                       <select
                         value={userFilters.role}
-                        onChange={(e) => setUserFilters(prev => ({ ...prev, role: e.target.value }))}
+                        onChange={(e) =>
+                          setUserFilters({ ...userFilters, role: e.target.value })
+                        }
                         className="w-full h-9 text-[10px] font-bold uppercase tracking-wider px-3 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all"
                         aria-label="Filter users by role"
                       >
                         <option value="">All Roles</option>
-                        {roles.map(r => (
-                          <option key={r._id} value={`CUSTOM:${r._id}`}>{r.name}</option>
+                        {roles.map((role: any) => (
+                          <option key={role._id} value={`CUSTOM:${role._id}`}>
+                            {role.name}
+                          </option>
                         ))}
                         {isSuperAdminUser && <option value="SUPER_ADMIN">Super Admin</option>}
+                        <option value="COMPANY_ADMIN">Company Admin</option>
+                        <option value="DEPARTMENT_ADMIN">Dept Admin</option>
+                        <option value="OPERATOR">Operator</option>
+                        <option value="OFFICER">Officer</option>
+                        <option value="SUB_DEPARTMENT_ADMIN">Sub Department Admin</option>
                       </select>
                       <select
                         value={userFilters.status}
@@ -4449,6 +4629,33 @@ function DashboardContent() {
                         <table className="w-full min-w-[980px] relative border-collapse table-auto">
                           <thead className="bg-[#fcfdfe] border-b border-slate-200">
                             <tr>
+                              {isSuperAdminUser && (
+                                <th className="px-3 py-3 text-center">
+                                  <input
+                                    type="checkbox"
+                                    checked={
+                                      selectedUsers.size > 0 &&
+                                      selectedUsers.size ===
+                                        getSortedData(users, "users").length
+                                    }
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setSelectedUsers(
+                                          new Set(
+                                            getSortedData(
+                                              users,
+                                              "users",
+                                            ).map((u) => u._id),
+                                          ),
+                                        );
+                                      } else {
+                                        setSelectedUsers(new Set());
+                                      }
+                                    }}
+                                    className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer"
+                                  />
+                                </th>
+                              )}
                               <th className="px-3 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest w-[5%]">
                                 Sr.
                               </th>
@@ -4512,6 +4719,25 @@ function DashboardContent() {
                                   key={u._id}
                                   className="hover:bg-gradient-to-r hover:from-emerald-50/50 hover:to-green-50/50 transition-all duration-200 group/row"
                                 >
+                                  {/* Checkbox */}
+                                  {isSuperAdminUser && (
+                                    <td className="px-3 py-4 text-center">
+                                      <input
+                                        type="checkbox"
+                                        checked={selectedUsers.has(u._id)}
+                                        onChange={() => {
+                                          const next = new Set(selectedUsers);
+                                          if (next.has(u._id))
+                                            next.delete(u._id);
+                                          else next.add(u._id);
+                                          setSelectedUsers(next);
+                                        }}
+                                        className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer"
+                                      />
+                                    </td>
+                                  )}
+
+                                  {/* Sr */}
                                   <td className="px-3 py-5 text-center">
                                     <span className="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-100 to-green-100 text-emerald-700 text-xs font-bold shadow-sm">
                                       {(userPage - 1) * userPagination.limit +
@@ -4626,7 +4852,9 @@ function DashboardContent() {
                                                     ? "bg-blue-50 text-blue-700 border-blue-100 ring-1 ring-blue-200"
                                                     : u.level === 4
                                                       ? "bg-emerald-50 text-emerald-700 border-emerald-100 ring-1 ring-emerald-200"
-                                                      : "bg-slate-50 text-slate-700 border-slate-200"
+                                                      : u.level === 5
+                                                        ? "bg-emerald-50 text-emerald-700 border-emerald-100 ring-1 ring-emerald-200"
+                                                        : "bg-slate-50 text-slate-700 border-slate-200"
                                           }`}
                                         >
                                           <Shield className="w-2.5 h-2.5 mr-1" />
@@ -4682,7 +4910,8 @@ function DashboardContent() {
                                                       /_/g,
                                                       " ",
                                                     )}
-                                                  </span>
+                                                  </span
+                                                  >
                                                 ))}
                                               {(u.customRoleId as any)
                                                 .permissions.length > 3 && (
@@ -4866,6 +5095,30 @@ function DashboardContent() {
                             )}
                           </tbody>
                         </table>
+                      </div>
+
+                      <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/30 flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                        {isSuperAdminUser &&
+                          selectedUsers.size > 0 && (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={handleBulkDeleteUsers}
+                              disabled={isDeleting}
+                              className="text-[9px] font-black h-7 px-3 bg-red-600 hover:bg-red-700 text-white rounded-lg border border-red-700 shadow-sm transition-all animate-in zoom-in duration-200"
+                            >
+                              <Trash2 className="w-3 h-3 mr-1" />
+                              Delete ({selectedUsers.size})
+                            </Button>
+                          )}
+
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-lg whitespace-nowrap">
+                          Showing{" "}
+                          <span className="text-indigo-600">
+                            {getSortedData(users, "users").length}
+                          </span>{" "}
+                          Records
+                        </span>
                       </div>
 
                       <Pagination
@@ -5149,6 +5402,18 @@ function DashboardContent() {
                         </Button>
                       )}
 
+                      {isSuperAdminUser && selectedGrievances.size > 0 && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={handleBulkDeleteGrievances}
+                          className="text-xs h-8 px-4 bg-red-600 hover:bg-red-700 text-white rounded-xl shadow-md font-bold"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                          Delete ({selectedGrievances.size})
+                        </Button>
+                      )}
+
                       {/* Results count */}
                       <span className="text-xs text-slate-500 ml-auto bg-white px-3 py-1.5 rounded-lg shadow-sm border border-slate-200">
                         Showing{" "}
@@ -5159,7 +5424,7 @@ function DashboardContent() {
                       </span>
 
                       {/* Bulk Delete Button (Super Admin only) */}
-                      {user?.isSuperAdmin &&
+                      {isSuperAdminUser &&
                         selectedGrievances.size > 0 && (
                           <Button
                             variant="destructive"
@@ -5209,7 +5474,7 @@ function DashboardContent() {
                           <table className="w-full relative border-collapse">
                             <thead className="sticky top-0 z-20 bg-[#fcfdfe] border-b border-slate-200">
                               <tr className="whitespace-nowrap">
-                                {user?.isSuperAdmin && (
+                                {isSuperAdminUser && (
                                   <th className="px-3 py-4 text-center">
                                     <input
                                       type="checkbox"
@@ -5336,7 +5601,7 @@ function DashboardContent() {
                                     key={grievance._id}
                                     className="hover:bg-gradient-to-r hover:from-indigo-50/50 hover:to-purple-50/50 transition-all duration-200 group/row"
                                   >
-                                    {user?.isSuperAdmin && (
+                                    {isSuperAdminUser && (
                                       <td className="px-3 py-4 text-center">
                                         <input
                                           type="checkbox"
@@ -6093,6 +6358,20 @@ function DashboardContent() {
                         </Button>
                       )}
 
+                      {isSuperAdminUser && selectedAppointments.size > 0 && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={handleBulkDeleteAppointments}
+                          disabled={isDeleting}
+                          className="text-xs h-8 px-4 bg-red-600 hover:bg-red-700 text-white rounded-xl border border-red-700 shadow-sm mr-2"
+                          title={`Delete ${selectedAppointments.size} selected appointment(s)`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                          Delete ({selectedAppointments.size})
+                        </Button>
+                      )}
+
                       {/* Results count */}
                       <span className="text-xs text-slate-500 ml-auto bg-white px-3 py-1.5 rounded-lg shadow-sm border border-slate-200">
                         Showing{" "}
@@ -6101,22 +6380,6 @@ function DashboardContent() {
                         </span>{" "}
                         of {appointments.length} appointments
                       </span>
-
-                      {/* Bulk Delete Button (Super Admin only) */}
-                      {user?.isSuperAdmin &&
-                        selectedAppointments.size > 0 && (
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={handleBulkDeleteAppointments}
-                            disabled={isDeleting}
-                            className="text-xs h-8 px-4 bg-red-600 hover:bg-red-700 text-white rounded-xl border border-red-700 shadow-sm"
-                            title={`Delete ${selectedAppointments.size} selected appointment(s)`}
-                          >
-                            <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                            Delete ({selectedAppointments.size})
-                          </Button>
-                        )}
                     </div>
                   </div>
 
@@ -6153,7 +6416,7 @@ function DashboardContent() {
                           <table className="w-full relative border-collapse">
                             <thead className="sticky top-0 z-20 bg-[#fcfdfe] border-b border-slate-200">
                               <tr className="whitespace-nowrap">
-                                {user?.isSuperAdmin && (
+                                {isSuperAdminUser && (
                                   <th className="px-3 py-4 text-center">
                                     <input
                                       type="checkbox"
@@ -6446,6 +6709,22 @@ function DashboardContent() {
               </TabsContent>
             )}
 
+          {isSuperAdminUser && companyIdParam && (
+            <TabsContent value="roles" className="space-y-4">
+              <Card className="border-0 shadow-xl rounded-2xl overflow-hidden bg-white text-left">
+                <CardContent className="p-6">
+                    <RoleManagement
+                      companyId={
+                        (isSuperAdminUser && companyIdParam)
+                          ? companyIdParam
+                          : (typeof user?.companyId === 'object' ? (user.companyId as any)?._id : (user?.companyId || ""))
+                      }
+                    />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+
           {/* Project Leads Tab - NEW for PugArch and others with LEAD_CAPTURE */}
           {user &&
             (user.enabledModules?.includes(Module.LEAD_CAPTURE) ||
@@ -6611,13 +6890,6 @@ function DashboardContent() {
                 <ChatbotFlowsTab companyId={companyIdParam} />
               </TabsContent>
 
-              <TabsContent value="roles" className="space-y-4">
-                <Card className="border-0 shadow-xl rounded-2xl overflow-hidden bg-white text-left">
-                  <CardContent className="p-6">
-                    <RoleManagement companyId={companyIdParam} />
-                  </CardContent>
-                </Card>
-              </TabsContent>
 
               <TabsContent value="notifications" className="space-y-4">
                 <NotificationManagement companyId={companyIdParam} />
@@ -6631,10 +6903,11 @@ function DashboardContent() {
 
         </Tabs>
 
+
         {/* Dialogs */}
-        {(isCompanyLevel || isDepartmentLevel) && (
+        {(isViewingCompany || isDepartmentLevel) && (
           <>
-            {isCompanyLevel && (
+            {isViewingCompany && (
               <CreateDepartmentDialog
                 isOpen={showDepartmentDialog}
                 onClose={() => {
@@ -6647,6 +6920,7 @@ function DashboardContent() {
                   setEditingDepartment(null);
                 }}
                 editingDepartment={editingDepartment}
+                defaultCompanyId={isSuperAdminUser ? companyIdParam || undefined : undefined}
               />
             )}
             <ConfirmDialog
@@ -6666,6 +6940,7 @@ function DashboardContent() {
                 fetchUsers(userPage, true);
                 fetchDashboardData(true);
               }}
+              defaultCompanyId={isSuperAdminUser ? companyIdParam || undefined : undefined}
             />
             <EditUserDialog
               isOpen={showEditUserDialog}

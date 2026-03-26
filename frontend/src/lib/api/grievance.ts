@@ -96,6 +96,7 @@ export const grievanceAPI = {
     departmentId?: string;
     assignedTo?: string;
     priority?: string;
+    search?: string;
   }): Promise<GrievancesResponse> => {
     const queryParams = new URLSearchParams();
     if (params?.page) queryParams.append('page', params.page.toString());
@@ -105,6 +106,7 @@ export const grievanceAPI = {
     if (params?.departmentId) queryParams.append('departmentId', params.departmentId);
     if (params?.assignedTo) queryParams.append('assignedTo', params.assignedTo);
     if (params?.priority) queryParams.append('priority', params.priority);
+    if (params?.search) queryParams.append('search', params.search);
     
     return apiClient.get(`/grievances?${queryParams.toString()}`);
   },

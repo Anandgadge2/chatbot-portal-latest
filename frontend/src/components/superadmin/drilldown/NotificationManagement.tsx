@@ -188,7 +188,7 @@ const NotificationManagement: React.FC<NotificationManagementProps> = ({
     <div className="space-y-6 pb-12">
       {/* Header Panel */}
       <Card className="bg-slate-900 border-none shadow-2xl overflow-hidden rounded-3xl">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-transparent pointer-events-none"></div>
+        {/* Removed blue backdrop */}
         <CardHeader className="relative px-8 py-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-center gap-5">
@@ -404,7 +404,7 @@ const NotificationManagement: React.FC<NotificationManagementProps> = ({
 
       {/* Security Protocol Footer */}
       <div className="bg-indigo-950 rounded-3xl p-8 border border-indigo-500/30 relative overflow-hidden shadow-2xl">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 blur-3xl -mr-32 -mt-32"></div>
+        {/* Removed blue backdrop blob */}
         <div className="relative z-10 flex flex-col md:flex-row gap-8 items-center">
            <div className="w-16 h-16 bg-indigo-500/20 rounded-2xl flex items-center justify-center border border-indigo-500/40">
              <Shield className="w-8 h-8 text-indigo-400" />

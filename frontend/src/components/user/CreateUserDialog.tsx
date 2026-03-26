@@ -32,6 +32,7 @@ interface CreateUserDialogProps {
   onClose: () => void;
   onUserCreated: () => void;
   editingUser?: User | null;
+  defaultCompanyId?: string;
 }
 
 const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
@@ -39,6 +40,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
   onClose,
   onUserCreated,
   editingUser,
+  defaultCompanyId,
 }) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -194,20 +196,21 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
           phone: "",
           designation: "",
           role: "",
-          companyId: userCompanyId || "",
+          companyId: defaultCompanyId || userCompanyId || "",
           departmentId: userDepartmentId || "",
           notificationSettings: {
             email: true,
             whatsapp: true
           }
         });
-
-        if (userCompanyId) {
-          fetchDepartments(userCompanyId);
+        
+        const effectiveCompanyId = defaultCompanyId || userCompanyId;
+        if (effectiveCompanyId) {
+          fetchDepartments(effectiveCompanyId);
         }
       }
     }
-  }, [isOpen, user, editingUser, fetchCompanies, fetchDepartments]);
+  }, [isOpen, user, editingUser, fetchCompanies, fetchDepartments, defaultCompanyId]);
 
   useEffect(() => {
     if (isOpen && departments.length > 0) {
@@ -413,7 +416,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
               <div className="flex-1 h-px bg-slate-100"></div>
             </div>
 
-            {isSuperAdmin(user) && (
+            {isSuperAdmin(user) && !defaultCompanyId && (
                 <div>
                     <Label htmlFor="companyId">Company *</Label>
                     <select id="companyId" name="companyId" value={formData.companyId} onChange={handleChange} className="w-full p-2 border rounded-md bg-white focus:ring-2 focus:ring-indigo-500" required>

@@ -42,4 +42,7 @@ export const chatbotFlowApi = {
     
   hasDefaults: (companyId: string) =>
     apiClient.get(`/chatbot-flows/company/${companyId}/has-defaults`),
+
+  deleteBulk: (ids: string[]) =>
+    apiClient.post("/chatbot-flows/bulk-delete", { ids }),
 };

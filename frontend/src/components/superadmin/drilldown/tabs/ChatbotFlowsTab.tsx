@@ -14,7 +14,9 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiClient } from "@/lib/api/client";
-import toast from "react-hot-toast";
+import { chatbotFlowApi } from '@/lib/api/chatbotFlow';
+import { toast } from 'sonner';
+import { useQueryCache } from "@/lib/query/cache";
 import {
   Plus,
   Edit,
@@ -27,6 +29,8 @@ import {
   Loader2,
   Zap,
   RefreshCw,
+  Building,
+  AlertCircle,
 } from "lucide-react";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -42,6 +46,7 @@ export default function ChatbotFlowsTab({ companyId }: ChatbotFlowsTabProps) {
   const router = useRouter();
   const { user } = useAuth();
   const { company } = useCompanyContext();
+  const { invalidate } = useQueryCache();
   const { data: cachedFlows, isLoading: flowsLoading } = useFlows(companyId);
   const { data: cachedWhatsappConfig } = useWhatsappConfig(companyId);
 
@@ -60,6 +65,8 @@ export default function ChatbotFlowsTab({ companyId }: ChatbotFlowsTabProps) {
     flowId: string;
     action: string;
   } | null>(null);
+  const [selectedFlows, setSelectedFlows] = useState<Set<string>>(new Set());
+  const [isDeletingBulk, setIsDeletingBulk] = useState(false);
   
   const [confirmDialog, setConfirmDialog] = useState<any>({
     isOpen: false,
@@ -81,12 +88,7 @@ export default function ChatbotFlowsTab({ companyId }: ChatbotFlowsTabProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [companyId]);
 
-  useEffect(() => {
-    if (cachedFlows) {
-      setFlows(cachedFlows);
-      setLoading(false);
-    }
-  }, [cachedFlows]);
+
 
   useEffect(() => {
     if (cachedWhatsappConfig !== undefined) {
@@ -96,6 +98,11 @@ export default function ChatbotFlowsTab({ companyId }: ChatbotFlowsTabProps) {
 
   const fetchData = async (silent = false) => {
     try {
+      if (!silent) setLoading(true);
+      const res = await chatbotFlowApi.getFlows(companyId as string);
+      if (res.success) {
+        setFlows(res.data);
+      }
       if (silent) {
         setRefreshing(true);
       } else {
@@ -168,6 +175,9 @@ export default function ChatbotFlowsTab({ companyId }: ChatbotFlowsTabProps) {
       const res = await apiClient.post(`/chatbot-flows/${flowId}/duplicate`);
       if (res.success) {
         toast.success(res.message || "Flow duplicated successfully");
+        if (res.data) {
+          setFlows((prev) => [...prev, res.data]);
+        }
         fetchData(true);
       } else {
         toast.error(res.message || "Failed to duplicate flow");
@@ -185,6 +195,9 @@ export default function ChatbotFlowsTab({ companyId }: ChatbotFlowsTabProps) {
       const res = await apiClient.post(`/chatbot-flows/${flowId}/set-active-flow`);
       if (res?.success) {
         toast.success(res.message || "Flow activated successfully");
+        setFlows((prev) =>
+          prev.map((f) => ({ ...f, isActive: f._id === flowId })),
+        );
         fetchData(true);
       } else {
         toast.error(res?.message || "Failed to set active flow");
@@ -209,6 +222,9 @@ export default function ChatbotFlowsTab({ companyId }: ChatbotFlowsTabProps) {
           const res = await apiClient.delete(`/chatbot-flows/${flowId}`);
           if (res?.success === true) {
             toast.success(res.message || "Flow deleted successfully");
+            // Update local state immediately for instant feedback
+            setFlows((prev) => prev.filter((f) => f._id !== flowId));
+            invalidate(`["flows","${companyId}"]`);
             fetchData(true);
           } else {
             toast.error(res?.message || "Failed to delete flow");
@@ -221,6 +237,44 @@ export default function ChatbotFlowsTab({ companyId }: ChatbotFlowsTabProps) {
           );
         } finally {
           setLoadingAction(null);
+          setConfirmDialog((prev: any) => ({ ...prev, isOpen: false }));
+        }
+      },
+    });
+  };
+
+  const handleBulkDeleteFlows = async () => {
+    if (selectedFlows.size === 0) return;
+
+    setConfirmDialog({
+      isOpen: true,
+      title: "Delete Selected Flows",
+      message: `Are you sure you want to delete ${selectedFlows.size} chatbot flow(s)? This action cannot be undone.`,
+      variant: "danger",
+      onConfirm: async () => {
+        setIsDeletingBulk(true);
+        try {
+          const response = await chatbotFlowApi.deleteBulk(
+            Array.from(selectedFlows),
+          );
+          if (response.success) {
+            toast.success(response.message);
+            const deletedIds = Array.from(selectedFlows);
+            setFlows((prev) => prev.filter((f) => !deletedIds.includes(f._id)));
+            setSelectedFlows(new Set());
+            invalidate(`["flows","${companyId}"]`);
+            fetchData(true);
+          } else {
+            toast.error("Failed to delete flows");
+          }
+        } catch (error: any) {
+          toast.error(
+            error?.response?.data?.message ||
+              error?.message ||
+              "Failed to delete flows",
+          );
+        } finally {
+          setIsDeletingBulk(false);
           setConfirmDialog((prev: any) => ({ ...prev, isOpen: false }));
         }
       },
@@ -346,6 +400,38 @@ export default function ChatbotFlowsTab({ companyId }: ChatbotFlowsTabProps) {
            </TabsTrigger>
         </TabsList>
 
+        <div className="flex items-center gap-2">
+           {selectedFlows.size > 0 && (
+             <Button
+               variant="destructive"
+               size="sm"
+               onClick={handleBulkDeleteFlows}
+               disabled={isDeletingBulk}
+               className="h-8 text-[9px] font-black uppercase tracking-widest bg-red-600 hover:bg-red-700 animate-in zoom-in duration-200"
+             >
+               <Trash2 className="w-3 h-3 mr-1.5" />
+               Delete Selected ({selectedFlows.size})
+             </Button>
+           )}
+           {flows.filter(f => !f.isTemplate).length > 0 && (
+             <Button
+               variant="outline"
+               size="sm"
+               onClick={() => {
+                  const filtered = flows.filter(f => !f.isTemplate).map(f => f._id);
+                  if (selectedFlows.size === filtered.length) {
+                    setSelectedFlows(new Set());
+                  } else {
+                    setSelectedFlows(new Set(filtered));
+                  }
+               }}
+               className="h-8 text-[9px] font-black uppercase tracking-widest border-slate-200 hover:bg-slate-50"
+             >
+               {selectedFlows.size === flows.filter(f => !f.isTemplate).length ? "Deselect All" : "Select All Nodes"}
+             </Button>
+           )}
+         </div>
+
         <TabsContent value="your-flows" className="space-y-4 pt-2">
            {flows.filter(f => !f.isTemplate).length === 0 ? (
              <div className="flex flex-col items-center justify-center py-20 bg-white border border-slate-200 rounded-2xl border-dashed">
@@ -356,8 +442,23 @@ export default function ChatbotFlowsTab({ companyId }: ChatbotFlowsTabProps) {
            ) : (
              <div className="grid grid-cols-1 gap-4">
                 {flows.filter(f => !f.isTemplate).map((flow) => (
-                  <Card key={flow._id} className={`rounded-xl border transition-all hover:shadow-md ${flow.isActive ? "border-indigo-200 bg-white shadow-indigo-50" : "border-slate-100 bg-white shadow-sm"}`}>
-                     <CardHeader className="py-4 px-6 border-b border-slate-50">
+                  <Card key={flow._id} className={`rounded-xl border transition-all hover:shadow-md relative group/card ${flow.isActive ? "border-indigo-200 bg-white shadow-indigo-50" : "border-slate-100 bg-white shadow-sm"}`}>
+                     {/* Batch Selection Overlay */}
+                     <div className="absolute top-4 left-4 z-10">
+                       <input
+                         type="checkbox"
+                         checked={selectedFlows.has(flow._id)}
+                         onChange={() => {
+                           const next = new Set(selectedFlows);
+                           if (next.has(flow._id)) next.delete(flow._id);
+                           else next.add(flow._id);
+                           setSelectedFlows(next);
+                         }}
+                         className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer shadow-sm transition-transform hover:scale-110"
+                       />
+                     </div>
+
+                     <CardHeader className="py-4 px-6 pl-12 border-b border-slate-50">
                         <div className="flex items-start justify-between">
                            <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1">

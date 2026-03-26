@@ -101,5 +101,9 @@ export const departmentAPI = {
 
   delete: async (id: string): Promise<{ success: boolean; message: string }> => {
     return apiClient.delete(`/departments/${id}`);
+  },
+
+  deleteBulk: async (ids: string[]): Promise<{ success: boolean; message: string; data: { deletedCount: number } }> => {
+    return apiClient.delete('/departments/bulk', { ids });
   }
 };

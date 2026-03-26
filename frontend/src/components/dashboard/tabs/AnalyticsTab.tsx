@@ -43,7 +43,7 @@ import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 const COLORS = ["#4f46e5", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 
-export default function AnalyticsTab() {
+export default function AnalyticsTab({ companyId }: { companyId?: string | null }) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<any>(null);
@@ -52,7 +52,8 @@ export default function AnalyticsTab() {
     const fetchAnalytics = async () => {
       setLoading(true);
       try {
-        const response = await apiClient.get("/analytics/dashboard");
+        const url = companyId ? `/analytics/dashboard?companyId=${companyId}` : "/analytics/dashboard";
+        const response = await apiClient.get(url);
         if (response.success) {
           setStats(response.data);
         }
@@ -64,7 +65,7 @@ export default function AnalyticsTab() {
     };
 
     fetchAnalytics();
-  }, []);
+  }, [companyId]);
 
   if (loading) {
     return (

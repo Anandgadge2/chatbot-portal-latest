@@ -70,6 +70,7 @@ export const appointmentAPI = {
     departmentId?: string;
     assignedTo?: string;
     date?: string;
+    search?: string;
   }): Promise<AppointmentsResponse> => {
     const queryParams = new URLSearchParams();
     if (params?.page) queryParams.append('page', params.page.toString());
@@ -79,6 +80,7 @@ export const appointmentAPI = {
     if (params?.departmentId) queryParams.append('departmentId', params.departmentId);
     if (params?.assignedTo) queryParams.append('assignedTo', params.assignedTo);
     if (params?.date) queryParams.append('date', params.date);
+    if (params?.search) queryParams.append('search', params.search);
     
     return apiClient.get(`/appointments?${queryParams.toString()}`);
   },

@@ -34,6 +34,7 @@ interface CreateDepartmentDialogProps {
   onClose: () => void;
   onDepartmentCreated: () => void;
   editingDepartment?: Department | null;
+  defaultCompanyId?: string;
 }
 
 const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
@@ -41,6 +42,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
   onClose,
   onDepartmentCreated,
   editingDepartment,
+  defaultCompanyId,
 }) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -105,7 +107,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
           descriptionHi: "",
           descriptionOr: "",
           descriptionMr: "",
-          companyId: userCompanyId,
+          companyId: defaultCompanyId || userCompanyId || "",
           parentDepartmentId: "",
         });
       }
@@ -313,8 +315,8 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
         </CardHeader>
         <CardContent className="flex-1 overflow-y-auto p-6 custom-scrollbar">
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Company selector - only shown to SuperAdmin */}
-            {isSuperAdmin(user) ? (
+            {/* Company selector - only shown to SuperAdmin if not default */}
+            {isSuperAdmin(user) && !defaultCompanyId ? (
               <div>
                 <Label htmlFor="companyId" className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5 block">Company *</Label>
                 <select

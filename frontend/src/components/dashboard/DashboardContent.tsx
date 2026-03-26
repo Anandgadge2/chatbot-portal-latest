@@ -29,6 +29,7 @@ import {
   isCompanyAdminOrHigher,
   isDepartmentAdminOrHigher 
 } from "@/lib/permissions";
+import { analyticsAPI } from "@/lib/api/analytics";
 import toast from "react-hot-toast";
 
 // Import tabs and views
@@ -37,6 +38,8 @@ import AppointmentManagement from "../dashboard/tabs/AppointmentManagement";
 import AnalyticsTab from "../dashboard/tabs/AnalyticsTab";
 import UserManagementTab from "../dashboard/tabs/UserManagementTab";
 import SuperAdminView from "../dashboard/views/SuperAdminView";
+import DepartmentList from "../superadmin/drilldown/DepartmentList";
+import StatsOverview from "../superadmin/drilldown/StatsOverview";
 
 import {
   BarChart2,
@@ -65,54 +68,80 @@ export default function DashboardContent() {
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState(tabParam || "overview");
   const [company, setCompany] = useState<Company | null>(null);
+  const [stats, setStats] = useState<any>(null);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [loadingData, setLoadingData] = useState(false);
 
   // Determine if we are in "Super Admin Mode" or "Company Mode"
   const isViewingSpecificCompany = !!companyIdParam || (!isSuperAdmin(user) && user?.companyId);
 
   // Helper to check module access
-  const hasModule = useCallback((mod: "grievances" | "appointments" | "users" | "analytics") => {
+  const hasModule = useCallback((mod: "grievances" | "appointments" | "users" | "analytics" | "departments") => {
     if (!user) return false;
     
-    // Super Admins see everything in global view
-    if (isSuperAdmin(user) && !companyIdParam) return true;
+    // Super Admins see everything in global view or drilldown
+    if (isSuperAdmin(user)) return true;
     
     // If viewing a company, check the company's enabled modules
     const modules = (company?.enabledModules || user?.enabledModules || []) as string[];
+    
+    // Standard modules
+    if (mod === "departments") return true; // Departments always available for company level
     return modules.includes(mod);
-  }, [user, company, companyIdParam]);
+  }, [user, company]);
 
-  const fetchCompanyData = useCallback(async () => {
-    if (!companyIdParam) return;
+  const getEffectiveCompanyId = useCallback(() => {
+    if (companyIdParam) return companyIdParam;
+    if (!user?.companyId) return null;
+    return typeof user.companyId === "string" ? user.companyId : user.companyId._id;
+  }, [companyIdParam, user?.companyId]);
+
+  const fetchDashboardData = useCallback(async () => {
+    const targetCompanyId = getEffectiveCompanyId();
+    if (!targetCompanyId) return;
+
+    setLoadingData(true);
     try {
-      const res = await companyAPI.getById(companyIdParam);
-      if (res.success) {
-        setCompany(res.data.company);
-      }
+      const [compRes, statsRes, deptRes] = await Promise.all([
+        companyAPI.getById(targetCompanyId),
+        analyticsAPI.dashboard(targetCompanyId),
+        departmentAPI.getAll({ companyId: targetCompanyId, limit: 100 })
+      ]);
+
+      if (compRes.success) setCompany(compRes.data.company);
+      if (statsRes.success) setStats(statsRes.data);
+      if (deptRes.success) setDepartments(deptRes.data.departments);
     } catch (error) {
-      console.error("Failed to fetch company details", error);
+      console.error("Failed to fetch dashboard data", error);
+    } finally {
+      setLoadingData(false);
     }
-  }, [companyIdParam]);
+  }, [getEffectiveCompanyId]);
 
   useEffect(() => {
     setMounted(true);
-    if (companyIdParam) {
-      fetchCompanyData();
-    }
-  }, [companyIdParam, fetchCompanyData]);
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
-  // Sync tab with URL if needed (optional for pure SPA)
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", value);
+    router.replace(`/dashboard?${params.toString()}`, { scroll: false });
+  };
+
   useEffect(() => {
     if (tabParam && tabParam !== activeTab) {
       setActiveTab(tabParam);
+    } else if (!tabParam && activeTab !== "overview") {
+      setActiveTab("overview");
     }
   }, [tabParam, activeTab]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    // Trigger refreshes in child components or re-fetch company
-    await fetchCompanyData();
-    // Artificial delay for UX
+    await fetchDashboardData();
     setTimeout(() => setIsRefreshing(false), 500);
     toast.success("Intelligence data synchronized");
   };
@@ -128,7 +157,7 @@ export default function DashboardContent() {
   if (!user) return null;
 
   // Render Super Admin Global Dashboard if no company is selected and user is Super Admin
-  if (isSuperAdmin(user) && !companyIdParam && activeTab === "overview") {
+  if (isSuperAdmin(user) && !companyIdParam && activeTab === "overview" && !tabParam) {
     return <SuperAdminView />;
   }
 
@@ -154,7 +183,7 @@ export default function DashboardContent() {
               </Link>
 
               <nav className="hidden md:flex items-center space-x-1">
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-auto">
+                <Tabs value={activeTab} onValueChange={handleTabChange} className="w-auto">
                   <TabsList className="bg-transparent h-16 p-0 gap-1">
                     <TabsTrigger 
                       value="overview"
@@ -163,6 +192,16 @@ export default function DashboardContent() {
                       <LayoutDashboard className="w-4 h-4 mr-2" />
                       Overview
                     </TabsTrigger>
+
+                    {hasModule("analytics") && (
+                      <TabsTrigger 
+                        value="analytics"
+                        className="px-5 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-500 data-[state=active]:bg-white/5 data-[state=active]:text-white text-slate-400 font-bold text-xs uppercase tracking-wider transition-all"
+                      >
+                        <BarChart2 className="w-4 h-4 mr-2" />
+                        Analytics
+                      </TabsTrigger>
+                    )}
                     
                     {hasModule("grievances") && (
                       <TabsTrigger 
@@ -181,6 +220,16 @@ export default function DashboardContent() {
                       >
                         <Calendar className="w-4 h-4 mr-2" />
                         Appointments
+                      </TabsTrigger>
+                    )}
+
+                    {hasModule("departments") && (
+                      <TabsTrigger 
+                        value="departments"
+                        className="px-5 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-500 data-[state=active]:bg-white/5 data-[state=active]:text-white text-slate-400 font-bold text-xs uppercase tracking-wider transition-all"
+                      >
+                        <Building className="w-4 h-4 mr-2" />
+                        Departments
                       </TabsTrigger>
                     )}
 
@@ -235,9 +284,66 @@ export default function DashboardContent() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-[1600px] mx-auto w-full p-4 lg:p-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
           <TabsContent value="overview" className="mt-0 outline-none">
-            <AnalyticsTab />
+            {stats ? (
+              <div className="space-y-8 animate-in fade-in duration-500">
+                <StatsOverview stats={stats} setActiveTab={handleTabChange} />
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                   <Card className="border-slate-200 shadow-xl bg-white/50 backdrop-blur-xl border-t-4 border-t-indigo-500">
+                     <CardHeader>
+                       <CardTitle className="text-sm font-black text-slate-900 uppercase tracking-widest">Company Identification</CardTitle>
+                       <CardDescription className="text-[10px] font-bold uppercase tracking-widest mt-1">Institutional Profile Data</CardDescription>
+                     </CardHeader>
+                     <CardContent className="space-y-4">
+                        <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                           <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-lg">
+                             {company?.name?.[0] || 'S'}
+                           </div>
+                           <div className="flex flex-col">
+                             <span className="text-lg font-black text-slate-900 leading-none">{company?.name || 'System Portal'}</span>
+                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">ID: {company?.companyId || 'N/A'}</span>
+                           </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                           <div className="p-3 bg-white rounded-xl border border-slate-100">
+                             <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Status</span>
+                             <span className="text-xs font-black text-emerald-600 uppercase">Operational</span>
+                           </div>
+                           <div className="p-3 bg-white rounded-xl border border-slate-100">
+                             <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Type</span>
+                             <span className="text-xs font-black text-indigo-600 uppercase">{company?.companyType || 'Standard'}</span>
+                           </div>
+                        </div>
+                     </CardContent>
+                   </Card>
+                   
+                   <Card className="border-slate-200 shadow-xl bg-white/50 backdrop-blur-xl border-t-4 border-t-blue-500">
+                     <CardHeader>
+                       <CardTitle className="text-sm font-black text-slate-900 uppercase tracking-widest">Network Access</CardTitle>
+                       <CardDescription className="text-[10px] font-bold uppercase tracking-widest mt-1">Provisioned Modules & Protocols</CardDescription>
+                     </CardHeader>
+                     <CardContent>
+                        <div className="flex flex-wrap gap-2">
+                           {(company?.enabledModules || []).map((mod: string) => (
+                             <span key={mod} className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-black uppercase tracking-widest border border-blue-100">
+                               {mod}
+                             </span>
+                           ))}
+                        </div>
+                     </CardContent>
+                   </Card>
+                </div>
+              </div>
+            ) : (
+              <div className="py-20 flex flex-col items-center justify-center">
+                <LoadingSpinner text="Aggregating Institutional Data..." />
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="analytics" className="mt-0 outline-none">
+            <AnalyticsTab companyId={getEffectiveCompanyId()} />
           </TabsContent>
 
           <TabsContent value="grievances" className="mt-0 outline-none">
@@ -246,6 +352,16 @@ export default function DashboardContent() {
 
           <TabsContent value="appointments" className="mt-0 outline-none">
             <AppointmentManagement />
+          </TabsContent>
+
+          <TabsContent value="departments" className="mt-0 outline-none">
+            <DepartmentList 
+              departments={departments} 
+              setIsImportModalOpen={() => {}} 
+              exportToCSV={() => {}} 
+              onRefresh={fetchDashboardData}
+              refreshing={loadingData}
+            />
           </TabsContent>
 
           <TabsContent value="users" className="mt-0 outline-none">
