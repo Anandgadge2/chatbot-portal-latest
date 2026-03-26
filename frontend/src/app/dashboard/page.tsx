@@ -1394,7 +1394,10 @@ function DashboardContent() {
         filteredData = filteredData.filter((u: User) => {
           if (userFilters.role.startsWith("CUSTOM:")) {
             const roleId = userFilters.role.split(":")[1];
-            const uRoleId = typeof u.customRoleId === "object" ? (u.customRoleId as any)._id : u.customRoleId;
+            const uRoleId =
+              typeof u.customRoleId === "object" && u.customRoleId !== null
+                ? (u.customRoleId as any)._id
+                : u.customRoleId;
             return uRoleId === roleId;
           }
           return u.role === userFilters.role;
