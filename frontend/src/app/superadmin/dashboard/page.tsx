@@ -81,7 +81,6 @@ function SuperAdminDashboardContent() {
     departments: 0,
     activeCompanies: 0,
     activeUsers: 0,
-    totalSessions: 0,
     systemStatus: "operational",
   });
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
@@ -152,7 +151,6 @@ function SuperAdminDashboardContent() {
           departments: s.departments,
           activeCompanies: s.activeCompanies,
           activeUsers: s.activeUsers,
-          totalSessions: Math.floor(Math.random() * 100) + 50,
           systemStatus: "operational",
         });
       }
@@ -319,7 +317,6 @@ function SuperAdminDashboardContent() {
           departments: stats.departments,
           activeCompanies: stats.activeCompanies,
           activeUsers: stats.activeUsers,
-          totalSessions: Math.floor(Math.random() * 100) + 50,
           systemStatus: "operational",
         });
       }

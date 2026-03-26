@@ -56,7 +56,6 @@ export default function SuperAdminView() {
     departments: 0,
     activeCompanies: 0,
     activeUsers: 0,
-    totalSessions: 0,
     systemStatus: "operational",
   });
   const [refreshing, setRefreshing] = useState(false);
@@ -141,7 +140,6 @@ export default function SuperAdminView() {
           departments: s.departments,
           activeCompanies: s.activeCompanies,
           activeUsers: s.activeUsers,
-          totalSessions: Math.floor(Math.random() * 100) + 50,
           systemStatus: "operational",
         });
       }

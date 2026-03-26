@@ -258,7 +258,7 @@ export default function AssignmentDialog({
     setLoadingDepts(true);
     try {
       // Fetch all departments (limit=500 to get all)
-      const deptRes = await departmentAPI.getAll({ companyId, limit: 500 });
+      const deptRes = await departmentAPI.getAll({ companyId, limit: 200});
       if (deptRes.success) {
         setAllDepartments(deptRes.data.departments);
       }

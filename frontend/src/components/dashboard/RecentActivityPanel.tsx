@@ -45,8 +45,8 @@ export default function RecentActivityPanel({
     try {
       if (!loadingActivities) setRefreshing(true);
       const url = companyId
-        ? `/audit?limit=20&companyId=${companyId}`
-        : "/audit?limit=20";
+        ? `/audit?limit=10&companyId=${companyId}`
+        : "/audit?limit=10";
       const response = await apiClient.get(url);
       if (response.success) {
         const logs = response.data.logs.map((log: any) => ({

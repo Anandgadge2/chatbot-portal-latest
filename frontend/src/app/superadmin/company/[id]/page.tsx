@@ -86,7 +86,7 @@ const CompanyAnalytics = dynamic(
 );
 
 // BulkImportModal moved to @/components/superadmin/drilldown/BulkImportModal
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 10;
 
 function CompanyDrillDownContent() {
   const { user } = useAuth();

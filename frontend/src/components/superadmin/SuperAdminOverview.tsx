@@ -73,7 +73,6 @@ function SuperAdminOverviewContent() {
     departments: 0,
     activeCompanies: 0,
     activeUsers: 0,
-    totalSessions: 0,
     systemStatus: "operational",
   });
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
@@ -111,14 +110,14 @@ function SuperAdminOverviewContent() {
   const [departmentPagination, setDepartmentPagination] = useState({
     total: 0,
     pages: 1,
-    limit: 25,
+    limit: 10,
   });
 
   const [userPage, setUserPage] = useState(1);
   const [userPagination, setUserPagination] = useState({
     total: 0,
     pages: 1,
-    limit: 25,
+    limit: 10,
   });
   const [visiblePasswords, setVisiblePasswords] = useState<string[]>([]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -144,7 +143,6 @@ function SuperAdminOverviewContent() {
           departments: s.departments,
           activeCompanies: s.activeCompanies,
           activeUsers: s.activeUsers,
-          totalSessions: Math.floor(Math.random() * 100) + 50,
           systemStatus: "operational",
         });
       }
@@ -311,7 +309,6 @@ function SuperAdminOverviewContent() {
           departments: stats.departments,
           activeCompanies: stats.activeCompanies,
           activeUsers: stats.activeUsers,
-          totalSessions: Math.floor(Math.random() * 100) + 50,
           systemStatus: "operational",
         });
       }

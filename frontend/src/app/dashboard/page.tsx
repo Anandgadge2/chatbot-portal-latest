@@ -32,8 +32,6 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { Permission, hasPermission, Module, isDepartmentAdminOrHigher, isCompanyAdminOrHigher, isSuperAdmin } from "@/lib/permissions";
 import toast from "react-hot-toast";
 import {
-  LineChart,
-  Line,
   BarChart,
   Bar,
   PieChart,
@@ -53,7 +51,7 @@ import AssignmentDialog from "@/components/assignment/AssignmentDialog";
 import StatusUpdateModal from "@/components/grievance/StatusUpdateModal";
 import RevertGrievanceDialog from "@/components/grievance/RevertGrievanceDialog";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
-import { StatsSkeleton, TableSkeleton } from "@/components/ui/GeneralSkeleton";
+import { TableSkeleton } from "@/components/ui/GeneralSkeleton";
 import { Pagination } from "@/components/ui/Pagination";
 import AvailabilityCalendar from "@/components/availability/AvailabilityCalendar";
 import SuperAdminOverview from "@/components/superadmin/SuperAdminOverview";
@@ -63,7 +61,6 @@ import ChatbotFlowsTab from "@/components/superadmin/drilldown/tabs/ChatbotFlows
 import RoleManagement from "@/components/roles/RoleManagement";
 import NotificationManagement from "@/components/superadmin/drilldown/NotificationManagement";
 import { CompanyProvider } from "@/contexts/CompanyContext";
-
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
 import { formatTo10Digits } from "@/lib/utils/phoneUtils";
@@ -289,8 +286,6 @@ function DashboardContent() {
     string | null
   >(null);
   const [performanceData, setPerformanceData] = useState<any>(null);
-  const [hourlyData, setHourlyData] = useState<any[]>([]);
-  const [categoryData, setCategoryData] = useState<any[]>([]);
   const [departmentData, setDepartmentData] = useState<any[]>([]);
   const [selectedGrievance, setSelectedGrievance] = useState<Grievance | null>(
     null,
@@ -354,7 +349,7 @@ function DashboardContent() {
   const [departmentPagination, setDepartmentPagination] = useState({
     total: 0,
     pages: 1,
-    limit: 50,
+    limit: 20,
   });
 
   const [userPage, setUserPage] = useState(1);
@@ -631,32 +626,6 @@ function DashboardContent() {
     } catch (error: any) {
       if (error?.response?.status !== 403) {
         console.error("Failed to fetch performance data:", error);
-      }
-    }
-  }, [companyIdParam]);
-
-  const fetchHourlyData = useCallback(async () => {
-    try {
-      const response = await apiClient.get(`/analytics/hourly?days=7${companyIdParam ? "&companyId=" + companyIdParam : ""}`);
-      if (response.success) {
-        setHourlyData(response.data);
-      }
-    } catch (error: any) {
-      if (error?.response?.status !== 403) {
-        console.error("Failed to fetch hourly data:", error);
-      }
-    }
-  }, [companyIdParam]);
-
-  const fetchCategoryData = useCallback(async () => {
-    try {
-      const response = await apiClient.get(`/analytics/category${companyIdParam ? "?companyId=" + companyIdParam : ""}`);
-      if (response.success) {
-        setCategoryData(response.data);
-      }
-    } catch (error: any) {
-      if (error?.response?.status !== 403) {
-        console.error("Failed to fetch category data:", error);
       }
     }
   }, [companyIdParam]);
@@ -1024,8 +993,6 @@ function DashboardContent() {
         await fetchDashboardData();
       } else if (activeTab === "analytics") {
         await Promise.all([
-          fetchHourlyData(),
-          fetchCategoryData(),
           fetchDashboardData(),
         ]);
       } else if (activeTab === "grievances" || activeTab === "reverted") {
@@ -1048,8 +1015,6 @@ function DashboardContent() {
   }, [
     activeTab,
     fetchDashboardData,
-    fetchHourlyData,
-    fetchCategoryData,
     fetchGrievances,
     grievancePage,
     fetchAppointments,
@@ -1076,11 +1041,9 @@ function DashboardContent() {
   // 2. Specialized effects for each paginated module (Gated by activeTab for SPA performance)
   useEffect(() => {
     if (activeTab === "analytics" && mounted && user) {
-      fetchHourlyData();
-      fetchCategoryData();
       fetchDepartmentData();
     }
-  }, [activeTab, mounted, user, fetchHourlyData, fetchCategoryData, fetchDepartmentData]);
+  }, [activeTab, mounted, user, fetchDepartmentData]);
 
   useEffect(() => {
     const shouldFetch = (activeTab === "departments") || (activeTab === "overview" && isDepartmentLevel);
@@ -1162,7 +1125,7 @@ function DashboardContent() {
             if (newCount > prevAppointmentCount) {
               toast.success(
                 `📅 New appointment scheduled! (${newCount - prevAppointmentCount} new)`,
-                { duration: 4000 },
+                { duration: 2000 },
               );
               fetchDashboardData();
             }
@@ -1201,8 +1164,6 @@ function DashboardContent() {
   useEffect(() => {
     if (mounted && user && activeTab === "analytics") {
       fetchPerformanceData();
-      fetchHourlyData();
-      fetchCategoryData();
       fetchDepartmentData();
     }
   }, [
@@ -1210,8 +1171,6 @@ function DashboardContent() {
     user,
     activeTab,
     fetchPerformanceData,
-    fetchHourlyData,
-    fetchCategoryData,
     fetchDepartmentData,
   ]);
 
@@ -1743,15 +1702,6 @@ function DashboardContent() {
                 </TabsTrigger>
               )}
 
-              {/* {isCompanyLevel && hasPermission(user, Permission.READ_GRIEVANCE) && (
-                <TabsTrigger
-                  value="reverted"
-                  className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg flex items-center"
-                >
-                  <Undo2 className="w-3.5 h-3.5 mr-1.5" />
-                  {isDFO ? 'Review Required' : 'Reverted'}
-                </TabsTrigger>
-              )} */}
 
               {(isCompanyLevel || isDepartmentLevel || (isSuperAdminUser && companyIdParam)) && hasModule(Module.APPOINTMENT) &&
                 hasPermission(user, Permission.READ_APPOINTMENT) && (

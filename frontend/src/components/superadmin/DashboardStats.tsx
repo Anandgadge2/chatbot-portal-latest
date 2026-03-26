@@ -15,7 +15,6 @@ interface DashboardStatsProps {
     departments: number;
     activeCompanies: number;
     activeUsers: number;
-    totalSessions: number;
   };
   setActiveTab: (tab: string) => void;
 }
@@ -25,7 +24,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({
   setActiveTab,
 }) => {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {/* Total Companies */}
       <Card
         className="group relative overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer rounded-2xl"
@@ -144,39 +143,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({
         </CardContent>
       </Card>
 
-      {/* Activity */}
-      <Card className="group relative overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 rounded-2xl">
-        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-          <Activity className="w-24 h-24 text-amber-600 -mr-8 -mt-8 -rotate-12" />
-        </div>
-        <CardHeader className="p-4 pb-2">
-          <CardTitle className="text-slate-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
-            <div className="w-8 h-8 bg-amber-500/10 rounded-lg flex items-center justify-center text-amber-600">
-              <Activity className="w-4 h-4" />
-            </div>
-            Real-time Flow
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-4 pt-0">
-          <p className="text-3xl font-black text-slate-900 tracking-tighter">
-            {stats.totalSessions}
-          </p>
-          <div className="mt-3 flex items-center gap-2">
-            <div className="flex gap-0.5">
-              {[...Array(5)].map((_, i) => (
-                <div
-                  key={i}
-                  className="w-1.5 h-3 bg-amber-200 rounded-full animate-bounce"
-                  style={{ animationDelay: `${i * 0.1}s` }}
-                ></div>
-              ))}
-            </div>
-            <span className="text-[10px] font-black text-amber-600 uppercase">
-              Active Sessions
-            </span>
-          </div>
-        </CardContent>
-      </Card>
+
     </div>
   );
 };
