@@ -818,6 +818,7 @@ function SuperAdminDashboardContent() {
                 companyPage={companyPage}
                 setCompanyPage={setCompanyPage}
                 companyPagination={companyPagination}
+                setCompanyLimit={(limit: number) => setCompanyPagination(p => ({ ...p, limit }))}
                 navigatingCompanyId={navigatingCompanyId}
                 setShowCreateDialog={setShowCreateDialog}
                 handleOpenCompanyDashboard={handleOpenCompanyDashboard}
@@ -843,6 +844,7 @@ function SuperAdminDashboardContent() {
                 departmentPage={departmentPage}
                 setDepartmentPage={setDepartmentPage}
                 departmentPagination={departmentPagination}
+                setDepartmentLimit={(limit: number) => setDepartmentPagination(p => ({ ...p, limit }))}
                 setEditingDepartment={setEditingDepartment}
                 setShowDepartmentDialog={setShowDepartmentDialog}
                 handleEditDepartment={handleEditDepartment}
@@ -871,6 +873,7 @@ function SuperAdminDashboardContent() {
                 userPage={userPage}
                 setUserPage={setUserPage}
                 userPagination={userPagination}
+                setUserLimit={(limit: number) => setUserPagination(p => ({ ...p, limit }))}
                 visiblePasswords={visiblePasswords}
                 togglePasswordVisibility={togglePasswordVisibility}
                 setShowUserDialog={setShowUserDialog}

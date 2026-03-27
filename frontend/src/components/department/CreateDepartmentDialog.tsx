@@ -112,7 +112,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
         });
       }
     }
-  }, [isOpen, editingDepartment, user]);
+  }, [isOpen, editingDepartment, user, defaultCompanyId]);
 
   const fetchDepartments = useCallback(async () => {
     try {

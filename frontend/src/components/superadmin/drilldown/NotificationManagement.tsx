@@ -186,41 +186,7 @@ const NotificationManagement: React.FC<NotificationManagementProps> = ({
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Header Panel */}
-      <Card className="bg-slate-900 border-none shadow-2xl overflow-hidden rounded-3xl">
-        {/* Removed blue backdrop */}
-        <CardHeader className="relative px-8 py-8">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="flex items-center gap-5">
-              <div className="w-14 h-14 bg-indigo-500/20 rounded-2xl flex items-center justify-center border border-indigo-500/30 backdrop-blur-sm">
-                <Bell className="w-7 h-7 text-indigo-400" />
-              </div>
-              <div>
-                <CardTitle className="text-2xl font-black text-white uppercase tracking-tight">
-                  Notification Command Center
-                </CardTitle>
-                <CardDescription className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mt-1 opacity-70">
-                  Global Configuration for {company?.name} • Superadmin Control Only
-                </CardDescription>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <Button
-                onClick={handleSave}
-                disabled={saving}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 h-12 rounded-xl font-black uppercase tracking-widest text-xs shadow-xl shadow-indigo-600/20 active:scale-95 transition-all border-0"
-              >
-                {saving ? (
-                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Save className="w-4 h-4 mr-2" />
-                )}
-                Update Protocols
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
+      
 
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="space-y-6">
         <div className="flex items-center justify-between">
@@ -241,6 +207,18 @@ const NotificationManagement: React.FC<NotificationManagementProps> = ({
             </TabsTrigger>
           </TabsList>
           
+              <Button
+                onClick={handleSave}
+                disabled={saving}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 h-12 rounded-xl font-black uppercase tracking-widest text-xs shadow-xl shadow-indigo-600/20 active:scale-95 transition-all border-0"
+              >
+                {saving ? (
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4 mr-2" />
+                )}
+                Update Protocols
+              </Button>
           <div className="relative w-72">
             <input
               type="text"
@@ -402,36 +380,7 @@ const NotificationManagement: React.FC<NotificationManagementProps> = ({
         </Card>
       </Tabs>
 
-      {/* Security Protocol Footer */}
-      <div className="bg-indigo-950 rounded-3xl p-8 border border-indigo-500/30 relative overflow-hidden shadow-2xl">
-        {/* Removed blue backdrop blob */}
-        <div className="relative z-10 flex flex-col md:flex-row gap-8 items-center">
-           <div className="w-16 h-16 bg-indigo-500/20 rounded-2xl flex items-center justify-center border border-indigo-500/40">
-             <Shield className="w-8 h-8 text-indigo-400" />
-           </div>
-           <div className="flex-1 text-center md:text-left">
-             <h4 className="text-white font-black uppercase tracking-tight text-lg mb-2">
-               Superadmin Security Protocol
-             </h4>
-             <p className="text-indigo-200/60 font-medium text-xs leading-relaxed max-w-2xl">
-               This interface provides absolute control over the company&apos;s communication infrastructure. 
-               Changes made here override all lower-level defaults. Disabling notifications for critical 
-               roles like <strong>Department Admins</strong> may severely impact citizen response times and SLA metrics. 
-               Individual overrides are highlighted for clarity.
-             </p>
-           </div>
-           <div className="flex gap-4">
-              <div className="flex items-center gap-2 bg-indigo-900/50 px-4 py-2.5 rounded-xl border border-indigo-500/20">
-                <Mail className="w-4 h-4 text-indigo-400" />
-                <span className="text-white text-[10px] font-black uppercase tracking-widest">Global Relay</span>
-              </div>
-              <div className="flex items-center gap-2 bg-indigo-900/50 px-4 py-2.5 rounded-xl border border-indigo-500/20">
-                <MessageSquare className="w-4 h-4 text-indigo-400" />
-                <span className="text-white text-[10px] font-black uppercase tracking-widest">Direct API</span>
-              </div>
-           </div>
-        </div>
-      </div>
+      
     </div>
   );
 };

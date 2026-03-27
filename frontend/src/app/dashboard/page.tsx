@@ -188,12 +188,12 @@ function DashboardContent() {
   const { user, loading, logout } = useAuth();
   const isCompanyLevel = user && !user.departmentId && !user.isSuperAdmin;
   const isDepartmentLevel = user && !!user.departmentId && !user.isSuperAdmin;
-  const isSuperAdminUser = isSuperAdmin(user);
+  const isSuperAdminUser = useMemo(() => isSuperAdmin(user), [user]);
   const router = useRouter();
   const searchParams = useSearchParams();
   const companyIdParam = searchParams.get("companyId");
-  const targetCompanyId = companyIdParam || (user?.companyId && typeof user.companyId === 'object' ? (user.companyId as any)._id : user?.companyId);
-  const isViewingCompany = isCompanyLevel || (isSuperAdminUser && !!companyIdParam);
+  const targetCompanyId = useMemo(() => companyIdParam || (user?.companyId && typeof user.companyId === 'object' ? (user.companyId as any)._id : user?.companyId), [companyIdParam, user]);
+  const isViewingCompany = useMemo(() => isCompanyLevel || (isSuperAdminUser && !!companyIdParam), [isCompanyLevel, isSuperAdminUser, companyIdParam]);
 
   const [mounted, setMounted] = useState(false);
   // Get initial tab from URL search params, default based on role
@@ -675,15 +675,20 @@ function DashboardContent() {
 
   // Handle browser back/forward navigation persistence
   useEffect(() => {
+    // Skip if in SuperAdmin overview mode to avoid conflicts with SuperAdminOverview's own state
+    if (isSuperAdminUser && !companyIdParam) return;
+
     const tabFromUrl = searchParams.get("tab");
     if (tabFromUrl && tabFromUrl !== activeTab) {
       setActiveTab(tabFromUrl);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  }, [searchParams, isSuperAdminUser, companyIdParam]);
 
   // Sync tab state to URL
   useEffect(() => {
+    if (isSuperAdminUser && !companyIdParam) return;
+
     const params = new URLSearchParams(searchParams.toString());
     const currentUrlTab = params.get("tab");
     
@@ -694,7 +699,7 @@ function DashboardContent() {
       params.delete("tab");
       router.replace(`${window.location.pathname}?${params.toString()}`, { scroll: false });
     }
-  }, [activeTab, router, searchParams]);
+  }, [activeTab, router, searchParams, isSuperAdminUser, companyIdParam]);
 
   useEffect(() => {
     setMounted(true);
@@ -709,6 +714,7 @@ function DashboardContent() {
   >(null);
 
   const fetchPerformanceData = useCallback(async () => {
+    if (isSuperAdminUser && !companyIdParam) return;
     try {
       const response = await apiClient.get(`/analytics/performance${companyIdParam ? "?companyId=" + companyIdParam : ""}`);
       if (response.success) {
@@ -719,7 +725,7 @@ function DashboardContent() {
         console.error("Failed to fetch performance data:", error);
       }
     }
-  }, [companyIdParam]);
+  }, [companyIdParam, isSuperAdminUser]);
 
   const forestBeats = useMemo(() => {
     return (departments || []).map(d => ({
@@ -750,6 +756,7 @@ function DashboardContent() {
   }, [grievances]);
 
   const fetchDepartmentData = useCallback(async () => {
+    if (isSuperAdminUser && !companyIdParam) return;
     try {
       const response = await apiClient.get(`/analytics/grievances/by-department${companyIdParam ? "?companyId=" + companyIdParam : ""}`);
       if (response.success) {
@@ -758,7 +765,7 @@ function DashboardContent() {
     } catch (error: any) {
       console.error("Failed to fetch department data:", error);
     }
-  }, [companyIdParam]);
+  }, [companyIdParam, isSuperAdminUser]);
 
   const fetchRoles = useCallback(async () => {
     const cid = targetCompanyId;
@@ -777,6 +784,7 @@ function DashboardContent() {
   }, [targetCompanyId]);
 
   const fetchDashboardData = useCallback(async (refresh = false) => {
+    if (isSuperAdminUser && !companyIdParam) return;
     if (!refresh) setLoadingStats(true);
     try {
       const response = await apiClient.get<{
@@ -794,7 +802,7 @@ function DashboardContent() {
     } finally {
       if (!refresh) setLoadingStats(false);
     }
-  }, [companyIdParam]);
+  }, [companyIdParam, isSuperAdminUser]);
 
   const fetchCompany = useCallback(async () => {
     if (!user) return;
@@ -826,6 +834,7 @@ function DashboardContent() {
 
   const fetchDepartments = useCallback(
     async (page = departmentPage, isSilent = false) => {
+      if (isSuperAdminUser && !companyIdParam) return;
       if (!isSilent) setLoadingDepartments(true);
       try {
         // For company admin, fetch ALL departments (no pagination limit)
@@ -883,6 +892,7 @@ function DashboardContent() {
     [
       departmentPage,
       departmentPagination.limit,
+      deptSearch,
       isDepartmentLevel,
       isCompanyLevel,
       user?.departmentId,
@@ -893,6 +903,7 @@ function DashboardContent() {
 
   const fetchUsers = useCallback(
     async (page = userPage, isSilent = false) => {
+      if (isSuperAdminUser && !companyIdParam) return;
       if (!isSilent) setLoadingUsers(true);
       try {
         const selectedDepartmentId = userFilters.subDeptId
@@ -995,6 +1006,7 @@ function DashboardContent() {
 
   const fetchGrievances = useCallback(
     async (page = grievancePage, isSilent = false) => {
+      if (isSuperAdminUser && !companyIdParam) return;
       if (!hasModule(Module.GRIEVANCE) || !hasPermission(user, Permission.READ_GRIEVANCE)) {
         return;
       }
@@ -1027,11 +1039,21 @@ function DashboardContent() {
         if (!isSilent) setLoadingGrievances(false);
       }
     },
-    [grievancePage, grievancePagination.limit, user, hasModule, grievanceFilters, isSuperAdminUser, companyIdParam],
+    [
+      grievancePage,
+      grievancePagination.limit,
+      user,
+      hasModule,
+      grievanceFilters,
+      grievanceSearch,
+      isSuperAdminUser,
+      companyIdParam,
+    ],
   );
 
   const fetchAppointments = useCallback(
     async (page = appointmentPage, isSilent = false) => {
+      if (isSuperAdminUser && !companyIdParam) return;
       if (!hasModule(Module.APPOINTMENT) || !hasPermission(user, Permission.READ_APPOINTMENT)) {
         return;
       }
@@ -1061,7 +1083,15 @@ function DashboardContent() {
         if (!isSilent) setLoadingAppointments(false);
       }
     },
-    [appointmentPage, appointmentPagination.limit, user, hasModule, isSuperAdminUser, companyIdParam],
+    [
+      appointmentPage,
+      appointmentPagination.limit,
+      appointmentSearch,
+      user,
+      hasModule,
+      isSuperAdminUser,
+      companyIdParam,
+    ],
   );
 
   const fetchLeads = useCallback(async () => {
@@ -1121,6 +1151,9 @@ function DashboardContent() {
 
   // 1. Initial Dashboard Stats & Page-independent data
   useEffect(() => {
+    // Skip if in SuperAdmin overview mode to avoid redundant fetching
+    if (isSuperAdminUser && !companyIdParam) return;
+
     if (mounted && user) {
       if (isSuperAdminUser || (hasPermission(user, Permission.VIEW_ANALYTICS))) {
         fetchDashboardData();
@@ -1134,44 +1167,59 @@ function DashboardContent() {
 
   // 2. Specialized effects for each paginated module (Gated by activeTab for SPA performance)
   useEffect(() => {
+    if (isSuperAdminUser && !companyIdParam) return;
+
     if (activeTab === "analytics" && mounted && user) {
       fetchDepartmentData();
     }
-  }, [activeTab, mounted, user, fetchDepartmentData]);
+  }, [activeTab, mounted, user, fetchDepartmentData, isSuperAdminUser, companyIdParam]);
 
   useEffect(() => {
+    if (isSuperAdminUser && !companyIdParam) return;
+
     const shouldFetch = (activeTab === "departments") || (activeTab === "overview" && isDepartmentLevel);
     if (shouldFetch && mounted && user && (isSuperAdminUser || hasPermission(user, Permission.READ_DEPARTMENT) || isDepartmentLevel)) {
       fetchDepartments(departmentPage);
     }
-  }, [activeTab, mounted, user, departmentPage, fetchDepartments, isSuperAdminUser, isDepartmentLevel]);
+  }, [activeTab, mounted, user, departmentPage, fetchDepartments, isSuperAdminUser, isDepartmentLevel, companyIdParam]);
 
   useEffect(() => {
+    if (isSuperAdminUser && !companyIdParam) return;
+
     if (activeTab === "users" && mounted && user && (isSuperAdminUser || hasPermission(user, Permission.READ_USER))) {
       fetchUsers(userPage);
     }
-  }, [activeTab, mounted, user, userPage, fetchUsers, isSuperAdminUser]);
+  }, [activeTab, mounted, user, userPage, fetchUsers, isSuperAdminUser, companyIdParam]);
 
   useEffect(() => {
+    if (isSuperAdminUser && !companyIdParam) return;
+
     if (activeTab === "grievances" && mounted && user && (isSuperAdminUser || (hasModule(Module.GRIEVANCE) && hasPermission(user, Permission.READ_GRIEVANCE)))) {
       fetchGrievances(grievancePage);
     }
-  }, [activeTab, mounted, user, grievancePage, fetchGrievances, hasModule, isSuperAdminUser]);
+  }, [activeTab, mounted, user, grievancePage, fetchGrievances, hasModule, isSuperAdminUser, companyIdParam]);
 
   useEffect(() => {
+    if (isSuperAdminUser && !companyIdParam) return;
+
     if (activeTab === "appointments" && mounted && user && (isSuperAdminUser || (hasModule(Module.APPOINTMENT) && hasPermission(user, Permission.READ_APPOINTMENT)))) {
       fetchAppointments(appointmentPage);
     }
-  }, [activeTab, mounted, user, appointmentPage, fetchAppointments, hasModule, isSuperAdminUser]);
+  }, [activeTab, mounted, user, appointmentPage, fetchAppointments, hasModule, isSuperAdminUser, companyIdParam]);
 
   useEffect(() => {
+    if (isSuperAdminUser && !companyIdParam) return;
+
     if (activeTab === "leads" && mounted && user && hasModule(Module.LEAD_CAPTURE)) {
       fetchLeads();
     }
-  }, [activeTab, mounted, user, fetchLeads, hasModule]);
+  }, [activeTab, mounted, user, fetchLeads, hasModule, isSuperAdminUser, companyIdParam]);
 
   // 3. Polling isolated from initial load triggers
   useEffect(() => {
+    // Skip polling if in SuperAdmin overview mode
+    if (isSuperAdminUser && !companyIdParam) return;
+
     if (mounted && user) {
       const pollInterval = setInterval(async () => {
         try {
@@ -3864,36 +3912,48 @@ function DashboardContent() {
                         </Button>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                      <span className="px-2 py-1 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-lg">
-                        {
-                          departments.filter((d) => !d.parentDepartmentId)
-                            .length
-                        }{" "}
-                        Main
-                      </span>
-                      <span className="px-2 py-1 bg-slate-100 text-slate-600 border border-slate-200 rounded-lg">
-                        {
-                          departments.filter((d) => !!d.parentDepartmentId)
-                            .length
-                        }{" "}
-                        Sub
-                      </span>
-                      {isSuperAdminUser &&
-                        selectedDepartments.size > 0 && (
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={handleBulkDeleteDepartments}
-                            disabled={isDeleting}
-                            className="text-[9px] font-black h-7 px-3 bg-red-600 hover:bg-red-700 text-white rounded-lg border border-red-700 shadow-sm transition-all animate-in zoom-in duration-200"
-                          >
-                            <Trash2 className="w-3 h-3 mr-1" />
-                            Delete ({selectedDepartments.size})
-                          </Button>
-                        )}
+                      <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Rows:</span>
+                        <select
+                          value={departmentPagination.limit}
+                          onChange={(e) => setDepartmentPagination(prev => ({ ...prev, limit: Number(e.target.value) }))}
+                          className="text-[10px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer"
+                        >
+                          {[10, 20, 25, 50, 100].map(l => (
+                            <option key={l} value={l}>{l}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                        <span className="px-2 py-1 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-lg">
+                          {
+                            departments.filter((d) => !d.parentDepartmentId)
+                              .length
+                          }{" "}
+                          Main
+                        </span>
+                        <span className="px-2 py-1 bg-slate-100 text-slate-600 border border-slate-200 rounded-lg">
+                          {
+                            departments.filter((d) => !!d.parentDepartmentId)
+                              .length
+                          }{" "}
+                          Sub
+                        </span>
+                        {isSuperAdminUser &&
+                          selectedDepartments.size > 0 && (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={handleBulkDeleteDepartments}
+                              disabled={isDeleting}
+                              className="text-[9px] font-black h-7 px-3 bg-red-600 hover:bg-red-700 text-white rounded-lg border border-red-700 shadow-sm transition-all animate-in zoom-in duration-200"
+                            >
+                              <Trash2 className="w-3 h-3 mr-1" />
+                              Delete ({selectedDepartments.size})
+                            </Button>
+                          )}
+                      </div>
                     </div>
-                  </div>
 
                   {loadingDepartments ? (
                     <TableSkeleton rows={8} cols={5} />
@@ -4522,6 +4582,20 @@ function DashboardContent() {
                           onChange={(e) => setUserSearch(e.target.value)}
                           className="w-full pl-9 pr-4 py-2 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-sm"
                         />
+                      </div>
+                      <div className="flex items-center gap-2">
+                         <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Rows:</span>
+                          <select
+                            value={userPagination.limit}
+                            onChange={(e) => setUserPagination(prev => ({ ...prev, limit: Number(e.target.value) }))}
+                            className="text-[10px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer"
+                          >
+                            {[10, 20, 25, 50, 100].map(l => (
+                              <option key={l} value={l}>{l}</option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
                       <div className="flex items-center gap-2 w-full sm:w-auto">
                         <Button
@@ -5402,17 +5476,21 @@ function DashboardContent() {
                         </Button>
                       )}
 
-                      {isSuperAdminUser && selectedGrievances.size > 0 && (
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={handleBulkDeleteGrievances}
-                          className="text-xs h-8 px-4 bg-red-600 hover:bg-red-700 text-white rounded-xl shadow-md font-bold"
+                      {/* Redundant Bulk Delete Button removed (consolidated above) */}
+                      
+                      {/* Rows per page Selector */}
+                      <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Rows:</span>
+                        <select
+                          value={grievancePagination.limit}
+                          onChange={(e) => setGrievancePagination(prev => ({ ...prev, limit: Number(e.target.value) }))}
+                          className="text-[10px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer"
                         >
-                          <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                          Delete ({selectedGrievances.size})
-                        </Button>
-                      )}
+                          {[10, 20, 25, 50, 100].map(l => (
+                            <option key={l} value={l}>{l}</option>
+                          ))}
+                        </select>
+                      </div>
 
                       {/* Results count */}
                       <span className="text-xs text-slate-500 ml-auto bg-white px-3 py-1.5 rounded-lg shadow-sm border border-slate-200">
@@ -5422,22 +5500,6 @@ function DashboardContent() {
                         </span>{" "}
                         of {grievances.length} grievances
                       </span>
-
-                      {/* Bulk Delete Button (Super Admin only) */}
-                      {isSuperAdminUser &&
-                        selectedGrievances.size > 0 && (
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={handleBulkDeleteGrievances}
-                            disabled={isDeleting}
-                            className="text-xs h-8 px-4 bg-red-600 hover:bg-red-700 text-white rounded-xl border border-red-700 shadow-sm"
-                            title={`Delete ${selectedGrievances.size} selected grievance(s)`}
-                          >
-                            <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                            Delete ({selectedGrievances.size})
-                          </Button>
-                        )}
                     </div>
                   </div>
 
@@ -6373,13 +6435,27 @@ function DashboardContent() {
                       )}
 
                       {/* Results count */}
-                      <span className="text-xs text-slate-500 ml-auto bg-white px-3 py-1.5 rounded-lg shadow-sm border border-slate-200">
-                        Showing{" "}
-                        <span className="font-semibold text-purple-600">
-                          {getSortedData(appointments, "appointments").length}
-                        </span>{" "}
-                        of {appointments.length} appointments
-                      </span>
+                      <div className="flex items-center gap-4 ml-auto">
+                        <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Rows:</span>
+                          <select
+                            value={appointmentPagination.limit}
+                            onChange={(e) => setAppointmentPagination(prev => ({ ...prev, limit: Number(e.target.value) }))}
+                            className="text-[10px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer"
+                          >
+                            {[10, 20, 25, 50, 100].map(l => (
+                              <option key={l} value={l}>{l}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <span className="text-xs text-slate-500 bg-white px-3 py-1.5 rounded-lg shadow-sm border border-slate-200">
+                          Showing{" "}
+                          <span className="font-semibold text-purple-600">
+                            {getSortedData(appointments, "appointments").length}
+                          </span>{" "}
+                          of {appointments.length} appointments
+                        </span>
+                      </div>
                     </div>
                   </div>
 

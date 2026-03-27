@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, Suspense } from "react";
+import { useEffect, useState, useCallback, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { isSuperAdmin } from "@/lib/permissions";
@@ -28,6 +28,7 @@ import RecentActivityPanel from "@/components/dashboard/RecentActivityPanel";
 import DashboardStats from "@/components/superadmin/DashboardStats";
 import CompanyTabContent from "@/components/superadmin/CompanyTabContent";
 import UserTabContent from "@/components/superadmin/UserTabContent";
+import DepartmentTabContent from "@/components/superadmin/DepartmentTabContent";
 import {
   Shield,
   RefreshCw,
@@ -38,6 +39,8 @@ import {
   Building,
   Users,
   User as UserIcon,
+  Settings,
+  FileText,
 } from "lucide-react";
 
 // Helper function to get company display text
@@ -55,14 +58,27 @@ function SuperAdminOverviewContent() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const searchParams = useSearchParams();
-  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "overview");
+  const initialTab = searchParams.get("tab") || "overview";
+  const [activeTab, setActiveTab] = useState(initialTab);
+  const isUpdatingUrl = useRef(false);
 
-  // Sync tab to URL
+  // Single sync: tab state -> URL (only when user clicks a tab)
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    params.set("tab", activeTab);
-    window.history.replaceState(null, "", `${window.location.pathname}?${params.toString()}`);
-  }, [activeTab]);
+    if (isUpdatingUrl.current) return;
+    const currentUrlTab = searchParams.get("tab") || "overview";
+    if (activeTab === currentUrlTab) return;
+
+    isUpdatingUrl.current = true;
+    const params = new URLSearchParams(searchParams.toString());
+    if (activeTab === "overview") {
+      params.delete("tab");
+    } else {
+      params.set("tab", activeTab);
+    }
+    router.replace(`${window.location.pathname}?${params.toString()}`, { scroll: false });
+    // Reset after a tick to allow the URL update to settle
+    setTimeout(() => { isUpdatingUrl.current = false; }, 100);
+  }, [activeTab, router, searchParams]); // intentionally minimal deps but standard-compliant
   const [companies, setCompanies] = useState<Company[]>([]);
   const [companiesLoading, setCompaniesLoading] = useState(false);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -103,22 +119,23 @@ function SuperAdminOverviewContent() {
   const [companyPagination, setCompanyPagination] = useState({
     total: 0,
     pages: 1,
-    limit: 10,
+    limit: 20,
   });
 
   const [departmentPage, setDepartmentPage] = useState(1);
   const [departmentPagination, setDepartmentPagination] = useState({
     total: 0,
     pages: 1,
-    limit: 10,
+    limit: 20,
   });
 
   const [userPage, setUserPage] = useState(1);
   const [userPagination, setUserPagination] = useState({
     total: 0,
     pages: 1,
-    limit: 10,
+    limit: 20,
   });
+  const [showLogs, setShowLogs] = useState(false);
   const [visiblePasswords, setVisiblePasswords] = useState<string[]>([]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [selectedRoleCompanyId, setSelectedRoleCompanyId] =
@@ -230,11 +247,11 @@ function SuperAdminOverviewContent() {
       }
     },
     [
-      companyPage,
-      companyPagination.limit,
       companyDebouncedSearchTerm,
       companyStatusFilter,
       companyTypeFilter,
+      companyPagination.limit,
+      companyPage,
     ],
   );
 
@@ -260,10 +277,10 @@ function SuperAdminOverviewContent() {
       }
     },
     [
-      departmentPage,
-      departmentPagination.limit,
       deptDebouncedSearchTerm,
       deptCompanyFilter,
+      departmentPagination.limit,
+      departmentPage,
     ],
   );
 
@@ -290,11 +307,11 @@ function SuperAdminOverviewContent() {
       }
     },
     [
-      userPage,
-      userPagination.limit,
       userRoleFilter,
       debouncedSearchTerm,
       userCompanyFilter,
+      userPagination.limit,
+      userPage,
     ],
   );
 
@@ -479,10 +496,11 @@ function SuperAdminOverviewContent() {
     mounted,
     user,
     companyPage,
-    fetchCompanies,
     companyDebouncedSearchTerm,
     companyStatusFilter,
     companyTypeFilter,
+    companyPagination.limit,
+    fetchCompanies,
   ]);
 
   useEffect(() => {
@@ -502,6 +520,7 @@ function SuperAdminOverviewContent() {
     departmentPage,
     deptDebouncedSearchTerm,
     deptCompanyFilter,
+    departmentPagination.limit,
     fetchDepartments,
   ]);
 
@@ -523,6 +542,7 @@ function SuperAdminOverviewContent() {
     userRoleFilter,
     debouncedSearchTerm,
     userCompanyFilter,
+    userPagination.limit,
     fetchUsers,
   ]);
 
@@ -607,7 +627,6 @@ function SuperAdminOverviewContent() {
                   fetchAllInitialData();
                   fetchStats();
                   fetchCompanies();
-                  fetchDepartments();
                   fetchUsers();
                 }}
                 disabled={loading || companiesLoading}
@@ -691,7 +710,16 @@ function SuperAdminOverviewContent() {
                   System Intelligence
                 </h2>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
+                {!showLogs && (
+                  <Button 
+                    onClick={() => setShowLogs(true)}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] uppercase tracking-wider h-9 rounded-xl px-5 border-0 shadow-lg shadow-indigo-900/20"
+                  >
+                    <FileText className="w-3.5 h-3.5 mr-2" />
+                    See Audit Logs
+                  </Button>
+                )}
                 <div className="bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-sm flex items-center gap-3">
                   <div className="text-[9px] font-black text-slate-400 uppercase leading-none">
                     Security
@@ -712,7 +740,24 @@ function SuperAdminOverviewContent() {
             {loading ? <StatsSkeleton /> : <DashboardStats stats={stats} setActiveTab={setActiveTab} />}
 
             <div className="mt-6">
-              {loading ? <TableSkeleton rows={8} cols={4} /> : <RecentActivityPanel />}
+              {showLogs ? (
+                loading ? <TableSkeleton rows={8} cols={4} /> : <RecentActivityPanel showLogs={true} />
+              ) : (
+                <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl p-12 flex flex-col items-center justify-center text-center">
+                   <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-lg mb-4">
+                      <FileText className="w-8 h-8 text-slate-300" />
+                   </div>
+                   <h3 className="text-sm font-bold text-slate-900 uppercase tracking-tight">Logs are hidden</h3>
+                   <p className="text-xs text-slate-500 mt-2 max-w-xs">Audit logs contain sensitive system-wide information. Click the button above to start streaming.</p>
+                   <Button 
+                    onClick={() => setShowLogs(true)}
+                    variant="outline"
+                    className="mt-6 rounded-xl font-bold text-[10px] uppercase tracking-wider px-8"
+                  >
+                    Load Recent Activity
+                  </Button>
+                </div>
+              )}
             </div>
 
           </TabsContent>
@@ -733,6 +778,7 @@ function SuperAdminOverviewContent() {
                 companyPage={companyPage}
                 setCompanyPage={setCompanyPage}
                 companyPagination={companyPagination}
+                setCompanyLimit={(limit: number) => setCompanyPagination(p => ({ ...p, limit }))}
                 navigatingCompanyId={navigatingCompanyId}
                 setShowCreateDialog={setShowCreateDialog}
                 handleOpenCompanyDashboard={handleOpenCompanyDashboard}
@@ -743,6 +789,7 @@ function SuperAdminOverviewContent() {
               />
             )}
           </TabsContent>
+
 
 
           <TabsContent value="users" className="space-y-4 outline-none">
@@ -761,6 +808,7 @@ function SuperAdminOverviewContent() {
                 userPage={userPage}
                 setUserPage={setUserPage}
                 userPagination={userPagination}
+                setUserLimit={(limit: number) => setUserPagination(p => ({ ...p, limit }))}
                 visiblePasswords={visiblePasswords}
                 togglePasswordVisibility={togglePasswordVisibility}
                 setShowUserDialog={setShowUserDialog}

@@ -365,6 +365,7 @@ export default function SuperAdminView() {
                handleEditCompany={handleEditCompany}
                handleDeleteCompany={handleDeleteCompany}
                toggleCompanyStatus={toggleCompanyStatus}
+               setCompanyLimit={(limit: number) => setCompanyPagination(p => ({ ...p, limit }))}
                onRefresh={() => fetchCompanies(companyPage)}
              />
           </TabsContent>

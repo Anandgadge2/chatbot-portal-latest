@@ -42,6 +42,7 @@ interface CompanyTabContentProps {
   companyPage: number;
   setCompanyPage: (val: number) => void;
   companyPagination: { total: number; pages: number; limit: number };
+  setCompanyLimit: (val: number) => void;
   navigatingCompanyId: string | null;
   setShowCreateDialog: (val: boolean) => void;
   handleOpenCompanyDashboard: (id: string) => void;
@@ -63,6 +64,7 @@ const CompanyTabContent: React.FC<CompanyTabContentProps> = ({
   companyPage,
   setCompanyPage,
   companyPagination,
+  setCompanyLimit,
   navigatingCompanyId,
   setShowCreateDialog,
   handleOpenCompanyDashboard,
@@ -160,6 +162,19 @@ const CompanyTabContent: React.FC<CompanyTabContentProps> = ({
       <CardContent className="p-0">
         {/* Filters */}
         <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/30 flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Rows</span>
+            <select
+              value={companyPagination.limit}
+              onChange={(e) => { setCompanyLimit(Number(e.target.value)); setCompanyPage(1); }}
+              className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-600 outline-none transition-all cursor-pointer"
+            >
+              {[10, 20, 25, 50, 100].map(v => (
+                <option key={v} value={v}>{v}</option>
+              ))}
+            </select>
+          </div>
+          <div className="h-6 w-px bg-slate-200 hidden md:block mx-1"></div>
           <div className="relative flex-1 min-w-[280px]">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <input

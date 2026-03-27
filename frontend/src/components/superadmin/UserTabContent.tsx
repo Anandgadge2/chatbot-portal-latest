@@ -63,6 +63,7 @@ interface UserTabContentProps {
   userPage: number;
   setUserPage: (val: number) => void;
   userPagination: { total: number; pages: number; limit: number };
+  setUserLimit: (val: number) => void;
   visiblePasswords: string[];
   togglePasswordVisibility: (id: string) => void;
   setShowUserDialog: (val: boolean) => void;
@@ -85,6 +86,7 @@ const UserTabContent: React.FC<UserTabContentProps> = ({
   userPage,
   setUserPage,
   userPagination,
+  setUserLimit,
   visiblePasswords,
   togglePasswordVisibility,
   setShowUserDialog,
@@ -173,6 +175,19 @@ const UserTabContent: React.FC<UserTabContentProps> = ({
       <CardContent className="p-0">
         {/* Filters */}
         <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/30 flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Rows</span>
+            <select
+              value={userPagination.limit}
+              onChange={(e) => { setUserLimit(Number(e.target.value)); setUserPage(1); }}
+              className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-600 outline-none transition-all cursor-pointer"
+            >
+              {[10, 20, 25, 50, 100].map(v => (
+                <option key={v} value={v}>{v}</option>
+              ))}
+            </select>
+          </div>
+          <div className="h-6 w-px bg-slate-200 hidden md:block mx-1"></div>
           <div className="relative flex-1 min-w-[240px]">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <input

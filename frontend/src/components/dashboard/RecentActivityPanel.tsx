@@ -34,19 +34,21 @@ interface AuditLog {
 
 export default function RecentActivityPanel({
   companyId,
+  showLogs = true,
 }: {
   companyId?: string;
+  showLogs?: boolean;
 }) {
   const [activities, setActivities] = useState<AuditLog[]>([]);
-  const [loadingActivities, setLoadingActivities] = useState(true);
+  const [loadingActivities, setLoadingActivities] = useState(showLogs);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchRecentActivities = useCallback(async () => {
     try {
       if (!loadingActivities) setRefreshing(true);
       const url = companyId
-        ? `/audit?limit=10&companyId=${companyId}`
-        : "/audit?limit=10";
+        ? `/audit?limit=20&companyId=${companyId}`
+        : "/audit?limit=20";
       const response = await apiClient.get(url);
       if (response.success) {
         const logs = response.data.logs.map((log: any) => ({
@@ -66,8 +68,10 @@ export default function RecentActivityPanel({
   }, [companyId, loadingActivities]);
 
   useEffect(() => {
-    fetchRecentActivities();
-  }, [fetchRecentActivities]);
+    if (showLogs) {
+      fetchRecentActivities();
+    }
+  }, [fetchRecentActivities, showLogs]);
 
   const getActivityIcon = (action: string, resourceType: string) => {
     switch (action) {
