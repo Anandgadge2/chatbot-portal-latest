@@ -111,37 +111,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({
         </CardContent>
       </Card>
 
-      {/* Departments */}
-      <Card
-        className="group relative overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer rounded-2xl"
-        onClick={() => setActiveTab("departments")}
-      >
-        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-          <Settings className="w-24 h-24 text-purple-600 -mr-8 -mt-8 rotate-45" />
-        </div>
-        <CardHeader className="p-4 pb-2">
-          <CardTitle className="text-slate-500 text-[10px] font-black uppercase tracking-widest flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-purple-500/10 rounded-lg flex items-center justify-center text-purple-600">
-                <Settings className="w-4 h-4" />
-              </div>
-              Departments
-            </span>
-            <ChevronRight className="w-3 h-3 text-slate-300 group-hover:text-purple-500 group-hover:translate-x-1 transition-all" />
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-4 pt-0">
-          <p className="text-3xl font-black text-slate-900 tracking-tighter">
-            {stats.departments}
-          </p>
-          <div className="mt-3 flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></div>
-            <span className="text-[10px] font-black text-purple-600 uppercase">
-              Units Monitored
-            </span>
-          </div>
-        </CardContent>
-      </Card>
+
 
 
     </div>

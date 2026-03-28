@@ -70,6 +70,27 @@ export const list = async (req: Request, res: Response) => {
       ]
     }).select('firstName lastName email phone companyId role customRoleId').sort({ createdAt: 1 });
 
+    const Department = (await import('../models/Department')).default;
+    const departmentCounts = await Department.aggregate([
+      { $match: { companyId: { $in: companyIds } } },
+      { $group: { _id: '$companyId', count: { $sum: 1 } } }
+    ]);
+
+    const userCounts = await User.aggregate([
+      { $match: { companyId: { $in: companyIds } } },
+      { $group: { _id: '$companyId', count: { $sum: 1 } } }
+    ]);
+    
+    const mainDepartmentCounts = await Department.aggregate([
+      { $match: { companyId: { $in: companyIds }, parentDepartment: null } },
+      { $group: { _id: '$companyId', count: { $sum: 1 } } }
+    ]);
+
+    const subDepartmentCounts = await Department.aggregate([
+      { $match: { companyId: { $in: companyIds }, parentDepartment: { $ne: null } } },
+      { $group: { _id: '$companyId', count: { $sum: 1 } } }
+    ]);
+
     const companiesWithHead = companies.map(c => {
       const admin = admins.find(a => a.companyId?.toString() === c._id.toString());
       const companyObj = c.toObject();
@@ -83,6 +104,18 @@ export const list = async (req: Request, res: Response) => {
         };
       }
       
+      const departmentCount = departmentCounts.find(d => d._id.toString() === c._id.toString());
+      (companyObj as any).departmentCount = departmentCount ? departmentCount.count : 0;
+
+      const userCount = userCounts.find(u => u._id.toString() === c._id.toString());
+      (companyObj as any).userCount = userCount ? userCount.count : 0;
+
+      const mainDepartmentCount = mainDepartmentCounts.find(d => d._id.toString() === c._id.toString());
+      (companyObj as any).mainDepartmentCount = mainDepartmentCount ? mainDepartmentCount.count : 0;
+
+      const subDepartmentCount = subDepartmentCounts.find(d => d._id.toString() === c._id.toString());
+      (companyObj as any).subDepartmentCount = subDepartmentCount ? subDepartmentCount.count : 0;
+
       return companyObj;
     });
 

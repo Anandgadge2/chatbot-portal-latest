@@ -29,6 +29,10 @@ export interface Company {
     email: string;
     phone?: string;
   };
+  departmentCount?: number;
+  userCount?: number;
+  mainDepartmentCount?: number;
+  subDepartmentCount?: number;
   isSuspended: boolean;
   isDeleted: boolean;
   createdAt: string;

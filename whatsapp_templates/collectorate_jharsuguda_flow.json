@@ -338,7 +338,7 @@
       },
       "data": {
         "label": "Grievance Intro (EN)",
-        "messageText": "📝 *Register a Grievance*\n\nYou can file a formal complaint regarding any Collectorate department.\n\nTo begin, please provide the details as requested."
+        "messageText": "📝 *Register a Grievance*\n\nYou can mention your grievance regarding any government department in Jharsuguda.\n\nPlease provide the details."
       }
     },
     {
@@ -350,7 +350,7 @@
       },
       "data": {
         "label": "Citizen ID (EN)",
-        "messageText": "👤 *Citizen Identification*\n\nPlease enter your Full Name as it appears on official documents:",
+        "messageText": "Please enter your full name:",
         "inputType": "text",
         "saveToField": "citizenName",
         "validation": {
@@ -474,7 +474,7 @@
       },
       "data": {
         "label": "Grievance Intro (HI)",
-        "messageText": "📝 *शिकायत दर्ज करें*\n\nआप किसी भी कलेक्टरेट विभाग के संबंध में औपचारिक शिकायत दर्ज कर सकते हैं।\n\nशुरू करने के लिए, कृपया अनुरोध के अनुसार विवरण प्रदान करें।"
+        "messageText": "📝 *शिकायत दर्ज करें*\n\nआप झारसुगुड़ा में किसी भी सरकारी विभाग से संबंधित अपनी शिकायत बता सकते हैं।\n\nकृपया विवरण प्रदान करें।"
       }
     },
     {
@@ -486,7 +486,7 @@
       },
       "data": {
         "label": "Citizen ID (HI)",
-        "messageText": "👤 *नागरिक पहचान*\n\nकृपया अपना पूरा नाम दर्ज करें जैसा कि आधिकारिक दस्तावेजों में दिखाई देता है:",
+        "messageText": "कृपया अपना पूरा नाम दर्ज करें:",
         "inputType": "text",
         "saveToField": "citizenName",
         "validation": {
@@ -610,7 +610,7 @@
       },
       "data": {
         "label": "Grievance Intro (OR)",
-        "messageText": "📝 *ଅଭିଯୋଗ ପଞ୍ଜିକରଣ*\n\nଆପଣ ଯେକୌଣସି କଲେକ୍ଟରେଟ୍ ବିଭାଗ ସମ୍ପର୍କରେ ଆନୁଷ୍ଠାନିକ ଅଭିଯୋଗ ଦାଖଲ କରିପାରିବେ।\n\nଆରମ୍ଭ କରିବାକୁ, ଦୟାକରି ଅନୁରୋଧ ଅନୁଯାୟୀ ବିବରଣୀ ପ୍ରଦାନ କରନ୍ତୁ।"
+        "messageText": "📝 *ଅଭିଯୋଗ ପଞ୍ଜିକରଣ*\n\nଝାରସୁଗୁଡାର ଯେକୌଣସି ସରକାରୀ ବିଭାଗ ସମ୍ପର୍କରେ ଆପଣ ଆପଣଙ୍କର ଅଭିଯୋଗ ଉଲ୍ଲେଖ କରିପାରିବେ।\n\nଦୟାକରି ବିବରଣୀ ପ୍ରଦାନ କରନ୍ତୁ।"
       }
     },
     {
@@ -622,7 +622,7 @@
       },
       "data": {
         "label": "Citizen ID (OR)",
-        "messageText": "👤 *ନାଗରିକ ପରିଚୟ*\n\nଦୟାକରି ଆପଣଙ୍କର ସମ୍ପୂର୍ଣ୍ଣ ନାମ ପ୍ରବେଶ କରନ୍ତୁ ଯେପରି ଏହା ସରକାରୀ ଦଲିଲରେ ଦେଖାଯାଏ:",
+        "messageText": "ଦୟାକରି ଆପଣଙ୍କର ପୂର୍ଣ୍ଣ ନାମ ଲେଖନ୍ତୁ:",
         "inputType": "text",
         "saveToField": "citizenName",
         "validation": {
