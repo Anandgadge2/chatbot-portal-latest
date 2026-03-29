@@ -3,7 +3,7 @@
 import React from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, FileText, Download } from "lucide-react";
+import { RefreshCw, FileText, Download, UserPlus } from "lucide-react";
 import { Grievance } from "@/lib/api/grievance";
 import { formatTo10Digits } from "@/lib/utils/phoneUtils";
 
@@ -15,6 +15,7 @@ interface GrievanceListProps {
   setShowGrievanceDetail: (open: boolean) => void;
   onRefresh?: () => void;
   refreshing?: boolean;
+  onAssign?: (g: Grievance) => void;
 }
 
 export default function GrievanceList({
@@ -25,6 +26,7 @@ export default function GrievanceList({
   setShowGrievanceDetail,
   onRefresh,
   refreshing,
+  onAssign,
 }: GrievanceListProps) {
   return (
     <Card className="rounded-2xl border-slate-200 shadow-xl overflow-hidden bg-white text-left">
@@ -114,17 +116,30 @@ export default function GrievanceList({
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedGrievance(g);
-                        setShowGrievanceDetail(true);
-                      }}
-                      className="text-[10px] font-black uppercase tracking-wider text-slate-400 hover:text-amber-600 hover:bg-amber-50"
-                    >
-                      Review Case
-                    </Button>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedGrievance(g);
+                          setShowGrievanceDetail(true);
+                        }}
+                        className="text-[10px] font-black uppercase tracking-wider text-slate-400 hover:text-amber-600 hover:bg-amber-50"
+                      >
+                        Review Case
+                      </Button>
+                      {onAssign && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onAssign(g)}
+                          className="text-[10px] font-black uppercase tracking-wider text-slate-400 hover:text-blue-600 hover:bg-blue-50"
+                        >
+                          <UserPlus className="w-3.5 h-3.5 mr-1" />
+                          Assign
+                        </Button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

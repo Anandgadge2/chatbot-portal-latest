@@ -211,83 +211,89 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
 
     await grievance.save();
 
-    // Notify citizen if status changed to RESOLVED
-    // ✅ FIX: Normalize populated IDs for citizen resolution too
-    const resolvedCompanyId = (grievance.companyId as any)?._id || grievance.companyId;
-    const resolvedDeptId = (grievance.departmentId as any)?._id || grievance.departmentId;
-    const resolvedSubDeptId = (grievance.subDepartmentId as any)?._id || grievance.subDepartmentId;
+    // 🚀 BACKGROUND NOTIFICATIONS: Fire and forget to keep UI responsive
+    (async () => {
+      try {
+        const { 
+          notifyCitizenOnResolution, 
+          notifyHierarchyOnStatusChange, 
+          notifyCitizenOnGrievanceStatusChange 
+        } = await import('../services/notificationService');
 
-    if (oldStatus !== GrievanceStatus.RESOLVED && status === GrievanceStatus.RESOLVED) {
-      const { notifyCitizenOnResolution } = await import('../services/notificationService');
-      
-      await notifyCitizenOnResolution({
-        type: 'grievance',
-        action: 'resolved',
-        grievanceId: grievance.grievanceId,
-        citizenName: grievance.citizenName,
-        citizenPhone: grievance.citizenPhone,
-        citizenWhatsApp: grievance.citizenWhatsApp,
-        departmentId: resolvedDeptId,
-        subDepartmentId: resolvedSubDeptId,
-        companyId: resolvedCompanyId,
-        remarks: remarks,
-        evidenceUrls: uploadedDocumentUrls,
-        resolvedBy: currentUser._id,
-        resolvedAt: grievance.resolvedAt,
-        createdAt: grievance.createdAt,
-        assignedAt: grievance.assignedAt,
-        timeline: grievance.timeline
-      });
+        const resolvedCompanyId = (grievance.companyId as any)?._id || grievance.companyId;
+        const resolvedDeptId = (grievance.departmentId as any)?._id || grievance.departmentId;
+        const resolvedSubDeptId = (grievance.subDepartmentId as any)?._id || grievance.subDepartmentId;
+        const departmentName = (grievance.departmentId as any)?.name || 'Department';
 
-    }
+        const notificationTasks: Promise<any>[] = [];
 
-    // Notify hierarchy about status change for ALL grievance updates
-    if (oldStatus !== status) {
-      const { notifyHierarchyOnStatusChange } = await import('../services/notificationService');
-      // ✅ FIX: Normalize populated Mongoose objects to plain IDs before passing.
-      // grievance was fetched with .populate(), so companyId/departmentId/subDepartmentId
-      // are full objects. getCompanyWithWhatsAppConfig() will reject them unless we extract _id.
-      const normalizedCompanyId = (grievance.companyId as any)?._id || grievance.companyId;
-      const normalizedDeptId = (grievance.departmentId as any)?._id || grievance.departmentId;
-      const normalizedSubDeptId = (grievance.subDepartmentId as any)?._id || grievance.subDepartmentId;
-      await notifyHierarchyOnStatusChange({
-        type: 'grievance',
-        action: (status === GrievanceStatus.RESOLVED ? 'resolved' : 'status_update') as any,
-        grievanceId: grievance.grievanceId,
-        citizenName: grievance.citizenName,
-        citizenPhone: grievance.citizenPhone,
-        departmentId: normalizedDeptId,
-        subDepartmentId: normalizedSubDeptId,
-        companyId: normalizedCompanyId,
-        assignedTo: grievance.assignedTo,
-        remarks: remarks,
-        evidenceUrls: uploadedDocumentUrls,
-        resolvedBy: currentUser._id,
-        resolvedAt: grievance.resolvedAt,
-        createdAt: grievance.createdAt,
-        assignedAt: grievance.assignedAt,
-        timeline: grievance.timeline
-      }, oldStatus, status);
-    }
-    
-    if (oldStatus !== status && [GrievanceStatus.ASSIGNED, GrievanceStatus.REJECTED, GrievanceStatus.PENDING, GrievanceStatus.REVERTED].includes(status as any)) {
-      // Notify citizen for ASSIGNED, REJECTED, PENDING (RESOLVED uses notifyCitizenOnResolution above)
-      const { notifyCitizenOnGrievanceStatusChange } = await import('../services/notificationService');
-      const departmentName = (grievance.departmentId as any)?.name || 'Department';
-      await notifyCitizenOnGrievanceStatusChange({
-        companyId: resolvedCompanyId,
-        grievanceId: grievance.grievanceId,
-        citizenName: grievance.citizenName,
-        citizenPhone: grievance.citizenPhone,
-        citizenWhatsApp: grievance.citizenWhatsApp,
-        departmentId: resolvedDeptId,
-        subDepartmentId: resolvedSubDeptId,
-        departmentName,
-        newStatus: status,
-        remarks: remarks || undefined,
-        evidenceUrls: uploadedDocumentUrls,
-      });
-    }
+        // 1. Notify citizen if status changed to RESOLVED
+        if (oldStatus !== GrievanceStatus.RESOLVED && status === GrievanceStatus.RESOLVED) {
+          notificationTasks.push(notifyCitizenOnResolution({
+            type: 'grievance',
+            action: 'resolved',
+            grievanceId: grievance.grievanceId,
+            citizenName: grievance.citizenName,
+            citizenPhone: grievance.citizenPhone,
+            citizenWhatsApp: grievance.citizenWhatsApp,
+            departmentId: resolvedDeptId,
+            subDepartmentId: resolvedSubDeptId,
+            companyId: resolvedCompanyId,
+            remarks: remarks,
+            evidenceUrls: uploadedDocumentUrls,
+            resolvedBy: currentUser._id,
+            resolvedAt: grievance.resolvedAt,
+            createdAt: grievance.createdAt,
+            assignedAt: grievance.assignedAt,
+            timeline: grievance.timeline
+          }));
+        }
+
+        // 2. Notify hierarchy about status change for ALL grievance updates
+        if (oldStatus !== status) {
+          notificationTasks.push(notifyHierarchyOnStatusChange({
+            type: 'grievance',
+            action: (status === GrievanceStatus.RESOLVED ? 'resolved' : 'status_update') as any,
+            grievanceId: grievance.grievanceId,
+            citizenName: grievance.citizenName,
+            citizenPhone: grievance.citizenPhone,
+            departmentId: resolvedDeptId,
+            subDepartmentId: resolvedSubDeptId,
+            companyId: resolvedCompanyId,
+            assignedTo: grievance.assignedTo,
+            remarks: remarks,
+            evidenceUrls: uploadedDocumentUrls,
+            resolvedBy: currentUser._id,
+            resolvedAt: grievance.resolvedAt,
+            createdAt: grievance.createdAt,
+            assignedAt: grievance.assignedAt,
+            timeline: grievance.timeline
+          }, oldStatus, status));
+        }
+        
+        // 3. Notify citizen for other status changes
+        if (oldStatus !== status && [GrievanceStatus.ASSIGNED, GrievanceStatus.REJECTED, GrievanceStatus.PENDING, GrievanceStatus.REVERTED].includes(status as any)) {
+          notificationTasks.push(notifyCitizenOnGrievanceStatusChange({
+            companyId: resolvedCompanyId,
+            grievanceId: grievance.grievanceId,
+            citizenName: grievance.citizenName,
+            citizenPhone: grievance.citizenPhone,
+            citizenWhatsApp: grievance.citizenWhatsApp,
+            departmentId: resolvedDeptId,
+            subDepartmentId: resolvedSubDeptId,
+            departmentName,
+            newStatus: status,
+            remarks: remarks || undefined,
+            evidenceUrls: uploadedDocumentUrls,
+          }));
+        }
+
+        await Promise.allSettled(notificationTasks);
+        console.log(`[StatusUpdate] ✅ Background notifications completed for grievance ${grievance.grievanceId}`);
+      } catch (err) {
+        console.error(`[StatusUpdate] ❌ Background notification error for grievance ${grievance?.grievanceId}:`, err);
+      }
+    })();
 
     await logUserAction(
       req,
@@ -415,43 +421,53 @@ router.put('/appointment/:id', requirePermission(Permission.STATUS_CHANGE_APPOIN
 
     await appointment.save();
 
-    // Notify citizen based on status change
-    const { notifyCitizenOnAppointmentStatusChange } = await import('../services/notificationService');
-    
-    if (oldStatus !== status) {
-      await notifyCitizenOnAppointmentStatusChange({
-        appointmentId: appointment.appointmentId,
-        citizenName: appointment.citizenName,
-        citizenPhone: appointment.citizenPhone,
-        citizenWhatsApp: appointment.citizenWhatsApp,
-        companyId: appointment.companyId,
-        oldStatus,
-        newStatus: status,
-        remarks: remarks || '',
-        appointmentDate: appointment.appointmentDate,
-        appointmentTime: appointment.appointmentTime,
-        purpose: appointment.purpose
-      });
+    // 🚀 BACKGROUND NOTIFICATIONS: Fire and forget to keep UI responsive
+    (async () => {
+      try {
+        const { 
+          notifyCitizenOnAppointmentStatusChange, 
+          notifyHierarchyOnStatusChange 
+        } = await import('../services/notificationService');
 
-      // ✅ Hierarchical Admin Notification: For ALL status changes
-      const { notifyHierarchyOnStatusChange } = await import('../services/notificationService');
-      await notifyHierarchyOnStatusChange({
-        type: 'appointment',
-        action: (status === AppointmentStatus.COMPLETED || status === AppointmentStatus.CANCELLED) ? 'resolved' : 'status_update', 
-        appointmentId: appointment.appointmentId,
-        citizenName: appointment.citizenName,
-        citizenPhone: appointment.citizenPhone,
-        departmentId: appointment.departmentId,
-        companyId: appointment.companyId,
-        remarks: remarks || '',
-        resolvedBy: currentUser._id,
-        resolvedAt: new Date(),
-        createdAt: appointment.createdAt,
-        appointmentDate: appointment.appointmentDate,
-        appointmentTime: appointment.appointmentTime,
-        timeline: appointment.timeline
-      }, oldStatus, status);
-    }
+        if (oldStatus !== status) {
+          const notificationTasks = [
+            notifyCitizenOnAppointmentStatusChange({
+              appointmentId: appointment.appointmentId,
+              citizenName: appointment.citizenName,
+              citizenPhone: appointment.citizenPhone,
+              citizenWhatsApp: appointment.citizenWhatsApp,
+              companyId: appointment.companyId,
+              oldStatus,
+              newStatus: status,
+              remarks: remarks || '',
+              appointmentDate: appointment.appointmentDate,
+              appointmentTime: appointment.appointmentTime,
+              purpose: appointment.purpose
+            }),
+            notifyHierarchyOnStatusChange({
+              type: 'appointment',
+              action: (status === AppointmentStatus.COMPLETED || status === AppointmentStatus.CANCELLED) ? 'resolved' : 'status_update', 
+              appointmentId: appointment.appointmentId,
+              citizenName: appointment.citizenName,
+              citizenPhone: appointment.citizenPhone,
+              departmentId: appointment.departmentId,
+              companyId: appointment.companyId,
+              remarks: remarks || '',
+              resolvedBy: currentUser._id,
+              resolvedAt: new Date(),
+              createdAt: appointment.createdAt,
+              appointmentDate: appointment.appointmentDate,
+              appointmentTime: appointment.appointmentTime,
+              timeline: appointment.timeline
+            }, oldStatus, status)
+          ];
+          await Promise.allSettled(notificationTasks);
+          console.log(`[StatusUpdate] ✅ Background notifications completed for appointment ${appointment.appointmentId}`);
+        }
+      } catch (err) {
+        console.error(`[StatusUpdate] ❌ Background notification error for appointment ${appointment?.appointmentId}:`, err);
+      }
+    })();
 
     await logUserAction(
       req,

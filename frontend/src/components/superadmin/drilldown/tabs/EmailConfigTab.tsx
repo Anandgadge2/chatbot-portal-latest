@@ -203,7 +203,7 @@ export default function EmailConfigTab({ companyId }: EmailConfigTabProps) {
 
       // Process Templates
       const tl = templatesRes.success ? templatesRes.data : (templatesRes?.data || []);
-      const merged = TEMPLATE_KEYS.map(t => {
+      const merged = TEMPLATE_KEYS.map((t: { key: string; label: string }) => {
         const existing = Array.isArray(tl) ? tl.find((item: any) => item.templateKey === t.key) : null;
         if (existing) return existing;
         return {
@@ -598,12 +598,12 @@ export default function EmailConfigTab({ companyId }: EmailConfigTabProps) {
                         id="htmlBodyEditor"
                         value={selectedTemplate?.htmlBody || ""}
                         onChange={(e) => updateTemplateField("htmlBody", e.target.value)}
-                        className="flex-1 w-full min-h-[180px] rounded-xl border border-slate-200 bg-slate-950 text-green-400 p-4 font-mono text-xs leading-relaxed resize-none outline-none focus:ring-1 focus:ring-indigo-500"
+                        className="flex-1 w-full min-h-[500px] rounded-xl border border-slate-200 bg-slate-950 text-green-400 p-4 font-mono text-xs leading-relaxed resize-none outline-none focus:ring-1 focus:ring-indigo-500"
                         spellCheck={false}
                       />
                    ) : (
-                      <div className="flex-1 w-full min-h-[180px] rounded-xl border border-slate-200 bg-white overflow-hidden">
-                         <iframe srcDoc={selectedTemplate.htmlBody} className="w-full h-full min-h-[180px]" title="EML Preview" sandbox="allow-same-origin"/>
+                      <div className="flex-1 w-full min-h-[500px] rounded-xl border border-slate-200 bg-white overflow-hidden">
+                         <iframe srcDoc={selectedTemplate.htmlBody} className="w-full h-full min-h-[500px]" title="EML Preview" sandbox="allow-same-origin"/>
                       </div>
                    )}
                 </div>

@@ -78,10 +78,14 @@ export async function sendEmail(
     let fromLine: string;
 
     if (options?.companyId) {
-      transport = await getTransporterForCompany(options.companyId);
+      const id = typeof options.companyId === 'string' && mongoose.Types.ObjectId.isValid(options.companyId)
+        ? new mongoose.Types.ObjectId(options.companyId)
+        : options.companyId;
+
+      transport = await getTransporterForCompany(id);
       if (transport) {
         const config = await CompanyEmailConfig.findOne({
-          companyId: options.companyId,
+          companyId: id,
           isActive: true
         });
         fromLine = config
@@ -114,13 +118,16 @@ export async function sendEmail(
 
     return { success: true };
   } catch (err: any) {
-    let errorMessage = 'Unknown email error';
-    if (err instanceof Error) {
-      errorMessage = err.message;
-      if (err.message.includes('Invalid login')) errorMessage = 'Invalid SMTP credentials.';
-      else if (err.message.includes('ECONNREFUSED') || err.message.includes('ETIMEDOUT')) errorMessage = 'Cannot connect to SMTP server.';
-    }
-    logger.error(`❌ Failed to send email:`, { error: errorMessage, details: err });
+    const errorMessage = err instanceof Error ? err.message : 'Unknown email error';
+    logger.error(`❌ Failed to send email:`, { 
+      error: errorMessage, 
+      stack: err.stack,
+      code: err.code,
+      command: err.command,
+      address: err.address,
+      port: err.port,
+      details: err 
+    });
     return { success: false, error: errorMessage };
   }
 }
@@ -172,6 +179,12 @@ export async function testEmailConfiguration(companyId?: string | mongoose.Types
       }
     };
   } catch (err: any) {
+    logger.error('❌ testEmailConfiguration failed:', {
+      message: err.message,
+      code: err.code,
+      command: err.command,
+      stack: err.stack
+    });
     return {
       success: false,
       error: err instanceof Error ? err.message : 'Unknown error',
@@ -179,7 +192,9 @@ export async function testEmailConfiguration(companyId?: string | mongoose.Types
         host: process.env.SMTP_HOST || 'smtp.gmail.com',
         port: process.env.SMTP_PORT || '465',
         user: process.env.SMTP_USER,
-        error: err
+        error: err,
+        code: err.code,
+        command: err.command
       }
     };
   }

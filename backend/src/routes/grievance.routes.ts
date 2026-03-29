@@ -8,6 +8,8 @@ import { requireDatabaseConnection } from '../middleware/dbConnection';
 import { logUserAction } from '../utils/auditLogger';
 import { AuditAction, Permission, UserRole, GrievanceStatus } from '../config/constants';
 
+import { logger } from '../config/logger';
+
 const router = express.Router();
 
 // All routes require database connection and authentication
@@ -129,6 +131,7 @@ router.post('/', async (req: Request, res: Response) => {
     const {
       companyId,
       departmentId,
+      subDepartmentId,
       citizenName,
       citizenPhone,
       citizenWhatsApp,
@@ -151,6 +154,7 @@ router.post('/', async (req: Request, res: Response) => {
     const grievance = await Grievance.create({
       companyId,
       departmentId,
+      subDepartmentId,
       citizenName,
       citizenPhone,
       citizenWhatsApp: citizenWhatsApp || citizenPhone,
@@ -323,6 +327,15 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
 
     return res.json({ success: true, message: 'Grievance reverted to company admin successfully', data: { grievance } });
   } catch (error: any) {
+    logger.error(`❌ Failed to send email:`, { 
+      error: error.message, 
+      stack: error.stack,
+      code: error.code,
+      command: error.command,
+      address: error.address,
+      port: error.port,
+      details: error 
+    });
     return res.status(500).json({ success: false, message: 'Failed to revert grievance', error: error.message });
   }
 });
@@ -386,11 +399,24 @@ router.get('/:id', requirePermission(Permission.READ_GRIEVANCE), async (req: Req
       success: true,
       data: { grievance }
     });
-  } catch (error: any) {
-    res.status(500).json({
+  } catch (err: any) {
+    logger.error('❌ testEmailConfiguration failed:', {
+      message: err.message,
+      code: err.code,
+      command: err.command,
+      stack: err.stack
+    });
+    return res.status(500).json({
       success: false,
-      message: 'Failed to fetch grievance',
-      error: error.message
+      error: err instanceof Error ? err.message : 'Unknown error',
+      details: {
+        host: process.env.SMTP_HOST || 'smtp.gmail.com',
+        port: process.env.SMTP_PORT || '465',
+        user: process.env.SMTP_USER,
+        error: err,
+        code: err.code,
+        command: err.command
+      }
     });
   }
 });

@@ -5,6 +5,7 @@ import Department from '../models/Department';
 import User from '../models/User';
 import { sendEmail, getNotificationEmailContent, getNotificationWhatsAppMessage } from './emailService';
 import { sendWhatsAppMessage, sendWhatsAppMedia } from './whatsappService';
+import { normalizePhoneNumber } from '../utils/phoneUtils';
 import { logger } from '../config/logger';
 import { UserRole } from '../config/constants';
 
@@ -80,7 +81,7 @@ function computeResolutionTime(createdAt: Date | string | undefined, resolvedAt:
  * Ensures resolutionTimeText is computed if not provided.
  */
 async function populateNotificationData(data: NotificationData): Promise<Record<string, any>> {
-  const company = await Company.findById(data.companyId).select('name');
+  const company = await findCompanyByIdOrCustomId(data.companyId);
 
   // Handle populated Mongoose objects — extract _id before calling findById
   const deptId = data.departmentId
@@ -90,8 +91,8 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
     ? (typeof data.subDepartmentId === 'object' && data.subDepartmentId._id ? data.subDepartmentId._id : data.subDepartmentId)
     : null;
 
-  const department = deptId ? await Department.findById(deptId).select('name') : null;
-  const subDept = subDeptId ? await Department.findById(subDeptId).select('name') : null;
+  const department = deptId ? await findDepartmentByIdOrCustomId(deptId) : null;
+  const subDept = subDeptId ? await findDepartmentByIdOrCustomId(subDeptId) : null;
 
   let assignedByName = data.assignedByName || 'Administrator';
   if (!data.assignedByName && data.assignedTo) {
@@ -268,6 +269,34 @@ function isWhatsAppEnabled(company: any): boolean {
   );
 }
 
+/** Robustly find a department by either Mongo _id or custom departmentId string */
+async function findDepartmentByIdOrCustomId(id: any): Promise<any | null> {
+  if (!id) return null;
+  const idStr = id.toString();
+  
+  // Try ObjectId first if valid
+  if (mongoose.Types.ObjectId.isValid(idStr) && idStr.length === 24) {
+    const dept = await Department.findById(idStr);
+    if (dept) return dept;
+  }
+  
+  // Fallback to custom departmentId string
+  return await Department.findOne({ departmentId: idStr });
+}
+
+/** Robustly find a company by either Mongo _id or custom companyId string */
+async function findCompanyByIdOrCustomId(id: any): Promise<any | null> {
+  if (!id) return null;
+  const idStr = id.toString();
+  
+  if (mongoose.Types.ObjectId.isValid(idStr) && idStr.length === 24) {
+    const company = await Company.findById(idStr);
+    if (company) return company;
+  }
+  
+  return await Company.findOne({ companyId: idStr });
+}
+
 /**
  * Checks if a notification type (email or whatsapp) is enabled for a specific role in a company.
  * Defaults to true if settings are missing.
@@ -309,10 +338,7 @@ function canNotify(company: any, user: any, type: 'email' | 'whatsapp'): boolean
 
 function normalizePhone(phone?: string): string | null {
   if (!phone) return null;
-  const digits = phone.replace(/\D/g, '');
-  if (digits.length === 10) return `91${digits}`;
-  if (digits.length >= 11) return digits;
-  return null;
+  return normalizePhoneNumber(phone);
 }
 
 function normalizeId(value: any): any {
@@ -411,12 +437,9 @@ async function safeSendWhatsApp(
 /**
  * 🏢 HIERARCHICAL LOOKUP: Returns ALL department admins in the chain.
  * For a sub-department, we notify:
- *   1. The sub-department's own admin (if exists)
- *   2. The parent department's admin (if exists)
- */
-/**
- * Robustly find admins for a department or its parents up the hierarchy.
- * Useful for auto-assignment and escalation.
+ *   1. The sub-department's own admin
+ *   2. The parent department's admin
+ *   3. All relevant roles across the chain (HOD, Chief, etc.)
  */
 export async function getHierarchicalDepartmentAdmins(departmentId: any): Promise<any[]> {
   const admins: any[] = [];
@@ -427,16 +450,14 @@ export async function getHierarchicalDepartmentAdmins(departmentId: any): Promis
     const processedDeptIds = new Set<string>();
 
     while (currentDeptId) {
-      const currentIdStr = currentDeptId.toString();
+      const dept = await findDepartmentByIdOrCustomId(currentDeptId);
+      if (!dept) break;
+
+      const currentIdStr = dept._id.toString();
       if (processedDeptIds.has(currentIdStr)) break;
       processedDeptIds.add(currentIdStr);
 
-      const dept = await Department.findById(currentDeptId);
-      if (!dept) break;
-
       // 🔍 1. Identify roles that represent "Admins" for this department level.
-      // We look for roles that either have direct management rights on DEPARTMENTS,
-      // or management rights on GRIEVANCE/APPOINTMENT modules.
       const Role = (await import('../models/Role')).default;
       const adminRoles = await Role.find({
         companyId: dept.companyId,
@@ -456,60 +477,32 @@ export async function getHierarchicalDepartmentAdmins(departmentId: any): Promis
       const adminRoleIds = adminRoles.map(r => r._id);
       const adminRoleNames = adminRoles.map(r => r.name);
 
-      // Standardize role names for fallback (Sub Department Admin -> SUB_DEPARTMENT_ADMIN)
-      const adminRoleNamesRegex = adminRoleNames.map(name => {
-        const pattern = name.trim().replace(/[ _]/g, '[ _]');
-        return new RegExp(`^${pattern}$`, 'i');
-      });
-
       // 🔍 2. Build Query for Admins at this level
+      // We use $in with both ObjectId and String to handle data type inconsistencies
       const adminQuery: any = {
-        departmentId: new mongoose.Types.ObjectId(currentIdStr),
         isActive: true,
         $or: [
+          // Match by department link
+          { departmentId: new mongoose.Types.ObjectId(currentIdStr) },
+          { departmentId: currentIdStr },
+          // Match by role names / ids
           { customRoleId: { $in: adminRoleIds } },
-          { role: { $in: adminRoleNamesRegex } },
           { role: { $in: adminRoleNames } },
-          // 🛡️ HARDCODED FALLBACKS for standard nomenclature
-          { role: { $regex: /^(SUB_)?DEPARTMENT_ADMIN|COMPANY_ADMIN|ADMIN|HEAD|MANAGER|SUPERVISOR$/i } },
-          { role: 'SUB_DEPARTMENT_ADMIN' },
-          { role: 'DEPARTMENT_ADMIN' }
+          // Hardcoded fallbacks for standard name patterns
+          { role: { $regex: /^(SUB[- _]?)?DEPARTMENT[- _]?(ADMIN|ADMINISTRATOR)|COMPANY[- _]?(ADMIN|ADMINISTRATOR)|ADMIN|HEAD|MANAGER|SUPERVISOR|OFFICER$/i } }
         ]
       };
 
       const levelAdmins = await User.find(adminQuery).populate('customRoleId');
       
-      if (levelAdmins.length === 0) {
-        logger.info(`ℹ️ No admins found directly in ${dept.name} (${currentIdStr}). Checking parent...`);
-      } else {
-        logger.info(`✅ Found ${levelAdmins.length} potential admins in ${dept.name}`);
-      }
-
-      // 🔍 3. Sort Admins: Prioritize "Head", "Chief", "HOD", "Dist" in designation/role
-      levelAdmins.sort((a, b) => {
-        const headTerms = /head|chief|hod|manager|collector|dist|registrar/i;
-        const isAHead = headTerms.test(a.designation || '') || headTerms.test(a.role || '');
-        const isBHead = headTerms.test(b.designation || '') || headTerms.test(b.role || '');
-        
-        if (isAHead && !isBHead) return -1;
-        if (!isAHead && isBHead) return 1;
-        return 0;
-      });
-
-      for (const admin of levelAdmins) {
+      levelAdmins.forEach(admin => {
         if (!admins.find(a => a._id.toString() === admin._id.toString())) {
           admins.push(admin);
         }
-      }
+      });
 
       // Move up the hierarchy
       currentDeptId = dept.parentDepartmentId;
-    }
-
-    if (admins.length === 0) {
-      logger.warn(`⚠️ Hierarchical admin lookup total FAILURE for department ID: ${departmentId}`);
-    } else {
-      logger.info(`🎯 Hierarchical admin lookup successful: Found ${admins.length} total across chain.`);
     }
 
     return admins;

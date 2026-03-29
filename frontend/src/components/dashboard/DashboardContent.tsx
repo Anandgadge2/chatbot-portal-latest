@@ -268,7 +268,7 @@ export default function DashboardContent() {
               <div className="h-8 w-px bg-slate-800 mx-2 hidden md:block"></div>
 
               <div className="flex items-center gap-3 pl-2">
-                <div className="flex flex-col items-end hidden sm:flex">
+                <div className="hidden sm:flex flex-col items-end">
                   <span className="text-xs font-bold text-white uppercase tracking-tight">
                     {user.firstName} {user.lastName}
                   </span>
@@ -295,7 +295,7 @@ export default function DashboardContent() {
           <TabsContent value="overview" className="mt-0 outline-none">
             {stats ? (
               <div className="space-y-8 animate-in fade-in duration-500">
-                <StatsOverview stats={stats} setActiveTab={handleTabChange} />
+                <StatsOverview stats={stats} setActiveTab={handleTabChange} company={company} />
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                    <Card className="border-slate-200 shadow-xl bg-white/50 backdrop-blur-xl border-t-4 border-t-indigo-500">
                      <CardHeader>

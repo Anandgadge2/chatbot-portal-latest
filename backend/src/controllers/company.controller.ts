@@ -238,6 +238,10 @@ export const create = async (req: Request, res: Response) => {
 
     console.log('Company created successfully:', company._id);
 
+    // ✅ AUTO-SEED DEFAULT TEMPLATES (WhatsApp & Email)
+    const { seedDefaultTemplates } = await import('../services/templateSeeder');
+    seedDefaultTemplates(company).catch(err => console.error('❌ Template seeding failed:', err));
+
     // Seeding logic removed per user request. 
     // SuperAdmin will manually create roles for the company from the dashboard.
 

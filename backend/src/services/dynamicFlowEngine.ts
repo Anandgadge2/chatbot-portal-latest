@@ -3391,7 +3391,7 @@ async function continueFlow(
     await updateSession(session);
 
     const inputFallback = fallbackConfig?.input;
-    const maxAttempts = inputFallback?.maxAttempts ?? 2; // Default to 2 (1 original + 1 repeat)
+    const maxAttempts = inputFallback?.maxAttempts ?? 7; // Default to 7 (6 invalid + 1 final)
 
     if (attempts >= maxAttempts) {
       const maxMsg = inputFallback?.maxAttemptsMessage?.[lang] || 
@@ -3420,7 +3420,7 @@ async function continueFlow(
     Object.keys(session.data.listMapping).length > 0
   ) {
     const listFallback = fallbackConfig?.list;
-    const maxAttempts = listFallback?.maxAttempts ?? 2; // Default to 2 (1 original + 1 repeat)
+    const maxAttempts = listFallback?.maxAttempts ?? 7; // Default to 7 (6 invalid + 1 final)
     const attempts = (session.data.fallbackAttempts || 0) + 1;
     session.data.fallbackAttempts = attempts;
     await updateSession(session);
@@ -3430,7 +3430,7 @@ async function continueFlow(
       const maxMsg =
         listFallback?.maxAttemptsMessage?.[lang] ||
         listFallback?.maxAttemptsMessage?.["en"] ||
-        ui("menu_fallback", lang, flow);
+        "Too many invalid attempts. Returning to menu.";
       await sendWhatsAppMessage(company, from, maxMsg);
       session.data.fallbackAttempts = 0;
       session.data.listMapping = {};
@@ -3464,7 +3464,7 @@ async function continueFlow(
     Object.keys(session.data.buttonMapping).length > 0
   ) {
     const btnFallback = fallbackConfig?.button;
-    const maxAttempts = btnFallback?.maxAttempts ?? 2; // Default to 2 (1 original + 1 repeat)
+    const maxAttempts = btnFallback?.maxAttempts ?? 7; // Default to 7 (6 invalid + 1 final)
     const attempts = (session.data.fallbackAttempts || 0) + 1;
     session.data.fallbackAttempts = attempts;
     await updateSession(session);
@@ -3474,7 +3474,7 @@ async function continueFlow(
       const maxMsg =
         btnFallback?.maxAttemptsMessage?.[lang] ||
         btnFallback?.maxAttemptsMessage?.["en"] ||
-        ui("button_fallback", lang, flow);
+        "Too many invalid attempts. Returning to menu.";
       await sendWhatsAppMessage(company, from, maxMsg);
       session.data.fallbackAttempts = 0;
       session.data.listMapping = {};

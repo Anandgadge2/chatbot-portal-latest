@@ -22,6 +22,7 @@ import GrievanceDetailDialog from "@/components/grievance/GrievanceDetailDialog"
 import AppointmentDetailDialog from "@/components/appointment/AppointmentDetailDialog";
 import UserDetailsDialog from "@/components/user/UserDetailsDialog";
 import StatusUpdateModal from "@/components/grievance/StatusUpdateModal";
+import AssignmentModal from "@/components/grievance/AssignmentModal";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import RoleManagement from "@/components/roles/RoleManagement";
 import NotificationManagement from "@/components/superadmin/drilldown/NotificationManagement";
@@ -66,7 +67,7 @@ import DepartmentList from "@/components/superadmin/drilldown/DepartmentList";
 import UserList from "@/components/superadmin/drilldown/UserList";
 import GrievanceList from "@/components/superadmin/drilldown/GrievanceList";
 import AppointmentList from "@/components/superadmin/drilldown/AppointmentList";
-import LeadList from "@/components/superadmin/drilldown/LeadList";
+import LeadTable from "@/components/superadmin/drilldown/LeadTable";
 import { Pagination } from "@/components/ui/Pagination";
 import { useWhatsappConfig } from "@/lib/query/useWhatsappConfig";
 import WhatsAppConfigTab from "@/components/superadmin/drilldown/tabs/WhatsAppConfigTab";
@@ -144,6 +145,8 @@ function CompanyDrillDownContent() {
     useState(false);
   const [selectedGrievanceForStatus, setSelectedGrievanceForStatus] =
     useState<Grievance | null>(null);
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [grievanceToAssign, setGrievanceToAssign] = useState<Grievance | null>(null);
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -665,7 +668,7 @@ function CompanyDrillDownContent() {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
-            <StatsOverview stats={stats} setActiveTab={setActiveTab} />
+            <StatsOverview stats={stats} company={company} setActiveTab={setActiveTab} />
           </TabsContent>
 
           <TabsContent value="departments" className="mt-0">
@@ -725,67 +728,89 @@ function CompanyDrillDownContent() {
               refreshing={loading}
             />
           </TabsContent>
+          {(!company ||
+            company.enabledModules?.includes(Module.GRIEVANCE)) && (
+            <TabsContent value="grievances" className="mt-0">
+              <GrievanceList 
+                grievances={grievances}
+                filteredGrievances={filteredGrievances}
+                exportToCSV={exportToCSV}
+                setSelectedGrievance={setSelectedGrievance}
+                setShowGrievanceDetail={setShowGrievanceDetail}
+                onRefresh={fetchGrievances}
+                refreshing={loading}
+                onAssign={(g) => {
+                  setGrievanceToAssign(g);
+                  setIsAssignModalOpen(true);
+                }}
+              />
+            </TabsContent>
+          )}
 
-          <TabsContent value="grievances" className="mt-0">
-            <GrievanceList 
-              grievances={grievances}
-              filteredGrievances={filteredGrievances}
-              exportToCSV={exportToCSV}
-              setSelectedGrievance={setSelectedGrievance}
-              setShowGrievanceDetail={setShowGrievanceDetail}
-              onRefresh={fetchData}
-              refreshing={loading}
-            />
-          </TabsContent>
+          {(!company ||
+            company.enabledModules?.includes(Module.APPOINTMENT)) && (
+            <TabsContent value="appointments" className="mt-0">
+              {selectedAppointments.size > 0 && (
+                <div className="flex items-center justify-between mb-4 bg-red-50 p-4 rounded-2xl border border-red-100 animate-in slide-in-from-top-2">
+                  <p className="text-xs font-black text-red-600 uppercase tracking-widest">
+                    {selectedAppointments.size} item(s) selected for termination
+                  </p>
+                  <Button
+                    onClick={handleBulkDeleteAppointments}
+                    disabled={isDeleting}
+                    variant="destructive"
+                    className="h-9 px-6 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-red-900/20"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    {isDeleting ? "Deleting..." : "Execute Bulk Delete"}
+                  </Button>
+                </div>
+              )}
+              <AppointmentList
+                appointments={appointments}
+                filteredAppointments={filteredAppointments}
+                selectedAppointments={selectedAppointments}
+                onSelectionChange={setSelectedAppointments}
+                exportToCSV={exportToCSV}
+                setSelectedAppointment={setSelectedAppointment}
+                setShowAppointmentDetail={setShowAppointmentDetail}
+                onRefresh={fetchData}
+                refreshing={loading}
+              />
+            </TabsContent>
+          )}
 
-          <TabsContent value="appointments" className="mt-0">
-            {selectedAppointments.size > 0 && (
-              <div className="flex items-center justify-between mb-4 bg-red-50 p-4 rounded-2xl border border-red-100 animate-in slide-in-from-top-2">
-                <p className="text-xs font-black text-red-600 uppercase tracking-widest">
-                  {selectedAppointments.size} item(s) selected for termination
-                </p>
-                <Button
-                  onClick={handleBulkDeleteAppointments}
-                  disabled={isDeleting}
-                  variant="destructive"
-                  className="h-9 px-6 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-red-900/20"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  {isDeleting ? "Deleting..." : "Execute Bulk Delete"}
-                </Button>
+          {(!company ||
+            company.enabledModules?.includes(Module.LEAD_CAPTURE)) && (
+            <TabsContent value="leads" className="mt-0 space-y-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">
+                  Lead Management Engine
+                </h3>
+                <div className="flex items-center gap-2">
+                   <Button variant="outline" size="sm" onClick={() => exportToCSV(leads, 'leads')} className="text-[10px] font-black uppercase tracking-tighter">
+                      Export Leads
+                   </Button>
+                </div>
               </div>
-            )}
-            <AppointmentList
-              appointments={appointments}
-              filteredAppointments={filteredAppointments}
-              selectedAppointments={selectedAppointments}
-              onSelectionChange={setSelectedAppointments}
-              exportToCSV={exportToCSV}
-              setSelectedAppointment={setSelectedAppointment}
-              setShowAppointmentDetail={setShowAppointmentDetail}
-              onRefresh={fetchData}
-              refreshing={loading}
-            />
-          </TabsContent>
-
-          <TabsContent value="leads" className="mt-0">
-            <LeadList 
-              leads={leads} 
-              exportToCSV={exportToCSV} 
-              onRefresh={() => fetchLeads(companyId, 1)}
-              refreshing={loadingLeads}
-            />
-            <Pagination
-              currentPage={leadsPage}
-              totalPages={Math.max(1, Math.ceil(leadsTotal / PAGE_SIZE))}
-              totalItems={leadsTotal}
-              itemsPerPage={PAGE_SIZE}
-              onPageChange={(page) => {
-                setLeadsPage(page);
-                window.scrollTo({ top: 0, behavior: "smooth" });
-              }}
-            />
-          </TabsContent>
+              <LeadTable
+                leads={leads}
+                exportToCSV={exportToCSV}
+                onRefresh={fetchData}
+                refreshing={loading}
+              />
+              <Pagination
+                currentPage={leadsPage}
+                totalPages={Math.max(1, Math.ceil(leadsTotal / PAGE_SIZE))}
+                totalItems={leadsTotal}
+                itemsPerPage={PAGE_SIZE}
+                onPageChange={(page) => {
+                  setLeadsPage(page);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+              />
+            </TabsContent>
+          )}
 
           <TabsContent value="analytics" className="space-y-6">
             <CompanyAnalytics
@@ -869,6 +894,21 @@ function CompanyDrillDownContent() {
           onClose={() => setSimulatorOpen(false)}
         />
       )}
+      <AssignmentModal
+        isOpen={isAssignModalOpen}
+        onClose={() => setIsAssignModalOpen(false)}
+        itemId={grievanceToAssign?._id || ""}
+        itemType="grievance"
+        currentAssignee={
+          typeof grievanceToAssign?.assignedTo === "object"
+            ? (grievanceToAssign.assignedTo as any)?._id
+            : grievanceToAssign?.assignedTo
+        }
+        onSuccess={() => {
+          fetchGrievances();
+          fetchData();
+        }}
+      />
     </div>
   );
 }

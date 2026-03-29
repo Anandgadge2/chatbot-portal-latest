@@ -251,7 +251,7 @@ router.post('/', async (req: Request, res: Response) => {
 router.put('/:id', async (req: Request, res: Response) => {
   try {
     const user = req.user!;
-    const role = await Role.findById(req.params.id);
+    let role = await Role.findById(req.params.id);
 
     if (!role) return res.status(404).json({ success: false, message: 'Role not found' });
     
@@ -259,9 +259,40 @@ router.put('/:id', async (req: Request, res: Response) => {
       return res.status(403).json({ success: false, message: 'Unauthorized: You do not have permission to modify this role' });
     }
 
-    const { name, description, permissions } = req.body;
+    const { name, description, permissions, companyId } = req.body;
 
-    if (name) role.name = name.trim();
+    // 🛡️ ROLE FORKING LOGIC
+    // If this is a global system role and we're editing it for a specific company,
+    // we fork (clone) it instead of modifying the global one.
+    if ((role.isSystem || !role.companyId) && companyId && user.role === UserRole.SUPER_ADMIN) {
+      console.log(`[RoleForking] Cloning system role "${role.name}" for company "${companyId}"`);
+      
+      // Check if a role with this key/name already exists for this company
+      const existingRole = await Role.findOne({
+        companyId,
+        $or: [{ key: role.key }, { name: name || role.name }]
+      });
+
+      if (existingRole) {
+        role = existingRole;
+        console.log(`[RoleForking] Found existing company role "${role._id}", updating it instead.`);
+      } else {
+        // Create a new company-specific override
+        const forkedRole = new Role({
+          companyId,
+          name: (name || role.name).trim(),
+          key: role.key, // Keep the same key (e.g., COMPANY_ADMIN) to maintain logic compatibility
+          description: (description || role.description || '').trim(),
+          permissions: permissions || role.permissions,
+          level: role.level,
+          isSystem: false, // It's no longer the global system role
+          createdBy: user._id
+        });
+        role = forkedRole;
+      }
+    }
+
+    if (name && !role.isSystem) role.name = name.trim();
     if (description !== undefined) role.description = description?.trim();
     if (permissions !== undefined) role.permissions = permissions;
     if (req.body.notificationSettings !== undefined) role.notificationSettings = req.body.notificationSettings;
@@ -269,7 +300,10 @@ router.put('/:id', async (req: Request, res: Response) => {
 
     await role.save();
 
-    await logUserAction(req, AuditAction.UPDATE, 'Role', role._id.toString(), { roleName: role.name });
+    await logUserAction(req, AuditAction.UPDATE, 'Role', role._id.toString(), { 
+      roleName: role.name,
+      isForked: !!companyId && user.role === UserRole.SUPER_ADMIN
+    });
 
     res.json({ success: true, data: { role }, message: 'Role updated successfully' });
   } catch (err: any) {

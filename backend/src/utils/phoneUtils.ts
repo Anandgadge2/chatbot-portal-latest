@@ -8,19 +8,29 @@ export function normalizePhoneNumber(phone: string): string {
   if (!phone) return phone;
   
   // Remove all non-digit characters
-  const digitsOnly = phone.replace(/\D/g, '');
+  let digits = phone.replace(/\D/g, '');
   
+  // Handle leading zeros (common in Indian formats like 09356...)
+  if (digits.length === 11 && digits.startsWith('0')) {
+    digits = digits.substring(1);
+  }
+
   // If 10 digits, prepend 91 (India)
-  if (digitsOnly.length === 10) {
-    return '91' + digitsOnly;
+  if (digits.length === 10) {
+    return '91' + digits;
   }
   
-  // If it's more than 10 digits (likely already has country code), return last 12
-  if (digitsOnly.length > 12) {
-    return digitsOnly.slice(-12);
+  // If it's already 12 digits (starting with 91), return as is
+  if (digits.length === 12 && digits.startsWith('91')) {
+    return digits;
+  }
+
+  // If it's more than 12 digits, take last 12
+  if (digits.length > 12) {
+    return digits.slice(-12);
   }
   
-  return digitsOnly;
+  return digits;
 }
 
 /**
