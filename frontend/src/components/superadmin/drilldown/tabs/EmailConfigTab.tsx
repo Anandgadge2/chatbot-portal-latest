@@ -22,16 +22,111 @@ import {
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 const TEMPLATE_KEYS = [
-  { key: "grievance_created", label: "Grievance – New (to admins)" },
-  { key: "grievance_assigned", label: "Grievance – Assigned to you" },
-  { key: "grievance_resolved", label: "Grievance – Resolved" },
-  { key: "appointment_created", label: "Appointment – New (to admins)" },
-  { key: "appointment_assigned", label: "Appointment – Assigned to you" },
-  { key: "appointment_scheduled", label: "Appointment – Scheduled" },
-  { key: "appointment_confirmed", label: "Appointment – Confirmed" },
-  { key: "appointment_cancelled", label: "Appointment – Cancelled" },
-  { key: "appointment_completed", label: "Appointment – Resolved / Completed" },
+  { key: "grievance_created", label: "Grievance Received (Admin/Hierarchy)" },
+  { key: "grievance_assigned", label: "Grievance Assigned (Admin/Hierarchy)" },
+  { key: "grievance_resolved", label: "Grievance Resolved (Admin/Hierarchy)" },
+  { key: "appointment_created", label: "Appointment Received (Admin/Hierarchy)" },
+  { key: "appointment_assigned", label: "Appointment Assigned (Admin/Hierarchy)" },
+  { key: "appointment_scheduled", label: "Appointment Scheduled (Citizen)" },
+  { key: "appointment_confirmed", label: "Appointment Confirmed (Citizen)" },
+  { key: "appointment_cancelled", label: "Appointment Cancelled (Citizen)" },
+  { key: "appointment_completed", label: "Appointment Completed (Citizen)" },
 ];
+
+const DEFAULT_EMAIL_CONTENT: Record<string, { subject: string; htmlBody: string }> = {
+  grievance_created: {
+    subject: "🏛️ Grievance [{grievanceId}] Received | {companyName}",
+    htmlBody: `
+      <h2>Grievance Received</h2>
+      <p>Hello Admin,</p>
+      <p>A new grievance has been submitted.</p>
+      <p><strong>ID:</strong> {grievanceId}</p>
+      <p><strong>Citizen:</strong> {citizenName}</p>
+      <p><strong>Description:</strong> {description}</p>
+    `,
+  },
+  grievance_assigned: {
+    subject: "📥 Grievance [{grievanceId}] Assigned to You",
+    htmlBody: `
+      <h2>Grievance Assignment</h2>
+      <p>Hello {recipientName},</p>
+      <p>A grievance has been assigned to your department: {departmentName}.</p>
+      <p><strong>ID:</strong> {grievanceId}</p>
+      <p><strong>Description:</strong> {description}</p>
+    `,
+  },
+  grievance_resolved: {
+    subject: "✅ Grievance [{grievanceId}] Resolved Successfully",
+    htmlBody: `
+      <h2>Grievance Resolved</h2>
+      <p>Hello,</p>
+      <p>The following grievance has been marked as resolved.</p>
+      <p><strong>ID:</strong> {grievanceId}</p>
+      <p><strong>Resolved By:</strong> {resolvedByName}</p>
+      <p><strong>Remarks:</strong> {remarks}</p>
+    `,
+  },
+  appointment_created: {
+    subject: "🗓️ New Appointment Request [{appointmentId}]",
+    htmlBody: `
+      <h2>New Appointment</h2>
+      <p>Hello Admin,</p>
+      <p>A citizen has requested an appointment.</p>
+      <p><strong>ID:</strong> {appointmentId}</p>
+      <p><strong>Citizen:</strong> {citizenName}</p>
+      <p><strong>Purpose:</strong> {purpose}</p>
+    `,
+  },
+  appointment_assigned: {
+    subject: "🔔 Appointment [{appointmentId}] Assigned to You",
+    htmlBody: `
+      <h2>Appointment Assignment</h2>
+      <p>Hello {recipientName},</p>
+      <p>An appointment request has been assigned to you.</p>
+      <p><strong>ID:</strong> {appointmentId}</p>
+      <p><strong>Citizen:</strong> {citizenName}</p>
+      <p><strong>Purpose:</strong> {purpose}</p>
+    `,
+  },
+  appointment_scheduled: {
+    subject: "🗓️ Appointment Scheduled: [{appointmentId}]",
+    htmlBody: `
+      <h2>Appointment Scheduled</h2>
+      <p>Hello {citizenName},</p>
+      <p>Your appointment has been scheduled for {formattedDate}.</p>
+      <p><strong>ID:</strong> {appointmentId}</p>
+      <p><strong>Matrix Node:</strong> {companyName}</p>
+    `,
+  },
+  appointment_confirmed: {
+    subject: "✔️ Appointment Confirmed: [{appointmentId}]",
+    htmlBody: `
+      <h2>Appointment Confirmed</h2>
+      <p>Hello {citizenName},</p>
+      <p>Your appointment on {formattedDate} has been confirmed.</p>
+      <p><strong>ID:</strong> {appointmentId}</p>
+      <p><strong>Status:</strong> Active</p>
+    `,
+  },
+  appointment_cancelled: {
+    subject: "❌ Appointment Cancelled: [{appointmentId}]",
+    htmlBody: `
+      <h2>Appointment Cancelled</h2>
+      <p>Hello {citizenName},</p>
+      <p>We regret to inform you that your appointment ({appointmentId}) has been cancelled.</p>
+      <p>Please contact {companyName} for further assistance.</p>
+    `,
+  },
+  appointment_completed: {
+    subject: "🎉 Appointment Completed: [{appointmentId}]",
+    htmlBody: `
+      <h2>Appointment Completed</h2>
+      <p>Hello {citizenName},</p>
+      <p>Your appointment ({appointmentId}) has been marked as completed.</p>
+      <p>Thank you for using our services.</p>
+    `,
+  },
+};
 
 const PLACEHOLDERS = [
   "{companyName}",
@@ -107,12 +202,17 @@ export default function EmailConfigTab({ companyId }: EmailConfigTabProps) {
       }
 
       // Process Templates
-      const tl = templatesRes.success ? templatesRes.data : templatesRes.data;
-      if (Array.isArray(tl)) {
-        setTemplates(tl);
-      } else {
-        setTemplates(TEMPLATE_KEYS.map((t) => ({ templateKey: t.key })));
-      }
+      const tl = templatesRes.success ? templatesRes.data : (templatesRes?.data || []);
+      const merged = TEMPLATE_KEYS.map(t => {
+        const existing = Array.isArray(tl) ? tl.find((item: any) => item.templateKey === t.key) : null;
+        if (existing) return existing;
+        return {
+          templateKey: t.key,
+          subject: DEFAULT_EMAIL_CONTENT[t.key]?.subject || "",
+          htmlBody: DEFAULT_EMAIL_CONTENT[t.key]?.htmlBody || "",
+        };
+      });
+      setTemplates(merged);
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Failed to load data");
     } finally {

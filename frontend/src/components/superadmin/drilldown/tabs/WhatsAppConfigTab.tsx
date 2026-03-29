@@ -33,6 +33,7 @@ import {
   isValidPhoneNumber,
 } from "@/lib/utils/phoneNumber";
 import { useWhatsappConfig } from "@/lib/query/useWhatsappConfig";
+import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------
    Template Definitions
@@ -42,19 +43,31 @@ import { useWhatsappConfig } from "@/lib/query/useWhatsappConfig";
 const TEMPLATE_GROUPS = [
   {
     label: "🏛️ Grievance Notifications (Admin)",
-    description: "Sent to admin staff when a grievance is submitted or assigned",
+    description: "Sent to admin staff and department hierarchy",
     keys: [
       {
-        key: "grievance_created",
-        label: "Grievance Received",
-        to: "Department Admin & Company Admin",
+        key: "grievance_created_admin",
+        label: "Grievance Received (Admin/Hierarchy)",
+        to: "Hierarchy & Company Admin",
         when: "A citizen submits a new grievance through the chatbot",
       },
       {
-        key: "grievance_assigned",
-        label: "Grievance Assigned",
-        to: "Assigned Officer",
+        key: "grievance_assigned_admin",
+        label: "Grievance Assigned (Admin/Hierarchy)",
+        to: "Hierarchy & Company Admin",
         when: "A grievance is assigned to a department officer",
+      },
+      {
+        key: "grievance_resolved_admin",
+        label: "Grievance Resolved (Admin/Hierarchy)",
+        to: "Hierarchy & Company Admin",
+        when: "A grievance is marked as RESOLVED by an officer",
+      },
+      {
+        key: "grievance_rejected_admin",
+        label: "Grievance Rejected (Admin/Hierarchy)",
+        to: "Hierarchy & Company Admin",
+        when: "A grievance is marked as REJECTED",
       },
     ],
   },
@@ -64,87 +77,87 @@ const TEMPLATE_GROUPS = [
     keys: [
       {
         key: "grievance_confirmation",
-        label: "Grievance Confirmation",
+        label: "Grievance Confirmation (Citizen)",
         to: "Citizen (submitter)",
         when: "Immediately after a grievance is submitted",
       },
       {
-        key: "grievance_resolved",
-        label: "Grievance Resolved",
+        key: "grievance_status_update",
+        label: "Grievance Status Update (Citizen)",
         to: "Citizen (submitter)",
-        when: "The assigned officer marks a grievance as resolved",
+        when: "Grievance status changes (e.g. Assigned, Forwarded, Pending)",
       },
       {
-        key: "grievance_status_update",
-        label: "Grievance Status Update",
+        key: "grievance_resolved",
+        label: "Grievance Resolved (Citizen)",
         to: "Citizen (submitter)",
-        when: "Grievance status changes (e.g. Pending → Assigned → Rejected)",
+        when: "The grievance is successfully resolved",
+      },
+      {
+        key: "grievance_rejected",
+        label: "Grievance Rejected (Citizen)",
+        to: "Citizen (submitter)",
+        when: "The grievance is rejected/closed without resolution",
       },
     ],
   },
   {
-    label: "📅 Appointment Notifications (Admin)",
-    description: "Sent to admin staff for appointment events",
+    label: "📅 Appointment Notification (Company Admin)",
+    description: "Sent to company admin for appointment events",
     keys: [
       {
-        key: "appointment_created",
-        label: "Appointment Received",
+        key: "appointment_created_admin",
+        label: "Appointment Received (Company Admin)",
         to: "Company Admin",
         when: "A citizen books an appointment through the chatbot",
       },
       {
-        key: "appointment_assigned",
-        label: "Appointment Assigned",
-        to: "Assigned Officer",
-        when: "An appointment is assigned to a staff member",
+        key: "appointment_confirmed_admin",
+        label: "Appointment Confirmed (Company Admin)",
+        to: "Company Admin",
+        when: "An appointment is confirmed/scheduled",
+      },
+      {
+        key: "appointment_cancelled_admin",
+        label: "Appointment Cancelled (Company Admin)",
+        to: "Company Admin",
+        when: "An appointment is cancelled",
+      },
+      {
+        key: "appointment_completed_admin",
+        label: "Appointment Completed (Company Admin)",
+        to: "Company Admin",
+        when: "An appointment is marked as completed",
       },
     ],
   },
   {
-    label: "👤 Appointment Notifications (Citizen)",
+    label: "👤 Appointment Notification (Citizen)",
     description: "Sent to citizens about their appointment status",
     keys: [
       {
         key: "appointment_confirmation",
-        label: "Appointment Confirmation",
+        label: "Appointment Requested (Citizen)",
         to: "Citizen (submitter)",
         when: "Immediately after an appointment is booked",
       },
       {
         key: "appointment_scheduled_update",
-        label: "Appointment Scheduled",
+        label: "Appointment Scheduled (Citizen)",
         to: "Citizen (submitter)",
         when: "Admin schedules a date & time for the appointment",
       },
       {
-        key: "appointment_confirmed_update",
-        label: "Appointment Confirmed",
-        to: "Citizen (submitter)",
-        when: "Admin confirms the appointment",
-      },
-      {
         key: "appointment_cancelled_update",
-        label: "Appointment Cancelled",
+        label: "Appointment Cancelled (Citizen)",
         to: "Citizen (submitter)",
-        when: "Admin cancels an appointment",
+        when: "Appointment is cancelled by the admin",
       },
       {
         key: "appointment_completed_update",
-        label: "Appointment Completed",
+        label: "Appointment Completed (Citizen)",
         to: "Citizen (submitter)",
-        when: "Admin marks appointment as completed",
-      },
-      {
-        key: "appointment_status_update",
-        label: "Appointment Status Update",
-        to: "Citizen (submitter)",
-        when: "Appointment status changes",
-      },
-      {
-        key: "appointment_resolved",
-        label: "Appointment Resolved (Legacy)",
-        to: "Citizen (submitter)",
-        when: "Backend fallback for completed appointments",
+        when: "Appointment is successfully completed",
       },
     ],
   },
@@ -291,6 +304,369 @@ const WA_PLACEHOLDERS: Array<{
   { ph: "{oldStatus}", desc: "Previous status label", relevance: ["status"] },
 ];
 
+/* ------------------------------------------------------------------
+   Default system message bodies
+------------------------------------------------------------------ */
+const DEFAULT_WA_MESSAGES: Record<string, string> = {
+  grievance_created_admin: `*{companyName}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 *NEW GRIEVANCE RECEIVED*
+
+Respected {recipientName},
+A new grievance has been submitted by a citizen.
+
+*Details:*
+🎫 *Reference ID:* {grievanceId}
+👤 *Citizen Name:* {citizenName}
+🏢 *Department:* {departmentName}
+🏢 *Sub-Dept:* {subDepartmentName}
+📝 *Description:*
+{description}
+📅 *Received On:* {formattedDate}
+
+*Action Required:*
+Please review this grievance promptly. Resolution should be provided as per SLA.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*{companyName}*
+Digital Grievance Redressal System
+This is an automated notification.`,
+
+  grievance_assigned_admin: `*{companyName}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+👤 *GRIEVANCE ASSIGNED TO YOU*
+
+Respected {recipientName},
+
+Details:
+🎫 *Reference ID:* {grievanceId}
+👤 *Citizen:* {citizenName}
+🏢 *Department:* {departmentName}
+🏢 *Sub-Dept:* {subDepartmentName}
+📝 *Description:*
+{description}
+👨💼 *Assigned By:* {assignedByName}
+📅 *Assigned On:* {formattedDate}
+
+Please investigate and take required action.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*{companyName}*
+Digital Grievance Redressal System`,
+
+  grievance_resolved_admin: `*{companyName}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ *GRIEVANCE RESOLVED*
+
+Respected {recipientName},
+
+The following grievance has been marked as *RESOLVED*.
+
+*Details:*
+🎫 *Reference ID:* {grievanceId}
+👤 *Citizen:* {citizenName}
+🏢 *Department:* {departmentName}
+🏢 *Sub-Dept:* {subDepartmentName}
+📊 *Status:* RESOLVED
+👨💼 *Resolved By:* {resolvedByName}
+📅 *Resolved On:* {formattedResolvedDate}
+⏱️ *Time Taken:* {resolutionTimeText}
+📝 *Resolution Remarks:*
+{remarks}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*Digital Grievance System*`,
+
+  grievance_rejected_admin: `*{companyName}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+❌ *GRIEVANCE REJECTED*
+
+Respected {recipientName},
+
+The following grievance has been *REJECTED*.
+
+*Details:*
+🎫 *Ref No:* {grievanceId}
+👤 *Citizen:* {citizenName}
+🏢 *Department:* {departmentName}
+📊 *Status:* REJECTED
+👨💼 *Action By:* {resolvedByName}
+📝 *Reason:* {remarks}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*{companyName}*`,
+
+  grievance_confirmation: `*{companyName}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ *GRIEVANCE SUBMITTED SUCCESSFULLY*
+
+Respected {citizenName},
+Thank you for reaching out. Your grievance has been registered.
+*Details:*
+🎫 *Reference ID:* {grievanceId}
+🏢 *Department:* {departmentName}
+🏢 *Sub-Dept:* {subDepartmentName}
+📅 *Submitted On:* {formattedDate}
+
+You can track your status using the Reference ID: *{grievanceId}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*{companyName}*
+Digital Grievance Redressal System`,
+
+  grievance_status_update: `*{companyName}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 *GRIEVANCE STATUS UPDATE*
+
+Respected {citizenName},
+
+Your grievance status has been updated.
+
+*Details:*
+🎫 *Ref No:* {grievanceId}
+🏢 *Department:* {departmentName}
+🏢 *Sub-Dept:* {subDepartmentName}
+📊 *New Status:* {newStatus}
+📝 *Remarks:* {remarks}
+
+You will receive further updates via WhatsApp.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*{companyName}*
+Digital Grievance Redressal System`,
+
+  grievance_resolved: `*{companyName}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ *GRIEVANCE RESOLVED*
+
+Respected {citizenName},
+
+🎫 *Reference ID:* {grievanceId}
+🏢 *Department:* {departmentName}
+🏢 *Sub-Dept:* {subDepartmentName}
+📊 *Status:* RESOLVED
+👨💼 *Resolved By:* {resolvedByName}
+📅 *Resolved On:* {formattedResolvedDate}
+📝 *Remarks:* {remarks}
+
+Thank you for your patience.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*{companyName}*
+Digital Grievance Redressal System`,
+
+  grievance_rejected: `*{companyName}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+❌ *GRIEVANCE REJECTED*
+
+Respected {citizenName},
+
+We regret to inform you that your grievance has been rejected.
+
+*Details:*
+🎫 *Ref No:* {grievanceId}
+🏢 *Department:* {departmentName}
+📊 *Status:* REJECTED
+📝 *Remarks:* {remarks}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*{companyName}*`,
+
+  appointment_created_admin: `*{companyName}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 *NEW APPOINTMENT RECEIVED*
+
+Respected {recipientName},
+
+Details:
+🎫 *Reference ID:* {appointmentId}
+👤 *Citizen Name:* {citizenName}
+📞 *Contact Number:* {citizenPhone}
+🎯 *Purpose:* {purpose}
+📅 *Received On:* {formattedDate}
+
+*Action Required:*
+Please review this appointment promptly.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*{companyName}*
+Digital Appointment System
+This is an automated notification.`,
+
+  appointment_confirmed_admin: `*{companyName}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ *APPOINTMENT CONFIRMED*
+
+Respected {recipientName},
+
+Details:
+🎫 *Reference ID:* {appointmentId}
+👤 *Citizen:* {citizenName}
+🎯 *Purpose:* {purpose}
+📅 *Date:* {appointmentDate}
+⏰ *Time:* {appointmentTime}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*{companyName}*`,
+
+  appointment_cancelled_admin: `*{companyName}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+❌ *APPOINTMENT CANCELLED*
+
+Respected {recipientName},
+
+The following appointment has been *CANCELLED*.
+
+*Details:*
+🎫 *Reference ID:* {appointmentId}
+👤 *Citizen:* {citizenName}
+🎯 *Purpose:* {purpose}
+📊 *Status:* CANCELLED
+👨💼 *Updated By:* {resolvedByName}
+📅 *Updated On:* {formattedResolvedDate}
+📝 *Cancellation Remarks:*
+{remarks}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*Digital Appointment System*`,
+
+  appointment_completed_admin: `*{companyName}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ *APPOINTMENT COMPLETED*
+
+Respected {recipientName},
+
+The following appointment has been marked as *COMPLETED*.
+
+*Details:*
+🎫 *Reference ID:* {appointmentId}
+👤 *Citizen:* {citizenName}
+🎯 *Purpose:* {purpose}
+📊 *Status:* COMPLETED
+👨💼 *Completed By:* {resolvedByName}
+📅 *Completed On:* {formattedResolvedDate}
+📝 *Resolution Remarks:*
+{remarks}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*Digital Appointment System*`,
+
+  appointment_confirmation: `*{companyName}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ *APPOINTMENT REQUESTED SUCCESSFULLY*
+
+Respected {citizenName},
+
+Your appointment request has been received.
+
+*Details:*
+🎫 *Reference ID:* {appointmentId}
+🎯 *Purpose:* {purpose}
+📅 *Booked On:* {formattedDate}
+
+Please note your Reference ID: *{appointmentId}*
+We will notify you once it's scheduled/confirmed.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*{companyName}*
+Digital Appointment System`,
+
+  appointment_scheduled_update: `*{companyName}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📅 *APPOINTMENT SCHEDULED*
+
+Respected {citizenName},
+
+Your appointment has been scheduled.
+
+*Appointment Details:*
+🎫 *Ref No:* {appointmentId}
+📅 *Date:* {appointmentDate}
+⏰ *Time:* {appointmentTime}
+🎯 *Purpose:* {purpose}
+📊 *Status:* SCHEDULED
+📝 *Remarks:* {remarks}
+
+Please wait for final confirmation.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*{companyName}*
+Digital Appointment System`,
+
+  appointment_confirmed_update: `*{companyName}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ *APPOINTMENT CONFIRMED*
+
+Respected {citizenName},
+
+Your appointment has been confirmed.
+
+*Appointment Details:*
+🎫 *Ref No:* {appointmentId}
+📅 *Date:* {appointmentDate}
+⏰ *Time:* {appointmentTime}
+🎯 *Purpose:* {purpose}
+📊 *Status:* CONFIRMED
+📝 *Remarks:* {remarks}
+
+Please arrive 15 minutes early with valid ID.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*{companyName}*
+Digital Appointment System`,
+
+  appointment_cancelled_update: `*{companyName}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+❌ *APPOINTMENT CANCELLED*
+
+Respected {citizenName},
+
+We regret to inform you that your appointment has been cancelled.
+
+*Appointment Details:*
+🎫 *Ref No:* {appointmentId}
+📅 *Date:* {appointmentDate}
+⏰ *Time:* {appointmentTime}
+🎯 *Purpose:* {purpose}
+📝 *Remarks:* {remarks}
+
+We apologize for any inconvenience caused.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*{companyName}*
+Digital Appointment System`,
+
+  appointment_completed_update: `*{companyName}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ *APPOINTMENT COMPLETED*
+
+Respected {citizenName},
+
+Your appointment has been marked as completed.
+
+*Appointment Details:*
+🎫 *Ref No:* {appointmentId}
+📅 *Date:* {appointmentDate}
+⏰ *Time:* {appointmentTime}
+📝 *Remarks:* {remarks}
+
+Thank you for visiting us.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*{companyName}*
+Digital Appointment System`,
+
+  appointment_status_update: `*{companyName}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 *APPOINTMENT STATUS UPDATE*
+
+Respected {citizenName},
+
+Your appointment status has been updated.
+
+*Details:*
+🎫 *Ref No:* {appointmentId}
+📊 *New Status:* {newStatus}
+📝 *Remarks:* {remarks}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*{companyName}*
+Digital Appointment System`,
+
+  cmd_stop:
+    "🛑 Conversation ended. Thank you for using our service. You can type 'hi' at any time to start again.",
+  cmd_restart: "🔄 Restarting the conversation... please wait.",
+  cmd_menu: "🏠 Returning to the main menu.",
+  cmd_back: "🔙 Going back to the previous step.",
+};
+
+
 export interface WhatsAppConfigTabProps {
   companyId: string;
 }
@@ -312,10 +688,11 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
       label?: string;
       message?: string;
       keywords?: string[];
+      isActive?: boolean;
     }>
   >([]);
   const [selectedWaTemplate, setSelectedWaTemplate] =
-    useState<string>("grievance_created");
+    useState<string>("grievance_created_admin");
   const [savingTemplates, setSavingTemplates] = useState(false);
 
   // Add new custom template
@@ -327,9 +704,10 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
   const [keywordsInput, setKeywordsInput] = useState("");
 
   // Group collapse state
-  const [collapsedGroups, setCollapsedGroups] = useState<
-    Record<string, boolean>
-  >({});
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>(
+    TEMPLATE_GROUPS.reduce((acc, g) => ({ ...acc, [g.label]: true }), {}),
+  );
+  const [isCustomCollapsed, setIsCustomCollapsed] = useState(true);
 
   useEffect(() => {
     fetchData();
@@ -360,11 +738,31 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
 
       // Process Templates
       const list = (templatesRes as any)?.data ?? (templatesRes as any);
-      if (Array.isArray(list) && list.length > 0) {
-        setWaTemplates(list);
-      } else {
-        setWaTemplates(makeDefaultTemplateSlots());
+      
+      // Ensure all BUILTIN_KEYS are present with at least default content
+      const mergedTemplates = BUILTIN_KEYS.map(key => {
+        const existing = Array.isArray(list) ? list.find((t: any) => t.templateKey === key) : null;
+        if (existing) return existing;
+        return {
+          templateKey: key,
+          label: KEY_META[key]?.label ?? key,
+          message: DEFAULT_WA_MESSAGES[key] || "",
+          keywords: [],
+          isActive: true
+        };
+      });
+
+      // Add any custom templates that were not in BUILTIN_KEYS
+      if (Array.isArray(list)) {
+        list.forEach((t: any) => {
+          if (!BUILTIN_KEYS.includes(t.templateKey)) {
+            mergedTemplates.push(t);
+          }
+        });
       }
+
+      setWaTemplates(mergedTemplates);
+
     } catch (error: any) {
       console.error("Failed to load data:", error);
       toast.error("Failed to load configuration");
@@ -406,7 +804,9 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
     return BUILTIN_KEYS.map((key) => ({
       templateKey: key,
       label: KEY_META[key]?.label ?? key,
+      message: DEFAULT_WA_MESSAGES[key] || "",
       keywords: [],
+      isActive: true,
     }));
   }
 
@@ -497,6 +897,7 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
             label: t.label || t.templateKey,
             message: t.message || "",
             keywords: t.keywords || [],
+            isActive: t.isActive !== false,
           })),
       });
       toast.success("WhatsApp notifications updated");
@@ -513,11 +914,15 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
   const currentWaTemplate =
     waTemplates.find((t) => t.templateKey === selectedWaTemplate) || {
       templateKey: selectedWaTemplate,
-      message: "",
+      message: DEFAULT_WA_MESSAGES[selectedWaTemplate] || "",
       keywords: [],
+      isActive: true,
     };
 
-  const updateSelectedField = (field: "message" | "keywords", value: any) => {
+  const updateSelectedField = (
+    field: "message" | "keywords" | "isActive",
+    value: any,
+  ) => {
     setWaTemplates((prev) => {
       const existingIdx = prev.findIndex(
         (t) => t.templateKey === selectedWaTemplate,
@@ -533,6 +938,7 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
           templateKey: selectedWaTemplate,
           label: KEY_META[selectedWaTemplate]?.label || selectedWaTemplate,
           [field]: value,
+          isActive: true,
         },
       ];
     });
@@ -781,88 +1187,173 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
                   {TEMPLATE_GROUPS.map((group) => {
                     const isCollapsed = collapsedGroups[group.label];
                     return (
-                      <div key={group.label} className="border-b border-slate-50">
-                        <button
+                      <div key={group.label} className="border-b border-slate-200 last:border-0">
+                        <div
                           onClick={() => toggleGroup(group.label)}
-                          className="w-full flex items-center justify-between px-4 py-2 bg-white hover:bg-slate-50 transition-all text-left"
+                          className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-slate-100 transition-colors cursor-pointer"
                         >
-                          <span className="text-[10px] font-bold text-slate-600 uppercase">
+                          <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
                             {group.label}
                           </span>
                           {isCollapsed ? (
-                            <ChevronRight className="w-3 h-3 text-slate-400" />
+                            <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
                           ) : (
-                            <ChevronDown className="w-3 h-3 text-slate-400" />
+                            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
                           )}
-                        </button>
+                        </div>
                         {!isCollapsed && (
-                          <div className="pb-1 bg-slate-50/30">
-                            {group.keys.map((k) => (
-                              <button
-                                key={k.key}
-                                onClick={() => setSelectedWaTemplate(k.key)}
-                                className={`w-full flex items-center gap-3 px-6 py-2 transition-all text-left border-l-2 ${
-                                  selectedWaTemplate === k.key
-                                    ? "bg-indigo-50/50 border-indigo-600 text-indigo-700"
-                                    : "bg-transparent border-transparent text-slate-500 hover:bg-white"
-                                }`}
-                              >
-                                <span className={`text-[11px] font-bold ${selectedWaTemplate === k.key ? "text-indigo-700" : "text-slate-600"}`}>
-                                  {k.label}
-                                </span>
-                              </button>
-                            ))}
+                          <div className="pb-1">
+                            {group.keys.map((k) => {
+                              const template = waTemplates.find(
+                                (t) => t.templateKey === k.key,
+                              );
+                              const hasContent = !!(
+                                template?.message && template.message.trim()
+                              );
+                              const isActive = template?.isActive !== false;
+
+                              return (
+                                <div
+                                  key={k.key}
+                                  className="group/item relative"
+                                >
+                                  <div
+                                    onClick={() => setSelectedWaTemplate(k.key)}
+                                    className={cn(
+                                      "w-full flex flex-col px-4 py-3 transition-all border-l-2 cursor-pointer",
+                                      selectedWaTemplate === k.key
+                                        ? "bg-indigo-50/50 border-indigo-500"
+                                        : "bg-transparent border-transparent hover:bg-slate-50",
+                                    )}
+                                  >
+                                    <div className="flex items-center justify-between w-full mb-1">
+                                      <span
+                                        className={cn(
+                                          "text-[11px] font-bold truncate pr-2",
+                                          selectedWaTemplate === k.key
+                                            ? "text-indigo-700"
+                                            : "text-slate-700",
+                                        )}
+                                      >
+                                        {k.label}
+                                      </span>
+                                      <Switch
+                                        checked={isActive}
+                                        onCheckedChange={(checked) => {
+                                          setSelectedWaTemplate(k.key);
+                                          updateSelectedField("isActive", checked);
+                                        }}
+                                        className="h-4 w-7"
+                                        onClick={(e) => e.stopPropagation()}
+                                      />
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                      <span
+                                        className={cn(
+                                          "text-[9px] px-1.5 py-0.5 rounded font-black uppercase tracking-tighter",
+                                          isActive
+                                            ? "bg-emerald-100 text-emerald-700"
+                                            : "bg-slate-200 text-slate-500",
+                                        )}
+                                      >
+                                        {isActive ? "Active" : "Inactive"}
+                                      </span>
+                                      <span className="text-[9px] text-slate-400 font-medium truncate">
+                                        To: {k.to}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
                       </div>
                     );
                   })}
 
-                  {/* Custom Templates Section */}
                   {waTemplates.filter((t) => !BUILTIN_KEYS.includes(t.templateKey))
                     .length > 0 && (
-                    <div>
-                      <div className="px-4 py-2 bg-slate-100/50 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                        Custom Scenarios
+                    <div className="border-t border-slate-100">
+                      <div
+                        onClick={() => setIsCustomCollapsed(!isCustomCollapsed)}
+                        className="w-full px-6 py-2.5 bg-slate-50/80 hover:bg-slate-100/80 flex items-center justify-between transition-colors group cursor-pointer"
+                      >
+                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                          <MessageSquare className="w-3 h-3 text-emerald-500" />
+                          Custom Scenarios
+                        </span>
+                        {isCustomCollapsed ? (
+                          <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-slate-600 transition-colors" />
+                        ) : (
+                          <ChevronDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600 transition-colors" />
+                        )}
                       </div>
-                      {waTemplates
-                        .filter((t) => !BUILTIN_KEYS.includes(t.templateKey))
-                        .map((t) => (
-                          <button
-                            key={t.templateKey}
-                            onClick={() => setSelectedWaTemplate(t.templateKey)}
-                            className={`w-full flex items-center gap-3 px-6 py-2.5 transition-all text-left border-l-2 ${
-                              selectedWaTemplate === t.templateKey
-                                ? "bg-indigo-50 border-indigo-600 text-indigo-700 shadow-inner"
-                                : "bg-transparent border-transparent text-slate-500 hover:bg-slate-50"
-                            }`}
-                          >
-                            <div className="flex-1">
-                              <p className="text-[10px] font-bold leading-none">
-                                {t.label || t.templateKey}
-                              </p>
-                              <p className="text-[8px] font-medium text-slate-400 mt-1 uppercase">
-                                {t.templateKey}
-                              </p>
-                            </div>
-                            <div
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setWaTemplates((prev) =>
-                                  prev.filter(
-                                    (x) => x.templateKey !== t.templateKey,
-                                  ),
-                                );
-                                if (selectedWaTemplate === t.templateKey)
-                                  setSelectedWaTemplate(BUILTIN_KEYS[0]);
-                              }}
-                              className="h-7 w-7 flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md transition-all cursor-pointer"
-                              title="Delete template"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </div>
-                          </button>
-                        ))}
+                      {!isCustomCollapsed && (
+                        <div className="bg-white">
+                          {waTemplates
+                            .filter((t) => !BUILTIN_KEYS.includes(t.templateKey))
+                            .map((t) => {
+                              const isActive = t.isActive !== false;
+                              return (
+                                <div key={t.templateKey} className="group/item relative">
+                                  <div
+                                    onClick={() => setSelectedWaTemplate(t.templateKey)}
+                                    className={cn(
+                                      "w-full flex flex-col px-6 py-3 transition-all border-l-2 text-left cursor-pointer",
+                                      selectedWaTemplate === t.templateKey
+                                        ? "bg-indigo-50/50 border-indigo-600 shadow-inner"
+                                        : "bg-transparent border-transparent hover:bg-slate-50",
+                                    )}
+                                  >
+                                    <div className="flex items-center justify-between mb-1">
+                                      <span
+                                        className={cn(
+                                          "text-[10px] font-bold truncate pr-3",
+                                          selectedWaTemplate === t.templateKey
+                                            ? "text-indigo-700"
+                                            : "text-slate-700",
+                                        )}
+                                      >
+                                        {t.label || t.templateKey}
+                                      </span>
+                                      <Switch
+                                        checked={isActive}
+                                        onCheckedChange={(checked) => {
+                                          setSelectedWaTemplate(t.templateKey);
+                                          updateSelectedField("isActive", checked);
+                                        }}
+                                        className="h-3 w-6"
+                                        onClick={(e) => e.stopPropagation()}
+                                      />
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-tighter truncate opacity-70 group-hover/item:opacity-100 transition-opacity">
+                                        {t.templateKey}
+                                      </span>
+                                      <div
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setWaTemplates((prev) =>
+                                            prev.filter(
+                                              (x) => x.templateKey !== t.templateKey,
+                                            ),
+                                          );
+                                          if (selectedWaTemplate === t.templateKey)
+                                            setSelectedWaTemplate(BUILTIN_KEYS[0]);
+                                        }}
+                                        className="h-5 w-5 flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 rounded transition-all cursor-pointer"
+                                        title="Delete template"
+                                      >
+                                        <Trash2 className="w-2.5 h-2.5" />
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -872,22 +1363,47 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
               <div className="flex-1 bg-white p-6 relative">
                 {selectedWaTemplate && (
                   <div className="space-y-5 h-full flex flex-col animate-in fade-in slide-in-from-right-2 duration-300">
-                    <div className="pb-4 border-b border-slate-100">
-                      <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">
-                        {KEY_META[selectedWaTemplate]?.label ||
-                          currentWaTemplate.label ||
-                          selectedWaTemplate}
-                      </h3>
-                      <p className="text-[11px] text-slate-500 font-medium mt-1 leading-relaxed">
-                        Triggered when:{" "}
-                        <span className="text-indigo-600 font-bold italic">
-                          {KEY_META[selectedWaTemplate]?.when ||
-                            "custom deployment event"}
-                        </span>
-                      </p>
+                    {/* Header: Title & Logic Controls */}
+                    <div className="pb-4 border-b border-slate-100 flex items-center justify-between">
+                      <div>
+                        <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">
+                          {KEY_META[selectedWaTemplate]?.label ||
+                            currentWaTemplate.label ||
+                            selectedWaTemplate}
+                        </h3>
+                        <p className="text-[11px] text-slate-500 font-medium mt-1 leading-relaxed">
+                          Triggered when:{" "}
+                          <span className="text-indigo-600 font-bold italic">
+                            {KEY_META[selectedWaTemplate]?.when ||
+                              "custom deployment event"}
+                          </span>
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          onClick={() => {
+                            const defaultMsg = DEFAULT_WA_MESSAGES[selectedWaTemplate] || "";
+                            updateSelectedField("message", defaultMsg);
+                          }}
+                          variant="outline"
+                          className="h-8 px-3 text-[10px] font-bold border-slate-200 rounded-lg flex items-center gap-1.5 hover:bg-slate-50 transition-all"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          Load Default
+                        </Button>
+                        <Button
+                          onClick={handleSaveWhatsAppTemplates}
+                          disabled={savingTemplates}
+                          className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl h-8 px-4 text-[10px] font-black uppercase tracking-widest shadow-md flex items-center gap-2 group/save transition-all"
+                        >
+                          <Save className="w-3.5 h-3.5 group-hover/save:scale-110 transition-transform" />
+                          {savingTemplates ? "Saving..." : "Save Template"}
+                        </Button>
+                      </div>
                     </div>
 
                     <div className="flex-1 space-y-4">
+                      {/* Message Body Input */}
                       <div className="space-y-2">
                         <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center justify-between">
                           Message Content
@@ -901,7 +1417,7 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
                           onChange={(e) =>
                             updateSelectedField("message", e.target.value)
                           }
-                          className="w-full min-h-[220px] p-4 text-xs font-bold font-mono border border-slate-200 rounded-xl bg-slate-50/50 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none resize-none leading-relaxed"
+                          className="w-full min-h-[450px] p-5 text-xs font-bold font-mono border border-slate-200 rounded-2xl bg-slate-50/50 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none resize-none leading-relaxed shadow-inner"
                         />
                       </div>
 
@@ -932,23 +1448,25 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
                         </div>
                       </div>
 
-                      {/* Keywords Input (Conditional) */}
+                      {/* Manual Trigger Tags (Only for generic templates) */}
                       {!BUILTIN_KEYS.includes(selectedWaTemplate) && (
                         <div className="space-y-2 pt-2">
-                          <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2">
-                            Activation Keywords
-                            <HelpCircle className="w-3 h-3" />
+                          <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                            Inbound Keywords (Manual Trigger)
                           </Label>
                           <div className="space-y-2">
                             <Input
-                              placeholder="Type keyword and press Enter (e.g. status, track, help)"
+                              placeholder="Type keyword and press Enter (e.g. status, track)"
                               value={keywordsInput}
                               onChange={(e) => setKeywordsInput(e.target.value)}
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") {
                                   e.preventDefault();
                                   const val = keywordsInput.trim().toLowerCase();
-                                  if (val && !currentWaTemplate.keywords?.includes(val)) {
+                                  if (
+                                    val &&
+                                    !currentWaTemplate.keywords?.includes(val)
+                                  ) {
                                     updateSelectedField("keywords", [
                                       ...(currentWaTemplate.keywords || []),
                                       val,

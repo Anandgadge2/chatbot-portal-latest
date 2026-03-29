@@ -80,7 +80,10 @@ export function useCachedQuery<T>({
   const [error, setError] = useState<unknown>(initialEntry?.error);
   const [isLoading, setIsLoading] = useState<boolean>(enabled && !isFresh);
 
-  useEffect(() => {
+    const queryFnRef = React.useRef(queryFn);
+    queryFnRef.current = queryFn;
+
+    useEffect(() => {
     if (!enabled) {
       setIsLoading(false);
       return;
@@ -105,7 +108,7 @@ export function useCachedQuery<T>({
 
     const pendingPromise =
       cached?.promise ??
-      queryFn().then((result) => {
+      queryFnRef.current().then((result) => {
         queryCache.set(key, {
           data: result,
           error: undefined,
@@ -141,7 +144,7 @@ export function useCachedQuery<T>({
     return () => {
       cancelled = true;
     };
-  }, [enabled, key, queryFn, staleTime]);
+  }, [enabled, key, staleTime]);
 
   return {
     data,

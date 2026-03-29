@@ -2483,7 +2483,7 @@ function DashboardContent() {
               <div className="space-y-6">
                 {/* Department Admin Profile Card */}
                 <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
-                  <CardHeader className="bg-slate-900 px-6 py-4">
+                  {/* <CardHeader className="bg-slate-900 px-6 py-4">
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
                         <UserIcon className="w-5 h-5 text-indigo-400" />
@@ -2497,7 +2497,7 @@ function DashboardContent() {
                         </p>
                       </div>
                     </div>
-                  </CardHeader>
+                  </CardHeader> */}
                   <CardContent className="p-6">
                     <div className="flex items-start gap-6">
                       {/* Profile Avatar */}
@@ -2646,24 +2646,7 @@ function DashboardContent() {
                               hasPermission(
                                 user,
                                 Permission.READ_GRIEVANCE,
-                              ) && (
-                                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm group hover:shadow-md transition-all">
-                                  <div className="flex items-center justify-between">
-                                    <div>
-                                      <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">
-                                        {/* Inundations changed to Grievances for clarity, or kept if preferred */}
-                                        Grievances
-                                      </p>
-                                      <p className="text-2xl font-black text-slate-900 tracking-tighter mt-1">
-                                        {stats?.grievances.total || 0}
-                                      </p>
-                                    </div>
-                                    <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform">
-                                      <FileText className="w-5 h-5" />
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
+                              ) }
                             {hasModule(Module.APPOINTMENT) &&
                               hasPermission(
                                 user,
@@ -7315,6 +7298,32 @@ function DashboardContent() {
                                     key={appointment._id}
                                     className="hover:bg-gradient-to-r hover:from-purple-50/50 hover:to-pink-50/50 transition-all duration-200 group/row"
                                   >
+                                    {isSuperAdminUser && (
+                                      <td className="px-3 py-4 text-center">
+                                        <input
+                                          type="checkbox"
+                                          checked={selectedAppointments.has(
+                                            appointment._id,
+                                          )}
+                                          onChange={(e) => {
+                                            const newSelected = new Set(
+                                              selectedAppointments,
+                                            );
+                                            if (e.target.checked) {
+                                              newSelected.add(appointment._id);
+                                            } else {
+                                              newSelected.delete(
+                                                appointment._id,
+                                              );
+                                            }
+                                            setSelectedAppointments(
+                                              newSelected,
+                                            );
+                                          }}
+                                          className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer"
+                                        />
+                                      </td>
+                                    )}
                                     <td className="px-3 py-4 text-center">
                                       <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-purple-100 text-purple-700 text-xs font-bold">
                                         {(appointmentPage - 1) *

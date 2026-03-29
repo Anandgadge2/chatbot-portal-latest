@@ -57,6 +57,7 @@ import {
   Upload,
   Info,
   Search,
+  Trash2,
 } from "lucide-react";
 import { Module } from "@/lib/permissions";
 import BulkImportModal from "@/components/superadmin/drilldown/BulkImportModal";
@@ -146,6 +147,9 @@ function CompanyDrillDownContent() {
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [selectedAppointments, setSelectedAppointments] = useState<Set<string>>(
+    new Set(),
+  );
 
   // Filter & Sort states
   const [searchTerm, setSearchTerm] = useState("");
@@ -269,12 +273,49 @@ function CompanyDrillDownContent() {
 
   const fetchAppointments = async () => {
     try {
-      const response = await appointmentAPI.getAll({ companyId, limit: 25 });
+      const response = await appointmentAPI.getAll({ companyId, limit: 100 });
       if (response.success) {
         setAppointments(response.data.appointments || []);
       }
     } catch (error) {
       console.error("Failed to fetch appointments:", error);
+    }
+  };
+
+  const handleBulkDeleteAppointments = async () => {
+    if (selectedAppointments.size === 0) return;
+
+    if (
+      !confirm(
+        `Are you sure you want to delete ${selectedAppointments.size} appointment(s)? This action cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const response = await appointmentAPI.deleteBulk(
+        Array.from(selectedAppointments),
+      );
+      if (response.success) {
+        toast.success(response.message);
+        setAppointments((prev) =>
+          prev.filter((a) => !selectedAppointments.has(a._id)),
+        );
+        setSelectedAppointments(new Set());
+        fetchData();
+      } else {
+        toast.error("Failed to delete appointments");
+      }
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Failed to delete appointments",
+      );
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -698,9 +739,27 @@ function CompanyDrillDownContent() {
           </TabsContent>
 
           <TabsContent value="appointments" className="mt-0">
-            <AppointmentList 
+            {selectedAppointments.size > 0 && (
+              <div className="flex items-center justify-between mb-4 bg-red-50 p-4 rounded-2xl border border-red-100 animate-in slide-in-from-top-2">
+                <p className="text-xs font-black text-red-600 uppercase tracking-widest">
+                  {selectedAppointments.size} item(s) selected for termination
+                </p>
+                <Button
+                  onClick={handleBulkDeleteAppointments}
+                  disabled={isDeleting}
+                  variant="destructive"
+                  className="h-9 px-6 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-red-900/20"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  {isDeleting ? "Deleting..." : "Execute Bulk Delete"}
+                </Button>
+              </div>
+            )}
+            <AppointmentList
               appointments={appointments}
               filteredAppointments={filteredAppointments}
+              selectedAppointments={selectedAppointments}
+              onSelectionChange={setSelectedAppointments}
               exportToCSV={exportToCSV}
               setSelectedAppointment={setSelectedAppointment}
               setShowAppointmentDetail={setShowAppointmentDetail}
