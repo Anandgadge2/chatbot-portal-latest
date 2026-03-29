@@ -15,7 +15,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiClient } from "@/lib/api/client";
 import { chatbotFlowApi } from '@/lib/api/chatbotFlow';
-import { toast } from 'sonner';
+import { toast } from 'react-hot-toast';
 import { useQueryCache } from "@/lib/query/cache";
 import {
   Plus,

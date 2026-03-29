@@ -59,6 +59,8 @@ import {
 } from "recharts";
 import { Permission, hasPermission, Module, isSuperAdmin, isCompanyAdminOrHigher } from "@/lib/permissions";
 import { formatTo10Digits } from "@/lib/utils/phoneUtils";
+import { Pagination } from "@/components/ui/Pagination";
+import { TableSkeleton } from "@/components/ui/GeneralSkeleton";
 
 const COLORS = ["#6366f1", "#10b981", "#f59e0b", "#f43f5e"];
 
@@ -82,7 +84,24 @@ export default function DepartmentDetail() {
     resolvedGrievances: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [loadingGrievances, setLoadingGrievances] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
+
+  // Pagination states
+  const [userPage, setUserPage] = useState(1);
+  const [userPagination, setUserPagination] = useState({
+    limit: 20,
+    total: 0,
+    pages: 0,
+  });
+  const [grievancePage, setGrievancePage] = useState(1);
+  const [grievancePagination, setGrievancePagination] = useState({
+    limit: 20,
+    total: 0,
+    pages: 0,
+  });
+
   const [selectedGrievance, setSelectedGrievance] = useState<Grievance | null>(
     null,
   );
@@ -141,6 +160,63 @@ export default function DepartmentDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [departmentId, user]);
 
+  const fetchUsers = useCallback(
+    async (page = userPage, limit = userPagination.limit) => {
+      setLoadingUsers(true);
+      try {
+        const res = await userAPI.getAll({ 
+          departmentId, 
+          page, 
+          limit,
+          search: searchTerm || undefined,
+          status: statusFilter === "active" ? "active" : statusFilter === "inactive" ? "inactive" : undefined,
+          role: roleFilter !== "all" ? roleFilter : undefined
+        });
+        if (res.success) {
+          setUsers(res.data.users);
+          setUserPagination({
+            limit: res.data.pagination.limit,
+            total: res.data.pagination.total,
+            pages: res.data.pagination.pages,
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch users:", error);
+      } finally {
+        setLoadingUsers(false);
+      }
+    },
+    [departmentId, userPage, userPagination.limit, searchTerm, statusFilter, roleFilter]
+  );
+
+  const fetchGrievances = useCallback(
+    async (page = grievancePage, limit = grievancePagination.limit) => {
+      setLoadingGrievances(true);
+      try {
+        const res = await grievanceAPI.getAll({
+          departmentId,
+          page,
+          limit,
+          status: statusFilter !== "all" && statusFilter !== "active" && statusFilter !== "inactive" ? statusFilter : undefined,
+          search: searchTerm || undefined
+        });
+        if (res.success) {
+          setGrievances(res.data.grievances);
+          setGrievancePagination({
+            limit: res.data.pagination.limit,
+            total: res.data.pagination.total,
+            pages: res.data.pagination.pages,
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch grievances:", error);
+      } finally {
+        setLoadingGrievances(false);
+      }
+    },
+    [departmentId, grievancePage, grievancePagination.limit, statusFilter, searchTerm]
+  );
+
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -158,7 +234,6 @@ export default function DepartmentDetail() {
             if (companyRes.success) setCompany(companyRes.data.company);
           }
           
-          // Fetch roles for this company
           const rolesRes = await roleAPI.getRoles(deptCompanyId);
           if (rolesRes.success) {
             setRoles(rolesRes.data.roles || []);
@@ -166,31 +241,20 @@ export default function DepartmentDetail() {
         }
       }
 
-      const usersRes = await userAPI.getAll({ departmentId, limit: 25 });
-      if (usersRes.success) setUsers(usersRes.data.users);
-
-      const grievancesRes = await grievanceAPI.getAll({
-        departmentId,
-        limit: 100,
-      });
-      if (grievancesRes.success) {
-        const activeGrievances = grievancesRes.data.grievances.filter(
-          (g) => g.status !== "RESOLVED",
-        );
-        setGrievances(activeGrievances);
-      }
+      await Promise.all([
+        fetchUsers(1, userPagination.limit),
+        fetchGrievances(1, grievancePagination.limit)
+      ]);
 
       const statsRes = await apiClient.get(
         `/analytics/dashboard?departmentId=${departmentId}`,
       );
       if (statsRes.success) {
         setStats({
-          totalUsers: usersRes.success ? usersRes.data.users.length : 0,
+          totalUsers: statsRes.data.users?.total || 0,
           totalGrievances: statsRes.data.grievances?.total || 0,
           totalAppointments: statsRes.data.appointments?.total || 0,
-          activeUsers: usersRes.success
-            ? usersRes.data.users.filter((u: User) => u.isActive).length
-            : 0,
+          activeUsers: statsRes.data.users?.active || 0,
           pendingGrievances: statsRes.data.grievances?.pending || 0,
           resolvedGrievances: statsRes.data.grievances?.resolved || 0,
         });
@@ -204,6 +268,18 @@ export default function DepartmentDetail() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (activeTab === "users") {
+      fetchUsers(userPage, userPagination.limit);
+    }
+  }, [activeTab, userPage, userPagination.limit, fetchUsers]);
+
+  useEffect(() => {
+    if (activeTab === "grievances") {
+      fetchGrievances(grievancePage, grievancePagination.limit);
+    }
+  }, [activeTab, grievancePage, grievancePagination.limit, fetchGrievances]);
 
   const handleSort = (key: string) => {
     let direction: "asc" | "desc" | null = "asc";
@@ -305,19 +381,20 @@ export default function DepartmentDetail() {
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
     return months.map((m) => ({
       name: m,
-      incidents: Math.floor(Math.random() * 20) + 5,
+      total: Math.floor(Math.random() * 20) + 5,
       resolved: Math.floor(Math.random() * 15) + 2,
     }));
   }, []);
 
   const categoryDetailedData = useMemo(() => {
+    if (grievances.length === 0) return [];
     const cats: Record<string, number> = {};
     grievances.forEach((g) => {
-      const c = g.category || "Other";
+      const c = g.category || (isDFO ? "General" : "Other");
       cats[c] = (cats[c] || 0) + 1;
     });
     return Object.entries(cats).map(([name, value]) => ({ name, value }));
-  }, [grievances]);
+  }, [grievances, isDFO]);
 
   const beatHeatMapData = useMemo(() => {
     const beats: Record<string, number> = {};
@@ -771,8 +848,7 @@ export default function DepartmentDetail() {
 
           {/* ─── USERS TAB ─── */}
           <TabsContent value="users" className="space-y-4">
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-              {/* Header */}
+            <Card className="border-slate-200 shadow-sm overflow-hidden bg-white">
               <div className="bg-slate-900 px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
@@ -782,7 +858,7 @@ export default function DepartmentDetail() {
                     <h3 className="text-sm font-bold text-white uppercase tracking-tight">
                       Users{" "}
                       <span className="text-slate-400 font-normal normal-case text-xs">
-                        ({filteredUsers.length})
+                        ({userPagination.total})
                       </span>
                     </h3>
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
@@ -791,7 +867,7 @@ export default function DepartmentDetail() {
                   </div>
                 </div>
                 <button
-                  onClick={() => exportToCSV(filteredUsers, "users")}
+                  onClick={() => exportToCSV(users, "users")}
                   className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 text-slate-300 hover:text-white rounded-lg hover:bg-slate-700 transition-all border border-slate-700 text-[10px] font-bold uppercase tracking-widest"
                 >
                   <Download className="w-3.5 h-3.5" />
@@ -799,142 +875,134 @@ export default function DepartmentDetail() {
                 </button>
               </div>
 
-              {/* Filters */}
-              <div className="px-6 py-3 bg-slate-50 border-b border-slate-200 flex flex-wrap gap-3 items-center">
-                <div className="relative flex-1 min-w-[200px]">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-3.5 h-3.5" />
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 px-6 bg-slate-50/50 border-b border-slate-100">
+                <div className="relative w-full sm:max-w-xs">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
                     type="text"
                     placeholder="Search users..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all bg-white"
+                    className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm"
                   />
                 </div>
-                <select
-                  value={roleFilter}
-                  onChange={(e) => setRoleFilter(e.target.value)}
-                  className="px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white font-medium"
-                >
-                  <option value="all">All Roles</option>
-                  {roles.map((role) => (
-                    <option key={role._id} value={`CUSTOM:${role._id}`}>
-                      {role.name}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white font-medium"
-                >
-                  <option value="all">All Status</option>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </select>
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Rows:</span>
+                    <select
+                      value={userPagination.limit}
+                      onChange={(e) => {
+                        setUserPagination(prev => ({ ...prev, limit: Number(e.target.value) }));
+                        setUserPage(1);
+                      }}
+                      className="text-[10px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer"
+                    >
+                      {[10, 20, 25, 50, 100].map(l => (
+                        <option key={l} value={l}>{l}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <select
+                    value={roleFilter}
+                    onChange={(e) => setRoleFilter(e.target.value)}
+                    className="text-xs px-3 py-2 border border-slate-200 rounded-xl bg-white shadow-sm cursor-pointer"
+                  >
+                    <option value="all">All Roles</option>
+                    {roles.map((r) => (
+                      <option key={r._id} value={`CUSTOM:${r._id}`}>
+                        {r.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
-              {/* Table */}
-              {filteredUsers.length === 0 ? (
-                <div className="text-center py-16">
-                  <Users className="w-12 h-12 text-slate-200 mx-auto mb-3" />
-                  <p className="text-slate-500 font-medium">No users found</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-slate-50 border-b border-slate-100">
-                      <tr>
-                        <th className="px-3 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest w-12">
-                          Sr.
-                        </th>
-                        <th className="px-4 py-3 text-left">
-                          <button
-                            onClick={() => handleSort("firstName")}
-                            className="flex items-center gap-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
-                          >
-                            User <ArrowUpDown className="w-3 h-3" />
-                          </button>
-                        </th>
-                        <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                          Email
-                        </th>
-                        <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                          Role
-                        </th>
-                        <th className="px-4 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                          Status
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {filteredUsers.map((u, index) => (
-                        <tr
-                          key={u._id}
-                          className="hover:bg-slate-50/70 transition-colors"
-                        >
-                          <td className="px-3 py-3 text-center">
-                            <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-slate-100 text-slate-600 text-xs font-bold">
-                              {index + 1}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
-                                {u.firstName?.[0]}
-                                {u.lastName?.[0]}
-                              </div>
-                              <div>
-                                <p className="text-sm font-bold text-slate-900">
-                                  {u.firstName} {u.lastName}
-                                </p>
-                                <p className="text-[10px] text-slate-400 font-mono">
-                                  {u.userId}
-                                </p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-sm text-slate-600">
-                            {u.email}
-                          </td>
-                          <td className="px-4 py-3">
-                            <span
-                              className={`px-2.5 py-1 rounded-full text-[9px] font-bold border shadow-sm ${
-                                (u.level === 2 && department?.parentDepartmentId) || u.level === 3
-                                  ? "bg-purple-50 text-purple-700 border-purple-100 ring-1 ring-purple-200"
-                                  : "bg-indigo-50 text-indigo-700 border-indigo-100 uppercase tracking-wide"
-                              }`}
-                            >
-                              {(u.level === 2 && department?.parentDepartmentId) || u.level === 3
-                                ? "Sub Department Admin"
-                                : isSuperAdmin(u)
-                                  ? "Super Admin"
-                                  : u.level === 1
-                                    ? "Company Admin"
-                                    : u.level === 2
-                                      ? "Department Admin"
-                                      : u.level === 4
-                                        ? "Operator"
-                                        : u.role?.replace(/_/g, " ")}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <span
-                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-bold ${u.isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}
-                            >
-                              <span
-                                className={`w-1.5 h-1.5 rounded-full ${u.isActive ? "bg-emerald-500" : "bg-slate-400"}`}
-                              ></span>
-                              {u.isActive ? "Active" : "Inactive"}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
+              <CardContent className="p-0">
+                {loadingUsers ? (
+                  <TableSkeleton rows={10} cols={5} />
+                ) : users.length === 0 ? (
+                  <div className="text-center py-16">
+                    <Users className="w-12 h-12 text-slate-200 mx-auto mb-3" />
+                    <p className="text-slate-500 font-medium">No users found</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-slate-50 border-b border-slate-100">
+                          <tr>
+                            <th className="px-3 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest w-12">Sr.</th>
+                            <th className="px-4 py-3 text-left">
+                              <button
+                                onClick={() => handleSort("firstName")}
+                                className="flex items-center gap-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
+                              >
+                                User <ArrowUpDown className="w-3 h-3" />
+                              </button>
+                            </th>
+                            <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">Email</th>
+                            <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">Role</th>
+                            <th className="px-4 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {users.map((u, index) => (
+                            <tr key={u._id} className="hover:bg-slate-50/70 transition-colors">
+                              <td className="px-3 py-3 text-center">
+                                <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-slate-100 text-slate-600 text-xs font-bold">
+                                  {(userPage - 1) * userPagination.limit + index + 1}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
+                                    {u.firstName?.[0]}{u.lastName?.[0]}
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-bold text-slate-900">{u.firstName} {u.lastName}</p>
+                                    <p className="text-[10px] text-slate-400 font-mono">{u.userId}</p>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 text-sm text-slate-600">{u.email}</td>
+                              <td className="px-4 py-3">
+                                <span className={`px-2.5 py-1 rounded-full text-[9px] font-bold border shadow-sm ${
+                                  (u.level === 2 && department?.parentDepartmentId) || u.level === 3
+                                    ? "bg-purple-50 text-purple-700 border-purple-100 ring-1 ring-purple-200"
+                                    : "bg-indigo-50 text-indigo-700 border-indigo-100 uppercase tracking-wide"
+                                }`}>
+                                  {(u.level === 2 && department?.parentDepartmentId) || u.level === 3
+                                    ? "Sub Department Admin"
+                                    : isSuperAdmin(u) ? "Super Admin" : 
+                                      u.level === 1 ? "Company Admin" : 
+                                      u.level === 2 ? "Department Admin" : 
+                                      u.level === 4 ? "Operator" : u.role?.replace(/_/g, " ")}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-bold ${u.isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                                  <span className={`w-1.5 h-1.5 rounded-full ${u.isActive ? "bg-emerald-500" : "bg-slate-400"}`}></span>
+                                  {u.isActive ? "Active" : "Inactive"}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="p-4 border-t border-slate-100 bg-slate-50/30">
+                      <Pagination
+                        currentPage={userPage}
+                        totalPages={userPagination.pages}
+                        totalItems={userPagination.total}
+                        itemsPerPage={userPagination.limit}
+                        onPageChange={setUserPage}
+                      />
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* ─── GRIEVANCES TAB ─── */}
@@ -942,7 +1010,7 @@ export default function DepartmentDetail() {
             (user.enabledModules?.includes(Module.GRIEVANCE) ||
               !user.companyId) && (
               <TabsContent value="grievances" className="space-y-4">
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <Card className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                   {/* Header */}
                   <div className="bg-slate-900 px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -953,7 +1021,7 @@ export default function DepartmentDetail() {
                         <h3 className="text-sm font-bold text-white uppercase tracking-tight">
                           Active Grievances{" "}
                           <span className="text-slate-400 font-normal normal-case text-xs">
-                            ({filteredGrievances.length})
+                            ({grievancePagination.total})
                           </span>
                         </h3>
                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
@@ -962,10 +1030,9 @@ export default function DepartmentDetail() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-
                       <button
                         onClick={() =>
-                          exportToCSV(filteredGrievances, "grievances")
+                          exportToCSV(grievances, "grievances")
                         }
                         className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 text-slate-300 hover:text-white rounded-lg hover:bg-slate-700 transition-all border border-slate-700 text-[10px] font-bold uppercase tracking-widest"
                       >
@@ -984,13 +1051,28 @@ export default function DepartmentDetail() {
                         placeholder="Search by ID, name..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all bg-white"
+                        className="w-full pl-9 pr-4 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all bg-white shadow-sm"
                       />
+                    </div>
+                    <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Rows:</span>
+                      <select
+                        value={grievancePagination.limit}
+                        onChange={(e) => {
+                          setGrievancePagination(prev => ({ ...prev, limit: Number(e.target.value) }));
+                          setGrievancePage(1);
+                        }}
+                        className="text-[10px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer"
+                      >
+                        {[10, 20, 25, 50, 100].map(l => (
+                          <option key={l} value={l}>{l}</option>
+                        ))}
+                      </select>
                     </div>
                     <select
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
-                      className="px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white font-medium cursor-pointer"
+                      className="px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white font-medium cursor-pointer shadow-sm"
                     >
                       <option value="all">📋 All Status</option>
                       <option value="PENDING">🔸 Pending</option>
@@ -1000,208 +1082,161 @@ export default function DepartmentDetail() {
                     </select>
                   </div>
 
-                  {/* Table */}
-                  {filteredGrievances.length === 0 ? (
-                    <div className="text-center py-16">
-                      <FileText className="w-12 h-12 text-slate-200 mx-auto mb-3" />
-                      <p className="text-slate-500 font-medium">
-                        No active grievances
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto max-h-[600px]">
-                      <table className="w-full">
-                        <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-100">
-                          <tr>
-                            <th className="px-3 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest w-12">
-                              Sr.
-                            </th>
-                            <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                              Grievance ID
-                            </th>
-                            <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                              Citizen
-                            </th>
-                            <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                              Category
-                            </th>
-                            <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                              Status
-                            </th>
-                            <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                              Filed
-                            </th>
-                            {isDFO && hasModule(Module.GEO_LOCATION) && (
-                              <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                Forest Details
-                              </th>
-                            )}
-                            <th className="px-4 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                              Actions
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                          {filteredGrievances.map((g, index) => (
-                            <tr
-                              key={g._id}
-                              className="hover:bg-slate-50/70 transition-colors"
-                            >
-                              <td className="px-3 py-3 text-center">
-                                <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-slate-100 text-slate-600 text-xs font-bold">
-                                  {index + 1}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3">
-                                <span className="text-xs font-black text-indigo-600 font-mono">
-                                  {g.grievanceId}
-                                </span>
-                                {g.priority === 'URGENT' && (
-                                  <span className="ml-2 animate-pulse inline-flex h-2 w-2 rounded-full bg-rose-500" title="Urgent Alert"></span>
+                  <CardContent className="p-0">
+                    {loadingGrievances ? (
+                      <TableSkeleton rows={10} cols={6} />
+                    ) : grievances.length === 0 ? (
+                      <div className="text-center py-16">
+                        <FileText className="w-12 h-12 text-slate-200 mx-auto mb-3" />
+                        <p className="text-slate-500 font-medium">No active grievances</p>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="overflow-x-auto max-h-[600px]">
+                          <table className="w-full">
+                            <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-100">
+                              <tr>
+                                <th className="px-3 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest w-12">Sr.</th>
+                                <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">Grievance ID</th>
+                                <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">Citizen</th>
+                                <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">Category</th>
+                                <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                                <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">Filed</th>
+                                {isDFO && hasModule(Module.GEO_LOCATION) && (
+                                  <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">Forest Details</th>
                                 )}
-                              </td>
-                              <td className="px-4 py-3">
-                                <button
-                                  onClick={async () => {
-                                    const response = await grievanceAPI.getById(
-                                      g._id,
-                                    );
-                                    if (response.success) {
-                                      setSelectedGrievance(
-                                        response.data.grievance,
-                                      );
-                                      setShowGrievanceDetail(true);
-                                    }
-                                  }}
-                                  className="text-left hover:text-indigo-600 transition-colors"
-                                >
-                                  <p className="text-sm font-semibold text-slate-800 hover:underline">
-                                    {g.citizenName}
-                                  </p>
-                                  <p className="text-[10px] text-slate-400">
-                                    {formatTo10Digits(g.citizenPhone)}
-                                  </p>
-                                </button>
-                              </td>
-                              <td className="px-4 py-3">
-                                <div className="flex flex-col gap-1">
-                                  <span className="text-[10px] font-medium bg-slate-100 text-slate-600 px-2 py-1 rounded inline-block w-fit">
-                                    {g.category || "General"}
-                                  </span>
-                                  {g.priority && (
-                                    <span className={`text-[8px] font-black px-1.5 py-0.5 rounded border uppercase tracking-widest w-fit ${
-                                      g.priority === 'URGENT' ? 'bg-rose-500 text-white border-rose-600' :
-                                      g.priority === 'HIGH' ? 'bg-amber-500 text-white border-amber-600' :
-                                      'bg-slate-50 text-slate-400 border-slate-200'
-                                    }`}>
-                                      {g.priority}
+                                <th className="px-4 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                              {grievances.map((g, index) => (
+                                <tr key={g._id} className="hover:bg-slate-50/70 transition-colors">
+                                  <td className="px-3 py-3 text-center">
+                                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-slate-100 text-slate-600 text-xs font-bold">
+                                      {(grievancePage - 1) * grievancePagination.limit + index + 1}
                                     </span>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="px-4 py-3">
-                                <button
-                                  onClick={() => {
-                                    setSelectedGrievanceForStatus(g);
-                                    setShowGrievanceStatusModal(true);
-                                  }}
-                                  disabled={updatingGrievanceStatus.has(g._id)}
-                                  className="px-2.5 py-1 text-[9px] font-bold border border-slate-200 rounded bg-white hover:border-indigo-400 hover:bg-indigo-50 focus:outline-none focus:ring-1 focus:ring-indigo-500 uppercase tracking-tight transition-all"
-                                >
-                                  {g.status}
-                                </button>
-                              </td>
-                              <td className="px-4 py-3">
-                                <div className="flex flex-col">
-                                  <span className="text-xs font-medium text-slate-700">
-                                    {new Date(g.createdAt).toLocaleDateString()}
-                                  </span>
-                                  <span className="text-[10px] text-slate-400">
-                                    {new Date(g.createdAt).toLocaleTimeString(
-                                      [],
-                                      { hour: "2-digit", minute: "2-digit" },
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <span className="text-xs font-black text-indigo-600 font-mono">{g.grievanceId}</span>
+                                    {g.priority === 'URGENT' && (
+                                      <span className="ml-2 animate-pulse inline-flex h-2 w-2 rounded-full bg-rose-500" title="Urgent Alert"></span>
                                     )}
-                                  </span>
-                                </div>
-                              </td>
-                              {isDFO && hasModule(Module.GEO_LOCATION) && (
-                                <td className="px-4 py-3">
-                                  {g.forest_range || g.forest_beat || g.forest_compartment ? (
-                                    <div className="space-y-1">
-                                      {g.forest_range && (
-                                        <div className="flex items-center gap-1.5">
-                                          <Shield className="w-2.5 h-2.5 text-indigo-500" />
-                                          <span className="text-[10px] font-bold text-slate-700 uppercase">{g.forest_range}</span>
-                                        </div>
-                                      )}
-                                      {g.forest_beat && (
-                                        <p className="text-[9px] text-slate-500 font-medium ml-4">Beat: {g.forest_beat}</p>
-                                      )}
-                                      {g.forest_compartment && (
-                                        <p className="text-[9px] text-slate-400 font-medium ml-4">Comp: {g.forest_compartment}</p>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <button
+                                      onClick={async () => {
+                                        const response = await grievanceAPI.getById(g._id);
+                                        if (response.success) {
+                                          setSelectedGrievance(response.data.grievance);
+                                          setShowGrievanceDetail(true);
+                                        }
+                                      }}
+                                      className="text-left hover:text-indigo-600 transition-colors"
+                                    >
+                                      <p className="text-sm font-semibold text-slate-800 hover:underline">{g.citizenName}</p>
+                                      <p className="text-[10px] text-slate-400">{formatTo10Digits(g.citizenPhone)}</p>
+                                    </button>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <div className="flex flex-col gap-1">
+                                      <span className="text-[10px] font-medium bg-slate-100 text-slate-600 px-2 py-1 rounded inline-block w-fit">
+                                        {g.category || "General"}
+                                      </span>
+                                      {g.priority && (
+                                        <span className={`text-[8px] font-black px-1.5 py-0.5 rounded border uppercase tracking-widest w-fit ${
+                                          g.priority === 'URGENT' ? 'bg-rose-500 text-white border-rose-600' :
+                                          g.priority === 'HIGH' ? 'bg-amber-500 text-white border-amber-600' :
+                                          'bg-slate-50 text-slate-400 border-slate-200'
+                                        }`}>
+                                          {g.priority}
+                                        </span>
                                       )}
                                     </div>
-                                  ) : (
-                                    <span className="text-[9px] text-slate-300 italic">No forest data</span>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <button
+                                      onClick={() => {
+                                        setSelectedGrievanceForStatus(g);
+                                        setShowGrievanceStatusModal(true);
+                                      }}
+                                      disabled={updatingGrievanceStatus.has(g._id)}
+                                      className="px-2.5 py-1 text-[9px] font-bold border border-slate-200 rounded bg-white hover:border-indigo-400 hover:bg-indigo-50 focus:outline-none focus:ring-1 focus:ring-indigo-500 uppercase tracking-tight transition-all"
+                                    >
+                                      {g.status}
+                                    </button>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <div className="flex flex-col">
+                                      <span className="text-xs font-medium text-slate-700">{new Date(g.createdAt).toLocaleDateString()}</span>
+                                      <span className="text-[10px] text-slate-400">{new Date(g.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                                    </div>
+                                  </td>
+                                  {isDFO && hasModule(Module.GEO_LOCATION) && (
+                                    <td className="px-4 py-3">
+                                      {g.forest_range || g.forest_beat || g.forest_compartment ? (
+                                        <div className="space-y-1">
+                                          {g.forest_range && (
+                                            <div className="flex items-center gap-1.5">
+                                              <Shield className="w-2.5 h-2.5 text-indigo-500" />
+                                              <span className="text-[10px] font-bold text-slate-700 uppercase">{g.forest_range}</span>
+                                            </div>
+                                          )}
+                                          {g.forest_beat && <p className="text-[9px] text-slate-500 font-medium ml-4">Beat: {g.forest_beat}</p>}
+                                          {g.forest_compartment && <p className="text-[9px] text-slate-400 font-medium ml-4">Comp: {g.forest_compartment}</p>}
+                                        </div>
+                                      ) : (
+                                        <span className="text-[9px] text-slate-300 italic">No forest data</span>
+                                      )}
+                                    </td>
                                   )}
-                                </td>
-                              )}
-                              <td className="px-4 py-3 text-center">
-                                <button
-                                  onClick={() => {
-                                    setSelectedGrievanceForRevert(g);
-                                    setShowRevertDialog(true);
-                                  }}
-                                  className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition-all mr-1"
-                                  title="Revert to Company Admin"
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a4 4 0 014 4v1m0 0l-3-3m3 3l3-3M7 14H3m0 0l3 3m-3-3l3-3" />
-                                  </svg>
-                                </button>
-                                <button
-                                  onClick={async () => {
-                                    const response = await grievanceAPI.getById(
-                                      g._id,
-                                    );
-                                    if (response.success) {
-                                      setSelectedGrievance(
-                                        response.data.grievance,
-                                      );
-                                      setShowGrievanceDetail(true);
-                                    }
-                                  }}
-                                  className="p-1.5 text-indigo-500 hover:bg-indigo-50 rounded-lg transition-all"
-                                  title="View Details"
-                                >
-                                  <svg
-                                    className="w-4 h-4"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                    />
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                                    />
-                                  </svg>
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
+                                  <td className="px-4 py-3 text-center text-[10px] font-medium space-x-1 flex items-center justify-center">
+                                    <button
+                                      onClick={() => {
+                                        setSelectedGrievanceForRevert(g);
+                                        setShowRevertDialog(true);
+                                      }}
+                                      className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition-all"
+                                      title="Revert to Company Admin"
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a4 4 0 014 4v1m0 0l-3-3m3 3l3-3M7 14H3m0 0l3 3m-3-3l3-3" />
+                                      </svg>
+                                    </button>
+                                    <button
+                                      onClick={async () => {
+                                        const response = await grievanceAPI.getById(g._id);
+                                        if (response.success) {
+                                          setSelectedGrievance(response.data.grievance);
+                                          setShowGrievanceDetail(true);
+                                        }
+                                      }}
+                                      className="p-1.5 text-indigo-500 hover:bg-indigo-50 rounded-lg transition-all"
+                                      title="View Details"
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                      </svg>
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        <div className="p-4 border-t border-slate-100 bg-slate-50/30">
+                          <Pagination
+                            currentPage={grievancePage}
+                            totalPages={grievancePagination.pages}
+                            totalItems={grievancePagination.total}
+                            itemsPerPage={grievancePagination.limit}
+                            onPageChange={setGrievancePage}
+                          />
+                        </div>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
               </TabsContent>
             )}
 
@@ -1382,14 +1417,19 @@ export default function DepartmentDetail() {
               {/* SLA & Performance */}
               <div className="bg-slate-900 rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden">
                  <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
-                 <h3 className="text-lg font-black uppercase tracking-tight mb-8">Resolution Speed</h3>
-                 <div className="space-y-8 relative z-10">
-                    {slaPerformanceData.map((item, idx) => (
+                  <h3 className="text-lg font-black uppercase tracking-tight mb-8">Performance Efficiency</h3>
+                  <div className="space-y-8 relative z-10">
+                    {(isDFO ? slaPerformanceData : [
+                      { name: "Public Grievances", score: 85 },
+                      { name: "Staff Utilization", score: 92 },
+                      { name: "Citizen Satisfaction", score: 78 },
+                      { name: "Resource Allocation", score: 88 }
+                    ]).map((item, idx) => (
                       <div key={idx}>
                         <div className="flex justify-between items-end mb-2">
                            <div>
                               <p className="text-[10px] font-black text-indigo-300 uppercase tracking-widest leading-none mb-1">{item.name}</p>
-                              <p className="text-sm font-bold">Response Efficiency</p>
+                              <p className="text-sm font-bold">Execution Efficiency</p>
                            </div>
                            <span className="text-xl font-black text-indigo-400">{item.score}%</span>
                         </div>
@@ -1401,7 +1441,7 @@ export default function DepartmentDetail() {
                         </div>
                       </div>
                     ))}
-                 </div>
+                  </div>
                  
                  <div className="mt-12 p-6 bg-white/5 border border-white/10 rounded-2xl">
                     <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2">System Health</p>
@@ -1427,7 +1467,7 @@ export default function DepartmentDetail() {
                       <TrendingUp className="w-5 h-5 text-indigo-600" />
                     </div>
                     <div>
-                      <h3 className="text-base font-black text-slate-800 uppercase tracking-tight">Incident Trends</h3>
+                      <h3 className="text-base font-black text-slate-800 uppercase tracking-tight">{isDFO ? 'Incident' : 'Case'} Trends</h3>
                       <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest">Seasonal activity and response rates</p>
                     </div>
                   </div>
@@ -1453,16 +1493,18 @@ export default function DepartmentDetail() {
                            contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}}
                         />
                         <Bar 
-                          dataKey="incidents" 
+                          dataKey="total" 
                           fill="#6366f1" 
                           radius={[6, 6, 0, 0]} 
                           barSize={30}
+                          name="Total Cases"
                         />
                         <Bar 
                           dataKey="resolved" 
                           fill="#10b981" 
                           radius={[6, 6, 0, 0]} 
                           barSize={30}
+                          name="Resolved"
                         />
                       </BarChart>
                     </ResponsiveContainer>
@@ -1486,9 +1528,11 @@ export default function DepartmentDetail() {
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
-                          data={categoryDetailedData.length > 0 ? categoryDetailedData : [
+                          data={categoryDetailedData.length > 0 ? categoryDetailedData : (isDFO ? [
                             {name: 'Fire', value: 40}, {name: 'Wildlife', value: 30}, {name: 'Timber', value: 20}, {name: 'Other', value: 10}
-                          ]}
+                          ] : [
+                            {name: 'Grievance', value: 40}, {name: 'Appointments', value: 30}, {name: 'Requests', value: 20}, {name: 'Other', value: 10}
+                          ])}
                           innerRadius={60}
                           outerRadius={90}
                           paddingAngle={8}
@@ -1509,7 +1553,12 @@ export default function DepartmentDetail() {
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3 mt-6">
-                     {(categoryDetailedData.length > 0 ? categoryDetailedData : [{name: 'Fire'}, {name: 'Wildlife'}, {name: 'Timber'}, {name: 'Other'}]).slice(0, 4).map((c, i) => (
+                     {(categoryDetailedData.length > 0 
+                       ? categoryDetailedData 
+                       : (isDFO 
+                           ? [{name: 'Fire'}, {name: 'Wildlife'}, {name: 'Timber'}, {name: 'Other'}] 
+                           : [{name: 'Grievance'}, {name: 'Appointments'}, {name: 'Requests'}, {name: 'Other'}]
+                         )).slice(0, 4).map((c, i) => (
                        <div key={i} className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-xl border border-slate-100">
                           <span className="w-2 h-2 rounded-full" style={{backgroundColor: COLORS[i % COLORS.length]}}></span>
                           <span className="text-[10px] font-bold text-slate-600 truncate uppercase tracking-tighter">{c.name}</span>

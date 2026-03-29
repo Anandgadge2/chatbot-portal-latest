@@ -29,7 +29,14 @@ import ChangePermissionsDialog from "@/components/user/ChangePermissionsDialog";
 import UserDetailsDialog from "@/components/user/UserDetailsDialog";
 import { ProtectedButton } from "@/components/ui/ProtectedButton";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
-import { Permission, hasPermission, Module, isDepartmentAdminOrHigher, isCompanyAdminOrHigher, isSuperAdmin } from "@/lib/permissions";
+import {
+  Permission,
+  hasPermission,
+  Module,
+  isDepartmentAdminOrHigher,
+  isCompanyAdminOrHigher,
+  isSuperAdmin,
+} from "@/lib/permissions";
 import toast from "react-hot-toast";
 import {
   BarChart,
@@ -177,12 +184,19 @@ interface DashboardStats {
   usersByRole?: Array<{ name: string; count: number }>;
 }
 
-import dynamic from 'next/dynamic';
+import dynamic from "next/dynamic";
 
-const TacticalForestMap = dynamic(() => import('@/components/dashboard/TacticalForestMap'), { 
-  ssr: false,
-  loading: () => <div className="w-full h-full bg-slate-900 animate-pulse flex items-center justify-center text-slate-500 font-black text-xs uppercase tracking-widest">Initialising Tactical Grid...</div>
-});
+const TacticalForestMap = dynamic(
+  () => import("@/components/dashboard/TacticalForestMap"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-full bg-slate-900 animate-pulse flex items-center justify-center text-slate-500 font-black text-xs uppercase tracking-widest">
+        Initialising Tactical Grid...
+      </div>
+    ),
+  },
+);
 
 function DashboardContent() {
   const { user, loading, logout } = useAuth();
@@ -192,8 +206,18 @@ function DashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const companyIdParam = searchParams.get("companyId");
-  const targetCompanyId = useMemo(() => companyIdParam || (user?.companyId && typeof user.companyId === 'object' ? (user.companyId as any)._id : user?.companyId), [companyIdParam, user]);
-  const isViewingCompany = useMemo(() => isCompanyLevel || (isSuperAdminUser && !!companyIdParam), [isCompanyLevel, isSuperAdminUser, companyIdParam]);
+  const targetCompanyId = useMemo(
+    () =>
+      companyIdParam ||
+      (user?.companyId && typeof user.companyId === "object"
+        ? (user.companyId as any)._id
+        : user?.companyId),
+    [companyIdParam, user],
+  );
+  const isViewingCompany = useMemo(
+    () => isCompanyLevel || (isSuperAdminUser && !!companyIdParam),
+    [isCompanyLevel, isSuperAdminUser, companyIdParam],
+  );
 
   const [mounted, setMounted] = useState(false);
   // Get initial tab from URL search params, default based on role
@@ -208,7 +232,8 @@ function DashboardContent() {
     // Priority 3: Role-based defaults
     if (!hasPermission(user, Permission.VIEW_ANALYTICS) && !isSuperAdminUser) {
       if (hasPermission(user, Permission.READ_GRIEVANCE)) return "grievances";
-      if (hasPermission(user, Permission.READ_APPOINTMENT)) return "appointments";
+      if (hasPermission(user, Permission.READ_APPOINTMENT))
+        return "appointments";
       return "overview";
     }
     return "overview";
@@ -229,9 +254,14 @@ function DashboardContent() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [company, setCompany] = useState<Company | null>(null);
   const isDFO = useMemo(() => {
-    return company?.name?.toUpperCase().includes("D.F.O.") || 
-           company?._id === "69adc81165109318a7cde21c" ||
-           (user?.companyId && (typeof user.companyId === 'object' ? (user.companyId as any)._id : user.companyId) === "69adc81165109318a7cde21c");
+    return (
+      company?.name?.toUpperCase().includes("D.F.O.") ||
+      company?._id === "69adc81165109318a7cde21c" ||
+      (user?.companyId &&
+        (typeof user.companyId === "object"
+          ? (user.companyId as any)._id
+          : user.companyId) === "69adc81165109318a7cde21c")
+    );
   }, [company, user]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [showDepartmentDialog, setShowDepartmentDialog] = useState(false);
@@ -375,8 +405,17 @@ function DashboardContent() {
   });
 
   // Filters for other tabs
-  const [deptFilters, setDeptFilters] = useState({ type: "", status: "", mainDeptId: "" });
-  const [userFilters, setUserFilters] = useState({ role: "", status: "", mainDeptId: "", subDeptId: "" });
+  const [deptFilters, setDeptFilters] = useState({
+    type: "",
+    status: "",
+    mainDeptId: "",
+  });
+  const [userFilters, setUserFilters] = useState({
+    role: "",
+    status: "",
+    mainDeptId: "",
+    subDeptId: "",
+  });
   const [showUserFiltersOnMobile, setShowUserFiltersOnMobile] = useState(false);
 
   const [grievanceFilters, setGrievanceFilters] = useState({
@@ -410,15 +449,17 @@ function DashboardContent() {
         // If company data is not loaded yet, do NOT show the module tab
         // to prevent flickering of unauthorized modules for SuperAdmin.
         if (!company) return false;
-        
+
         const enabledModules = (company.enabledModules || []) as string[];
         return enabledModules.includes(module as string);
       }
-      
+
       // Fallback for regular session view (Global SuperAdmin overview)
       if (isSuperAdminUser) return true;
-      
-      const modules = (company?.enabledModules || user?.enabledModules || []) as string[];
+
+      const modules = (company?.enabledModules ||
+        user?.enabledModules ||
+        []) as string[];
       return modules.includes(module as string);
     },
     [user, company, isViewingCompany, isSuperAdminUser],
@@ -629,7 +670,9 @@ function DashboardContent() {
       if (response.success) {
         toast.success(response.message);
         const deletedIds = Array.from(selectedDepartments);
-        setDepartments((prev) => prev.filter((d) => !deletedIds.includes(d._id)));
+        setDepartments((prev) =>
+          prev.filter((d) => !deletedIds.includes(d._id)),
+        );
         setSelectedDepartments(new Set());
         fetchDepartments(departmentPage, true);
         fetchDashboardData(true);
@@ -667,8 +710,15 @@ function DashboardContent() {
 
   // Redirect away from overview if no analytics permission
   useEffect(() => {
-    if (user && !hasPermission(user, Permission.VIEW_ANALYTICS) && !isSuperAdminUser && activeTab === "overview") {
-      const nextTab = hasPermission(user, Permission.READ_GRIEVANCE) ? "grievances" : "appointments";
+    if (
+      user &&
+      !hasPermission(user, Permission.VIEW_ANALYTICS) &&
+      !isSuperAdminUser &&
+      activeTab === "overview"
+    ) {
+      const nextTab = hasPermission(user, Permission.READ_GRIEVANCE)
+        ? "grievances"
+        : "appointments";
       setActiveTab(nextTab);
     }
   }, [user, activeTab, isSuperAdminUser]);
@@ -691,13 +741,17 @@ function DashboardContent() {
 
     const params = new URLSearchParams(searchParams.toString());
     const currentUrlTab = params.get("tab");
-    
+
     if (activeTab && activeTab !== "overview" && currentUrlTab !== activeTab) {
       params.set("tab", activeTab);
-      router.replace(`${window.location.pathname}?${params.toString()}`, { scroll: false });
+      router.replace(`${window.location.pathname}?${params.toString()}`, {
+        scroll: false,
+      });
     } else if (activeTab === "overview" && currentUrlTab) {
       params.delete("tab");
-      router.replace(`${window.location.pathname}?${params.toString()}`, { scroll: false });
+      router.replace(`${window.location.pathname}?${params.toString()}`, {
+        scroll: false,
+      });
     }
   }, [activeTab, router, searchParams, isSuperAdminUser, companyIdParam]);
 
@@ -716,7 +770,9 @@ function DashboardContent() {
   const fetchPerformanceData = useCallback(async () => {
     if (isSuperAdminUser && !companyIdParam) return;
     try {
-      const response = await apiClient.get(`/analytics/performance${companyIdParam ? "?companyId=" + companyIdParam : ""}`);
+      const response = await apiClient.get(
+        `/analytics/performance${companyIdParam ? "?companyId=" + companyIdParam : ""}`,
+      );
       if (response.success) {
         setPerformanceData(response.data);
       }
@@ -728,37 +784,44 @@ function DashboardContent() {
   }, [companyIdParam, isSuperAdminUser]);
 
   const forestBeats = useMemo(() => {
-    return (departments || []).map(d => ({
+    return (departments || []).map((d) => ({
       id: d._id,
       name: d.name,
-      range: d.parentDepartmentId ? 
-        (typeof d.parentDepartmentId === 'object' ? (d.parentDepartmentId as any).name : 'Main Range') 
+      range: d.parentDepartmentId
+        ? typeof d.parentDepartmentId === "object"
+          ? (d.parentDepartmentId as any).name
+          : "Main Range"
         : d.name,
-      incidents: grievances.filter(g => 
-        (typeof g.departmentId === 'object' ? (g.departmentId as any)?._id : g.departmentId) === d._id
+      incidents: grievances.filter(
+        (g) =>
+          (typeof g.departmentId === "object"
+            ? (g.departmentId as any)?._id
+            : g.departmentId) === d._id,
       ).length,
-      status: d.isActive ? 'Active' : 'Inactive'
+      status: d.isActive ? "Active" : "Inactive",
     }));
   }, [departments, grievances]);
 
   const liveIncidents = useMemo(() => {
     return grievances
-      .filter(g => g.status !== 'RESOLVED')
+      .filter((g) => g.status !== "RESOLVED")
       .slice(0, 10)
-      .map(g => ({
+      .map((g) => ({
         id: g._id,
-        title: g.description || g.category || 'Incident',
+        title: g.description || g.category || "Incident",
         coordinate: g.location?.coordinates || [20.2721, 81.4967],
-        severity: g.priority === 'HIGH' ? 'CRITICAL' : 'MODERATE',
+        severity: g.priority === "HIGH" ? "CRITICAL" : "MODERATE",
         time: g.createdAt,
-        area: (g as any).forest_beat || 'Unknown Beat'
+        area: (g as any).forest_beat || "Unknown Beat",
       }));
   }, [grievances]);
 
   const fetchDepartmentData = useCallback(async () => {
     if (isSuperAdminUser && !companyIdParam) return;
     try {
-      const response = await apiClient.get(`/analytics/grievances/by-department${companyIdParam ? "?companyId=" + companyIdParam : ""}`);
+      const response = await apiClient.get(
+        `/analytics/grievances/by-department${companyIdParam ? "?companyId=" + companyIdParam : ""}`,
+      );
       if (response.success) {
         setDepartmentData(response.data);
       }
@@ -783,30 +846,35 @@ function DashboardContent() {
     }
   }, [targetCompanyId]);
 
-  const fetchDashboardData = useCallback(async (refresh = false) => {
-    if (isSuperAdminUser && !companyIdParam) return;
-    if (!refresh) setLoadingStats(true);
-    try {
-      const response = await apiClient.get<{
-        success: boolean;
-        data: DashboardStats;
-      }>(`/analytics/dashboard${companyIdParam ? "?companyId=" + companyIdParam : ""}`);
-      if (response.success) {
-        setStats(response.data);
+  const fetchDashboardData = useCallback(
+    async (refresh = false) => {
+      if (isSuperAdminUser && !companyIdParam) return;
+      if (!refresh) setLoadingStats(true);
+      try {
+        const response = await apiClient.get<{
+          success: boolean;
+          data: DashboardStats;
+        }>(
+          `/analytics/dashboard${companyIdParam ? "?companyId=" + companyIdParam : ""}`,
+        );
+        if (response.success) {
+          setStats(response.data);
+        }
+      } catch (error: any) {
+        if (error?.response?.status !== 403) {
+          console.error("Failed to fetch dashboard stats:", error);
+          toast.error("Failed to load dashboard statistics");
+        }
+      } finally {
+        if (!refresh) setLoadingStats(false);
       }
-    } catch (error: any) {
-      if (error?.response?.status !== 403) {
-        console.error("Failed to fetch dashboard stats:", error);
-        toast.error("Failed to load dashboard statistics");
-      }
-    } finally {
-      if (!refresh) setLoadingStats(false);
-    }
-  }, [companyIdParam, isSuperAdminUser]);
+    },
+    [companyIdParam, isSuperAdminUser],
+  );
 
   const fetchCompany = useCallback(async () => {
     if (!user) return;
-    
+
     if (isSuperAdminUser && companyIdParam) {
       try {
         const response = await companyAPI.getById(companyIdParam);
@@ -838,12 +906,16 @@ function DashboardContent() {
       if (!isSilent) setLoadingDepartments(true);
       try {
         // For company admin, fetch ALL departments (no pagination limit)
-        const fetchLimit = isCompanyLevel || (isSuperAdminUser && companyIdParam) ? 1000 : departmentPagination.limit;
+        const fetchLimit =
+          isCompanyLevel || (isSuperAdminUser && companyIdParam)
+            ? 1000
+            : departmentPagination.limit;
         const response = await departmentAPI.getAll({
-          page: isCompanyLevel || (isSuperAdminUser && companyIdParam) ? 1 : page,
-          limit: fetchLimit,
+          page: page,
+          limit: departmentPagination.limit,
           search: (deptSearch || "").trim(),
-          companyId: isSuperAdminUser && companyIdParam ? companyIdParam : undefined,
+          companyId:
+            isSuperAdminUser && companyIdParam ? companyIdParam : undefined,
         });
         if (response.success) {
           let filteredDepartments = response.data.departments;
@@ -869,10 +941,8 @@ function DashboardContent() {
           setDepartments(filteredDepartments);
           setDepartmentPagination((prev) => ({
             ...prev,
-            total: isCompanyLevel
-              ? filteredDepartments.length
-              : response.data.pagination.total,
-            pages: isCompanyLevel ? 1 : response.data.pagination.pages,
+            total: response.data.pagination.total,
+            pages: response.data.pagination.pages,
           }));
 
           // Set user counts from enriched data
@@ -912,12 +982,14 @@ function DashboardContent() {
             ? [
                 userFilters.mainDeptId,
                 ...departments
-                  .filter((d) => getParentDepartmentId(d) === userFilters.mainDeptId)
+                  .filter(
+                    (d) => getParentDepartmentId(d) === userFilters.mainDeptId,
+                  )
                   .map((d) => d._id),
-              ].join(',')
+              ].join(",")
             : undefined;
 
-        const serverRoleFilter = userFilters.role.startsWith('CUSTOM:')
+        const serverRoleFilter = userFilters.role.startsWith("CUSTOM:")
           ? undefined
           : userFilters.role || undefined;
 
@@ -926,9 +998,10 @@ function DashboardContent() {
           limit: userPagination.limit,
           search: (userSearch || "").trim(),
           role: serverRoleFilter,
-          status: (userFilters.status as 'active' | 'inactive') || undefined,
+          status: (userFilters.status as "active" | "inactive") || undefined,
           departmentId: selectedDepartmentId,
-          companyId: isSuperAdminUser && companyIdParam ? companyIdParam : undefined,
+          companyId:
+            isSuperAdminUser && companyIdParam ? companyIdParam : undefined,
         });
         if (response.success) {
           let filteredUsers = response.data.users;
@@ -938,8 +1011,8 @@ function DashboardContent() {
             const userDeptId =
               typeof user.departmentId === "object" &&
               user.departmentId !== null
-                  ? user.departmentId._id
-                  : user.departmentId;
+                ? user.departmentId._id
+                : user.departmentId;
 
             filteredUsers = filteredUsers.filter((u: any) => {
               const uDeptId =
@@ -951,11 +1024,11 @@ function DashboardContent() {
           }
 
           // For custom roles, keep frontend-side filtering (API only supports system role key)
-          if (userFilters.role?.startsWith('CUSTOM:')) {
-            const roleId = userFilters.role.split(':')[1];
+          if (userFilters.role?.startsWith("CUSTOM:")) {
+            const roleId = userFilters.role.split(":")[1];
             filteredUsers = filteredUsers.filter((u: any) => {
               const uRoleId =
-                typeof u.customRoleId === 'object' && u.customRoleId !== null
+                typeof u.customRoleId === "object" && u.customRoleId !== null
                   ? u.customRoleId._id
                   : u.customRoleId;
               return uRoleId === roleId;
@@ -965,11 +1038,14 @@ function DashboardContent() {
           setUsers(filteredUsers);
           setUserPagination((prev) => ({
             ...prev,
-            total: userFilters.role?.startsWith('CUSTOM:')
+            total: userFilters.role?.startsWith("CUSTOM:")
               ? filteredUsers.length
               : response.data.pagination.total,
-            pages: userFilters.role?.startsWith('CUSTOM:')
-              ? Math.max(1, Math.ceil(filteredUsers.length / userPagination.limit))
+            pages: userFilters.role?.startsWith("CUSTOM:")
+              ? Math.max(
+                  1,
+                  Math.ceil(filteredUsers.length / userPagination.limit),
+                )
               : response.data.pagination.pages,
           }));
         }
@@ -1003,11 +1079,13 @@ function DashboardContent() {
     setGrievancePage(1);
   }, [grievanceFilters, grievanceSearch]);
 
-
   const fetchGrievances = useCallback(
     async (page = grievancePage, isSilent = false) => {
       if (isSuperAdminUser && !companyIdParam) return;
-      if (!hasModule(Module.GRIEVANCE) || !hasPermission(user, Permission.READ_GRIEVANCE)) {
+      if (
+        !hasModule(Module.GRIEVANCE) ||
+        !hasPermission(user, Permission.READ_GRIEVANCE)
+      ) {
         return;
       }
 
@@ -1018,9 +1096,19 @@ function DashboardContent() {
           limit: grievancePagination.limit,
           status: grievanceFilters.status || undefined,
           search: (grievanceSearch || "").trim(),
-          departmentId: (grievanceFilters.subDeptId || grievanceFilters.mainDeptId || grievanceFilters.department) || undefined,
-          assignedTo: grievanceFilters.assignmentStatus === "assigned" ? "ANY" : grievanceFilters.assignmentStatus === "unassigned" ? "NONE" : undefined,
-          companyId: isSuperAdminUser && companyIdParam ? companyIdParam : undefined,
+          departmentId:
+            grievanceFilters.subDeptId ||
+            grievanceFilters.mainDeptId ||
+            grievanceFilters.department ||
+            undefined,
+          assignedTo:
+            grievanceFilters.assignmentStatus === "assigned"
+              ? "ANY"
+              : grievanceFilters.assignmentStatus === "unassigned"
+                ? "NONE"
+                : undefined,
+          companyId:
+            isSuperAdminUser && companyIdParam ? companyIdParam : undefined,
         });
         if (response.success) {
           setGrievances(response.data.grievances);
@@ -1054,17 +1142,21 @@ function DashboardContent() {
   const fetchAppointments = useCallback(
     async (page = appointmentPage, isSilent = false) => {
       if (isSuperAdminUser && !companyIdParam) return;
-      if (!hasModule(Module.APPOINTMENT) || !hasPermission(user, Permission.READ_APPOINTMENT)) {
+      if (
+        !hasModule(Module.APPOINTMENT) ||
+        !hasPermission(user, Permission.READ_APPOINTMENT)
+      ) {
         return;
       }
-      
+
       if (!isSilent) setLoadingAppointments(true);
       try {
         const response = await appointmentAPI.getAll({
           page,
           limit: appointmentPagination.limit,
           search: (appointmentSearch || "").trim(),
-          companyId: isSuperAdminUser && companyIdParam ? companyIdParam : undefined,
+          companyId:
+            isSuperAdminUser && companyIdParam ? companyIdParam : undefined,
         });
         if (response.success) {
           setAppointments(response.data.appointments);
@@ -1116,9 +1208,7 @@ function DashboardContent() {
       if (activeTab === "overview") {
         await fetchDashboardData();
       } else if (activeTab === "analytics") {
-        await Promise.all([
-          fetchDashboardData(),
-        ]);
+        await Promise.all([fetchDashboardData()]);
       } else if (activeTab === "grievances" || activeTab === "reverted") {
         await fetchGrievances(grievancePage);
       } else if (activeTab === "appointments") {
@@ -1155,7 +1245,7 @@ function DashboardContent() {
     if (isSuperAdminUser && !companyIdParam) return;
 
     if (mounted && user) {
-      if (isSuperAdminUser || (hasPermission(user, Permission.VIEW_ANALYTICS))) {
+      if (isSuperAdminUser || hasPermission(user, Permission.VIEW_ANALYTICS)) {
         fetchDashboardData();
       }
       if (user.companyId || (isSuperAdminUser && companyIdParam)) {
@@ -1163,7 +1253,15 @@ function DashboardContent() {
         fetchRoles();
       }
     }
-  }, [mounted, user, fetchDashboardData, fetchCompany, fetchRoles, isSuperAdminUser, companyIdParam]);
+  }, [
+    mounted,
+    user,
+    fetchDashboardData,
+    fetchCompany,
+    fetchRoles,
+    isSuperAdminUser,
+    companyIdParam,
+  ]);
 
   // 2. Specialized effects for each paginated module (Gated by activeTab for SPA performance)
   useEffect(() => {
@@ -1172,48 +1270,132 @@ function DashboardContent() {
     if (activeTab === "analytics" && mounted && user) {
       fetchDepartmentData();
     }
-  }, [activeTab, mounted, user, fetchDepartmentData, isSuperAdminUser, companyIdParam]);
+  }, [
+    activeTab,
+    mounted,
+    user,
+    fetchDepartmentData,
+    isSuperAdminUser,
+    companyIdParam,
+  ]);
 
   useEffect(() => {
     if (isSuperAdminUser && !companyIdParam) return;
 
-    const shouldFetch = (activeTab === "departments") || (activeTab === "overview" && isDepartmentLevel);
-    if (shouldFetch && mounted && user && (isSuperAdminUser || hasPermission(user, Permission.READ_DEPARTMENT) || isDepartmentLevel)) {
+    const shouldFetch =
+      activeTab === "departments" ||
+      (activeTab === "overview" && isDepartmentLevel);
+    if (
+      shouldFetch &&
+      mounted &&
+      user &&
+      (isSuperAdminUser ||
+        hasPermission(user, Permission.READ_DEPARTMENT) ||
+        isDepartmentLevel)
+    ) {
       fetchDepartments(departmentPage);
     }
-  }, [activeTab, mounted, user, departmentPage, fetchDepartments, isSuperAdminUser, isDepartmentLevel, companyIdParam]);
+  }, [
+    activeTab,
+    mounted,
+    user,
+    departmentPage,
+    departmentPagination.limit,
+    fetchDepartments,
+    isSuperAdminUser,
+    isDepartmentLevel,
+    companyIdParam,
+  ]);
 
   useEffect(() => {
     if (isSuperAdminUser && !companyIdParam) return;
 
-    if (activeTab === "users" && mounted && user && (isSuperAdminUser || hasPermission(user, Permission.READ_USER))) {
+    if (
+      activeTab === "users" &&
+      mounted &&
+      user &&
+      (isSuperAdminUser || hasPermission(user, Permission.READ_USER))
+    ) {
       fetchUsers(userPage);
     }
-  }, [activeTab, mounted, user, userPage, fetchUsers, isSuperAdminUser, companyIdParam]);
+  }, [
+    activeTab,
+    mounted,
+    user,
+    userPage,
+    fetchUsers,
+    isSuperAdminUser,
+    companyIdParam,
+  ]);
 
   useEffect(() => {
     if (isSuperAdminUser && !companyIdParam) return;
 
-    if (activeTab === "grievances" && mounted && user && (isSuperAdminUser || (hasModule(Module.GRIEVANCE) && hasPermission(user, Permission.READ_GRIEVANCE)))) {
+    if (
+      activeTab === "grievances" &&
+      mounted &&
+      user &&
+      (isSuperAdminUser ||
+        (hasModule(Module.GRIEVANCE) &&
+          hasPermission(user, Permission.READ_GRIEVANCE)))
+    ) {
       fetchGrievances(grievancePage);
     }
-  }, [activeTab, mounted, user, grievancePage, fetchGrievances, hasModule, isSuperAdminUser, companyIdParam]);
+  }, [
+    activeTab,
+    mounted,
+    user,
+    grievancePage,
+    fetchGrievances,
+    hasModule,
+    isSuperAdminUser,
+    companyIdParam,
+  ]);
 
   useEffect(() => {
     if (isSuperAdminUser && !companyIdParam) return;
 
-    if (activeTab === "appointments" && mounted && user && (isSuperAdminUser || (hasModule(Module.APPOINTMENT) && hasPermission(user, Permission.READ_APPOINTMENT)))) {
+    if (
+      activeTab === "appointments" &&
+      mounted &&
+      user &&
+      (isSuperAdminUser ||
+        (hasModule(Module.APPOINTMENT) &&
+          hasPermission(user, Permission.READ_APPOINTMENT)))
+    ) {
       fetchAppointments(appointmentPage);
     }
-  }, [activeTab, mounted, user, appointmentPage, fetchAppointments, hasModule, isSuperAdminUser, companyIdParam]);
+  }, [
+    activeTab,
+    mounted,
+    user,
+    appointmentPage,
+    fetchAppointments,
+    hasModule,
+    isSuperAdminUser,
+    companyIdParam,
+  ]);
 
   useEffect(() => {
     if (isSuperAdminUser && !companyIdParam) return;
 
-    if (activeTab === "leads" && mounted && user && hasModule(Module.LEAD_CAPTURE)) {
+    if (
+      activeTab === "leads" &&
+      mounted &&
+      user &&
+      hasModule(Module.LEAD_CAPTURE)
+    ) {
       fetchLeads();
     }
-  }, [activeTab, mounted, user, fetchLeads, hasModule, isSuperAdminUser, companyIdParam]);
+  }, [
+    activeTab,
+    mounted,
+    user,
+    fetchLeads,
+    hasModule,
+    isSuperAdminUser,
+    companyIdParam,
+  ]);
 
   // 3. Polling isolated from initial load triggers
   useEffect(() => {
@@ -1224,27 +1406,43 @@ function DashboardContent() {
       const pollInterval = setInterval(async () => {
         try {
           const promises = [];
-          
-          if (isSuperAdminUser || (hasModule(Module.GRIEVANCE) && hasPermission(user, Permission.READ_GRIEVANCE))) {
+
+          if (
+            isSuperAdminUser ||
+            (hasModule(Module.GRIEVANCE) &&
+              hasPermission(user, Permission.READ_GRIEVANCE))
+          ) {
             promises.push(grievanceAPI.getAll({ page: 1, limit: 10 }));
           }
-          
-          if (isSuperAdminUser || (hasModule(Module.APPOINTMENT) && hasPermission(user, Permission.READ_APPOINTMENT))) {
+
+          if (
+            isSuperAdminUser ||
+            (hasModule(Module.APPOINTMENT) &&
+              hasPermission(user, Permission.READ_APPOINTMENT))
+          ) {
             promises.push(appointmentAPI.getAll({ page: 1, limit: 10 }));
           }
-          
+
           if (promises.length === 0) return;
-          
+
           const results = await Promise.all(promises);
-          
+
           let grievanceRes: any = null;
           let appointmentRes: any = null;
-          
+
           let resultIdx = 0;
-          if (isSuperAdminUser || (hasModule(Module.GRIEVANCE) && hasPermission(user, Permission.READ_GRIEVANCE))) {
+          if (
+            isSuperAdminUser ||
+            (hasModule(Module.GRIEVANCE) &&
+              hasPermission(user, Permission.READ_GRIEVANCE))
+          ) {
             grievanceRes = results[resultIdx++];
           }
-          if (isSuperAdminUser || (hasModule(Module.APPOINTMENT) && hasPermission(user, Permission.READ_APPOINTMENT))) {
+          if (
+            isSuperAdminUser ||
+            (hasModule(Module.APPOINTMENT) &&
+              hasPermission(user, Permission.READ_APPOINTMENT))
+          ) {
             appointmentRes = results[resultIdx++];
           }
 
@@ -1289,7 +1487,9 @@ function DashboardContent() {
               }));
             }
           } else if (appointmentRes?.success) {
-            setPrevAppointmentCount(appointmentRes.data?.pagination?.total || 0);
+            setPrevAppointmentCount(
+              appointmentRes.data?.pagination?.total || 0,
+            );
           }
         } catch (error) {
           console.error("Polling error:", error);
@@ -1316,13 +1516,7 @@ function DashboardContent() {
       fetchPerformanceData();
       fetchDepartmentData();
     }
-  }, [
-    mounted,
-    user,
-    activeTab,
-    fetchPerformanceData,
-    fetchDepartmentData,
-  ]);
+  }, [mounted, user, activeTab, fetchPerformanceData, fetchDepartmentData]);
 
   const handleSort = (key: string, tab: string) => {
     let direction: "asc" | "desc" | null = "asc";
@@ -1377,10 +1571,13 @@ function DashboardContent() {
             typeof g.subDepartmentId === "object" && g.subDepartmentId
               ? (g.subDepartmentId as any)._id
               : g.subDepartmentId;
-          
+
           // Show if main department matches OR if it belongs to a sub-department of the selected main
-          const dept = departments.find(d => d._id === deptId);
-          return deptId === grievanceFilters.mainDeptId || getParentDepartmentId(dept) === grievanceFilters.mainDeptId;
+          const dept = departments.find((d) => d._id === deptId);
+          return (
+            deptId === grievanceFilters.mainDeptId ||
+            getParentDepartmentId(dept) === grievanceFilters.mainDeptId
+          );
         });
       }
       // Sub Department filter
@@ -1407,7 +1604,7 @@ function DashboardContent() {
         filteredData = filteredData.filter((g: Grievance) => {
           const createdDate = new Date(g.createdAt);
           const hoursDiff = Math.floor(
-            (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60)
+            (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60),
           );
 
           let isOverdue = false;
@@ -1422,7 +1619,7 @@ function DashboardContent() {
               ? new Date(g.assignedAt)
               : createdDate;
             const hoursFromAssigned = Math.floor(
-              (now.getTime() - assignedDate.getTime()) / (1000 * 60 * 60)
+              (now.getTime() - assignedDate.getTime()) / (1000 * 60 * 60),
             );
             isOverdue = hoursFromAssigned > slaHours;
           }
@@ -1547,14 +1744,16 @@ function DashboardContent() {
     if (tab === "departments") {
       // Type filter
       if (deptFilters.type) {
-        filteredData = filteredData.filter((d: Department) => 
-          deptFilters.type === "main" ? !d.parentDepartmentId : !!d.parentDepartmentId
+        filteredData = filteredData.filter((d: Department) =>
+          deptFilters.type === "main"
+            ? !d.parentDepartmentId
+            : !!d.parentDepartmentId,
         );
       }
       // Status filter
       if (deptFilters.status) {
-        filteredData = filteredData.filter((d: Department) => 
-          deptFilters.status === "active" ? d.isActive : !d.isActive
+        filteredData = filteredData.filter((d: Department) =>
+          deptFilters.status === "active" ? d.isActive : !d.isActive,
         );
       }
       // Search filter
@@ -1563,13 +1762,15 @@ function DashboardContent() {
         filteredData = filteredData.filter(
           (d: Department) =>
             d.name.toLowerCase().includes(search) ||
-            d.departmentId?.toLowerCase().includes(search)
+            d.departmentId?.toLowerCase().includes(search),
         );
       }
       // Main Department filter (show main + its subs)
       if (deptFilters.mainDeptId) {
-        filteredData = filteredData.filter((d: Department) => 
-          d._id === deptFilters.mainDeptId || getParentDepartmentId(d) === deptFilters.mainDeptId
+        filteredData = filteredData.filter(
+          (d: Department) =>
+            d._id === deptFilters.mainDeptId ||
+            getParentDepartmentId(d) === deptFilters.mainDeptId,
         );
       }
     }
@@ -1581,7 +1782,10 @@ function DashboardContent() {
         filteredData = filteredData.filter((u: User) => {
           if (userFilters.role.startsWith("CUSTOM:")) {
             const roleId = userFilters.role.split(":")[1];
-            const uRoleId = (u.customRoleId && typeof u.customRoleId === "object") ? (u.customRoleId as any)._id : u.customRoleId;
+            const uRoleId =
+              u.customRoleId && typeof u.customRoleId === "object"
+                ? (u.customRoleId as any)._id
+                : u.customRoleId;
             return uRoleId === roleId;
           }
           return u.role === userFilters.role;
@@ -1589,22 +1793,31 @@ function DashboardContent() {
       }
       // Status filter
       if (userFilters.status) {
-        filteredData = filteredData.filter((u: User) => 
-          userFilters.status === "active" ? u.isActive : !u.isActive
+        filteredData = filteredData.filter((u: User) =>
+          userFilters.status === "active" ? u.isActive : !u.isActive,
         );
       }
       // Main Department filter
       if (userFilters.mainDeptId) {
         filteredData = filteredData.filter((u: User) => {
-          const deptId = typeof u.departmentId === "object" && u.departmentId ? (u.departmentId as any)._id : u.departmentId;
-          const dept = departments.find(d => d._id === deptId);
-          return deptId === userFilters.mainDeptId || getParentDepartmentId(dept) === userFilters.mainDeptId;
+          const deptId =
+            typeof u.departmentId === "object" && u.departmentId
+              ? (u.departmentId as any)._id
+              : u.departmentId;
+          const dept = departments.find((d) => d._id === deptId);
+          return (
+            deptId === userFilters.mainDeptId ||
+            getParentDepartmentId(dept) === userFilters.mainDeptId
+          );
         });
       }
       // Sub Department filter
       if (userFilters.subDeptId) {
         filteredData = filteredData.filter((u: User) => {
-          const deptId = typeof u.departmentId === "object" && u.departmentId ? (u.departmentId as any)._id : u.departmentId;
+          const deptId =
+            typeof u.departmentId === "object" && u.departmentId
+              ? (u.departmentId as any)._id
+              : u.departmentId;
           return deptId === userFilters.subDeptId;
         });
       }
@@ -1616,7 +1829,7 @@ function DashboardContent() {
             u.firstName?.toLowerCase().includes(search) ||
             u.lastName?.toLowerCase().includes(search) ||
             u.email?.toLowerCase().includes(search) ||
-            u.phone?.includes(search)
+            u.phone?.includes(search),
         );
       }
     }
@@ -1724,12 +1937,19 @@ function DashboardContent() {
                 </div>
                 <div className="hidden sm:block">
                   <h1 className="text-sm font-black text-white tracking-tight leading-none uppercase">
-                    {isSuperAdminUser && companyIdParam ? `Viewing: ${company?.name || '...'}` : (
+                    {isSuperAdminUser && companyIdParam ? (
+                      `Viewing: ${company?.name || "..."}`
+                    ) : (
                       <>
                         {isCompanyLevel && (company?.name || "Company Level")}
                         {isDepartmentLevel && "Department"}
-                        {!hasPermission(user, Permission.VIEW_ANALYTICS) && !isSuperAdminUser && "Operations Center"}
-                        {hasPermission(user, Permission.VIEW_ANALYTICS) && !isCompanyLevel && !isSuperAdminUser && " Portal"}
+                        {!hasPermission(user, Permission.VIEW_ANALYTICS) &&
+                          !isSuperAdminUser &&
+                          "Operations Center"}
+                        {hasPermission(user, Permission.VIEW_ANALYTICS) &&
+                          !isCompanyLevel &&
+                          !isSuperAdminUser &&
+                          " Portal"}
                       </>
                     )}
                   </h1>
@@ -1790,18 +2010,21 @@ function DashboardContent() {
           onValueChange={(value) => {
             if (activeTab !== value) {
               setPreviousTab(activeTab);
-              
+
               // Filter logic for specialized tabs
               if (activeTab === "reverted") {
-                setGrievanceFilters(prev => ({ ...prev, status: "" }));
+                setGrievanceFilters((prev) => ({ ...prev, status: "" }));
               }
               if (value === "reverted") {
-                setGrievanceFilters((prev) => ({ ...prev, status: "REVERTED" }));
+                setGrievanceFilters((prev) => ({
+                  ...prev,
+                  status: "REVERTED",
+                }));
               }
               if (activeTab === "overview" && value === "grievances") {
-                setGrievanceFilters(prev => ({ ...prev, status: "" }));
+                setGrievanceFilters((prev) => ({ ...prev, status: "" }));
               }
-              
+
               setActiveTab(value);
             }
           }}
@@ -1809,7 +2032,8 @@ function DashboardContent() {
         >
           <div className="mb-4 sticky top-[64px] z-40 bg-white/95 backdrop-blur-sm py-3 -mx-4 px-4 sm:mx-0 sm:px-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <TabsList className="w-full sm:w-auto bg-slate-200/50 p-1 border border-slate-300/50 h-10 shadow-sm overflow-x-auto no-scrollbar max-w-full">
-              {(isSuperAdminUser || hasPermission(user, Permission.VIEW_ANALYTICS)) && (
+              {(isSuperAdminUser ||
+                hasPermission(user, Permission.VIEW_ANALYTICS)) && (
                 <TabsTrigger
                   value="overview"
                   className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
@@ -1819,28 +2043,29 @@ function DashboardContent() {
               )}
 
               {/* Analytics Tab - Professional Monitoring */}
-               {(!isSuperAdminUser || (isSuperAdminUser && companyIdParam)) && (
+              {(!isSuperAdminUser || (isSuperAdminUser && companyIdParam)) && (
                 <TabsTrigger
                   value="analytics"
                   className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg flex items-center"
                 >
                   <TrendingUp className="w-3.5 h-3.5 mr-1.5" />
-                  {isDFO ? 'Command Center' : 'Analytics'}
+                  {isDFO ? "Command Center" : "Analytics"}
                 </TabsTrigger>
               )}
-
 
               {hasPermission(user, Permission.READ_GRIEVANCE) && (
                 <TabsTrigger
                   value="grievances"
                   className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
                 >
-                  {isDFO ? 'Incidents' : 'Grievances'}
+                  {isDFO ? "Incidents" : "Grievances"}
                 </TabsTrigger>
               )}
 
-
-              {(isCompanyLevel || isDepartmentLevel || (isSuperAdminUser && companyIdParam)) && hasModule(Module.APPOINTMENT) &&
+              {(isCompanyLevel ||
+                isDepartmentLevel ||
+                (isSuperAdminUser && companyIdParam)) &&
+                hasModule(Module.APPOINTMENT) &&
                 hasPermission(user, Permission.READ_APPOINTMENT) && (
                   <TabsTrigger
                     value="appointments"
@@ -1937,7 +2162,6 @@ function DashboardContent() {
                   </TabsTrigger>
                 </>
               )}
-
             </TabsList>
             <Button
               onClick={handleRefresh}
@@ -1961,7 +2185,10 @@ function DashboardContent() {
               <>
                 {/* Total Grievances */}
                 {hasPermission(user, Permission.READ_GRIEVANCE) && (
-                  <Card onClick={() => setActiveTab("grievances")} className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer">
+                  <Card
+                    onClick={() => setActiveTab("grievances")}
+                    className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+                  >
                     <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
                       <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                         {isDFO ? "Total Incidents" : "Total Grievances"}
@@ -1972,13 +2199,15 @@ function DashboardContent() {
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-black text-slate-800 tabular-nums">
-                        {loadingStats ? "..." : (stats?.grievances.total || 0)}
+                        {loadingStats ? "..." : stats?.grievances.total || 0}
                       </div>
                       <div className="flex items-center gap-1 mt-1">
                         <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-full">
                           {stats?.grievances.last7Days || 0} New
                         </span>
-                        <span className="text-[9px] text-slate-400 font-medium">this week</span>
+                        <span className="text-[9px] text-slate-400 font-medium">
+                          this week
+                        </span>
                       </div>
                     </CardContent>
                   </Card>
@@ -1986,7 +2215,16 @@ function DashboardContent() {
 
                 {/* Pending Grievances */}
                 {hasPermission(user, Permission.READ_GRIEVANCE) && (
-                  <Card onClick={() => { setActiveTab("grievances"); setGrievanceFilters((prev) => ({ ...prev, status: "PENDING" })); }} className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 border-l-4 border-l-amber-400 cursor-pointer">
+                  <Card
+                    onClick={() => {
+                      setActiveTab("grievances");
+                      setGrievanceFilters((prev) => ({
+                        ...prev,
+                        status: "PENDING",
+                      }));
+                    }}
+                    className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+                  >
                     <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
                       <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                         {isDFO ? "Critical Alerts" : "Overdue Grievances"}
@@ -1997,45 +2235,54 @@ function DashboardContent() {
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-black text-amber-600 tabular-nums">
-                        {loadingStats ? "..." : (stats?.grievances.pending || 0)}
+                        {loadingStats ? "..." : stats?.grievances.pending || 0}
                       </div>
-                      <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">Requiring Response</p>
+                      <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">
+                        Requiring Response
+                      </p>
                     </CardContent>
                   </Card>
                 )}
 
                 {/* Total Appointments */}
-                {hasModule(Module.APPOINTMENT) && hasPermission(user, Permission.READ_APPOINTMENT) && (
-                  <Card onClick={() => setActiveTab("appointments")} className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer">
-                    <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
-                      <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                        Appointments
-                      </CardTitle>
-                      <div className="p-1.5 bg-emerald-50 rounded-lg">
-                        <CalendarCheck className="w-3.5 h-3.5 text-emerald-500" />
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-black text-slate-800 tabular-nums">
-                        {loadingStats ? "..." : (stats?.appointments.total || 0)}
-                      </div>
-                      <div className="flex items-center gap-1 mt-1">
-                        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
-                          {stats?.appointments.confirmed || 0} Confirmed
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-
+                {hasModule(Module.APPOINTMENT) &&
+                  hasPermission(user, Permission.READ_APPOINTMENT) && (
+                    <Card
+                      onClick={() => setActiveTab("appointments")}
+                      className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+                    >
+                      <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
+                        <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                          Appointments
+                        </CardTitle>
+                        <div className="p-1.5 bg-emerald-50 rounded-lg">
+                          <CalendarCheck className="w-3.5 h-3.5 text-emerald-500" />
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-black text-slate-800 tabular-nums">
+                          {loadingStats
+                            ? "..."
+                            : stats?.appointments.total || 0}
+                        </div>
+                        <div className="flex items-center gap-1 mt-1">
+                          <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
+                            {stats?.appointments.confirmed || 0} Confirmed
+                          </span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
 
                 {/* Departments (Mirroring Logic) */}
                 {isViewingCompany && (
                   <>
                     {stats?.isHierarchicalEnabled ? (
                       <>
-                        <Card onClick={() => setActiveTab("departments")} className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer">
+                        <Card
+                          onClick={() => setActiveTab("departments")}
+                          className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+                        >
                           <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
                             <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                               {isDFO ? "Forest Ranges" : "Main Departments"}
@@ -2046,12 +2293,19 @@ function DashboardContent() {
                           </CardHeader>
                           <CardContent>
                             <div className="text-2xl font-black text-slate-800 tabular-nums">
-                              {loadingStats ? "..." : (stats?.mainDepartments || 0)}
+                              {loadingStats
+                                ? "..."
+                                : stats?.mainDepartments || 0}
                             </div>
-                            <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">Primary Units</p>
+                            <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">
+                              Primary Units
+                            </p>
                           </CardContent>
                         </Card>
-                        <Card onClick={() => setActiveTab("departments")} className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer shadow-indigo-100/20">
+                        <Card
+                          onClick={() => setActiveTab("departments")}
+                          className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer shadow-indigo-100/20"
+                        >
                           <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
                             <CardTitle className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">
                               {isDFO ? "Forest Beats" : "Sub Departments"}
@@ -2062,14 +2316,21 @@ function DashboardContent() {
                           </CardHeader>
                           <CardContent>
                             <div className="text-2xl font-black text-indigo-600 tabular-nums">
-                              {loadingStats ? "..." : (stats?.subDepartments || 0)}
+                              {loadingStats
+                                ? "..."
+                                : stats?.subDepartments || 0}
                             </div>
-                            <p className="text-[9px] text-indigo-300 font-bold uppercase mt-1">Specialized Units</p>
+                            <p className="text-[9px] text-indigo-300 font-bold uppercase mt-1">
+                              Specialized Units
+                            </p>
                           </CardContent>
                         </Card>
                       </>
                     ) : (
-                      <Card onClick={() => setActiveTab("departments")} className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer">
+                      <Card
+                        onClick={() => setActiveTab("departments")}
+                        className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+                      >
                         <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
                           <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                             Working Units
@@ -2080,9 +2341,11 @@ function DashboardContent() {
                         </CardHeader>
                         <CardContent>
                           <div className="text-2xl font-black text-slate-800 tabular-nums">
-                            {loadingStats ? "..." : (stats?.departments || 0)}
+                            {loadingStats ? "..." : stats?.departments || 0}
                           </div>
-                          <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">Functional Depts</p>
+                          <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">
+                            Functional Depts
+                          </p>
                         </CardContent>
                       </Card>
                     )}
@@ -2090,31 +2353,47 @@ function DashboardContent() {
                 )}
 
                 {/* Reverted Grievances (Company Level) */}
-                {isViewingCompany && hasPermission(user, Permission.READ_GRIEVANCE) && (
-                  <Card onClick={() => { setActiveTab("reverted"); setGrievanceFilters((prev) => ({ ...prev, status: "REVERTED" })); }} className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 border-l-4 border-l-rose-400 cursor-pointer">
-                    <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
-                      <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                        Reverted
-                      </CardTitle>
-                      <div className="p-1.5 bg-rose-50 rounded-lg">
-                        <ArrowLeft className="w-3.5 h-3.5 text-rose-500" />
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-black text-rose-600 tabular-nums">
-                        {loadingStats ? "..." : (grievances.filter(g => g.status?.toUpperCase() === "REVERTED").length || 0)}
-                      </div>
-                      <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">Pending Resolution</p>
-                    </CardContent>
-                  </Card>
-                )}
+                {isViewingCompany &&
+                  hasPermission(user, Permission.READ_GRIEVANCE) && (
+                    <Card
+                      onClick={() => {
+                        setActiveTab("reverted");
+                        setGrievanceFilters((prev) => ({
+                          ...prev,
+                          status: "REVERTED",
+                        }));
+                      }}
+                      className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+                    >
+                      <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
+                        <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                          Reverted
+                        </CardTitle>
+                        <div className="p-1.5 bg-rose-50 rounded-lg">
+                          <ArrowLeft className="w-3.5 h-3.5 text-rose-500" />
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-black text-rose-600 tabular-nums">
+                          {loadingStats
+                            ? "..."
+                            : grievances.filter(
+                                (g) => g.status?.toUpperCase() === "REVERTED",
+                              ).length || 0}
+                        </div>
+                        <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">
+                          Pending Resolution
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
               </>
             </div>
 
             {/* Company Info (for Company Admin) - Beautified Modern Design */}
             {isViewingCompany && company && (
               <Card className="overflow-hidden border border-slate-200 shadow-sm bg-white rounded-xl">
-                <div className="bg-slate-900 px-6 py-5">
+                <div className="bg-slate-900 px-6 py-2">
                   <div className="relative flex items-center justify-between">
                     <div className="flex items-center space-x-4">
                       <div className="h-16 w-16 bg-white/10 rounded-2xl flex items-center justify-center border border-white/20 shadow-lg">
@@ -2192,50 +2471,6 @@ function DashboardContent() {
                       </div>
                       <div className="text-xs font-bold text-slate-700">
                         {formatTo10Digits(company.contactPhone)}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="bg-slate-50/50 p-4 border-t border-slate-100">
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
-                      <div className="flex items-center space-x-4">
-                        {hasModule(Module.GRIEVANCE) &&
-                          hasPermission(user, Permission.READ_GRIEVANCE) && (
-                            <div className="flex flex-col bg-white border border-slate-200/60 rounded-xl p-3 shadow-sm min-w-[140px]">
-                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
-                                {isDFO ? "Incident Reports" : "Grievances"}
-                              </span>
-                              <div className="flex items-center gap-2">
-                                <span className="text-xl font-black text-slate-900 tracking-tighter">
-                                  {stats?.grievances.total || 0}
-                                </span>
-                                <span className="text-[9px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">
-                                  {stats?.grievances.pending || 0} Open
-                                </span>
-                              </div>
-                            </div>
-                          )}
-                        {hasModule(Module.APPOINTMENT) &&
-                          hasPermission(user, Permission.READ_APPOINTMENT) && (
-                            <div className="flex flex-col bg-white border border-slate-200/60 rounded-xl p-3 shadow-sm min-w-[140px]">
-                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
-                                Appointments
-                              </span>
-                              <div className="flex items-center gap-2">
-                                <span className="text-xl font-black text-slate-900 tracking-tighter">
-                                  {stats?.appointments.total || 0}
-                                </span>
-                                <span className="text-[9px] font-bold text-violet-600 bg-violet-50 px-1.5 py-0.5 rounded border border-violet-100">
-                                  {stats?.appointments.confirmed || 0} High
-                                </span>
-                              </div>
-                            </div>
-                          )}
-                      </div>
-                      <div className="flex items-center space-x-2 bg-white px-3 py-1.5 rounded-lg border border-slate-200/60 shadow-sm">
-                        <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                          Network Secure
-                        </span>
                       </div>
                     </div>
                   </div>
@@ -2450,7 +2685,6 @@ function DashboardContent() {
                                   </div>
                                 </div>
                               )}
-
                           </div>
                         </div>
                       ) : (
@@ -2469,7 +2703,7 @@ function DashboardContent() {
 
             {/* Quick Actions */}
             <Card className="border border-slate-200 shadow-sm rounded-xl overflow-hidden">
-              <CardHeader className="bg-slate-900 px-5 py-4">
+              {/* <CardHeader className="bg-slate-900 px-5 py-4">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-indigo-500/20 rounded-lg flex items-center justify-center border border-indigo-500/30">
                     <Zap className="w-4 h-4 text-indigo-400" />
@@ -2483,7 +2717,7 @@ function DashboardContent() {
                     </p>
                   </div>
                 </div>
-              </CardHeader>
+              </CardHeader> */}
               <CardContent className="p-4 space-y-2">
                 {isViewingCompany && (
                   <>
@@ -2580,55 +2814,9 @@ function DashboardContent() {
           {(!isSuperAdminUser || (isSuperAdminUser && companyIdParam)) && (
             <TabsContent value="analytics" className="space-y-4">
               {/* Header Banner */}
-              <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-4 border border-slate-800 shadow-lg mb-4">
-                <div
-                  className="absolute inset-0 opacity-[0.06]"
-                  style={{
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-                  }}
-                ></div>
-                <div className="relative flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30 backdrop-blur-md shadow-inner">
-                      <BarChart2 className="w-6 h-6 text-indigo-400" />
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-bold text-white flex items-center gap-2 tracking-tight">
-                        <Activity className="w-5 h-5 text-indigo-400 animate-pulse" />
-                        {isDFO ? "Forest Intelligence & Analytics" : "Operational Intelligence Dashboard"}
-                      </h2>
-                      <p className="text-slate-300 text-xs mt-1 font-medium opacity-80 leading-relaxed">
-                        {isDFO 
-                          ? `Monitoring ${stats?.departments || 0} forest beats and divisions across Bhanupratappur East`
-                          : `Visualizing operational health across ${stats?.departments || departments.length} departments and ${stats?.users || users.length} personnel`}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {isDFO && (
-                      <Button
-                        onClick={() => {
-                          toast.loading("Generating Division Report...", { duration: 1500 });
-                          setTimeout(() => toast.success("Forest Protection Report (PDF) ready for download"), 2000);
-                        }}
-                        className="bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-400/30 shadow-lg shadow-indigo-500/20 h-9 font-black text-[10px] uppercase tracking-widest gap-2"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                        Download Report
-                      </Button>
-                    )}
-                    <div className="hidden md:flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl backdrop-blur-sm">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]"></span>
-                      <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">
-                        Live Metrics
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
 
               {/* 🌲 DFO Forest Insights (Specialized Tiles) */}
-              {company?.name?.toUpperCase().includes('BHANUPRATAPPUR') && (
+              {company?.name?.toUpperCase().includes("BHANUPRATAPPUR") && (
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                   <div className="group relative bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl p-4 shadow-lg shadow-orange-500/20 overflow-hidden text-white">
                     <div className="relative z-10">
@@ -2636,11 +2824,17 @@ function DashboardContent() {
                         <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-md">
                           <Zap className="w-5 h-5 text-white" />
                         </div>
-                        <span className="text-[10px] bg-white/20 px-2 py-1 rounded-full font-bold uppercase tracking-wider">High Alert</span>
+                        <span className="text-[10px] bg-white/20 px-2 py-1 rounded-full font-bold uppercase tracking-wider">
+                          High Alert
+                        </span>
                       </div>
-                      <h4 className="text-white/80 text-[10px] font-black uppercase tracking-widest">Active Wildfires</h4>
+                      <h4 className="text-white/80 text-[10px] font-black uppercase tracking-widest">
+                        Active Wildfires
+                      </h4>
                       <p className="text-3xl font-black tracking-tighter mt-1">
-                        {stats?.grievances.byPriority?.find(p => p.priority === 'HIGH')?.count || 0}
+                        {stats?.grievances.byPriority?.find(
+                          (p) => p.priority === "HIGH",
+                        )?.count || 0}
                       </p>
                     </div>
                     <div className="absolute -right-4 -bottom-4 opacity-20 transform group-hover:scale-110 transition-transform">
@@ -2654,11 +2848,19 @@ function DashboardContent() {
                         <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-md">
                           <Target className="w-5 h-5 text-white" />
                         </div>
-                        <span className="text-[10px] bg-white/20 px-2 py-1 rounded-full font-bold uppercase tracking-wider">Secured</span>
+                        <span className="text-[10px] bg-white/20 px-2 py-1 rounded-full font-bold uppercase tracking-wider">
+                          Secured
+                        </span>
                       </div>
-                      <h4 className="text-white/80 text-[10px] font-black uppercase tracking-widest">Wildlife Incidents</h4>
+                      <h4 className="text-white/80 text-[10px] font-black uppercase tracking-widest">
+                        Wildlife Incidents
+                      </h4>
                       <p className="text-3xl font-black tracking-tighter mt-1">
-                        {grievances.filter(g => g.category?.toLowerCase().includes('animal') || g.category?.toLowerCase().includes('wildlife')).length || 0}
+                        {grievances.filter(
+                          (g) =>
+                            g.category?.toLowerCase().includes("animal") ||
+                            g.category?.toLowerCase().includes("wildlife"),
+                        ).length || 0}
                       </p>
                     </div>
                     <div className="absolute -right-4 -bottom-4 opacity-20 transform group-hover:scale-110 transition-transform">
@@ -2672,9 +2874,13 @@ function DashboardContent() {
                         <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-md">
                           <Shield className="w-5 h-5 text-white" />
                         </div>
-                        <span className="text-[10px] bg-white/20 px-2 py-1 rounded-full font-bold uppercase tracking-wider">Monitored</span>
+                        <span className="text-[10px] bg-white/20 px-2 py-1 rounded-full font-bold uppercase tracking-wider">
+                          Monitored
+                        </span>
                       </div>
-                      <h4 className="text-white/80 text-[10px] font-black uppercase tracking-widest">Total Patrol Areas</h4>
+                      <h4 className="text-white/80 text-[10px] font-black uppercase tracking-widest">
+                        Total Patrol Areas
+                      </h4>
                       <p className="text-3xl font-black tracking-tighter mt-1">
                         {stats?.departments || 0}
                       </p>
@@ -2685,13 +2891,22 @@ function DashboardContent() {
                   </div>
 
                   <div className="group relative bg-white rounded-2xl p-4 border border-slate-200 shadow-sm overflow-hidden flex flex-col justify-center">
-                    <h4 className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Encroachment Alerts</h4>
+                    <h4 className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">
+                      Encroachment Alerts
+                    </h4>
                     <div className="flex items-baseline gap-2">
-                      <p className="text-3xl font-black text-slate-900 tracking-tighter">0</p>
-                      <span className="text-emerald-500 text-[10px] font-bold">Stable</span>
+                      <p className="text-3xl font-black text-slate-900 tracking-tighter">
+                        0
+                      </p>
+                      <span className="text-emerald-500 text-[10px] font-bold">
+                        Stable
+                      </span>
                     </div>
                     <div className="mt-2 w-full bg-slate-100 rounded-full h-1">
-                      <div className="bg-emerald-500 h-1 rounded-full" style={{ width: '0%' }}></div>
+                      <div
+                        className="bg-emerald-500 h-1 rounded-full"
+                        style={{ width: "0%" }}
+                      ></div>
                     </div>
                   </div>
                 </div>
@@ -2701,15 +2916,15 @@ function DashboardContent() {
               <div
                 className={cn(
                   "grid gap-4",
-                  stats?.isHierarchicalEnabled && isViewingCompany 
-                    ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5" 
-                    : "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5"
+                  stats?.isHierarchicalEnabled && isViewingCompany
+                    ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
+                    : "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5",
                 )}
               >
                 {/* Total Grievances - Enhanced */}
                 {hasModule(Module.GRIEVANCE) && (
-                  <div 
-                    onClick={() => setActiveTab("grievances")} 
+                  <div
+                    onClick={() => setActiveTab("grievances")}
                     className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-4 transition-all duration-500 hover:shadow-xl hover:shadow-indigo-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden"
                   >
                     <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-indigo-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
@@ -2720,12 +2935,15 @@ function DashboardContent() {
                         </div>
                         <div className="text-right">
                           <div className="text-[9px] font-black text-indigo-600 bg-indigo-50/80 px-2 py-1 rounded-lg uppercase tracking-tight border border-indigo-100/30">
-                            {(stats?.grievances.resolutionRate || 0).toFixed(1)}% Resolved
+                            {(stats?.grievances.resolutionRate || 0).toFixed(1)}
+                            % Resolved
                           </div>
                         </div>
                       </div>
                       <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                        {isDFO ? "Incident Reporting Trend" : "Inbound Grievances"}
+                        {isDFO
+                          ? "Incident Reporting Trend"
+                          : "Inbound Grievances"}
                       </h4>
                       <p className="text-2xl font-black text-slate-900 tracking-tighter group-hover:text-indigo-600 transition-colors">
                         {stats?.grievances.total || 0}
@@ -2736,8 +2954,14 @@ function DashboardContent() {
 
                 {/* Actions Needed - Optimized */}
                 {hasModule(Module.GRIEVANCE) && (
-                  <div 
-                    onClick={() => { setActiveTab("grievances"); setGrievanceFilters((prev) => ({ ...prev, status: "PENDING" })); }} 
+                  <div
+                    onClick={() => {
+                      setActiveTab("grievances");
+                      setGrievanceFilters((prev) => ({
+                        ...prev,
+                        status: "PENDING",
+                      }));
+                    }}
                     className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-4 transition-all duration-500 hover:shadow-xl hover:shadow-amber-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden"
                   >
                     <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-amber-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
@@ -2762,8 +2986,14 @@ function DashboardContent() {
 
                 {/* Resolved Page Content - Success Gradient */}
                 {hasModule(Module.GRIEVANCE) && (
-                  <div 
-                    onClick={() => { setActiveTab("grievances"); setGrievanceFilters((prev) => ({ ...prev, status: "RESOLVED" })); }} 
+                  <div
+                    onClick={() => {
+                      setActiveTab("grievances");
+                      setGrievanceFilters((prev) => ({
+                        ...prev,
+                        status: "RESOLVED",
+                      }));
+                    }}
                     className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-4 transition-all duration-500 hover:shadow-xl hover:shadow-emerald-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden"
                   >
                     <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-emerald-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
@@ -2773,10 +3003,13 @@ function DashboardContent() {
                           <CheckCircle2 className="w-5 h-5" />
                         </div>
                         <div className="flex items-center gap-1 text-[9px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg uppercase tracking-tight">
-                           <Zap className="w-2 h-2 fill-emerald-500" /> +{stats?.resolvedToday || 0}
+                          <Zap className="w-2 h-2 fill-emerald-500" /> +
+                          {stats?.resolvedToday || 0}
                         </div>
                       </div>
-                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Resolved</h4>
+                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                        Total Resolved
+                      </h4>
                       <p className="text-2xl font-black text-emerald-600 tracking-tighter">
                         {stats?.grievances.resolved || 0}
                       </p>
@@ -2787,7 +3020,13 @@ function DashboardContent() {
                 {/* Pending Appointments - Modern Card */}
                 {hasModule(Module.APPOINTMENT) && isViewingCompany && (
                   <div
-                    onClick={() => { setActiveTab("appointments"); setAppointmentFilters((prev) => ({ ...prev, status: "SCHEDULED" })); }}
+                    onClick={() => {
+                      setActiveTab("appointments");
+                      setAppointmentFilters((prev) => ({
+                        ...prev,
+                        status: "SCHEDULED",
+                      }));
+                    }}
                     className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-4 transition-all duration-500 hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden"
                   >
                     <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-blue-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
@@ -2800,7 +3039,9 @@ function DashboardContent() {
                           Upcoming
                         </div>
                       </div>
-                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Pending Appts</h4>
+                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                        Pending Appts
+                      </h4>
                       <p className="text-2xl font-black text-slate-900 tracking-tighter">
                         {stats?.appointments.pending || 0}
                       </p>
@@ -2821,10 +3062,13 @@ function DashboardContent() {
                           <CalendarCheck className="w-5 h-5" />
                         </div>
                         <div className="text-[9px] font-black text-purple-600 bg-purple-50 px-2 py-1 rounded-lg uppercase tracking-tight">
-                          {(stats?.appointments.completionRate || 0).toFixed(0)}%
+                          {(stats?.appointments.completionRate || 0).toFixed(0)}
+                          %
                         </div>
                       </div>
-                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Appointments</h4>
+                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                        Appointments
+                      </h4>
                       <p className="text-2xl font-black text-slate-900 tracking-tighter">
                         {stats?.appointments.total || 0}
                       </p>
@@ -2833,7 +3077,7 @@ function DashboardContent() {
                 )}
               </div>
 
-            {/* Charts Row */}
+              {/* Charts Row */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 {/* Grievance Trend */}
                 {hasModule(Module.GRIEVANCE) && (
@@ -2845,7 +3089,9 @@ function DashboardContent() {
                         </div>
                         <div>
                           <h3 className="text-sm font-bold text-slate-800">
-                            {isDFO ? "Operational Response Trend" : "Grievance Trend"}
+                            {isDFO
+                              ? "Operational Response Trend"
+                              : "Grievance Trend"}
                           </h3>
                           <p className="text-[10px] text-slate-400">
                             Last 7 days activity
@@ -2957,7 +3203,10 @@ function DashboardContent() {
                           },
                           {
                             name: "In Progress",
-                            value: stats?.grievances.assigned || stats?.grievances.inProgress || 0,
+                            value:
+                              stats?.grievances.assigned ||
+                              stats?.grievances.inProgress ||
+                              0,
                             color: "#6366f1",
                             subText: "Active resolution",
                           },
@@ -2995,7 +3244,8 @@ function DashboardContent() {
                                     contentStyle={{
                                       borderRadius: "16px",
                                       border: "none",
-                                      boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+                                      boxShadow:
+                                        "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
                                       fontSize: "10px",
                                       fontWeight: "bold",
                                     }}
@@ -3006,7 +3256,9 @@ function DashboardContent() {
                                 <span className="text-xl font-black text-slate-900 tracking-tighter">
                                   {stats?.grievances.total || 0}
                                 </span>
-                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Total</span>
+                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-0.5">
+                                  Total
+                                </span>
                               </div>
                             </div>
                             <div className="space-y-1.5 mt-3">
@@ -3024,7 +3276,9 @@ function DashboardContent() {
                                       <p className="text-[10px] font-black text-slate-700 uppercase tracking-tighter leading-none">
                                         {d.name}
                                       </p>
-                                      <p className="text-[8px] text-slate-400 group-hover:text-slate-500 transition-colors mt-0.5">{d.subText}</p>
+                                      <p className="text-[8px] text-slate-400 group-hover:text-slate-500 transition-colors mt-0.5">
+                                        {d.subText}
+                                      </p>
                                     </div>
                                   </div>
                                   <div className="text-right">
@@ -3032,7 +3286,12 @@ function DashboardContent() {
                                       {d.value}
                                     </p>
                                     <p className="text-[8px] font-bold text-slate-400 mt-0.5">
-                                      {((d.value / (stats?.grievances.total || 1)) * 100).toFixed(0)}%
+                                      {(
+                                        (d.value /
+                                          (stats?.grievances.total || 1)) *
+                                        100
+                                      ).toFixed(0)}
+                                      %
                                     </p>
                                   </div>
                                 </div>
@@ -3049,7 +3308,6 @@ function DashboardContent() {
                   </div>
                 )}
               </div>
-
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* High Grievance Departments */}
@@ -3077,12 +3335,20 @@ function DashboardContent() {
                           layout="vertical"
                           margin={{ left: 10, right: 30, top: 0, bottom: 0 }}
                         >
-                          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            stroke="#f1f5f9"
+                            horizontal={false}
+                          />
                           <XAxis type="number" hide />
                           <YAxis
                             dataKey="departmentName"
                             type="category"
-                            tick={{ fontSize: 9, fontWeight: "bold", fill: "#64748b" }}
+                            tick={{
+                              fontSize: 9,
+                              fontWeight: "bold",
+                              fill: "#64748b",
+                            }}
                             width={80}
                           />
                           <Tooltip
@@ -3091,7 +3357,7 @@ function DashboardContent() {
                               borderRadius: "12px",
                               border: "none",
                               boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
-                              fontSize: "10px"
+                              fontSize: "10px",
                             }}
                           />
                           <Bar
@@ -3150,7 +3416,16 @@ function DashboardContent() {
                         return apptData.length > 0 ? (
                           <>
                             <ResponsiveContainer width="100%" height={120}>
-                              <BarChart data={apptData} layout="vertical" margin={{ left: 0, right: 0, top: 0, bottom: 0 }}>
+                              <BarChart
+                                data={apptData}
+                                layout="vertical"
+                                margin={{
+                                  left: 0,
+                                  right: 0,
+                                  top: 0,
+                                  bottom: 0,
+                                }}
+                              >
                                 <CartesianGrid
                                   strokeDasharray="3 3"
                                   stroke="#f1f5f9"
@@ -3239,33 +3514,46 @@ function DashboardContent() {
                     {(() => {
                       const roleDataRaw = stats?.usersByRole || [];
                       const localRoleMap: Record<string, number> = {};
-                      
+
                       if (roleDataRaw.length === 0) {
                         users.forEach((u) => {
                           let roleName = "";
-                          if (typeof u.customRoleId === "object" && u.customRoleId?.name) {
+                          if (
+                            typeof u.customRoleId === "object" &&
+                            u.customRoleId?.name
+                          ) {
                             roleName = u.customRoleId.name;
                           } else {
                             roleName = u.role?.replace(/_/g, " ") || "Unknown";
                           }
                           const normalizedRole = roleName.toUpperCase();
-                          localRoleMap[normalizedRole] = (localRoleMap[normalizedRole] || 0) + 1;
+                          localRoleMap[normalizedRole] =
+                            (localRoleMap[normalizedRole] || 0) + 1;
                         });
                       }
 
-                      const roleColors = ["#6366f1", "#10b981", "#f59e0b", "#f43f5e", "#8b5cf6"];
-                      
-                      const roleData = roleDataRaw.length > 0 
-                        ? roleDataRaw.map((r, i) => ({
-                            name: r.name.toUpperCase(),
-                            value: r.count,
-                            color: roleColors[i % roleColors.length],
-                          }))
-                        : Object.entries(localRoleMap).map(([name, value], i) => ({
-                            name,
-                            value,
-                            color: roleColors[i % roleColors.length],
-                          }));
+                      const roleColors = [
+                        "#6366f1",
+                        "#10b981",
+                        "#f59e0b",
+                        "#f43f5e",
+                        "#8b5cf6",
+                      ];
+
+                      const roleData =
+                        roleDataRaw.length > 0
+                          ? roleDataRaw.map((r, i) => ({
+                              name: r.name.toUpperCase(),
+                              value: r.count,
+                              color: roleColors[i % roleColors.length],
+                            }))
+                          : Object.entries(localRoleMap).map(
+                              ([name, value], i) => ({
+                                name,
+                                value,
+                                color: roleColors[i % roleColors.length],
+                              }),
+                            );
 
                       const totalStaffCount = stats?.users || users.length;
 
@@ -3336,7 +3624,9 @@ function DashboardContent() {
                       <div className="flex gap-2">
                         <div className="flex items-center gap-1.5 px-3 py-1 bg-rose-500/10 border border-rose-500/20 rounded-full">
                           <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>
-                          <span className="text-[9px] font-black text-rose-400 uppercase tracking-widest">Action Zones</span>
+                          <span className="text-[9px] font-black text-rose-400 uppercase tracking-widest">
+                            Action Zones
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -3345,67 +3635,108 @@ function DashboardContent() {
                         {/* Mock Heatmap Visualization */}
                         <div className="absolute inset-0 grid grid-cols-8 grid-rows-8 gap-0.5 opacity-20">
                           {Array.from({ length: 64 }).map((_, i) => (
-                            <div 
-                              key={i} 
+                            <div
+                              key={i}
                               className={`w-full h-full transition-all duration-1000 ${
-                                i === 12 || i === 25 || i === 26 || i === 44 || i === 37 
-                                  ? 'bg-rose-500 animate-pulse' 
+                                i === 12 ||
+                                i === 25 ||
+                                i === 26 ||
+                                i === 44 ||
+                                i === 37
+                                  ? "bg-rose-500 animate-pulse"
                                   : i === 18 || i === 33 || i === 50
-                                    ? 'bg-orange-500 opacity-60'
-                                    : 'bg-indigo-900/30'
+                                    ? "bg-orange-500 opacity-60"
+                                    : "bg-indigo-900/30"
                               }`}
                             />
                           ))}
                         </div>
-                        
+
                         {/* Active Markers */}
                         <div className="absolute inset-0 p-4">
                           {(liveIncidents || []).slice(0, 5).map((inc, i) => (
-                            <div 
-                              key={i} 
+                            <div
+                              key={i}
                               className="absolute w-4 h-4"
-                              style={{ 
-                                left: `${20 + (i * 15)}%`, 
-                                top: `${30 + (i * 10)}%` 
+                              style={{
+                                left: `${20 + i * 15}%`,
+                                top: `${30 + i * 10}%`,
                               }}
                             >
-                              <div className={`w-full h-full rounded-full ${inc.severity === 'CRITICAL' ? 'bg-rose-500' : 'bg-orange-500'} animate-ping opacity-40`} />
-                              <div className={`absolute inset-0 w-2 h-2 m-auto rounded-full ${inc.severity === 'CRITICAL' ? 'bg-rose-600' : 'bg-orange-600'} border border-white/40 shadow-lg`} />
+                              <div
+                                className={`w-full h-full rounded-full ${inc.severity === "CRITICAL" ? "bg-rose-500" : "bg-orange-500"} animate-ping opacity-40`}
+                              />
+                              <div
+                                className={`absolute inset-0 w-2 h-2 m-auto rounded-full ${inc.severity === "CRITICAL" ? "bg-rose-600" : "bg-orange-600"} border border-white/40 shadow-lg`}
+                              />
                             </div>
                           ))}
                         </div>
 
                         <div className="absolute bottom-4 left-4 right-4 bg-slate-900/90 backdrop-blur-xl border border-white/10 p-3 rounded-lg shadow-2xl">
                           <div className="flex items-center justify-between mb-2">
-                            <span className="text-[10px] font-black text-white uppercase tracking-widest">Active Incident Summary</span>
-                            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Bhanupratappur East</span>
+                            <span className="text-[10px] font-black text-white uppercase tracking-widest">
+                              Active Incident Summary
+                            </span>
+                            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">
+                              Bhanupratappur East
+                            </span>
                           </div>
                           <div className="flex gap-4">
                             <div className="flex-1">
-                              <p className="text-[10px] text-slate-500 font-black uppercase tracking-tighter">High Risk Areas</p>
-                              <p className="text-sm font-black text-rose-400">Range A, Sector 4</p>
+                              <p className="text-[10px] text-slate-500 font-black uppercase tracking-tighter">
+                                High Risk Areas
+                              </p>
+                              <p className="text-sm font-black text-rose-400">
+                                Range A, Sector 4
+                              </p>
                             </div>
                             <div className="w-px h-8 bg-slate-800" />
                             <div className="flex-1">
-                              <p className="text-[10px] text-slate-500 font-black uppercase tracking-tighter">Current Trend</p>
-                              <p className="text-sm font-black text-emerald-400">Down 12% <span className="text-[8px] font-mono text-slate-500 uppercase ml-1">v/s last wk</span></p>
+                              <p className="text-[10px] text-slate-500 font-black uppercase tracking-tighter">
+                                Current Trend
+                              </p>
+                              <p className="text-sm font-black text-emerald-400">
+                                Down 12%{" "}
+                                <span className="text-[8px] font-mono text-slate-500 uppercase ml-1">
+                                  v/s last wk
+                                </span>
+                              </p>
                             </div>
                           </div>
                         </div>
                       </div>
-                      
+
                       <div className="grid grid-cols-3 gap-3 mt-4">
                         <div className="bg-slate-800/30 border border-slate-800 p-3 rounded-xl">
-                          <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Response Time</p>
-                          <p className="text-xl font-black text-white tabular-nums">24<span className="text-[10px] lowercase text-slate-400 ml-0.5">min</span></p>
+                          <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">
+                            Response Time
+                          </p>
+                          <p className="text-xl font-black text-white tabular-nums">
+                            24
+                            <span className="text-[10px] lowercase text-slate-400 ml-0.5">
+                              min
+                            </span>
+                          </p>
                         </div>
                         <div className="bg-slate-800/30 border border-slate-800 p-3 rounded-xl">
-                          <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Patrol Coverage</p>
-                          <p className="text-xl font-black text-white tabular-nums">92<span className="text-[10px] text-slate-400 ml-0.5">%</span></p>
+                          <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">
+                            Patrol Coverage
+                          </p>
+                          <p className="text-xl font-black text-white tabular-nums">
+                            92
+                            <span className="text-[10px] text-slate-400 ml-0.5">
+                              %
+                            </span>
+                          </p>
                         </div>
                         <div className="bg-slate-800/30 border border-slate-800 p-3 rounded-xl">
-                          <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Forest Integrity</p>
-                          <p className="text-xl font-black text-emerald-400 tabular-nums">8/10</p>
+                          <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">
+                            Forest Integrity
+                          </p>
+                          <p className="text-xl font-black text-emerald-400 tabular-nums">
+                            8/10
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -3434,63 +3765,86 @@ function DashboardContent() {
                           data={(forestBeats || []).slice(0, 6)}
                           margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
                         >
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                          <XAxis 
-                            dataKey="name" 
-                            axisLine={false} 
-                            tickLine={false} 
-                            tick={{ fontSize: 10, fill: '#64748b', fontWeight: 700 }} 
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            vertical={false}
+                            stroke="#f1f5f9"
+                          />
+                          <XAxis
+                            dataKey="name"
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{
+                              fontSize: 10,
+                              fill: "#64748b",
+                              fontWeight: 700,
+                            }}
                           />
                           <YAxis hide />
-                          <Tooltip 
-                            cursor={{ fill: '#f8fafc' }}
+                          <Tooltip
+                            cursor={{ fill: "#f8fafc" }}
                             content={({ active, payload, label }) => {
                               if (active && payload && payload.length) {
                                 return (
                                   <div className="bg-slate-900 border border-slate-800 p-3 rounded-xl shadow-2xl">
-                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{label}</p>
-                                    <p className="text-sm font-black text-white">Efficiency: 94%</p>
-                                    <p className="text-[10px] text-emerald-400 font-bold mt-1">Above target</p>
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                                      {label}
+                                    </p>
+                                    <p className="text-sm font-black text-white">
+                                      Efficiency: 94%
+                                    </p>
+                                    <p className="text-[10px] text-emerald-400 font-bold mt-1">
+                                      Above target
+                                    </p>
                                   </div>
                                 );
                               }
                               return null;
                             }}
                           />
-                          <Bar 
-                            dataKey="incidents" 
-                            radius={[6, 6, 0, 0]} 
+                          <Bar
+                            dataKey="incidents"
+                            radius={[6, 6, 0, 0]}
                             barSize={32}
                           >
                             {(forestBeats || []).map((entry, index) => (
-                              <Cell 
-                                key={`cell-${index}`} 
-                                fill={index % 2 === 0 ? '#6366f1' : '#10b981'} 
+                              <Cell
+                                key={`cell-${index}`}
+                                fill={index % 2 === 0 ? "#6366f1" : "#10b981"}
                                 fillOpacity={0.8}
                               />
                             ))}
                           </Bar>
                         </BarChart>
                       </ResponsiveContainer>
-                      
+
                       <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200/60">
                         <div className="flex items-center justify-between mb-3">
-                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Division Productivity</span>
-                          <span className="text-xs font-black text-emerald-600">+8.4%</span>
+                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                            Division Productivity
+                          </span>
+                          <span className="text-xs font-black text-emerald-600">
+                            +8.4%
+                          </span>
                         </div>
                         <div className="space-y-3">
                           {(forestBeats || []).slice(0, 3).map((beat, i) => (
-                            <div key={i} className="flex items-center justify-between">
-                              <span className="text-[11px] font-bold text-slate-700">{beat.name}</span>
+                            <div
+                              key={i}
+                              className="flex items-center justify-between"
+                            >
+                              <span className="text-[11px] font-bold text-slate-700">
+                                {beat.name}
+                              </span>
                               <div className="flex items-center gap-3">
                                 <div className="w-24 h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                                  <div 
-                                    className="h-full bg-indigo-500 rounded-full" 
-                                    style={{ width: `${80 + (i * 5)}%` }}
+                                  <div
+                                    className="h-full bg-indigo-500 rounded-full"
+                                    style={{ width: `${80 + i * 5}%` }}
                                   />
                                 </div>
                                 <span className="text-[10px] font-black text-slate-900 tabular-nums">
-                                  {80 + (i * 5)}%
+                                  {80 + i * 5}%
                                 </span>
                               </div>
                             </div>
@@ -3623,8 +3977,6 @@ function DashboardContent() {
                   </div>
                 </div>
               )} */}
-
-
             </TabsContent>
           )}
 
@@ -3645,34 +3997,43 @@ function DashboardContent() {
                       </span>
                     </div>
                     <div className="flex-1 overflow-y-auto p-2 space-y-2">
-                      {liveIncidents.length > 0 ? liveIncidents.map((incident) => (
-                        <div 
-                          key={incident.id}
-                          className="p-3 rounded-xl border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/30 transition-all cursor-pointer group"
-                          onClick={() => openGrievanceDetail(incident.id)}
-                        >
-                          <div className="flex items-center justify-between mb-1">
-                            <span className={`text-[10px] font-black uppercase tracking-widest ${incident.severity === 'CRITICAL' ? 'text-rose-500' : 'text-amber-500'}`}>
-                              {incident.severity}
-                            </span>
-                            <span className="text-[9px] text-slate-400 font-medium">
-                              {new Date(incident.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
+                      {liveIncidents.length > 0 ? (
+                        liveIncidents.map((incident) => (
+                          <div
+                            key={incident.id}
+                            className="p-3 rounded-xl border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/30 transition-all cursor-pointer group"
+                            onClick={() => openGrievanceDetail(incident.id)}
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <span
+                                className={`text-[10px] font-black uppercase tracking-widest ${incident.severity === "CRITICAL" ? "text-rose-500" : "text-amber-500"}`}
+                              >
+                                {incident.severity}
+                              </span>
+                              <span className="text-[9px] text-slate-400 font-medium">
+                                {new Date(incident.time).toLocaleTimeString(
+                                  [],
+                                  { hour: "2-digit", minute: "2-digit" },
+                                )}
+                              </span>
+                            </div>
+                            <h4 className="text-[12px] font-bold text-slate-800 leading-snug group-hover:text-indigo-600 truncate">
+                              {incident.title}
+                            </h4>
+                            <div className="flex items-center gap-1.5 mt-2">
+                              <MapPin className="w-3 h-3 text-slate-400" />
+                              <span className="text-[10px] text-slate-500 font-bold uppercase truncate">
+                                {incident.area}
+                              </span>
+                            </div>
                           </div>
-                          <h4 className="text-[12px] font-bold text-slate-800 leading-snug group-hover:text-indigo-600 truncate">
-                            {incident.title}
-                          </h4>
-                          <div className="flex items-center gap-1.5 mt-2">
-                            <MapPin className="w-3 h-3 text-slate-400" />
-                            <span className="text-[10px] text-slate-500 font-bold uppercase truncate">
-                              {incident.area}
-                            </span>
-                          </div>
-                        </div>
-                      )) : (
+                        ))
+                      ) : (
                         <div className="h-full flex flex-col items-center justify-center text-slate-400 opacity-50 space-y-2">
                           <ShieldAlert className="w-8 h-8" />
-                          <p className="text-xs font-bold uppercase">No active threats detected</p>
+                          <p className="text-xs font-bold uppercase">
+                            No active threats detected
+                          </p>
                         </div>
                       )}
                     </div>
@@ -3685,20 +4046,25 @@ function DashboardContent() {
                       <TacticalForestMap incidents={liveIncidents} />
                     </div>
 
-
                     <div className="absolute bottom-6 right-6 z-10">
                       <div className="bg-black/60 backdrop-blur-xl border border-white/10 px-4 py-3 rounded-2xl text-white shadow-2xl flex items-center gap-6">
                         <div className="flex items-center gap-2">
                           <span className="w-3 h-3 rounded-full bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.8)]"></span>
-                          <span className="text-[10px] font-black uppercase tracking-widest">Fire Hazard</span>
+                          <span className="text-[10px] font-black uppercase tracking-widest">
+                            Fire Hazard
+                          </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="w-3 h-3 rounded-full bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.8)]"></span>
-                          <span className="text-[10px] font-black uppercase tracking-widest">Wildlife Move</span>
+                          <span className="text-[10px] font-black uppercase tracking-widest">
+                            Wildlife Move
+                          </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="w-3 h-3 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.8)]"></span>
-                          <span className="text-[10px] font-black uppercase tracking-widest">Active Patrol</span>
+                          <span className="text-[10px] font-black uppercase tracking-widest">
+                            Active Patrol
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -3715,10 +4081,19 @@ function DashboardContent() {
                       <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-4 backdrop-blur-md">
                         <Layers className="w-6 h-6 text-white" />
                       </div>
-                      <h3 className="text-white/80 text-[10px] font-black uppercase tracking-widest mb-1">Total Protected Area</h3>
-                      <p className="text-3xl font-black tracking-tighter">14,250 <span className="text-lg font-medium opacity-60">HECTARE</span></p>
+                      <h3 className="text-white/80 text-[10px] font-black uppercase tracking-widest mb-1">
+                        Total Protected Area
+                      </h3>
+                      <p className="text-3xl font-black tracking-tighter">
+                        14,250{" "}
+                        <span className="text-lg font-medium opacity-60">
+                          HECTARE
+                        </span>
+                      </p>
                       <div className="mt-4 flex items-center gap-2 bg-white/10 w-fit px-3 py-1 rounded-full border border-white/5">
-                        <span className="text-[10px] font-bold">42 Active Geofences</span>
+                        <span className="text-[10px] font-bold">
+                          42 Active Geofences
+                        </span>
                       </div>
                     </div>
                     <Layers className="absolute -right-8 -bottom-8 w-48 h-48 opacity-10 rotate-12" />
@@ -3728,35 +4103,58 @@ function DashboardContent() {
                     <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center mb-4">
                       <ShieldAlert className="w-6 h-6 text-indigo-600" />
                     </div>
-                    <h3 className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Boundary Violations</h3>
-                    <p className="text-3xl font-black tracking-tighter text-slate-900">12 <span className="text-lg font-medium opacity-40 text-rose-500">↑ 4%</span></p>
-                    <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-tight">Last 30 Days Activity</p>
+                    <h3 className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">
+                      Boundary Violations
+                    </h3>
+                    <p className="text-3xl font-black tracking-tighter text-slate-900">
+                      12{" "}
+                      <span className="text-lg font-medium opacity-40 text-rose-500">
+                        ↑ 4%
+                      </span>
+                    </p>
+                    <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-tight">
+                      Last 30 Days Activity
+                    </p>
                   </Card>
 
                   <Card className="p-6 bg-white rounded-2xl shadow-sm border border-slate-100">
                     <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center mb-4">
                       <Trees className="w-6 h-6 text-emerald-600" />
                     </div>
-                    <h3 className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Operational Ranges</h3>
-                    <p className="text-3xl font-black tracking-tighter text-slate-900">{stats?.mainDepartments || 4}</p>
-                    <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-tight">Verified Forest Borders</p>
+                    <h3 className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">
+                      Operational Ranges
+                    </h3>
+                    <p className="text-3xl font-black tracking-tighter text-slate-900">
+                      {stats?.mainDepartments || 4}
+                    </p>
+                    <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-tight">
+                      Verified Forest Borders
+                    </p>
                   </Card>
                 </div>
 
                 <Card className="rounded-2xl border-slate-200 shadow-sm overflow-hidden bg-white">
                   <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
                     <div>
-                      <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">Forest Boundary Inventory</h3>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Hierarchy of Ranges and Beats</p>
+                      <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">
+                        Forest Boundary Inventory
+                      </h3>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                        Hierarchy of Ranges and Beats
+                      </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button 
+                      <Button
                         onClick={() => {
-                          toast.promise(new Promise(resolve => setTimeout(resolve, 2000)), {
-                            loading: 'Processing KMZ Boundaries...',
-                            success: 'Forest boundaries synchronized with Satellite Data',
-                            error: 'Failed to sync boundaries',
-                          });
+                          toast.promise(
+                            new Promise((resolve) => setTimeout(resolve, 2000)),
+                            {
+                              loading: "Processing KMZ Boundaries...",
+                              success:
+                                "Forest boundaries synchronized with Satellite Data",
+                              error: "Failed to sync boundaries",
+                            },
+                          );
                         }}
                         className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 border-0"
                       >
@@ -3773,42 +4171,71 @@ function DashboardContent() {
                     <table className="w-full">
                       <thead>
                         <tr className="bg-slate-50 border-b border-slate-100">
-                          <th className="px-6 py-4 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">Forest Range</th>
-                          <th className="px-6 py-4 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">Beats Under Range</th>
-                          <th className="px-6 py-4 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">Total Area (Ha)</th>
-                          <th className="px-6 py-4 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">Incident Hotspots</th>
-                          <th className="px-6 py-4 text-right text-[9px] font-black text-slate-400 uppercase tracking-widest">Integrity Status</th>
+                          <th className="px-6 py-4 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                            Forest Range
+                          </th>
+                          <th className="px-6 py-4 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                            Beats Under Range
+                          </th>
+                          <th className="px-6 py-4 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                            Total Area (Ha)
+                          </th>
+                          <th className="px-6 py-4 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                            Incident Hotspots
+                          </th>
+                          <th className="px-6 py-4 text-right text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                            Integrity Status
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {forestBeats.slice(0, 10).map((beat, i) => (
-                          <tr key={i} className="hover:bg-slate-50/50 transition-colors group">
+                          <tr
+                            key={i}
+                            className="hover:bg-slate-50/50 transition-colors group"
+                          >
                             <td className="px-6 py-4">
                               <div className="flex items-center gap-3">
                                 <div className="w-9 h-9 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-700">
                                   <Trees className="w-4 h-4" />
                                 </div>
-                                <span className="text-sm font-bold text-slate-800">{beat.range}</span>
+                                <span className="text-sm font-bold text-slate-800">
+                                  {beat.range}
+                                </span>
                               </div>
                             </td>
                             <td className="px-6 py-4">
                               <div className="flex flex-col">
-                                <span className="text-xs font-bold text-slate-700">{beat.name}</span>
-                                <span className="text-[9px] text-slate-400 font-mono uppercase mt-0.5">ID: {beat.id.slice(-8)}</span>
+                                <span className="text-xs font-bold text-slate-700">
+                                  {beat.name}
+                                </span>
+                                <span className="text-[9px] text-slate-400 font-mono uppercase mt-0.5">
+                                  ID: {beat.id.slice(-8)}
+                                </span>
                               </div>
                             </td>
                             <td className="px-6 py-4 text-center">
-                              <span className="text-sm font-black text-slate-700">{(400 + (i * 120)).toLocaleString()}</span>
+                              <span className="text-sm font-black text-slate-700">
+                                {(400 + i * 120).toLocaleString()}
+                              </span>
                             </td>
                             <td className="px-6 py-4 text-center">
                               <div className="inline-flex items-center gap-2 border border-slate-200 px-3 py-1 rounded-full bg-white shadow-sm">
-                                <span className={`w-1.5 h-1.5 rounded-full ${beat.incidents > 5 ? 'bg-rose-500 animate-pulse' : 'bg-amber-500'}`}></span>
-                                <span className="text-[10px] font-black text-slate-700">{beat.incidents} ACTS</span>
+                                <span
+                                  className={`w-1.5 h-1.5 rounded-full ${beat.incidents > 5 ? "bg-rose-500 animate-pulse" : "bg-amber-500"}`}
+                                ></span>
+                                <span className="text-[10px] font-black text-slate-700">
+                                  {beat.incidents} ACTS
+                                </span>
                               </div>
                             </td>
                             <td className="px-6 py-4 text-right">
-                              <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg ${beat.status === 'Active' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
-                                {beat.status === 'Active' ? 'VERIFIED' : 'MAINTENANCE'}
+                              <span
+                                className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg ${beat.status === "Active" ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-400"}`}
+                              >
+                                {beat.status === "Active"
+                                  ? "VERIFIED"
+                                  : "MAINTENANCE"}
                               </span>
                             </td>
                           </tr>
@@ -3826,7 +4253,7 @@ function DashboardContent() {
             <TabsContent value="departments" className="space-y-4">
               <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
                 {/* Header */}
-                <CardHeader className="bg-slate-900 px-4 sm:px-6 py-4">
+                <CardHeader className="bg-slate-900 px-4 sm:px-6 py-2">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
@@ -3852,7 +4279,8 @@ function DashboardContent() {
                       >
                         <RefreshCw className="w-3.5 h-3.5" />
                       </button>
-                                     {(isSuperAdminUser || hasPermission(user, Permission.CREATE_DEPARTMENT)) && (
+                      {(isSuperAdminUser ||
+                        hasPermission(user, Permission.CREATE_DEPARTMENT)) && (
                         <Button
                           type="button"
                           onClick={() => setShowDepartmentDialog(true)}
@@ -3881,9 +4309,14 @@ function DashboardContent() {
                     </div>
                     {/* Dept Filters */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 w-full">
-                       <select
+                      <select
                         value={deptFilters.type}
-                        onChange={(e) => setDeptFilters(prev => ({ ...prev, type: e.target.value }))}
+                        onChange={(e) =>
+                          setDeptFilters((prev) => ({
+                            ...prev,
+                            type: e.target.value,
+                          }))
+                        }
                         className="w-full text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all"
                       >
                         <option value="">All Types</option>
@@ -3892,7 +4325,12 @@ function DashboardContent() {
                       </select>
                       <select
                         value={deptFilters.status}
-                        onChange={(e) => setDeptFilters(prev => ({ ...prev, status: e.target.value }))}
+                        onChange={(e) =>
+                          setDeptFilters((prev) => ({
+                            ...prev,
+                            status: e.target.value,
+                          }))
+                        }
                         className="w-full text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all"
                       >
                         <option value="">All Status</option>
@@ -3901,67 +4339,93 @@ function DashboardContent() {
                       </select>
                       <select
                         value={deptFilters.mainDeptId}
-                        onChange={(e) => setDeptFilters(prev => ({ ...prev, mainDeptId: e.target.value }))}
+                        onChange={(e) =>
+                          setDeptFilters((prev) => ({
+                            ...prev,
+                            mainDeptId: e.target.value,
+                          }))
+                        }
                         className="w-full text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all sm:min-w-[150px]"
                       >
                         <option value="">Filter by Main Dept</option>
-                        {departments.filter(d => !d.parentDepartmentId).map(dept => (
-                           <option key={dept._id} value={dept._id}>{dept.name}</option>
-                        ))}
+                        {departments
+                          .filter((d) => !d.parentDepartmentId)
+                          .map((dept) => (
+                            <option key={dept._id} value={dept._id}>
+                              {dept.name}
+                            </option>
+                          ))}
                       </select>
-                      {(deptFilters.type || deptFilters.status || deptFilters.mainDeptId) && (
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={() => setDeptFilters({ type: "", status: "", mainDeptId: "" })}
+                      {(deptFilters.type ||
+                        deptFilters.status ||
+                        deptFilters.mainDeptId) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            setDeptFilters({
+                              type: "",
+                              status: "",
+                              mainDeptId: "",
+                            })
+                          }
                           className="h-7 text-[9px] font-bold text-red-500 hover:text-red-600 hover:bg-red-50 uppercase tracking-tighter"
                         >
                           Clear
                         </Button>
                       )}
                     </div>
-                      <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Rows:</span>
-                        <select
-                          value={departmentPagination.limit}
-                          onChange={(e) => setDepartmentPagination(prev => ({ ...prev, limit: Number(e.target.value) }))}
-                          className="text-[10px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer"
-                        >
-                          {[10, 20, 25, 50, 100].map(l => (
-                            <option key={l} value={l}>{l}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                        <span className="px-2 py-1 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-lg">
-                          {
-                            departments.filter((d) => !d.parentDepartmentId)
-                              .length
-                          }{" "}
-                          Main
-                        </span>
-                        <span className="px-2 py-1 bg-slate-100 text-slate-600 border border-slate-200 rounded-lg">
-                          {
-                            departments.filter((d) => !!d.parentDepartmentId)
-                              .length
-                          }{" "}
-                          Sub
-                        </span>
-                        {isSuperAdminUser &&
-                          selectedDepartments.size > 0 && (
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={handleBulkDeleteDepartments}
-                              disabled={isDeleting}
-                              className="text-[9px] font-black h-7 px-3 bg-red-600 hover:bg-red-700 text-white rounded-lg border border-red-700 shadow-sm transition-all animate-in zoom-in duration-200"
-                            >
-                              <Trash2 className="w-3 h-3 mr-1" />
-                              Delete ({selectedDepartments.size})
-                            </Button>
-                          )}
-                      </div>
+                    <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        Rows:
+                      </span>
+                      <select
+                        value={departmentPagination.limit}
+                        onChange={(e) => {
+                          setDepartmentPagination((prev) => ({
+                            ...prev,
+                            limit: Number(e.target.value),
+                          }));
+                          setDepartmentPage(1);
+                        }}
+                        className="text-[10px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer"
+                      >
+                        {[10, 20, 25, 50, 100].map((l) => (
+                          <option key={l} value={l}>
+                            {l}
+                          </option>
+                        ))}
+                      </select>
                     </div>
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                      <span className="px-2 py-1 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-lg">
+                        {
+                          departments.filter((d) => !d.parentDepartmentId)
+                            .length
+                        }{" "}
+                        Main
+                      </span>
+                      <span className="px-2 py-1 bg-slate-100 text-slate-600 border border-slate-200 rounded-lg">
+                        {
+                          departments.filter((d) => !!d.parentDepartmentId)
+                            .length
+                        }{" "}
+                        Sub
+                      </span>
+                      {isSuperAdminUser && selectedDepartments.size > 0 && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={handleBulkDeleteDepartments}
+                          disabled={isDeleting}
+                          className="text-[9px] font-black h-7 px-3 bg-red-600 hover:bg-red-700 text-white rounded-lg border border-red-700 shadow-sm transition-all animate-in zoom-in duration-200"
+                        >
+                          <Trash2 className="w-3 h-3 mr-1" />
+                          Delete ({selectedDepartments.size})
+                        </Button>
+                      )}
+                    </div>
+                  </div>
 
                   {loadingDepartments ? (
                     <TableSkeleton rows={8} cols={5} />
@@ -4050,325 +4514,323 @@ function DashboardContent() {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100 bg-white">
-                            {getSortedData(departments, "departments").map((dept, index) => {
-                              const isMain = !dept.parentDepartmentId;
-                              const userCount = dept.userCount || deptUserCounts[dept._id] || 0;
-                              const parentName =
-                                typeof dept.parentDepartmentId === "object" &&
-                                dept.parentDepartmentId
-                                  ? (dept.parentDepartmentId as any).name
-                                  : null;
-                              return (
-                                <tr
-                                  key={dept._id}
-                                  className="hover:bg-indigo-50/30 transition-all duration-150 group/row"
-                                >
-                                  {/* Checkbox */}
-                                  {isSuperAdminUser && (
-                                    <td className="px-3 py-4 text-center">
-                                      <input
-                                        type="checkbox"
-                                        checked={selectedDepartments.has(
-                                          dept._id,
-                                        )}
-                                        onChange={() => {
-                                          const next = new Set(
-                                            selectedDepartments,
-                                          );
-                                          if (next.has(dept._id))
-                                            next.delete(dept._id);
-                                          else next.add(dept._id);
-                                          setSelectedDepartments(next);
-                                        }}
-                                        className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer"
-                                      />
-                                    </td>
-                                  )}
-
-                                  {/* # */}
-                                  <td className="px-3 py-4 text-center">
-                                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-slate-100 text-slate-500 text-[10px] font-black group-hover/row:bg-indigo-100 group-hover/row:text-indigo-700 transition-colors">
-                                      {index + 1}
-                                    </span>
-                                  </td>
-
-                                  {/* Department Name */}
-                                  <td className="px-4 py-4">
-                                    <div className="flex items-center gap-3">
-                                      <div
-                                        className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                                          isMain
-                                            ? "bg-indigo-50 text-indigo-600 border border-indigo-100"
-                                            : "bg-slate-100 text-slate-500 border border-slate-200"
-                                        }`}
-                                      >
-                                        <Building className="w-3.5 h-3.5" />
-                                      </div>
-                                      <div>
-                                        <div
-                                          className="text-sm font-bold text-slate-900 group-hover/row:text-indigo-600 cursor-pointer hover:underline transition-colors flex items-center gap-1.5"
-                                          onClick={() => {
-                                            setNavigatingToDepartment(dept._id);
-                                            setSelectedDepartmentId(dept._id);
-                                            router.push(
-                                              `/dashboard/department/${dept._id}`,
+                            {getSortedData(departments, "departments").map(
+                              (dept, index) => {
+                                const isMain = !dept.parentDepartmentId;
+                                const userCount =
+                                  dept.userCount ||
+                                  deptUserCounts[dept._id] ||
+                                  0;
+                                const parentName =
+                                  typeof dept.parentDepartmentId === "object" &&
+                                  dept.parentDepartmentId
+                                    ? (dept.parentDepartmentId as any).name
+                                    : null;
+                                return (
+                                  <tr
+                                    key={dept._id}
+                                    className="hover:bg-indigo-50/30 transition-all duration-150 group/row"
+                                  >
+                                    {/* Checkbox */}
+                                    {isSuperAdminUser && (
+                                      <td className="px-3 py-4 text-center">
+                                        <input
+                                          type="checkbox"
+                                          checked={selectedDepartments.has(
+                                            dept._id,
+                                          )}
+                                          onChange={() => {
+                                            const next = new Set(
+                                              selectedDepartments,
                                             );
+                                            if (next.has(dept._id))
+                                              next.delete(dept._id);
+                                            else next.add(dept._id);
+                                            setSelectedDepartments(next);
                                           }}
+                                          className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer"
+                                        />
+                                      </td>
+                                    )}
+
+                                    {/* # */}
+                                    <td className="px-3 py-4 text-center">
+                                      <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-slate-100 text-slate-500 text-[10px] font-black group-hover/row:bg-indigo-100 group-hover/row:text-indigo-700 transition-colors">
+                                        {(departmentPage - 1) *
+                                          departmentPagination.limit +
+                                          index +
+                                          1}
+                                      </span>
+                                    </td>
+
+                                    {/* Department Name */}
+                                    <td className="px-4 py-4">
+                                      <div className="flex items-center gap-3">
+                                        <div
+                                          className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                                            isMain
+                                              ? "bg-indigo-50 text-indigo-600 border border-indigo-100"
+                                              : "bg-slate-100 text-slate-500 border border-slate-200"
+                                          }`}
                                         >
-                                          {navigatingToDepartment ===
-                                          dept._id ? (
-                                            <>
-                                              <LoadingSpinner />
-                                              <span className="ml-2">
-                                                Loading...
-                                              </span>
-                                            </>
-                                          ) : (
-                                            dept.name
+                                          <Building className="w-3.5 h-3.5" />
+                                        </div>
+                                        <div>
+                                          <div className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                                            {dept.name}
+                                          </div>
+                                          {!isMain && parentName && (
+                                            <p className="text-[10px] text-slate-400 mt-0.5">
+                                              ↳ {parentName}
+                                            </p>
                                           )}
                                         </div>
-                                        {!isMain && parentName && (
-                                          <p className="text-[10px] text-slate-400 mt-0.5">
-                                            ↳ {parentName}
-                                          </p>
-                                        )}
                                       </div>
-                                    </div>
-                                  </td>
+                                    </td>
 
-                                  {/* Dept ID */}
-                                  <td className="px-4 py-4 whitespace-normal break-all">
-                                    <span className="text-[10px] font-mono bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border border-gray-200 uppercase">
-                                      {dept.departmentId}
-                                    </span>
-                                  </td>
-
-                                  {/* Type */}
-                                  <td className="px-4 py-4 text-center whitespace-normal">
-                                    {isMain ? (
-                                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-100">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                                        Main
+                                    {/* Dept ID */}
+                                    <td className="px-4 py-4 whitespace-normal break-all">
+                                      <span className="text-[10px] font-mono bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border border-gray-200 uppercase">
+                                        {dept.departmentId}
                                       </span>
-                                    ) : (
-                                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                                        Sub
-                                      </span>
-                                    )}
-                                  </td>
+                                    </td>
 
-                                  {/* User Count */}
-                                  <td className="px-4 py-4 text-center">
-                                    <div className="inline-flex items-center justify-center">
-                                      <button
-                                        className={`min-w-[32px] h-8 px-2 rounded-xl flex items-center justify-center text-xs font-black transition-all shadow-sm border ${
-                                          userCount > 0
-                                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:scale-105 active:scale-95"
-                                            : "bg-slate-50 text-slate-400 border-slate-200"
-                                        }`}
-                                        onClick={() => {
-                                          if (userCount > 0) {
-                                            setSelectedDeptForUsers({
-                                              id: dept._id,
-                                              name: dept.name,
-                                            });
-                                            setShowDeptUsersDialog(true);
-                                          }
-                                        }}
-                                        title={
-                                          userCount > 0
-                                            ? "Click to view personnel"
-                                            : "No users in this department"
-                                        }
-                                      >
-                                        <Users className={`w-3 h-3 mr-1.5 ${userCount > 0 ? "text-emerald-500" : "text-slate-300"}`} />
-                                        {userCount}
-                                      </button>
-                                    </div>
-                                  </td>
-
-                                  {/* Head / Contact */}
-                                  <td className="px-4 py-4 whitespace-normal break-words">
-                                    <div className="flex flex-col gap-1 min-w-[120px]">
-                                      <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5 uppercase tracking-tight">
-                                        <UserIcon className="w-3 h-3 text-slate-400 shrink-0" />
-                                        {dept.head || (dept as any).headName || dept.contactPerson || (
-                                          <span className="text-slate-300 font-medium">
-                                            Not assigned
-                                          </span>
-                                        )}
-                                      </div>
-                                      {(dept.headEmail || dept.contactEmail) && (
-                                        <div className="text-[10px] text-indigo-500 flex items-center gap-1.5 font-bold hover:underline cursor-pointer transition-colors px-1 break-all">
-                                          <Mail className="w-3 h-3 text-indigo-300 shrink-0" />
-                                          {dept.headEmail || dept.contactEmail}
-                                        </div>
+                                    {/* Type */}
+                                    <td className="px-4 py-4 text-center whitespace-normal">
+                                      {isMain ? (
+                                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-100">
+                                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                                          Main
+                                        </span>
+                                      ) : (
+                                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200">
+                                          <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                                          Sub
+                                        </span>
                                       )}
-                                    </div>
-                                  </td>
+                                    </td>
 
-                                  {/* Status */}
-                                  <td className="px-4 py-4 text-center whitespace-normal">
-                                    <div className="flex items-center justify-center gap-2">
-                                      <button
-                                        onClick={() => {
-                                          setConfirmDialog({
-                                            isOpen: true,
-                                            title: dept.isActive
-                                              ? "Deactivate Department"
-                                              : "Activate Department",
-                                            message: dept.isActive
-                                              ? `Are you sure you want to deactivate "${dept.name}"?`
-                                              : `Are you sure you want to activate "${dept.name}"?`,
-                                            onConfirm: async () => {
-                                              try {
-                                                const response =
-                                                  await departmentAPI.update(
-                                                    dept._id,
-                                                    {
-                                                      isActive: !dept.isActive,
-                                                    },
-                                                  );
-                                                if (response.success) {
-                                                  toast.success(
-                                                    `Department ${!dept.isActive ? "activated" : "deactivated"} successfully`,
-                                                  );
-                                                  fetchDepartments(1, true);
-                                                }
-                                              } catch (error: any) {
-                                                toast.error(
-                                                  error.message ||
-                                                    "Failed to update department status",
-                                                );
-                                              } finally {
-                                                setConfirmDialog((p) => ({
-                                                  ...p,
-                                                  isOpen: false,
-                                                }));
-                                              }
-                                            },
-                                            variant: dept.isActive
-                                              ? "warning"
-                                              : "default",
-                                          } as any);
-                                        }}
-                                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 focus:outline-none ${
-                                          dept.isActive
-                                            ? "bg-emerald-500"
-                                            : "bg-gray-300"
-                                        }`}
-                                      >
-                                        <span
-                                          className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform duration-200 ${
-                                            dept.isActive
-                                              ? "translate-x-[18px]"
-                                              : "translate-x-0.5"
+                                    {/* User Count */}
+                                    <td className="px-4 py-4 text-center">
+                                      <div className="inline-flex items-center justify-center">
+                                        <button
+                                          className={`min-w-[32px] h-8 px-2 rounded-xl flex items-center justify-center text-xs font-black transition-all shadow-sm border ${
+                                            userCount > 0
+                                              ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:scale-105 active:scale-95"
+                                              : "bg-slate-50 text-slate-400 border-slate-200"
                                           }`}
-                                        />
-                                      </button>
-                                      <span
-                                        className={`text-[9px] font-black uppercase tracking-wider ${
-                                          dept.isActive
-                                            ? "text-emerald-600"
-                                            : "text-gray-400"
-                                        }`}
-                                      >
-                                        {dept.isActive ? "Active" : "Inactive"}
-                                      </span>
-                                    </div>
-                                  </td>
+                                          onClick={() => {
+                                            if (userCount > 0) {
+                                              setSelectedDeptForUsers({
+                                                id: dept._id,
+                                                name: dept.name,
+                                              });
+                                              setShowDeptUsersDialog(true);
+                                            }
+                                          }}
+                                          title={
+                                            userCount > 0
+                                              ? "Click to view personnel"
+                                              : "No users in this department"
+                                          }
+                                        >
+                                          <Users
+                                            className={`w-3 h-3 mr-1.5 ${userCount > 0 ? "text-emerald-500" : "text-slate-300"}`}
+                                          />
+                                          {userCount}
+                                        </button>
+                                      </div>
+                                    </td>
 
-                                  {/* Actions */}
-                                  <td className="px-4 py-4 whitespace-normal text-right">
-                                    <div className="flex justify-end items-center gap-1">
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-8 w-8 p-0 text-slate-400 hover:text-blue-600 hover:bg-blue-50"
-                                        onClick={() => {
-                                          setEditingDepartment(dept);
-                                          setShowDepartmentDialog(true);
-                                        }}
-                                      >
-                                        <Edit2 className="w-3.5 h-3.5" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-8 w-8 p-0 text-slate-400 hover:text-red-600 hover:bg-red-50"
-                                        onClick={() => {
-                                          setConfirmDialog({
-                                            isOpen: true,
-                                            title: "Delete Department",
-                                            message: `Are you sure you want to delete "${dept.name}"? This action cannot be undone.`,
-                                            onConfirm: async () => {
-                                              try {
-                                                const response =
-                                                  await departmentAPI.delete(
-                                                    dept._id,
+                                    {/* Head / Contact */}
+                                    <td className="px-4 py-4 whitespace-normal break-words">
+                                      <div className="flex flex-col gap-1 min-w-[120px]">
+                                        <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5 uppercase tracking-tight">
+                                          <UserIcon className="w-3 h-3 text-slate-400 shrink-0" />
+                                          {dept.head ||
+                                            (dept as any).headName ||
+                                            dept.contactPerson || (
+                                              <span className="text-slate-300 font-medium">
+                                                Not assigned
+                                              </span>
+                                            )}
+                                        </div>
+                                        {(dept.headEmail ||
+                                          dept.contactEmail) && (
+                                          <div className="text-[10px] text-indigo-500 flex items-center gap-1.5 font-bold hover:underline cursor-pointer transition-colors px-1 break-all">
+                                            <Mail className="w-3 h-3 text-indigo-300 shrink-0" />
+                                            {dept.headEmail ||
+                                              dept.contactEmail}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </td>
+
+                                    {/* Status */}
+                                    <td className="px-4 py-4 text-center whitespace-normal">
+                                      <div className="flex items-center justify-center gap-2">
+                                        <button
+                                          onClick={() => {
+                                            setConfirmDialog({
+                                              isOpen: true,
+                                              title: dept.isActive
+                                                ? "Deactivate Department"
+                                                : "Activate Department",
+                                              message: dept.isActive
+                                                ? `Are you sure you want to deactivate "${dept.name}"?`
+                                                : `Are you sure you want to activate "${dept.name}"?`,
+                                              onConfirm: async () => {
+                                                try {
+                                                  const response =
+                                                    await departmentAPI.update(
+                                                      dept._id,
+                                                      {
+                                                        isActive:
+                                                          !dept.isActive,
+                                                      },
+                                                    );
+                                                  if (response.success) {
+                                                    toast.success(
+                                                      `Department ${!dept.isActive ? "activated" : "deactivated"} successfully`,
+                                                    );
+                                                    fetchDepartments(1, true);
+                                                  }
+                                                } catch (error: any) {
+                                                  toast.error(
+                                                    error.message ||
+                                                      "Failed to update department status",
                                                   );
-                                                if (response.success) {
-                                                  toast.success(
-                                                    "Department deleted successfully",
-                                                  );
-                                                  setDepartments((prev) =>
-                                                    prev.filter(
-                                                      (d) => d._id !== dept._id,
-                                                    ),
-                                                  );
-                                                  fetchDepartments(1, false);
+                                                } finally {
+                                                  setConfirmDialog((p) => ({
+                                                    ...p,
+                                                    isOpen: false,
+                                                  }));
                                                 }
-                                              } catch (error: any) {
-                                                toast.error(
-                                                  error.message ||
-                                                    "Failed to delete department",
-                                                );
-                                              } finally {
-                                                setConfirmDialog((p) => ({
-                                                  ...p,
-                                                  isOpen: false,
-                                                }));
-                                              }
-                                            },
-                                            variant: "danger",
-                                          } as any);
-                                        }}
-                                      >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                      </Button>
-                                    </div>
-                                  </td>
-                                </tr>
-                              );
-                            })}
+                                              },
+                                              variant: dept.isActive
+                                                ? "warning"
+                                                : "default",
+                                            } as any);
+                                          }}
+                                          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 focus:outline-none ${
+                                            dept.isActive
+                                              ? "bg-emerald-500"
+                                              : "bg-gray-300"
+                                          }`}
+                                        >
+                                          <span
+                                            className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform duration-200 ${
+                                              dept.isActive
+                                                ? "translate-x-[18px]"
+                                                : "translate-x-0.5"
+                                            }`}
+                                          />
+                                        </button>
+                                        <span
+                                          className={`text-[9px] font-black uppercase tracking-wider ${
+                                            dept.isActive
+                                              ? "text-emerald-600"
+                                              : "text-gray-400"
+                                          }`}
+                                        >
+                                          {dept.isActive
+                                            ? "Active"
+                                            : "Inactive"}
+                                        </span>
+                                      </div>
+                                    </td>
+
+                                    {/* Actions */}
+                                    <td className="px-4 py-4 whitespace-normal text-right">
+                                      <div className="flex justify-end items-center gap-1">
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-8 w-8 p-0 text-slate-400 hover:text-blue-600 hover:bg-blue-50"
+                                          onClick={() => {
+                                            setEditingDepartment(dept);
+                                            setShowDepartmentDialog(true);
+                                          }}
+                                        >
+                                          <Edit2 className="w-3.5 h-3.5" />
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-8 w-8 p-0 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                                          onClick={() => {
+                                            setConfirmDialog({
+                                              isOpen: true,
+                                              title: "Delete Department",
+                                              message: `Are you sure you want to delete "${dept.name}"? This action cannot be undone.`,
+                                              onConfirm: async () => {
+                                                try {
+                                                  const response =
+                                                    await departmentAPI.delete(
+                                                      dept._id,
+                                                    );
+                                                  if (response.success) {
+                                                    toast.success(
+                                                      "Department deleted successfully",
+                                                    );
+                                                    setDepartments((prev) =>
+                                                      prev.filter(
+                                                        (d) =>
+                                                          d._id !== dept._id,
+                                                      ),
+                                                    );
+                                                    fetchDepartments(1, false);
+                                                  }
+                                                } catch (error: any) {
+                                                  toast.error(
+                                                    error.message ||
+                                                      "Failed to delete department",
+                                                  );
+                                                } finally {
+                                                  setConfirmDialog((p) => ({
+                                                    ...p,
+                                                    isOpen: false,
+                                                  }));
+                                                }
+                                              },
+                                              variant: "danger",
+                                            } as any);
+                                          }}
+                                        >
+                                          <Trash2 className="w-3.5 h-3.5" />
+                                        </Button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              },
+                            )}
                           </tbody>
                         </table>
                       </div>
 
-                      {/* Footer info */}
-                      <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/30 flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                        <span>
+                      {/* Footer info & Pagination */}
+                      <div className="px-5 py-4 border-t border-slate-100 bg-slate-50/30 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                           Showing{" "}
-                          {
-                            departments.filter(
-                              (d) =>
-                                !deptSearch ||
-                                d.name
-                                  .toLowerCase()
-                                  .includes(deptSearch.toLowerCase()) ||
-                                d.departmentId
-                                  ?.toLowerCase()
-                                  .includes(deptSearch.toLowerCase()),
-                            ).length
-                          }{" "}
-                          of {departments.length} departments
-                        </span>
-                        <span>
-                          {departments.filter((d) => d.isActive).length} active
-                          · {departments.filter((d) => !d.isActive).length}{" "}
-                          inactive
-                        </span>
+                          {(departmentPage - 1) * departmentPagination.limit +
+                            1}{" "}
+                          to{" "}
+                          {Math.min(
+                            departmentPage * departmentPagination.limit,
+                            departmentPagination.total,
+                          )}{" "}
+                          of {departmentPagination.total} departments
+                        </div>
+                        {departmentPagination.pages > 1 && (
+                          <Pagination
+                            currentPage={departmentPage}
+                            totalPages={departmentPagination.pages}
+                            totalItems={departmentPagination.total}
+                            itemsPerPage={departmentPagination.limit}
+                            onPageChange={(p) => setDepartmentPage(p)}
+                          />
+                        )}
                       </div>
                     </div>
                   )}
@@ -4535,7 +4997,7 @@ function DashboardContent() {
           {(isViewingCompany || isDepartmentLevel) && (
             <TabsContent value="users" className="space-y-6">
               <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
-                <CardHeader className="bg-slate-900 px-4 sm:px-6 py-4">
+                <CardHeader className="bg-slate-900 px-4 sm:px-6 py-2">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
@@ -4592,15 +5054,24 @@ function DashboardContent() {
                         />
                       </div>
                       <div className="flex items-center gap-2">
-                         <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm">
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Rows:</span>
+                        <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                            Rows:
+                          </span>
                           <select
                             value={userPagination.limit}
-                            onChange={(e) => setUserPagination(prev => ({ ...prev, limit: Number(e.target.value) }))}
+                            onChange={(e) =>
+                              setUserPagination((prev) => ({
+                                ...prev,
+                                limit: Number(e.target.value),
+                              }))
+                            }
                             className="text-[10px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer"
                           >
-                            {[10, 20, 25, 50, 100].map(l => (
-                              <option key={l} value={l}>{l}</option>
+                            {[10, 20, 25, 50, 100].map((l) => (
+                              <option key={l} value={l}>
+                                {l}
+                              </option>
                             ))}
                           </select>
                         </div>
@@ -4609,20 +5080,34 @@ function DashboardContent() {
                         <Button
                           type="button"
                           variant="outline"
-                          onClick={() => setShowUserFiltersOnMobile((prev) => !prev)}
+                          onClick={() =>
+                            setShowUserFiltersOnMobile((prev) => !prev)
+                          }
                           className="sm:hidden h-8 flex-1 text-[10px] font-bold uppercase tracking-wider border-slate-200 text-slate-700"
                         >
                           <Filter className="w-3.5 h-3.5 mr-1.5" />
-                          Filters {activeUserFilterCount > 0 ? `(${activeUserFilterCount})` : ""}
+                          Filters{" "}
+                          {activeUserFilterCount > 0
+                            ? `(${activeUserFilterCount})`
+                            : ""}
                         </Button>
-                        {(userFilters.role || userFilters.status || userFilters.mainDeptId || userFilters.subDeptId || userSearch.trim()) && (
+                        {(userFilters.role ||
+                          userFilters.status ||
+                          userFilters.mainDeptId ||
+                          userFilters.subDeptId ||
+                          userSearch.trim()) && (
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
                             onClick={() => {
                               setUserSearch("");
-                              setUserFilters({ role: "", status: "", mainDeptId: "", subDeptId: "" });
+                              setUserFilters({
+                                role: "",
+                                status: "",
+                                mainDeptId: "",
+                                subDeptId: "",
+                              });
                             }}
                             className="h-8 px-3 sm:px-2 text-[10px] font-bold text-red-500 hover:text-red-600 hover:bg-red-50 uppercase tracking-tighter"
                           >
@@ -4633,11 +5118,16 @@ function DashboardContent() {
                     </div>
 
                     {/* User Filters */}
-                    <div className={`${showUserFiltersOnMobile ? "grid" : "hidden"} sm:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-2 w-full`}>
+                    <div
+                      className={`${showUserFiltersOnMobile ? "grid" : "hidden"} sm:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-2 w-full`}
+                    >
                       <select
                         value={userFilters.role}
                         onChange={(e) =>
-                          setUserFilters({ ...userFilters, role: e.target.value })
+                          setUserFilters({
+                            ...userFilters,
+                            role: e.target.value,
+                          })
                         }
                         className="w-full h-9 text-[10px] font-bold uppercase tracking-wider px-3 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all"
                         aria-label="Filter users by role"
@@ -4648,11 +5138,18 @@ function DashboardContent() {
                             {role.name}
                           </option>
                         ))}
-                        {isSuperAdminUser && <option value="SUPER_ADMIN">Super Admin</option>}
+                        {isSuperAdminUser && (
+                          <option value="SUPER_ADMIN">Super Admin</option>
+                        )}
                       </select>
                       <select
                         value={userFilters.status}
-                        onChange={(e) => setUserFilters(prev => ({ ...prev, status: e.target.value }))}
+                        onChange={(e) =>
+                          setUserFilters((prev) => ({
+                            ...prev,
+                            status: e.target.value,
+                          }))
+                        }
                         className="w-full h-9 text-[10px] font-bold uppercase tracking-wider px-3 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all"
                         aria-label="Filter users by status"
                       >
@@ -4662,26 +5159,50 @@ function DashboardContent() {
                       </select>
                       <select
                         value={userFilters.mainDeptId}
-                        onChange={(e) => setUserFilters(prev => ({ ...prev, mainDeptId: e.target.value, subDeptId: "" }))}
+                        onChange={(e) =>
+                          setUserFilters((prev) => ({
+                            ...prev,
+                            mainDeptId: e.target.value,
+                            subDeptId: "",
+                          }))
+                        }
                         className="w-full h-9 text-[10px] font-bold uppercase tracking-wider px-3 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all"
                         aria-label="Filter users by main department"
                       >
                         <option value="">Main Dept</option>
-                        {departments.filter(d => !d.parentDepartmentId).map(dept => (
-                          <option key={dept._id} value={dept._id}>{dept.name}</option>
-                        ))}
+                        {departments
+                          .filter((d) => !d.parentDepartmentId)
+                          .map((dept) => (
+                            <option key={dept._id} value={dept._id}>
+                              {dept.name}
+                            </option>
+                          ))}
                       </select>
                       <select
                         value={userFilters.subDeptId}
-                        onChange={(e) => setUserFilters(prev => ({ ...prev, subDeptId: e.target.value }))}
+                        onChange={(e) =>
+                          setUserFilters((prev) => ({
+                            ...prev,
+                            subDeptId: e.target.value,
+                          }))
+                        }
                         className="w-full h-9 text-[10px] font-bold uppercase tracking-wider px-3 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all disabled:bg-slate-100 disabled:text-slate-400"
                         disabled={!userFilters.mainDeptId}
                         aria-label="Filter users by sub department"
                       >
                         <option value="">Sub Dept</option>
-                        {userFilters.mainDeptId && departments.filter(d => getParentDepartmentId(d) === userFilters.mainDeptId).map(dept => (
-                          <option key={dept._id} value={dept._id}>{dept.name}</option>
-                        ))}
+                        {userFilters.mainDeptId &&
+                          departments
+                            .filter(
+                              (d) =>
+                                getParentDepartmentId(d) ===
+                                userFilters.mainDeptId,
+                            )
+                            .map((dept) => (
+                              <option key={dept._id} value={dept._id}>
+                                {dept.name}
+                              </option>
+                            ))}
                       </select>
                     </div>
                   </div>
@@ -4719,10 +5240,9 @@ function DashboardContent() {
                                       if (e.target.checked) {
                                         setSelectedUsers(
                                           new Set(
-                                            getSortedData(
-                                              users,
-                                              "users",
-                                            ).map((u) => u._id),
+                                            getSortedData(users, "users").map(
+                                              (u) => u._id,
+                                            ),
                                           ),
                                         );
                                       } else {
@@ -4880,33 +5400,38 @@ function DashboardContent() {
                                           {formatTo10Digits(u.phone)}
                                         </div>
                                       )}
-                                  {isSuperAdminUser && u.notificationSettings && (
-                                    <div className="flex items-center gap-2 mt-2">
-                                      <div 
-                                        title={`Email Notifications: ${u.notificationSettings.email ? 'Enabled' : 'Disabled'}`}
-                                        className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter border flex items-center gap-1 ${
-                                          u.notificationSettings.email 
-                                            ? 'bg-blue-50 text-blue-600 border-blue-100' 
-                                            : 'bg-slate-50 text-slate-300 border-slate-100'
-                                        }`}
-                                      >
-                                        <Mail className={`w-2.5 h-2.5 ${u.notificationSettings.email ? 'text-blue-500' : 'text-slate-300'}`} />
-                                        Email
-                                      </div>
-                                      <div 
-                                        title={`WhatsApp Notifications: ${u.notificationSettings.whatsapp ? 'Enabled' : 'Disabled'}`}
-                                        className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter border flex items-center gap-1 ${
-                                          u.notificationSettings.whatsapp 
-                                            ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
-                                            : 'bg-slate-50 text-slate-300 border-slate-100'
-                                        }`}
-                                      >
-                                        <TrendingUp className={`w-2.5 h-2.5 ${u.notificationSettings.whatsapp ? 'text-emerald-500' : 'text-slate-300'}`} />
-                                        WhatsApp
-                                      </div>
+                                      {isSuperAdminUser &&
+                                        u.notificationSettings && (
+                                          <div className="flex items-center gap-2 mt-2">
+                                            <div
+                                              title={`Email Notifications: ${u.notificationSettings.email ? "Enabled" : "Disabled"}`}
+                                              className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter border flex items-center gap-1 ${
+                                                u.notificationSettings.email
+                                                  ? "bg-blue-50 text-blue-600 border-blue-100"
+                                                  : "bg-slate-50 text-slate-300 border-slate-100"
+                                              }`}
+                                            >
+                                              <Mail
+                                                className={`w-2.5 h-2.5 ${u.notificationSettings.email ? "text-blue-500" : "text-slate-300"}`}
+                                              />
+                                              Email
+                                            </div>
+                                            <div
+                                              title={`WhatsApp Notifications: ${u.notificationSettings.whatsapp ? "Enabled" : "Disabled"}`}
+                                              className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter border flex items-center gap-1 ${
+                                                u.notificationSettings.whatsapp
+                                                  ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+                                                  : "bg-slate-50 text-slate-300 border-slate-100"
+                                              }`}
+                                            >
+                                              <TrendingUp
+                                                className={`w-2.5 h-2.5 ${u.notificationSettings.whatsapp ? "text-emerald-500" : "text-slate-300"}`}
+                                              />
+                                              WhatsApp
+                                            </div>
+                                          </div>
+                                        )}
                                     </div>
-                                  )}
-                                </div>
                                   </td>
                                   <td className="px-4 py-5">
                                     <div className="flex flex-col space-y-2">
@@ -4987,8 +5512,7 @@ function DashboardContent() {
                                                       /_/g,
                                                       " ",
                                                     )}
-                                                  </span
-                                                  >
+                                                  </span>
                                                 ))}
                                               {(u.customRoleId as any)
                                                 .permissions.length > 3 && (
@@ -5175,19 +5699,18 @@ function DashboardContent() {
                       </div>
 
                       <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/30 flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                        {isSuperAdminUser &&
-                          selectedUsers.size > 0 && (
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={handleBulkDeleteUsers}
-                              disabled={isDeleting}
-                              className="text-[9px] font-black h-7 px-3 bg-red-600 hover:bg-red-700 text-white rounded-lg border border-red-700 shadow-sm transition-all animate-in zoom-in duration-200"
-                            >
-                              <Trash2 className="w-3 h-3 mr-1" />
-                              Delete ({selectedUsers.size})
-                            </Button>
-                          )}
+                        {isSuperAdminUser && selectedUsers.size > 0 && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={handleBulkDeleteUsers}
+                            disabled={isDeleting}
+                            className="text-[9px] font-black h-7 px-3 bg-red-600 hover:bg-red-700 text-white rounded-lg border border-red-700 shadow-sm transition-all animate-in zoom-in duration-200"
+                          >
+                            <Trash2 className="w-3 h-3 mr-1" />
+                            Delete ({selectedUsers.size})
+                          </Button>
+                        )}
 
                         <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-lg whitespace-nowrap">
                           Showing{" "}
@@ -5214,8 +5737,9 @@ function DashboardContent() {
           )}
 
           {/* Grievances Tab - Sophisticated Professional Inbox */}
-          {hasModule(Module.GRIEVANCE) && (isViewingCompany || isDepartmentLevel) && (
-            <TabsContent value="grievances" className="space-y-4">
+          {hasModule(Module.GRIEVANCE) &&
+            (isViewingCompany || isDepartmentLevel) && (
+              <TabsContent value="grievances" className="space-y-4">
                 {/* Back Button - Show when coming from overview (not for operators) */}
                 {/* {previousTab === "overview" && hasPermission(user, Permission.VIEW_ANALYTICS) && (
                   <Button
@@ -5232,7 +5756,7 @@ function DashboardContent() {
                   </Button>
                 )} */}
                 <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
-                  <CardHeader className="bg-slate-900 px-6 py-4">
+                  <CardHeader className="bg-slate-900 px-6 py-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
@@ -5241,21 +5765,21 @@ function DashboardContent() {
                         <div>
                           <CardTitle className="text-base font-bold text-white">
                             {grievanceFilters.status === "REJECTED"
-                                ? "Rejected Grievances"
-                                : grievanceFilters.status === "CLOSED"
-                                  ? "Closed Grievances"
-                                  : grievanceFilters.status === "REVERTED"
-                                    ? "Reverted Grievances"
-                                    : "Active Grievances"}
+                              ? "Rejected Grievances"
+                              : grievanceFilters.status === "CLOSED"
+                                ? "Closed Grievances"
+                                : grievanceFilters.status === "REVERTED"
+                                  ? "Reverted Grievances"
+                                  : "Active Grievances"}
                           </CardTitle>
                           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
                             {grievanceFilters.status === "REJECTED"
-                                ? "View all rejected grievances"
-                                : grievanceFilters.status === "CLOSED"
-                                  ? "View all closed grievances"
-                                  : grievanceFilters.status === "REVERTED"
-                                    ? "Reverted by departments and pending reassignment"
-                                    : "View and manage grievances"}
+                              ? "View all rejected grievances"
+                              : grievanceFilters.status === "CLOSED"
+                                ? "View all closed grievances"
+                                : grievanceFilters.status === "REVERTED"
+                                  ? "Reverted by departments and pending reassignment"
+                                  : "View and manage grievances"}
                           </p>
                         </div>
                       </div>
@@ -5367,11 +5891,13 @@ function DashboardContent() {
                             title="Filter by main department"
                           >
                             <option value="">🏢 Main Dept</option>
-                            {departments.filter(d => !d.parentDepartmentId).map((dept) => (
-                              <option key={dept._id} value={dept._id}>
-                                {dept.name}
-                              </option>
-                            ))}
+                            {departments
+                              .filter((d) => !d.parentDepartmentId)
+                              .map((dept) => (
+                                <option key={dept._id} value={dept._id}>
+                                  {dept.name}
+                                </option>
+                              ))}
                           </select>
 
                           {/* Sub Department Filter */}
@@ -5388,11 +5914,18 @@ function DashboardContent() {
                             disabled={!grievanceFilters.mainDeptId}
                           >
                             <option value="">🏢 Sub Dept</option>
-                            {grievanceFilters.mainDeptId && departments.filter(d => getParentDepartmentId(d) === grievanceFilters.mainDeptId).map((dept) => (
-                              <option key={dept._id} value={dept._id}>
-                                {dept.name}
-                              </option>
-                            ))}
+                            {grievanceFilters.mainDeptId &&
+                              departments
+                                .filter(
+                                  (d) =>
+                                    getParentDepartmentId(d) ===
+                                    grievanceFilters.mainDeptId,
+                                )
+                                .map((dept) => (
+                                  <option key={dept._id} value={dept._id}>
+                                    {dept.name}
+                                  </option>
+                                ))}
                           </select>
                         </>
                       )}
@@ -5480,17 +6013,26 @@ function DashboardContent() {
                       )}
 
                       {/* Redundant Bulk Delete Button removed (consolidated above) */}
-                      
+
                       {/* Rows per page Selector */}
                       <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Rows:</span>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                          Rows:
+                        </span>
                         <select
                           value={grievancePagination.limit}
-                          onChange={(e) => setGrievancePagination(prev => ({ ...prev, limit: Number(e.target.value) }))}
+                          onChange={(e) =>
+                            setGrievancePagination((prev) => ({
+                              ...prev,
+                              limit: Number(e.target.value),
+                            }))
+                          }
                           className="text-[10px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer"
                         >
-                          {[10, 20, 25, 50, 100].map(l => (
-                            <option key={l} value={l}>{l}</option>
+                          {[10, 20, 25, 50, 100].map((l) => (
+                            <option key={l} value={l}>
+                              {l}
+                            </option>
                           ))}
                         </select>
                       </div>
@@ -5698,7 +6240,9 @@ function DashboardContent() {
                                     </td>
                                     <td className="px-4 py-4">
                                       <button
-                                        onClick={() => openGrievanceDetail(grievance._id)}
+                                        onClick={() =>
+                                          openGrievanceDetail(grievance._id)
+                                        }
                                         className="font-bold text-sm text-blue-700 hover:text-blue-800 hover:underline"
                                       >
                                         {grievance.grievanceId}
@@ -5707,14 +6251,18 @@ function DashboardContent() {
                                     <td className="px-4 py-4">
                                       <div className="flex flex-col">
                                         <button
-                                          onClick={() => openGrievanceDetail(grievance._id)}
+                                          onClick={() =>
+                                            openGrievanceDetail(grievance._id)
+                                          }
                                           className="text-gray-900 font-bold text-sm text-left hover:text-blue-600 hover:underline"
                                         >
                                           {grievance.citizenName}
                                         </button>
                                         <div className="flex items-center text-xs text-gray-500 font-medium">
                                           <Phone className="w-3 h-3 mr-1.5" />
-                                          {formatTo10Digits(grievance.citizenPhone)}
+                                          {formatTo10Digits(
+                                            grievance.citizenPhone,
+                                          )}
                                         </div>
                                       </div>
                                     </td>
@@ -5743,32 +6291,59 @@ function DashboardContent() {
                                           <>
                                             <div className="flex items-center gap-1.5 mb-0.5">
                                               <span className="text-xs font-semibold text-indigo-700">
-                                                {typeof grievance.assignedTo === "object" && grievance.assignedTo !== null
+                                                {typeof grievance.assignedTo ===
+                                                  "object" &&
+                                                grievance.assignedTo !== null
                                                   ? `${(grievance.assignedTo as any).firstName} ${(grievance.assignedTo as any).lastName}`
                                                   : // Fallback: try to find in users list if it's just an ID
-                                                    users.find(u => u._id === grievance.assignedTo || u.userId === grievance.assignedTo)?.firstName 
+                                                    users.find(
+                                                        (u) =>
+                                                          u._id ===
+                                                            grievance.assignedTo ||
+                                                          u.userId ===
+                                                            grievance.assignedTo,
+                                                      )?.firstName
                                                     ? (() => {
-                                                        const found = users.find(u => u._id === grievance.assignedTo || u.userId === grievance.assignedTo);
+                                                        const found =
+                                                          users.find(
+                                                            (u) =>
+                                                              u._id ===
+                                                                grievance.assignedTo ||
+                                                              u.userId ===
+                                                                grievance.assignedTo,
+                                                          );
                                                         return `${found?.firstName} ${found?.lastName}`;
                                                       })()
                                                     : grievance.assignedTo}
                                               </span>
-                                              {typeof grievance.assignedTo === "object" && (grievance.assignedTo as any).designation && (
-                                                <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-full font-medium">
-                                                  {(grievance.assignedTo as any).designation}
-                                                </span>
-                                              )}
+                                              {typeof grievance.assignedTo ===
+                                                "object" &&
+                                                (grievance.assignedTo as any)
+                                                  .designation && (
+                                                  <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-full font-medium">
+                                                    {
+                                                      (
+                                                        grievance.assignedTo as any
+                                                      ).designation
+                                                    }
+                                                  </span>
+                                                )}
                                             </div>
                                             {grievance.assignedAt && (
                                               <span className="text-[10px] text-slate-400 font-medium">
-                                                Assigned: {new Date(grievance.assignedAt).toLocaleDateString()}
+                                                Assigned:{" "}
+                                                {new Date(
+                                                  grievance.assignedAt,
+                                                ).toLocaleDateString()}
                                               </span>
                                             )}
                                           </>
                                         ) : (
                                           <div className="flex items-center gap-1.5 text-slate-400 italic">
                                             <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
-                                            <span className="text-[11px]">Unassigned</span>
+                                            <span className="text-[11px]">
+                                              Unassigned
+                                            </span>
                                           </div>
                                         )}
                                       </div>
@@ -5882,11 +6457,15 @@ function DashboardContent() {
                                     </td>
                                     <td className="px-4 py-4">
                                       <div className="flex items-center justify-center space-x-1">
-                                        {hasPermission(user, Permission.ASSIGN_GRIEVANCE) &&
+                                        {hasPermission(
+                                          user,
+                                          Permission.ASSIGN_GRIEVANCE,
+                                        ) &&
                                           (isCompanyLevel ||
                                             (grievance.status !== "RESOLVED" &&
                                               grievance.status !== "CLOSED" &&
-                                              grievance.status !== "REJECTED")) && (
+                                              grievance.status !==
+                                                "REJECTED")) && (
                                             <Button
                                               variant="ghost"
                                               size="sm"
@@ -5924,21 +6503,37 @@ function DashboardContent() {
                                               variant="ghost"
                                               size="sm"
                                               onClick={() => {
-                                                setSelectedGrievanceForRevert(grievance);
-                                                setShowGrievanceRevertDialog(true);
+                                                setSelectedGrievanceForRevert(
+                                                  grievance,
+                                                );
+                                                setShowGrievanceRevertDialog(
+                                                  true,
+                                                );
                                               }}
                                               title="Revert to Company Admin"
                                               className="h-8 w-8 p-0 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
                                             >
-                                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a4 4 0 014 4v1m0 0l-3-3m3 3l3-3M7 14H3m0 0l3 3m-3-3l3-3" />
+                                              <svg
+                                                className="w-4 h-4"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                              >
+                                                <path
+                                                  strokeLinecap="round"
+                                                  strokeLinejoin="round"
+                                                  strokeWidth={2}
+                                                  d="M3 10h10a4 4 0 014 4v1m0 0l-3-3m3 3l3-3M7 14H3m0 0l3 3m-3-3l3-3"
+                                                />
                                               </svg>
                                             </Button>
                                           )}
                                         <Button
                                           variant="ghost"
                                           size="sm"
-                                          onClick={() => openGrievanceDetail(grievance._id)}
+                                          onClick={() =>
+                                            openGrievanceDetail(grievance._id)
+                                          }
                                           title="View"
                                           className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                                         >
@@ -5986,14 +6581,11 @@ function DashboardContent() {
               </TabsContent>
             )}
 
-
-
-
           {/* Reverted Grievances Tab - for Company Admin */}
           {isCompanyLevel && hasPermission(user, Permission.READ_GRIEVANCE) && (
             <TabsContent value="reverted" className="space-y-6">
               <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
-                <CardHeader className="bg-slate-900 px-6 py-4">
+                <CardHeader className="bg-slate-900 px-6 py-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-rose-500/20 rounded-xl flex items-center justify-center border border-rose-500/30">
@@ -6031,7 +6623,9 @@ function DashboardContent() {
                         onClick={handleRefreshData}
                         className="border-slate-200 hover:bg-slate-50 rounded-xl"
                       >
-                        <RefreshCw className={`w-4 h-4 mr-1.5 ${isRefreshing ? "animate-spin" : ""}`} />
+                        <RefreshCw
+                          className={`w-4 h-4 mr-1.5 ${isRefreshing ? "animate-spin" : ""}`}
+                        />
                         Refresh
                       </Button>
                     </div>
@@ -6041,23 +6635,40 @@ function DashboardContent() {
                   <div className="flex items-center gap-3 flex-wrap">
                     <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm">
                       <Filter className="w-3.5 h-3.5 text-rose-500" />
-                      <span className="text-xs font-bold text-slate-600">Filters</span>
+                      <span className="text-xs font-bold text-slate-600">
+                        Filters
+                      </span>
                     </div>
 
                     <select
                       value={grievanceFilters.mainDeptId}
-                      onChange={(e) => setGrievanceFilters(prev => ({ ...prev, mainDeptId: e.target.value, subDeptId: "" }))}
+                      onChange={(e) =>
+                        setGrievanceFilters((prev) => ({
+                          ...prev,
+                          mainDeptId: e.target.value,
+                          subDeptId: "",
+                        }))
+                      }
                       className="text-xs px-4 py-2 border border-slate-200 rounded-xl bg-white shadow-sm hover:border-rose-300 transition-colors cursor-pointer min-w-[170px]"
                     >
                       <option value="">🏢 Origin Department</option>
-                      {departments.filter(d => !d.parentDepartmentId).map(d => (
-                        <option key={d._id} value={d._id}>{d.name}</option>
-                      ))}
+                      {departments
+                        .filter((d) => !d.parentDepartmentId)
+                        .map((d) => (
+                          <option key={d._id} value={d._id}>
+                            {d.name}
+                          </option>
+                        ))}
                     </select>
 
                     <select
                       value={grievanceFilters.dateRange}
-                      onChange={(e) => setGrievanceFilters(prev => ({ ...prev, dateRange: e.target.value }))}
+                      onChange={(e) =>
+                        setGrievanceFilters((prev) => ({
+                          ...prev,
+                          dateRange: e.target.value,
+                        }))
+                      }
                       className="text-xs px-4 py-2 border border-slate-200 rounded-xl bg-white shadow-sm hover:border-rose-300 transition-colors cursor-pointer"
                     >
                       <option value="">📅 All Dates</option>
@@ -6066,13 +6677,20 @@ function DashboardContent() {
                       <option value="month">Last 30 Days</option>
                     </select>
 
-                    {(grievanceSearch || grievanceFilters.mainDeptId || grievanceFilters.dateRange) && (
+                    {(grievanceSearch ||
+                      grievanceFilters.mainDeptId ||
+                      grievanceFilters.dateRange) && (
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => {
                           setGrievanceSearch("");
-                          setGrievanceFilters(prev => ({ ...prev, mainDeptId: "", subDeptId: "", dateRange: "" }));
+                          setGrievanceFilters((prev) => ({
+                            ...prev,
+                            mainDeptId: "",
+                            subDeptId: "",
+                            dateRange: "",
+                          }));
                         }}
                         className="text-xs h-8 px-3 text-red-600 hover:bg-red-50 rounded-xl border border-red-100"
                       >
@@ -6081,7 +6699,11 @@ function DashboardContent() {
                     )}
 
                     <div className="ml-auto text-xs font-black text-slate-400 uppercase tracking-widest bg-slate-100/50 px-3 py-1.5 rounded-lg">
-                      Showing: <span className="text-slate-900">{getSortedData(grievances, "reverted").length} reverted cases</span>
+                      Showing:{" "}
+                      <span className="text-slate-900">
+                        {getSortedData(grievances, "reverted").length} reverted
+                        cases
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -6091,153 +6713,222 @@ function DashboardContent() {
                     <table className="w-full text-left">
                       <thead>
                         <tr className="border-b border-slate-100 bg-slate-50/30">
-                          <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center w-12">#</th>
-                          <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Grievance Id</th>
-                          <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking_widest">Citizen Details</th>
-                          <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Description & Remarks</th>
-                          <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Dept & Category</th>
-                          <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking_widest">Status</th>
-                          <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Reassign</th>
+                          <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center w-12">
+                            #
+                          </th>
+                          <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                            Grievance Id
+                          </th>
+                          <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking_widest">
+                            Citizen Details
+                          </th>
+                          <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                            Description & Remarks
+                          </th>
+                          <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                            Dept & Category
+                          </th>
+                          <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking_widest">
+                            Status
+                          </th>
+                          <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">
+                            Reassign
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
                         {getSortedData(grievances, "reverted").length > 0 ? (
-                          getSortedData(grievances, "reverted").map((grievance, index) => {
-                            const latestRevertRemark = grievance.statusHistory
-                                ?.filter((h: any) => h.status === 'REVERTED')
-                                .sort((a: any, b: any) => new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime())[0]?.remarks;
+                          getSortedData(grievances, "reverted").map(
+                            (grievance, index) => {
+                              const latestRevertRemark = grievance.statusHistory
+                                ?.filter((h: any) => h.status === "REVERTED")
+                                .sort(
+                                  (a: any, b: any) =>
+                                    new Date(b.changedAt).getTime() -
+                                    new Date(a.changedAt).getTime(),
+                                )[0]?.remarks;
 
-                            return (
-                              <tr key={grievance._id} className="border-b border-slate-50 hover:bg-slate-50/80 transition-all group">
-                                <td className="px-4 py-5 text-center">
-                                  <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black group-hover:bg-rose-100 group-hover:text-rose-700 transition-colors shadow-sm">
-                                    {index + 1}
-                                  </span>
-                                </td>
-                                <td className="px-4 py-5 font-bold text-sm">
-                                  <button
-                                    onClick={() => openGrievanceDetail(grievance._id)}
-                                    className="text-blue-700 hover:text-blue-900 flex items-center gap-1.5 group/id"
-                                  >
-                                    {grievance.grievanceId}
-                                    <ExternalLink className="w-3 h-3 opacity-0 group-hover/id:opacity-100 transition-opacity" />
-                                  </button>
-                                  <div className="text-[10px] text-slate-400 font-medium mt-1">
-                                    {new Date(grievance.createdAt).toLocaleDateString()}
-                                  </div>
-                                </td>
-                                <td className="px-4 py-5">
-                                  <div className="flex flex-col">
+                              return (
+                                <tr
+                                  key={grievance._id}
+                                  className="border-b border-slate-50 hover:bg-slate-50/80 transition-all group"
+                                >
+                                  <td className="px-4 py-5 text-center">
+                                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black group-hover:bg-rose-100 group-hover:text-rose-700 transition-colors shadow-sm">
+                                      {index + 1}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-5 font-bold text-sm">
                                     <button
-                                      onClick={() => openGrievanceDetail(grievance._id)}
-                                      className="text-slate-900 font-bold text-sm text-left hover:text-indigo-600 transition-colors"
+                                      onClick={() =>
+                                        openGrievanceDetail(grievance._id)
+                                      }
+                                      className="text-blue-700 hover:text-blue-900 flex items-center gap-1.5 group/id"
                                     >
-                                      {grievance.citizenName}
+                                      {grievance.grievanceId}
+                                      <ExternalLink className="w-3 h-3 opacity-0 group-hover/id:opacity-100 transition-opacity" />
                                     </button>
-                                    <div className="flex items-center text-[11px] text-slate-500 font-medium mt-0.5">
-                                      <Phone className="w-3 h-3 mr-1.5 text-slate-400" />
-                                      {formatTo10Digits(grievance.citizenPhone)}
+                                    <div className="text-[10px] text-slate-400 font-medium mt-1">
+                                      {new Date(
+                                        grievance.createdAt,
+                                      ).toLocaleDateString()}
                                     </div>
-                                  </div>
-                                </td>
-                                <td className="px-4 py-5 max-w-[250px]">
-                                  <div className="flex flex-col gap-1.5">
-                                    <div className="text-xs text-slate-600 line-clamp-1 italic" title={grievance.description}>
-                                      &quot;{grievance.description}&quot;
-                                    </div>
-                                    {latestRevertRemark && (
-                                      <div className="bg-rose-50 border border-rose-100 rounded-lg p-2">
-                                        <p className="text-[10px] font-black text-rose-500 uppercase tracking-tighter mb-0.5 flex items-center gap-1">
-                                          <Undo2 className="w-2.5 h-2.5" /> Revert Remark
-                                        </p>
-                                        <p className="text-[11px] text-rose-700 font-bold leading-tight">
-                                          {latestRevertRemark}
-                                        </p>
-                                      </div>
-                                    )}
-                                  </div>
-                                </td>
-                                <td className="px-4 py-5">
-                                  <div className="flex flex-col gap-1">
+                                  </td>
+                                  <td className="px-4 py-5">
                                     <div className="flex flex-col">
-                                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight mb-0.5">Original Dept</span>
-                                      <span className="text-xs font-semibold text-slate-700">
-                                        {grievance.departmentId && typeof grievance.departmentId === "object" ? (grievance.departmentId as any).name : "General"}
+                                      <button
+                                        onClick={() =>
+                                          openGrievanceDetail(grievance._id)
+                                        }
+                                        className="text-slate-900 font-bold text-sm text-left hover:text-indigo-600 transition-colors"
+                                      >
+                                        {grievance.citizenName}
+                                      </button>
+                                      <div className="flex items-center text-[11px] text-slate-500 font-medium mt-0.5">
+                                        <Phone className="w-3 h-3 mr-1.5 text-slate-400" />
+                                        {formatTo10Digits(
+                                          grievance.citizenPhone,
+                                        )}
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-5 max-w-[250px]">
+                                    <div className="flex flex-col gap-1.5">
+                                      <div
+                                        className="text-xs text-slate-600 line-clamp-1 italic"
+                                        title={grievance.description}
+                                      >
+                                        &quot;{grievance.description}&quot;
+                                      </div>
+                                      {latestRevertRemark && (
+                                        <div className="bg-rose-50 border border-rose-100 rounded-lg p-2">
+                                          <p className="text-[10px] font-black text-rose-500 uppercase tracking-tighter mb-0.5 flex items-center gap-1">
+                                            <Undo2 className="w-2.5 h-2.5" />{" "}
+                                            Revert Remark
+                                          </p>
+                                          <p className="text-[11px] text-rose-700 font-bold leading-tight">
+                                            {latestRevertRemark}
+                                          </p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-5">
+                                    <div className="flex flex-col gap-1">
+                                      <div className="flex flex-col">
+                                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight mb-0.5">
+                                          Original Dept
+                                        </span>
+                                        <span className="text-xs font-semibold text-slate-700">
+                                          {grievance.departmentId &&
+                                          typeof grievance.departmentId ===
+                                            "object"
+                                            ? (grievance.departmentId as any)
+                                                .name
+                                            : "General"}
+                                        </span>
+                                      </div>
+
+                                      {(() => {
+                                        const revertEntry = grievance.timeline
+                                          ?.filter(
+                                            (t: any) =>
+                                              t.action ===
+                                              "REVERTED_TO_COMPANY_ADMIN",
+                                          )
+                                          .sort(
+                                            (a: any, b: any) =>
+                                              new Date(b.timestamp).getTime() -
+                                              new Date(a.timestamp).getTime(),
+                                          )[0];
+
+                                        const suggestedDeptId =
+                                          revertEntry?.details
+                                            ?.suggestedDepartmentId;
+                                        const suggestedSubDeptId =
+                                          revertEntry?.details
+                                            ?.suggestedSubDepartmentId;
+
+                                        if (
+                                          suggestedDeptId ||
+                                          suggestedSubDeptId
+                                        ) {
+                                          const suggestedDept =
+                                            departments.find(
+                                              (d) =>
+                                                d._id ===
+                                                (suggestedSubDeptId ||
+                                                  suggestedDeptId),
+                                            );
+                                          return (
+                                            <div className="mt-2 group/suggested">
+                                              <div className="flex items-center gap-1 text-[9px] text-rose-500 font-black uppercase tracking-widest mb-1 opacity-70">
+                                                <ArrowRightCircle className="w-2.5 h-2.5" />{" "}
+                                                Proposed Destination
+                                              </div>
+                                              <div className="flex items-center gap-2 bg-rose-50/50 border border-rose-100 rounded-lg p-2 transition-all group-hover/suggested:bg-rose-50">
+                                                <div className="w-6 h-6 bg-rose-100 rounded-md flex items-center justify-center text-rose-600">
+                                                  <Building2 className="w-3.5 h-3.5" />
+                                                </div>
+                                                <div className="flex flex-col">
+                                                  <span className="text-xs font-bold text-slate-900 leading-none">
+                                                    {suggestedDept?.name ||
+                                                      "Target Department"}
+                                                  </span>
+                                                  <span className="text-[9px] font-bold text-rose-500 uppercase mt-0.5 tracking-tighter">
+                                                    Recommended by Admin
+                                                  </span>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          );
+                                        }
+                                        return null;
+                                      })()}
+
+                                      <span className="text-[10px] text-orange-500 font-bold uppercase tracking-tight mt-1">
+                                        {grievance.category}
                                       </span>
                                     </div>
-                                    
-                                    {(() => {
-                                      const revertEntry = grievance.timeline
-                                        ?.filter((t: any) => t.action === "REVERTED_TO_COMPANY_ADMIN")
-                                        .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
-                                      
-                                      const suggestedDeptId = revertEntry?.details?.suggestedDepartmentId;
-                                      const suggestedSubDeptId = revertEntry?.details?.suggestedSubDepartmentId;
-                                      
-                                      if (suggestedDeptId || suggestedSubDeptId) {
-                                        const suggestedDept = departments.find(d => d._id === (suggestedSubDeptId || suggestedDeptId));
-                                        return (
-                                          <div className="mt-2 group/suggested">
-                                            <div className="flex items-center gap-1 text-[9px] text-rose-500 font-black uppercase tracking-widest mb-1 opacity-70">
-                                              <ArrowRightCircle className="w-2.5 h-2.5" /> Proposed Destination
-                                            </div>
-                                            <div className="flex items-center gap-2 bg-rose-50/50 border border-rose-100 rounded-lg p-2 transition-all group-hover/suggested:bg-rose-50">
-                                              <div className="w-6 h-6 bg-rose-100 rounded-md flex items-center justify-center text-rose-600">
-                                                <Building2 className="w-3.5 h-3.5" />
-                                              </div>
-                                              <div className="flex flex-col">
-                                                <span className="text-xs font-bold text-slate-900 leading-none">
-                                                  {suggestedDept?.name || "Target Department"}
-                                                </span>
-                                                <span className="text-[9px] font-bold text-rose-500 uppercase mt-0.5 tracking-tighter">
-                                                  Recommended by Admin
-                                                </span>
-                                              </div>
-                                            </div>
-                                          </div>
-                                        );
-                                      }
-                                      return null;
-                                    })()}
-                                    
-                                    <span className="text-[10px] text-orange-500 font-bold uppercase tracking-tight mt-1">
-                                      {grievance.category}
+                                  </td>
+                                  <td className="px-4 py-5">
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black bg-rose-50 text-rose-600 border border-rose-100 uppercase tracking-wider">
+                                      REVERTED
                                     </span>
-                                  </div>
-                                </td>
-                                <td className="px-4 py-5">
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black bg-rose-50 text-rose-600 border border-rose-100 uppercase tracking-wider">
-                                    REVERTED
-                                  </span>
-                                </td>
-                                <td className="px-4 py-5">
-                                  <div className="flex justify-center gap-1.5">
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => {
-                                        setSelectedGrievanceForAssignment(grievance);
-                                        setShowGrievanceAssignment(true);
-                                      }}
-                                      className="h-8 w-8 p-0 text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700 rounded-lg shadow-none border-0 transition-all"
-                                      title="Assign to New Official"
-                                    >
-                                      <UserPlus className="w-3.5 h-3.5" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => openGrievanceDetail(grievance._id)}
-                                      className="h-8 w-8 p-0 text-slate-400 hover:bg-slate-50 hover:text-slate-900 rounded-lg shadow-none border-0 transition-all"
-                                      title="View Case Details"
-                                    >
-                                      <Eye className="w-3.5 h-3.5" />
-                                    </Button>
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })
+                                  </td>
+                                  <td className="px-4 py-5">
+                                    <div className="flex justify-center gap-1.5">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                          setSelectedGrievanceForAssignment(
+                                            grievance,
+                                          );
+                                          setShowGrievanceAssignment(true);
+                                        }}
+                                        className="h-8 w-8 p-0 text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700 rounded-lg shadow-none border-0 transition-all"
+                                        title="Assign to New Official"
+                                      >
+                                        <UserPlus className="w-3.5 h-3.5" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() =>
+                                          openGrievanceDetail(grievance._id)
+                                        }
+                                        className="h-8 w-8 p-0 text-slate-400 hover:bg-slate-50 hover:text-slate-900 rounded-lg shadow-none border-0 transition-all"
+                                        title="View Case Details"
+                                      >
+                                        <Eye className="w-3.5 h-3.5" />
+                                      </Button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            },
+                          )
                         ) : (
                           <tr>
                             <td colSpan={7} className="px-4 py-24 text-center">
@@ -6245,9 +6936,12 @@ function DashboardContent() {
                                 <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-slate-100">
                                   <Inbox className="w-8 h-8 text-slate-200" />
                                 </div>
-                                <h3 className="text-slate-900 font-bold">No Reverted Items</h3>
+                                <h3 className="text-slate-900 font-bold">
+                                  No Reverted Items
+                                </h3>
                                 <p className="text-slate-400 text-xs mt-1 max-w-[200px] mx-auto leading-relaxed">
-                                  All reverted grievances have been addressed or none exist currently.
+                                  All reverted grievances have been addressed or
+                                  none exist currently.
                                 </p>
                               </div>
                             </td>
@@ -6262,10 +6956,11 @@ function DashboardContent() {
           )}
 
           {/* Appointments Tab - Modern Specialized Calendar Integration */}
-          {hasModule(Module.APPOINTMENT) && (isViewingCompany || isDepartmentLevel) && (
-            <TabsContent value="appointments" className="space-y-4">
+          {hasModule(Module.APPOINTMENT) &&
+            (isViewingCompany || isDepartmentLevel) && (
+              <TabsContent value="appointments" className="space-y-4">
                 <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
-                  <CardHeader className="bg-slate-900 px-6 py-4">
+                  <CardHeader className="bg-slate-900 px-6 py-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
@@ -6281,7 +6976,6 @@ function DashboardContent() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-
                         {(isViewingCompany || isDepartmentLevel) && (
                           <Button
                             onClick={() => setShowAvailabilityCalendar(true)}
@@ -6440,14 +7134,23 @@ function DashboardContent() {
                       {/* Results count */}
                       <div className="flex items-center gap-4 ml-auto">
                         <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm">
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Rows:</span>
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                            Rows:
+                          </span>
                           <select
                             value={appointmentPagination.limit}
-                            onChange={(e) => setAppointmentPagination(prev => ({ ...prev, limit: Number(e.target.value) }))}
+                            onChange={(e) =>
+                              setAppointmentPagination((prev) => ({
+                                ...prev,
+                                limit: Number(e.target.value),
+                              }))
+                            }
                             className="text-[10px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer"
                           >
-                            {[10, 20, 25, 50, 100].map(l => (
-                              <option key={l} value={l}>{l}</option>
+                            {[10, 20, 25, 50, 100].map((l) => (
+                              <option key={l} value={l}>
+                                {l}
+                              </option>
                             ))}
                           </select>
                         </div>
@@ -6622,7 +7325,9 @@ function DashboardContent() {
                                     </td>
                                     <td className="px-4 py-4">
                                       <button
-                                        onClick={() => openAppointmentDetail(appointment._id)}
+                                        onClick={() =>
+                                          openAppointmentDetail(appointment._id)
+                                        }
                                         className="font-bold text-sm text-purple-700 hover:text-purple-800 hover:underline"
                                       >
                                         {appointment.appointmentId}
@@ -6631,14 +7336,20 @@ function DashboardContent() {
                                     <td className="px-4 py-4">
                                       <div className="flex flex-col">
                                         <button
-                                          onClick={() => openAppointmentDetail(appointment._id)}
+                                          onClick={() =>
+                                            openAppointmentDetail(
+                                              appointment._id,
+                                            )
+                                          }
                                           className="text-gray-900 font-bold text-sm text-left hover:text-purple-600 hover:underline whitespace-normal break-words"
                                         >
                                           {appointment.citizenName}
                                         </button>
                                         <div className="flex items-center text-xs text-gray-500 font-medium">
                                           <Phone className="w-3 h-3 mr-1.5" />
-                                          {formatTo10Digits(appointment.citizenPhone)}
+                                          {formatTo10Digits(
+                                            appointment.citizenPhone,
+                                          )}
                                         </div>
                                       </div>
                                     </td>
@@ -6740,7 +7451,11 @@ function DashboardContent() {
                                       <div className="flex items-center justify-center gap-1">
                                         {/* Assign button removed - Appointments are for CEO only, no assignment needed */}
                                         <button
-                                          onClick={() => openAppointmentDetail(appointment._id)}
+                                          onClick={() =>
+                                            openAppointmentDetail(
+                                              appointment._id,
+                                            )
+                                          }
                                           title="View Details"
                                           className="p-2 rounded-lg text-purple-600 hover:text-purple-700 hover:bg-purple-50 border border-transparent hover:border-purple-200 transition-all duration-200"
                                         >
@@ -6792,13 +7507,15 @@ function DashboardContent() {
             <TabsContent value="roles" className="space-y-4">
               <Card className="border-0 shadow-xl rounded-2xl overflow-hidden bg-white text-left">
                 <CardContent className="p-6">
-                    <RoleManagement
-                      companyId={
-                        (isSuperAdminUser && companyIdParam)
-                          ? companyIdParam
-                          : (typeof user?.companyId === 'object' ? (user.companyId as any)?._id : (user?.companyId || ""))
-                      }
-                    />
+                  <RoleManagement
+                    companyId={
+                      isSuperAdminUser && companyIdParam
+                        ? companyIdParam
+                        : typeof user?.companyId === "object"
+                          ? (user.companyId as any)?._id
+                          : user?.companyId || ""
+                    }
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -6811,7 +7528,7 @@ function DashboardContent() {
             isCompanyLevel && (
               <TabsContent value="leads" className="space-y-6">
                 <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
-                  <CardHeader className="bg-slate-900 px-6 py-4">
+                  <CardHeader className="bg-slate-900 px-6 py-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
@@ -6957,8 +7674,6 @@ function DashboardContent() {
               </TabsContent>
             )}
 
-
-
           {isSuperAdminUser && companyIdParam && (
             <CompanyProvider companyId={companyIdParam}>
               <TabsContent value="whatsapp" className="space-y-4">
@@ -6969,7 +7684,6 @@ function DashboardContent() {
                 <ChatbotFlowsTab companyId={companyIdParam} />
               </TabsContent>
 
-
               <TabsContent value="notifications" className="space-y-4">
                 <NotificationManagement companyId={companyIdParam} />
               </TabsContent>
@@ -6979,9 +7693,7 @@ function DashboardContent() {
               </TabsContent>
             </CompanyProvider>
           )}
-
         </Tabs>
-
 
         {/* Dialogs */}
         {(isViewingCompany || isDepartmentLevel) && (
@@ -6999,7 +7711,9 @@ function DashboardContent() {
                   setEditingDepartment(null);
                 }}
                 editingDepartment={editingDepartment}
-                defaultCompanyId={isSuperAdminUser ? companyIdParam || undefined : undefined}
+                defaultCompanyId={
+                  isSuperAdminUser ? companyIdParam || undefined : undefined
+                }
               />
             )}
             <ConfirmDialog
@@ -7019,7 +7733,9 @@ function DashboardContent() {
                 fetchUsers(userPage, true);
                 fetchDashboardData(true);
               }}
-              defaultCompanyId={isSuperAdminUser ? companyIdParam || undefined : undefined}
+              defaultCompanyId={
+                isSuperAdminUser ? companyIdParam || undefined : undefined
+              }
             />
             <EditUserDialog
               isOpen={showEditUserDialog}
@@ -7077,16 +7793,24 @@ function DashboardContent() {
           onSubmit={async (payload) => {
             if (!selectedGrievanceForRevert) return;
             try {
-              const response = await grievanceAPI.revert(selectedGrievanceForRevert._id, payload);
+              const response = await grievanceAPI.revert(
+                selectedGrievanceForRevert._id,
+                payload,
+              );
               if (response.success) {
-                toast.success("Grievance reverted to company admin for reassignment");
+                toast.success(
+                  "Grievance reverted to company admin for reassignment",
+                );
                 fetchGrievances(grievancePage, true);
                 fetchDashboardData(true);
                 setShowGrievanceRevertDialog(false);
                 setSelectedGrievanceForRevert(null);
               }
             } catch (error: any) {
-              const errorMessage = error.response?.data?.message || error.message || "Failed to revert grievance";
+              const errorMessage =
+                error.response?.data?.message ||
+                error.message ||
+                "Failed to revert grievance";
               toast.error(errorMessage);
             }
           }}
@@ -7117,42 +7841,47 @@ function DashboardContent() {
                 : user.companyId || ""
             }
             currentAssignee={selectedGrievanceForAssignment.assignedTo}
-            currentDepartmentId={
-              (() => {
-                if (selectedGrievanceForAssignment.status === "REVERTED") {
-                  const revertEntry = selectedGrievanceForAssignment.timeline
-                    ?.filter((t: any) => t.action === "REVERTED_TO_COMPANY_ADMIN")
-                    .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
-                  
-                  if (revertEntry?.details?.suggestedDepartmentId) {
-                    return revertEntry.details.suggestedDepartmentId;
-                  }
-                }
-                
-                return selectedGrievanceForAssignment.departmentId &&
-                  typeof selectedGrievanceForAssignment.departmentId === "object"
-                  ? (selectedGrievanceForAssignment.departmentId as any)._id
-                  : selectedGrievanceForAssignment.departmentId;
-              })()
-            }
-            currentSubDepartmentId={
-              (() => {
-                if (selectedGrievanceForAssignment.status === "REVERTED") {
-                  const revertEntry = selectedGrievanceForAssignment.timeline
-                    ?.filter((t: any) => t.action === "REVERTED_TO_COMPANY_ADMIN")
-                    .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
-                  
-                  if (revertEntry?.details?.suggestedSubDepartmentId) {
-                    return revertEntry.details.suggestedSubDepartmentId;
-                  }
-                }
+            currentDepartmentId={(() => {
+              if (selectedGrievanceForAssignment.status === "REVERTED") {
+                const revertEntry = selectedGrievanceForAssignment.timeline
+                  ?.filter((t: any) => t.action === "REVERTED_TO_COMPANY_ADMIN")
+                  .sort(
+                    (a: any, b: any) =>
+                      new Date(b.timestamp).getTime() -
+                      new Date(a.timestamp).getTime(),
+                  )[0];
 
-                return selectedGrievanceForAssignment.subDepartmentId &&
-                  typeof selectedGrievanceForAssignment.subDepartmentId === "object"
-                  ? (selectedGrievanceForAssignment.subDepartmentId as any)._id
-                  : selectedGrievanceForAssignment.subDepartmentId;
-              })()
-            }
+                if (revertEntry?.details?.suggestedDepartmentId) {
+                  return revertEntry.details.suggestedDepartmentId;
+                }
+              }
+
+              return selectedGrievanceForAssignment.departmentId &&
+                typeof selectedGrievanceForAssignment.departmentId === "object"
+                ? (selectedGrievanceForAssignment.departmentId as any)._id
+                : selectedGrievanceForAssignment.departmentId;
+            })()}
+            currentSubDepartmentId={(() => {
+              if (selectedGrievanceForAssignment.status === "REVERTED") {
+                const revertEntry = selectedGrievanceForAssignment.timeline
+                  ?.filter((t: any) => t.action === "REVERTED_TO_COMPANY_ADMIN")
+                  .sort(
+                    (a: any, b: any) =>
+                      new Date(b.timestamp).getTime() -
+                      new Date(a.timestamp).getTime(),
+                  )[0];
+
+                if (revertEntry?.details?.suggestedSubDepartmentId) {
+                  return revertEntry.details.suggestedSubDepartmentId;
+                }
+              }
+
+              return selectedGrievanceForAssignment.subDepartmentId &&
+                typeof selectedGrievanceForAssignment.subDepartmentId ===
+                  "object"
+                ? (selectedGrievanceForAssignment.subDepartmentId as any)._id
+                : selectedGrievanceForAssignment.subDepartmentId;
+            })()}
             userRole={user.role}
             userDepartmentId={
               typeof user.departmentId === "object" &&
@@ -7205,7 +7934,6 @@ function DashboardContent() {
           />
         )}
 
-
         {/* Availability Calendar */}
         <AvailabilityCalendar
           isOpen={showAvailabilityCalendar}
@@ -7226,7 +7954,11 @@ function DashboardContent() {
             setShowAppointmentStatusModal(false);
             setSelectedAppointmentForStatus(null);
           }}
-          itemId={showAppointmentStatusModal ? (selectedAppointmentForStatus?._id || "") : ""}
+          itemId={
+            showAppointmentStatusModal
+              ? selectedAppointmentForStatus?._id || ""
+              : ""
+          }
           itemType="appointment"
           currentStatus={selectedAppointmentForStatus?.status || ""}
           initialDate={selectedAppointmentForStatus?.appointmentDate}
@@ -7245,7 +7977,11 @@ function DashboardContent() {
             setShowGrievanceStatusModal(false);
             setSelectedGrievanceForStatus(null);
           }}
-          itemId={showGrievanceStatusModal ? (selectedGrievanceForStatus?._id || "") : ""}
+          itemId={
+            showGrievanceStatusModal
+              ? selectedGrievanceForStatus?._id || ""
+              : ""
+          }
           itemType="grievance"
           currentStatus={selectedGrievanceForStatus?.status || ""}
           onSuccess={() => {
