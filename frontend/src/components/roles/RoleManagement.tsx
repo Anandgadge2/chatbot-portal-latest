@@ -153,7 +153,8 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
 
   // -- Bulk Selection Helpers --
   const filtered = roles.filter((r) =>
-    r.name.toLowerCase().includes(search.toLowerCase()),
+    r.name.toLowerCase().includes(search.toLowerCase()) &&
+    r.name !== "Platform Superadmin"
   );
 
   const allSelected = filtered.length > 0 && selectedIds.size === filtered.length;

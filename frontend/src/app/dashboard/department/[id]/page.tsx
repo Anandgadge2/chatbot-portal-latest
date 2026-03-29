@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -109,6 +109,23 @@ export default function DepartmentDetail() {
     key: string;
     direction: "asc" | "desc" | null;
   }>({ key: "", direction: null });
+
+  const isDFO = useMemo(() => {
+    return (
+      company?.name?.toUpperCase().includes("D.F.O.") ||
+      company?._id === "69adc81165109318a7cde21c" ||
+      (department?.name?.toUpperCase().includes("DIVISION") && company?.name?.toUpperCase().includes("FOREST"))
+    );
+  }, [company, department]);
+
+  const hasModule = useCallback(
+    (module: Module) => {
+      if (!company) return true; // Default to true if company not loaded to avoid flickering
+      const enabledModules = (company.enabledModules || []) as string[];
+      return enabledModules.includes(module as string);
+    },
+    [company]
+  );
 
   useEffect(() => {
     if (!user || isSuperAdmin(user)) {
@@ -461,27 +478,31 @@ export default function DepartmentDetail() {
               >
                 Overview
               </TabsTrigger>
-              <TabsTrigger
-                value="live"
-                className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-rose-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg flex items-center gap-2"
-              >
-                <Activity className="w-3.5 h-3.5" />
-                Live Incidents
-              </TabsTrigger>
-              <TabsTrigger
-                value="geofences"
-                className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg flex items-center gap-2"
-              >
-                <Shield className="w-3.5 h-3.5" />
-                Geofences
-              </TabsTrigger>
+              {hasModule(Module.INCIDENT_WILDLIFE) && isDFO && (
+                <TabsTrigger
+                  value="live"
+                  className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-rose-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg flex items-center gap-2"
+                >
+                  <Activity className="w-3.5 h-3.5" />
+                  Live Incidents
+                </TabsTrigger>
+              )}
+              {hasModule(Module.GEO_LOCATION) && isDFO && (
+                <TabsTrigger
+                  value="geofences"
+                  className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg flex items-center gap-2"
+                >
+                  <Shield className="w-3.5 h-3.5" />
+                  Geofences
+                </TabsTrigger>
+              )}
               <TabsTrigger
                 value="users"
                 className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
               >
                 Users
               </TabsTrigger>
-              {hasPermission(user, Permission.READ_GRIEVANCE) && (
+              {hasModule(Module.GRIEVANCE) && hasPermission(user, Permission.READ_GRIEVANCE) && (
                 <TabsTrigger
                   value="grievances"
                   className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
@@ -489,13 +510,15 @@ export default function DepartmentDetail() {
                   Grievances
                 </TabsTrigger>
               )}
-              <TabsTrigger
-                value="analytics"
-                className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg flex items-center gap-1.5"
-              >
-                <BarChart2 className="w-3.5 h-3.5" />
-                Analytics
-              </TabsTrigger>
+              {hasPermission(user, Permission.VIEW_ANALYTICS) && (
+                <TabsTrigger
+                  value="analytics"
+                  className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg flex items-center gap-1.5"
+                >
+                  <BarChart2 className="w-3.5 h-3.5" />
+                  Analytics
+                </TabsTrigger>
+              )}
             </TabsList>
           </div>
 
@@ -640,26 +663,28 @@ export default function DepartmentDetail() {
                   </div>
                 )}
 
-              {/* Total Staff (Company Level) */}
-              <div className="bg-white rounded-xl border border-slate-200/60 shadow-sm hover:shadow-md transition-all group p-4 cursor-pointer" onClick={() => setActiveTab("geofences")}>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center text-purple-600 group-hover:scale-110 transition-transform">
-                    <Shield className="w-4 h-4" />
+              {/* Active Compartments (DFO Only) */}
+              {isDFO && hasModule(Module.GEO_LOCATION) && (
+                <div className="bg-white rounded-xl border border-slate-200/60 shadow-sm hover:shadow-md transition-all group p-4 cursor-pointer" onClick={() => setActiveTab("geofences")}>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center text-purple-600 group-hover:scale-110 transition-transform">
+                      <Shield className="w-4 h-4" />
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-600">
+                      Geofences
+                    </span>
                   </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-600">
-                    Geofences
-                  </span>
+                  <p className="text-2xl font-black text-slate-900 tracking-tighter">
+                    {new Set(grievances.map(g => g.forest_compartment).filter(Boolean)).size || 0}
+                  </p>
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">
+                    Active Compartments
+                  </p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">
+                    Full division coverage →
+                  </p>
                 </div>
-                <p className="text-2xl font-black text-slate-900 tracking-tighter">
-                  {new Set(grievances.map(g => g.forest_compartment).filter(Boolean)).size || 0}
-                </p>
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">
-                  Active Compartments
-                </p>
-                <p className="text-[10px] text-slate-400 mt-0.5">
-                  Full division coverage →
-                </p>
-              </div>
+              )}
 
               {/* Forest Specific Card */}
               {department.name.toLowerCase().includes("protection") && (
@@ -1006,9 +1031,11 @@ export default function DepartmentDetail() {
                             <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">
                               Filed
                             </th>
-                            <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                              Forest Details
-                            </th>
+                            {isDFO && hasModule(Module.GEO_LOCATION) && (
+                              <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                Forest Details
+                              </th>
+                            )}
                             <th className="px-4 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">
                               Actions
                             </th>
@@ -1097,26 +1124,28 @@ export default function DepartmentDetail() {
                                   </span>
                                 </div>
                               </td>
-                              <td className="px-4 py-3">
-                                {g.forest_range || g.forest_beat || g.forest_compartment ? (
-                                  <div className="space-y-1">
-                                    {g.forest_range && (
-                                      <div className="flex items-center gap-1.5">
-                                        <Shield className="w-2.5 h-2.5 text-indigo-500" />
-                                        <span className="text-[10px] font-bold text-slate-700 uppercase">{g.forest_range}</span>
-                                      </div>
-                                    )}
-                                    {g.forest_beat && (
-                                      <p className="text-[9px] text-slate-500 font-medium ml-4">Beat: {g.forest_beat}</p>
-                                    )}
-                                    {g.forest_compartment && (
-                                      <p className="text-[9px] text-slate-400 font-medium ml-4">Comp: {g.forest_compartment}</p>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <span className="text-[9px] text-slate-300 italic">No forest data</span>
-                                )}
-                              </td>
+                              {isDFO && hasModule(Module.GEO_LOCATION) && (
+                                <td className="px-4 py-3">
+                                  {g.forest_range || g.forest_beat || g.forest_compartment ? (
+                                    <div className="space-y-1">
+                                      {g.forest_range && (
+                                        <div className="flex items-center gap-1.5">
+                                          <Shield className="w-2.5 h-2.5 text-indigo-500" />
+                                          <span className="text-[10px] font-bold text-slate-700 uppercase">{g.forest_range}</span>
+                                        </div>
+                                      )}
+                                      {g.forest_beat && (
+                                        <p className="text-[9px] text-slate-500 font-medium ml-4">Beat: {g.forest_beat}</p>
+                                      )}
+                                      {g.forest_compartment && (
+                                        <p className="text-[9px] text-slate-400 font-medium ml-4">Comp: {g.forest_compartment}</p>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <span className="text-[9px] text-slate-300 italic">No forest data</span>
+                                  )}
+                                </td>
+                              )}
                               <td className="px-4 py-3 text-center">
                                 <button
                                   onClick={() => {
@@ -1204,9 +1233,9 @@ export default function DepartmentDetail() {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => {
-                      toast.loading("Gathering division data...", { duration: 1500 });
+                      toast.loading(`Gathering ${isDFO ? "division" : "department"} data...`, { duration: 1500 });
                       setTimeout(() => {
-                        toast.success("Wildlife Protection Report (PDF) generated successfully!");
+                        toast.success(`${isDFO ? "Wildlife Protection" : "Department Performance"} Report (PDF) generated successfully!`);
                       }, 2000);
                     }}
                     className="flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-400 text-white rounded-xl transition-all shadow-lg shadow-indigo-500/20 text-xs font-black uppercase tracking-widest border border-indigo-400/50"
@@ -1279,55 +1308,76 @@ export default function DepartmentDetail() {
             {/* Advanced Analytics Grid */}
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
               
-              {/* Heat Map Visualization */}
-              <div className="xl:col-span-2 bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-                <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-rose-50 rounded-2xl flex items-center justify-center">
-                      <Activity className="w-5 h-5 text-rose-500" />
+              {/* Dynamic Visualization based on Entity Type */}
+              {isDFO && hasModule(Module.INCIDENT_WILDLIFE) ? (
+                <div className="xl:col-span-2 bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                  <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-rose-50 rounded-2xl flex items-center justify-center">
+                        <Activity className="w-5 h-5 text-rose-500" />
+                      </div>
+                      <div>
+                        <h3 className="text-base font-black text-slate-800 uppercase tracking-tight">Incident Heat Map</h3>
+                        <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest">Spatial density of forest incidents</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-base font-black text-slate-800 uppercase tracking-tight">Incident Heat Map</h3>
-                      <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest">Spatial density of forest incidents</p>
+                    <div className="flex items-center gap-2">
+                       <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-50 rounded-full border border-slate-200">
+                          <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                          <span className="text-[10px] font-black text-slate-600 uppercase">High Intensity</span>
+                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                     <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-50 rounded-full border border-slate-200">
-                        <span className="w-2 h-2 rounded-full bg-rose-500"></span>
-                        <span className="text-[10px] font-black text-slate-600 uppercase">High Intensity</span>
+                  <div className="p-8 flex-1">
+                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {beatHeatMapData.map((beat, idx) => (
+                          <div key={idx} className="relative group cursor-help">
+                             <div className={`aspect-square rounded-2xl border-2 transition-all duration-500 flex flex-col items-center justify-center p-4 ${
+                               beat.density > 15 ? 'bg-rose-500 border-rose-600 shadow-lg shadow-rose-200' :
+                               beat.density > 10 ? 'bg-orange-400 border-orange-500' :
+                               beat.density > 5 ? 'bg-amber-100 border-amber-200' :
+                               'bg-emerald-50 border-emerald-100'
+                             }`}>
+                                <span className={`text-[10px] font-black uppercase text-center leading-tight mb-1 ${beat.density > 10 ? 'text-white' : 'text-slate-600'}`}>
+                                  {beat.name}
+                                </span>
+                                <span className={`text-xl font-black ${beat.density > 10 ? 'text-white' : 'text-slate-900'}`}>
+                                  {beat.density}
+                                </span>
+                             </div>
+                             <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 rounded-2xl transition-opacity"></div>
+                          </div>
+                        ))}
+                     </div>
+                     <div className="mt-8 p-6 bg-slate-50 rounded-2xl border border-slate-200">
+                        <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4">Division Strategy Insight</h4>
+                        <p className="text-sm text-slate-600 leading-relaxed italic">
+                          &quot;Concentrated incident clusters detected in the <b>{beatHeatMapData.sort((a,b) => b.density - a.density)[0]?.name}</b>. 
+                          Recommend immediate dispatch of additional patrolling units to this sector.&quot;
+                        </p>
                      </div>
                   </div>
                 </div>
-                <div className="p-8 flex-1">
-                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {beatHeatMapData.map((beat, idx) => (
-                        <div key={idx} className="relative group cursor-help">
-                           <div className={`aspect-square rounded-2xl border-2 transition-all duration-500 flex flex-col items-center justify-center p-4 ${
-                             beat.density > 15 ? 'bg-rose-500 border-rose-600 shadow-lg shadow-rose-200' :
-                             beat.density > 10 ? 'bg-orange-400 border-orange-500' :
-                             beat.density > 5 ? 'bg-amber-100 border-amber-200' :
-                             'bg-emerald-50 border-emerald-100'
-                           }`}>
-                              <span className={`text-[10px] font-black uppercase text-center leading-tight mb-1 ${beat.density > 10 ? 'text-white' : 'text-slate-600'}`}>
-                                {beat.name}
-                              </span>
-                              <span className={`text-xl font-black ${beat.density > 10 ? 'text-white' : 'text-slate-900'}`}>
-                                {beat.density}
-                              </span>
-                           </div>
-                           <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 rounded-2xl transition-opacity"></div>
-                        </div>
-                      ))}
-                   </div>
-                   <div className="mt-8 p-6 bg-slate-50 rounded-2xl border border-slate-200">
-                      <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4">Division Strategy Insight</h4>
-                      <p className="text-sm text-slate-600 leading-relaxed italic">
-                        &quot;Concentrated incident clusters detected in the <b>{beatHeatMapData.sort((a,b) => b.density - a.density)[0]?.name}</b>. 
-                        Recommend immediate dispatch of additional patrolling units to this sector.&quot;
-                      </p>
-                   </div>
+              ) : (
+                <div className="xl:col-span-2 bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                  <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-indigo-50 rounded-2xl flex items-center justify-center">
+                        <TrendingUp className="w-5 h-5 text-indigo-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-base font-black text-slate-800 uppercase tracking-tight">Performance Summary</h3>
+                        <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest">Case distribution and staff performance</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-8 flex-1 flex flex-col items-center justify-center text-center opacity-40">
+                    <BarChart2 className="w-16 h-16 text-slate-300 mb-6" />
+                    <span className="text-lg font-black text-slate-900 uppercase tracking-tighter">Operational Overview Active</span>
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-2">Charts initialized for {department.name}</span>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* SLA & Performance */}
               <div className="bg-slate-900 rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden">
