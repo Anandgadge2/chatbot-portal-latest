@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import { useCompany } from "@/lib/query/useCompany";
 
 type CompanyContextValue = {
@@ -8,6 +8,7 @@ type CompanyContextValue = {
   isLoading: boolean;
   error: unknown;
   data?: any;
+  setCompany: (data: any) => void;
 };
 
 const CompanyContext = createContext<CompanyContextValue | null>(null);
@@ -20,14 +21,23 @@ export function CompanyProvider({
   children: React.ReactNode;
 }) {
   const query = useCompany(companyId);
+  const [localCompany, setLocalCompany] = useState<any>(null);
+
+  // Sync local state when query data changes
+  useEffect(() => {
+    if (query.company) {
+      setLocalCompany(query.company);
+    }
+  }, [query.company]);
 
   return (
     <CompanyContext.Provider
       value={{
-        company: query.company,
+        company: localCompany,
         isLoading: query.isLoading,
         error: query.error,
-        data: query.company,
+        data: localCompany,
+        setCompany: setLocalCompany
       }}
     >
       {children}

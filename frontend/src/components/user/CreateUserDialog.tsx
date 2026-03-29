@@ -66,14 +66,38 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
   const [selectedMainDeptId, setSelectedMainDeptId] = useState<string>("");
   const [selectedSubDeptId, setSelectedSubDeptId] = useState<string>("");
 
-  // Get available roles based on current user's role
+  // Get available roles based on current user's role and hierarchical rules
   const getAllPossibleRoles = () => {
     if (!user) return [];
 
+    let filteredCustomRoles = [...customRoles];
+    const creatorRoleLower = (user.role || "").toLowerCase();
+
+    // Hierarchical Filtering Logic
+    if (!isSuperAdmin(user)) {
+      if (creatorRoleLower.includes("operator")) {
+        // Operators shouldn't even be here, but for safety return nothing
+        return [];
+      } else if (creatorRoleLower.includes("sub-department admin") || creatorRoleLower.includes("sub department admin")) {
+        // Sub-Dept Admin can only create Sub-Dept Admin or Operator
+        filteredCustomRoles = customRoles.filter(r => {
+          const name = r.name.toLowerCase();
+          return name.includes("sub-department admin") || name.includes("sub department admin") || name.includes("operator");
+        });
+      } else if (creatorRoleLower.includes("department admin")) {
+        // Dept Admin can create Dept Admin, Sub-Dept Admin, or Operator
+        filteredCustomRoles = customRoles.filter(r => {
+          const name = r.name.toLowerCase();
+          return name.includes("department admin") || name.includes("sub-department admin") || name.includes("sub department admin") || name.includes("operator");
+        });
+      }
+      // Company Admin (default) can see all custom roles for their company
+    }
+
     const options: { value: string; label: string }[] = [];
 
-    // Add ONLY custom roles fetched from backend (created by Superadmin for this company)
-    const customRoleOptions = customRoles.map((r) => ({
+    // Add custom roles fetched from backend (created by Superadmin for this company)
+    const customRoleOptions = filteredCustomRoles.map((r) => ({
       value: `CUSTOM:${r._id}`,
       label: r.name,
     }));
@@ -81,9 +105,8 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
     options.push(...customRoleOptions);
 
     // Special case: Only Super Admin can assign the Super Admin role
-    // This is a system-level role, not a company-level custom role
     if (isSuperAdmin(user)) {
-      options.push({ value: "SUPER_ADMIN", label: "Super Admin" });
+      options.push({ value: UserRole.SUPER_ADMIN, label: "Super Admin" });
     }
 
     return options;
@@ -154,7 +177,9 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
     try {
       const response = await roleAPI.getRoles(companyId);
       if (response.success) {
-        setCustomRoles(response.data.roles);
+        // Filter out level 0 roles (Platform Superadmin) for company personnel
+        const filteredRoles = (response.data.roles || []).filter((r: any) => r.level > 0);
+        setCustomRoles(filteredRoles);
       }
     } catch (error) {
       console.error("Failed to fetch custom roles:", error);

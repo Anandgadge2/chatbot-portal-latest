@@ -51,7 +51,7 @@ const RoleSchema: Schema = new Schema(
     companyId: {
       type: Schema.Types.ObjectId,
       ref: 'Company',
-      required: true,
+      required: false, // Changed to false to support global standard roles
       index: true
     },
     level: {

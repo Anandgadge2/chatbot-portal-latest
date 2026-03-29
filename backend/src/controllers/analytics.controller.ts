@@ -6,44 +6,72 @@ import Department from '../models/Department';
 import User from '../models/User';
 import { Permission, UserRole, GrievanceStatus, AppointmentStatus, Module } from '../config/constants';
 
-const getAnalyticsBaseQuery = (req: any, companyId?: any, departmentId?: any) => {
+const getAnalyticsBaseQuery = async (req: any, companyId?: any, departmentId?: any) => {
   const query: any = {};
   const currentUser = req.user;
 
   if (currentUser.role === UserRole.SUPER_ADMIN) {
-    // For SuperAdmin, if companyId is provided, scope to that company
     if (companyId) {
       query.companyId = new mongoose.Types.ObjectId(companyId.toString());
+    }
+    
+    if (departmentId) {
+      const deptId = new mongoose.Types.ObjectId(departmentId.toString());
+      // 🏢 HIERARCHICAL: Check if this is a parent department to include sub-departments
+      const subDeptIds = await Department.find({ 
+        parentDepartmentId: deptId 
+      }).distinct('_id');
       
-      // If departmentId is also provided, scope within that company
-      if (departmentId) {
-        query.departmentId = new mongoose.Types.ObjectId(departmentId.toString());
-      }
-    } else if (departmentId) {
-      // ⚠️ Critical: If ONLY departmentId is provided for SuperAdmin, 
-      // we must still find which company that department belongs to 
-      // to maintain strict platform partitioning.
-      // For now, we'll assume the request must provide companyId in drilldown scenarios.
-      query.departmentId = new mongoose.Types.ObjectId(departmentId.toString());
-      console.warn('[AnalyticsScoping] SuperAdmin filtering by department without specific companyId');
+      query.$or = [
+        { departmentId: deptId },
+        { subDepartmentId: deptId },
+        { subDepartmentId: { $in: subDeptIds } }
+      ];
     }
   } else {
-    // All other roles are strictly scoped to their company
     query.companyId = currentUser.companyId;
 
     if (currentUser.departmentId) {
-      // 🏢 HIERARCHICAL: Can see data in their department OR sub-department
-      if (!req.checkPermission(Permission.ASSIGN_GRIEVANCE)) {
+      const normalizedRole = (currentUser.role || '').toUpperCase().trim();
+      const userLevel = currentUser.level !== undefined ? currentUser.level : (
+        normalizedRole === 'SUPER_ADMIN' || normalizedRole === 'SUPER ADMIN' ? 0 :
+        normalizedRole.includes('COMPANY') && (normalizedRole.includes('ADMIN')) ? 1 :
+        normalizedRole.includes('DEPARTMENT') && (normalizedRole.includes('ADMIN')) && !normalizedRole.includes('SUB') ? 2 :
+        normalizedRole.includes('SUB') && (normalizedRole.includes('ADMIN')) ? 3 :
+        4
+      );
+
+      if (userLevel >= 4) {
         query.assignedTo = currentUser._id;
+      } else if (userLevel === 2) {
+        // 🏢 HIERARCHICAL: Dept Admin should see their department AND all sub-departments
+        const subDeptIds = await Department.find({ 
+          parentDepartmentId: currentUser.departmentId 
+        }).distinct('_id');
+        
+        query.$or = [
+          { departmentId: currentUser.departmentId },
+          { subDepartmentId: currentUser.departmentId },
+          { subDepartmentId: { $in: subDeptIds } }
+        ];
       } else {
+        // Platform or Sub-Dept Admin: See only assigned department/sub-department
         query.$or = [
           { departmentId: currentUser.departmentId },
           { subDepartmentId: currentUser.departmentId }
         ];
       }
     } else if (departmentId) {
-      // If company admin filters by department
-      query.departmentId = new mongoose.Types.ObjectId(departmentId.toString());
+      const deptId = new mongoose.Types.ObjectId(departmentId.toString());
+      const subDeptIds = await Department.find({ 
+        parentDepartmentId: deptId 
+      }).distinct('_id');
+      
+      query.$or = [
+        { departmentId: deptId },
+        { subDepartmentId: deptId },
+        { subDepartmentId: { $in: subDeptIds } }
+      ];
     }
   }
   return query;
@@ -54,7 +82,7 @@ export const dashboard = async (req: Request, res: Response) => {
     const currentUser = req.user!;
     const { companyId, departmentId } = req.query;
 
-    const baseQuery = getAnalyticsBaseQuery(req, companyId, departmentId);
+    const baseQuery = await getAnalyticsBaseQuery(req, companyId, departmentId);
 
     // Fetch company to check for modules
     const targetCompanyId = currentUser.companyId || companyId;
@@ -372,7 +400,7 @@ export const grievancesByDepartment = async (req: Request, res: Response) => {
     const currentUser = req.user!;
     const { companyId } = req.query;
 
-    const matchQuery = getAnalyticsBaseQuery(req, companyId);
+    const matchQuery = await getAnalyticsBaseQuery(req, companyId);
 
     const distribution = await Grievance.aggregate([
       { $match: matchQuery },
@@ -427,7 +455,7 @@ export const grievancesByStatus = async (req: Request, res: Response) => {
   try {
     const currentUser = req.user!;
     const { companyId, departmentId } = req.query;
-    const matchQuery = getAnalyticsBaseQuery(req, companyId, departmentId);
+    const matchQuery = await getAnalyticsBaseQuery(req, companyId, departmentId);
 
     const distribution = await Grievance.aggregate([
       { $match: matchQuery },
@@ -458,7 +486,7 @@ export const grievancesTrends = async (req: Request, res: Response) => {
   try {
     const currentUser = req.user!;
     const { companyId, departmentId, days = 30 } = req.query;
-    const matchQuery = getAnalyticsBaseQuery(req, companyId, departmentId);
+    const matchQuery = await getAnalyticsBaseQuery(req, companyId, departmentId);
     matchQuery.createdAt = {
       $gte: new Date(Date.now() - Number(days) * 24 * 60 * 60 * 1000)
     };
@@ -495,7 +523,7 @@ export const appointmentsByDate = async (req: Request, res: Response) => {
     const currentUser = req.user!;
     const { companyId, departmentId, days = 30 } = req.query;
 
-    const baseQuery = getAnalyticsBaseQuery(req, companyId, departmentId);
+    const baseQuery = await getAnalyticsBaseQuery(req, companyId, departmentId);
     const matchQuery: any = {
       ...baseQuery,
       appointmentDate: {
@@ -541,7 +569,7 @@ export const performance = async (req: Request, res: Response) => {
     const currentUser = req.user!;
     const { companyId, departmentId } = req.query;
 
-    const baseQuery = getAnalyticsBaseQuery(req, companyId, departmentId);
+    const baseQuery = await getAnalyticsBaseQuery(req, companyId, departmentId);
 
     // Top performing departments (by resolution rate)
     const topDepartments = await Grievance.aggregate([
@@ -671,7 +699,7 @@ export const hourly = async (req: Request, res: Response) => {
     const currentUser = req.user!;
     const { companyId, departmentId, days = 7 } = req.query;
 
-    const baseQuery = getAnalyticsBaseQuery(req, companyId, departmentId);
+    const baseQuery = await getAnalyticsBaseQuery(req, companyId, departmentId);
     baseQuery.createdAt = {
       $gte: new Date(Date.now() - Number(days) * 24 * 60 * 60 * 1000)
     };
@@ -720,7 +748,7 @@ export const category = async (req: Request, res: Response) => {
     const currentUser = req.user!;
     const { companyId, departmentId } = req.query;
 
-    const baseQuery = getAnalyticsBaseQuery(req, companyId, departmentId);
+    const baseQuery = await getAnalyticsBaseQuery(req, companyId, departmentId);
 
     const categoryDistribution = await Grievance.aggregate([
       { $match: { ...baseQuery, category: { $exists: true, $ne: null } } },

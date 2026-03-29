@@ -135,6 +135,24 @@ function SuperAdminDashboardContent() {
     null,
   );
 
+  const [allRoles, setAllRoles] = useState<any[]>([]);
+
+  const fetchGlobalRoles = useCallback(async (compId: string = "") => {
+    try {
+      const url = compId ? `/roles?companyId=${compId}` : "/roles";
+      const rolesRes = await apiClient.get(url);
+      if (rolesRes.success) {
+        // Handle various response structures for resilience
+        const roles = Array.isArray(rolesRes.data)
+          ? rolesRes.data
+          : rolesRes.data?.roles || rolesRes.roles || [];
+        setAllRoles(roles);
+      }
+    } catch (e) {
+      console.error("Error fetching roles", e);
+    }
+  }, []);
+
   const fetchAllInitialData = useCallback(async () => {
     // Initial fetch for companies dropdown and stats
     try {
@@ -158,10 +176,13 @@ function SuperAdminDashboardContent() {
       if (companiesRes.success) {
         setAllCompanies(companiesRes.data.companies);
       }
+      
+      // Also fetch initial global roles
+      await fetchGlobalRoles();
     } catch (e) {
       console.error("Error fetching initial data", e);
     }
-  }, []);
+  }, [fetchGlobalRoles]);
 
   useEffect(() => {
     if (mounted && user && isSuperAdmin(user)) {
@@ -523,6 +544,8 @@ function SuperAdminDashboardContent() {
   useEffect(() => {
     if (mounted && user) {
       fetchUsers(userPage);
+      // Also refresh the role list for filtering options when company changes
+      fetchGlobalRoles(userCompanyFilter);
     }
   }, [
     mounted,
@@ -532,6 +555,7 @@ function SuperAdminDashboardContent() {
     debouncedSearchTerm,
     userCompanyFilter,
     fetchUsers,
+    fetchGlobalRoles,
   ]);
 
   useEffect(() => {
@@ -870,6 +894,7 @@ function SuperAdminDashboardContent() {
                 userRoleFilter={userRoleFilter}
                 setUserRoleFilter={setUserRoleFilter}
                 allCompanies={allCompanies}
+                allRoles={allRoles}
                 userPage={userPage}
                 setUserPage={setUserPage}
                 userPagination={userPagination}

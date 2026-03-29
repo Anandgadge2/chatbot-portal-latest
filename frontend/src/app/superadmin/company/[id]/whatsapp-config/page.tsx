@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { isSuperAdmin } from "@/lib/permissions";
 import { useCompanyContext } from "@/contexts/CompanyContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,37 +10,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { apiClient } from "@/lib/api/client";
-import toast from "react-hot-toast";
 import {
-  ArrowLeft,
+  Loader2,
   Save,
-  Phone,
   MessageSquare,
-  FileText,
-  RotateCcw,
-  Plus,
-  Trash2,
-  HelpCircle,
   Bell,
-  Info,
+  Check,
   ChevronDown,
-  ChevronRight,
-  X,
+  ChevronUp,
+  Info,
+  Smartphone,
+  Layout,
+  RefreshCw,
+  Clock,
+  ExternalLink,
 } from "lucide-react";
-import LoadingSpinner from "@/components/ui/LoadingSpinner";
-import {
-  formatPhoneNumber,
-  normalizePhoneNumber,
-  getPhoneNumberFormats,
-  isValidPhoneNumber,
-} from "@/lib/utils/phoneNumber";
-import { useWhatsappConfig } from "@/lib/query/useWhatsappConfig";
+import toast from "react-hot-toast";
 
-/* ------------------------------------------------------------------
-   Template Definitions
-   Built-in system keys + any custom ones the company can create.
-   Grouped by category for clarity.
------------------------------------------------------------------- */
 const TEMPLATE_GROUPS = [
   {
     label: "🏛️ Grievance Notifications (Admin)",
@@ -114,16 +99,10 @@ const TEMPLATE_GROUPS = [
         when: "A citizen books an appointment through the chatbot",
       },
       {
-        key: "appointment_scheduled_admin",
-        label: "Appointment Scheduled (Company Admin)",
-        to: "Company Admin",
-        when: "An appointment date/time is scheduled",
-      },
-      {
         key: "appointment_confirmed_admin",
         label: "Appointment Confirmed (Company Admin)",
         to: "Company Admin",
-        when: "An appointment is confirmed/finalized",
+        when: "An appointment is confirmed/scheduled",
       },
       {
         key: "appointment_cancelled_admin",
@@ -156,12 +135,6 @@ const TEMPLATE_GROUPS = [
         when: "Admin schedules a date & time for the appointment",
       },
       {
-        key: "appointment_confirmed_update",
-        label: "Appointment Confirmed (Citizen)",
-        to: "Citizen (submitter)",
-        when: "Admin confirms the appointment details",
-      },
-      {
         key: "appointment_cancelled_update",
         label: "Appointment Cancelled (Citizen)",
         to: "Citizen (submitter)",
@@ -171,7 +144,7 @@ const TEMPLATE_GROUPS = [
         key: "appointment_completed_update",
         label: "Appointment Completed (Citizen)",
         to: "Citizen (submitter)",
-        when: "Appointment is marked as completed",
+        when: "Appointment is successfully completed",
       },
     ],
   },
@@ -216,9 +189,6 @@ const KEY_META: Record<string, { label: string; to: string; when: string }> =
     TEMPLATE_GROUPS.flatMap((g) => g.keys.map((k) => [k.key, k])),
   );
 
-/* ------------------------------------------------------------------
-   Available placeholders with descriptions
------------------------------------------------------------------- */
 const WA_PLACEHOLDERS: Array<{
   ph: string;
   desc: string;
@@ -318,9 +288,6 @@ const WA_PLACEHOLDERS: Array<{
   { ph: "{oldStatus}", desc: "Previous status label", relevance: ["status"] },
 ];
 
-/* ------------------------------------------------------------------
-   Default system message bodies
------------------------------------------------------------------- */
 const DEFAULT_WA_MESSAGES: Record<string, string> = {
   grievance_created_admin: `*{companyName}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -358,7 +325,7 @@ Details:
 🏢 *Sub-Dept:* {subDepartmentName}
 📝 *Description:*
 {description}
-👨‍💼 *Assigned By:* {assignedByName}
+👨💼 *Assigned By:* {assignedByName}
 📅 *Assigned On:* {formattedDate}
 
 Please investigate and take required action.
@@ -380,7 +347,7 @@ The following grievance has been marked as *RESOLVED*.
 🏢 *Department:* {departmentName}
 🏢 *Sub-Dept:* {subDepartmentName}
 📊 *Status:* RESOLVED
-👨‍💼 *Resolved By:* {resolvedByName}
+👨💼 *Resolved By:* {resolvedByName}
 📅 *Resolved On:* {formattedResolvedDate}
 ⏱️ *Time Taken:* {resolutionTimeText}
 📝 *Resolution Remarks:*
@@ -401,7 +368,7 @@ The following grievance has been *REJECTED*.
 👤 *Citizen:* {citizenName}
 🏢 *Department:* {departmentName}
 📊 *Status:* REJECTED
-👨‍💼 *Action By:* {resolvedByName}
+👨💼 *Action By:* {resolvedByName}
 📝 *Reason:* {remarks}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -454,7 +421,7 @@ Respected {citizenName},
 🏢 *Department:* {departmentName}
 🏢 *Sub-Dept:* {subDepartmentName}
 📊 *Status:* RESOLVED
-👨‍💼 *Resolved By:* {resolvedByName}
+👨💼 *Resolved By:* {resolvedByName}
 📅 *Resolved On:* {formattedResolvedDate}
 📝 *Remarks:* {remarks}
 
@@ -529,7 +496,7 @@ The following appointment has been *CANCELLED*.
 👤 *Citizen:* {citizenName}
 🎯 *Purpose:* {purpose}
 📊 *Status:* CANCELLED
-👨‍💼 *Updated By:* {resolvedByName}
+👨💼 *Updated By:* {resolvedByName}
 📅 *Updated On:* {formattedResolvedDate}
 📝 *Cancellation Remarks:*
 {remarks}
@@ -549,7 +516,7 @@ The following appointment has been marked as *COMPLETED*.
 👤 *Citizen:* {citizenName}
 🎯 *Purpose:* {purpose}
 📊 *Status:* COMPLETED
-👨‍💼 *Completed By:* {resolvedByName}
+👨💼 *Completed By:* {resolvedByName}
 📅 *Completed On:* {formattedResolvedDate}
 📝 *Resolution Remarks:*
 {remarks}
@@ -680,1153 +647,313 @@ Digital Appointment System`,
   cmd_back: "🔙 Going back to the previous step.",
 };
 
-
-/* ------------------------------------------------------------------
-   Component
------------------------------------------------------------------- */
 export default function WhatsAppConfigPage() {
   const params = useParams();
+  const companyId = params.id as string;
   const router = useRouter();
   const { user } = useAuth();
-  const companyId = params.id as string;
-  const { company } = useCompanyContext();
-  const { data: cachedConfig } = useWhatsappConfig(companyId);
+  const { company, setCompany } = useCompanyContext();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [config, setConfig] = useState<any>(null);
-  const [isEditing, setIsEditing] = useState(false);
+  const [templates, setTemplates] = useState<Record<string, { notificationTemplateName: string; isActive: boolean }>>({});
+  const [activeTab, setActiveTab] = useState("templates");
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
 
-  // Templates state
-  const [waTemplates, setWaTemplates] = useState<
-    Array<{
-      templateKey: string;
-      label?: string;
-      message?: string;
-      keywords?: string[];
-      isActive?: boolean;
-    }>
-  >([]);
-  const [isMobile, setIsMobile] = useState(false);
-  const editorRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 1024);
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
-
-
-  const [selectedWaTemplate, setSelectedWaTemplate] =
-    useState<string>("grievance_created");
-  const [savingTemplates, setSavingTemplates] = useState(false);
-
-  // Add new custom template
-  const [newTemplateKey, setNewTemplateKey] = useState("");
-  const [newTemplateLabel, setNewTemplateLabel] = useState("");
-  const [isAddingTemplate, setIsAddingTemplate] = useState(false);
-
-  // Keywords input state (local to avoid typing issues with arrays)
-  const [keywordsInput, setKeywordsInput] = useState("");
-
-  // Group collapse state - all collapsed by default for cleaner UI
-  const [collapsedGroups, setCollapsedGroups] = useState<
-    Record<string, boolean>
-  >(() => {
-    const initial: Record<string, boolean> = { custom: true };
-    TEMPLATE_GROUPS.forEach(g => {
-      initial[g.label] = true;
-    });
-    // Keep the first group open by default for better UX
-    if (TEMPLATE_GROUPS.length > 0) {
-      initial[TEMPLATE_GROUPS[0].label] = false;
-    }
-    return initial;
-  });
-
-  useEffect(() => {
-    if (isMobile && editorRef.current) {
-      editorRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  }, [selectedWaTemplate, isMobile]);
-
-  useEffect(() => {
-    if (user?.role !== "SUPER_ADMIN") {
-      router.push("/superadmin/dashboard");
-      return;
-    }
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [companyId, user]);
-
-  useEffect(() => {
-    if (cachedConfig) {
-      setConfig(cachedConfig);
-      setIsEditing(false);
-    }
-  }, [cachedConfig]);
-
-  const fetchData = async () => {
+  const fetchConfig = useCallback(async () => {
     try {
       setLoading(true);
-
-      const [templatesRes] = await Promise.all([
-        apiClient
-          .get(`/whatsapp-config/company/${companyId}/templates`)
-          .catch(() => ({ success: false })),
-      ]);
-
-      if (!cachedConfig) {
-        setConfig(makeEmptyConfig());
-        setIsEditing(true);
+      const res = await apiClient.get(`/admin/companies/${companyId}`);
+      if (res.success) {
+        setCompany(res.data);
+        const existingTemplates = res.data.whatsappConfig?.customNotifications || {};
+        const normalized: any = {};
+        
+        // Ensure all possible keys exist in the state
+        TEMPLATE_GROUPS.forEach(group => {
+          group.keys.forEach(k => {
+            normalized[k.key] = existingTemplates[k.key] || { 
+              notificationTemplateName: "", 
+              isActive: false 
+            };
+          });
+        });
+        
+        setTemplates(normalized);
       }
-
-      // Process Templates
-      const list = (templatesRes as any)?.data ?? (templatesRes as any);
-      if (Array.isArray(list) && list.length > 0) {
-        setWaTemplates(list);
-      } else {
-        setWaTemplates(makeDefaultTemplateSlots());
-      }
-    } catch (error: any) {
-      console.error("Failed to load data:", error);
-      toast.error("Failed to load configuration");
+    } catch (error) {
+      toast.error("Failed to load WhatsApp configuration");
     } finally {
       setLoading(false);
     }
-  };
+  }, [companyId, setCompany]);
 
-  function makeEmptyConfig() {
-    return {
-      companyId,
-      phoneNumber: "",
-      displayPhoneNumber: "",
-      phoneNumberId: "",
-      businessAccountId: "",
-      accessToken: "",
-      verifyToken: "",
-      chatbotSettings: {
-        isEnabled: true,
-        defaultLanguage: "en",
-        supportedLanguages: ["en"],
-        welcomeMessage: "Welcome! How can we help you today?",
-        businessHours: {
-          enabled: false,
-          timezone: "Asia/Kolkata",
-          schedule: [],
-        },
-      },
-      rateLimits: {
-        messagesPerMinute: 60,
-        messagesPerHour: 1000,
-        messagesPerDay: 10000,
-      },
-      isActive: true,
-    };
-  }
+  useEffect(() => {
+    fetchConfig();
+  }, [fetchConfig]);
 
-  function makeDefaultTemplateSlots() {
-    return BUILTIN_KEYS.map((key) => ({
-      templateKey: key,
-      label: KEY_META[key]?.label ?? key,
-      keywords: [],
-      isActive: true,
-    }));
-  }
-
-  /* ---- Save WhatsApp API config ---- */
-  const handleSave = async () => {
+  const saveConfig = async () => {
     try {
       setSaving(true);
-      let existingConfigId = config._id;
-      if (!existingConfigId) {
-        try {
-          const existingRes = await apiClient.get(
-            `/whatsapp-config/company/${companyId}`,
-          );
-          const d = existingRes.success ? existingRes.data : existingRes.data;
-          if (d?._id) existingConfigId = d._id;
-        } catch (_) {}
-      }
-      const url = existingConfigId
-        ? `/whatsapp-config/${existingConfigId}`
-        : "/whatsapp-config";
-      const method = existingConfigId ? "put" : "post";
-      const res = await apiClient[method](url, config);
-
-      if (res?.success === true) {
-        toast.success(res.message || "WhatsApp configuration saved");
-        setIsEditing(false);
-        fetchData();
-      } else if (res?.data) {
-        toast.success("WhatsApp configuration saved");
-        setIsEditing(false);
-        fetchData();
-      } else {
-        toast.error(res?.message || "Failed to save configuration");
-      }
-    } catch (error: any) {
-      let errorMessage = "Failed to save configuration";
-      if (error.response?.data?.message)
-        errorMessage = error.response.data.message;
-      else if (error.message) errorMessage = error.message;
-
-      if (
-        error.response?.status === 400 &&
-        errorMessage.includes("already exists")
-      ) {
-        try {
-          const existingRes = await apiClient.get(
-            `/whatsapp-config/company/${companyId}`,
-          );
-          const existingConfig = existingRes.success
-            ? existingRes.data
-            : existingRes.data;
-          if (existingConfig?._id) {
-            const updateRes = await apiClient.put(
-              `/whatsapp-config/${existingConfig._id}`,
-              config,
-            );
-            if (updateRes?.success) {
-              toast.success("WhatsApp configuration updated");
-              setIsEditing(false);
-              fetchData();
-              return;
-            }
-            toast.error(updateRes?.message || "Failed to update configuration");
-          }
-        } catch (retryError: any) {
-          toast.error(
-            retryError.response?.data?.message ||
-              "Failed to update configuration",
-          );
+      const res = await apiClient.put(`/admin/companies/${companyId}`, {
+        whatsappConfig: {
+          ...company?.whatsappConfig,
+          customNotifications: templates
         }
-      } else {
-        toast.error(errorMessage);
+      });
+      if (res.success) {
+        toast.success("WhatsApp configuration saved successfully");
+        setCompany(res.data);
       }
+    } catch (error) {
+      toast.error("Failed to save configuration");
     } finally {
       setSaving(false);
     }
   };
 
-  /* ---- Save templates ---- */
-  const handleSaveWhatsAppTemplates = async () => {
-    try {
-      setSavingTemplates(true);
-      await apiClient.put(`/whatsapp-config/company/${companyId}/templates`, {
-        templates: waTemplates
-          .filter((t) => t.templateKey)
-          .map((t) => ({
-            templateKey: t.templateKey,
-            label: t.label || t.templateKey,
-            message: t.message ?? "",
-            keywords: t.keywords ?? [],
-            isActive: t.isActive !== false,
-          })),
-      });
-      toast.success("✅ Notification templates saved successfully");
-    } catch (e: any) {
-      toast.error(e.response?.data?.message || "Failed to save templates");
-    } finally {
-      setSavingTemplates(false);
-    }
-  };
-
-  /* ---- Add custom template ---- */
-  const handleAddTemplate = () => {
-    if (!newTemplateKey.trim()) {
-      toast.error("Template key is required");
-      return;
-    }
-    const key = newTemplateKey.trim().toLowerCase().replace(/\s+/g, "_");
-    if (waTemplates.find((t) => t.templateKey === key)) {
-      toast.error("A template with this key already exists");
-      return;
-    }
-    setWaTemplates((prev) => [
+  const toggleGroup = (label: string) => {
+    setCollapsedGroups(prev => ({
       ...prev,
-      {
-        templateKey: key,
-        label: newTemplateLabel.trim() || newTemplateKey.trim(),
-        message: "",
-        keywords: [],
-        isActive: true,
-      },
-    ]);
-    setSelectedWaTemplate(key);
-    setNewTemplateKey("");
-    setNewTemplateLabel("");
-    setIsAddingTemplate(false);
-    toast.success("Custom template slot added — fill in the message and save.");
+      [label]: !prev[label]
+    }));
   };
 
-  /* ---- Delete template ---- */
-  const handleDeleteTemplate = async (key: string) => {
-    const isBuiltin = BUILTIN_KEYS.includes(key);
-    if (isBuiltin) {
-      setWaTemplates((prev) =>
-        prev.map((t) => (t.templateKey === key ? { ...t, message: "" } : t)),
-      );
-      toast.success("Built-in template cleared (will use system default)");
-      return;
-    }
-    if (!confirm("Are you sure you want to delete this custom template?"))
-      return;
-    try {
-      setSavingTemplates(true);
-      await apiClient.delete(
-        `/whatsapp-config/company/${companyId}/templates/${key}`,
-      );
-      setWaTemplates((prev) => prev.filter((t) => t.templateKey !== key));
-      if (selectedWaTemplate === key)
-        setSelectedWaTemplate("grievance_created");
-      toast.success("Template deleted");
-    } catch (e: any) {
-      toast.error(e.response?.data?.message || "Failed to delete template");
-    } finally {
-      setSavingTemplates(false);
-    }
-  };
-
-  const updateConfig = (path: string, value: any) => {
-    setConfig((prev: any) => {
-      const newConfig = { ...prev };
-      const keys = path.split(".");
-      let current = newConfig;
-      for (let i = 0; i < keys.length - 1; i++) {
-        if (!current[keys[i]]) current[keys[i]] = {};
-        current = current[keys[i]];
+  const updateTemplate = (key: string, field: string, value: any) => {
+    setTemplates(prev => ({
+      ...prev,
+      [key]: {
+        ...prev[key],
+        [field]: value
       }
-      current[keys[keys.length - 1]] = value;
-      return newConfig;
-    });
+    }));
   };
 
-  const selectedMeta = KEY_META[selectedWaTemplate];
-  const selectedTemplate = waTemplates.find(
-    (t) => t.templateKey === selectedWaTemplate,
-  );
-  const isCustom = !BUILTIN_KEYS.includes(selectedWaTemplate);
-
-  // Sync keywords input when selected template changes
-  useEffect(() => {
-    setKeywordsInput("");
-  }, [selectedWaTemplate]);
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+        <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
+        <p className="text-slate-500 font-bold uppercase text-xs tracking-widest">Initialising Secure Config Gateway...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50/50">
-      {/* Header */}
-      <header className="bg-slate-900 sticky top-0 z-50 shadow-2xl border-b border-slate-800">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-10"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-              <Button
-                variant="ghost"
-                onClick={() => router.push(`/superadmin/company/${companyId}`)}
-                className="text-slate-400 hover:text-white hover:bg-white/10 transition-all -ml-2 h-9 w-9 p-0 rounded-xl"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-              <div className="w-11 h-11 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-md border border-white/20 shadow-inner">
-                <MessageSquare className="w-5 h-5 text-green-400" />
-              </div>
-              <div className="min-w-0">
-                <h1 className="text-lg sm:text-xl font-bold text-white tracking-tight leading-none">
-                  WhatsApp Matrix
-                </h1>
-                <div className="flex items-center gap-2 mt-1.5 min-w-0">
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest truncate">
-                    Configuration Node:{" "}
-                    <span className="text-indigo-400">
-                      {company?.name || "Loading..."}
-                    </span>
-                  </p>
-                </div>
-              </div>
+    <div className="space-y-8 pb-20 max-w-6xl mx-auto px-4 md:px-0">
+      {/* Header Section */}
+      <div className="bg-slate-900 rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-center gap-6">
+            <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center border border-white/20 backdrop-blur-md shadow-inner">
+              <MessageSquare className="w-8 h-8 text-indigo-400" />
             </div>
-            {!loading && (
-              <div className="flex w-full md:w-auto items-center justify-end flex-wrap gap-2">
-                {isEditing ? (
-                  <>
-                    <Button
-                      onClick={handleSave}
-                      disabled={saving}
-                      className="h-9 sm:h-10 px-4 sm:px-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all shadow-lg shadow-indigo-900/20 font-bold text-[11px] uppercase tracking-wider border-0"
-                    >
-                      <Save className="w-4 h-4 sm:mr-2" />
-                      {saving ? "Processing..." : "Deploy Changes"}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      onClick={() => {
-                        setIsEditing(false);
-                        fetchData();
-                      }}
-                      className="h-9 sm:h-10 px-3 sm:px-4 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-all border border-white/10 font-bold text-[11px] uppercase tracking-wider"
-                    >
-                      Cancel
-                    </Button>
-                  </>
-                ) : (
-                  <Button
-                    onClick={() => setIsEditing(true)}
-                    className="h-9 sm:h-10 px-4 sm:px-6 bg-slate-800 hover:bg-slate-700 text-white rounded-xl transition-all border border-slate-700 font-bold text-[11px] uppercase tracking-wider"
-                  >
-                    Modify Config
-                  </Button>
-                )}
-              </div>
-            )}
+            <div>
+              <h1 className="text-2xl font-black uppercase tracking-tight">WhatsApp Notification Engine</h1>
+              <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1 group flex items-center gap-2">
+                Configure Automated Alerts for {company?.name}
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              </p>
+            </div>
           </div>
+          <Button 
+            onClick={saveConfig} 
+            disabled={saving}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-6 rounded-2xl shadow-lg shadow-indigo-900/40 transition-all active:scale-95 group font-black uppercase text-xs tracking-widest flex items-center gap-3 disabled:opacity-50"
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4 group-hover:scale-110 transition-transform" />}
+            {saving ? "Deploying..." : "Save Configuration"}
+          </Button>
         </div>
-      </header>
+      </div>
 
-      {loading ? (
-        <div className="flex-1 flex items-center justify-center p-20">
-          <LoadingSpinner text="Retrieving WhatsApp infrastructure..." />
+      {/* Tabs / Info Header */}
+      <div className="flex items-center gap-3 bg-slate-100 p-2 rounded-2xl w-fit">
+        <button 
+          onClick={() => setActiveTab("templates")}
+          className={`flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'templates' ? 'bg-white text-indigo-600 shadow-md' : 'text-slate-500 hover:text-slate-800'}`}
+        >
+          <Layout className="w-4 h-4" />
+          Templates
+        </button>
+        <button 
+          onClick={() => setActiveTab("placeholders")}
+          className={`flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'placeholders' ? 'bg-white text-indigo-600 shadow-md' : 'text-slate-500 hover:text-slate-800'}`}
+        >
+          <Smartphone className="w-4 h-4" />
+          Variable Map
+        </button>
+      </div>
+
+      {activeTab === "templates" ? (
+        <div className="grid gap-6">
+          {TEMPLATE_GROUPS.map((group, idx) => (
+            <div key={idx} className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden transition-all hover:border-slate-300">
+              <button 
+                onClick={() => toggleGroup(group.label)}
+                className="w-full flex items-center justify-between p-6 hover:bg-slate-50 transition-colors bg-slate-50/30"
+              >
+                <div className="flex items-center gap-4 text-left">
+                  <div className="p-2.5 bg-white rounded-xl border border-slate-200">
+                    <Bell className="w-5 h-5 text-indigo-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-slate-800 text-sm uppercase tracking-tight">{group.label}</h3>
+                    <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-0.5">{group.description}</p>
+                  </div>
+                </div>
+                <div className="p-2 rounded-lg bg-slate-100/50">
+                  {collapsedGroups[group.label] ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                </div>
+              </button>
+
+              {!collapsedGroups[group.label] && (
+                <div className="p-6 grid gap-4 divide-y divide-slate-100">
+                  {group.keys.map((k) => (
+                    <div key={k.key} className="pt-4 first:pt-0">
+                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                        <div className="flex-1 space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-black text-slate-900 uppercase tracking-tight">{k.label}</span>
+                            {templates[k.key]?.isActive && (
+                              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[8px] font-black uppercase rounded border border-emerald-200">Active</span>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-slate-500 font-medium">TRIGGER: {k.when}</p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <div className="bg-indigo-50 text-indigo-600 text-[8px] font-black uppercase px-2 py-1 rounded border border-indigo-100">To: {k.to}</div>
+                            <div className="bg-slate-50 text-slate-500 text-[8px] font-black uppercase px-2 py-1 rounded border border-slate-200">Key: {k.key}</div>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+                          <div className="w-full sm:w-64 space-y-1.5">
+                            <Label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Meta Business Cloud Template</Label>
+                            <Input 
+                              placeholder="e.g. appointment_confirmation_v1"
+                              value={templates[k.key]?.notificationTemplateName || ""}
+                              onChange={(e) => updateTemplate(k.key, "notificationTemplateName", e.target.value)}
+                              className="h-10 rounded-xl bg-slate-50 border-slate-200 font-bold text-xs focus:ring-indigo-500/20"
+                            />
+                            <p className="text-[9px] text-slate-400 font-medium px-1 italic">Must match specific template name in Meta Business Suite</p>
+                          </div>
+
+                          <div className="flex items-center gap-3 bg-slate-100/50 p-3 rounded-2xl border border-slate-200/50 self-start sm:self-center">
+                            <Switch 
+                              checked={templates[k.key]?.isActive}
+                              onCheckedChange={(checked) => updateTemplate(k.key, "isActive", checked)}
+                              className="data-[state=active]:bg-indigo-600"
+                            />
+                            <div className="flex flex-col">
+                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Bot Status</span>
+                              <span className={`text-[10px] font-black uppercase tracking-widest ${templates[k.key]?.isActive ? "text-emerald-600" : "text-slate-400"}`}>
+                                {templates[k.key]?.isActive ? "Active" : "Disabled"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Default Preview Section */}
+                      <div className="mt-4 bg-slate-50 rounded-2xl p-4 border border-slate-200/60 relative group">
+                        <div className="absolute top-4 right-4 text-[8px] font-black uppercase text-indigo-400 opacity-30 group-hover:opacity-100 transition-opacity">System Default Logic</div>
+                        <div className="flex gap-4">
+                          <div className="w-8 h-8 bg-white rounded-xl border border-slate-200 flex items-center justify-center flex-shrink-0">
+                            <Smartphone className="w-4 h-4 text-slate-400" />
+                          </div>
+                          <div className="space-y-1.5">
+                            <p className="text-[10px] text-slate-700 italic leading-relaxed">&quot;{DEFAULT_WA_MESSAGES[k.key]}&quot;</p>
+                            <p className="text-[8px] text-slate-400 font-medium uppercase tracking-widest">Preview: Parameters will be dynamically injected at runtime</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       ) : (
-        <main className="max-w-[1600px] mx-auto w-full px-4 py-4">
-          <div className="space-y-6">
-            {/* -------------------------------------------------------
-              WhatsApp Business API Credentials
-          ------------------------------------------------------- */}
-            <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
-              <CardHeader className="bg-slate-900 px-4 sm:px-6 py-4 border-b border-slate-800">
-                <CardTitle className="text-base font-bold text-white uppercase tracking-tight flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-green-400" />
-                  Cloud API Infrastructure Credentials
-                </CardTitle>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-                  Meta Business Suite Connectivity
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Phone Number */}
-                  <div className="space-y-2 md:col-span-2">
-                    <Label
-                      htmlFor="phoneNumber"
-                      className="text-sm font-semibold"
-                    >
-                      WhatsApp Business Phone Number
-                    </Label>
-                    <Input
-                      id="phoneNumber"
-                      placeholder="e.g., +91 95038 50561 or +1 555 194 4395"
-                      value={config?.displayPhoneNumber || ""}
-                      onChange={(e) => {
-                        const input = e.target.value;
-                        const formats = getPhoneNumberFormats(input);
-                        updateConfig(
-                          "displayPhoneNumber",
-                          formats.displayFormat,
-                        );
-                        updateConfig("phoneNumber", formats.apiFormat);
-                      }}
-                      onBlur={(e) => {
-                        if (
-                          e.target.value &&
-                          !isValidPhoneNumber(e.target.value)
-                        ) {
-                          toast.error(
-                            "Please enter a valid phone number with country code",
-                          );
-                        }
-                      }}
-                      disabled={!isEditing}
-                      className="rounded-xl border-gray-200 focus:ring-2 focus:ring-green-500 text-lg font-mono"
-                    />
-                    <div className="flex items-start gap-2 mt-2">
-                      <div className="flex-1 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                        <p className="text-xs font-semibold text-blue-700 mb-1">
-                          📱 Display Format
-                        </p>
-                        <p className="text-sm font-mono text-blue-900">
-                          {config?.displayPhoneNumber || "Not set"}
-                        </p>
-                        <p className="text-xs text-blue-600 mt-1">
-                          What customers see in WhatsApp
-                        </p>
-                      </div>
-                      <div className="flex-1 p-3 bg-green-50 border border-green-200 rounded-lg">
-                        <p className="text-xs font-semibold text-green-700 mb-1">
-                          🔧 API Format
-                        </p>
-                        <p className="text-sm font-mono text-green-900">
-                          {config?.phoneNumber || "Not set"}
-                        </p>
-                        <p className="text-xs text-green-600 mt-1">
-                          Used for Meta API calls
-                        </p>
-                      </div>
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+           <div className="p-8 bg-slate-900 text-white flex items-center gap-6">
+             <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center border border-white/20">
+               <Info className="w-8 h-8 text-indigo-400" />
+             </div>
+             <div>
+               <h2 className="text-xl font-black uppercase tracking-tight">Template Hierarchy & Variables</h2>
+               <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Guide to Meta Template Parameter Standardisation</p>
+             </div>
+           </div>
+
+           <div className="p-8 space-y-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {WA_PLACEHOLDERS.map((p) => (
+                  <div key={p.ph} className="bg-slate-50 p-5 md:p-6 rounded-3xl border border-slate-200 group hover:border-indigo-200 transition-all hover:bg-white hover:shadow-lg">
+                    <div className="w-10 h-10 bg-white rounded-xl border border-slate-200 flex items-center justify-center mb-4 group-hover:bg-indigo-600 transition-colors">
+                      <RefreshCw className="w-5 h-5 text-indigo-600 group-hover:text-white" />
                     </div>
+                    <p className="text-lg md:text-xl font-black text-slate-900 tracking-tighter mb-1 font-mono break-all">{p.ph}</p>
+                    <p className="text-[9px] md:text-[10px] text-slate-500 font-bold uppercase tracking-widest">{p.desc}</p>
                   </div>
+                ))}
+              </div>
 
-                  {/* Phone Number ID */}
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="phoneNumberId"
-                      className="text-sm font-semibold"
-                    >
-                      Phone Number ID
-                    </Label>
-                    <Input
-                      id="phoneNumberId"
-                      placeholder="From Meta Business Manager"
-                      value={config?.phoneNumberId || ""}
-                      onChange={(e) =>
-                        updateConfig("phoneNumberId", e.target.value)
-                      }
-                      disabled={!isEditing}
-                      className="rounded-xl border-gray-200 focus:ring-2 focus:ring-green-500 font-mono text-sm"
-                    />
-                    <p className="text-xs text-gray-500">
-                      Unique Phone Number ID from Meta Business Manager.
-                    </p>
-                  </div>
-
-                  {/* Business Account ID */}
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="businessAccountId"
-                      className="text-sm font-semibold"
-                    >
-                      Business Account ID
-                    </Label>
-                    <Input
-                      id="businessAccountId"
-                      placeholder="WhatsApp Business Account ID"
-                      value={config?.businessAccountId || ""}
-                      onChange={(e) =>
-                        updateConfig("businessAccountId", e.target.value)
-                      }
-                      disabled={!isEditing}
-                      className="rounded-xl border-gray-200 focus:ring-2 focus:ring-green-500 font-mono text-sm"
-                    />
-                  </div>
-
-                  {/* Access Token */}
-                  <div className="space-y-2 md:col-span-2">
-                    <Label
-                      htmlFor="accessToken"
-                      className="text-sm font-semibold"
-                    >
-                      Access Token
-                    </Label>
-                    <Input
-                      id="accessToken"
-                      type="password"
-                      placeholder="Enter WhatsApp Access Token"
-                      value={config?.accessToken || ""}
-                      onChange={(e) =>
-                        updateConfig("accessToken", e.target.value)
-                      }
-                      disabled={!isEditing}
-                      className="rounded-xl border-gray-200 focus:ring-2 focus:ring-green-500 font-mono text-sm"
-                    />
-                    {config?.accessToken && !isEditing && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        Token is hidden for security
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Verify Token */}
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="verifyToken"
-                      className="text-sm font-semibold"
-                    >
-                      Webhook Verify Token
-                    </Label>
-                    <Input
-                      id="verifyToken"
-                      placeholder="Your webhook verification token"
-                      value={config?.verifyToken || ""}
-                      onChange={(e) =>
-                        updateConfig("verifyToken", e.target.value)
-                      }
-                      disabled={!isEditing}
-                      className="rounded-xl border-gray-200 focus:ring-2 focus:ring-green-500 font-mono text-sm"
-                    />
-                  </div>
-
-                  {/* Active toggle */}
-                  <div className="flex items-center space-x-2 pt-6">
-                    <Switch
-                      id="isActive"
-                      checked={config?.isActive || false}
-                      onCheckedChange={(checked) =>
-                        updateConfig("isActive", checked)
-                      }
-                      disabled={!isEditing}
-                    />
-                    <Label htmlFor="isActive" className="text-sm font-semibold">
-                      Active
-                    </Label>
-                    {config?.isActive && (
-                      <span className="ml-2 px-2 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">
-                        ✓ Active
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* -------------------------------------------------------
-              WhatsApp Notification Templates
-          ------------------------------------------------------- */}
-            <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
-              <CardHeader className="bg-slate-900 px-4 sm:px-6 py-4 border-b border-slate-800">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="text-base font-bold text-white uppercase tracking-tight flex items-center gap-2">
-                      <Bell className="w-4 h-4 text-emerald-400" />
-                      WhatsApp Notification Templates
-                    </CardTitle>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-                      Automated message content sent to citizens & admin staff
-                    </p>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                {/* How it works banner */}
-                <div className="bg-blue-50 border-b border-blue-100 px-4 sm:px-6 py-3 flex items-start gap-3">
-                  <Info className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
-                  <div className="text-xs text-blue-800 leading-relaxed">
-                    <p className="font-semibold mb-0.5">
-                      How notification templates work
-                    </p>
-                    <p>
-                      These templates are the{" "}
-                      <strong>actual WhatsApp messages</strong> sent
-                      automatically to citizens and admin staff at each stage
-                      (grievance received, assigned, resolved, etc.). Use
-                      placeholders like{" "}
-                      <code className="bg-blue-100 px-1 rounded font-mono">
-                        {"{subDepartmentName}"}
-                      </code>
-                      ,{" "}
-                      <code className="bg-blue-100 px-1 rounded font-mono">
-                        {"{resolutionTimeText}"}
-                      </code>{" "}
-                      to inject real data into each message. If a template is
-                      empty, the system default is used.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex flex-col lg:flex-row lg:min-h-[800px]">
-                  {/* ---- Left sidebar: template browser ---- */}
-                  <div className="w-full lg:w-80 lg:shrink-0 border-b lg:border-b-0 lg:border-r border-slate-200 overflow-y-auto bg-slate-50/60 max-h-[320px] lg:max-h-none shadow-inner lg:shadow-none">
-                    {/* Add custom template */}
-                    <div className="p-3 border-b border-slate-200">
-                      {isAddingTemplate ? (
-                        <div className="bg-white border border-emerald-200 rounded-xl p-3 space-y-2 shadow-sm">
-                          <p className="text-[10px] font-bold uppercase text-emerald-700">
-                            New Custom Template
-                          </p>
-                          <Input
-                            placeholder="Key (e.g. escalation_alert)"
-                            value={newTemplateKey}
-                            onChange={(e) => setNewTemplateKey(e.target.value)}
-                            className="h-8 text-xs border-emerald-200"
-                          />
-                          <Input
-                            placeholder="Label (e.g. Escalation Alert)"
-                            value={newTemplateLabel}
-                            onChange={(e) =>
-                              setNewTemplateLabel(e.target.value)
-                            }
-                            className="h-8 text-xs border-emerald-200"
-                          />
-                          <div className="flex gap-2 pt-1">
-                            <Button
-                              size="sm"
-                              onClick={handleAddTemplate}
-                              className="flex-1 h-7 text-[10px] bg-emerald-600 hover:bg-emerald-700 text-white"
-                            >
-                              Create
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => setIsAddingTemplate(false)}
-                              className="flex-1 h-7 text-[10px] text-slate-600"
-                            >
-                              Cancel
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => setIsAddingTemplate(true)}
-                          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-emerald-300 text-emerald-700 hover:bg-emerald-50 transition-colors text-xs font-semibold"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                          Add Custom Template
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Group list */}
-                    {TEMPLATE_GROUPS.map((group) => (
-                      <div
-                        key={group.label}
-                        className="border-b border-slate-200 last:border-0"
-                      >
-                        <button
-                          onClick={() =>
-                            setCollapsedGroups((prev) => ({
-                              ...prev,
-                              [group.label]: !prev[group.label],
-                            }))
-                          }
-                          className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-slate-100 transition-colors"
-                        >
-                          <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
-                            {group.label}
-                          </span>
-                          {collapsedGroups[group.label] ? (
-                            <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                          ) : (
-                            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                          )}
-                        </button>
-                        {!collapsedGroups[group.label] && (
-                          <div className="pb-1">
-                            {group.keys.map(({ key, label }) => {
-                              const tpl = waTemplates.find(
-                                (t) => t.templateKey === key,
-                              );
-                              const hasContent = !!(
-                                tpl?.message && tpl.message.trim()
-                              );
-                              return (
-                                <button
-                                  key={key}
-                                  onClick={() => setSelectedWaTemplate(key)}
-                                  className={`w-full text-left px-3 py-2.5 transition-all ${
-                                    selectedWaTemplate === key
-                                      ? "bg-emerald-600 text-white"
-                                      : "hover:bg-slate-100 text-slate-700"
-                                  }`}
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <span
-                                      className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                                        hasContent
-                                          ? "bg-emerald-400"
-                                          : "bg-slate-300"
-                                      } ${selectedWaTemplate === key ? "bg-white" : ""}`}
-                                    />
-                                    <span className="text-xs font-medium leading-tight">
-                                      {label}
-                                    </span>
-                                  </div>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
+              <div className="rounded-3xl bg-indigo-50 border border-indigo-100 p-8 space-y-4">
+                 <div className="flex items-center gap-3">
+                   <Layout className="w-5 h-5 text-indigo-600" />
+                   <h3 className="text-sm font-black text-indigo-900 uppercase tracking-tight">Critical Implementation Rules</h3>
+                 </div>
+                 <div className="grid md:grid-cols-2 gap-8 mt-4">
+                   <div className="space-y-4">
+                      <div className="flex gap-4">
+                        <div className="w-6 h-6 rounded-full bg-indigo-600 text-white flex-shrink-0 flex items-center justify-center text-[10px] font-black">1</div>
+                        <p className="text-xs text-indigo-800 font-medium leading-relaxed">WhatsApp templates must be created and approved within your **Meta Business Suite Account** before activation here.</p>
                       </div>
-                    ))}
-
-                    {/* Custom templates */}
-                    {waTemplates.filter(
-                      (t) => !BUILTIN_KEYS.includes(t.templateKey),
-                    ).length > 0 && (
-                      <div className="border-b border-slate-200 last:border-0">
-                        <button
-                          onClick={() =>
-                            setCollapsedGroups((prev) => ({
-                              ...prev,
-                              custom: !prev.custom,
-                            }))
-                          }
-                          className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-slate-100 transition-colors"
-                        >
-                          <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
-                            🔧 Custom Templates
-                          </span>
-                          {collapsedGroups.custom ? (
-                            <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                          ) : (
-                            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                          )}
-                        </button>
-                        {!collapsedGroups.custom && (
-                          <div className="pb-1">
-                            {waTemplates
-                              .filter((t) => !BUILTIN_KEYS.includes(t.templateKey))
-                              .map((t) => {
-                                const hasContent = !!(
-                                  t.message && t.message.trim()
-                                );
-                                return (
-                                  <button
-                                    key={t.templateKey}
-                                    onClick={() =>
-                                      setSelectedWaTemplate(t.templateKey)
-                                    }
-                                    className={`w-full text-left px-3 py-2.5 transition-all ${
-                                      selectedWaTemplate === t.templateKey
-                                        ? "bg-emerald-600 text-white"
-                                        : "hover:bg-slate-100 text-slate-700"
-                                    }`}
-                                  >
-                                    <div className="flex items-center gap-2">
-                                      <span
-                                        className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                                          hasContent
-                                            ? "bg-emerald-400"
-                                            : "bg-slate-300"
-                                        } ${selectedWaTemplate === t.templateKey ? "bg-white" : ""}`}
-                                      />
-                                      <span className="text-xs font-medium leading-tight">
-                                        {t.label || t.templateKey}
-                                      </span>
-                                    </div>
-                                  </button>
-                                );
-                              })}
-                          </div>
-                        )}
+                      <div className="flex gap-4">
+                        <div className="w-6 h-6 rounded-full bg-indigo-600 text-white flex-shrink-0 flex items-center justify-center text-[10px] font-black">2</div>
+                        <p className="text-xs text-indigo-800 font-medium leading-relaxed">Template names must match **EXACTLY** (including underscores and version numbers) as they appear in Meta&apos;s dashboard.</p>
                       </div>
-                    )}
-                  </div>
-
-                  {/* ---- Right panel: editor ---- */}
-                  <div 
-                    ref={editorRef}
-                    className="flex-1 min-w-0 flex flex-col overflow-hidden"
-                  >
-                    {/* Template header */}
-                    <div className="px-4 sm:px-6 py-4 border-b border-slate-100 bg-white">
-                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                        <div className="flex-1">
-                          <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                            <FileText className="w-4 h-4 text-emerald-600" />
-                            {selectedMeta?.label ?? selectedWaTemplate}
-                            {isCustom && (
-                              <span className="px-1.5 py-0.5 bg-purple-100 text-purple-700 text-[9px] font-bold rounded uppercase">
-                                Custom
-                              </span>
-                            )}
-                          </h3>
-                          {selectedMeta && (
-                            <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-[10px] font-bold uppercase text-slate-400">
-                                  Sent to:
-                                </span>
-                                <span className="text-[11px] text-slate-700 font-semibold">
-                                  {selectedMeta.to}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-[10px] font-bold uppercase text-slate-400">
-                                  When:
-                                </span>
-                                <span className="text-[11px] text-slate-700">
-                                  {selectedMeta.when}
-                                </span>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-4 shrink-0 w-full sm:w-auto">
-                          <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg border border-slate-200">
-                            <span className="text-[10px] font-bold uppercase text-slate-500">
-                              Active:
-                            </span>
-                            <Switch
-                              checked={selectedTemplate?.isActive !== false}
-                              onCheckedChange={(checked) => {
-                                const key = selectedWaTemplate;
-                                setWaTemplates((prev) =>
-                                  prev.map((t) =>
-                                    t.templateKey === key
-                                      ? { ...t, isActive: checked }
-                                      : t,
-                                  ),
-                                );
-                              }}
-                            />
-                          </div>
-                          <Button
-                            onClick={() => {
-                              const defaultMsg =
-                                DEFAULT_WA_MESSAGES[selectedWaTemplate] || "";
-                              const key = selectedWaTemplate;
-                              setWaTemplates((prev) => {
-                                const next = prev.map((t) =>
-                                  t.templateKey === key
-                                    ? { ...t, message: defaultMsg }
-                                    : t,
-                                );
-                                if (!next.find((t) => t.templateKey === key))
-                                  next.push({
-                                    templateKey: key,
-                                    message: defaultMsg,
-                                  });
-                                return next;
-                              });
-                            }}
-                            variant="ghost"
-                            className="h-8 px-3 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg text-xs gap-1.5 flex-1 sm:flex-none"
-                          >
-                            <RotateCcw className="w-3 h-3" />
-                            Load Default
-                          </Button>
-                          {isCustom && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() =>
-                                handleDeleteTemplate(selectedWaTemplate)
-                              }
-                              className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50 border border-red-200 rounded-lg"
-                              title="Delete Custom Template"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
-                          )}
-                        </div>
+                   </div>
+                   <div className="space-y-4">
+                      <div className="flex gap-4">
+                        <div className="w-6 h-6 rounded-full bg-indigo-600 text-white flex-shrink-0 flex items-center justify-center text-[10px] font-black">3</div>
+                        <p className="text-xs text-indigo-800 font-medium leading-relaxed">Ensure placeholders like {"{{name}}"} are mapped to the correct dynamic fields in your Meta template configuration.</p>
                       </div>
-                    </div>
-
-                    {/* Keywords */}
-                    <div className="px-4 sm:px-6 pt-3 pb-2 border-b border-slate-100 bg-white">
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                          Bot Trigger Keywords{" "}
-                          <span className="text-slate-400 font-normal">
-                             (Press Enter or Comma to add)
-                          </span>
-                        </Label>
-                        <div className="group relative">
-                          <HelpCircle className="w-3 h-3 text-slate-400 cursor-help" />
-                          <div className="absolute bottom-full left-0 mb-2 w-64 p-2 bg-slate-900 text-white text-[10px] rounded shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                            Words that trigger this template when a user types
-                            them. Used mainly for chatbot command responses
-                            (stop, restart, menu, back).
-                          </div>
-                        </div>
+                      <div className="flex gap-4">
+                        <div className="w-6 h-6 rounded-full bg-indigo-600 text-white flex-shrink-0 flex items-center justify-center text-[10px] font-black">4</div>
+                        <p className="text-xs text-indigo-800 font-medium leading-relaxed">Deactivating a template here will result in the system falling back to **SMS** or **Email** protocols (if configured).</p>
                       </div>
-                      <div className="min-h-[42px] p-1.5 border border-slate-200 rounded-lg bg-white flex flex-wrap gap-2 items-center focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 transition-all">
-                        {(waTemplates.find((t) => t.templateKey === selectedWaTemplate)?.keywords || []).map((kw, i) => (
-                          <span 
-                            key={`${kw}-${i}`}
-                            className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-50 text-emerald-700 text-[11px] font-bold rounded-md border border-emerald-100 group animate-in fade-in zoom-in duration-200"
-                          >
-                            {kw}
-                            <button
-                              onClick={() => {
-                                const key = selectedWaTemplate;
-                                setWaTemplates((prev) => prev.map((t) => {
-                                  if (t.templateKey !== key) return t;
-                                  const newKws = (t.keywords || []).filter((_, idx) => idx !== i);
-                                  return { ...t, keywords: newKws };
-                                }));
-                              }}
-                              className="hover:bg-emerald-200/50 rounded p-0.5 transition-colors"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </span>
-                        ))}
-                        <input
-                          placeholder={
-                            (waTemplates.find((t) => t.templateKey === selectedWaTemplate)?.keywords || []).length === 0 
-                              ? "Type keyword and press Enter or Comma..." 
-                              : "Add word..."
-                          }
-                          value={keywordsInput}
-                          onChange={(e) => setKeywordsInput(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ',') {
-                              e.preventDefault();
-                              const val = keywordsInput.trim().replace(/,/g, '');
-                              if (!val) return;
-                              
-                              const key = selectedWaTemplate;
-                              setWaTemplates((prev) => {
-                                const current = prev.find(t => t.templateKey === key);
-                                const existing = current?.keywords || [];
-                                if (existing.includes(val)) {
-                                  setKeywordsInput("");
-                                  return prev;
-                                }
-                                
-                                const next = prev.map((t) =>
-                                  t.templateKey === key
-                                    ? { ...t, keywords: [...existing, val] }
-                                    : t,
-                                );
-                                if (!next.find((t) => t.templateKey === key)) {
-                                  next.push({
-                                    templateKey: key,
-                                    message: "",
-                                    keywords: [val],
-                                  });
-                                }
-                                return next;
-                              });
-                              setKeywordsInput("");
-                            } else if (e.key === 'Backspace' && !keywordsInput) {
-                              // Delete last keyword on backspace if input is empty
-                              const key = selectedWaTemplate;
-                              setWaTemplates((prev) => prev.map((t) => {
-                                if (t.templateKey !== key) return t;
-                                const newKws = [...(t.keywords || [])];
-                                newKws.pop();
-                                return { ...t, keywords: newKws };
-                              }));
-                            }
-                          }}
-                          className="flex-1 min-w-[120px] h-7 bg-transparent border-0 focus:ring-0 text-xs text-slate-900 placeholder:text-slate-400"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Message editor */}
-                    <div className="flex-1 px-4 sm:px-6 pt-3 pb-3 flex flex-col gap-3 bg-slate-950/[0.02]">
-                      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                        <Label className="text-xs font-semibold text-slate-700">
-                          Message Body{" "}
-                          <span className="text-slate-400 font-normal text-[10px]">
-                            — leave empty to use system default
-                          </span>
-                        </Label>
-                        <span className="text-xs text-slate-400 tabular-nums">
-                          {(selectedTemplate?.message || "").length} / 1024
-                        </span>
-                      </div>
-
-                      <textarea
-                        rows={isMobile ? 12 : 30}
-                        placeholder={
-                          DEFAULT_WA_MESSAGES[selectedWaTemplate]
-                            ? 'Click "Load Default" to start from the system template...'
-                            : "Enter your custom WhatsApp notification message. Use placeholders below to inject dynamic data."
-                        }
-                        value={selectedTemplate?.message ?? ""}
-                        onChange={(e) => {
-                          const key = selectedWaTemplate;
-                          setWaTemplates((prev) => {
-                            const next = prev.map((t) =>
-                              t.templateKey === key
-                                ? { ...t, message: e.target.value }
-                                : t,
-                            );
-                            if (!next.find((t) => t.templateKey === key))
-                              next.push({
-                                templateKey: key,
-                                message: e.target.value,
-                              });
-                            return next;
-                          });
-                        }}
-                        className="flex w-full rounded-lg border border-slate-200 bg-slate-950 text-emerald-300 font-medium px-4 py-5 text-sm font-mono leading-relaxed resize-y focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 placeholder:text-slate-600"
-                        spellCheck={false}
-                      />
-
-                      {/* Placeholder chips */}
-                      <div className="bg-white border border-slate-200 rounded-xl p-3">
-                        <p className="text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-wider">
-                          Click to insert placeholder — hover for description
-                        </p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {WA_PLACEHOLDERS.map(({ ph, desc }) => (
-                            <button
-                              key={ph}
-                              title={desc}
-                              onClick={() => {
-                                const key = selectedWaTemplate;
-                                setWaTemplates((prev) => {
-                                  const current =
-                                    prev.find((t) => t.templateKey === key)
-                                      ?.message || "";
-                                  const next = prev.map((t) =>
-                                    t.templateKey === key
-                                      ? { ...t, message: current + ph }
-                                      : t,
-                                  );
-                                  if (!next.find((t) => t.templateKey === key))
-                                    next.push({
-                                      templateKey: key,
-                                      message: ph,
-                                    });
-                                  return next;
-                                });
-                              }}
-                              className="px-2 py-1 text-[11px] bg-white border border-emerald-200 text-emerald-700 rounded font-mono hover:bg-emerald-50 hover:border-emerald-400 transition-colors"
-                            >
-                              {ph}
-                            </button>
-                          ))}
-                        </div>
-
-                        {/* Highlight key placeholders */}
-                        <div className="mt-3 pt-3 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          <div className="bg-amber-50 border border-amber-200 rounded-lg p-2">
-                            <p className="text-[10px] font-bold text-amber-700 mb-1">
-                              🏢 Sub-Department
-                            </p>
-                            <code className="text-[11px] font-mono text-amber-900">
-                              {"{subDepartmentName}"}
-                            </code>
-                            <p className="text-[10px] text-amber-600 mt-0.5">
-                              Sub-department name (e.g. Revenue Section, Land
-                              Records). Shows actual sub-department from
-                              submission.
-                            </p>
-                          </div>
-                          <div className="bg-violet-50 border border-violet-200 rounded-lg p-2">
-                            <p className="text-[10px] font-bold text-violet-700 mb-1">
-                              ⏱️ Resolution Time
-                            </p>
-                            <code className="text-[11px] font-mono text-violet-900">
-                              {"{resolutionTimeText}"}
-                            </code>
-                            <p className="text-[10px] text-violet-600 mt-0.5">
-                              Exact time taken to resolve (e.g. &quot;2 days and
-                              3 hours&quot;). Auto-calculated from submission to
-                              resolution time.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Save button */}
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 pt-1">
-                        <p className="text-xs text-slate-400">
-                          💡 Templates are saved per-company. Changes take
-                          effect immediately on the next notification.
-                        </p>
-                        <Button
-                          onClick={handleSaveWhatsAppTemplates}
-                          disabled={savingTemplates}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg h-9 text-[11px] font-bold uppercase tracking-wider px-4 sm:px-6 border-0 shadow-lg shadow-emerald-900/20 shrink-0 w-full sm:w-auto"
-                        >
-                          <Save className="w-4 h-4 sm:mr-2" />
-                          {savingTemplates ? "Saving..." : "Save All Templates"}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </main>
+                   </div>
+                 </div>
+              </div>
+           </div>
+        </div>
       )}
+
+      {/* Persistence Bar */}
+      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 w-full max-w-4xl px-4">
+        <div className="bg-slate-900/95 backdrop-blur-md rounded-3xl p-4 shadow-3xl border border-white/10 flex items-center justify-between">
+           <div className="flex items-center gap-4 px-4">
+              <div className="relative">
+                <Clock className="w-5 h-5 text-indigo-400" />
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+              </div>
+              <div>
+                <p className="text-white text-[10px] font-black uppercase tracking-tight">Configuration Snapshot</p>
+                <p className="text-slate-400 text-[9px] font-bold uppercase tracking-widest leading-none mt-0.5">Ready for global deployment</p>
+              </div>
+           </div>
+           <Button 
+            onClick={saveConfig} 
+            disabled={saving}
+            className="bg-white hover:bg-slate-100 text-slate-900 px-8 h-12 rounded-2xl shadow-xl transition-all active:scale-95 font-black uppercase text-[10px] tracking-widest flex items-center gap-2 group"
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {saving ? "Deploying..." : "Update Engine"}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

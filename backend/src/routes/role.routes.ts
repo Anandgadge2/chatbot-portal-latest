@@ -12,14 +12,36 @@ const router = Router();
 // Apply middleware to all routes
 router.use(requireDatabaseConnection);
 router.use(authenticate);
-
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function isOwnOrSuperAdmin(req: Request, targetCompanyId: string): boolean {
+function canViewRole(req: Request, role: any): boolean {
   const user = req.user;
   if (!user) return false;
+  
+  // Super Admins see everything
   if (user.role === UserRole.SUPER_ADMIN) return true;
-  return user.companyId?.toString() === targetCompanyId;
+  
+  // Exclude level 0 roles (Platform Superadmin) for non-superadmins
+  if (role.level === 0) return false;
+
+  // Global roles (companyId is null) are readable by all authenticated users
+  if (!role.companyId) return true;
+  
+  return user.companyId?.toString() === role.companyId.toString();
+}
+
+function canModifyRole(req: Request, role: any): boolean {
+  const user = req.user;
+  if (!user) return false;
+
+  // Super Admins can modify everything
+  if (user.role === UserRole.SUPER_ADMIN) return true;
+
+  // Non-SuperAdmins can NEVER modify system/global roles
+  if (role.isSystem || !role.companyId || role.level === 0) return false;
+
+  // Otherwise, must belong to the same company
+  return user.companyId?.toString() === role.companyId.toString();
 }
 
 // ─── GET /roles?companyId=... ─────────────────────────────────────────────────
@@ -35,17 +57,33 @@ router.get('/', async (req: Request, res: Response) => {
         ? rawCompanyId
         : user.companyId?.toString();
 
-    // If SUPER_ADMIN but no companyId provided, we can return an empty list or system roles
+    // If SUPER_ADMIN but no companyId provided, allow fetching all roles OR just system roles
     if (!companyId) {
-      // If we want to return a 400, it's safer for now as roles are company-scoped
-      return res.status(400).json({ success: false, message: 'companyId is required to fetch roles' });
+       if (user.role === UserRole.SUPER_ADMIN) {
+         // Return all roles across all companies + system roles for SuperAdmin global view
+         const allRoles = await Role.find({}).populate('companyId', 'name').sort({ level: 1, name: 1 });
+         return res.json({ success: true, data: { roles: allRoles } });
+       }
+       return res.status(400).json({ success: false, message: 'companyId is required to fetch roles' });
     }
 
-    if (!isOwnOrSuperAdmin(req, companyId)) {
+    if (user.role !== UserRole.SUPER_ADMIN && companyId !== user.companyId?.toString()) {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
-    const roles = await Role.find({ companyId }).sort({ isSystem: -1, name: 1 });
+    const query: any = { 
+      $or: [
+        { companyId },
+        { companyId: null }
+      ]
+    };
+
+    // If not SuperAdmin, hide roles with level 0 (Platform Superadmin)
+    if (user.role !== UserRole.SUPER_ADMIN) {
+      query.level = { $ne: 0 };
+    }
+
+    const roles = await Role.find(query).populate('companyId', 'name').sort({ level: 1, name: 1 });
 
     // Attach user count per role
     const enriched = await Promise.all(
@@ -57,17 +95,18 @@ router.get('/', async (req: Request, res: Response) => {
         const countQuery: any = { companyId: targetCompanyId };
         
         if (role.key) {
-          const roleRegex = new RegExp(`^${role.key.replace(/_/g, '[\\s_]')}$`, 'i');
-          const nameRegex = new RegExp(`^${role.name.replace(/_/g, '[\\s_]')}$`, 'i');
+          const roleRegex = new RegExp(`^${role.key.replace(/[\s_]/g, '[\\s_]')}$`, 'i');
+          const nameRegex = new RegExp(`^${role.name.replace(/[\s_]/g, '[\\s_]')}$`, 'i');
           countQuery.$or = [
             { customRoleId: role._id },
             { role: roleRegex },
             { role: nameRegex }
           ];
         } else {
+          const nameRegex = new RegExp(`^${role.name.replace(/[\s_]/g, '[\\s_]')}$`, 'i');
           countQuery.$or = [
             { customRoleId: role._id },
-            { role: new RegExp(`^${role.name}$`, 'i') }
+            { role: nameRegex }
           ];
         }
 
@@ -91,11 +130,13 @@ router.get('/:id', async (req: Request, res: Response) => {
     const role = await Role.findById(req.params.id);
     if (!role) return res.status(404).json({ success: false, message: 'Role not found' });
 
-    if (!isOwnOrSuperAdmin(req, role.companyId.toString())) {
+    const targetCompanyId = role.companyId || req.query.companyId || req.user?.companyId;
+
+    if (!canViewRole(req, role)) {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
-    const countQuery: any = { companyId: role.companyId };
+    const countQuery: any = { companyId: targetCompanyId };
     if (role.key) {
       countQuery.$or = [
         { customRoleId: role._id },
@@ -120,11 +161,13 @@ router.get('/:id/users', async (req: Request, res: Response) => {
     const role = await Role.findById(req.params.id);
     if (!role) return res.status(404).json({ success: false, message: 'Role not found' });
 
-    if (!isOwnOrSuperAdmin(req, role.companyId.toString())) {
+    const targetCompanyId = role.companyId || req.query.companyId || req.user?.companyId;
+
+    if (!canViewRole(req, role)) {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
-    const query: any = { companyId: role.companyId };
+    const query: any = { companyId: targetCompanyId };
     
     if (role.key) {
       const roleRegex = new RegExp(`^${role.key.replace(/_/g, '[\\s_]')}$`, 'i');
@@ -158,15 +201,21 @@ router.get('/:id/users', async (req: Request, res: Response) => {
 router.post('/', async (req: Request, res: Response) => {
   try {
     const user = req.user!;
-    const { companyId, name, description, permissions } = req.body;
+    const { companyId, name, description, permissions, level } = req.body;
+
+    // 1. Scoping Check
+    if (user.role !== UserRole.SUPER_ADMIN && companyId !== user.companyId?.toString()) {
+      return res.status(403).json({ success: false, message: 'Unauthorized: Company scoping violation' });
+    }
+
+    // 2. Protect SuperAdmin role (level 0) creation
+    if (user.role !== UserRole.SUPER_ADMIN && level === 0) {
+      return res.status(403).json({ success: false, message: 'Forbidden: Cannot create super-admin roles' });
+    }
 
     const targetCompanyId = companyId || user.companyId?.toString();
     if (!targetCompanyId) {
       return res.status(400).json({ success: false, message: 'companyId is required' });
-    }
-
-    if (!isOwnOrSuperAdmin(req, targetCompanyId)) {
-      return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
     if (!name?.trim()) {
@@ -205,8 +254,9 @@ router.put('/:id', async (req: Request, res: Response) => {
     const role = await Role.findById(req.params.id);
 
     if (!role) return res.status(404).json({ success: false, message: 'Role not found' });
-    if (!isOwnOrSuperAdmin(req, role.companyId.toString())) {
-      return res.status(403).json({ success: false, message: 'Access denied' });
+    
+    if (!canModifyRole(req, role)) {
+      return res.status(403).json({ success: false, message: 'Unauthorized: You do not have permission to modify this role' });
     }
 
     const { name, description, permissions } = req.body;
@@ -235,15 +285,12 @@ router.put('/:id', async (req: Request, res: Response) => {
 
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
-    const user = req.user!;
     const role = await Role.findById(req.params.id);
 
     if (!role) return res.status(404).json({ success: false, message: 'Role not found' });
-    if (role.isSystem) {
-      return res.status(403).json({ success: false, message: 'System roles cannot be deleted' });
-    }
-    if (!isOwnOrSuperAdmin(req, role.companyId.toString())) {
-      return res.status(403).json({ success: false, message: 'Access denied' });
+    
+    if (!canModifyRole(req, role)) {
+      return res.status(403).json({ success: false, message: 'Unauthorized: You do not have permission to delete this role' });
     }
 
     // Unassign users from this role before deleting
@@ -268,14 +315,13 @@ router.delete('/:id', async (req: Request, res: Response) => {
 
 router.post('/:id/assign-user', async (req: Request, res: Response) => {
   try {
-    const user = req.user!;
     const { userId } = req.body;
 
     const role = await Role.findById(req.params.id);
     if (!role) return res.status(404).json({ success: false, message: 'Role not found' });
 
-    if (!isOwnOrSuperAdmin(req, role.companyId.toString())) {
-      return res.status(403).json({ success: false, message: 'Access denied' });
+    if (!canModifyRole(req, role)) {
+      return res.status(403).json({ success: false, message: 'Unauthorized: You do not have permission to assign this role' });
     }
 
     const targetUser = await User.findById(userId);

@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSearchParams } from "next/navigation";
 import { userAPI, User } from "@/lib/api/user";
 import { 
   Card, 
@@ -34,16 +35,41 @@ import {
 import toast from "react-hot-toast";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
-export default function UserManagementTab() {
+interface UserManagementTabProps {
+  companyId?: string;
+}
+
+export default function UserManagementTab({ companyId: propCompanyId }: UserManagementTabProps) {
   const { user: currentUser } = useAuth();
+  const searchParams = useSearchParams();
+  
+  // Scoping logic: 
+  // 1. Use prop companyId 
+  // 2. Use companyId from URL (for SuperAdmins in drilldown)
+  // 3. Fall back to current user's companyId
+  const effectiveCompanyId = useMemo(() => {
+    if (propCompanyId) return propCompanyId;
+    if (currentUser?.role === 'SUPER_ADMIN') {
+      const urlCompanyId = searchParams?.get('companyId');
+      if (urlCompanyId) return urlCompanyId;
+    }
+    return currentUser?.companyId ? (typeof currentUser.companyId === 'object' ? (currentUser.companyId as any)._id : currentUser.companyId) : "";
+  }, [propCompanyId, currentUser, searchParams]);
+
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState("");
+  const [customRoles, setCustomRoles] = useState<any[]>([]);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await userAPI.getAll({ limit: 100 });
+      const res = await userAPI.getAll({ 
+        limit: 100, 
+        role: roleFilter || undefined,
+        companyId: effectiveCompanyId || undefined
+      });
       if (res.success) {
         setUsers(res.data.users);
       }
@@ -53,11 +79,33 @@ export default function UserManagementTab() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [roleFilter, effectiveCompanyId]);
+
+  const fetchCustomRoles = useCallback(async () => {
+    // If SuperAdmin but no company selected, fetch ALL roles for the global dropdown
+    const isAdminView = currentUser?.role === 'SUPER_ADMIN' && !effectiveCompanyId;
+    
+    if (!effectiveCompanyId && !isAdminView) return;
+    
+    try {
+      const { roleAPI } = await import("@/lib/api/role");
+      // If we are in global view, passing undefined/empty string to getRoles() will hit /roles endpoint
+      const res = await roleAPI.getRoles(effectiveCompanyId || "");
+      if (res.success) {
+        // Filter out level 0 roles (Platform Superadmin) for company-level management
+        // but keep them all for SuperAdmin global view if they want to filter across roles
+        const filteredRoles = (res.data.roles || []).filter((r: any) => isAdminView || r.level > 0);
+        setCustomRoles(filteredRoles);
+      }
+    } catch (error) {
+      console.error("Failed to fetch custom roles", error);
+    }
+  }, [effectiveCompanyId, currentUser]);
 
   useEffect(() => {
     fetchUsers();
-  }, [fetchUsers]);
+    fetchCustomRoles();
+  }, [fetchUsers, fetchCustomRoles]);
 
   const filteredUsers = useMemo(() => {
     return users.filter(u => 
@@ -108,10 +156,22 @@ export default function UserManagementTab() {
                   placeholder="Filter by Agent Name, ID, or Signature..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-11 pr-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+                  className="w-full pl-11 pr-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-bold"
                 />
               </div>
               <div className="flex items-center gap-3">
+                <select 
+                  className="h-10 px-4 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500/10 transition-all cursor-pointer appearance-none relative" 
+                  value={roleFilter} 
+                  onChange={(e) => setRoleFilter(e.target.value)}
+                  style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'currentColor\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'/%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '0.75rem' }}
+                >
+                  <option value="">All Tiers</option>
+                  {customRoles.map(r => (
+                    <option key={r._id} value={r._id}>{r.name}</option>
+                  ))}
+                  {currentUser?.role === 'SUPER_ADMIN' && !effectiveCompanyId && <option value="SUPER_ADMIN">System Core (SA)</option>}
+                </select>
                 <Button variant="outline" className="rounded-xl font-bold uppercase tracking-widest text-[9px] shadow-sm bg-white border-slate-200 hover:bg-slate-50">
                   <Key className="w-3.5 h-3.5 mr-2" />
                   Security Protocols
@@ -158,7 +218,7 @@ export default function UserManagementTab() {
                         </td>
                         <td className="px-6 py-5">
                           <span className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-shadow group-hover:shadow-md ${getRoleBadge(u.role || '')}`}>
-                            {u.role}
+                            {u.customRoleId && typeof u.customRoleId === 'object' ? (u.customRoleId as any).name : (u.role || 'GUEST')}
                           </span>
                         </td>
                         <td className="px-6 py-5">

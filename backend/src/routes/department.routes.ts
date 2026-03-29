@@ -30,14 +30,37 @@ router.get('/', requirePermission(Permission.READ_DEPARTMENT), async (req: Reque
       // All other users are scoped by their company
       query.companyId = user.companyId;
 
-      // If restricted to a department, only show that department
+      // If restricted to a department, only show that department and its children
       if (user.departmentId) {
         // listAll=true bypasses department scoping (used by Revert Grievance dialog)
         // so department admins can see all departments to suggest reassignment
-        const hasCompanyBypass = req.checkPermission(Permission.CREATE_DEPARTMENT);
-        const wantsAllDepts = listAll === 'true';
-        if (!hasCompanyBypass && !wantsAllDepts) {
-          query._id = user.departmentId;
+        // only Company Admins or SuperAdmins should bypass scoping by default.
+        // Dept Admins should still be restricted to their branch.
+        const userLevel = user.level !== undefined ? user.level : 4;
+        const isHighLevelAdmin = userLevel <= 1;
+        const wantsAllDepts = listAll === "true";
+        
+        if (!isHighLevelAdmin && !wantsAllDepts) {
+          const normalizedRole = (user.role || '').toUpperCase().trim();
+          const calculatedLevel = user.level !== undefined ? user.level : (
+            normalizedRole === 'SUPER_ADMIN' || normalizedRole === 'SUPER ADMIN' ? 0 :
+            normalizedRole.includes('COMPANY') && (normalizedRole.includes('ADMIN')) ? 1 :
+            normalizedRole.includes('DEPARTMENT') && (normalizedRole.includes('ADMIN')) && !normalizedRole.includes('SUB') ? 2 :
+            normalizedRole.includes('SUB') && (normalizedRole.includes('ADMIN')) ? 3 :
+            4
+          );
+
+          if (userLevel === 2) {
+            // 🏢 HIERARCHICAL: Dept Admin should see their department AND all sub-departments
+            const subDeptIds = await Department.find({ 
+              parentDepartmentId: user.departmentId 
+            }).distinct('_id');
+            
+            query._id = { $in: [user.departmentId, ...subDeptIds] };
+          } else {
+            // Level 3 (Sub-Dept Admin) or lower: See only their assigned department
+            query._id = user.departmentId;
+          }
         }
       }
     }

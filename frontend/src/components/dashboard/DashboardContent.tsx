@@ -83,12 +83,19 @@ export default function DashboardContent() {
     // Super Admins see everything in global view or drilldown
     if (isSuperAdmin(user)) return true;
     
-    // If viewing a company, check the company's enabled modules
-    const modules = (company?.enabledModules || user?.enabledModules || []) as string[];
+    // Core Institutional Modules (Always available for company-level administration)
+    if (mod === "departments" || mod === "users" || mod === "analytics") return true;
     
-    // Standard modules
-    if (mod === "departments") return true; // Departments always available for company level
-    return modules.includes(mod);
+    // Check enabled modules from database (handles case and mapping)
+    const enabledModules = (company?.enabledModules || user?.enabledModules || []) as string[];
+    
+    const mapping: Record<string, string> = {
+      grievances: "GRIEVANCE",
+      appointments: "APPOINTMENT"
+    };
+
+    const targetModule = mapping[mod] || mod.toUpperCase();
+    return enabledModules.includes(targetModule);
   }, [user, company]);
 
   const getEffectiveCompanyId = useCallback(() => {
@@ -365,7 +372,7 @@ export default function DashboardContent() {
           </TabsContent>
 
           <TabsContent value="users" className="mt-0 outline-none">
-            <UserManagementTab />
+            <UserManagementTab companyId={getEffectiveCompanyId() || undefined} />
           </TabsContent>
         </Tabs>
       </main>

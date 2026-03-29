@@ -68,7 +68,9 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
     try {
       const response = await roleAPI.getRoles(companyId);
       if (response.success) {
-        setCustomRoles(response.data.roles || []);
+        // Filter out level 0 roles (Platform Superadmin) for company personnel
+        const filteredRoles = (response.data.roles || []).filter((r: any) => r.level > 0);
+        setCustomRoles(filteredRoles);
       }
     } catch (error) {
       console.error("Failed to fetch custom roles:", error);

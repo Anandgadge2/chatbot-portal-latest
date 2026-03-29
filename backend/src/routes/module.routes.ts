@@ -9,13 +9,24 @@ const router = Router();
 router.use(authenticate);
 
 /**
- * @route   GET /api/modules
- * @desc    Get all available modules
- * @access  SuperAdmin
+ * @route   GET /api/modules?companyId=...
+ * @desc    Get all available modules or filter by company enablement
+ * @access  Authenticated (Company Admin or Super Admin)
  */
-router.get('/', requireSuperAdmin, async (req: Request, res: Response) => {
+router.get('/', async (req: Request, res: Response) => {
   try {
-    const modules = await Module.find().sort({ category: 1, name: 1 });
+    const { companyId } = req.query;
+    let modules = await Module.find().sort({ category: 1, name: 1 });
+
+    if (companyId) {
+      const Company = (await import('../models/Company')).default;
+      const company = await Company.findById(companyId);
+      if (company && company.enabledModules) {
+        // Return only modules that are in the company's enabledModules list
+        modules = modules.filter(m => company.enabledModules.includes(m.key));
+      }
+    }
+
     res.json({ success: true, count: modules.length, data: modules });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });

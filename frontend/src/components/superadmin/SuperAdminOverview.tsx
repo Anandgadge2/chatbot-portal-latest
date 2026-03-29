@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { companyAPI, Company } from "@/lib/api/company";
 import { departmentAPI, Department } from "@/lib/api/department";
 import { userAPI, User } from "@/lib/api/user";
+import { roleAPI, Role } from "@/lib/api/role";
 import { apiClient } from "@/lib/api/client";
 import CreateCompanyDialog from "@/components/company/CreateCompanyDialog";
 import CreateUserDialog from "@/components/user/CreateUserDialog";
@@ -113,6 +114,7 @@ function SuperAdminOverviewContent() {
     useState<string>("");
   const [companyStatusFilter, setCompanyStatusFilter] = useState<string>("");
   const [companyTypeFilter, setCompanyTypeFilter] = useState<string>("");
+  const [allRoles, setAllRoles] = useState<Role[]>([]);
 
   // Pagination State
   const [companyPage, setCompanyPage] = useState(1);
@@ -147,9 +149,10 @@ function SuperAdminOverviewContent() {
   const fetchAllInitialData = useCallback(async () => {
     // Initial fetch for companies dropdown and stats
     try {
-      const [statsRes, companiesRes] = await Promise.all([
+      const [statsRes, companiesRes, rolesRes] = await Promise.all([
         apiClient.get("/dashboard/superadmin"),
         companyAPI.getAll({ limit: 100 }), // Fetch more for dropdowns
+        roleAPI.getRoles(),
       ]);
 
       if (statsRes.success) {
@@ -166,6 +169,10 @@ function SuperAdminOverviewContent() {
 
       if (companiesRes.success) {
         setAllCompanies(companiesRes.data.companies);
+      }
+      
+      if (rolesRes.success) {
+        setAllRoles(rolesRes.data.roles);
       }
     } catch (e) {
       console.error("Error fetching initial data", e);
@@ -805,6 +812,7 @@ function SuperAdminOverviewContent() {
                 userRoleFilter={userRoleFilter}
                 setUserRoleFilter={setUserRoleFilter}
                 allCompanies={allCompanies}
+                allRoles={allRoles}
                 userPage={userPage}
                 setUserPage={setUserPage}
                 userPagination={userPagination}

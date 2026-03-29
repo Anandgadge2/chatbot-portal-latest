@@ -1237,11 +1237,19 @@ function DashboardContent() {
           
           const results = await Promise.all(promises);
           
-          const grievanceRes = results[0] as any; // Assuming grievance is always first if included
-          const appointmentRes = results[1] as any; // Assuming appointment is always second if included
+          let grievanceRes: any = null;
+          let appointmentRes: any = null;
+          
+          let resultIdx = 0;
+          if (isSuperAdminUser || (hasModule(Module.GRIEVANCE) && hasPermission(user, Permission.READ_GRIEVANCE))) {
+            grievanceRes = results[resultIdx++];
+          }
+          if (isSuperAdminUser || (hasModule(Module.APPOINTMENT) && hasPermission(user, Permission.READ_APPOINTMENT))) {
+            appointmentRes = results[resultIdx++];
+          }
 
           if (grievanceRes?.success && prevGrievanceCount !== null) {
-            const newCount = grievanceRes.data.pagination.total;
+            const newCount = grievanceRes.data?.pagination?.total || 0;
             if (newCount > prevGrievanceCount) {
               toast.success(
                 `📋 New grievance received! (${newCount - prevGrievanceCount} new)`,
@@ -1258,12 +1266,12 @@ function DashboardContent() {
                 pages: grievanceRes.data.pagination.pages,
               }));
             }
-          } else if (grievanceRes.success) {
-            setPrevGrievanceCount(grievanceRes.data.pagination.total);
+          } else if (grievanceRes?.success) {
+            setPrevGrievanceCount(grievanceRes.data?.pagination?.total || 0);
           }
 
-          if (appointmentRes.success && prevAppointmentCount !== null) {
-            const newCount = appointmentRes.data.pagination.total;
+          if (appointmentRes?.success && prevAppointmentCount !== null) {
+            const newCount = appointmentRes.data?.pagination?.total || 0;
             if (newCount > prevAppointmentCount) {
               toast.success(
                 `📅 New appointment scheduled! (${newCount - prevAppointmentCount} new)`,
@@ -1280,8 +1288,8 @@ function DashboardContent() {
                 pages: appointmentRes.data.pagination.pages,
               }));
             }
-          } else if (appointmentRes.success) {
-            setPrevAppointmentCount(appointmentRes.data.pagination.total);
+          } else if (appointmentRes?.success) {
+            setPrevAppointmentCount(appointmentRes.data?.pagination?.total || 0);
           }
         } catch (error) {
           console.error("Polling error:", error);
@@ -4641,11 +4649,6 @@ function DashboardContent() {
                           </option>
                         ))}
                         {isSuperAdminUser && <option value="SUPER_ADMIN">Super Admin</option>}
-                        <option value="COMPANY_ADMIN">Company Admin</option>
-                        <option value="DEPARTMENT_ADMIN">Dept Admin</option>
-                        <option value="OPERATOR">Operator</option>
-                        <option value="OFFICER">Officer</option>
-                        <option value="SUB_DEPARTMENT_ADMIN">Sub Department Admin</option>
                       </select>
                       <select
                         value={userFilters.status}

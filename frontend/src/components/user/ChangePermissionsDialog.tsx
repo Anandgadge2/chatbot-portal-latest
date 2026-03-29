@@ -102,20 +102,57 @@ const ChangePermissionsDialog: React.FC<ChangePermissionsDialogProps> = ({
   };
 
   const getAllPossibleRoles = () => {
-    let roles: { value: string; label: string }[] = [];
+    if (!currentUser) return [];
+
+    let filteredCustomRoles = [...customRoles];
+    const creatorRoleLower = (currentUser.role || "").toLowerCase();
+
+    // Hierarchical Filtering Logic
+    if (!isSuperAdmin(currentUser)) {
+      if (creatorRoleLower.includes("operator")) {
+        return [];
+      } else if (
+        creatorRoleLower.includes("sub-department admin") ||
+        creatorRoleLower.includes("sub department admin")
+      ) {
+        // Sub-Dept Admin can only create Sub-Dept Admin or Operator
+        filteredCustomRoles = customRoles.filter((r) => {
+          const name = r.name.toLowerCase();
+          return (
+            name.includes("sub-department admin") ||
+            name.includes("sub department admin") ||
+            name.includes("operator")
+          );
+        });
+      } else if (creatorRoleLower.includes("department admin")) {
+        // Dept Admin can create Dept Admin, Sub-Dept Admin, or Operator
+        filteredCustomRoles = customRoles.filter((r) => {
+          const name = r.name.toLowerCase();
+          return (
+            name.includes("department admin") ||
+            name.includes("sub-department admin") ||
+            name.includes("sub department admin") ||
+            name.includes("operator")
+          );
+        });
+      }
+      // Company Admin (default) can see all custom roles for their company
+    }
+
+    const options: { value: string; label: string }[] = [];
 
     // 1. Add System Roles if current user is SuperAdmin
     if (isSuperAdmin(currentUser)) {
-      roles.push({ value: "SUPER_ADMIN", label: "Super Admin" });
+      options.push({ value: UserRole.SUPER_ADMIN, label: "Super Admin" });
     }
 
-    // 2. Add Custom Roles
-    const customRoleOptions = customRoles.map((r) => ({
+    // 2. Add Filtered Custom Roles
+    const customRoleOptions = filteredCustomRoles.map((r) => ({
       value: `CUSTOM:${r._id}`,
       label: r.name,
     }));
 
-    return [...roles, ...customRoleOptions];
+    return [...options, ...customRoleOptions];
   };
 
   const getRoleDescription = (role: string) => {

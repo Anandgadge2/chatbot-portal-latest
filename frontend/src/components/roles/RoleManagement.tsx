@@ -107,7 +107,7 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
 
   const fetchModules = useCallback(async () => {
     try {
-      const response = await apiClient.get("/modules");
+      const response = await apiClient.get(`/modules?companyId=${companyId}`);
       if (response.success) {
         const mapped = response.data.map(
           (m: {
@@ -127,7 +127,7 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
     } catch (err) {
       console.error("Error fetching modules:", err);
     }
-  }, []);
+  }, [companyId]);
 
   // ─── Fetch Roles ─────────────────────────────────────────────────────────────
 
@@ -327,7 +327,7 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
       setShowUsersDialog(true);
       setFetchingUsers(true);
 
-      const response = await apiClient.get(`/roles/${role._id}/users`);
+      const response = await apiClient.get(`/roles/${role._id}/users?companyId=${companyId}`);
       if (response.success) {
         setActiveRoleUsers(response.data);
       } else {

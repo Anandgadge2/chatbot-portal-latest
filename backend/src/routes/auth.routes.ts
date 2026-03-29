@@ -118,7 +118,7 @@ router.post('/sso/login', async (req: Request, res: Response) => {
       return;
     }
 
-    const user = await User.findOne({ phone }).populate('companyId');
+    const user = await User.findOne({ phone }).populate('companyId').populate('departmentId');
 
     if (!user) {
       res.status(404).json({ success: false, message: 'No account found with this phone number' });
@@ -196,8 +196,7 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     const query: any = email ? { email } : { phone: normalizedPhone };
-    const user = await User.findOne(query).select('+password').populate('companyId');
-
+    const user = await User.findOne(query).select('+password').populate('companyId').populate('departmentId');
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -262,7 +261,7 @@ router.get('/me', authenticate, async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, message: 'Not authenticated' });
     }
 
-    const user = await User.findById(userId).populate('companyId');
+    const user = await User.findById(userId).populate('companyId').populate('departmentId');
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }

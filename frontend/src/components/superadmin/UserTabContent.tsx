@@ -60,6 +60,7 @@ interface UserTabContentProps {
   userRoleFilter: string;
   setUserRoleFilter: (val: string) => void;
   allCompanies: Company[];
+  allRoles: any[];
   userPage: number;
   setUserPage: (val: number) => void;
   userPagination: { total: number; pages: number; limit: number };
@@ -83,6 +84,7 @@ const UserTabContent: React.FC<UserTabContentProps> = ({
   userRoleFilter,
   setUserRoleFilter,
   allCompanies,
+  allRoles = [],
   userPage,
   setUserPage,
   userPagination,
@@ -217,6 +219,16 @@ const UserTabContent: React.FC<UserTabContentProps> = ({
             >
               <option value="">All Roles</option>
               <option value="SUPER_ADMIN">Super Admin</option>
+              {(allRoles || [])
+                .filter(r => r && r.name && r.name !== 'Platform Superadmin' && r.name !== 'Super Admin')
+                .map((r) => {
+                  const companyName = r.companyId?.name || (typeof r.companyId === 'string' ? r.companyId : null);
+                  return (
+                    <option key={r._id} value={r._id || r.key || r.name.toUpperCase()}>
+                      {r.name} {companyName ? `(${companyName})` : '(System)'}
+                    </option>
+                  );
+                })}
             </select>
           </div>
         </div>

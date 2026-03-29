@@ -56,6 +56,7 @@ import {
   FileSpreadsheet,
   Upload,
   Info,
+  Search,
 } from "lucide-react";
 import { Module } from "@/lib/permissions";
 import BulkImportModal from "@/components/superadmin/drilldown/BulkImportModal";
@@ -124,6 +125,7 @@ function CompanyDrillDownContent() {
   const { data: flows } = useFlows(companyId);
   const activeFlow = useMemo(() => flows?.find((f: any) => f.isActive), [flows]);
   const [simulatorOpen, setSimulatorOpen] = useState(false);
+  const [customRoles, setCustomRoles] = useState<any[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [loadingLeads, setLoadingLeads] = useState(false);
@@ -180,6 +182,12 @@ function CompanyDrillDownContent() {
 
       if (deptRes.success) setDepartments(deptRes.data.departments || []);
       if (usersRes.success) setUsers(usersRes.data.users || []);
+
+      const { roleAPI } = await import("@/lib/api/role");
+      const roleRes = await roleAPI.getRoles(companyId);
+      if (roleRes.success) {
+        setCustomRoles((roleRes.data.roles || []).filter((r: any) => r.level > 0));
+      }
 
       if (analyticsRes.success) {
         const {
@@ -313,8 +321,12 @@ function CompanyDrillDownContent() {
           u.userId?.toLowerCase().includes(search),
       );
     }
-    if (roleFilter !== "all")
-      filtered = filtered.filter((u) => u.role === roleFilter);
+    if (roleFilter !== "all" && roleFilter !== "") {
+      filtered = filtered.filter((u) => {
+        const uRoleId = typeof u.customRoleId === "object" ? (u.customRoleId as any)?._id : u.customRoleId;
+        return uRoleId === roleFilter || u.role === roleFilter;
+      });
+    }
     if (statusFilter !== "all")
       filtered = filtered.filter((u) =>
         statusFilter === "active" ? u.isActive : !u.isActive,
@@ -627,6 +639,41 @@ function CompanyDrillDownContent() {
           </TabsContent>
 
           <TabsContent value="users" className="mt-0">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+              <div className="relative flex-1 group">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+                <input 
+                  type="text"
+                  placeholder="Search by name, email or ID..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-11 pr-5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-bold"
+                />
+              </div>
+              <div className="flex items-center gap-3">
+                <select 
+                  className="h-10 px-4 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500/10 transition-all cursor-pointer appearance-none relative min-w-[180px]" 
+                  value={roleFilter} 
+                  onChange={(e) => setRoleFilter(e.target.value)}
+                  style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'currentColor\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'/%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '0.75rem' }}
+                >
+                  <option value="all">Company Tiers (All)</option>
+                  {customRoles.map(r => (
+                    <option key={r._id} value={r._id}>{r.name}</option>
+                  ))}
+                </select>
+                <select 
+                  className="h-10 px-4 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500/10 transition-all cursor-pointer appearance-none relative" 
+                  value={statusFilter} 
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'currentColor\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'/%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '0.75rem' }}
+                >
+                  <option value="all">All Status</option>
+                  <option value="active">Verified (Active)</option>
+                  <option value="inactive">Revoked (Inactive)</option>
+                </select>
+              </div>
+            </div>
             <UserList 
               users={users}
               filteredUsers={filteredUsers}

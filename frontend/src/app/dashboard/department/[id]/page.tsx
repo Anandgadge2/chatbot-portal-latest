@@ -35,6 +35,7 @@ import { departmentAPI, Department } from "@/lib/api/department";
 import { companyAPI, Company } from "@/lib/api/company";
 import { userAPI, User } from "@/lib/api/user";
 import { apiClient } from "@/lib/api/client";
+import { roleAPI, Role } from "@/lib/api/role";
 import { grievanceAPI, Grievance } from "@/lib/api/grievance";
 import { appointmentAPI, Appointment } from "@/lib/api/appointment";
 import GrievanceDetailDialog from "@/components/grievance/GrievanceDetailDialog";
@@ -70,6 +71,7 @@ export default function DepartmentDetail() {
   const [department, setDepartment] = useState<Department | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
   const [users, setUsers] = useState<User[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [grievances, setGrievances] = useState<Grievance[]>([]);
   const [stats, setStats] = useState({
     totalUsers: 0,
@@ -133,9 +135,17 @@ export default function DepartmentDetail() {
             ? deptRes.data.department.companyId?._id
             : deptRes.data.department.companyId;
 
-        if (deptCompanyId && isCompanyAdminOrHigher(user)) {
-          const companyRes = await companyAPI.getMyCompany();
-          if (companyRes.success) setCompany(companyRes.data.company);
+        if (deptCompanyId) {
+          if (isCompanyAdminOrHigher(user)) {
+            const companyRes = await companyAPI.getMyCompany();
+            if (companyRes.success) setCompany(companyRes.data.company);
+          }
+          
+          // Fetch roles for this company
+          const rolesRes = await roleAPI.getRoles(deptCompanyId);
+          if (rolesRes.success) {
+            setRoles(rolesRes.data.roles || []);
+          }
         }
       }
 
@@ -201,8 +211,18 @@ export default function DepartmentDetail() {
           toSearchable(u.email).includes(search),
       );
     }
-    if (roleFilter !== "all")
-      filtered = filtered.filter((u) => u.role === roleFilter);
+    if (roleFilter !== "all") {
+      filtered = filtered.filter((u) => {
+        if (roleFilter.startsWith("CUSTOM:")) {
+          const rid = roleFilter.split(":")[1];
+          return (
+            u.customRoleId === rid ||
+            (typeof u.customRoleId === "object" && (u.customRoleId as any)._id === rid)
+          );
+        }
+        return u.role === roleFilter;
+      });
+    }
     if (statusFilter !== "all")
       filtered = filtered.filter((u) =>
         statusFilter === "active" ? u.isActive : !u.isActive,
@@ -772,8 +792,11 @@ export default function DepartmentDetail() {
                   className="px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white font-medium"
                 >
                   <option value="all">All Roles</option>
-                  <option value="DEPARTMENT_ADMIN">Dept Admin</option>
-                  <option value="OPERATOR">Operator</option>
+                  {roles.map((role) => (
+                    <option key={role._id} value={`CUSTOM:${role._id}`}>
+                      {role.name}
+                    </option>
+                  ))}
                 </select>
                 <select
                   value={statusFilter}

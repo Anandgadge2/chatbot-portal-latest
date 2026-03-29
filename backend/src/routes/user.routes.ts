@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import User from '../models/User';
 import { authenticate } from '../middleware/auth';
 import { requirePermission } from '../middleware/rbac';
@@ -66,7 +67,13 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
     }
 
     if (role) {
-      query.role = role;
+      // If role looks like an ObjectId, it's a customRoleId filter.
+      // Otherwise, it's a legacy string-based role filter.
+      if (mongoose.Types.ObjectId.isValid(role as string)) {
+        query.customRoleId = role;
+      } else {
+        query.role = role;
+      }
     }
 
     if (status === 'active') {
@@ -190,6 +197,58 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
         companyId = currentUser.companyId.toString();
       }
     }
+
+    // ─── Hierarchical Creation Rights (Dynamic) ──────────────────────────────────
+    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+      // 1. Operator Check: Operators cannot create any users
+      const currentUserRoleName = currentUser.role?.toLowerCase() || '';
+      if (currentUserRoleName.includes('operator')) {
+        return res.status(403).json({
+          success: false,
+          message: 'Operators are not authorized to create personnel'
+        });
+      }
+
+      // 2. Fetch the target role details
+      let targetRoleName = role || '';
+      if (customRoleId) {
+        const Role = (await import('../models/Role')).default;
+        const cRole = await Role.findById(customRoleId);
+        if (cRole) targetRoleName = cRole.name;
+      }
+      
+      const targetRoleLower = targetRoleName.toLowerCase();
+      const creatorRoleLower = currentUser.role?.toLowerCase() || '';
+
+      // 3. Level-Based Enforcement
+      // Rules:
+      // - Company Admin: Can create anything except SuperAdmin
+      // - Dept Admin: Can create Dept Admin, Sub-Dept Admin, Operator
+      // - Sub-Dept Admin: Can create Sub-Dept Admin, Operator
+
+      if (creatorRoleLower.includes('sub-department admin') || creatorRoleLower.includes('sub department admin')) {
+        // Sub-Dept Admin can only create Sub-Dept Admin or Operator
+        const allowedTargets = ['sub-department admin', 'sub department admin', 'operator'];
+        if (!allowedTargets.some(t => targetRoleLower.includes(t))) {
+          return res.status(403).json({
+            success: false,
+            message: 'Sub-Department Administrators can only create other Sub-Dept Admins or Operators'
+          });
+        }
+      } else if (creatorRoleLower.includes('department admin')) {
+        // Dept Admin can create Dept Admin, Sub-Dept Admin, or Operator
+        const allowedTargets = ['department admin', 'sub-department admin', 'sub department admin', 'operator'];
+        if (!allowedTargets.some(t => targetRoleLower.includes(t))) {
+          return res.status(403).json({
+            success: false,
+            message: 'Department Administrators can only create Departmental or Operator level personnel'
+          });
+        }
+      }
+      // Company Admin (default if not dept/sub-dept) can create anything within the company
+    }
+
+    console.log('✅ Hierarchy validation passed');
     
     // Determine the target company for the new user
     let finalCompanyId = companyId;

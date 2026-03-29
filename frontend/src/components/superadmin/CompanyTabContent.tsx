@@ -19,7 +19,9 @@ import {
   Square,
   AlertTriangle,
   Settings,
+  ShieldAlert,
 } from "lucide-react";
+import RoleManagement from "@/components/roles/RoleManagement";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { Pagination } from "@/components/ui/Pagination";
 import { Company } from "@/lib/api/company";
@@ -78,6 +80,8 @@ const CompanyTabContent: React.FC<CompanyTabContentProps> = ({
   const [showBulkConfirm, setShowBulkConfirm] = useState(false);
   const [showWAConfigDialog, setShowWAConfigDialog] = useState(false);
   const [waConfigCompanyId, setWaConfigCompanyId] = useState<string | null>(null);
+  const [showRolesDialog, setShowRolesDialog] = useState(false);
+  const [rolesCompanyId, setRolesCompanyId] = useState<string | null>(null);
 
   const allSelected = companies.length > 0 && selectedIds.size === companies.length;
   const someSelected = selectedIds.size > 0 && !allSelected;
@@ -432,6 +436,18 @@ const CompanyTabContent: React.FC<CompanyTabContentProps> = ({
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setRolesCompanyId(company._id);
+                              setShowRolesDialog(true);
+                            }}
+                            className="h-8 w-8 p-0 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg border border-transparent hover:border-emerald-100"
+                            title="Authority & Role Management"
+                          >
+                            <Shield className="w-3.5 h-3.5" />
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -473,6 +489,24 @@ const CompanyTabContent: React.FC<CompanyTabContentProps> = ({
               <CompanyProvider companyId={waConfigCompanyId}>
                 <WhatsAppConfigTab companyId={waConfigCompanyId} />
               </CompanyProvider>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showRolesDialog} onOpenChange={setShowRolesDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0 border-0 bg-slate-50">
+          <DialogHeader className="p-6 bg-slate-900 border-b border-slate-800 sticky top-0 z-50 rounded-t-lg">
+            <DialogTitle className="text-lg font-black text-white uppercase tracking-widest flex items-center gap-3">
+              <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center border border-emerald-500/20">
+                <Shield className="w-5 h-5 text-emerald-400" />
+              </div>
+               Custom Authority Management
+            </DialogTitle>
+          </DialogHeader>
+          <div className="p-6">
+            {rolesCompanyId && (
+              <RoleManagement companyId={rolesCompanyId} />
             )}
           </div>
         </DialogContent>

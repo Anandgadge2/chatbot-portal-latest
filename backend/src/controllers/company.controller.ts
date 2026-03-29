@@ -220,7 +220,14 @@ export const create = async (req: Request, res: Response) => {
       contactEmail: contactEmail || undefined,
       contactPhone: normalizedContactPhone,
       address,
-      enabledModules: enabledModules || [],
+      enabledModules: Array.from(new Set([
+        'DASHBOARD', 
+        'USER_MANAGEMENT', 
+        'DEPARTMENTS', 
+        'ANALYTICS', 
+        'SETTINGS', 
+        ...(enabledModules || [])
+      ])),
       selectedLanguages: normalizeSelectedLanguages(selectedLanguages),
       theme: theme || {
         primaryColor: '#0f4c81',
@@ -242,30 +249,30 @@ export const create = async (req: Request, res: Response) => {
       try {
         const Role = (await import('../models/Role')).default;
         
-        // 1. Create a primary "Company Administrator" role with full access to allocated modules
-        const permissions: any[] = (enabledModules || []).map((m: string) => ({
-          module: m.toUpperCase(),
-          actions: ['*']
-        }));
+        // 1. Assign the primary "Company Administrator" role from the global standard set
+        let defaultRole = await Role.findOne({ name: 'Company Administrator', companyId: null });
         
-        // Ensure core management modules are always available to the primary admin
-        const mandatoryModules = ['SETTINGS', 'USER_MANAGEMENT', 'DEPARTMENTS', 'ANALYTICS'];
-        mandatoryModules.forEach(m => {
-          if (!permissions.find(p => p.module === m)) {
-            permissions.push({ module: m, actions: ['*'] });
-          }
-        });
-
-        const defaultRole = await Role.create({
-          companyId: company._id,
-          level: 1, // Root level for this company
-          scope: 'company',
-          name: 'Company Administrator',
-          description: 'Primary administrative account with global rights over company assets.',
-          isSystem: true,
-          permissions,
-          createdBy: req.user!._id
-        });
+        // Ensure standard role exists (fallback)
+        if (!defaultRole) {
+          defaultRole = await Role.create({
+            companyId: null,
+            level: 1,
+            scope: 'company',
+            name: 'Company Administrator',
+            description: 'Primary administrative account with global rights over company assets.',
+            isSystem: true,
+            permissions: (enabledModules || []).map((m: string) => ({
+              module: m.toUpperCase(),
+              actions: ['*']
+            })).concat([
+              { module: 'SETTINGS', actions: ['*'] },
+              { module: 'USER_MANAGEMENT', actions: ['*'] },
+              { module: 'DEPARTMENTS', actions: ['*'] },
+              { module: 'ANALYTICS', actions: ['*'] }
+            ]),
+            createdBy: req.user!._id
+          });
+        }
 
         // 2. Create the actual admin user linked to this role
         adminUser = await User.create({
@@ -444,6 +451,40 @@ export const update = async (req: Request, res: Response) => {
         success: false,
         message: 'Company not found'
       });
+    }
+
+    // Dynamic Permission Sync: If modules were updated, sync the Company Administrator role
+    if (req.body.enabledModules !== undefined) {
+      try {
+        const Role = (await import('../models/Role')).default;
+        const adminRole = await Role.findOne({ 
+          companyId: company._id, 
+          isSystem: true, 
+          name: 'Company Administrator' 
+        });
+
+        if (adminRole) {
+          const newModules = req.body.enabledModules || [];
+          const permissions: any[] = newModules.map((m: string) => ({
+            module: m.toUpperCase(),
+            actions: ['*']
+          }));
+          
+          // Ensure mandatory modules are preserved
+          const mandatoryModules = ['SETTINGS', 'USER_MANAGEMENT', 'DEPARTMENTS', 'ANALYTICS'];
+          mandatoryModules.forEach(m => {
+            if (!permissions.find(p => p.module === m)) {
+              permissions.push({ module: m, actions: ['*'] });
+            }
+          });
+
+          adminRole.permissions = permissions;
+          await adminRole.save();
+          console.log(`[Sync] Updated "Company Administrator" role permissions for company ${company.name}`);
+        }
+      } catch (syncError) {
+        console.error('Failed to sync Company Administrator permissions:', syncError);
+      }
     }
 
     await logUserAction(

@@ -70,7 +70,14 @@ router.get('/', requirePermission(Permission.READ_GRIEVANCE), async (req: Reques
 
     // Apply filters
     if (status && !query.status) query.status = status;
-    if (departmentId) query.departmentId = departmentId;
+    if (departmentId) {
+      const subDeptIds = await Department.find({ parentDepartmentId: departmentId }).distinct('_id');
+      query.$or = [
+        { departmentId },
+        { subDepartmentId: departmentId },
+        { subDepartmentId: { $in: subDeptIds } }
+      ];
+    }
     if (assignedTo) {
       if (assignedTo === 'NONE') {
         query.assignedTo = null;
@@ -772,14 +779,7 @@ router.delete('/bulk', requirePermission(Permission.DELETE_GRIEVANCE), async (re
     const { ids } = req.body;
     const currentUser = req.user!;
 
-    // Only Super Admin can delete
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
-      res.status(403).json({
-        success: false,
-        message: 'Only Super Admin can delete grievances'
-      });
-      return;
-    }
+    // Removed hardcoded Super Admin check to allow permission-based deletion
 
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
       res.status(400).json({
@@ -823,14 +823,7 @@ router.delete('/bulk', requirePermission(Permission.DELETE_GRIEVANCE), async (re
 router.delete('/:id', requirePermission(Permission.DELETE_GRIEVANCE), async (req: Request, res: Response) => {
   const currentUser = req.user!;
   
-  // Only Super Admin can delete
-  if (currentUser.role !== UserRole.SUPER_ADMIN) {
-    res.status(403).json({
-      success: false,
-      message: 'Only Super Admin can delete grievances'
-    });
-    return;
-  }
+  // Removed hardcoded Super Admin check to allow permission-based deletion
   try {
     const grievance = await Grievance.findByIdAndDelete(req.params.id);
 
