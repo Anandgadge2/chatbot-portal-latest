@@ -75,14 +75,14 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
         type="button"
         onClick={handleToggle}
         disabled={disabled}
-        className={`w-full flex items-center justify-between px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium transition-all ${
+        className={`w-full flex items-center gap-2 justify-between px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium transition-all ${
           disabled ? "bg-slate-50 text-slate-400 cursor-not-allowed" : "hover:border-indigo-300 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
         }`}
       >
-        <span className={!selectedOption ? "text-slate-400" : "text-slate-900"}>
+        <span className={`text-left break-words ${!selectedOption ? "text-slate-400" : "text-slate-900"}`}>
           {selectedOption ? selectedOption.label : placeholder}
         </span>
-        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform flex-shrink-0 ${isOpen ? "rotate-180" : ""}`} />
       </button>
 
       {isOpen && (
@@ -121,14 +121,14 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
                   key={opt.value}
                   type="button"
                   onClick={() => handleSelect(opt.value)}
-                  className={`w-full flex items-center justify-between px-3 py-2 text-xs font-medium rounded-lg transition-colors ${
+                  className={`w-full flex items-center gap-2 justify-between px-3 py-2 text-xs font-medium rounded-lg transition-colors text-left ${
                     opt.value === value
                       ? "bg-indigo-50 text-indigo-700"
                       : "text-slate-700 hover:bg-slate-50"
                   }`}
                 >
-                  <span className="truncate">{opt.label}</span>
-                  {opt.value === value && <Check className="w-3.5 h-3.5" />}
+                  <span className="break-words whitespace-normal">{opt.label}</span>
+                  {opt.value === value && <Check className="w-3.5 h-3.5 flex-shrink-0" />}
                 </button>
               ))
             )}
