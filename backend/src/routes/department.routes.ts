@@ -83,6 +83,7 @@ router.get('/', requirePermission(Permission.READ_DEPARTMENT), async (req: Reque
 
     const departments = await Department.find(query)
       .populate('companyId', 'name companyId')
+      .populate('parentDepartmentId', 'name')
       .limit(Number(limit))
       .skip((Number(page) - 1) * Number(limit))
       .sort({ createdAt: -1 });
