@@ -124,7 +124,8 @@ router.get('/', requirePermission(Permission.READ_DEPARTMENT), async (req: Reque
 
     let departmentQuery = Department.find(query)
       .populate('companyId', 'name companyId')
-      .populate('parentDepartmentId', 'name');
+      .populate('parentDepartmentId', 'name')
+      .populate('contactUserId', 'firstName lastName email phone');
 
     if (listAll !== 'true') {
       departmentQuery = departmentQuery
@@ -220,6 +221,16 @@ router.get('/', requirePermission(Permission.READ_DEPARTMENT), async (req: Reque
         deptObj.contactPerson = fullName;
         deptObj.contactEmail = admin.email;
         deptObj.contactPhone = admin.phone;
+      } else if (d.contactUserId) {
+        const contactUser: any = d.contactUserId;
+        const fullName = contactUser.firstName ? `${contactUser.firstName} ${contactUser.lastName || ''}`.trim() : 'Unknown User';
+        deptObj.head = fullName;
+        deptObj.headName = fullName; // legacy
+        deptObj.headEmail = contactUser.email;
+        deptObj.headPhone = contactUser.phone;
+        deptObj.contactPerson = fullName;
+        deptObj.contactEmail = contactUser.email;
+        deptObj.contactPhone = contactUser.phone;
       }
       
       return deptObj;
@@ -368,7 +379,9 @@ router.post('/', requirePermission(Permission.CREATE_DEPARTMENT), async (req: Re
 router.get('/:id', requirePermission(Permission.READ_DEPARTMENT), async (req: Request, res: Response) => {
   try {
     const user = req.user!;
-    const department = await Department.findById(req.params.id).populate('companyId', 'name companyId');
+    const department = await Department.findById(req.params.id)
+      .populate('companyId', 'name companyId')
+      .populate('contactUserId', 'firstName lastName email phone');
 
     if (!department) {
       res.status(404).json({
@@ -437,6 +450,16 @@ router.get('/:id', requirePermission(Permission.READ_DEPARTMENT), async (req: Re
       deptObj.contactPerson = fullName;
       deptObj.contactEmail = admin.email;
       deptObj.contactPhone = admin.phone;
+    } else if (department.contactUserId) {
+      const contactUser: any = department.contactUserId;
+      const fullName = contactUser.firstName ? `${contactUser.firstName} ${contactUser.lastName || ''}`.trim() : 'Unknown User';
+      deptObj.head = fullName;
+      deptObj.headName = fullName; // legacy
+      deptObj.headEmail = contactUser.email;
+      deptObj.headPhone = contactUser.phone;
+      deptObj.contactPerson = fullName;
+      deptObj.contactEmail = contactUser.email;
+      deptObj.contactPhone = contactUser.phone;
     }
 
     res.json({
