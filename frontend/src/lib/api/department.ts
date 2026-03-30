@@ -78,11 +78,15 @@ export const departmentAPI = {
     listAll?: boolean;
   }): Promise<DepartmentsResponse> => {
     const queryParams = new URLSearchParams();
+    const shouldListAll =
+      params?.listAll === true ||
+      (!params?.page && !params?.search);
+
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.search) queryParams.append('search', params.search);
     if (params?.companyId) queryParams.append('companyId', params.companyId);
-    if (params?.listAll) queryParams.append('listAll', 'true');
+    if (shouldListAll) queryParams.append('listAll', 'true');
     
     return apiClient.get(`/departments?${queryParams.toString()}`);
   },
