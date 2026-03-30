@@ -50,7 +50,8 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     }
   };
 
-  const { iconBg, iconColor, headerAccent, confirmBtn, Icon } = variantConfig[variant];
+  const currentVariant = variantConfig[variant] || variantConfig.danger;
+  const { iconBg, iconColor, headerAccent, confirmBtn, Icon } = currentVariant;
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-150">

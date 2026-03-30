@@ -7,9 +7,10 @@ export interface User {
   firstName: string;
   lastName: string;
   fullName?: string;
-  email: string;
+  email?: string; // 🏢 Optional email per new requirement
   phone?: string;
   designation?: string;
+  designations?: string[]; // 🏢 Added for multiple designations
   role?: string;
   roleId?: string;
   isSuperAdmin?: boolean;
@@ -17,6 +18,7 @@ export interface User {
   scope?: 'platform' | 'company' | 'department' | 'subdepartment' | 'assigned';
   companyId?: string | { _id: string; name: string; companyId: string };
   departmentId?: string | { _id: string; name: string; departmentId: string; parentDepartmentId?: string | { _id: string; name: string } };
+  departmentIds?: (string | { _id: string; name: string; departmentId: string })[]; // 🏢 Added for multiple department mapping
   isActive: boolean;
   customRoleId?: string | { _id: string; name: string };
   rawPassword?: string;
@@ -31,10 +33,11 @@ export interface User {
 export interface CreateUserData {
   firstName: string;
   lastName: string;
-  email: string;
+  email?: string; // 🏢 Optional email per new requirement
   password: string;
   phone?: string;
   designation?: string;
+  designations?: string[]; // 🏢 Added for multiple designations
   role?: string;
   roleId?: string;
   isSuperAdmin?: boolean;
@@ -43,6 +46,7 @@ export interface CreateUserData {
   customRoleId?: string | null;
   companyId?: string;
   departmentId?: string;
+  departmentIds?: string[]; // 🏢 Added for multiple department mapping
   notificationSettings?: {
     email: boolean;
     whatsapp: boolean;

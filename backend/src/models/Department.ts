@@ -18,6 +18,7 @@ export interface IDepartment extends Document {
   descriptionOr?: string;
   /** Description in Marathi */
   descriptionMr?: string;
+  contactUserId?: mongoose.Types.ObjectId; // 🏢 Link to User record for 'Edit User' functionality
   contactPerson?: string;
   contactEmail?: string;
   contactPhone?: string;
@@ -62,6 +63,12 @@ const DepartmentSchema: Schema = new Schema(
     descriptionHi: { type: String, trim: true },
     descriptionOr: { type: String, trim: true },
     descriptionMr: { type: String, trim: true },
+    contactUserId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      index: true,
+      default: null
+    },
     contactPerson: {
       type: String,
       trim: true
@@ -86,7 +93,7 @@ const DepartmentSchema: Schema = new Schema(
 
 // Compound indexes
 DepartmentSchema.index({ companyId: 1, name: 1 }, { unique: true });
-DepartmentSchema.index({ companyId: 1, status: 1 });
+DepartmentSchema.index({ companyId: 1, isActive: 1 });
 DepartmentSchema.index({ companyId: 1, createdAt: -1 });
 
 // Pre-save hook to generate departmentId

@@ -6,8 +6,9 @@ import { authenticate } from '../middleware/auth';
 import { requirePermission } from '../middleware/rbac';
 import { requireDatabaseConnection } from '../middleware/dbConnection';
 import { logUserAction } from '../utils/auditLogger';
+import { findOptimalAdmin } from '../utils/userUtils';
+import { buildNameSearchQuery, escapeRegExp } from '../utils/searchUtils';
 import { AuditAction, Permission, UserRole, GrievanceStatus } from '../config/constants';
-
 import { logger } from '../config/logger';
 
 const router = express.Router();
@@ -21,75 +22,107 @@ router.use(authenticate);
 // @access  Private
 router.get('/', requirePermission(Permission.READ_GRIEVANCE), async (req: Request, res: Response) => {
   try {
-    const { page = 1, limit = 20, status, companyId, departmentId, assignedTo, priority } = req.query;
+    const { page = 1, limit = 20, status, companyId, departmentId, assignedTo, priority, search } = req.query;
     const currentUser = req.user!;
 
     const query: any = {};
-
-    // Determine target companyId for scoping
     const targetCompanyId = (currentUser.role === UserRole.SUPER_ADMIN && companyId) ? companyId : currentUser.companyId;
 
-    // Strict multi-tenant scoping
+    // ... (rest of the query logic matches the existing one)
     if (targetCompanyId) {
       query.companyId = targetCompanyId;
-      
-      // If SuperAdmin is filtering by department/status, ensure it stays within this company
       if (currentUser.role === UserRole.SUPER_ADMIN) {
         if (departmentId) query.departmentId = departmentId;
         if (status) query.status = status;
-      } else if (currentUser.departmentId) {
-        // Additional scoping for department-level users (non-SuperAdmin)
+      } else if (currentUser.departmentId || (currentUser.departmentIds && currentUser.departmentIds.length > 0)) {
         const canAssign = req.checkPermission(Permission.ASSIGN_GRIEVANCE);
-        
         if (!canAssign) {
           query.assignedTo = currentUser._id;
         } else {
-          // Dept-level management: sees where their dept is parent OR sub-dept
+          // Hierarchical scoping: include all sub-departments
+          const { getDepartmentHierarchyIds } = await import('../utils/departmentUtils');
+          const rootDeptIds = currentUser.departmentIds && currentUser.departmentIds.length > 0 
+            ? currentUser.departmentIds.map(id => id.toString())
+            : currentUser.departmentId ? [currentUser.departmentId.toString()] : [];
+          const deptIds = await getDepartmentHierarchyIds(rootDeptIds);
           query.$or = [
-            { departmentId: currentUser.departmentId },
-            { subDepartmentId: currentUser.departmentId }
+            { departmentId: { $in: deptIds } },
+            { subDepartmentId: { $in: deptIds } }
           ];
         }
+
       } else if (!currentUser.departmentId && status === GrievanceStatus.REVERTED) {
-          // For Company Admin (who has no departmentId), 
-          // they should see REVERTED grievances that have no departmentId (reverted to them)
           query.status = GrievanceStatus.REVERTED;
           query.departmentId = null;
       }
     } else if (currentUser.role !== UserRole.SUPER_ADMIN) {
-      // Safety check: Non-SuperAdmins MUST have a companyId
-      return res.status(403).json({
-        success: false,
-        message: 'Unauthorized: User missing company assignment'
-      });
-    } else if (departmentId || status || assignedTo) {
-      // 🚨 SuperAdmin trying to filter globally without a company context
-      // This is often a sign of a missing companyId in a drilldown request
-      console.warn(`[GrievanceScoping] SuperAdmin global filter detected: dept=${departmentId}, status=${status}`);
-      // If we are in a drilldown (indicated by presence of filters), but no companyId, 
-      // we should probably fail or at least be very careful.
+      return res.status(403).json({ success: false, message: 'Unauthorized' });
     }
 
-    // Apply filters
     if (status && !query.status) query.status = status;
     if (departmentId) {
-      const subDeptIds = await Department.find({ parentDepartmentId: departmentId }).distinct('_id');
-      query.$or = [
-        { departmentId },
-        { subDepartmentId: departmentId },
-        { subDepartmentId: { $in: subDeptIds } }
+      const { getDepartmentHierarchyIds } = await import('../utils/departmentUtils');
+      const deptIds = await getDepartmentHierarchyIds(departmentId as string);
+      const deptFilter = [
+        { departmentId: { $in: deptIds } },
+        { subDepartmentId: { $in: deptIds } }
       ];
-    }
-    if (assignedTo) {
-      if (assignedTo === 'NONE') {
-        query.assignedTo = null;
-      } else if (assignedTo === 'ANY') {
-        query.assignedTo = { $ne: null };
+      if (query.$or) {
+        query.$and = [{ $or: query.$or }, { $or: deptFilter }];
+        delete query.$or;
       } else {
-        query.assignedTo = assignedTo;
+        query.$or = deptFilter;
       }
     }
+    if (assignedTo) {
+      if (assignedTo === 'NONE') query.assignedTo = null;
+      else if (assignedTo === 'ANY') query.assignedTo = { $ne: null };
+      else query.assignedTo = assignedTo;
+    }
     if (priority) query.priority = priority;
+
+    // 🔍 SEARCH LOGIC
+    if (search) {
+      const escapedSearch = escapeRegExp(search as string);
+      const searchCriteria: any[] = [
+        { grievanceId: { $regex: escapedSearch, $options: 'i' } },
+        { citizenPhone: { $regex: escapedSearch, $options: 'i' } },
+        { citizenWhatsApp: { $regex: escapedSearch, $options: 'i' } },
+        { description: { $regex: escapedSearch, $options: 'i' } },
+        { category: { $regex: escapedSearch, $options: 'i' } },
+        ...buildNameSearchQuery(search as string, 'citizenName', 'citizenName')
+      ];
+
+      // Relational Search: Department Name
+      const matchingDepts = await Department.find({
+        companyId: targetCompanyId || { $exists: true },
+        name: { $regex: escapedSearch, $options: 'i' }
+      }).select('_id');
+      if (matchingDepts.length > 0) {
+        const deptIds = matchingDepts.map(d => d._id);
+        searchCriteria.push({ departmentId: { $in: deptIds } });
+        searchCriteria.push({ subDepartmentId: { $in: deptIds } });
+      }
+
+      // Relational Search: Assigned Officer Name
+      const matchingUsers = await User.find({
+        companyId: targetCompanyId || { $exists: true },
+        $or: buildNameSearchQuery(search as string, 'firstName', 'lastName')
+      }).select('_id');
+      if (matchingUsers.length > 0) {
+        searchCriteria.push({ assignedTo: { $in: matchingUsers.map(u => u._id) } });
+      }
+
+      if (query.$or) {
+          const existingOr = query.$or;
+          delete query.$or;
+          query.$and = (query.$and || []).concat([{ $or: existingOr }, { $or: searchCriteria }]);
+      } else if (query.$and) {
+          query.$and.push({ $or: searchCriteria });
+      } else {
+          query.$or = searchCriteria;
+      }
+    }
 
     const grievances = await Grievance.find(query)
       .populate('companyId', 'name companyId')
@@ -170,9 +203,9 @@ router.post('/', async (req: Request, res: Response) => {
     const { getHierarchicalDepartmentAdmins, notifyUserOnAssignment, notifyDepartmentAdminOnCreation, notifyCitizenOnCreation } = await import('../services/notificationService');
     const targetDeptId = (grievance as any).subDepartmentId || departmentId;
     const potentialAdmins = await getHierarchicalDepartmentAdmins(targetDeptId);
+    const targetAdmin = findOptimalAdmin(potentialAdmins);
     
-    if (potentialAdmins && potentialAdmins.length > 0) {
-      const targetAdmin = potentialAdmins[0];
+    if (targetAdmin) {
       grievance.assignedTo = targetAdmin._id;
       grievance.status = GrievanceStatus.ASSIGNED;
       await grievance.save();
@@ -271,13 +304,25 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
 
       // Enforce department scope only if the user is assigned to a department
       // Company Admins (who have no departmentId) can revert any grievance in their company
-      if (currentUser.departmentId) {
+      // 🏢 Multi-Department & Hierarchical Scoping
+      if (currentUser.departmentId || (currentUser.departmentIds && currentUser.departmentIds.length > 0)) {
+        const userDepts: string[] = [];
+        if (currentUser.departmentId) userDepts.push(currentUser.departmentId.toString());
+        if (currentUser.departmentIds && Array.isArray(currentUser.departmentIds)) {
+          currentUser.departmentIds.forEach(id => userDepts.push(id.toString()));
+        }
+
+        const { getDepartmentHierarchyIds } = await import('../utils/departmentUtils');
+        const authorizedDeptIds = await getDepartmentHierarchyIds(userDepts);
+
         const grievanceDeptId = (grievance.departmentId as any)?._id?.toString() || grievance.departmentId?.toString();
         const grievanceSubDeptId = (grievance.subDepartmentId as any)?._id?.toString() || grievance.subDepartmentId?.toString();
-        const adminDeptId = currentUser.departmentId?.toString();
         
-        if (grievanceDeptId !== adminDeptId && grievanceSubDeptId !== adminDeptId) {
-          return res.status(403).json({ success: false, message: 'You can only revert grievances from your department scope' });
+        const hasAccess = (grievanceDeptId && authorizedDeptIds.includes(grievanceDeptId)) || 
+                          (grievanceSubDeptId && authorizedDeptIds.includes(grievanceSubDeptId));
+
+        if (!hasAccess) {
+          return res.status(403).json({ success: false, message: 'Access denied: You can only revert grievances within your authorized department scope' });
         }
       }
     }
@@ -372,7 +417,7 @@ router.get('/:id', requirePermission(Permission.READ_GRIEVANCE), async (req: Req
         return;
       }
 
-      if (currentUser.departmentId) {
+      if (currentUser.departmentId || (currentUser.departmentIds && currentUser.departmentIds.length > 0)) {
         // Dynamic check: Users without assignment permission (like basic Operators) only see their own items
         const canAssign = req.checkPermission(Permission.ASSIGN_GRIEVANCE);
         if (!canAssign) {
@@ -382,13 +427,24 @@ router.get('/:id', requirePermission(Permission.READ_GRIEVANCE), async (req: Req
             return;
           }
         } else {
-          // Dept-level scoping
+          // 🏢 Multi-Department & Hierarchical Scoping
+          const userDepts: string[] = [];
+          if (currentUser.departmentId) userDepts.push(currentUser.departmentId.toString());
+          if (currentUser.departmentIds && Array.isArray(currentUser.departmentIds)) {
+            currentUser.departmentIds.forEach(id => userDepts.push(id.toString()));
+          }
+
+          const { getDepartmentHierarchyIds } = await import('../utils/departmentUtils');
+          const authorizedDeptIds = await getDepartmentHierarchyIds(userDepts);
+
           const grievanceDeptId = (grievance.departmentId as any)?._id?.toString() || grievance.departmentId?.toString();
           const grievanceSubDeptId = (grievance.subDepartmentId as any)?._id?.toString() || grievance.subDepartmentId?.toString();
-          const adminDeptId = currentUser.departmentId?.toString();
-          const hasAccess = grievanceDeptId === adminDeptId || grievanceSubDeptId === adminDeptId;
+          
+          const hasAccess = (grievanceDeptId && authorizedDeptIds.includes(grievanceDeptId)) || 
+                            (grievanceSubDeptId && authorizedDeptIds.includes(grievanceSubDeptId));
+
           if (!hasAccess) {
-            res.status(403).json({ success: false, message: 'Access denied - grievance not in your department' });
+            res.status(403).json({ success: false, message: 'Access denied - grievance not in your authorized department scope' });
             return;
           }
         }
@@ -464,7 +520,7 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_GRIEVANCE, 
         return;
       }
 
-      if (currentUser.departmentId) {
+      if (currentUser.departmentId || (currentUser.departmentIds && currentUser.departmentIds.length > 0)) {
         // Dynamic check for restricted users
         const canManage = req.checkPermission(Permission.ASSIGN_GRIEVANCE);
         if (!canManage) {
@@ -473,11 +529,24 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_GRIEVANCE, 
             return;
           }
         } else {
+          // 🏢 Multi-Department & Hierarchical Scoping
+          const userDepts: string[] = [];
+          if (currentUser.departmentId) userDepts.push(currentUser.departmentId.toString());
+          if (currentUser.departmentIds && Array.isArray(currentUser.departmentIds)) {
+            currentUser.departmentIds.forEach(id => userDepts.push(id.toString()));
+          }
+
+          const { getDepartmentHierarchyIds } = await import('../utils/departmentUtils');
+          const authorizedDeptIds = await getDepartmentHierarchyIds(userDepts);
+
           const grievanceDeptId = grievance.departmentId?.toString();
           const grievanceSubDeptId = grievance.subDepartmentId?.toString();
-          const adminDeptId = currentUser.departmentId?.toString();
-          if (grievanceDeptId !== adminDeptId && grievanceSubDeptId !== adminDeptId) {
-            res.status(403).json({ success: false, message: 'Access denied - grievance not in your department' });
+          
+          const hasAccess = (grievanceDeptId && authorizedDeptIds.includes(grievanceDeptId)) || 
+                            (grievanceSubDeptId && authorizedDeptIds.includes(grievanceSubDeptId));
+
+          if (!hasAccess) {
+            res.status(403).json({ success: false, message: 'Access denied - grievance not in your authorized department scope' });
             return;
           }
         }
@@ -851,7 +920,7 @@ router.delete('/:id', requirePermission(Permission.DELETE_GRIEVANCE), async (req
   
   // Removed hardcoded Super Admin check to allow permission-based deletion
   try {
-    const grievance = await Grievance.findByIdAndDelete(req.params.id);
+    const grievance = await Grievance.findById(req.params.id);
 
     if (!grievance) {
       res.status(404).json({
@@ -860,6 +929,39 @@ router.delete('/:id', requirePermission(Permission.DELETE_GRIEVANCE), async (req
       });
       return;
     }
+
+    // ✅ Multi-Tenant Scoping Check
+    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+      if (grievance.companyId?.toString() !== currentUser.companyId?.toString()) {
+        res.status(403).json({ success: false, message: 'Access denied' });
+        return;
+      }
+
+      if (currentUser.departmentId || (currentUser.departmentIds && currentUser.departmentIds.length > 0)) {
+        // 🏢 Multi-Department & Hierarchical Scoping
+        const userDepts: string[] = [];
+        if (currentUser.departmentId) userDepts.push(currentUser.departmentId.toString());
+        if (currentUser.departmentIds && Array.isArray(currentUser.departmentIds)) {
+          currentUser.departmentIds.forEach(id => userDepts.push(id.toString()));
+        }
+
+        const { getDepartmentHierarchyIds } = await import('../utils/departmentUtils');
+        const authorizedDeptIds = await getDepartmentHierarchyIds(userDepts);
+
+        const grievanceDeptId = grievance.departmentId?.toString();
+        const grievanceSubDeptId = grievance.subDepartmentId?.toString();
+        
+        const hasAccess = (grievanceDeptId && authorizedDeptIds.includes(grievanceDeptId)) || 
+                          (grievanceSubDeptId && authorizedDeptIds.includes(grievanceSubDeptId));
+
+        if (!hasAccess) {
+          res.status(403).json({ success: false, message: 'Access denied - grievance not in your authorized department scope' });
+          return;
+        }
+      }
+    }
+
+    await Grievance.findByIdAndDelete(req.params.id);
 
     await logUserAction(
       req,

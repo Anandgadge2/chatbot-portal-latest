@@ -189,11 +189,11 @@
       },
       "data": {
         "label": "Language Selection",
-        "messageText": "🇮🇳 *Welcome to Sahaj – ପ୍ରଶାସନ, ଝାରସୁଗୁଡା ଦ୍ୱାରା ସୁଇଫ୍ଟ ଆକ୍ସେସ୍ ଏବଂ ସହାୟତା*\n\nଆପଣ ଏବେ ଏହି ପ୍ଲାଟଫର୍ମ ମାଧ୍ୟମରେ ସହଜରେ ଆପଣଙ୍କର ଅଭିଯୋଗଗୁଡ଼ିକୁ ପଞ୍ଜୀକରଣ ଏବଂ ଟ୍ରାକ୍ କରିପାରିବେ।\n\n👇 Please select your preferred language:",
+        "messageText": "🇮🇳 *Collectorate Jharsuguda – Official Digital Services Portal*\n\nWelcome to the official WhatsApp Helpdesk.\n\nस्वागत है – कलेक्टरेट झारसुगुडा व्हाट्सएप सेवा में।\n\nସ୍ୱାଗତମ୍ – ଝାରସୁଗୁଡା ଜିଲ୍ଲା କାର୍ଯ୍ୟାଳୟର ଡିଜିଟାଲ୍ ସେବାକୁ।\n\n👇 Please select your preferred language:\n👇 कृपया अपनी भाषा चुनें:\n👇 ଦୟାକରି ଆପଣଙ୍କ ଭାଷା ବାଛନ୍ତୁ:",
         "buttons": [
           {
-            "id": "lang_or",
-            "text": "🇮🇳 ଓଡ଼ିଆ",
+            "id": "lang_en",
+            "text": "🇮🇳 English",
             "type": "quick_reply"
           },
           {
@@ -202,8 +202,8 @@
             "type": "quick_reply"
           },
           {
-            "id": "lang_en",
-            "text": "🇮🇳 English",
+            "id": "lang_or",
+            "text": "🇮🇳 ଓଡ଼ିଆ",
             "type": "quick_reply"
           }
         ]

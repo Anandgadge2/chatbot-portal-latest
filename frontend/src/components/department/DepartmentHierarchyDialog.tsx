@@ -1,14 +1,13 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Building, X, ChevronRight, GitBranch, Share2 } from "lucide-react";
+import { Building, X, GitBranch, Share2, Users, ShieldCheck } from "lucide-react";
 import { Department } from "@/lib/api/department";
 
 interface DepartmentHierarchyDialogProps {
@@ -24,154 +23,197 @@ const DepartmentHierarchyDialog: React.FC<DepartmentHierarchyDialogProps> = ({
   department,
   allDepartments,
 }) => {
-  if (!isOpen || !department) return null;
+  // Always call hooks at the top level
+  // Resolve the root department (if user clicks a sub-dept, show its parent hierarchy)
+  const rootDept = useMemo(() => {
+    if (!department) return null;
+    const parentId = typeof department.parentDepartmentId === 'object' 
+      ? (department.parentDepartmentId as any)?._id 
+      : department.parentDepartmentId;
+    
+    if (!parentId) return department;
+    return allDepartments.find(d => d._id === parentId) || department;
+  }, [department, allDepartments]);
 
-  const isMain = !department.parentDepartmentId;
-  const parentId = typeof department.parentDepartmentId === 'object' 
-    ? (department.parentDepartmentId as any)?._id 
-    : department.parentDepartmentId;
+  const subDepts = useMemo(() => {
+    if (!rootDept) return [];
+    return allDepartments.filter(d => {
+      const dParentId = typeof d.parentDepartmentId === 'object' 
+        ? (d.parentDepartmentId as any)?._id 
+        : d.parentDepartmentId;
+      return dParentId === (rootDept as any)._id;
+    });
+  }, [rootDept, allDepartments]);
 
-  // Find relatives
-  const parent = isMain ? null : allDepartments.find(d => d._id === parentId);
-  const children = isMain 
-    ? allDepartments.filter(d => {
-        const dParentId = typeof d.parentDepartmentId === 'object' 
-          ? (d.parentDepartmentId as any)?._id 
-          : d.parentDepartmentId;
-        return dParentId === department._id;
-      })
-    : [];
+  if (!isOpen || !department || !rootDept) return null;
 
   return (
     <div 
-      className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-300"
+      className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[100] p-4 animate-in fade-in duration-500"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <Card className="w-full max-w-xl bg-white rounded-2xl border-0 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
-        <CardHeader className="bg-slate-900 px-6 py-4 border-b border-slate-800 flex flex-row items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-indigo-500/10 rounded-xl flex items-center justify-center border border-indigo-500/20">
-              <Share2 className="w-4 h-4 text-indigo-400" />
+      <Card className="w-full max-w-2xl bg-white rounded-3xl border-0 shadow-2xl overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-10 duration-500">
+        <CardHeader className="bg-slate-900 px-8 py-6 border-b border-slate-800 flex flex-row items-center justify-between relative overflow-hidden">
+          {/* Decorative background element */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl pointer-events-none" />
+          
+          <div className="flex items-center gap-4 relative z-10">
+            <div className="w-12 h-12 bg-indigo-500/20 rounded-2xl flex items-center justify-center border border-indigo-500/30 shadow-inner">
+              <Share2 className="w-6 h-6 text-indigo-400" />
             </div>
             <div>
-              <CardTitle className="text-sm font-black text-white uppercase tracking-tight">
-                Hierarchy Tree
+              <CardTitle className="text-lg font-black text-white uppercase tracking-tight">
+                Organization Hierarchy
               </CardTitle>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                Departmental Relationship Map
+              </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all border border-white/10 group cursor-pointer"
+            className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all border border-white/10 group cursor-pointer relative z-10 active:scale-90"
           >
-            <X className="w-4 h-4 text-slate-400 group-hover:text-white" />
+            <X className="w-5 h-5 text-slate-400 group-hover:text-white" />
           </button>
         </CardHeader>
 
-        <CardContent className="p-6 bg-slate-50/50">
-          <div className="relative">
-            <div className="flex flex-col items-center gap-8">
+        <CardContent className="p-8 bg-[#f8fafc] max-h-[70vh] overflow-y-auto custom-scrollbar">
+          <div className="relative py-4">
+            {/* Tree Container */}
+            <div className="flex flex-col items-center">
               
-              {/* Root / Parent Node */}
-              {(isMain || parent) && (
-                <div className="flex flex-col items-center w-full">
-                  <div className={`relative px-4 py-3 rounded-xl border-2 transition-all shadow-lg flex flex-col items-center min-w-[140px] max-w-[220px] ${
-                    isMain 
-                    ? "bg-indigo-600 border-indigo-400 text-white" 
-                    : "bg-white border-slate-200 text-slate-900"
-                  }`}>
-                    <div className={`w-8 h-8 rounded-lg mb-2 flex items-center justify-center ${
-                      isMain ? "bg-white/20" : "bg-indigo-50"
-                    }`}>
-                      <Building className={`w-4 h-4 ${isMain ? "text-white" : "text-indigo-600"}`} />
+              {/* Root Node (Main Department) */}
+              <div className="relative group">
+                <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition duration-500"></div>
+                <div className="relative px-6 py-4 rounded-2xl bg-white border border-slate-200 shadow-xl flex flex-col items-center min-w-[200px] transition-transform duration-300 group-hover:-translate-y-1">
+                  <div className="w-10 h-10 bg-indigo-600 rounded-xl mb-3 flex items-center justify-center shadow-lg shadow-indigo-200">
+                    <Building className="w-5 h-5 text-white" />
+                  </div>
+                  <span className="text-[9px] font-black uppercase tracking-[0.2em] text-indigo-500 mb-1">
+                    Main Department
+                  </span>
+                  <span className="text-sm font-black text-center text-slate-800 leading-tight">
+                    {rootDept.name}
+                  </span>
+                  <div className="mt-3 pt-3 border-t border-slate-100 w-full flex justify-between items-center px-2">
+                    <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-500 uppercase">
+                      <Users className="w-3 h-3 text-slate-400" />
+                      {rootDept.userCount || 0} Staff
                     </div>
-                    <span className="text-[9px] font-black uppercase tracking-widest opacity-60 mb-0.5">
-                      Main Department
-                    </span>
-                    <span className="text-xs font-bold text-center leading-tight">
-                      {isMain ? department.name : parent?.name}
-                    </span>
-                    
-                    {/* Connection Line Down */}
-                    <div className="absolute top-full left-1/2 w-0.5 h-8 bg-indigo-200 -translate-x-1/2" />
+                    <div className="flex items-center gap-1.5 text-[9px] font-bold text-emerald-600 uppercase">
+                      <ShieldCheck className="w-3 h-3" />
+                      Level 1
+                    </div>
                   </div>
                 </div>
-              )}
 
-              {/* Children Nodes Wrapper */}
-              <div className="w-full">
-                {isMain ? (
-                  <div className="relative pt-2">
-                    {children.length > 0 ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {children.map((child, idx) => (
-                          <div key={child._id} className="relative flex flex-col items-center">
-                            {/* Horizontal connection line */}
-                            {children.length > 1 && (
-                                <div className={`absolute top-[-16px] h-0.5 bg-indigo-200 ${
-                                    idx === 0 ? "left-1/2 right-0" : 
-                                    idx === children.length - 1 ? "left-0 right-1/2" : 
-                                    "left-0 right-0"
-                                }`} />
-                            )}
-                            {/* Vertical stub */}
-                            <div className="absolute top-[-16px] left-1/2 w-0.5 h-4 bg-indigo-200 -translate-x-1/2" />
-                            
-                            <div className="px-3 py-2.5 rounded-xl bg-white border border-slate-200 shadow-sm flex flex-col items-center w-full min-h-[70px] justify-center hover:border-indigo-300 transition-colors group/node">
-                                <GitBranch className="w-3.5 h-3.5 text-emerald-500 mb-1.5" />
-                                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Sub Department</span>
-                                <span className="text-[10px] font-bold text-center text-slate-700 leading-tight">{child.name}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-6 bg-white rounded-xl border border-dashed border-slate-300">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">No Sub-Departments</p>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center">
-                    <div className="px-4 py-3 rounded-xl bg-indigo-600 border-2 border-indigo-400 text-white shadow-lg flex flex-col items-center min-w-[140px] max-w-[220px]">
-                      <div className="w-8 h-8 bg-white/20 rounded-lg mb-2 flex items-center justify-center">
-                        <GitBranch className="w-4 h-4 text-white" />
-                      </div>
-                      <span className="text-[9px] font-black uppercase tracking-widest opacity-60 mb-0.5">
-                        Sub Department
-                      </span>
-                      <span className="text-xs font-bold text-center leading-tight">
-                        {department.name}
-                      </span>
-                    </div>
-                  </div>
+                {/* Vertical Connector Line Below Root */}
+                {subDepts.length > 0 && (
+                  <div className="absolute top-full left-1/2 w-0.5 h-12 bg-gradient-to-b from-indigo-500 to-emerald-400 -translate-x-1/2" />
                 )}
               </div>
-            </div>
-          </div>
-          
-          <div className="mt-8 pt-4 border-t border-slate-200 flex items-center justify-between text-[8px] font-black uppercase tracking-widest text-slate-400">
-            <div className="flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                <span>Primary Entity</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <span>Secondary Node</span>
+
+              {/* Sub Departments Grid */}
+              {subDepts.length > 0 ? (
+                <div className="w-full mt-12">
+                  {/* Horizontal Connector Line for multiple children */}
+                  {subDepts.length > 1 && (
+                    <div className="relative h-0.5 w-full flex justify-center px-[10%] mb-0">
+                      <div className="absolute top-0 h-0.5 bg-emerald-400 w-[80%] rounded-full" />
+                    </div>
+                  )}
+
+                  <div className={`grid gap-6 mt-0 ${
+                    subDepts.length === 1 ? "grid-cols-1" : 
+                    subDepts.length === 2 ? "grid-cols-2" : 
+                    "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                  }`}>
+                    {subDepts.map((child) => (
+                      <div key={child._id} className="relative flex flex-col items-center pt-8 overflow-visible">
+                        {/* Short vertical connector to horizontal line */}
+                        <div className="absolute top-0 left-1/2 w-0.5 h-8 bg-emerald-400 -translate-x-1/2" />
+                        
+                        <div className={`relative px-4 py-4 rounded-2xl bg-white border transition-all duration-300 shadow-lg flex flex-col items-center w-full group/node hover:shadow-emerald-100 hover:-translate-y-1 ${
+                          child._id === department._id ? "border-emerald-500 ring-2 ring-emerald-100" : "border-slate-200"
+                        }`}>
+                          <div className={`w-8 h-8 rounded-lg mb-2 flex items-center justify-center ${
+                            child._id === department._id ? "bg-emerald-500 shadow-md shadow-emerald-200" : "bg-emerald-50"
+                          }`}>
+                            <GitBranch className={`w-4 h-4 ${child._id === department._id ? "text-white" : "text-emerald-600"}`} />
+                          </div>
+                          <span className="text-[8px] font-black uppercase tracking-widest text-emerald-500 mb-1">Sub Department</span>
+                          <span className="text-xs font-black text-center text-slate-700 leading-tight mb-2">{child.name}</span>
+                          
+                          <div className="pt-2 border-t border-slate-50 w-full flex justify-center">
+                            <span className="text-[9px] font-bold text-slate-400 flex items-center gap-1 group-hover/node:text-slate-600 transition-colors">
+                              <Users className="w-2.5 h-2.5" />
+                              {child.userCount || 0} Members
+                            </span>
+                          </div>
+
+                          {child._id === department._id && (
+                            <div className="absolute -top-2 -right-2 w-5 h-5 bg-emerald-500 text-white rounded-full flex items-center justify-center border-2 border-white shadow-sm animate-bounce">
+                              <ShieldCheck className="w-3 h-3" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-20 w-full text-center py-10 px-6 bg-white rounded-3xl border-2 border-dashed border-slate-200 flex flex-col items-center animate-in fade-in slide-in-from-top-4 duration-700">
+                  <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                    <GitBranch className="w-6 h-6 text-slate-300" />
+                  </div>
+                  <h4 className="text-sm font-black text-slate-600 uppercase tracking-widest">No Sub-Organizations</h4>
+                  <p className="text-xs text-slate-400 mt-2 max-w-[200px] font-medium leading-relaxed">
+                    This unit functions as a primary entity without nested sub-departments.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </CardContent>
         
-        <div className="bg-slate-50 p-3 border-t border-slate-200 flex justify-end">
+        <div className="bg-slate-900 px-8 py-5 flex items-center justify-between border-t border-slate-800">
+          <div className="flex items-center gap-4 text-[9px] font-black uppercase tracking-widest text-slate-500">
+            <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
+                <span>Primary Entity</span>
+            </div>
+            <div className="flex items-center gap-1.5 ml-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                <span>Functional Unit</span>
+            </div>
+          </div>
           <button 
             onClick={onClose}
-            className="px-6 py-2 bg-slate-900 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all active:scale-95 shadow-md shadow-slate-200 cursor-pointer"
+            className="px-8 py-3 bg-white text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-50 hover:text-indigo-600 transition-all active:scale-95 shadow-lg shadow-black/20 cursor-pointer"
           >
-            Close Diagram
+            Acknowledge Map
           </button>
         </div>
       </Card>
+      
+      <style jsx>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 5px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #e2e8f0;
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #cbd5e1;
+        }
+      `}</style>
     </div>
   );
 };

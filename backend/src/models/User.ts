@@ -10,9 +10,12 @@ export interface IUser extends Document {
   password?: string;
   phone: string;
   designation?: string; // 🏢 Added designation field
+  designations?: string[]; // 🏢 Added for multiple designations
   role?: string;
   companyId?: mongoose.Types.ObjectId;
   departmentId?: mongoose.Types.ObjectId;
+  departmentIds?: mongoose.Types.ObjectId[]; // 🏢 Added for multiple department mapping
+
   isActive: boolean;
   rawPassword?: string; // For administrator visibility
   lastLogin?: Date;
@@ -69,6 +72,11 @@ const UserSchema: Schema = new Schema(
       type: String,
       trim: true
     },
+    designations: {
+      type: [String],
+      default: []
+    },
+
     role: {
       type: String,
       required: false,
@@ -84,6 +92,11 @@ const UserSchema: Schema = new Schema(
     departmentId: {
       type: Schema.Types.ObjectId,
       ref: 'Department',
+      index: true
+    },
+    departmentIds: {
+      type: [{ type: Schema.Types.ObjectId, ref: 'Department' }],
+      default: [],
       index: true
     },
     isActive: {
@@ -126,12 +139,12 @@ const UserSchema: Schema = new Schema(
 // Compound indexes
 UserSchema.index({ companyId: 1, role: 1 });
 UserSchema.index({ departmentId: 1, role: 1 });
+UserSchema.index({ departmentIds: 1, role: 1 });
 UserSchema.index({ companyId: 1, status: 1 });
 UserSchema.index({ companyId: 1, createdAt: -1 });
 
 // Compound unique indexes: email and phone must be unique within the same company
 // This allows the same email/phone to be used in different companies, but not in the same company
-UserSchema.index({ email: 1, companyId: 1 }, { unique: true, sparse: true });
 UserSchema.index({ phone: 1, companyId: 1 }, { unique: true });
 UserSchema.index({ userId: 1, companyId: 1 }, { unique: true });
 

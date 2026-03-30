@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { chatbotFlowApi } from '@/lib/api/chatbotFlow';
 import toast from 'react-hot-toast';
@@ -9,7 +9,9 @@ import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 export default function EditFlowPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const router = useRouter();
+  const fromMaster = searchParams.get("fromMaster") === "true";
   const { user } = useAuth();
   const companyId = (params.companyId || params.id) as string;
   const flowId = params.flowId as string;
@@ -38,16 +40,22 @@ export default function EditFlowPage() {
         const storageKey = `flow_edit_${flowId}`;
         sessionStorage.setItem(storageKey, JSON.stringify(response.data));
         
-        // Redirect to main builder with the edit flag
-        router.push(`/dashboard/company/${companyId}/chatbot-flows/create?edit=${flowId}`);
+        // Redirect to main builder with the edit flag and context
+        router.push(`/dashboard/company/${companyId}/chatbot-flows/create?edit=${flowId}${fromMaster ? "&fromMaster=true" : ""}`);
       } else {
         toast.error('Flow not found on server');
-        router.push(`/dashboard/company/${companyId}?tab=flows`);
+        const returnUrl = fromMaster 
+          ? `/dashboard?companyId=${companyId}&tab=flows`
+          : `/dashboard/company/${companyId}?tab=flows`;
+        router.push(returnUrl);
       }
     } catch (error: any) {
       console.error('Failed to load flow:', error);
       toast.error('Failed to load flow data from server');
-      router.push(`/dashboard/company/${companyId}?tab=flows`);
+      const returnUrl = fromMaster 
+        ? `/dashboard?companyId=${companyId}&tab=flows`
+        : `/dashboard/company/${companyId}?tab=flows`;
+      router.push(returnUrl);
     } finally {
       setLoading(false);
     }

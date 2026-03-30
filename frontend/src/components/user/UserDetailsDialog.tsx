@@ -232,13 +232,27 @@ export default function UserDetailsDialog({
                 <div className="flex items-center gap-2 mb-2">
                   <Shield className="w-4 h-4 text-slate-500" />
                   <span className="text-xs font-semibold text-slate-500 uppercase">
-                    Designation
+                    Designation(s)
                   </span>
                 </div>
-                <p className="text-sm font-bold text-gray-900 break-words whitespace-normal">
-                  {user.designation || "N/A"}
-                </p>
+                <div className="flex flex-wrap gap-2">
+                  {(() => {
+                    const uniqueDesignations = new Set<string>();
+                    if (user.designation) uniqueDesignations.add(user.designation);
+                    user.designations?.forEach(d => uniqueDesignations.add(d));
+                    
+                    const list = Array.from(uniqueDesignations);
+                    if (list.length === 0) return <span className="text-xs text-slate-400 italic font-medium">No designations assigned</span>;
+                    
+                    return list.map((d, index) => (
+                      <span key={index} className={`px-2.5 py-1 text-[9px] font-black rounded-lg uppercase tracking-wider border shadow-sm transition-all ${d === user.designation ? "bg-gradient-to-r from-indigo-600 to-blue-600 text-white border-indigo-700 ring-1 ring-indigo-300" : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300"}`}>
+                        {d}
+                      </span>
+                    ));
+                  })()}
+                </div>
               </div>
+
 
               <div className="bg-white rounded-lg p-4 border border-slate-200">
                 <div className="flex items-center gap-2 mb-2">
@@ -250,22 +264,47 @@ export default function UserDetailsDialog({
                 <p className="text-sm font-bold text-gray-900 break-words whitespace-normal">{roleName}</p>
               </div>
 
-              {user.departmentId && (
-                <div className="bg-white rounded-lg p-4 border border-slate-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Building className="w-4 h-4 text-slate-500" />
-                    <span className="text-xs font-semibold text-slate-500 uppercase">
-                      Department
-                    </span>
-                  </div>
-                  <p className="text-sm font-bold text-gray-900 break-words whitespace-normal">
-                    {typeof user.departmentId === "object" &&
-                    user.departmentId !== null
-                      ? (user.departmentId as any).name
-                      : "N/A"}
-                  </p>
+              <div className="bg-white rounded-lg p-4 border border-slate-200 col-span-1 md:col-span-2">
+                <div className="flex items-center gap-2 mb-3">
+                  <Building className="w-4 h-4 text-indigo-500" />
+                  <span className="text-xs font-black text-slate-500 uppercase tracking-widest">
+                    Mapped Organizational Units
+                  </span>
                 </div>
-              )}
+                <div className="flex flex-wrap gap-2">
+                  {(() => {
+                    const uniqueDepts = new Map();
+                    // Add primary
+                    if (user.departmentId) {
+                      const id = typeof user.departmentId === 'object' ? user.departmentId._id : user.departmentId;
+                      const name = typeof user.departmentId === 'object' ? user.departmentId.name : (user.departmentId as any).name || id;
+                      uniqueDepts.set(id, { name, isPrimary: true });
+                    }
+                    // Add multiples
+                    user.departmentIds?.forEach(dept => {
+                      const id = typeof dept === 'object' ? dept._id : dept;
+                      if (!uniqueDepts.has(id)) {
+                        const name = typeof dept === 'object' ? dept.name : (dept as any).name || id;
+                        uniqueDepts.set(id, { name, isPrimary: false });
+                      }
+                    });
+
+                    const deptList = Array.from(uniqueDepts.values());
+                    if (deptList.length === 0) return <span className="text-xs text-slate-400 italic">No departments mapped</span>;
+
+                    return deptList.map((dept, idx) => (
+                      <div key={idx} className={`px-3 py-1.5 border rounded-lg flex flex-col ${dept.isPrimary ? "bg-indigo-600 border-indigo-700 shadow-sm" : "bg-white border-slate-200"}`}>
+                        <span className={`text-sm font-bold ${dept.isPrimary ? "text-white" : "text-slate-800"}`}>
+                          {dept.name}
+                        </span>
+                        <span className={`text-[8px] font-black uppercase tracking-widest mt-0.5 ${dept.isPrimary ? "text-indigo-200" : "text-slate-400"}`}>
+                          {dept.isPrimary ? "Primary Unit" : "Secondary Mapping"}
+                        </span>
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </div>
 
               <div className="bg-white rounded-lg p-4 border border-slate-200">
                 <div className="flex items-center gap-2 mb-2">

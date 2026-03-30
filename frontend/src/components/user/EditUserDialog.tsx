@@ -10,8 +10,9 @@ import { roleAPI, Role } from "@/lib/api/role";
 import { useAuth } from "@/contexts/AuthContext";
 import { isSuperAdmin } from "@/lib/permissions";
 import toast from "react-hot-toast";
-import { User as UserIcon, Mail, MessageSquare, X } from "lucide-react";
+import { User as UserIcon, Mail, MessageSquare, X, Building, Users, Check } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { SearchableSelect } from "@/components/ui/SearchableSelect";
 import { denormalizePhoneNumber } from "@/lib/utils/phoneUtils";
 import {
   Dialog,
@@ -43,12 +44,17 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
     email: "",
     phone: "",
     designation: "",
+    designations: [] as string[], // 🏢 Added for multiple designations
     role: "OPERATOR",
+    departmentIds: [] as string[], // 🏢 Added for multiple department mapping
     notificationSettings: {
       email: true,
       whatsapp: true
     }
   });
+
+
+  const [isMultiDept, setIsMultiDept] = useState(false); // 🏢 Toggle for multiple departments
   const [selectedMainDeptId, setSelectedMainDeptId] = useState<string>("");
   const [selectedSubDeptId, setSelectedSubDeptId] = useState<string>("");
   const [customRoles, setCustomRoles] = useState<Role[]>([]);
@@ -85,14 +91,23 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
         email: user.email || "",
         phone: user.phone ? denormalizePhoneNumber(user.phone) : "",
         designation: user.designation || "",
+        designations: (user as any).designations || [], // 🏢 Added for multiple designations
         role: user.customRoleId
           ? `CUSTOM:${typeof user.customRoleId === "object" ? (user.customRoleId as any)._id : user.customRoleId}`
           : user.role || "OPERATOR",
+        departmentIds: user.departmentIds?.map(d => typeof d === "object" ? (d as any)?._id : d) || [],
         notificationSettings: {
           email: user.notificationSettings?.email ?? true,
           whatsapp: user.notificationSettings?.whatsapp ?? true
         }
       });
+
+
+      if (user.departmentIds && user.departmentIds.length > 0) {
+        setIsMultiDept(true);
+      } else {
+        setIsMultiDept(false);
+      }
 
       const companyId = user?.companyId
         ? typeof user.companyId === "object"
@@ -156,7 +171,12 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
         ...formData,
         role: submissionRole,
         customRoleId: submissionCustomRoleId || undefined,
-        departmentId: selectedSubDeptId || selectedMainDeptId || undefined,
+        departmentIds: isMultiDept 
+          ? formData.departmentIds 
+          : (selectedSubDeptId || selectedMainDeptId ? [selectedSubDeptId || selectedMainDeptId] : []),
+        departmentId: isMultiDept 
+          ? (formData.departmentIds.length > 0 ? formData.departmentIds[0] : undefined)
+          : (selectedSubDeptId || selectedMainDeptId || undefined),
       };
 
       await userAPI.update(user._id, submissionData);
@@ -286,7 +306,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
                 htmlFor="email"
                 className="text-[10px] font-black text-slate-500 uppercase tracking-widest"
               >
-                Email *
+                Email
               </Label>
               <Input
                 id="email"
@@ -295,8 +315,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
                 onChange={(e) =>
                   setFormData({ ...formData, email: e.target.value })
                 }
-                required
-                placeholder="user@example.com"
+                placeholder="user@example.com (Optional)"
                 className="h-10 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-lg text-sm"
               />
             </div>
@@ -327,7 +346,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
                 htmlFor="designation"
                 className="text-[10px] font-black text-slate-500 uppercase tracking-widest"
               >
-                Designation
+                Primary Designation
               </Label>
               <Input
                 id="designation"
@@ -339,6 +358,56 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
                 className="h-10 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-lg text-sm"
               />
             </div>
+
+            <div className="space-y-2 pb-2">
+              <Label className="text-[10px] font-black uppercase text-indigo-500 tracking-widest leading-none">Additional Designations</Label>
+              <div className="flex gap-2">
+                <Input 
+                  id="edit-new-designation" 
+                  placeholder="Add another title..." 
+                  className="h-9 text-xs"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const val = (e.target as HTMLInputElement).value.trim();
+                      if (val && !formData.designations.includes(val)) {
+                        setFormData(prev => ({ ...prev, designations: [...prev.designations, val] }));
+                        (e.target as HTMLInputElement).value = '';
+                      }
+                    }
+                  }}
+                />
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  size="sm"
+                  className="h-9"
+                  onClick={() => {
+                    const input = document.getElementById('edit-new-designation') as HTMLInputElement;
+                    const val = input.value.trim();
+                    if (val && !formData.designations.includes(val)) {
+                      setFormData(prev => ({ ...prev, designations: [...prev.designations, val] }));
+                      input.value = '';
+                    }
+                  }}
+                >Add</Button>
+              </div>
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {formData.designations.map((d, index) => (
+                  <span key={index} className="inline-flex items-center gap-1 px-2 py-1 bg-indigo-50 border border-indigo-100 text-indigo-600 text-[9px] font-black rounded-lg uppercase tracking-tight">
+                    {d}
+                    <button 
+                      type="button" 
+                      onClick={() => setFormData(prev => ({ ...prev, designations: prev.designations.filter((_, i) => i !== index) }))}
+                      className="hover:text-red-500 transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+
 
             <div className="flex items-center gap-2 pt-1">
               <div className="flex-1 h-px bg-slate-100"></div>
@@ -356,92 +425,173 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
                 >
                   Role & Permissions *
                 </Label>
-                <select
-                  id="role"
-                  name="role"
+                <SearchableSelect
+                  options={getAllPossibleRoles()}
                   value={formData.role}
-                  onChange={(e) =>
-                    setFormData({ ...formData, role: e.target.value })
-                  }
-                  className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold"
-                  required
-                >
-                  <option value="" disabled>
-                    Select a role
-                  </option>
-                  {getAllPossibleRoles().some((r: any) =>
-                    r.value.startsWith("CUSTOM:"),
-                  ) && (
-                    <optgroup label="Custom Roles">
-                      {getAllPossibleRoles()
-                        .filter((r: any) => r.value.startsWith("CUSTOM:"))
-                        .map((role: { value: string; label: string }) => (
-                          <option key={role.value} value={role.value}>
-                            {role.label}
-                          </option>
-                        ))}
-                    </optgroup>
+                  onValueChange={(value) => setFormData({ ...formData, role: value })}
+                  placeholder="Select a role"
+                  className="w-full"
+                />
+              </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
+                    <UserIcon className="w-4 h-4 text-indigo-500" />
+                  </div>
+                  <div className="flex flex-col">
+                    <p className="text-[10px] font-black text-slate-700 uppercase tracking-tight">Assign Multiple Departments</p>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Map to multiple organizational units</p>
+                  </div>
+                </div>
+                <Switch checked={isMultiDept} onCheckedChange={setIsMultiDept} />
+              </div>
+
+              {!isMultiDept ? (
+                <div className="space-y-5 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <div className="space-y-1.5">
+                    <Label
+                      htmlFor="mainDepartmentId"
+                      className="text-[10px] font-black text-slate-500 uppercase tracking-widest"
+                    >
+                      Main Department
+                    </Label>
+                    <SearchableSelect
+                      options={departments.filter(d => !d.parentDepartmentId).map(d => ({ value: d._id, label: d.name }))}
+                      value={selectedMainDeptId}
+                      onValueChange={(value) => {
+                        setSelectedMainDeptId(value);
+                        setSelectedSubDeptId("");
+                      }}
+                      placeholder="No Department"
+                      className="w-full"
+                    />
+                  </div>
+
+                  {selectedMainDeptId && (
+                    <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
+                      <Label
+                        htmlFor="subDepartmentId"
+                        className="text-[10px] font-black text-slate-500 uppercase tracking-widest"
+                      >
+                        Sub Department (Optional)
+                      </Label>
+                      <SearchableSelect
+                        options={departments.filter(d => {
+                            const parentId = typeof d.parentDepartmentId === "object" ? (d.parentDepartmentId as any)?._id : d.parentDepartmentId;
+                            return parentId === selectedMainDeptId;
+                        }).map(d => ({ value: d._id, label: d.name }))}
+                        value={selectedSubDeptId}
+                        onValueChange={(value) => setSelectedSubDeptId(value)}
+                        placeholder="None (Map to Main Department)"
+                        className="w-full"
+                      />
+                    </div>
                   )}
-                </select>
-              </div>
+                </div>
+              ) : (
+                <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <div>
+                        <Label className="text-[10px] font-black uppercase text-indigo-500 mb-1.5 flex items-center gap-1.5 leading-none">
+                          <Building className="w-3 h-3" />
+                          Category Filter
+                        </Label>
+                        <SearchableSelect
+                            options={departments.filter(d => !d.parentDepartmentId).map(d => ({ value: d._id, label: d.name }))}
+                            value={selectedMainDeptId}
+                            onValueChange={(val) => {
+                                setSelectedMainDeptId(val);
+                                setSelectedSubDeptId("");
+                            }}
+                            placeholder="Find Branch"
+                            className="w-full bg-white"
+                        />
+                    </div>
+                    <div>
+                        <Label className="text-[10px] font-black uppercase text-indigo-500 mb-1.5 flex items-center gap-1.5 leading-none">
+                          <Users className="w-3 h-3" />
+                          Sub-Unit Filter
+                        </Label>
+                        <SearchableSelect
+                            options={departments.filter(d => {
+                                const pid = typeof d.parentDepartmentId === "object" ? (d.parentDepartmentId as any)?._id : d.parentDepartmentId;
+                                return pid === selectedMainDeptId;
+                            }).map(d => ({ value: d._id, label: d.name }))}
+                            value={selectedSubDeptId}
+                            onValueChange={(val) => setSelectedSubDeptId(val)}
+                            placeholder="Find Specific Unit"
+                            className="w-full bg-white"
+                        />
+                    </div>
+                  </div>
 
-              <div className="space-y-1.5">
-                <Label
-                  htmlFor="mainDepartmentId"
-                  className="text-[10px] font-black text-slate-500 uppercase tracking-widest"
-                >
-                  Main Department
-                </Label>
-                <select
-                  id="mainDepartmentId"
-                  value={selectedMainDeptId}
-                  onChange={(e) => {
-                    setSelectedMainDeptId(e.target.value);
-                    setSelectedSubDeptId(""); // Reset sub-dept when main dept changes
-                  }}
-                  className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold"
-                >
-                  <option value="">No Department</option>
-                  {departments
-                    .filter((d) => !d.parentDepartmentId)
-                    .map((dept) => (
-                      <option key={dept._id} value={dept._id}>
-                        {dept.name}
-                      </option>
-                    ))}
-                </select>
-              </div>
+                  <div className="flex items-center justify-between px-1">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                      Mapped Organizational Units ({formData.departmentIds.length})
+                    </Label>
+                    {formData.departmentIds.length > 0 && (
+                      <button 
+                        type="button" 
+                        onClick={() => setFormData(p => ({ ...p, departmentIds: [] }))}
+                        className="text-[9px] font-black uppercase text-red-500 hover:text-red-700 transition-colors"
+                      >
+                        [ Unmap All Units ]
+                      </button>
+                    )}
+                  </div>
 
-              {selectedMainDeptId && (
-                <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
-                  <Label
-                    htmlFor="subDepartmentId"
-                    className="text-[10px] font-black text-slate-500 uppercase tracking-widest"
-                  >
-                    Sub Department (Optional)
-                  </Label>
-                  <select
-                    id="subDepartmentId"
-                    value={selectedSubDeptId}
-                    onChange={(e) => setSelectedSubDeptId(e.target.value)}
-                    className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold"
-                  >
-                    <option value="">None (Map to Main Department)</option>
+                  <div className="border rounded-xl px-2 py-2 bg-slate-50/50 max-h-[160px] overflow-y-auto custom-scrollbar space-y-1">
+                    {departments.length === 0 && <p className="text-[10px] text-slate-400 text-center py-4">No departments found</p>}
                     {departments
-                      .filter((d) => {
-                        const parentId = typeof d.parentDepartmentId === "object"
-                          ? (d.parentDepartmentId as any)?._id
-                          : d.parentDepartmentId;
-                        return parentId === selectedMainDeptId;
+                      .filter(dept => {
+                         if (formData.departmentIds.includes(dept._id)) return true;
+                         if (!selectedMainDeptId && !selectedSubDeptId) return true;
+                         
+                         const isMain = dept._id === selectedMainDeptId;
+                         const pid = typeof dept.parentDepartmentId === "object" ? (dept.parentDepartmentId as any)?._id : dept.parentDepartmentId;
+                         const isChildOfSelectedMain = pid === selectedMainDeptId;
+                         const isSelectedSub = dept._id === selectedSubDeptId;
+                         
+                         return isMain || isChildOfSelectedMain || isSelectedSub;
                       })
-                      .map((dept) => (
-                        <option key={dept._id} value={dept._id}>
-                          {dept.name}
-                        </option>
-                      ))}
-                  </select>
+                      .map((dept) => {
+                        const isSub = !!dept.parentDepartmentId;
+                        const isSelected = formData.departmentIds.includes(dept._id);
+                        return (
+                          <div 
+                            key={dept._id} 
+                            className={`flex items-center gap-3 p-2 rounded-lg transition-all cursor-pointer ${isSelected ? "bg-indigo-50 border border-indigo-100 shadow-sm" : "hover:bg-white border border-transparent"}`}
+                            onClick={() => {
+                              setFormData(prev => {
+                                const newIds = isSelected 
+                                  ? prev.departmentIds.filter(id => id !== dept._id)
+                                  : [...prev.departmentIds, dept._id];
+                                return { ...prev, departmentIds: newIds };
+                              });
+                            }}
+                          >
+                            <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${isSelected ? "bg-indigo-600 border-indigo-600 shadow-sm" : "bg-white border-slate-300"}`}>
+                              {isSelected && <Check className="w-2.5 h-2.5 text-white" />}
+                            </div>
+                            <div className="flex flex-col">
+                              <span className={`text-[11px] font-bold ${isSelected ? "text-indigo-700" : "text-slate-700"}`}>
+                                {dept.name}
+                              </span>
+                              {isSub && (
+                                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">
+                                  Sub-Unit mapping
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
                 </div>
               )}
+            </div>
 
               {/* Notification Controls */}
               <div className="grid grid-cols-2 gap-4 pt-2">

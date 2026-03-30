@@ -388,8 +388,8 @@ Thank you for reaching out. Your grievance has been registered.
 
 You can track your status using the Reference ID: *{grievanceId}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-*{companyName}*
-Digital Grievance Redressal System`,
+Your grievance, our priority.
+– District Administration, Jharsuguda`,
 
   grievance_status_update: `*{companyName}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━

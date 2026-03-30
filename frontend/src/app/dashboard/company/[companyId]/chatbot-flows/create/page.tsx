@@ -54,15 +54,19 @@ export default function CreateFlowPage() {
       }
 
       if (flowData) {
-        setFlowName(flowData.flowName);
-        setFlowDescription(flowData.flowDescription || "");
+        setFlowName(flowData.flowName ?? flowData.name ?? "");
+        setFlowDescription(flowData.flowDescription ?? flowData.description ?? "");
 
         const transformed = transformFromBackendFormat(flowData);
         setInitialNodes(transformed.nodes);
         setInitialEdges(transformed.edges);
       } else {
         toast.error("Flow data not found");
-        router.push(`/dashboard/company/${companyId}?tab=flows`);
+        const fromMaster = searchParams.get("fromMaster") === "true";
+        const returnUrl = fromMaster 
+          ? `/dashboard?companyId=${companyId}&tab=flows`
+          : `/dashboard/company/${companyId}?tab=flows`;
+        router.push(returnUrl);
       }
     } catch (error) {
       console.error("Failed to load flow data:", error);
@@ -70,7 +74,7 @@ export default function CreateFlowPage() {
     } finally {
       setLoading(false);
     }
-  }, [editFlowId, companyId, router]);
+  }, [editFlowId, companyId, router, searchParams]);
 
   useEffect(() => {
     if (isEditing) {
@@ -120,8 +124,12 @@ export default function CreateFlowPage() {
             sessionStorage.removeItem(`flow_edit_${editFlowId}`);
           }
 
-          // Redirect back to flows tab in drill-down
-          router.push(`/dashboard/company/${companyId}?tab=flows`);
+          // Redirect back to flows tab
+          const fromMaster = searchParams.get("fromMaster") === "true";
+          const returnUrl = fromMaster 
+            ? `/dashboard?companyId=${companyId}&tab=flows`
+            : `/dashboard/company/${companyId}?tab=flows`;
+          router.push(returnUrl);
         }
       } catch (error: any) {
         console.error("Failed to save flow:", error);
@@ -130,7 +138,7 @@ export default function CreateFlowPage() {
         setSaving(false);
       }
     },
-    [flowName, flowDescription, companyId, isEditing, editFlowId, user, router],
+    [flowName, flowDescription, companyId, isEditing, editFlowId, user, router, searchParams],
   );
 
   const handleSaveClick = () => {
@@ -166,9 +174,13 @@ export default function CreateFlowPage() {
             <div className="flex items-center gap-3 sm:gap-4 min-w-0">
               <Button
                 variant="ghost"
-                onClick={() =>
-                  router.push(`/dashboard/company/${companyId}?tab=flows`)
-                }
+                onClick={() => {
+                  const fromMaster = searchParams.get("fromMaster") === "true";
+                  const returnUrl = fromMaster 
+                    ? `/dashboard?companyId=${companyId}&tab=flows`
+                    : `/dashboard/company/${companyId}?tab=flows`;
+                  router.push(returnUrl);
+                }}
                 className="text-white/80 hover:text-white hover:bg-white/10 transition-all px-2 rounded-xl"
               >
                 <ArrowLeft className="w-5 h-5" />

@@ -133,7 +133,8 @@ export default function ChatbotFlowsTab({ companyId }: ChatbotFlowsTabProps) {
   };
 
   const handleCreateFlow = () => {
-    router.push(`/dashboard/company/${companyId}/chatbot-flows/create`);
+    const isMasterContext = typeof window !== "undefined" && window.location.pathname === "/dashboard";
+    router.push(`/dashboard/company/${companyId}/chatbot-flows/create${isMasterContext ? "?fromMaster=true" : ""}`);
   };
 
   const handleGenerateDefaultFlows = async () => {
@@ -166,7 +167,8 @@ export default function ChatbotFlowsTab({ companyId }: ChatbotFlowsTabProps) {
   };
 
   const handleEditFlow = (flowId: string) => {
-    router.push(`/dashboard/company/${companyId}/chatbot-flows/${flowId}/edit`);
+    const isMasterContext = typeof window !== "undefined" && window.location.pathname === "/dashboard";
+    router.push(`/dashboard/company/${companyId}/chatbot-flows/${flowId}/edit${isMasterContext ? "?fromMaster=true" : ""}`);
   };
 
   const handleDuplicateFlow = async (flowId: string) => {

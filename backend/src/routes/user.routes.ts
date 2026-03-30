@@ -4,6 +4,7 @@ import User from '../models/User';
 import { authenticate } from '../middleware/auth';
 import { requirePermission } from '../middleware/rbac';
 import { requireDatabaseConnection } from '../middleware/dbConnection';
+import { buildNameSearchQuery } from '../utils/searchUtils';
 import { logUserAction } from '../utils/auditLogger';
 import { AuditAction, Permission, UserRole } from '../config/constants';
 
@@ -31,15 +32,33 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
       query.companyId = targetCompanyId;
       
       // If restricted to a department (for non-Super Admins), scope them.
-      if (currentUser.departmentId && currentUser.role !== UserRole.SUPER_ADMIN) {
-        query.departmentId = currentUser.departmentId;
+      // Support multiple department scoping for the current user
+      const userDepts = [];
+      if (currentUser.departmentId) userDepts.push(currentUser.departmentId.toString());
+      if (currentUser.departmentIds && Array.isArray(currentUser.departmentIds)) {
+        currentUser.departmentIds.forEach(id => userDepts.push(id.toString()));
+      }
+      const uniqueUserDepts = [...new Set(userDepts)];
+
+      if (uniqueUserDepts.length > 0 && currentUser.role !== UserRole.SUPER_ADMIN) {
+        // Hierarchical scoping: include all sub-departments
+        const { getDepartmentHierarchyIds } = await import('../utils/departmentUtils');
+        const deptIds = await getDepartmentHierarchyIds(uniqueUserDepts);
+        // Support both single and multiple department assignments
+        query.$or = [
+          { departmentId: { $in: deptIds } },
+          { departmentIds: { $in: deptIds } }
+        ];
       } else if (departmentId) {
         // Even Company Admins or Super Admins in drilldown can filter by department
-        if (typeof departmentId === 'string' && departmentId.includes(',')) {
-          query.departmentId = { $in: departmentId.split(',') };
-        } else {
-          query.departmentId = departmentId;
-        }
+        const filterDeptIds = typeof departmentId === 'string' && departmentId.includes(',') 
+          ? departmentId.split(',') 
+          : [departmentId];
+          
+        query.$or = [
+          { departmentId: { $in: filterDeptIds } },
+          { departmentIds: { $in: filterDeptIds } }
+        ];
       }
     } else if (currentUser.role !== UserRole.SUPER_ADMIN) {
       // Safety check: Non-SuperAdmins MUST have a companyId
@@ -49,21 +68,77 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
       });
     } else if (departmentId) {
        // Global Super Admin (no companyId) filtering by department
-       if (typeof departmentId === 'string' && departmentId.includes(',')) {
-         query.departmentId = { $in: departmentId.split(',') };
-       } else {
-         query.departmentId = departmentId;
-       }
+       const filterDeptIds = typeof departmentId === 'string' && departmentId.includes(',') 
+         ? departmentId.split(',') 
+         : [departmentId];
+         
+       query.$or = [
+         { departmentId: { $in: filterDeptIds } },
+         { departmentIds: { $in: filterDeptIds } }
+       ];
     }
     // If Super Admin and NO targetCompanyId, query remains empty (sees everything)
 
+    // 🔍 SEARCH LOGIC
     if (search) {
-      query.$or = [
+      // 1. Basic field search (everything visible on screen)
+      const searchCriteria: any[] = [
         { firstName: { $regex: search, $options: 'i' } },
         { lastName: { $regex: search, $options: 'i' } },
         { email: { $regex: search, $options: 'i' } },
-        { userId: { $regex: search, $options: 'i' } }
+        { userId: { $regex: search, $options: 'i' } },
+        { phone: { $regex: search, $options: 'i' } },
+        { designation: { $regex: search, $options: 'i' } },
+        { role: { $regex: search, $options: 'i' } },
+        ...buildNameSearchQuery(search as string, 'firstName', 'lastName')
       ];
+
+      // 2. Department Name Search (Relational)
+      const Department = (await import('../models/Department')).default;
+      const matchingDepts = await Department.find({
+        companyId: targetCompanyId || { $exists: true },
+        $or: [
+          { name: { $regex: search as string, $options: 'i' } },
+          { nameHi: { $regex: search as string, $options: 'i' } },
+          { nameOr: { $regex: search as string, $options: 'i' } },
+          { nameMr: { $regex: search as string, $options: 'i' } },
+          { departmentId: { $regex: search as string, $options: 'i' } }
+        ]
+      }).select('_id');
+      
+      if (matchingDepts.length > 0) {
+        const deptIdsArr = matchingDepts.map(d => d._id);
+        searchCriteria.push({ 
+          $or: [
+            { departmentId: { $in: deptIdsArr } },
+            { departmentIds: { $in: deptIdsArr } }
+          ]
+        });
+      }
+
+      // 3. Custom Role Name Search (Relational)
+      const Role = (await import('../models/Role')).default;
+      const matchingRoles = await Role.find({
+        companyId: targetCompanyId || { $exists: true },
+        name: { $regex: search as string, $options: 'i' }
+      }).select('_id');
+
+      if (matchingRoles.length > 0) {
+        const roleIdsArr = matchingRoles.map(r => r._id);
+        searchCriteria.push({ customRoleId: { $in: roleIdsArr } });
+      }
+
+      // Merge with existing filters (like role or companyId)
+      if (query.$or) {
+        const existingOr = query.$or;
+        delete query.$or;
+        query.$and = [
+          { $or: existingOr },
+          { $or: searchCriteria }
+        ];
+      } else {
+        query.$or = searchCriteria;
+      }
     }
 
     if (role) {
@@ -85,6 +160,7 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
     const users = await User.find(query)
       .populate('companyId', 'name companyId')
       .populate('departmentId', 'name departmentId')
+      .populate('departmentIds', 'name departmentId') // Populate multiple departments
       .populate('customRoleId', 'name')
       .limit(Number(limit))
       .skip((Number(page) - 1) * Number(limit))
@@ -127,15 +203,15 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
     // Access is determined by CREATE_USER permission (already checked in middleware)
     // Permission-based RBAC is now the single source of truth.
     
-    const { firstName, lastName, email, password, phone, role, departmentId, customRoleId, designation } = req.body;
+    const { firstName, lastName, email, password, phone, role, departmentId, departmentIds, customRoleId, designation } = req.body;
     let companyId = req.body.companyId;
 
     // Validation
-    if (!firstName || !lastName || !email || !password || (!role && !customRoleId)) {
+    if (!firstName || !lastName || !password || (!role && !customRoleId)) {
       console.log('❌ Validation failed: Missing required fields');
       return res.status(400).json({
         success: false,
-        message: 'Please provide all required fields'
+        message: 'Please provide all required fields (Name, Password, and Role)'
       });
     }
 
@@ -335,7 +411,7 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
     }
     console.log('✅ Phone is unique');
     
-    console.log('Creating user with data:', { firstName, lastName, email, role, companyId: finalCompanyId, departmentId });
+    console.log('Creating user with data:', { firstName, lastName, email, role, companyId: finalCompanyId, departmentId, departmentIds });
     
     // Database connection is already checked by middleware
 
@@ -353,6 +429,7 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
         customRoleId: customRoleId || undefined,
         companyId: finalCompanyId || undefined,
         departmentId: departmentId || undefined,
+        departmentIds: (Array.isArray(departmentIds) && departmentIds.length > 0) ? departmentIds : undefined,
         isActive: true,
         rawPassword: password,
         createdBy: currentUser._id // Track who created this user for hierarchical rights
@@ -469,6 +546,7 @@ router.get('/:id', requirePermission(Permission.READ_USER), async (req: Request,
     const user = await User.findById(req.params.id)
       .populate('companyId', 'name companyId')
       .populate('departmentId', 'name departmentId')
+      .populate('departmentIds', 'name departmentId')
       .populate('customRoleId', 'name')
       .select('-password');
 
@@ -486,9 +564,28 @@ router.get('/:id', requirePermission(Permission.READ_USER), async (req: Request,
         res.status(403).json({ success: false, message: 'Access denied' });
         return;
       }
-      if (currentUser.departmentId && user.departmentId?._id.toString() !== currentUser.departmentId?.toString()) {
-        res.status(403).json({ success: false, message: 'Access denied' });
-        return;
+
+      // 🏢 Multi-Department & Hierarchical Scoping
+      const userDepts: string[] = [];
+      if (currentUser.departmentId) userDepts.push(currentUser.departmentId.toString());
+      if (currentUser.departmentIds && Array.isArray(currentUser.departmentIds)) {
+        currentUser.departmentIds.forEach(id => userDepts.push(id.toString()));
+      }
+
+      if (userDepts.length > 0) {
+        const { getDepartmentHierarchyIds } = await import('../utils/departmentUtils');
+        const authorizedDeptIds = await getDepartmentHierarchyIds(userDepts);
+
+        const targetDeptId = (user.departmentId?._id ? user.departmentId._id.toString() : user.departmentId?.toString()) || "";
+        const targetDeptIds = (user.departmentIds || []).map((d: any) => (d._id || d).toString());
+
+        const hasAccess = authorizedDeptIds.includes(targetDeptId) || 
+                          targetDeptIds.some(id => authorizedDeptIds.includes(id));
+
+        if (!hasAccess) {
+          res.status(403).json({ success: false, message: 'Access denied: User belongs to a different department scope' });
+          return;
+        }
       }
     }
 
@@ -571,9 +668,27 @@ router.put('/:id', requirePermission(Permission.UPDATE_USER), async (req: Reques
         res.status(403).json({ success: false, message: 'Access denied' });
         return;
       }
-      if (currentUser.departmentId && existingUser.departmentId?.toString() !== currentUser.departmentId?.toString()) {
-        res.status(403).json({ success: false, message: 'Access denied' });
-        return;
+      // 🏢 Multi-Department & Hierarchical Scoping
+      const userDepts: string[] = [];
+      if (currentUser.departmentId) userDepts.push(currentUser.departmentId.toString());
+      if (currentUser.departmentIds && Array.isArray(currentUser.departmentIds)) {
+        currentUser.departmentIds.forEach(id => userDepts.push(id.toString()));
+      }
+
+      if (userDepts.length > 0) {
+        const { getDepartmentHierarchyIds } = await import('../utils/departmentUtils');
+        const authorizedDeptIds = await getDepartmentHierarchyIds(userDepts);
+
+        const targetDeptId = existingUser.departmentId?.toString() || "";
+        const targetDeptIds = (existingUser.departmentIds || []).map((id: any) => id.toString());
+
+        const hasAccess = authorizedDeptIds.includes(targetDeptId) || 
+                          targetDeptIds.some(id => authorizedDeptIds.includes(id));
+
+        if (!hasAccess) {
+          res.status(403).json({ success: false, message: 'Access denied: Management scope restricted to authorized departments' });
+          return;
+        }
       }
     }
 
@@ -719,6 +834,7 @@ router.put('/:id', requirePermission(Permission.UPDATE_USER), async (req: Reques
     ).select('-password')
      .populate('companyId', 'name companyId')
      .populate('departmentId', 'name departmentId')
+     .populate('departmentIds', 'name departmentId')
      .populate('customRoleId', 'name');
 
     await logUserAction(
@@ -803,9 +919,27 @@ router.delete('/:id', requirePermission(Permission.DELETE_USER), async (req: Req
         res.status(403).json({ success: false, message: 'Access denied' });
         return;
       }
-      if (currentUser.departmentId && existingUser.departmentId?.toString() !== currentUser.departmentId?.toString()) {
-        res.status(403).json({ success: false, message: 'Access denied' });
-        return;
+      // 🏢 Multi-Department & Hierarchical Scoping
+      const userDepts: string[] = [];
+      if (currentUser.departmentId) userDepts.push(currentUser.departmentId.toString());
+      if (currentUser.departmentIds && Array.isArray(currentUser.departmentIds)) {
+        currentUser.departmentIds.forEach(id => userDepts.push(id.toString()));
+      }
+
+      if (userDepts.length > 0) {
+        const { getDepartmentHierarchyIds } = await import('../utils/departmentUtils');
+        const authorizedDeptIds = await getDepartmentHierarchyIds(userDepts);
+
+        const targetDeptId = existingUser.departmentId?.toString() || "";
+        const targetDeptIds = (existingUser.departmentIds || []).map((id: any) => id.toString());
+
+        const hasAccess = authorizedDeptIds.includes(targetDeptId) || 
+                          targetDeptIds.some(id => authorizedDeptIds.includes(id));
+
+        if (!hasAccess) {
+          res.status(403).json({ success: false, message: 'Access denied: Management scope restricted to authorized departments' });
+          return;
+        }
       }
     }
 

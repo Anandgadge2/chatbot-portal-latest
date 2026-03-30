@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense, useCallback, useMemo } from "react";
+import { useEffect, useState, useRef, Suspense, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
@@ -157,6 +157,11 @@ interface DashboardStats {
     byPriority?: Array<{ priority: string; count: number }>;
     daily: Array<{ date: string; count: number }>;
     monthly?: Array<{ month: string; count: number; resolved: number }>;
+    byDepartment?: Array<{
+      departmentId: string;
+      total: number;
+      pending: number;
+    }>;
   };
   appointments: {
     total: number;
@@ -202,9 +207,10 @@ const TacticalForestMap = dynamic(
 );
 
 function DashboardContent() {
-  const { user, loading, logout } = useAuth();
+  const { user: authUser, loading, logout } = useAuth();
+  const user = authUser as any;
   const isCompanyLevel = user && !user.departmentId && !user.isSuperAdmin;
-  const isDepartmentLevel = user && !!user.departmentId && !user.isSuperAdmin;
+  const isDepartmentLevel = user && (!!user.departmentId || (user?.departmentIds && user.departmentIds.length > 0)) && !user.isSuperAdmin;
   const isSuperAdminUser = useMemo(() => isSuperAdmin(user), [user]);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -247,6 +253,10 @@ function DashboardContent() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [allDepartments, setAllDepartments] = useState<Department[]>([]);
+  const allDepartmentsRef = useRef<Department[]>([]);
+  useEffect(() => {
+    allDepartmentsRef.current = allDepartments;
+  }, [allDepartments]);
   const [deptUserCounts, setDeptUserCounts] = useState<Record<string, number>>(
     {},
   );
@@ -436,11 +446,12 @@ function DashboardContent() {
     dateRange: "",
   });
 
-  const getParentDepartmentId = useCallback((dept: any): string | undefined => {
-    if (!dept?.parentDepartmentId) return undefined;
-    return typeof dept.parentDepartmentId === "object"
+  const getParentDepartmentId = useCallback((dept: any): string | null => {
+    if (!dept?.parentDepartmentId) return null;
+    const id = typeof dept.parentDepartmentId === "object"
       ? dept.parentDepartmentId._id
       : dept.parentDepartmentId;
+    return id || null;
   }, []);
 
   // Search states
@@ -962,7 +973,7 @@ function DashboardContent() {
           let filteredDepartments = response.data.departments;
 
           // For department admin, only show their own department
-          if (isDepartmentLevel && user?.departmentId) {
+          if (isDepartmentLevel && (user?.departmentId || (user?.departmentIds && user.departmentIds.length > 0))) {
             const userDeptId =
               typeof user.departmentId === "object" &&
               user.departmentId !== null
@@ -974,7 +985,10 @@ function DashboardContent() {
               (dept: Department) => {
                 const deptId = dept._id?.toString() || dept._id;
                 const userDeptIdStr = userDeptId?.toString() || userDeptId;
-                return deptId === userDeptIdStr;
+                const userDeptIds = (user.departmentIds || []).map((d: any) => 
+                  (typeof d === 'object' && d !== null ? d._id || d.toString() : d.toString())
+                );
+                return deptId === userDeptIdStr || userDeptIds.includes(deptId);
               },
             );
           }
@@ -1005,10 +1019,10 @@ function DashboardContent() {
       departmentPagination.limit,
       deptSearch,
       deptFilters,
-      isDepartmentLevel,
-      isCompanyLevel,
-      user?.departmentId,
       isSuperAdminUser,
+      isCompanyLevel,
+      isDepartmentLevel,
+      user,
       companyIdParam,
     ],
   );
@@ -1017,6 +1031,8 @@ function DashboardContent() {
     if (isSuperAdminUser && !companyIdParam) return;
     try {
       const response = await departmentAPI.getAll({
+        listAll: true,
+
         page: 1,
         limit: 1000,
         companyId:
@@ -1040,7 +1056,7 @@ function DashboardContent() {
           : userFilters.mainDeptId
             ? [
                 userFilters.mainDeptId,
-                ...allDepartments
+                ...allDepartmentsRef.current
                   .filter(
                     (d) => getParentDepartmentId(d) === userFilters.mainDeptId,
                   )
@@ -1062,27 +1078,10 @@ function DashboardContent() {
           companyId:
             isSuperAdminUser && companyIdParam ? companyIdParam : undefined,
         });
-        if (response.success) {
-          let filteredUsers = response.data.users;
-
-          // Filter users by department for department admins
-          if (isDepartmentLevel && user?.departmentId) {
-            const userDeptId =
-              typeof user.departmentId === "object" &&
-              user.departmentId !== null
-                ? user.departmentId._id
-                : user.departmentId;
-
-            filteredUsers = filteredUsers.filter((u: any) => {
-              const uDeptId =
-                typeof u.departmentId === "object" && u.departmentId !== null
-                  ? u.departmentId._id
-                  : u.departmentId;
-              return uDeptId === userDeptId;
-            });
-          }
-
-          // For custom roles, keep frontend-side filtering (API only supports system role key)
+          if (response.success) {
+            let filteredUsers = response.data.users;
+  
+            // For custom roles, keep frontend-side filtering (API only supports system role key)
           if (userFilters.role?.startsWith("CUSTOM:")) {
             const roleId = userFilters.role.split(":")[1];
             filteredUsers = filteredUsers.filter((u: any) => {
@@ -1116,27 +1115,15 @@ function DashboardContent() {
       }
     },
     [
-      userPage,
-      userPagination.limit,
-      isDepartmentLevel,
-      user?.departmentId,
-      userSearch,
-      userFilters,
-      allDepartments,
-      getParentDepartmentId,
-      isSuperAdminUser,
-      companyIdParam,
-    ],
-  );
+    userPage,
+    userPagination.limit,
+    userSearch,
+    userFilters,
+    getParentDepartmentId,
+    isSuperAdminUser,
+    companyIdParam,
+  ]);
 
-  // Reset user page when search changes
-  useEffect(() => {
-    setUserPage(1);
-  }, [userSearch, userFilters]);
-
-  useEffect(() => {
-    setGrievancePage(1);
-  }, [grievanceFilters, grievanceSearch]);
 
   const fetchGrievances = useCallback(
     async (page = grievancePage, isSilent = false) => {
@@ -1189,14 +1176,13 @@ function DashboardContent() {
     [
       grievancePage,
       grievancePagination.limit,
-      user,
-      hasModule,
-      grievanceFilters,
-      grievanceSearch,
-      isSuperAdminUser,
-      companyIdParam,
-    ],
-  );
+    user,
+    hasModule,
+    grievanceFilters,
+    grievanceSearch,
+    isSuperAdminUser,
+    companyIdParam,
+  ]);
 
   const fetchAppointments = useCallback(
     async (page = appointmentPage, isSilent = false) => {
@@ -1237,13 +1223,12 @@ function DashboardContent() {
     [
       appointmentPage,
       appointmentPagination.limit,
-      appointmentSearch,
-      user,
-      hasModule,
-      isSuperAdminUser,
-      companyIdParam,
-    ],
-  );
+    appointmentSearch,
+    user,
+    hasModule,
+    isSuperAdminUser,
+    companyIdParam,
+  ]);
 
   const fetchLeads = useCallback(async () => {
     if (!targetCompanyId) return;
@@ -1465,6 +1450,9 @@ function DashboardContent() {
 
     if (mounted && user) {
       const pollInterval = setInterval(async () => {
+        // 🛡️ Guard against execution after unmount
+        if (!mounted) return;
+
         try {
           const promises = [];
 
@@ -1487,6 +1475,9 @@ function DashboardContent() {
           if (promises.length === 0) return;
 
           const results = await Promise.all(promises);
+          
+          // Re-verify mounting after awaits
+          if (!mounted) return;
 
           let grievanceRes: any = null;
           let appointmentRes: any = null;
@@ -1552,7 +1543,12 @@ function DashboardContent() {
               appointmentRes.data?.pagination?.total || 0,
             );
           }
-        } catch (error) {
+        } catch (error: any) {
+          // 🤫 Background polling errors should be silent if they are network failures
+          // to avoid spamming the console when the server is temporarily down.
+          if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+            return;
+          }
           console.error("Polling error:", error);
         }
       }, 60000);
@@ -1823,7 +1819,10 @@ function DashboardContent() {
         filteredData = filteredData.filter(
           (d: Department) =>
             d.name.toLowerCase().includes(search) ||
-            d.departmentId?.toLowerCase().includes(search),
+            d.departmentId?.toLowerCase().includes(search) ||
+            d.head?.toLowerCase().includes(search) ||
+            d.contactPerson?.toLowerCase().includes(search) ||
+            (d as any).headName?.toLowerCase().includes(search)
         );
       }
       // Main Department filter (show main + its subs)
@@ -1982,9 +1981,7 @@ function DashboardContent() {
   ].filter(Boolean).length;
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header with Gradient */}
-      {/* Classic White Header */}
+    <div key="final-dashboard-root-v4" className="min-h-screen bg-white">
       {/* Premium Admin Header */}
       <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 transition-all duration-300 shadow-2xl overflow-hidden">
         {/* Removed blue pattern backdrop */}
@@ -2091,6 +2088,7 @@ function DashboardContent() {
           }}
           className="space-y-4 sm:space-y-6"
         >
+
           <div className="mb-4 sticky top-[64px] z-40 bg-white/95 backdrop-blur-sm py-3 -mx-4 px-4 sm:mx-0 sm:px-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <TabsList className="w-full sm:w-auto bg-slate-200/50 p-1 border border-slate-300/50 h-10 shadow-sm overflow-x-auto no-scrollbar max-w-full">
               {(isSuperAdminUser ||
@@ -2392,16 +2390,16 @@ function DashboardContent() {
                         onClick={() => setActiveTab("departments")}
                         className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
                       >
-                        <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
+                        <CardHeader className="pb-1 space-y-0 flex flex-row items-center justify-between">
                           <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                            Working Units
+                            Departments
                           </CardTitle>
                           <div className="p-1.5 bg-blue-50 rounded-lg">
-                            <Building className="w-3.5 h-3.5 text-blue-500" />
+                            <Building className="w-3 h-3 text-blue-500" />
                           </div>
                         </CardHeader>
                         <CardContent>
-                          <div className="text-2xl font-black text-slate-800 tabular-nums">
+                          <div className="text-xl font-black text-slate-800 tabular-nums">
                             {loadingStats ? "..." : stats?.departments || 0}
                           </div>
                           <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">
@@ -2426,16 +2424,16 @@ function DashboardContent() {
                       }}
                       className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
                     >
-                      <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
+                      <CardHeader className="pb-1 space-y-0 flex flex-row items-center justify-between">
                         <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                           Reverted
                         </CardTitle>
                         <div className="p-1.5 bg-rose-50 rounded-lg">
-                          <ArrowLeft className="w-3.5 h-3.5 text-rose-500" />
+                          <ArrowLeft className="w-3 h-3 text-rose-500" />
                         </div>
                       </CardHeader>
                       <CardContent>
-                        <div className="text-2xl font-black text-rose-600 tabular-nums">
+                        <div className="text-xl font-black text-rose-600 tabular-nums">
                           {loadingStats
                             ? "..."
                             : grievances.filter(
@@ -2541,24 +2539,10 @@ function DashboardContent() {
 
             {/* Department Admin - Profile & Department Info in Overview */}
             {isDepartmentLevel && (
+
               <div className="space-y-6">
                 {/* Department Admin Profile Card */}
                 <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
-                  {/* <CardHeader className="bg-slate-900 px-6 py-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
-                        <UserIcon className="w-5 h-5 text-indigo-400" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-base font-bold text-white uppercase tracking-tight">
-                          My Profile
-                        </CardTitle>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-                          Your personal information and credentials
-                        </p>
-                      </div>
-                    </div>
-                  </CardHeader> */}
                   <CardContent className="p-6">
                     <div className="flex items-start gap-6">
                       {/* Profile Avatar */}
@@ -2588,180 +2572,150 @@ function DashboardContent() {
                         </div>
                         <div className="bg-slate-50/50 rounded-xl p-3 border border-slate-200/60">
                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                            Authorized Role
+                            Authorized Role & Designations
                           </p>
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-600 text-white text-[9px] font-black rounded uppercase tracking-tighter">
-                            <Shield className="w-3 h-3" />
-                            {user.role}
-                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-600 text-white text-[9px] font-black rounded uppercase tracking-tighter">
+                              <Shield className="w-3 h-3" />
+                              {user.role}
+                            </span>
+                            {(user as any).designation && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-200 text-slate-700 text-[9px] font-black rounded uppercase tracking-tighter">
+                                {(user as any).designation}
+                              </span>
+                            )}
+                            {(user as any).designations?.map((d: any, index: any) => (
+                              <span key={index} className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-200 text-slate-700 text-[9px] font-black rounded uppercase tracking-tighter">
+                                {d}
+                              </span>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
-                {/* My Department Card - with Department Name in Header */}
-                <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white mt-6">
-                  <CardHeader className="bg-slate-900 px-6 py-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
-                        <Building className="w-5 h-5 text-indigo-400" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-base font-bold text-white uppercase tracking-tight">
-                          {(() => {
-                            // Try to get department from user object first (if populated)
-                            if (
-                              user?.departmentId &&
-                              typeof user.departmentId === "object" &&
-                              (user.departmentId as any).name
-                            ) {
-                              return (user.departmentId as any).name;
-                            }
-                            // Otherwise use from departments array
-                            return departments.length > 0
-                              ? departments[0].name
-                              : "My Department";
-                          })()}
-                        </CardTitle>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-                          Your department information and service statistics
-                        </p>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    {(() => {
-                      // Get the department - prefer from user object if populated, otherwise from departments array
-                      let currentDepartment: Department | null = null;
-                      if (
-                        user?.departmentId &&
-                        typeof user.departmentId === "object" &&
-                        (user.departmentId as any).name
-                      ) {
-                        currentDepartment = user.departmentId as any;
-                      } else if (departments.length > 0) {
-                        currentDepartment = departments[0];
-                      }
-                      return currentDepartment ? (
-                        <div className="space-y-6">
-                          {/* Department Header */}
-                          <div className="flex items-start gap-6">
-                            <div className="flex-shrink-0">
-                              <div className="w-16 h-16 bg-slate-100/50 rounded-xl flex items-center justify-center border border-slate-200">
-                                <Building className="w-8 h-8 text-slate-400" />
-                              </div>
+                {/* My Department(s) Card */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                  {(() => {
+                    // Collect all departments assigned to the user
+                    const assignedDepts: Department[] = [];
+                    
+                    // 1. Check primary departmentId
+                    if (user?.departmentId) {
+                      const dept = typeof user.departmentId === 'object' 
+                        ? (user.departmentId as any) 
+                        : departments.find(d => d._id === user.departmentId);
+                      if (dept && dept.name) assignedDepts.push(dept);
+                    }
+                    
+                    // 2. Check multiple departmentIds
+                    if (user?.departmentIds && user.departmentIds.length > 0) {
+                      user.departmentIds.forEach((dId: any) => {
+                        const id = typeof dId === 'object' ? dId._id : dId;
+                        const primaryId = typeof user.departmentId === 'object' ? (user.departmentId as any)._id || (user.departmentId as any).toString() : user.departmentId;
+                        if (id === primaryId) return;
+                        if (assignedDepts.some(d => d?._id === id || (d as any)?._id?.toString() === id)) return;
+
+                        
+                        const dept = typeof dId === 'object' 
+                          ? (dId as any) 
+                          : departments.find(d => d._id === id);
+                        if (dept && dept.name) assignedDepts.push(dept);
+                      });
+                    }
+
+                    if (assignedDepts.length === 0) {
+                      return (
+                        <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
+                          <CardContent className="py-12 flex flex-col items-center justify-center">
+                            <Building className="w-12 h-12 text-slate-200 mb-4" />
+                            <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">No departments assigned</p>
+                          </CardContent>
+                        </Card>
+                      );
+                    }
+
+                    return assignedDepts.map((dept, idx) => (
+                      <Card key={dept._id || idx} className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white flex flex-col">
+                        <CardHeader className="bg-slate-900 px-6 py-4">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
+                              <Building className="w-5 h-5 text-indigo-400" />
                             </div>
-                            <div className="flex-1">
-                              <h3 className="text-2xl font-bold text-slate-800 mb-2">
-                                {currentDepartment.name}
-                              </h3>
-                              <p className="text-slate-600">
-                                {currentDepartment.description ||
-                                  "No description provided"}
+                            <div>
+                              <CardTitle className="text-base font-bold text-white uppercase tracking-tight">
+                                {dept.name}
+                              </CardTitle>
+                              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                                {dept.departmentId} • {idx === 0 && user.departmentId ? "Primary Assignment" : "Additional Assignment"}
                               </p>
                             </div>
                           </div>
-
-                          {/* Department Details Grid */}
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
-                                Department ID
-                              </p>
-                              <p className="text-sm font-mono bg-white px-2 py-1 rounded border border-slate-200 inline-block">
-                                {currentDepartment.departmentId}
-                              </p>
-                            </div>
-                            <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
-                                Status
-                              </p>
-                              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-600 text-white text-xs font-bold rounded-full">
-                                <CheckCircle2 className="w-3.5 h-3.5" />
-                                Active
-                              </span>
-                            </div>
-                            <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
-                                Contact Person
-                              </p>
-                              <p className="text-sm font-medium text-slate-700">
-                                {currentDepartment.contactPerson ||
-                                  user?.firstName + " " + user?.lastName}
-                              </p>
-                            </div>
-                            <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
-                                Contact Email
-                              </p>
-                              <p className="text-sm font-medium text-slate-700 truncate">
-                                {currentDepartment.contactEmail || user?.email}
-                              </p>
-                            </div>
+                        </CardHeader>
+                        <CardContent className="p-6 flex-1 flex flex-col gap-4">
+                          <div className="space-y-2">
+                             <p className="text-xs text-slate-600 line-clamp-2">
+                               {dept.description || "No description provided for this unit."}
+                             </p>
+                             <div className="flex flex-wrap gap-2 pt-2">
+                               <div className="bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 flex flex-col">
+                                 <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Manager</span>
+                                 <span className="text-[10px] font-bold text-slate-700">{dept.contactPerson || "Not Assigned"}</span>
+                               </div>
+                               <div className="bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 flex flex-col">
+                                 <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Support</span>
+                                 <span className="text-[10px] font-bold text-slate-700 truncate max-w-[120px]">{dept.contactEmail || "No Email"}</span>
+                               </div>
+                             </div>
                           </div>
 
-                          {/* Department Stats */}
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-                            {hasModule(Module.GRIEVANCE) &&
-                              hasPermission(
-                                user,
-                                Permission.READ_GRIEVANCE,
-                              ) }
-                            {hasModule(Module.APPOINTMENT) &&
-                              hasPermission(
-                                user,
-                                Permission.READ_APPOINTMENT,
-                              ) && (
-                                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm group hover:shadow-md transition-all">
-                                  <div className="flex items-center justify-between">
-                                    <div>
-                                      <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">
-                                        Bookings
-                                      </p>
-                                      <p className="text-2xl font-black text-slate-900 tracking-tighter mt-1">
-                                        {stats?.appointments.total || 0}
-                                      </p>
+                          <div className="mt-auto pt-4 border-t border-slate-100 grid grid-cols-2 gap-4">
+                            {(() => {
+                              const deptStats = stats?.grievances?.byDepartment?.find(
+                                (s) => s.departmentId === (typeof dept === 'object' ? dept._id : dept)
+                              );
+                              return (
+                                <>
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
+                                      <FileText className="w-4 h-4 text-indigo-500" />
                                     </div>
-                                    <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center text-purple-600 group-hover:scale-110 transition-transform">
-                                      <CalendarClock className="w-5 h-5" />
+                                    <div>
+                                      <p className="text-[14px] font-black text-slate-900 leading-none">
+                                        {deptStats?.total || 0}
+                                      </p>
+                                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">Grievances</p>
                                     </div>
                                   </div>
-                                </div>
-                              )}
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
+                                      <Clock className="w-4 h-4 text-emerald-500" />
+                                    </div>
+                                    <div>
+                                      <p className="text-[14px] font-black text-slate-900 leading-none">
+                                        {deptStats?.pending || 0}
+                                      </p>
+                                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">Pending Action</p>
+                                    </div>
+                                  </div>
+                                </>
+                              );
+                            })()}
                           </div>
-                        </div>
-                      ) : (
-                        <div className="text-center py-12">
-                          <Building className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                          <p className="text-slate-500 text-lg">
-                            No department information available
-                          </p>
-                        </div>
-                      );
-                    })()}
-                  </CardContent>
-                </Card>
+                        </CardContent>
+                      </Card>
+                    ));
+                  })()}
+                </div>
               </div>
             )}
 
             {/* Quick Actions */}
+
             <Card className="border border-slate-200 shadow-sm rounded-xl overflow-hidden">
-              {/* <CardHeader className="bg-slate-900 px-5 py-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-indigo-500/20 rounded-lg flex items-center justify-center border border-indigo-500/30">
-                    <Zap className="w-4 h-4 text-indigo-400" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-sm font-bold text-white">
-                      Quick Actions
-                    </CardTitle>
-                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-                      Common tasks and operations
-                    </p>
-                  </div>
-                </div>
-              </CardHeader> */}
+             
               <CardContent className="p-4 space-y-2">
                 {isViewingCompany && (
                   <>
@@ -4347,7 +4301,7 @@ function DashboardContent() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <input
                           type="text"
-                          placeholder="Search departments by name or ID..."
+                          placeholder="Search by ID, name, contact info, or type..."
                           value={deptSearch}
                           onChange={(e) => setDeptSearch(e.target.value)}
                           className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm text-sm placeholder:text-slate-400 font-medium transition-all"
@@ -4394,9 +4348,9 @@ function DashboardContent() {
                           onChange={(e) => setDeptFilters(prev => ({ ...prev, type: e.target.value }))}
                           className="text-xs px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer min-w-[140px] font-medium"
                         >
-                          <option value="">📂 All Types</option>
-                          <option value="main">🏢 Main Dept</option>
-                          <option value="sub">↳ Sub Dept</option>
+                          <option value="">All Types</option>
+                          <option value="main">Main Dept</option>
+                          <option value="sub">Sub Dept</option>
                         </select>
 
                         <select
@@ -4404,9 +4358,9 @@ function DashboardContent() {
                           onChange={(e) => setDeptFilters(prev => ({ ...prev, status: e.target.value }))}
                           className="text-xs px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer min-w-[140px] font-medium"
                         >
-                          <option value="">📋 All Status</option>
-                          <option value="active">🟢 Active</option>
-                          <option value="inactive">🔴 Inactive</option>
+                          <option value="">All Status</option>
+                          <option value="active">Active</option>
+                          <option value="inactive">Inactive</option>
                         </select>
 
                         <select
@@ -4414,7 +4368,8 @@ function DashboardContent() {
                           onChange={(e) => setDeptFilters(prev => ({ ...prev, mainDeptId: e.target.value, subDeptId: "" }))}
                           className="text-xs px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer min-w-[180px] font-medium"
                         >
-                          <option value="">🏢 Main Depts</option>
+                          <option value="">Main Depts</option>
+                        {/* (rest remains same) */}
                           {allDepartments.filter(d => !d.parentDepartmentId).map(dept => (
                             <option key={dept._id} value={dept._id}>{dept.name}</option>
                           ))}
@@ -4584,11 +4539,16 @@ function DashboardContent() {
                                   dept.userCount ||
                                   deptUserCounts[dept._id] ||
                                   0;
-                                const parentName =
-                                  typeof dept.parentDepartmentId === "object" &&
-                                  dept.parentDepartmentId
-                                    ? (dept.parentDepartmentId as any).name
-                                    : null;
+                                const parentName = (() => {
+                                  if (typeof dept.parentDepartmentId === "object" && dept.parentDepartmentId?.name) {
+                                    return dept.parentDepartmentId.name;
+                                  }
+                                  if (typeof dept.parentDepartmentId === "string") {
+                                    const parent = allDepartments.find(d => d._id === dept.parentDepartmentId);
+                                    if (parent) return parent.name;
+                                  }
+                                  return null;
+                                })();
                                 return (
                                   <tr
                                     key={dept._id}
@@ -4690,32 +4650,28 @@ function DashboardContent() {
                                     {/* User Count */}
                                     <td className="px-4 py-4 text-center">
                                       <div className="inline-flex items-center justify-center">
-                                        <button
-                                          className={`min-w-[32px] h-8 px-2 rounded-xl flex items-center justify-center text-xs font-black transition-all shadow-sm border ${
-                                            userCount > 0
-                                              ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:scale-105 active:scale-95"
-                                              : "bg-slate-50 text-slate-400 border-slate-200"
-                                          }`}
-                                          onClick={() => {
-                                            if (userCount > 0) {
-                                              setSelectedDeptForUsers({
-                                                id: dept._id,
-                                                name: dept.name,
-                                              });
-                                              setShowDeptUsersDialog(true);
-                                            }
-                                          }}
-                                          title={
-                                            userCount > 0
-                                              ? "Click to view personnel"
-                                              : "No users in this department"
-                                          }
-                                        >
-                                          <Users
-                                            className={`w-3 h-3 mr-1.5 ${userCount > 0 ? "text-emerald-500" : "text-slate-300"}`}
-                                          />
-                                          {userCount}
-                                        </button>
+                                        {userCount > 0 && (
+                                          <button
+                                            className={`min-w-[32px] h-8 px-2 rounded-xl flex items-center justify-center text-xs font-black transition-all shadow-sm border ${
+                                              userCount > 0
+                                                ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:scale-105 active:scale-95"
+                                                : "bg-slate-50 text-slate-400 border-slate-200"
+                                            }`}
+                                            onClick={() => {
+                                              if (userCount > 0) {
+                                                setSelectedDeptForUsers({
+                                                  id: dept._id,
+                                                  name: dept.name,
+                                                });
+                                                setShowDeptUsersDialog(true);
+                                              }
+                                            }}
+                                            title="Click to view personnel"
+                                          >
+                                            <Users className="w-3 h-3 mr-1.5 text-emerald-500" />
+                                            {userCount}
+                                          </button>
+                                        )}
                                       </div>
                                     </td>
 
@@ -4828,8 +4784,25 @@ function DashboardContent() {
                                             setEditingDepartment(dept);
                                             setShowDepartmentDialog(true);
                                           }}
+                                          title="Edit Department"
                                         >
                                           <Edit2 className="w-3.5 h-3.5" />
+                                        </Button>
+
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-8 w-8 p-0 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50"
+                                          onClick={() => {
+                                            setSelectedDeptForUsers({
+                                              id: dept._id,
+                                              name: dept.name,
+                                            });
+                                            setShowDeptUsersDialog(true);
+                                          }}
+                                          title="Manage Department Personnel"
+                                        >
+                                          <Users className="w-3.5 h-3.5" />
                                         </Button>
                                         <Button
                                           variant="ghost"
@@ -5120,7 +5093,8 @@ function DashboardContent() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <div className="px-6 py-4 bg-slate-50/50 border-b border-slate-200 space-y-4">
+                  <>
+                    <div className="px-6 py-4 bg-slate-50/50 border-b border-slate-200 space-y-4">
                     {/* Top Action Bar */}
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                       {/* Search */}
@@ -5128,9 +5102,12 @@ function DashboardContent() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <input
                           type="text"
-                          placeholder="Search users by name, email, phone or ID..."
+                          placeholder="Search by ID, name, email, phone, or designation..."
                           value={userSearch}
-                          onChange={(e) => setUserSearch(e.target.value)}
+                          onChange={(e) => {
+                            setUserSearch(e.target.value);
+                            setUserPage(1);
+                          }}
                           className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm text-sm placeholder:text-slate-400 font-medium transition-all"
                         />
                       </div>
@@ -5174,40 +5151,59 @@ function DashboardContent() {
                       <div className="flex items-center gap-2 flex-wrap flex-1">
                         <select
                           value={userFilters.role}
-                          onChange={(e) => setUserFilters(prev => ({ ...prev, role: e.target.value }))}
+                          onChange={(e) => {
+                            setUserFilters(prev => ({ ...prev, role: e.target.value }));
+                            setUserPage(1);
+                          }}
                           className="text-xs px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer min-w-[140px] font-medium"
                         >
-                          <option value="">👤 All Roles</option>
+                          <option value="">All Roles</option>
                           {roles.map((role: any) => (
                             <option key={role._id} value={`CUSTOM:${role._id}`}>{role.name}</option>
                           ))}
-                          {isSuperAdminUser && <option value="SUPER_ADMIN">🔑 Super Admin</option>}
+                          {isSuperAdminUser && <option value="SUPER_ADMIN">Super Admin</option>}
                         </select>
 
                         <select
                           value={userFilters.status}
-                          onChange={(e) => setUserFilters(prev => ({ ...prev, status: e.target.value }))}
+                          onChange={(e) => {
+                            setUserFilters(prev => ({ ...prev, status: e.target.value }));
+                            setUserPage(1);
+                          }}
                           className="text-xs px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer min-w-[140px] font-medium"
                         >
-                          <option value="">📋 All Status</option>
-                          <option value="active">🟢 Active</option>
-                          <option value="inactive">🔴 Inactive</option>
+                          <option value="">All Status</option>
+                          <option value="active">Active</option>
+                          <option value="inactive">Inactive</option>
                         </select>
 
                         <select
                           value={userFilters.mainDeptId}
-                          onChange={(e) => setUserFilters(prev => ({ ...prev, mainDeptId: e.target.value, subDeptId: "" }))}
+                          onChange={(e) => {
+                            setUserFilters((prev) => ({
+                              ...prev,
+                              mainDeptId: e.target.value,
+                              subDeptId: "",
+                            }));
+                            setUserPage(1);
+                          }}
                           className="text-xs px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer min-w-[180px] font-medium"
                         >
-                          <option value="">🏢 Main Depts</option>
-                          {allDepartments.filter(d => !d.parentDepartmentId).map(dept => (
+                          <option value="">Main Depts</option>
+                          {allDepartments.filter(d => getParentDepartmentId(d) === null).map(dept => (
                             <option key={dept._id} value={dept._id}>{dept.name}</option>
                           ))}
                         </select>
 
                         <select
                           value={userFilters.subDeptId}
-                          onChange={(e) => setUserFilters(prev => ({ ...prev, subDeptId: e.target.value }))}
+                          onChange={(e) => {
+                            setUserFilters((prev) => ({
+                              ...prev,
+                              subDeptId: e.target.value,
+                            }));
+                            setUserPage(1);
+                          }}
                           disabled={!userFilters.mainDeptId}
                           className={`text-xs px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm transition-all min-w-[180px] font-medium ${!userFilters.mainDeptId ? "opacity-50 cursor-not-allowed bg-slate-50" : "cursor-pointer hover:border-indigo-300"}`}
                         >
@@ -5225,7 +5221,13 @@ function DashboardContent() {
                             size="sm"
                             onClick={() => {
                               setUserSearch("");
-                              setUserFilters({ role: "", status: "", mainDeptId: "", subDeptId: "" });
+                              setUserFilters({
+                                role: "",
+                                status: "",
+                                mainDeptId: "",
+                                subDeptId: "",
+                              });
+                              setUserPage(1);
                             }}
                             className="h-8 px-3 text-[10px] font-bold text-red-500 hover:text-red-600 hover:bg-red-50 uppercase tracking-tighter"
                           >
@@ -5268,7 +5270,8 @@ function DashboardContent() {
                       </p>
                     </div>
                   ) : (
-                    <div className="overflow-hidden">
+
+                    <div key="users-master-wrapper-final" className="overflow-hidden">
                       <div className="overflow-x-auto custom-scrollbar">
                         <table className="w-full min-w-[980px] relative border-collapse table-auto">
                           <thead className="bg-[#fcfdfe] border-b border-slate-200">
@@ -5421,12 +5424,33 @@ function DashboardContent() {
                                         >
                                           {u.firstName} {u.lastName}
                                         </button>
-                                        <div className="mt-1 flex flex-col gap-1">
-                                          {u.designation && (
+                                        <div className="mt-1 flex flex-wrap gap-1">
+                                          {/* Unified Multi-Designation Badges */}
+                                          {(() => {
+                                            const designSet = new Set<string>();
+                                            if (u.designation) designSet.add(u.designation);
+                                            (u as any).designations?.forEach((d: string) => designSet.add(d));
+
+                                            const list = Array.from(designSet);
+                                            if (list.length === 0) return null;
+
+                                            return list.map((d, i) => (
+                                              <span key={i} className={`text-[8.5px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-tighter shadow-sm border transition-all ${d === u.designation ? "bg-indigo-600 text-white border-indigo-700 font-bold" : "bg-white text-slate-500 border-slate-200"}`}>
+                                                {d}
+                                              </span>
+                                            ));
+                                          })()}
+                                          {(u as any).designation && (
                                             <span className="text-[9px] font-bold text-indigo-600 bg-indigo-50/80 px-2 py-0.5 rounded-md border border-indigo-100/50 uppercase tracking-wider w-fit shadow-sm">
-                                              {u.designation}
+                                              {(u as any).designation}
                                             </span>
                                           )}
+                                          {/* Multiple Designations */}
+                                          {(u as any).designations?.filter((d: any) => d !== (u as any).designation).map((d: any, i: any) => (
+                                            <span key={i} className="text-[9px] font-bold text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100 uppercase tracking-wider w-fit">
+                                              {d}
+                                            </span>
+                                          ))}
                                           <span className="text-[8px] font-black bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded border border-slate-200 uppercase tracking-widest w-fit">
                                             ID: {u.userId}
                                           </span>
@@ -5531,14 +5555,50 @@ function DashboardContent() {
                                                           ).replace(/_/g, " ")}
                                         </span>
                                       </div>
-                                      <div className="flex flex-col gap-1">
-                                        <div className="flex items-start text-[11px] text-slate-600 font-bold group-hover/row:text-indigo-900 transition-colors whitespace-normal break-words">
-                                          <Building className="w-3.5 h-3.5 mr-1.5 text-slate-400 group-hover/row:text-indigo-400 transition-colors shrink-0 mt-0.5" />
-                                          {typeof u.departmentId === "object" &&
-                                          u.departmentId
-                                            ? u.departmentId.name
-                                            : "All Company Access"}
-                                        </div>
+                                        <div className="flex flex-col gap-1.5 min-w-[150px]">
+                                        {(() => {
+                                          const uniqueDepts = new globalThis.Map<
+                                            string,
+                                            { name: string; isPrimary: boolean }
+                                          >();
+                                          
+                                          // Add primary department
+                                          if (u.departmentId) {
+                                            const id = typeof u.departmentId === 'object' ? u.departmentId._id : u.departmentId;
+                                            const name = typeof u.departmentId === 'object' ? u.departmentId.name : allDepartments.find(d => d._id === id)?.name || id;
+                                            uniqueDepts.set(id, { name, isPrimary: true });
+                                          }
+                                          
+                                          // Add multiple department assignments
+                                          u.departmentIds?.forEach(d => {
+                                            const id = typeof d === 'object' ? d._id : d;
+                                            if (!uniqueDepts.has(id)) {
+                                              const name = typeof d === 'object' ? d.name : allDepartments.find(dept => dept._id === id)?.name || id;
+                                              uniqueDepts.set(id, { name, isPrimary: false });
+                                            }
+                                          });
+                                          
+                                          const deptList = Array.from(uniqueDepts.values());
+                                          
+                                          if (deptList.length === 0) return (
+                                            <div className="flex items-center text-[10px] text-slate-400 font-bold uppercase tracking-widest italic">
+                                              <Building className="w-3.5 h-3.5 mr-1.5 opacity-50" />
+                                              All Company Access
+                                            </div>
+                                          );
+                                          
+                                          return (
+                                            <div className="space-y-1">
+                                              {deptList.map((d, i) => (
+                                                <div key={i} className={`flex items-start text-[10px] font-black uppercase tracking-tight leading-tight transition-colors ${d.isPrimary ? "text-indigo-700" : "text-slate-500 hover:text-slate-700"}`}>
+                                                  <Building className={`w-3 h-3 mr-1.5 shrink-0 mt-0.5 ${d.isPrimary ? "text-indigo-400" : "text-slate-300"}`} />
+                                                  <span className="whitespace-normal">{d.name}</span>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          );
+                                        })()}
+                                      </div>
                                         {/* Show permissions summary for custom roles */}
                                         {typeof u.customRoleId === "object" &&
                                           u.customRoleId &&
@@ -5571,11 +5631,10 @@ function DashboardContent() {
                                                 </span>
                                               )}
                                             </div>
-                                          )}
+                                        )}
                                       </div>
-                                    </div>
-                                  </td>
-                                  <td className="px-4 py-5">
+                                    </td>
+                                    <td className="px-4 py-5">
                                     <div className="flex flex-col space-y-2.5">
                                       <div className="flex items-center">
                                         <div
@@ -5777,7 +5836,8 @@ function DashboardContent() {
                       />
                     </div>
                   )}
-                </CardContent>
+                </>
+              </CardContent>
               </Card>
             </TabsContent>
           )}
@@ -5786,21 +5846,6 @@ function DashboardContent() {
           {hasModule(Module.GRIEVANCE) &&
             (isViewingCompany || isDepartmentLevel) && (
               <TabsContent value="grievances" className="space-y-4">
-                {/* Back Button - Show when coming from overview (not for operators) */}
-                {/* {previousTab === "overview" && hasPermission(user, Permission.VIEW_ANALYTICS) && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setActiveTab(previousTab);
-                      setGrievanceFilters((prev) => ({ ...prev, status: "" }));
-                    }}
-                    className="mb-4 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl"
-                  >
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Back to Overview
-                  </Button>
-                )} */}
                 <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
                   <CardHeader className="bg-slate-900 px-6 py-2">
                     <div className="flex items-center justify-between">
@@ -5842,7 +5887,10 @@ function DashboardContent() {
                           type="text"
                           placeholder="Search by ID, name, phone, or category..."
                           value={grievanceSearch}
-                          onChange={(e) => setGrievanceSearch(e.target.value)}
+                          onChange={(e) => {
+                            setGrievanceSearch(e.target.value);
+                            setGrievancePage(1);
+                          }}
                           className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm text-sm placeholder:text-slate-400"
                         />
                       </div>
@@ -5898,12 +5946,13 @@ function DashboardContent() {
                       {/* Status Filter */}
                       <select
                         value={grievanceFilters.status}
-                        onChange={(e) =>
+                        onChange={(e) => {
                           setGrievanceFilters((prev) => ({
                             ...prev,
                             status: e.target.value,
-                          }))
-                        }
+                          }));
+                          setGrievancePage(1);
+                        }}
                         className="text-xs px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer"
                         title="Filter by grievance status"
                       >
@@ -5925,14 +5974,15 @@ function DashboardContent() {
                           {/* Main Department Filter */}
                           <select
                             value={grievanceFilters.mainDeptId}
-                            onChange={(e) =>
+                            onChange={(e) => {
                               setGrievanceFilters((prev) => ({
                                 ...prev,
                                 mainDeptId: e.target.value,
                                 subDeptId: "",
                                 department: "", // reset old filter
-                              }))
-                            }
+                              }));
+                              setGrievancePage(1);
+                            }}
                             className="text-xs px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer min-w-[150px]"
                             title="Filter by main department"
                           >
@@ -5949,12 +5999,13 @@ function DashboardContent() {
                           {/* Sub Department Filter */}
                           <select
                             value={grievanceFilters.subDeptId}
-                            onChange={(e) =>
+                            onChange={(e) => {
                               setGrievanceFilters((prev) => ({
                                 ...prev,
                                 subDeptId: e.target.value,
-                              }))
-                            }
+                              }));
+                              setGrievancePage(1);
+                            }}
                             className="text-xs px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer min-w-[150px]"
                             title="Filter by sub department"
                             disabled={!grievanceFilters.mainDeptId}
@@ -5979,12 +6030,13 @@ function DashboardContent() {
                       {/* Assignment Status Filter */}
                       <select
                         value={grievanceFilters.assignmentStatus}
-                        onChange={(e) =>
+                        onChange={(e) => {
                           setGrievanceFilters((prev) => ({
                             ...prev,
                             assignmentStatus: e.target.value,
-                          }))
-                        }
+                          }));
+                          setGrievancePage(1);
+                        }}
                         className="text-xs px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer"
                         title="Filter by assignment status"
                       >
@@ -5996,12 +6048,13 @@ function DashboardContent() {
                       {/* Overdue Status Filter */}
                       <select
                         value={grievanceFilters.overdueStatus}
-                        onChange={(e) =>
+                        onChange={(e) => {
                           setGrievanceFilters((prev) => ({
                             ...prev,
                             overdueStatus: e.target.value,
-                          }))
-                        }
+                          }));
+                          setGrievancePage(1);
+                        }}
                         className="text-xs px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer"
                         title="Filter by overdue status"
                       >
@@ -6013,12 +6066,13 @@ function DashboardContent() {
                       {/* Date Range Filter */}
                       <select
                         value={grievanceFilters.dateRange}
-                        onChange={(e) =>
+                        onChange={(e) => {
                           setGrievanceFilters((prev) => ({
                             ...prev,
                             dateRange: e.target.value,
-                          }))
-                        }
+                          }));
+                          setGrievancePage(1);
+                        }}
                         className="text-xs px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer"
                         title="Filter by date range"
                       >
@@ -7769,7 +7823,7 @@ function DashboardContent() {
 
         {/* Dialogs */}
         {(isViewingCompany || isDepartmentLevel) && (
-          <>
+          <div key="dashboard-dialogs-root">
             {isViewingCompany && (
               <CreateDepartmentDialog
                 isOpen={showDepartmentDialog}
@@ -7786,6 +7840,11 @@ function DashboardContent() {
                 defaultCompanyId={
                   isSuperAdminUser ? companyIdParam || undefined : undefined
                 }
+                onEditUser={(u) => {
+                  setEditingUser(u);
+                  setShowEditUserDialog(true);
+                  setShowDepartmentDialog(false);
+                }}
               />
             )}
             <ConfirmDialog
@@ -7833,7 +7892,7 @@ function DashboardContent() {
               }}
               user={editingUser}
             />
-          </>
+          </div>
         )}
 
         {/* Detail Dialogs */}
@@ -8078,6 +8137,11 @@ function DashboardContent() {
             setSelectedUserForDetails(u);
             setShowUserDetailsDialog(true);
           }}
+          onEditUser={(u) => {
+            setEditingUser(u);
+            setShowEditUserDialog(true);
+            setShowDeptUsersDialog(false);
+          }}
         />
 
         {/* User Details Dialog (Moved here to ensure it appears on top of other dialogs) */}
@@ -8104,6 +8168,7 @@ function DashboardContent() {
     </div>
   );
 }
+
 
 export default function Dashboard() {
   return (

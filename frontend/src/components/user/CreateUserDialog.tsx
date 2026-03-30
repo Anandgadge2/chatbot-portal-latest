@@ -24,8 +24,9 @@ import {
   normalizePhoneNumber,
   denormalizePhoneNumber,
 } from "@/lib/utils/phoneUtils";
-import { Building, Users, Mail, MessageSquare, X } from "lucide-react";
+import { Building, Users, Mail, MessageSquare, X, Check } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { SearchableSelect } from "@/components/ui/SearchableSelect";
 
 interface CreateUserDialogProps {
   isOpen: boolean;
@@ -54,14 +55,19 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
     password: "",
     phone: "",
     designation: "",
+    designations: [] as string[], // 🏢 Added for multiple designations
     role: "Select Role", // Now stores "STATIC:ROLE" or "CUSTOM:ID"
     companyId: "",
     departmentId: "",
+    departmentIds: [] as string[], // 🏢 Added for multiple department mapping
     notificationSettings: {
       email: true,
       whatsapp: true
     }
   });
+
+
+  const [isMultiDept, setIsMultiDept] = useState(false); // 🏢 Toggle for multiple departments
 
   const [selectedMainDeptId, setSelectedMainDeptId] = useState<string>("");
   const [selectedSubDeptId, setSelectedSubDeptId] = useState<string>("");
@@ -199,16 +205,23 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
           password: "",
           phone: editingUser.phone ? denormalizePhoneNumber(editingUser.phone) : "",
           designation: editingUser.designation || "",
+          designations: (editingUser as any).designations || [], // 🏢 Added for multiple designations
           role: editingUser.customRoleId
             ? `CUSTOM:${typeof editingUser.customRoleId === "object" ? (editingUser.customRoleId as any)._id : editingUser.customRoleId}`
             : editingUser.role || "",
           companyId: typeof editingUser.companyId === "object" ? editingUser.companyId?._id : editingUser.companyId || "",
           departmentId: typeof editingUser.departmentId === "object" ? editingUser.departmentId?._id : editingUser.departmentId || "",
+          departmentIds: editingUser.departmentIds?.map(d => typeof d === "object" ? (d as any)?._id : d) || [],
           notificationSettings: {
             email: editingUser.notificationSettings?.email ?? true,
             whatsapp: editingUser.notificationSettings?.whatsapp ?? true
           }
         });
+
+        
+        if (editingUser.departmentIds && editingUser.departmentIds.length > 0) {
+          setIsMultiDept(true);
+        }
       } else {
         const userCompanyId = user?.companyId ? (typeof user.companyId === "object" ? user.companyId._id : user.companyId) : "";
         const userDepartmentId = user?.departmentId ? (typeof user.departmentId === "object" ? user.departmentId._id : user.departmentId) : "";
@@ -220,14 +233,18 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
           password: "",
           phone: "",
           designation: "",
+          designations: [],
           role: "",
           companyId: defaultCompanyId || userCompanyId || "",
           departmentId: userDepartmentId || "",
+          departmentIds: [],
           notificationSettings: {
             email: true,
             whatsapp: true
           }
         });
+
+        setIsMultiDept(false);
         
         const effectiveCompanyId = defaultCompanyId || userCompanyId;
         if (effectiveCompanyId) {
@@ -273,8 +290,8 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
 
     const isEditing = !!editingUser;
 
-    if (!formData.firstName || !formData.lastName || !formData.email || !formData.role) {
-      toast.error("Please fill in all required fields");
+    if (!formData.firstName || !formData.lastName || !formData.role) {
+      toast.error("Please fill in all required fields (Name and Role)");
       return;
     }
 
@@ -308,7 +325,13 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
         role: submissionRole || undefined,
         customRoleId: submissionCustomRoleId || null,
         companyId: formData.companyId || undefined,
-        departmentId: selectedSubDeptId || selectedMainDeptId || undefined,
+        // Map hierarchy logic to departmentIds if in single mode
+        departmentIds: isMultiDept 
+          ? formData.departmentIds 
+          : (selectedSubDeptId || selectedMainDeptId ? [selectedSubDeptId || selectedMainDeptId] : []),
+        departmentId: isMultiDept 
+          ? (formData.departmentIds.length > 0 ? formData.departmentIds[0] : undefined)
+          : (selectedSubDeptId || selectedMainDeptId || undefined),
       };
 
       let response;
@@ -402,8 +425,8 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="email">Email *</Label>
-                <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} required placeholder="user@example.com" />
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} placeholder="user@example.com (Optional)" />
               </div>
               <div>
                 <Label htmlFor="password">Password {editingUser ? "(Leave blank to keep current)" : "*"}</Label>
@@ -420,19 +443,67 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
                 }} maxLength={10} placeholder="10 digit number" />
               </div>
               <div>
-                <Label htmlFor="designation">Designation</Label>
+                <Label htmlFor="designation">Primary Designation</Label>
                 <Input id="designation" name="designation" value={formData.designation} onChange={handleChange} placeholder="e.g. Collector & DM" />
               </div>
             </div>
 
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase text-indigo-500">Additional Designations</Label>
+              <div className="flex gap-2">
+                <Input 
+                  id="new-designation" 
+                  placeholder="Add another title..." 
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const val = (e.target as HTMLInputElement).value.trim();
+                      if (val && !formData.designations.includes(val)) {
+                        setFormData(prev => ({ ...prev, designations: [...prev.designations, val] }));
+                        (e.target as HTMLInputElement).value = '';
+                      }
+                    }
+                  }}
+                />
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  onClick={() => {
+                    const input = document.getElementById('new-designation') as HTMLInputElement;
+                    const val = input.value.trim();
+                    if (val && !formData.designations.includes(val)) {
+                      setFormData(prev => ({ ...prev, designations: [...prev.designations, val] }));
+                      input.value = '';
+                    }
+                  }}
+                >Add</Button>
+              </div>
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {formData.designations.map((d, index) => (
+                  <span key={index} className="inline-flex items-center gap-1 px-2 py-1 bg-indigo-50 border border-indigo-100 text-indigo-600 text-[10px] font-black rounded-lg uppercase tracking-tight">
+                    {d}
+                    <button 
+                      type="button" 
+                      onClick={() => setFormData(prev => ({ ...prev, designations: prev.designations.filter((_, i) => i !== index) }))}
+                      className="hover:text-red-500 transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+
             <div>
               <Label htmlFor="role">Role *</Label>
-              <select id="role" name="role" value={formData.role} onChange={handleChange} className="w-full p-2 border rounded-md bg-white focus:ring-2 focus:ring-indigo-500 font-medium" required>
-                <option value="" disabled>Select a role</option>
-                {getAllPossibleRoles().map((role) => (
-                  <option key={role.value} value={role.value}>{role.label}</option>
-                ))}
-              </select>
+              <SearchableSelect
+                options={getAllPossibleRoles()}
+                value={formData.role}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, role: value }))}
+                placeholder="Select a role"
+                className="w-full"
+              />
             </div>
 
             <div className="flex items-center gap-2 py-1">
@@ -444,36 +515,167 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
             {isSuperAdmin(user) && !defaultCompanyId && (
                 <div>
                     <Label htmlFor="companyId">Company *</Label>
-                    <select id="companyId" name="companyId" value={formData.companyId} onChange={handleChange} className="w-full p-2 border rounded-md bg-white focus:ring-2 focus:ring-indigo-500" required>
-                        <option value="">Select a company</option>
-                        {companies.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
-                    </select>
+                    <SearchableSelect
+                        options={companies.map(c => ({ value: c._id, label: c.name }))}
+                        value={formData.companyId}
+                        onValueChange={(value) => {
+                            setFormData((prev) => ({ ...prev, companyId: value, departmentId: "" }));
+                            setSelectedMainDeptId("");
+                            setSelectedSubDeptId("");
+                        }}
+                        placeholder="Select a company"
+                        className="w-full"
+                    />
                 </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <Label>Main Department</Label>
-                    <select value={selectedMainDeptId} onChange={(e) => {
-                        setSelectedMainDeptId(e.target.value);
-                        setSelectedSubDeptId("");
-                    }} className="w-full p-2 border rounded-md bg-white focus:ring-2 focus:ring-indigo-500" disabled={!formData.companyId}>
-                        <option value="">{formData.companyId ? "No Department" : "Select Company First"}</option>
-                        {departments.filter(d => !d.parentDepartmentId).map(d => <option key={d._id} value={d._id}>{d.name}</option>)}
-                    </select>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50">
+                <div className="flex items-center gap-3">
+                  <Building className="w-4 h-4 text-indigo-500" />
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-black uppercase tracking-tight text-slate-700">Assign Multiple Departments</span>
+                    <span className="text-[8px] font-medium text-slate-400">Map this user to multiple organizational units</span>
+                  </div>
                 </div>
-                {selectedMainDeptId && (
+                <Switch checked={isMultiDept} onCheckedChange={setIsMultiDept} />
+              </div>
+
+              {!isMultiDept ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
                     <div>
-                        <Label>Sub Department</Label>
-                        <select value={selectedSubDeptId} onChange={(e) => setSelectedSubDeptId(e.target.value)} className="w-full p-2 border rounded-md bg-white focus:ring-2 focus:ring-indigo-500">
-                            <option value="">None (Map to Main)</option>
-                            {departments.filter(d => {
+                        <Label>Main Department</Label>
+                        <SearchableSelect
+                            options={departments.filter(d => !d.parentDepartmentId).map(d => ({ value: d._id, label: d.name }))}
+                            value={selectedMainDeptId}
+                            onValueChange={(value) => {
+                                setSelectedMainDeptId(value);
+                                setSelectedSubDeptId("");
+                            }}
+                            placeholder={formData.companyId ? "No Department" : "Select Company First"}
+                            disabled={!formData.companyId}
+                            className="w-full"
+                        />
+                    </div>
+                    {selectedMainDeptId && (
+                        <div>
+                            <Label>Sub Department</Label>
+                            <SearchableSelect
+                                options={departments.filter(d => {
+                                    const pid = typeof d.parentDepartmentId === "object" ? (d.parentDepartmentId as any)?._id : d.parentDepartmentId;
+                                    return pid === selectedMainDeptId;
+                                }).map(d => ({ value: d._id, label: d.name }))}
+                                value={selectedSubDeptId}
+                                onValueChange={(value) => setSelectedSubDeptId(value)}
+                                placeholder="None (Map to Main)"
+                                className="w-full"
+                            />
+                        </div>
+                    )}
+                </div>
+              ) : (
+                <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <div>
+                        <Label className="text-[10px] font-black uppercase text-indigo-500 mb-1.5 flex items-center gap-1.5 leading-none">
+                          <Building className="w-3 h-3" />
+                          Department Branch
+                        </Label>
+                        <SearchableSelect
+                            options={departments.filter(d => !d.parentDepartmentId).map(d => ({ value: d._id, label: d.name }))}
+                            value={selectedMainDeptId}
+                            onValueChange={(val) => {
+                                setSelectedMainDeptId(val);
+                                setSelectedSubDeptId("");
+                            }}
+                            placeholder="Find Branch"
+                            className="w-full bg-white"
+                        />
+                    </div>
+                    <div>
+                        <Label className="text-[10px] font-black uppercase text-indigo-500 mb-1.5 flex items-center gap-1.5 leading-none">
+                          <Users className="w-3 h-3" />
+                          Sub-Unit Filter
+                        </Label>
+                        <SearchableSelect
+                            options={departments.filter(d => {
                                 const pid = typeof d.parentDepartmentId === "object" ? (d.parentDepartmentId as any)?._id : d.parentDepartmentId;
                                 return pid === selectedMainDeptId;
-                            }).map(d => <option key={d._id} value={d._id}>{d.name}</option>)}
-                        </select>
+                            }).map(d => ({ value: d._id, label: d.name }))}
+                            value={selectedSubDeptId}
+                            onValueChange={(val) => setSelectedSubDeptId(val)}
+                            placeholder="Find Specific Unit"
+                            className="w-full bg-white"
+                        />
                     </div>
-                )}
+                  </div>
+
+                  <div className="flex items-center justify-between px-1">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                      Organizational Multi-Mapping ({formData.departmentIds.length})
+                    </Label>
+                    {formData.departmentIds.length > 0 && (
+                      <button 
+                        type="button" 
+                        onClick={() => setFormData(p => ({ ...p, departmentIds: [] }))}
+                        className="text-[9px] font-black uppercase text-red-500 hover:text-red-700 transition-colors"
+                      >
+                        [ Clear All Assignments ]
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="border rounded-xl px-2 py-2 bg-slate-50 max-h-[160px] overflow-y-auto custom-scrollbar space-y-1">
+                    {departments.length === 0 && <p className="text-[10px] text-slate-400 text-center py-4">No departments found for this company</p>}
+                    {departments
+                      .filter(dept => {
+                         // Filter logic: show unit if it's already selected, OR matches any of the category filters. 
+                         // If no filters are active, show all units.
+                         if (formData.departmentIds.includes(dept._id)) return true;
+                         if (!selectedMainDeptId && !selectedSubDeptId) return true;
+                         
+                         const isMain = dept._id === selectedMainDeptId;
+                         const pid = typeof dept.parentDepartmentId === "object" ? (dept.parentDepartmentId as any)?._id : dept.parentDepartmentId;
+                         const isChildOfSelectedMain = pid === selectedMainDeptId;
+                         const isSelectedSub = dept._id === selectedSubDeptId;
+                         
+                         return isMain || isChildOfSelectedMain || isSelectedSub;
+                      })
+                      .map((dept) => {
+                        const isSub = !!dept.parentDepartmentId;
+                        const isSelected = formData.departmentIds.includes(dept._id);
+                        return (
+                          <div 
+                            key={dept._id} 
+                            className={`flex items-center gap-3 p-2 rounded-lg transition-all cursor-pointer ${isSelected ? "bg-indigo-50 border border-indigo-100 shadow-sm" : "hover:bg-white border border-transparent"}`}
+                            onClick={() => {
+                              setFormData(prev => {
+                                const newIds = isSelected 
+                                  ? prev.departmentIds.filter(id => id !== dept._id)
+                                  : [...prev.departmentIds, dept._id];
+                                return { ...prev, departmentIds: newIds };
+                              });
+                            }}
+                          >
+                            <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${isSelected ? "bg-indigo-600 border-indigo-600 shadow-sm" : "bg-white border-slate-300"}`}>
+                              {isSelected && <Check className="w-2.5 h-2.5 text-white" />}
+                            </div>
+                            <div className="flex flex-col">
+                              <span className={`text-[11px] font-bold ${isSelected ? "text-indigo-700" : "text-slate-700"}`}>
+                                {dept.name}
+                              </span>
+                              {isSub && (
+                                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">
+                                  Sub-Unit mapping
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">

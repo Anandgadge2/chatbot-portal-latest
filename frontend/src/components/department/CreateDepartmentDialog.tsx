@@ -13,12 +13,14 @@ import {
 } from "@/components/ui/card";
 import { departmentAPI, Department } from "@/lib/api/department";
 import { companyAPI, Company } from "@/lib/api/company";
+import { userAPI, User as APIUser } from "@/lib/api/user";
 import { useAuth } from "@/contexts/AuthContext";
 import { isSuperAdmin } from "@/lib/permissions";
-import { Building, Shield, Languages, X } from "lucide-react";
+import { Building, Shield, Languages, X, User } from "lucide-react";
 import toast from "react-hot-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { SearchableSelect } from "@/components/ui/SearchableSelect";
 
 const LANGUAGE_OPTIONS = [
   { code: "en", label: "English" },
@@ -35,6 +37,7 @@ interface CreateDepartmentDialogProps {
   onDepartmentCreated: () => void;
   editingDepartment?: Department | null;
   defaultCompanyId?: string;
+  onEditUser?: (user: any) => void;
 }
 
 const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
@@ -43,6 +46,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
   onDepartmentCreated,
   editingDepartment,
   defaultCompanyId,
+  onEditUser,
 }) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -62,7 +66,12 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
     descriptionMr: "",
     companyId: "",
     parentDepartmentId: "",
+    contactUserId: "",
+    contactPerson: "",
+    contactEmail: "",
+    contactPhone: "",
   });
+  const [companyUsers, setCompanyUsers] = useState<any[]>([]);
 
   useEffect(() => {
     if (isOpen) {
@@ -89,6 +98,14 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
             typeof editingDepartment.parentDepartmentId === "object"
               ? (editingDepartment.parentDepartmentId as any)._id
               : (editingDepartment.parentDepartmentId as string) || "",
+          contactUserId: 
+            editingDepartment.contactUserId && 
+            typeof editingDepartment.contactUserId === "object"
+              ? (editingDepartment.contactUserId as any)._id
+              : (editingDepartment.contactUserId as string) || "",
+          contactPerson: editingDepartment.contactPerson || "",
+          contactEmail: editingDepartment.contactEmail || "",
+          contactPhone: editingDepartment.contactPhone || "",
         });
       } else {
         const userCompanyId = user?.companyId
@@ -109,22 +126,47 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
           descriptionMr: "",
           companyId: defaultCompanyId || userCompanyId || "",
           parentDepartmentId: "",
+          contactUserId: "",
+          contactPerson: "",
+          contactEmail: "",
+          contactPhone: "",
         });
       }
     }
   }, [isOpen, editingDepartment, user, defaultCompanyId]);
 
   const fetchDepartments = useCallback(async () => {
+    if (!formData.companyId) return;
     try {
       const response = await departmentAPI.getAll({
         companyId: formData.companyId,
-        limit: 100,
+        type: 'main',
+        listAll: true,
       });
       if (response.success) {
         setAllDepartments(response.data.departments);
       }
     } catch (error) {
       console.error("Failed to fetch departments:", error);
+    }
+  }, [formData.companyId]);
+
+  const fetchCompanyUsers = useCallback(async () => {
+    if (!formData.companyId) {
+      setCompanyUsers([]);
+      return;
+    }
+    try {
+      const response = await userAPI.getAll({
+        companyId: formData.companyId,
+        limit: 1000,
+        status: 'active'
+      });
+      if (response.success) {
+        setCompanyUsers(response.data.users);
+      }
+    } catch (error) {
+      console.error("Failed to fetch company users:", error);
     }
   }, [formData.companyId]);
 
@@ -186,8 +228,9 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
   useEffect(() => {
     if (isOpen && formData.companyId) {
       fetchDepartments();
+      fetchCompanyUsers();
     }
-  }, [isOpen, formData.companyId, fetchDepartments]);
+  }, [isOpen, formData.companyId, fetchDepartments, fetchCompanyUsers]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -219,10 +262,18 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
     setLoading(true);
     try {
       let response;
-      const dataToSubmit = {
+      const dataToSubmit: any = {
         ...formData,
-        parentDepartmentId: isSubDepartment ? formData.parentDepartmentId : undefined,
+        parentDepartmentId: isSubDepartment && formData.parentDepartmentId ? formData.parentDepartmentId : undefined,
+        contactUserId: formData.contactUserId || undefined,
       };
+
+      // Ensure we don't send empty strings for optional fields that should be omitted
+      Object.keys(dataToSubmit).forEach(key => {
+        if (dataToSubmit[key] === "") {
+          delete dataToSubmit[key];
+        }
+      });
 
       if (editingDepartment) {
         response = await departmentAPI.update(
@@ -255,6 +306,10 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
           descriptionMr: "",
           companyId: "",
           parentDepartmentId: "",
+          contactUserId: "",
+          contactPerson: "",
+          contactEmail: "",
+          contactPhone: "",
         });
         onClose();
         onDepartmentCreated();
@@ -319,27 +374,22 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
             {isSuperAdmin(user) && !defaultCompanyId ? (
               <div>
                 <Label htmlFor="companyId" className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5 block">Company *</Label>
-                <select
-                  id="companyId"
-                  name="companyId"
+                <SearchableSelect
+                  options={companies.map((company) => ({
+                    value: company._id,
+                    label: company.name,
+                  }))}
                   value={formData.companyId}
-                  onChange={(e) =>
+                  onValueChange={(value) =>
                     setFormData((prev) => ({
                       ...prev,
-                      companyId: e.target.value,
+                      companyId: value,
                       parentDepartmentId: "",
                     }))
                   }
-                  className="w-full h-10 px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
-                  required
-                >
-                  <option value="">Select a company</option>
-                  {companies.map((company) => (
-                    <option key={company._id} value={company._id}>
-                      {company.name}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="Select a company"
+                  className="w-full"
+                />
               </div>
             ) : (
               /* Hidden company ID for Company Admin or other roles with fixed company */
@@ -389,26 +439,80 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                 <Label htmlFor="parentDepartmentId" className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5 block">
                   Select Main Department *
                 </Label>
-                <select
-                  id="parentDepartmentId"
-                  name="parentDepartmentId"
-                  value={formData.parentDepartmentId}
-                  onChange={handleChange}
-                  className="w-full h-10 px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
-                  required={isSubDepartment}
-                >
-                  <option value="">-- Choose Parent Department --</option>
-                  {allDepartments
-                    .filter((d) => !d.parentDepartmentId || (typeof d.parentDepartmentId === 'object' && !(d.parentDepartmentId as any)?._id))
+                <SearchableSelect
+                  options={allDepartments
+                    .filter((d) => {
+                      const parentId = typeof d.parentDepartmentId === 'object' && d.parentDepartmentId !== null
+                        ? (d.parentDepartmentId as any)._id
+                        : d.parentDepartmentId;
+                      return !parentId;
+                    })
                     .filter((d) => !editingDepartment || d._id !== editingDepartment._id)
-                    .map((dept) => (
-                      <option key={dept._id} value={dept._id}>
-                        {dept.name}
-                      </option>
-                    ))}
-                </select>
+                    .map((dept) => ({
+                      value: dept._id,
+                      label: dept.name,
+                    }))}
+                  value={formData.parentDepartmentId}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      parentDepartmentId: value,
+                    }))
+                  }
+                  placeholder="-- Choose Parent Department --"
+                  className="w-full"
+                />
               </div>
             )}
+
+            {/* Department Lead / Contact Selection */}
+            <div className="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 mb-4 animate-in fade-in slide-in-from-top-4 duration-500">
+              <div className="flex items-center justify-between mb-3">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-indigo-500 flex items-center gap-2">
+                  <Shield className="w-3 h-3" />
+                  Department Lead / Contact Personnel
+                </Label>
+                {formData.contactUserId && onEditUser && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const selected = companyUsers.find(u => u._id === formData.contactUserId);
+                      if (selected) onEditUser(selected);
+                    }}
+                    className="text-[9px] font-black uppercase tracking-[0.1em] text-indigo-600 hover:text-white hover:bg-indigo-600 bg-white px-2 py-1 rounded-md border border-indigo-200 shadow-sm transition-all active:scale-95 flex items-center gap-1.5"
+                  >
+                    <User className="w-2.5 h-2.5" />
+                    Edit User Profile
+                  </button>
+                )}
+              </div>
+              <SearchableSelect
+                options={companyUsers
+                  .sort((a, b) => a.firstName.localeCompare(b.firstName))
+                  .map((u) => ({
+                    value: u._id,
+                    label: `${u.firstName} ${u.lastName} (${u.role || 'No Role'})`,
+                  }))}
+                value={formData.contactUserId}
+                onValueChange={(value) => {
+                  const selectedUser = companyUsers.find((u) => u._id === value);
+                  setFormData((prev) => ({
+                    ...prev,
+                    contactUserId: value,
+                    contactPerson: selectedUser ? `${selectedUser.firstName} ${selectedUser.lastName}` : "",
+                    contactEmail: selectedUser?.email || "",
+                    contactPhone: selectedUser?.phone || "",
+                  }));
+                }}
+                placeholder="-- Select Lead --"
+                className="w-full bg-white"
+              />
+              <p className="mt-2 text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-relaxed">
+                {formData.contactUserId 
+                  ? "This user will be designated as the primary point of contact for this unit."
+                  : "Associate an existing user account to receive administrative notifications."}
+              </p>
+            </div>
 
             <div className="pt-2 space-y-4">
               <div className="flex items-center gap-2 mb-2">

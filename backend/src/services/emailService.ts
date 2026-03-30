@@ -5,6 +5,7 @@ import { logger } from '../config/logger';
 import CompanyEmailConfig from '../models/CompanyEmailConfig';
 import CompanyEmailTemplate from '../models/CompanyEmailTemplate';
 import CompanyWhatsAppTemplate from '../models/CompanyWhatsAppTemplate';
+import { DEFAULT_WA_MESSAGES } from '../constants/whatsappTemplates';
 
 /**
  * Reusable SMTP transporter from env (singleton, fallback)
@@ -499,12 +500,20 @@ export async function getNotificationWhatsAppMessage(
     });
     
     if (template && template.message && template.message.trim()) {
-      logger.info(`✅ Found WhatsApp template for key: ${key}`);
+      logger.info(`✅ Found custom WhatsApp template in DB for key: ${key}`);
       return replacePlaceholders(template.message.trim(), data);
     }
   }
 
-  logger.warn(`⚠️ No active WhatsApp template found for keys: ${attemptKeys.join(', ')}`);
+  // Fallback to system defaults if no custom template was found
+  for (const key of attemptKeys) {
+    if (DEFAULT_WA_MESSAGES[key]) {
+      logger.info(`✅ Using System Default WhatsApp template for key: ${key}`);
+      return replacePlaceholders(DEFAULT_WA_MESSAGES[key], data);
+    }
+  }
+
+  logger.warn(`⚠️ No WhatsApp template found (Database or Default) for keys: ${attemptKeys.join(', ')}`);
   return null;
 }
 

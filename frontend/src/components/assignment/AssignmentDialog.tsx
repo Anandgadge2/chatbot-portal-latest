@@ -7,6 +7,7 @@ import { UserCircle, Building2, Search, Loader2, UserCheck, Mail, Shield, Chevro
 import toast from 'react-hot-toast';
 import LoadingSpinner from '../ui/LoadingSpinner';
 import { useAuth } from '@/contexts/AuthContext';
+import { SearchableSelect } from '../ui/SearchableSelect';
 
 interface AssignmentDialogProps {
   isOpen: boolean;
@@ -350,9 +351,11 @@ export default function AssignmentDialog({
     const query = searchQuery.toLowerCase();
     return filtered.filter(user => {
       const fullName = `${user.firstName} ${user.lastName}`.toLowerCase();
+      const emailVal = (user.email || "").toLowerCase();
+      const userIdVal = (user.userId || "").toLowerCase();
       return fullName.includes(query) || 
-             user.email.toLowerCase().includes(query) ||
-             user.userId.toLowerCase().includes(query);
+             emailVal.includes(query) ||
+             userIdVal.includes(query);
     });
   }, [users, searchQuery, currentUserId]);
 
@@ -437,25 +440,16 @@ export default function AssignmentDialog({
                 </label>
                 <div className="relative group">
                   <Building2 className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4 group-focus-within:text-indigo-500 transition-colors" />
-                  <select
+                  <SearchableSelect
+                    options={visibleTopDepts.map(d => ({ value: d._id, label: d.name }))}
                     value={selectedDepartment}
-                    onChange={(e) => {
-                      setSelectedDepartment(e.target.value);
-                      setSelectedSubDepartment('');
+                    onValueChange={(value) => {
+                        setSelectedDepartment(value);
+                        setSelectedSubDepartment('');
                     }}
-                    className="w-full pl-11 pr-10 py-3 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm transition-all bg-white shadow-sm appearance-none cursor-pointer font-bold disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-slate-50"
+                    placeholder={loadingDepts ? 'Loading...' : 'Select Department'}
                     disabled={isDeptLocked || loadingDepts}
-                  >
-                    <option value="" disabled>
-                      {loadingDepts ? 'Loading...' : 'Select Department'}
-                    </option>
-                    {visibleTopDepts.map((dept) => (
-                      <option key={dept._id} value={dept._id}>
-                        {dept.name}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronRight className="absolute right-4 top-1/2 transform -translate-y-1/2 rotate-90 text-slate-400 w-4 h-4 pointer-events-none" />
+                  />
                 </div>
               </div>
 
@@ -470,26 +464,17 @@ export default function AssignmentDialog({
                 </label>
                 <div className="relative group">
                   <Layers className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4 group-focus-within:text-purple-500 transition-colors" />
-                  <select
+                  <SearchableSelect
+                    options={visibleSubDepts.map(d => ({ value: d._id, label: d.name }))}
                     value={selectedSubDepartment}
-                    onChange={(e) => setSelectedSubDepartment(e.target.value)}
-                    className="w-full pl-11 pr-10 py-3 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm transition-all bg-white shadow-sm appearance-none cursor-pointer font-bold disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-50"
-                    disabled={!selectedDepartment || !hasSubDepts}
-                  >
-                    <option value="">
-                      {!selectedDepartment 
+                    onValueChange={(value) => setSelectedSubDepartment(value)}
+                    placeholder={!selectedDepartment 
                         ? 'Select dept. first' 
                         : !hasSubDepts 
                           ? 'No sub-departments' 
                           : 'All (show dept. users)'}
-                    </option>
-                    {visibleSubDepts.map((dept) => (
-                      <option key={dept._id} value={dept._id}>
-                        {dept.name}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronRight className="absolute right-4 top-1/2 transform -translate-y-1/2 rotate-90 text-slate-400 w-4 h-4 pointer-events-none" />
+                    disabled={!selectedDepartment || !hasSubDepts}
+                  />
                 </div>
               </div>
             </div>

@@ -996,6 +996,11 @@ function SuperAdminDashboardContent() {
             setEditingDepartment(null);
           }}
           editingDepartment={editingDepartment}
+          onEditUser={(u) => {
+            setEditingUser(u);
+            setShowUserDialog(true);
+            setShowDepartmentDialog(false);
+          }}
         />
         <ConfirmDialog
           isOpen={confirmDialog.isOpen}

@@ -4,6 +4,8 @@ import Grievance from '../models/Grievance';
 import Appointment from '../models/Appointment';
 import Department from '../models/Department';
 import User from '../models/User';
+import { getDepartmentHierarchyIds } from '../utils/departmentUtils';
+
 import { Permission, UserRole, GrievanceStatus, AppointmentStatus, Module } from '../config/constants';
 
 const getAnalyticsBaseQuery = async (req: any, companyId?: any, departmentId?: any) => {
@@ -31,7 +33,7 @@ const getAnalyticsBaseQuery = async (req: any, companyId?: any, departmentId?: a
   } else {
     query.companyId = currentUser.companyId;
 
-    if (currentUser.departmentId) {
+    if (currentUser.departmentId || (currentUser.departmentIds && currentUser.departmentIds.length > 0)) {
       const normalizedRole = (currentUser.role || '').toUpperCase().trim();
       const userLevel = currentUser.level !== undefined ? currentUser.level : (
         normalizedRole === 'SUPER_ADMIN' || normalizedRole === 'SUPER ADMIN' ? 0 :
@@ -43,25 +45,19 @@ const getAnalyticsBaseQuery = async (req: any, companyId?: any, departmentId?: a
 
       if (userLevel >= 4) {
         query.assignedTo = currentUser._id;
-      } else if (userLevel === 2) {
-        // 🏢 HIERARCHICAL: Dept Admin should see their department AND all sub-departments
-        const subDeptIds = await Department.find({ 
-          parentDepartmentId: currentUser.departmentId 
-        }).distinct('_id');
-        
-        query.$or = [
-          { departmentId: currentUser.departmentId },
-          { subDepartmentId: currentUser.departmentId },
-          { subDepartmentId: { $in: subDeptIds } }
-        ];
       } else {
-        // Platform or Sub-Dept Admin: See only assigned department/sub-department
-        query.$or = [
-          { departmentId: currentUser.departmentId },
-          { subDepartmentId: currentUser.departmentId }
-        ];
+        // 🏢 HIERARCHICAL: Dept Admins should see their department(s) AND ALL recurring sub-units
+        const parentIds = currentUser.departmentIds && currentUser.departmentIds.length > 0 
+          ? currentUser.departmentIds.map((id: any) => id.toString())
+          : [currentUser.departmentId.toString()];
+        
+        const allDeptIds = await getDepartmentHierarchyIds(parentIds);
+        
+        query.departmentId = { $in: allDeptIds };
       }
+
     } else if (departmentId) {
+
       const deptId = new mongoose.Types.ObjectId(departmentId.toString());
       const subDeptIds = await Department.find({ 
         parentDepartmentId: deptId 
@@ -167,19 +163,32 @@ export const dashboard = async (req: Request, res: Response) => {
       Grievance.countDocuments({ ...baseQuery, slaBreached: true }),
       Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.ASSIGNED }),
       
-      // Counts (Super Admin or those without a specific departmentId)
-      Department.countDocuments({ companyId: currentUser.companyId || (companyId || { $exists: true }) }),
+      // Counts (Scoped to authorized departments for restricted admins)
+      Department.countDocuments({ 
+        companyId: targetCompanyId,
+        ...(baseQuery.departmentId ? { _id: baseQuery.departmentId } : {})
+      }),
         
-      User.countDocuments({ companyId: currentUser.companyId || (companyId || { $exists: true }) }),
+      User.countDocuments({ 
+        companyId: targetCompanyId,
+        ...(baseQuery.departmentId ? { 
+          $or: [
+            { departmentId: baseQuery.departmentId },
+            { departmentIds: baseQuery.departmentId }
+          ]
+        } : {})
+      }),
 
-      // Hierarchical Dept Counts
+      // Hierarchical Dept Counts (Scoped)
       isHierarchicalEnabled ? Department.countDocuments({ 
         companyId: targetCompanyId, 
+        ...(baseQuery.departmentId ? { _id: baseQuery.departmentId } : {}),
         $or: [{ parentDepartmentId: null }, { parentDepartmentId: { $exists: false } }] 
       }) : Promise.resolve(0),
       
       isHierarchicalEnabled ? Department.countDocuments({ 
         companyId: targetCompanyId, 
+        ...(baseQuery.departmentId ? { _id: baseQuery.departmentId } : {}),
         parentDepartmentId: { $ne: null } 
       }) : Promise.resolve(0),
 
@@ -329,6 +338,20 @@ export const dashboard = async (req: Request, res: Response) => {
       { $sort: { count: -1 } }
     ]);
 
+    // Grievances by department (for per-card stats in multi-tenant view)
+    const grievancesByDept = await Grievance.aggregate([
+      { $match: { ...baseQuery } },
+      {
+        $group: {
+          _id: '$departmentId',
+          total: { $sum: 1 },
+          pending: {
+            $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.PENDING] }, 1, 0] }
+          }
+        }
+      }
+    ]);
+
     res.json({
       success: true,
       data: {
@@ -346,7 +369,12 @@ export const dashboard = async (req: Request, res: Response) => {
           avgResolutionDays: avgResolutionTime.length > 0 ? parseFloat(avgResolutionTime[0].avgDays.toFixed(1)) : 0,
           byPriority: grievancesByPriority.map(g => ({ priority: g._id || 'MEDIUM', count: g.count })),
           daily: dailyGrievances.map(d => ({ date: d._id, count: d.count })),
-          monthly: monthlyGrievances.map(m => ({ month: m._id, count: m.count, resolved: m.resolved }))
+          monthly: monthlyGrievances.map(m => ({ month: m._id, count: m.count, resolved: m.resolved })),
+          byDepartment: grievancesByDept.map(d => ({
+            departmentId: d._id,
+            total: d.total,
+            pending: d.pending
+          }))
         },
         appointments: {
           total: totalAppointments,

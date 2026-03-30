@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import { SearchableSelect } from "@/components/ui/SearchableSelect";
 
 interface UserManagementTabProps {
   companyId?: string;
@@ -108,11 +109,13 @@ export default function UserManagementTab({ companyId: propCompanyId }: UserMana
   }, [fetchUsers, fetchCustomRoles]);
 
   const filteredUsers = useMemo(() => {
-    return users.filter(u => 
-      u.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.userId.toLowerCase().includes(searchTerm.toLowerCase())
+    const normalizedSearch = searchTerm.toLowerCase();
+
+    return users.filter((u) =>
+      u.firstName.toLowerCase().includes(normalizedSearch) ||
+      u.lastName.toLowerCase().includes(normalizedSearch) ||
+      (u.email ?? "").toLowerCase().includes(normalizedSearch) ||
+      (u.userId ?? "").toLowerCase().includes(normalizedSearch),
     );
   }, [users, searchTerm]);
 
@@ -160,18 +163,17 @@ export default function UserManagementTab({ companyId: propCompanyId }: UserMana
                 />
               </div>
               <div className="flex items-center gap-3">
-                <select 
-                  className="h-10 px-4 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500/10 transition-all cursor-pointer appearance-none relative" 
-                  value={roleFilter} 
-                  onChange={(e) => setRoleFilter(e.target.value)}
-                  style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'currentColor\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'/%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '0.75rem' }}
-                >
-                  <option value="">All Tiers</option>
-                  {customRoles.map(r => (
-                    <option key={r._id} value={r._id}>{r.name}</option>
-                  ))}
-                  {currentUser?.role === 'SUPER_ADMIN' && !effectiveCompanyId && <option value="SUPER_ADMIN">System Core (SA)</option>}
-                </select>
+                <SearchableSelect
+                  options={[
+                    { value: "", label: "All Tiers" },
+                    ...customRoles.map(r => ({ value: r._id, label: r.name })),
+                    ...(currentUser?.role === 'SUPER_ADMIN' && !effectiveCompanyId ? [{ value: "SUPER_ADMIN", label: "System Core (SA)" }] : [])
+                  ]}
+                  value={roleFilter}
+                  onValueChange={(value) => setRoleFilter(value)}
+                  placeholder="Filter by Role"
+                  className="min-w-[180px]"
+                />
                 <Button variant="outline" className="rounded-xl font-bold uppercase tracking-widest text-[9px] shadow-sm bg-white border-slate-200 hover:bg-slate-50">
                   <Key className="w-3.5 h-3.5 mr-2" />
                   Security Protocols
@@ -205,14 +207,27 @@ export default function UserManagementTab({ companyId: propCompanyId }: UserMana
                               </div>
                             </div>
                             <div className="flex flex-col justify-center">
-                              <span className="text-sm font-black text-slate-900 uppercase tracking-tight leading-none mb-1.5 group-hover:text-indigo-600 transition-colors">
-                                {u.firstName} {u.lastName}
-                              </span>
-                              <div className="flex items-center gap-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                                <span className="text-slate-400">ID: {u.userId}</span>
-                                <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
-                                <span className="flex items-center gap-1"><Mail className="w-2.5 h-2.5" /> {u.email}</span>
-                              </div>
+                                <span className="text-sm font-black text-slate-900 uppercase tracking-tight leading-none mb-1.5 group-hover:text-indigo-600 transition-colors">
+                                  {u.firstName} {u.lastName}
+                                </span>
+                                <div className="mt-1 flex flex-wrap gap-1">
+                                  {(() => {
+                                    const allDesigs = Array.from(new Set([
+                                      ...((u as any).designation ? [(u as any).designation] : []),
+                                      ...((u as any).designations || [])
+                                    ]));
+                                    
+                                    return allDesigs.map((d, i) => (
+                                      <span key={i} className="text-[9px] font-bold text-indigo-600 bg-indigo-50/80 px-2 py-0.5 rounded-md border border-indigo-100/50 uppercase tracking-wider w-fit shadow-sm">
+                                        {d}
+                                      </span>
+                                    ));
+                                  })()}
+                                  <span className="text-[8px] font-black bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded border border-slate-200 uppercase tracking-widest w-fit">
+                                    ID: {u.userId}
+                                  </span>
+                                  <span className="flex items-center gap-1 text-[8px] font-black text-slate-400 uppercase tracking-widest border border-slate-200 bg-slate-50 px-1.5 py-0.5 rounded whitespace-nowrap"><Mail className="w-2 h-2" /> {u.email}</span>
+                                </div>
                             </div>
                           </div>
                         </td>

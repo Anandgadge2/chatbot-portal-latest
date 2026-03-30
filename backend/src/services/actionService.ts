@@ -13,6 +13,7 @@ import {
   notifyCitizenOnAppointmentStatusChange,
   getHierarchicalDepartmentAdmins
 } from './notificationService';
+import { findOptimalAdmin } from '../utils/userUtils';
 import { GrievanceStatus, AppointmentStatus, UserRole } from '../config/constants';
 import { updateSession } from './sessionService';
 import { ForestService } from './forestService';
@@ -212,8 +213,9 @@ export class ActionService {
         const targetDeptId = session.data.subDepartmentId || departmentId;
         if (targetDeptId) {
           const potentialAdmins = await getHierarchicalDepartmentAdmins(targetDeptId);
-          if (potentialAdmins && potentialAdmins.length > 0) {
-            const targetAdmin = potentialAdmins[0]; // Pick the primary/level-specific admin
+          const targetAdmin = findOptimalAdmin(potentialAdmins);
+          
+          if (targetAdmin) {
             grievance.assignedTo = targetAdmin._id;
             grievance.status = GrievanceStatus.ASSIGNED;
             await grievance.save();
@@ -348,8 +350,9 @@ export class ActionService {
       // ✅ AUTO-ASSIGNMENT for Appointment
       if (appointment.departmentId) {
         const potentialAdmins = await getHierarchicalDepartmentAdmins(appointment.departmentId);
-        if (potentialAdmins && potentialAdmins.length > 0) {
-          const targetAdmin = potentialAdmins[0];
+        const targetAdmin = findOptimalAdmin(potentialAdmins);
+        
+        if (targetAdmin) {
           appointment.assignedTo = targetAdmin._id;
           await appointment.save();
         }

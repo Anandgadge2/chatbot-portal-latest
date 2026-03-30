@@ -4,6 +4,7 @@ import Appointment from '../models/Appointment';
 import { authenticate } from '../middleware/auth';
 import { requirePermission } from '../middleware/rbac';
 import { requireDatabaseConnection } from '../middleware/dbConnection';
+import { buildNameSearchQuery, escapeRegExp } from '../utils/searchUtils';
 import { logUserAction } from '../utils/auditLogger';
 import { AuditAction, Permission, UserRole, AppointmentStatus } from '../config/constants';
 
@@ -18,56 +19,79 @@ router.use(authenticate);
 // @access  Private
 router.get('/', requirePermission(Permission.READ_APPOINTMENT), async (req: Request, res: Response) => {
   try {
-    const { page = 1, limit = 20, status, companyId, departmentId, assignedTo, date } = req.query;
+    const { page = 1, limit = 20, status, companyId, departmentId, assignedTo, date, search } = req.query;
     const currentUser = req.user!;
 
     const query: any = {};
-
-    // Determine target companyId for scoping
     const targetCompanyId = (currentUser.role === UserRole.SUPER_ADMIN && companyId) ? companyId : currentUser.companyId;
 
-    // Strict multi-tenant scoping
     if (targetCompanyId) {
       query.companyId = targetCompanyId;
-      
-      // Additional scoping for department-level users
       if (currentUser.departmentId && currentUser.role !== UserRole.SUPER_ADMIN) {
-        // Dynamic check: Users without status change permission (like basic Operators) only see their own items
         const canManage = req.checkPermission(Permission.STATUS_CHANGE_APPOINTMENT);
         if (!canManage) {
           query.assignedTo = currentUser._id;
         } else {
-          query.departmentId = currentUser.departmentId;
+          // Hierarchical scoping: include all sub-departments
+          const { getDepartmentHierarchyIds } = await import('../utils/departmentUtils');
+          const deptIds = await getDepartmentHierarchyIds(currentUser.departmentId.toString());
+          query.departmentId = { $in: deptIds };
         }
+      } else if (departmentId) {
+        // Even Company Admins or Super Admins in drilldown can filter by department
+        const { getDepartmentHierarchyIds } = await import('../utils/departmentUtils');
+        const deptIds = await getDepartmentHierarchyIds(departmentId as string);
+        query.departmentId = { $in: deptIds };
       }
     } else if (currentUser.role !== UserRole.SUPER_ADMIN) {
-      // Safety check: Non-SuperAdmins MUST have a companyId
-      return res.status(403).json({
-        success: false,
-        message: 'Unauthorized: User missing company assignment'
-      });
+      return res.status(403).json({ success: false, message: 'Unauthorized' });
     }
-    // If Super Admin and NO targetCompanyId, query remains empty (sees everything)
 
-    // Apply filters
     if (status) query.status = status;
-    // Note: departmentId filter removed - appointments are CEO-only (no department)
-    // For Company Admin, show all appointments including CEO appointments (null departmentId)
-    // MongoDB query will return appointments with null/undefined departmentId automatically
     if (assignedTo) {
-      if (assignedTo === 'NONE') {
-        query.assignedTo = null;
-      } else if (assignedTo === 'ANY') {
-        query.assignedTo = { $ne: null };
-      } else {
-        query.assignedTo = assignedTo;
-      }
+      if (assignedTo === 'NONE') query.assignedTo = null;
+      else if (assignedTo === 'ANY') query.assignedTo = { $ne: null };
+      else query.assignedTo = assignedTo;
     }
     if (date) {
       const startDate = new Date(date as string);
       const endDate = new Date(startDate);
       endDate.setDate(endDate.getDate() + 1);
       query.appointmentDate = { $gte: startDate, $lt: endDate };
+    }
+
+    // 🔍 SEARCH LOGIC
+    if (search) {
+      const escapedSearch = escapeRegExp(search as string);
+      const searchCriteria: any[] = [
+        { appointmentId: { $regex: escapedSearch, $options: 'i' } },
+        { citizenPhone: { $regex: escapedSearch, $options: 'i' } },
+        { citizenWhatsApp: { $regex: escapedSearch, $options: 'i' } },
+        { purpose: { $regex: escapedSearch, $options: 'i' } },
+        { location: { $regex: escapedSearch, $options: 'i' } },
+        ...buildNameSearchQuery(search as string, 'citizenName', 'citizenName')
+      ];
+
+      // Relational Search: Department Name
+      const Department = (await import('../models/Department')).default;
+      const matchingDepts = await Department.find({
+        companyId: targetCompanyId || { $exists: true },
+        name: { $regex: escapedSearch, $options: 'i' }
+      }).select('_id');
+      if (matchingDepts.length > 0) {
+        searchCriteria.push({ departmentId: { $in: matchingDepts.map(d => d._id) } });
+      }
+
+      // Relational Search: Assigned Officer Name
+      const matchingUsers = await User.find({
+        companyId: targetCompanyId || { $exists: true },
+        $or: buildNameSearchQuery(search as string, 'firstName', 'lastName')
+      }).select('_id');
+      if (matchingUsers.length > 0) {
+        searchCriteria.push({ assignedTo: { $in: matchingUsers.map(u => u._id) } });
+      }
+
+      query.$or = searchCriteria;
     }
 
     // List appointments

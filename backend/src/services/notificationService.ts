@@ -478,19 +478,28 @@ export async function getHierarchicalDepartmentAdmins(departmentId: any): Promis
       const adminRoleNames = adminRoles.map(r => r.name);
 
       // 🔍 2. Build Query for Admins at this level
-      // We use $in with both ObjectId and String to handle data type inconsistencies
+      // We use $and to ensure the user MUST belong to the department AND have an admin role
       const adminQuery: any = {
         companyId: dept.companyId,
         isActive: true,
-        $or: [
-          // Match by department link
-          { departmentId: new mongoose.Types.ObjectId(currentIdStr) },
-          { departmentId: currentIdStr },
-          // Match by role names / ids
-          { customRoleId: { $in: adminRoleIds } },
-          { role: { $in: adminRoleNames } },
-          // Hardcoded fallbacks for standard name patterns
-          { role: { $regex: /^(SUB[- _]?)?DEPARTMENT[- _]?(ADMIN|ADMINISTRATOR)|COMPANY[- _]?(ADMIN|ADMINISTRATOR)|ADMIN|HEAD|MANAGER|SUPERVISOR|OFFICER$/i } }
+        $and: [
+          // Part A: User must be specifically assigned to this department
+          {
+            $or: [
+              { departmentId: new mongoose.Types.ObjectId(currentIdStr) },
+              { departmentId: currentIdStr },
+              { departmentIds: { $in: [new mongoose.Types.ObjectId(currentIdStr), currentIdStr] } }
+            ]
+          },
+          // Part B: User must have an admin-level role or permission
+          {
+            $or: [
+              { customRoleId: { $in: adminRoleIds } },
+              { role: { $in: adminRoleNames } },
+              // Hardcoded fallbacks for standard name patterns
+              { role: { $regex: /^(SUB[- _]?)?DEPARTMENT[- _]?(ADMIN|ADMINISTRATOR)|COMPANY[- _]?(ADMIN|ADMINISTRATOR)|ADMIN|HEAD|MANAGER|SUPERVISOR|OFFICER$/i } }
+            ]
+          }
         ]
       };
 
@@ -620,29 +629,10 @@ export async function notifyDepartmentAdminOnCreation(
           const whatsappTask = (async () => {
             const fullData = await populateNotificationData(notificationData);
             let message = await getNotificationWhatsAppMessage(companyId, data.type, 'created_admin', fullData);
+            
             if (!message) {
-              const typeLabel = data.type === 'grievance' ? 'GRIEVANCE' : 'APPOINTMENT';
-              const categoryText = fullData.category ? `\n📂 *Category:* ${fullData.category}\n` : '';
-              const deptLine = fullData.subDepartmentName && fullData.subDepartmentName !== 'N/A'
-                ? `🏢 *Department:* ${fullData.departmentName}\n🏢 *Sub-Dept:* ${fullData.subDepartmentName}`
-                : `🏢 *Department:* ${fullData.departmentName}`;
-
-              message =
-                `*${fullData.companyName}*\n` +
-                `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-                `📋 *NEW ${typeLabel} RECEIVED*\n\n` +
-                `Respected ${fullData.recipientName},\n\n` +
-                `Details:\n` +
-                `🎫 *Reference ID:* ${fullData.grievanceId || fullData.appointmentId}\n` +
-                `👤 *Citizen Name:* ${fullData.citizenName}\n` +
-                `📞 *Contact Number:* ${fullData.citizenPhone}\n` +
-                `${deptLine}\n` +
-                `📝 *Description:*\n${fullData.description || fullData.purpose || ''}${categoryText}` +
-                `\n📅 *Received On:* ${fullData.formattedDate}\n\n` +
-                `*Action Required:*\n` +
-                `Please review this ${data.type} promptly. Resolution should be provided as per SLA.\n\n` +
-                `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-                `Digital System`;
+              logger.error(`❌ Still no message found for ${data.type}_created_admin even with defaults.`);
+              return;
             }
             await safeSendWhatsApp(company, user.phone, message, {
               title: 'Access Dashboard',
@@ -678,7 +668,7 @@ export async function notifyUserOnAssignment(
     const company = await getCompanyWithWhatsAppConfig(data.companyId);
     if (!company) return;
 
-    const user = await User.findById(data.assignedTo);
+    const user = await User.findById(data.assignedTo).populate('customRoleId');
     if (!user) return;
 
     const fullData = await populateNotificationData({
@@ -699,27 +689,10 @@ export async function notifyUserOnAssignment(
     // 📱 WhatsApp — use DB template first, then fallback
     if (canNotify(company, user, 'whatsapp')) {
       let message = await getNotificationWhatsAppMessage(data.companyId, data.type, 'assigned_admin', fullData);
+      
       if (!message) {
-        const typeLabel = data.type === 'grievance' ? 'GRIEVANCE' : 'APPOINTMENT';
-        const deptLine = fullData.subDepartmentName && fullData.subDepartmentName !== 'N/A'
-          ? `🏢 *Department:* ${fullData.departmentName}\n🏢 *Sub-Dept:* ${fullData.subDepartmentName}`
-          : `🏢 *Department:* ${fullData.departmentName}`;
-
-        message =
-          `*${fullData.companyName}*\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-          `👤 *${typeLabel} ASSIGNED TO YOU*\n\n` +
-          `Respected ${fullData.recipientName},\n\n` +
-          `Details:\n` +
-          `🎫 *Reference ID:* ${fullData.grievanceId || fullData.appointmentId}\n` +
-          `👤 *Citizen:* ${fullData.citizenName}\n` +
-          `${deptLine}\n` +
-          `📝 *Description:*\n${fullData.description || fullData.purpose || ''}\n\n` +
-          `👨‍💼 *Assigned By:* ${fullData.assignedByName}\n` +
-          `📅 *Assigned On:* ${fullData.formattedDate}\n\n` +
-          `Please investigate and take required action.\n\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-          `Digital System`;
+        logger.error(`❌ Still no message found for ${data.type}_assigned_admin even with defaults.`);
+        return;
       }
       await safeSendWhatsApp(company, user.phone, message, {
         title: 'Access Dashboard',
@@ -772,35 +745,10 @@ export async function notifyCitizenOnResolution(
 
     // 📱 WhatsApp — use DB template first, then fallback
     let message = await getNotificationWhatsAppMessage(data.companyId, data.type, 'resolved', fullData);
+    
     if (!message) {
-      const typeLabel = data.type === 'grievance' ? 'GRIEVANCE' : 'APPOINTMENT';
-      const deptLine = fullData.subDepartmentName && fullData.subDepartmentName !== 'N/A'
-        ? `🏢 *Department:* ${fullData.departmentName}\n🏢 *Sub-Dept:* ${fullData.subDepartmentName}`
-        : `🏢 *Department:* ${fullData.departmentName}`;
-      const remarksText = data.remarks ? `\n\n*Officer's Resolution Remarks:*\n${data.remarks}\n` : '';
-      const evidenceText = data.evidenceUrls && data.evidenceUrls.length > 0
-        ? `\n\n📎 *Support Documents (tap to open):*\n${data.evidenceUrls.map((u, i) => `📄 Download Document ${i + 1}: ${u}`).join('\n')}\n`
-        : '';
-      const resolutionTimeLine = fullData.resolutionTimeText ? `\n⏱️ *Resolution Time:* ${fullData.resolutionTimeText}` : '';
-
-      message =
-        `*${fullData.companyName}*\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-        `✅ *YOUR ${typeLabel} HAS BEEN RESOLVED*\n\n` +
-        `Respected ${fullData.citizenName},\n\n` +
-        `This is to inform you that your ${data.type} has been successfully resolved. We appreciate your patience.\n\n` +
-        `*Resolution Details:*\n` +
-        `🎫 *Reference ID:* ${fullData.grievanceId || fullData.appointmentId}\n` +
-        `${deptLine}\n` +
-        `📅 *Submitted On:* ${fullData.formattedDate}\n` +
-        `📊 *Status:* RESOLVED\n` +
-        `👨‍💼 *Resolved By:* ${fullData.resolvedByName}\n` +
-        `📅 *Resolved On:* ${fullData.formattedResolvedDate}${resolutionTimeLine}${remarksText}${evidenceText}\n\n` +
-        `Thank you for using our digital portal.\n\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `*${fullData.companyName}*\n` +
-        `Digital Grievance Redressal System\n` +
-        `This is an automated notification.`;
+      logger.error(`❌ Still no message found for ${data.type}_resolved even with defaults.`);
+      return;
     }
     await safeSendWhatsApp(company, data.citizenWhatsApp || data.citizenPhone, message);
     if (data.evidenceUrls && data.evidenceUrls.length > 0) {
@@ -848,21 +796,8 @@ export async function notifyCitizenOnCreation(
     let message = await getNotificationWhatsAppMessage(data.companyId, data.type, actionKey, fullData);
 
     if (!message) {
-      // ✅ Fallback to Premium Jharsuguda Style
-      message =
-        `*${fullData.companyName}*\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `✅ *${typeLabel} SUBMITTED*\n\n` +
-        `Respected ${fullData.citizenName},\n\n` +
-        `Thank you for reaching out. Your ${data.type} has been successfully registered.\n\n` +
-        `*Details:*\n` +
-        `🎫 *${idLabel}:* ${refId}\n` +
-        `🏢 *Department:* ${fullData.departmentName}\n` +
-        `📅 *Submitted On:* ${fullData.formattedDate}\n\n` +
-        `Please keep your Reference ID *${refId}* for future tracking.\n\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `*${fullData.companyName}*\n` +
-        `Digital Portal`;
+      logger.error(`❌ Still no message found for ${data.type}_confirmation even with defaults.`);
+      return;
     }
 
     await safeSendWhatsApp(company, data.citizenWhatsApp || data.citizenPhone, message);
@@ -915,30 +850,8 @@ export async function notifyCitizenOnGrievanceStatusChange(data: {
     }
 
     if (!message) {
-      // Premium Fallback with "Submitted On"
-      const statusLabel = data.newStatus.charAt(0) + data.newStatus.slice(1).toLowerCase();
-      const title = data.newStatus === 'RESOLVED' ? '✅ GRIEVANCE RESOLVED' : '🔄 GRIEVANCE STATUS UPDATE';
-      const intro = data.newStatus === 'RESOLVED' 
-        ? 'Great news! Your grievance has been successfully resolved.'
-        : `We would like to inform you that the status of your grievance has been updated to *${statusLabel}*.`;
-
-      const subDeptLine = fullData.subDepartmentName && fullData.subDepartmentName !== 'N/A' ? ` / ${fullData.subDepartmentName}` : '';
-      const remarksText = data.remarks ? `\n\n📝 *Remarks:* ${data.remarks}` : '';
-
-      message =
-        `*${company.name}*\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-        `📋 *${title}*\n\n` +
-        `Respected ${data.citizenName},\n\n` +
-        `${intro}\n\n` +
-        `*Details:*\n` +
-        `🎫 *Ref No:* \`${data.grievanceId}\`\n` +
-        `🏢 *Department:* ${fullData.departmentName}${subDeptLine}\n` +
-        `📅 *Submitted On:* ${fullData.formattedDate}\n` +
-        `📊 *Status:* ${statusLabel}${remarksText}\n\n` +
-        `You will receive further updates via WhatsApp.\n\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `*${company.name}*`;
+      logger.error(`❌ Still no message found for grievance status update even with defaults.`);
+      return;
     }
 
     await safeSendWhatsApp(company, data.citizenWhatsApp || data.citizenPhone, message);
@@ -1076,37 +989,8 @@ export async function notifyHierarchyOnStatusChange(
         }
 
         if (!hierarchyMessage) {
-          const typeLabel = data.type === 'grievance' ? 'GRIEVANCE' : 'APPOINTMENT';
-          // Only show sub-dept if it's meaningful
-          const hasSubDept = userFullData.subDepartmentName && 
-                            userFullData.subDepartmentName !== 'N/A' && 
-                            userFullData.subDepartmentName !== '' && 
-                            userFullData.subDepartmentName !== 'null';
-
-          const deptLine = hasSubDept
-            ? `🏢 *Department:* ${userFullData.departmentName}\n🏢 *Sub-Dept:* ${userFullData.subDepartmentName}`
-            : `🏢 *Department:* ${userFullData.departmentName}`;
-          
-          const remarksText = data.remarks ? `\n\n*Officer's Remarks:*\n${data.remarks}` : '';
-          const resolutionTimeLine = userFullData.resolutionTimeText ? `\n⏱️ *Resolution Time:* ${userFullData.resolutionTimeText}` : '';
-          const evidenceText = data.evidenceUrls && data.evidenceUrls.length > 0
-            ? `\n\n📎 *Support Documents (tap to open):*\n${data.evidenceUrls.map((u: string, i: number) => `📄 Download Document ${i + 1}: ${u}`).join('\n')}`
-            : '';
-
-          hierarchyMessage =
-            `*${userFullData.companyName}*\n` +
-            `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-            `📊 *STATUS UPDATE - ${typeLabel} ${newStatus}*\n\n` +
-            `Sir/Madam,\n\n` +
-            `The following ${data.type} status has been updated.\n\n` +
-            `🎫 *ID:* ${userFullData.grievanceId || userFullData.appointmentId}\n` +
-            `👤 *Citizen:* ${userFullData.citizenName}\n` +
-            `${deptLine}\n` +
-            `📊 *Status Change:* ${oldStatus} → ${newStatus}\n` +
-            `👨‍💼 *Updated By:* ${userFullData.resolvedByName || 'Administrator'}\n` +
-            `📅 *Updated On:* ${userFullData.formattedResolvedDate || userFullData.formattedDate}${resolutionTimeLine}${remarksText}${evidenceText}\n\n` +
-            `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-            `Digital System`;
+          logger.error(`❌ Still no message found for hierarchy status update even with defaults.`);
+          return; // Skip this user
         }
 
         const tasks: Promise<any>[] = [];
@@ -1115,14 +999,14 @@ export async function notifyHierarchyOnStatusChange(
         const userPhoneNormalized = user.phone?.replace(/\D/g, '');
         const isCitizenPhone = userPhoneNormalized && userPhoneNormalized === citizenPhoneNormalized;
 
-        if (!userPhoneNormalized) {
+        if (!userPhoneNormalized || !user.phone) {
           logger.warn(`⚠️ Hierarchy admin ${user.email} (${user.getFullName()}) has NO phone number — skipping WhatsApp, will try email.`);
         } else if (isCitizenPhone) {
           logger.warn(`⚠️ Skipping WhatsApp for ${user.email} — phone matches citizen's phone (avoiding duplicate).`);
         } else if (canNotify(company, user, 'whatsapp')) {
-          tasks.push(safeSendWhatsApp(company, user.phone, hierarchyMessage, ctaButton));
+          tasks.push(safeSendWhatsApp(company, user.phone as string, hierarchyMessage, ctaButton));
           if (data.evidenceUrls && data.evidenceUrls.length > 0) {
-            tasks.push(sendMediaIfAvailable(company, user.phone, data.evidenceUrls, `Hierarchy Update: ${userFullData.grievanceId || userFullData.appointmentId}`));
+            tasks.push(sendMediaIfAvailable(company, user.phone as string, data.evidenceUrls, `Hierarchy Update: ${userFullData.grievanceId || userFullData.appointmentId}`));
           }
         }
 
@@ -1203,33 +1087,8 @@ export async function notifyCitizenOnAppointmentStatusChange(data: {
     }
 
     if (!message) {
-      // Fallback
-      const statusLabel = data.newStatus.charAt(0) + data.newStatus.slice(1).toLowerCase();
-      const title = data.newStatus === 'CONFIRMED' ? '✅ APPOINTMENT CONFIRMED' : '📅 APPOINTMENT STATUS UPDATE';
-      const intro = data.newStatus === 'CONFIRMED'
-        ? 'Your appointment request has been reviewed and confirmed. Please find the updated schedule below.'
-        : `Your appointment request status has been updated to *${statusLabel}*.`;
-
-      const dateStr = fullData.formattedAppointmentDate || 'TBD';
-      const timeStr = fullData.formattedAppointmentTime || data.appointmentTime || 'TBD';
-      const remarksText = data.remarks ? `\n📝 *Remarks:* ${data.remarks}` : '';
-
-      message =
-        `*${company.name}*\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-        `📋 *${title}*\n\n` +
-        `Respected ${data.citizenName},\n\n` +
-        `${intro}\n\n` +
-        `*Scheduled Slot:*\n` +
-        `📅 *Date:* ${dateStr}\n` +
-        `🕒 *Time:* ${timeStr}\n\n` +
-        `*Details:*\n` +
-        `🎫 *Ref No:* \`${data.appointmentId}\`\n` +
-        `📅 *Submitted On:* ${fullData.formattedDate}\n` +
-        `📊 *Status:* ${statusLabel}${remarksText}\n\n` +
-        `You will receive further updates here.\n\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `*${company.name}*`;
+      logger.error(`❌ Still no message found for appointment status update even with defaults.`);
+      return;
     }
 
     await safeSendWhatsApp(company, data.citizenWhatsApp || data.citizenPhone, message);

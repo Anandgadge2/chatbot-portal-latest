@@ -104,9 +104,12 @@ router.get('/department-admin', authenticate, requireDepartmentAdminDashboard, a
     let filter: any = {};
     if (req.user?.role === UserRole.SUPER_ADMIN) {
        // No mandatory filter for SuperAdmin, but can filter by query params if needed
-    } else if (req.user?.departmentId) {
-      // Scoped to specific department
-      filter = { departmentId: req.user?.departmentId };
+    } else if (req.user?.departmentId || (req.user?.departmentIds && req.user.departmentIds.length > 0)) {
+      // Scoped to specific department(s)
+      const depts = (req.user.departmentIds && req.user.departmentIds.length > 0)
+        ? req.user.departmentIds
+        : [req.user.departmentId];
+      filter = { departmentId: { $in: depts } };
     } else if (req.user?.companyId) {
       // Scoped to whole company
       filter = { companyId: req.user?.companyId };

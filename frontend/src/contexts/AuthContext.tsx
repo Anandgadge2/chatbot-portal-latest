@@ -6,7 +6,7 @@ import { authAPI, LoginCredentials } from '@/lib/api/auth';
 import { apiClient } from '@/lib/api/client';
 import toast from 'react-hot-toast';
 
-interface User {
+export interface User {
   id: string;
   userId: string;
   firstName: string;
@@ -25,6 +25,9 @@ interface User {
   isActive: boolean;
   enabledModules?: string[];
   customRoleId?: string;
+  designation?: string;
+  designations?: string[];
+  departmentIds?: (string | { _id: string; name: string; departmentId: string })[];
   permissions?: { module: string; actions: string[] }[];
   notificationSettings?: {
     email: boolean;

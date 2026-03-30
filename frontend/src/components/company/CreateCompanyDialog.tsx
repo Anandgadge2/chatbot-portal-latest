@@ -11,6 +11,7 @@ import { validatePhoneNumber, validatePassword, validateTelephone } from '@/lib/
 import { Module } from '@/lib/permissions';
 import { AVAILABLE_MODULES } from '@/config/modules';
 import { Building, X, Plus } from 'lucide-react';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
 
 const LANGUAGE_OPTIONS = [
   { code: 'en', label: 'English' },
@@ -281,17 +282,16 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({ isOpen, onClo
               </div>
               <div>
                 <Label htmlFor="companyType">Company Type *</Label>
-                <select
-                  id="companyType"
-                  name="companyType"
+                <SearchableSelect
+                  options={[
+                    { value: "GOVERNMENT", label: "Government" },
+                    { value: "CUSTOM_ENTERPRISE", label: "Custom Enterprise" },
+                  ]}
                   value={formData.companyType}
-                  onChange={(e) => setFormData(prev => ({ ...prev, companyType: e.target.value }))}
-                  className="w-full p-2 border rounded-md"
-                  required
-                >
-                  <option value="GOVERNMENT">Government</option>
-                  <option value="CUSTOM_ENTERPRISE">Custom Enterprise</option>
-                </select>
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, companyType: value }))}
+                  placeholder="Select Organization Type"
+                  className="w-full bg-white"
+                />
               </div>
             </div>
 

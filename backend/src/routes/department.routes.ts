@@ -4,7 +4,10 @@ import Department from '../models/Department';
 import { authenticate } from '../middleware/auth';
 import { requirePermission } from '../middleware/rbac';
 import { requireDatabaseConnection } from '../middleware/dbConnection';
+import { buildNameSearchQuery, escapeRegExp } from '../utils/searchUtils';
 import { logUserAction } from '../utils/auditLogger';
+import Role from '../models/Role';
+import User from '../models/User';
 import { AuditAction, Permission, UserRole } from '../config/constants';
 
 const router = express.Router();
@@ -20,6 +23,7 @@ router.get('/', requirePermission(Permission.READ_DEPARTMENT), async (req: Reque
   try {
     const { page = 1, limit = 20, search, companyId, listAll, type, status, mainDeptId, subDeptId } = req.query;
     const user = req.user!;
+    const targetCompanyId = (user.role === UserRole.SUPER_ADMIN && companyId) ? companyId : user.companyId;
 
     const query: any = {};
 
@@ -40,11 +44,37 @@ router.get('/', requirePermission(Permission.READ_DEPARTMENT), async (req: Reque
       ];
     }
 
+    // 🔍 SEARCH LOGIC
     if (search) {
-      const searchCriteria = [
-        { name: { $regex: search, $options: 'i' } },
-        { departmentId: { $regex: search, $options: 'i' } }
+      const escapedSearch = escapeRegExp(search as string);
+      const searchCriteria: any[] = [
+        { name: { $regex: escapedSearch, $options: 'i' } },
+        { departmentId: { $regex: escapedSearch, $options: 'i' } },
+        { contactEmail: { $regex: escapedSearch, $options: 'i' } },
+        { contactPhone: { $regex: escapedSearch, $options: 'i' } },
+        ...buildNameSearchQuery(search as string, 'contactPerson', 'contactPerson')
       ];
+
+      // ✨ Logical Search: Any Matching User's Department
+      // We look for users whose names match, and find their departments (primary or multiple)
+      const matchingUsers = await User.find({
+        companyId: targetCompanyId || { $exists: true },
+        $or: buildNameSearchQuery(search as string, 'firstName', 'lastName')
+      }).select('departmentId departmentIds');
+      
+      const deptIdsFromUsers = new Set<string>();
+      matchingUsers.forEach(u => {
+        if (u.departmentId) deptIdsFromUsers.add(u.departmentId.toString());
+        if (u.departmentIds && Array.isArray(u.departmentIds)) {
+          u.departmentIds.forEach(id => deptIdsFromUsers.add(id.toString()));
+        }
+      });
+      
+      const deptIdsArr = Array.from(deptIdsFromUsers);
+
+      if (deptIdsArr.length > 0) {
+        searchCriteria.push({ _id: { $in: deptIdsArr } });
+      }
       
       if (query.$or) {
         // If we already have an $or (from mainDeptId), wrap both in an $and
@@ -65,35 +95,48 @@ router.get('/', requirePermission(Permission.READ_DEPARTMENT), async (req: Reque
     } else {
       query.companyId = user.companyId;
 
-      if (user.departmentId) {
+      // Support multiple department scoping for Dept Admins
+      const userDepts = [];
+      if (user.departmentId) userDepts.push(user.departmentId.toString());
+      if (user.departmentIds && Array.isArray(user.departmentIds)) {
+        user.departmentIds.forEach(id => userDepts.push(id.toString()));
+      }
+      
+      const uniqueUserDepts = [...new Set(userDepts)];
+
+      if (uniqueUserDepts.length > 0) {
         const userLevel = user.level !== undefined ? user.level : 4;
         const wantsAllDepts = listAll === "true";
         if (userLevel > 1 && !wantsAllDepts) {
           if (userLevel === 2) {
+            // Include these depts and all their children
             const subDeptIds = await Department.find({ 
-              parentDepartmentId: user.departmentId 
+              parentDepartmentId: { $in: uniqueUserDepts }
             }).distinct('_id');
-            query._id = { $in: [user.departmentId, ...subDeptIds] };
+            query._id = { $in: [...uniqueUserDepts, ...subDeptIds] };
           } else {
-            query._id = user.departmentId;
+            // Strictly just these depts
+            query._id = { $in: uniqueUserDepts };
           }
         }
       }
     }
 
-    const departments = await Department.find(query)
+    let departmentQuery = Department.find(query)
       .populate('companyId', 'name companyId')
-      .populate('parentDepartmentId', 'name')
-      .limit(Number(limit))
-      .skip((Number(page) - 1) * Number(limit))
-      .sort({ createdAt: -1 });
+      .populate('parentDepartmentId', 'name');
+
+    if (listAll !== 'true') {
+      departmentQuery = departmentQuery
+        .limit(Number(limit))
+        .skip((Number(page) - 1) * Number(limit));
+    }
+
+    const departments = await departmentQuery.sort({ createdAt: -1 });
 
     // Dynamically identify department heads/admins based on their permissions
     // We look for users who have management permissions for these departments
-    const User = (await import('../models/User')).default;
-    const Role = (await import('../models/Role')).default;
     const deptIds = departments.map(d => d._id);
-    const targetCompanyId = (user.role === UserRole.SUPER_ADMIN && companyId) ? companyId : user.companyId;
 
     // 1. Identify roles that represent "Department Admins" (manage permissions)
     const adminRoles = await Role.find({
@@ -105,32 +148,65 @@ router.get('/', requirePermission(Permission.READ_DEPARTMENT), async (req: Reque
     const adminRoleNames = adminRoles.map(r => r.name);
 
     // 2. Find users with those roles in the relevant departments
+    // We expand the role list to include all common variations found in the DB
+    const adminRoleStrings = [
+      ...adminRoleNames, 
+      'DEPARTMENT_ADMIN', 'SUB_DEPARTMENT_ADMIN', 
+      'DEPARTMENT ADMIN', 'SUB DEPARTMENT ADMIN',
+      'DEPARTMENT ADMINISTRATOR', 'SUB DEPARTMENT ADMINISTRATOR',
+      'Department Administrator', 'Sub Department Administrator',
+      'ADMINISTRATOR', 'Administrator', 'Company Administrator', 'COMPANY ADMINISTRATOR',
+      'Company Admin', 'COMPANY ADMIN'
+    ];
+
     const admins = await User.find({
       companyId: targetCompanyId || { $exists: true }, // Ensure company match
-      departmentId: { $in: deptIds },
-      $or: [
-        { customRoleId: { $in: adminRoleIds } },
-        { role: { $in: [...adminRoleNames, 'DEPARTMENT_ADMIN', 'SUB_DEPARTMENT_ADMIN', 'DEPARTMENT ADMIN', 'SUB DEPARTMENT ADMIN'] } }
+      $and: [
+        {
+          $or: [
+            { departmentId: { $in: deptIds } },
+            { departmentIds: { $in: deptIds } }
+          ]
+        },
+        {
+          $or: [
+            { customRoleId: { $in: adminRoleIds } },
+            { role: { $in: adminRoleStrings } }
+          ]
+        }
       ]
-    }).select('firstName lastName email phone departmentId');
+    }).select('firstName lastName email phone departmentId departmentIds');
 
-    // 3. Get accurate user counts for each department
+    // Use direct department IDs only (including multiple assignments)
     const userCounts = await User.aggregate([
       { 
         $match: { 
-          companyId: targetCompanyId ? new mongoose.Types.ObjectId(targetCompanyId.toString()) : { $exists: true }, 
-          departmentId: { $in: deptIds }
+          companyId: targetCompanyId ? new mongoose.Types.ObjectId(targetCompanyId.toString()) : { $exists: true }
         } 
       },
-      { $group: { _id: '$departmentId', count: { $sum: 1 } } }
+      {
+        $project: {
+          allDepts: {
+            $setUnion: [
+              { $cond: [{ $gt: ["$departmentId", null] }, ["$departmentId"], []] },
+              { $cond: [{ $isArray: "$departmentIds" }, "$departmentIds", []] }
+            ]
+          }
+        }
+      },
+      { $unwind: "$allDepts" },
+      { $group: { _id: "$allDepts", count: { $sum: 1 } } }
     ]);
 
-      const departmentsWithHead = departments.map(d => {
-      const admin = admins.find(a => a.departmentId?.toString() === d._id.toString());
-      const countInfo = userCounts.find(c => c._id?.toString() === d._id.toString());
+    const departmentsWithHead = departments.map(d => {
       const deptObj: any = (d as any).toObject();
+      const admin = admins.find(a => 
+        (a.departmentId && a.departmentId.toString() === d._id.toString()) ||
+        (a.departmentIds && Array.isArray(a.departmentIds) && a.departmentIds.some(id => id.toString() === d._id.toString()))
+      );
       
-      // Attach the actual user count
+      // Only count direct users (per user request: "if no user then why showing the count")
+      const countInfo = userCounts.find(c => c._id?.toString() === d._id.toString());
       deptObj.userCount = countInfo ? countInfo.count : 0;
       
       // If an admin is found, set head info
@@ -191,7 +267,8 @@ router.post('/', requirePermission(Permission.CREATE_DEPARTMENT), async (req: Re
       contactPerson, 
       contactEmail, 
       contactPhone,
-      parentDepartmentId 
+      parentDepartmentId,
+      contactUserId 
     } = req.body;
 
     // Validation
@@ -238,7 +315,8 @@ router.post('/', requirePermission(Permission.CREATE_DEPARTMENT), async (req: Re
       contactPerson,
       contactEmail,
       contactPhone: normalizedContactPhone,
-      parentDepartmentId: parentDepartmentId || null
+      parentDepartmentId: parentDepartmentId || null,
+      contactUserId: contactUserId || null
     });
 
     await logUserAction(
@@ -255,6 +333,27 @@ router.post('/', requirePermission(Permission.CREATE_DEPARTMENT), async (req: Re
       data: { department }
     });
   } catch (error: any) {
+    console.error('Create department error:', error);
+    
+    // Handle duplicate key errors (e.g. name unique within company)
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern || {})[0] || 'field';
+      return res.status(400).json({
+        success: false,
+        message: `Department with this ${field} already exists in this company`,
+        error: error.message
+      });
+    }
+
+    // Handle validation or casting errors
+    if (error.name === 'ValidationError' || error.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid data provided',
+        error: error.message
+      });
+    }
+
     res.status(500).json({
       success: false,
       message: 'Failed to create department',
@@ -298,12 +397,32 @@ router.get('/:id', requirePermission(Permission.READ_DEPARTMENT), async (req: Re
     const adminRoleIds = adminRoles.map(r => r._id);
     const adminRoleNames = adminRoles.map(r => r.name);
 
+    const adminRoleStrings = [
+      ...adminRoleNames, 
+      'DEPARTMENT_ADMIN', 'SUB_DEPARTMENT_ADMIN', 
+      'DEPARTMENT ADMIN', 'SUB DEPARTMENT ADMIN',
+      'DEPARTMENT ADMINISTRATOR', 'SUB DEPARTMENT ADMINISTRATOR',
+      'Department Administrator', 'Sub Department Administrator',
+      'ADMINISTRATOR', 'Administrator', 'Company Administrator', 'COMPANY ADMINISTRATOR',
+      'Company Admin', 'COMPANY ADMIN'
+    ];
+
     const User = (await import('../models/User')).default;
     const admin = await User.findOne({
-      departmentId: department._id,
-      $or: [
-        { customRoleId: { $in: adminRoleIds } },
-        { role: { $in: adminRoleNames } }
+      companyId: department.companyId._id,
+      $and: [
+        {
+          $or: [
+            { departmentId: department._id },
+            { departmentIds: department._id }
+          ]
+        },
+        {
+          $or: [
+            { customRoleId: { $in: adminRoleIds } },
+            { role: { $in: adminRoleStrings } }
+          ]
+        }
       ]
     }).select('firstName lastName email phone');
 
@@ -360,6 +479,17 @@ router.put('/:id', requirePermission(Permission.UPDATE_DEPARTMENT), async (req: 
 
     // Normalize phone number if provided in update
     const updateData: any = { ...req.body };
+
+    // 🛡️ SANITIZATION: Handle empty strings for ObjectId fields to prevent CastErrors
+    if (updateData.contactUserId === "") {
+      updateData.contactUserId = null;
+    }
+    if (updateData.parentDepartmentId === "") {
+      updateData.parentDepartmentId = null;
+    }
+    if (updateData.companyId === "") {
+      delete updateData.companyId; // Don't allow clearing companyId
+    }
     
     if (updateData.contactPhone) {
       const { validateTelephone, normalizeTelephone } = await import('../utils/phoneUtils');
@@ -378,11 +508,18 @@ router.put('/:id', requirePermission(Permission.UPDATE_DEPARTMENT), async (req: 
       { new: true, runValidators: true }
     );
 
+    if (!department) {
+      return res.status(404).json({
+        success: false,
+        message: 'Department not found'
+      });
+    }
+
     await logUserAction(
       req,
       AuditAction.UPDATE,
       'Department',
-      department!._id.toString(),
+      department._id.toString(),
       { updates: req.body }
     );
 
@@ -392,6 +529,27 @@ router.put('/:id', requirePermission(Permission.UPDATE_DEPARTMENT), async (req: 
       data: { department }
     });
   } catch (error: any) {
+    console.error('Update department error:', error);
+    
+    // Handle duplicate key errors (e.g. name unique within company)
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern || {})[0] || 'field';
+      return res.status(400).json({
+        success: false,
+        message: `Department with this ${field} already exists in this company`,
+        error: error.message
+      });
+    }
+
+    // Handle validation or casting errors
+    if (error.name === 'ValidationError' || error.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid data provided',
+        error: error.message
+      });
+    }
+
     res.status(500).json({
       success: false,
       message: 'Failed to update department',

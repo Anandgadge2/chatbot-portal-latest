@@ -167,9 +167,9 @@ const NotificationManagement: React.FC<NotificationManagementProps> = ({
 
   const filteredUsers = users.filter(
     (u) =>
-      u.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      u.firstName?.toLowerCase()?.includes(searchTerm.toLowerCase()) ||
+      u.lastName?.toLowerCase()?.includes(searchTerm.toLowerCase()) ||
+      u.email?.toLowerCase()?.includes(searchTerm.toLowerCase()) ||
       u.phone?.includes(searchTerm)
   );
 
