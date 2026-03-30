@@ -243,6 +243,7 @@ function DashboardContent() {
   const [previousTab, setPreviousTab] = useState<string>("overview");
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [allDepartments, setAllDepartments] = useState<Department[]>([]);
   const [deptUserCounts, setDeptUserCounts] = useState<Record<string, number>>(
     {},
   );
@@ -409,6 +410,7 @@ function DashboardContent() {
     type: "",
     status: "",
     mainDeptId: "",
+    subDeptId: "",
   });
   const [userFilters, setUserFilters] = useState({
     role: "",
@@ -802,6 +804,35 @@ function DashboardContent() {
     }));
   }, [departments, grievances]);
 
+  const filteredDeptCounts = useMemo(() => {
+    let filtered = allDepartments;
+    if (deptSearch) {
+      const s = deptSearch.toLowerCase();
+      filtered = filtered.filter(
+        (d) =>
+          d.name.toLowerCase().includes(s) ||
+          d.departmentId?.toLowerCase().includes(s),
+      );
+    }
+    if (deptFilters.status) {
+      const isActive = deptFilters.status === "active";
+      filtered = filtered.filter((d) => d.isActive === isActive);
+    }
+    if (deptFilters.mainDeptId) {
+      filtered = filtered.filter(
+        (d) =>
+          d._id === deptFilters.mainDeptId ||
+          getParentDepartmentId(d) === deptFilters.mainDeptId,
+      );
+    }
+    if (deptFilters.subDeptId) {
+      filtered = filtered.filter((d) => d._id === deptFilters.subDeptId);
+    }
+    const mainCount = filtered.filter((d) => !d.parentDepartmentId).length;
+    const subCount = filtered.filter((d) => !!d.parentDepartmentId).length;
+    return { mainCount, subCount };
+  }, [allDepartments, deptSearch, deptFilters, getParentDepartmentId]);
+
   const liveIncidents = useMemo(() => {
     return grievances
       .filter((g) => g.status !== "RESOLVED")
@@ -914,6 +945,10 @@ function DashboardContent() {
           page: page,
           limit: departmentPagination.limit,
           search: (deptSearch || "").trim(),
+          type: deptFilters.type || undefined,
+          status: deptFilters.status || undefined,
+          mainDeptId: deptFilters.mainDeptId || undefined,
+          subDeptId: deptFilters.subDeptId || undefined,
           companyId:
             isSuperAdminUser && companyIdParam ? companyIdParam : undefined,
         });
@@ -963,6 +998,7 @@ function DashboardContent() {
       departmentPage,
       departmentPagination.limit,
       deptSearch,
+      deptFilters,
       isDepartmentLevel,
       isCompanyLevel,
       user?.departmentId,
@@ -970,6 +1006,23 @@ function DashboardContent() {
       companyIdParam,
     ],
   );
+
+  const fetchAllDepartments = useCallback(async () => {
+    if (isSuperAdminUser && !companyIdParam) return;
+    try {
+      const response = await departmentAPI.getAll({
+        page: 1,
+        limit: 1000,
+        companyId:
+          isSuperAdminUser && companyIdParam ? companyIdParam : undefined,
+      });
+      if (response.success) {
+        setAllDepartments(response.data.departments);
+      }
+    } catch (error) {
+      console.error("Failed to fetch all departments:", error);
+    }
+  }, [isSuperAdminUser, companyIdParam]);
 
   const fetchUsers = useCallback(
     async (page = userPage, isSilent = false) => {
@@ -981,7 +1034,7 @@ function DashboardContent() {
           : userFilters.mainDeptId
             ? [
                 userFilters.mainDeptId,
-                ...departments
+                ...allDepartments
                   .filter(
                     (d) => getParentDepartmentId(d) === userFilters.mainDeptId,
                   )
@@ -1063,7 +1116,7 @@ function DashboardContent() {
       user?.departmentId,
       userSearch,
       userFilters,
-      departments,
+      allDepartments,
       getParentDepartmentId,
       isSuperAdminUser,
       companyIdParam,
@@ -1251,6 +1304,7 @@ function DashboardContent() {
       if (user.companyId || (isSuperAdminUser && companyIdParam)) {
         fetchCompany();
         fetchRoles();
+        fetchAllDepartments();
       }
     }
   }, [
@@ -1259,6 +1313,7 @@ function DashboardContent() {
     fetchDashboardData,
     fetchCompany,
     fetchRoles,
+    fetchAllDepartments,
     isSuperAdminUser,
     companyIdParam,
   ]);
@@ -4246,7 +4301,7 @@ function DashboardContent() {
                         <CardTitle className="text-base font-bold text-white flex items-center gap-2">
                           Department Management
                           <span className="text-[10px] font-black bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full">
-                            {departments.length} total
+                            {departmentPagination.total} total
                           </span>
                         </CardTitle>
                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
@@ -4326,12 +4381,13 @@ function DashboardContent() {
                           setDeptFilters((prev) => ({
                             ...prev,
                             mainDeptId: e.target.value,
+                            subDeptId: "", // Reset sub dept when main changes
                           }))
                         }
                         className="w-full text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none cursor-pointer hover:border-indigo-200 transition-all sm:min-w-[150px]"
                       >
-                        <option value="">Filter by Main Dept</option>
-                        {departments
+                        <option value="">All Main Depts</option>
+                        {allDepartments
                           .filter((d) => !d.parentDepartmentId)
                           .map((dept) => (
                             <option key={dept._id} value={dept._id}>
@@ -4339,9 +4395,37 @@ function DashboardContent() {
                             </option>
                           ))}
                       </select>
+
+                      {/* Dependent Sub Dept Filter */}
+                      <select
+                        value={deptFilters.subDeptId}
+                        onChange={(e) =>
+                          setDeptFilters((prev) => ({
+                            ...prev,
+                            subDeptId: e.target.value,
+                          }))
+                        }
+                        disabled={!deptFilters.mainDeptId}
+                        className={`w-full text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500/10 outline-none transition-all sm:min-w-[150px] ${!deptFilters.mainDeptId ? "opacity-50 cursor-not-allowed bg-slate-50" : "cursor-pointer hover:border-indigo-200"}`}
+                      >
+                        <option value="">All Sub Depts</option>
+                        {allDepartments
+                          .filter(
+                            (d) =>
+                              getParentDepartmentId(d) ===
+                              deptFilters.mainDeptId,
+                          )
+                          .map((dept) => (
+                            <option key={dept._id} value={dept._id}>
+                              {dept.name}
+                            </option>
+                          ))}
+                      </select>
+
                       {(deptFilters.type ||
                         deptFilters.status ||
-                        deptFilters.mainDeptId) && (
+                        deptFilters.mainDeptId ||
+                        deptFilters.subDeptId) && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -4350,6 +4434,7 @@ function DashboardContent() {
                               type: "",
                               status: "",
                               mainDeptId: "",
+                              subDeptId: "",
                             })
                           }
                           className="h-7 text-[9px] font-bold text-red-500 hover:text-red-600 hover:bg-red-50 uppercase tracking-tighter"
@@ -4382,18 +4467,10 @@ function DashboardContent() {
                     </div>
                     <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                       <span className="px-2 py-1 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-lg">
-                        {
-                          departments.filter((d) => !d.parentDepartmentId)
-                            .length
-                        }{" "}
-                        Main
+                        {filteredDeptCounts.mainCount} Main
                       </span>
                       <span className="px-2 py-1 bg-slate-100 text-slate-600 border border-slate-200 rounded-lg">
-                        {
-                          departments.filter((d) => !!d.parentDepartmentId)
-                            .length
-                        }{" "}
-                        Sub
+                        {filteredDeptCounts.subCount} Sub
                       </span>
                       {isSuperAdminUser && selectedDepartments.size > 0 && (
                         <Button
@@ -4989,6 +5066,9 @@ function DashboardContent() {
                       <div>
                         <CardTitle className="text-base font-bold text-white">
                           User Management
+                          <span className="text-[10px] font-black bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full ml-2">
+                            {userPagination.total} total
+                          </span>
                         </CardTitle>
                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
                           {isViewingCompany
@@ -5153,7 +5233,7 @@ function DashboardContent() {
                         aria-label="Filter users by main department"
                       >
                         <option value="">Main Dept</option>
-                        {departments
+                        {allDepartments
                           .filter((d) => !d.parentDepartmentId)
                           .map((dept) => (
                             <option key={dept._id} value={dept._id}>
@@ -5175,7 +5255,7 @@ function DashboardContent() {
                       >
                         <option value="">Sub Dept</option>
                         {userFilters.mainDeptId &&
-                          departments
+                          allDepartments
                             .filter(
                               (d) =>
                                 getParentDepartmentId(d) ===
@@ -5874,7 +5954,7 @@ function DashboardContent() {
                             title="Filter by main department"
                           >
                             <option value="">🏢 Main Dept</option>
-                            {departments
+                            {allDepartments
                               .filter((d) => !d.parentDepartmentId)
                               .map((dept) => (
                                 <option key={dept._id} value={dept._id}>
@@ -5898,7 +5978,7 @@ function DashboardContent() {
                           >
                             <option value="">🏢 Sub Dept</option>
                             {grievanceFilters.mainDeptId &&
-                              departments
+                              allDepartments
                                 .filter(
                                   (d) =>
                                     getParentDepartmentId(d) ===

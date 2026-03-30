@@ -76,12 +76,20 @@ export const departmentAPI = {
     search?: string;
     companyId?: string;
     listAll?: boolean;
+    type?: string;
+    status?: string;
+    mainDeptId?: string;
+    subDeptId?: string;
   }): Promise<DepartmentsResponse> => {
     const queryParams = new URLSearchParams();
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.search) queryParams.append('search', params.search);
     if (params?.companyId) queryParams.append('companyId', params.companyId);
+    if (params?.type) queryParams.append('type', params.type);
+    if (params?.status) queryParams.append('status', params.status);
+    if (params?.mainDeptId) queryParams.append('mainDeptId', params.mainDeptId);
+    if (params?.subDeptId) queryParams.append('subDeptId', params.subDeptId);
     if (params?.listAll) queryParams.append('listAll', 'true');
     
     return apiClient.get(`/departments?${queryParams.toString()}`);

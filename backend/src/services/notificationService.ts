@@ -480,6 +480,7 @@ export async function getHierarchicalDepartmentAdmins(departmentId: any): Promis
       // 🔍 2. Build Query for Admins at this level
       // We use $in with both ObjectId and String to handle data type inconsistencies
       const adminQuery: any = {
+        companyId: dept.companyId,
         isActive: true,
         $or: [
           // Match by department link
@@ -1017,10 +1018,11 @@ export async function notifyHierarchyOnStatusChange(
 
     // 2. Find ALL relevant admins interested in the status change
     const users = await User.find({
+      companyId,
+      isActive: true,
       $or: [
         // Company admins
         {
-          companyId,
           $or: [
             ...(companyAdminRoleIds.length > 0 ? [{ customRoleId: { $in: companyAdminRoleIds } }] : []),
             ...(companyAdminRoleNames.length > 0 ? [{ role: { $in: companyAdminRoleNames } }] : []),
@@ -1032,8 +1034,7 @@ export async function notifyHierarchyOnStatusChange(
         { _id: { $in: adminIds } },
         // Specifically assigned user
         { _id: data.assignedTo }
-      ],
-      isActive: true
+      ]
     }).populate('customRoleId');
 
     logger.info(`🔍 Found ${users.length} potential hierarchy recipients for ${data.type} status change to ${newStatus}`);

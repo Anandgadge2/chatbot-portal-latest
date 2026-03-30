@@ -18,58 +18,67 @@ router.use(authenticate);
 // @access  Private
 router.get('/', requirePermission(Permission.READ_DEPARTMENT), async (req: Request, res: Response) => {
   try {
-    const { page = 1, limit = 20, search, companyId, listAll } = req.query;
+    const { page = 1, limit = 20, search, companyId, listAll, type, status, mainDeptId, subDeptId } = req.query;
     const user = req.user!;
 
     const query: any = {};
 
-    // SuperAdmin can see all departments
+    // 1. Core Scoping (Status, Type, Search, Hierarchical)
+    if (status === 'active') query.isActive = true;
+    else if (status === 'inactive') query.isActive = false;
+
+    if (type === 'main') query.parentDepartmentId = null;
+    else if (type === 'sub') query.parentDepartmentId = { $ne: null };
+
+    if (subDeptId) {
+      query._id = subDeptId;
+    } else if (mainDeptId) {
+      // Show the main department and all its children
+      query.$or = [
+        { _id: mainDeptId },
+        { parentDepartmentId: mainDeptId }
+      ];
+    }
+
+    if (search) {
+      const searchCriteria = [
+        { name: { $regex: search, $options: 'i' } },
+        { departmentId: { $regex: search, $options: 'i' } }
+      ];
+      
+      if (query.$or) {
+        // If we already have an $or (from mainDeptId), wrap both in an $and
+        const existingOr = query.$or;
+        delete query.$or;
+        query.$and = [
+          { $or: existingOr },
+          { $or: searchCriteria }
+        ];
+      } else {
+        query.$or = searchCriteria;
+      }
+    }
+
+    // 2. Role-based Scoping
     if (user.role === UserRole.SUPER_ADMIN) {
       if (companyId) query.companyId = companyId;
     } else {
-      // All other users are scoped by their company
       query.companyId = user.companyId;
 
-      // If restricted to a department, only show that department and its children
       if (user.departmentId) {
-        // listAll=true bypasses department scoping (used by Revert Grievance dialog)
-        // so department admins can see all departments to suggest reassignment
-        // only Company Admins or SuperAdmins should bypass scoping by default.
-        // Dept Admins should still be restricted to their branch.
         const userLevel = user.level !== undefined ? user.level : 4;
-        const isHighLevelAdmin = userLevel <= 1;
         const wantsAllDepts = listAll === "true";
-        
-        if (!isHighLevelAdmin && !wantsAllDepts) {
-          const normalizedRole = (user.role || '').toUpperCase().trim();
-          const calculatedLevel = user.level !== undefined ? user.level : (
-            normalizedRole === 'SUPER_ADMIN' || normalizedRole === 'SUPER ADMIN' ? 0 :
-            normalizedRole.includes('COMPANY') && (normalizedRole.includes('ADMIN')) ? 1 :
-            normalizedRole.includes('DEPARTMENT') && (normalizedRole.includes('ADMIN')) && !normalizedRole.includes('SUB') ? 2 :
-            normalizedRole.includes('SUB') && (normalizedRole.includes('ADMIN')) ? 3 :
-            4
-          );
-
+        if (userLevel > 1 && !wantsAllDepts) {
           if (userLevel === 2) {
-            // 🏢 HIERARCHICAL: Dept Admin should see their department AND all sub-departments
             const subDeptIds = await Department.find({ 
               parentDepartmentId: user.departmentId 
             }).distinct('_id');
-            
             query._id = { $in: [user.departmentId, ...subDeptIds] };
           } else {
-            // Level 3 (Sub-Dept Admin) or lower: See only their assigned department
             query._id = user.departmentId;
           }
         }
       }
-    }
-
-    if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { departmentId: { $regex: search, $options: 'i' } }
-      ];
     }
 
     const departments = await Department.find(query)
