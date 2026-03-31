@@ -1724,14 +1724,36 @@ function DashboardContent() {
       // Search filter
       if (grievanceSearch.trim()) {
         const search = grievanceSearch.toLowerCase().trim();
-        filteredData = filteredData.filter(
-          (g: Grievance) =>
-            g.grievanceId?.toLowerCase().includes(search) ||
-            g.citizenName?.toLowerCase().includes(search) ||
-            g.citizenPhone?.includes(search) ||
-            g.category?.toLowerCase().includes(search) ||
-            g.description?.toLowerCase().includes(search),
-        );
+        filteredData = filteredData.filter((g: Grievance) => {
+          const idMatch = g.grievanceId?.toLowerCase().includes(search);
+          const citizenNameMatch = g.citizenName?.toLowerCase().includes(search);
+          const citizenPhoneMatch = g.citizenPhone?.includes(search);
+          const categoryMatch = g.category?.toLowerCase().includes(search);
+          const descriptionMatch = g.description?.toLowerCase().includes(search);
+
+          // Enhanced: Search by assigned official's name/details
+          let assignedMatch = false;
+          if (g.assignedTo) {
+            if (typeof g.assignedTo === "object") {
+              const fullName =
+                `${(g.assignedTo as any).firstName || ""} ${(g.assignedTo as any).lastName || ""}`.toLowerCase();
+              assignedMatch =
+                fullName.includes(search) ||
+                (g.assignedTo as any).email?.toLowerCase().includes(search);
+            } else {
+              assignedMatch = g.assignedTo.toLowerCase().includes(search);
+            }
+          }
+
+          return (
+            idMatch ||
+            citizenNameMatch ||
+            citizenPhoneMatch ||
+            categoryMatch ||
+            descriptionMatch ||
+            assignedMatch
+          );
+        });
       }
     }
 
@@ -1795,13 +1817,34 @@ function DashboardContent() {
       // Search filter
       if (appointmentSearch.trim()) {
         const search = appointmentSearch.toLowerCase().trim();
-        filteredData = filteredData.filter(
-          (a: Appointment) =>
-            a.appointmentId?.toLowerCase().includes(search) ||
-            a.citizenName?.toLowerCase().includes(search) ||
-            a.citizenPhone?.includes(search) ||
-            a.purpose?.toLowerCase().includes(search),
-        );
+        filteredData = filteredData.filter((a: Appointment) => {
+          const idMatch = a.appointmentId?.toLowerCase().includes(search);
+          const citizenNameMatch = a.citizenName?.toLowerCase().includes(search);
+          const citizenPhoneMatch = a.citizenPhone?.includes(search);
+          const purposeMatch = a.purpose?.toLowerCase().includes(search);
+
+          // Enhanced: Search by assigned official's name/details
+          let assignedMatch = false;
+          if (a.assignedTo) {
+            if (typeof a.assignedTo === "object") {
+              const fullName =
+                `${(a.assignedTo as any).firstName || ""} ${(a.assignedTo as any).lastName || ""}`.toLowerCase();
+              assignedMatch =
+                fullName.includes(search) ||
+                (a.assignedTo as any).email?.toLowerCase().includes(search);
+            } else {
+              assignedMatch = a.assignedTo.toLowerCase().includes(search);
+            }
+          }
+
+          return (
+            idMatch ||
+            citizenNameMatch ||
+            citizenPhoneMatch ||
+            purposeMatch ||
+            assignedMatch
+          );
+        });
       }
     }
 
@@ -1892,13 +1935,20 @@ function DashboardContent() {
       // Search filter
       if (userSearch.trim()) {
         const search = userSearch.toLowerCase().trim();
-        filteredData = filteredData.filter(
-          (u: User) =>
+        filteredData = filteredData.filter((u: User) => {
+          const nameMatch =
             u.firstName?.toLowerCase().includes(search) ||
-            u.lastName?.toLowerCase().includes(search) ||
-            u.email?.toLowerCase().includes(search) ||
-            u.phone?.includes(search),
-        );
+            u.lastName?.toLowerCase().includes(search);
+          const contactMatch =
+            u.email?.toLowerCase().includes(search) || u.phone?.includes(search);
+          const designationMatch =
+            u.designation?.toLowerCase().includes(search) ||
+            (u as any).designations?.some((d: string) =>
+              d.toLowerCase().includes(search),
+            );
+
+          return nameMatch || contactMatch || designationMatch;
+        });
       }
     }
 
@@ -2023,10 +2073,10 @@ function DashboardContent() {
                 <button
                   type="button"
                   onClick={() => setIsMobileTabMenuOpen(true)}
-                  className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-900/40 border border-indigo-500/30 active:scale-95 transition-transform duration-300 md:hidden"
-                  title="Open navigation menu"
+                  className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-900/40 border border-blue-500/30 active:scale-95 transition-transform duration-300 md:hidden"
+                  title="Open sidebar"
                 >
-                  <LayoutDashboard className="w-5 h-5 text-white" />
+                  <LayoutGrid className="w-5 h-5 text-white" />
                 </button>
                 <div className="hidden md:flex w-10 h-10 bg-indigo-600 rounded-xl items-center justify-center shadow-lg shadow-indigo-900/40 border border-indigo-500/30 group-hover:scale-105 transition-transform duration-300">
                   <LayoutDashboard className="w-5 h-5 text-white" />
@@ -2084,14 +2134,6 @@ function DashboardContent() {
               )}
               <div className="flex items-center gap-3">
                 <Button
-                  onClick={() => setIsMobileTabMenuOpen(true)}
-                  variant="ghost"
-                  className="h-10 w-10 p-0 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-xl transition-all duration-300 border border-transparent hover:border-indigo-500/20 md:hidden"
-                  title="Open navigation menu"
-                >
-                  <Menu className="w-5 h-5" />
-                </Button>
-                <Button
                   onClick={handleRefresh}
                   variant="ghost"
                   disabled={refreshing}
@@ -2109,7 +2151,7 @@ function DashboardContent() {
                 >
                   <Power className="w-5 h-5" />
                 </Button>
-                <div className="h-10 w-10 bg-indigo-600/10 rounded-xl flex items-center justify-center border border-indigo-500/20 shadow-inner group">
+                <div className="hidden md:flex h-10 w-10 bg-indigo-600/10 rounded-xl items-center justify-center border border-indigo-500/20 shadow-inner group">
                   <UserIcon className="w-5 h-5 text-indigo-400 group-hover:scale-110 transition-transform duration-300" />
                 </div>
               </div>
@@ -2291,88 +2333,141 @@ function DashboardContent() {
                 type="button"
                 aria-label="Close navigation menu"
                 onClick={() => setIsMobileTabMenuOpen(false)}
-                className="absolute inset-0 bg-slate-950/70"
+                className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm transition-opacity duration-300"
               />
-              <div className="absolute right-0 top-0 h-full w-[82%] max-w-[320px] bg-white shadow-2xl border-l border-slate-200 p-4 overflow-y-auto">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xs font-black uppercase tracking-widest text-slate-500">
-                    Navigation
-                  </h3>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => setIsMobileTabMenuOpen(false)}
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
+              <div className="absolute left-0 top-0 h-full w-[85%] max-w-[320px] bg-white shadow-2xl border-r border-slate-200 p-0 flex flex-col transform transition-transform duration-300 overflow-hidden">
+                {/* Sidebar Header with User Profile */}
+                <div className="bg-slate-900 p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-2">
+                       <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg border border-blue-500/30">
+                        <LayoutGrid className="w-4 h-4 text-white" />
+                      </div>
+                      <h3 className="text-xs font-black uppercase tracking-widest text-white">
+                        Dashboard
+                      </h3>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-slate-400 hover:text-white"
+                      onClick={() => setIsMobileTabMenuOpen(false)}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <div className="h-14 w-14 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-2xl flex items-center justify-center text-white text-xl font-bold border-2 border-slate-800 shadow-xl">
+                      {user.firstName[0]}{user.lastName[0]}
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-black text-white leading-tight uppercase tracking-tight">
+                        {user.firstName} {user.lastName}
+                      </h4>
+                      <div className="flex flex-col mt-1">
+                        <span className="text-[10px] font-bold text-blue-400 uppercase tracking-tighter">
+                          {(user.role || "CUSTOM").replace("_", " ")}
+                        </span>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Online</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  {(isSuperAdminUser ||
-                    hasPermission(user, Permission.VIEW_ANALYTICS)) && (
-                    <Button
-                      type="button"
-                      variant={activeTab === "overview" ? "default" : "outline"}
-                      onClick={() => handleTabChange("overview")}
-                      className="w-full justify-start text-xs font-bold uppercase tracking-wider"
-                    >
-                      Overview
-                    </Button>
-                  )}
-                  {(!isSuperAdminUser || (isSuperAdminUser && companyIdParam)) && (
-                    <Button
-                      type="button"
-                      variant={activeTab === "analytics" ? "default" : "outline"}
-                      onClick={() => handleTabChange("analytics")}
-                      className="w-full justify-start text-xs font-bold uppercase tracking-wider"
-                    >
-                      {isDFO ? "Command Center" : "Analytics"}
-                    </Button>
-                  )}
-                  {hasPermission(user, Permission.READ_GRIEVANCE) && (
-                    <Button
-                      type="button"
-                      variant={activeTab === "grievances" ? "default" : "outline"}
-                      onClick={() => handleTabChange("grievances")}
-                      className="w-full justify-start text-xs font-bold uppercase tracking-wider"
-                    >
-                      {isDFO ? "Incidents" : "Grievances"}
-                    </Button>
-                  )}
-                  {(isCompanyLevel ||
-                    isDepartmentLevel ||
-                    (isSuperAdminUser && companyIdParam)) &&
-                    hasModule(Module.APPOINTMENT) &&
-                    hasPermission(user, Permission.READ_APPOINTMENT) && (
+
+                {/* Sidebar Links */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                  <div className="px-2 py-3">
+                     <h5 className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-4">Main Menu</h5>
+                  <div className="space-y-1.5">
+                    {(isSuperAdminUser ||
+                      hasPermission(user, Permission.VIEW_ANALYTICS)) && (
                       <Button
                         type="button"
-                        variant={activeTab === "appointments" ? "default" : "outline"}
-                        onClick={() => handleTabChange("appointments")}
-                        className="w-full justify-start text-xs font-bold uppercase tracking-wider"
+                        variant={activeTab === "overview" ? "default" : "ghost"}
+                        onClick={() => handleTabChange("overview")}
+                        className={cn("w-full justify-start text-xs font-bold uppercase tracking-wider h-11 rounded-xl transition-all", activeTab === "overview" ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "text-slate-600 hover:bg-slate-50")}
                       >
-                        Appointments
+                        <LayoutDashboard className="w-4 h-4 mr-3" />
+                        Overview
                       </Button>
                     )}
-                  {isViewingCompany && (
-                    <Button
-                      type="button"
-                      variant={activeTab === "departments" ? "default" : "outline"}
-                      onClick={() => handleTabChange("departments")}
-                      className="w-full justify-start text-xs font-bold uppercase tracking-wider"
-                    >
-                      {isDFO ? "Patrol Units" : "Departments"}
-                    </Button>
-                  )}
-                  {(isViewingCompany || isDepartmentLevel) && (
-                    <Button
-                      type="button"
-                      variant={activeTab === "users" ? "default" : "outline"}
-                      onClick={() => handleTabChange("users")}
-                      className="w-full justify-start text-xs font-bold uppercase tracking-wider"
-                    >
-                      Users
-                    </Button>
-                  )}
+                    {(!isSuperAdminUser || (isSuperAdminUser && companyIdParam)) && (
+                      <Button
+                        type="button"
+                        variant={activeTab === "analytics" ? "default" : "ghost"}
+                        onClick={() => handleTabChange("analytics")}
+                        className={cn("w-full justify-start text-xs font-bold uppercase tracking-wider h-11 rounded-xl transition-all", activeTab === "analytics" ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "text-slate-600 hover:bg-slate-50")}
+                      >
+                        <TrendingUp className="w-4 h-4 mr-3" />
+                        {isDFO ? "Command Center" : "Analytics"}
+                      </Button>
+                    )}
+                    {hasPermission(user, Permission.READ_GRIEVANCE) && (
+                      <Button
+                        type="button"
+                        variant={activeTab === "grievances" ? "default" : "ghost"}
+                        onClick={() => handleTabChange("grievances")}
+                        className={cn("w-full justify-start text-xs font-bold uppercase tracking-wider h-11 rounded-xl transition-all", activeTab === "grievances" ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "text-slate-600 hover:bg-slate-50")}
+                      >
+                        <FileText className="w-4 h-4 mr-3" />
+                        {isDFO ? "Incidents" : "Grievances"}
+                      </Button>
+                    )}
+                    {(isCompanyLevel ||
+                      isDepartmentLevel ||
+                      (isSuperAdminUser && companyIdParam)) &&
+                      hasModule(Module.APPOINTMENT) &&
+                      hasPermission(user, Permission.READ_APPOINTMENT) && (
+                        <Button
+                          type="button"
+                          variant={activeTab === "appointments" ? "default" : "ghost"}
+                          onClick={() => handleTabChange("appointments")}
+                          className={cn("w-full justify-start text-xs font-bold uppercase tracking-wider h-11 rounded-xl transition-all", activeTab === "appointments" ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "text-slate-600 hover:bg-slate-50")}
+                        >
+                          <CalendarCheck className="w-4 h-4 mr-3" />
+                          Appointments
+                        </Button>
+                      )}
+                    {isViewingCompany && (
+                      <Button
+                        type="button"
+                        variant={activeTab === "departments" ? "default" : "ghost"}
+                        onClick={() => handleTabChange("departments")}
+                        className={cn("w-full justify-start text-xs font-bold uppercase tracking-wider h-11 rounded-xl transition-all", activeTab === "departments" ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "text-slate-600 hover:bg-slate-50")}
+                      >
+                        <Building className="w-4 h-4 mr-3" />
+                        {isDFO ? "Patrol Units" : "Departments"}
+                      </Button>
+                    )}
+                    {(isViewingCompany || isDepartmentLevel) && (
+                      <Button
+                        type="button"
+                        variant={activeTab === "users" ? "default" : "ghost"}
+                        onClick={() => handleTabChange("users")}
+                        className={cn("w-full justify-start text-xs font-bold uppercase tracking-wider h-11 rounded-xl transition-all", activeTab === "users" ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "text-slate-600 hover:bg-slate-50")}
+                      >
+                        <Users className="w-4 h-4 mr-3" />
+                        Users
+                      </Button>
+                    )}
+                  </div>
+                  </div>
+                </div>
+
+                {/* Sidebar Footer */}
+                <div className="p-4 border-t border-slate-100 bg-slate-50/50">
+                  <Button
+                    onClick={logout}
+                    variant="ghost"
+                    className="w-full justify-start text-xs font-bold uppercase tracking-wider h-11 rounded-xl text-rose-500 hover:bg-rose-50 hover:text-rose-600 transition-all"
+                  >
+                    <Power className="w-4 h-4 mr-3" />
+                    Logout Account
+                  </Button>
                 </div>
               </div>
             </div>
@@ -4401,21 +4496,10 @@ function DashboardContent() {
                       </div>
                       <div>
                         <CardTitle className="text-base font-bold text-white flex items-center gap-2 flex-wrap">
-                          Department Management
-                          <span className="text-[10px] font-black bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full">
+                          {isDFO ? "Forest Ranges" : "Departments"}
+                          <span className="text-[10px] font-black bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full ml-2">
                             {departmentPagination.total} total
                           </span>
-                          {(isSuperAdminUser ||
-                            hasPermission(user, Permission.CREATE_DEPARTMENT)) && (
-                            <Button
-                              type="button"
-                              onClick={() => setShowDepartmentDialog(true)}
-                              className="w-auto bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-7 sm:h-8 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest rounded-lg px-3 sm:px-4 shadow-md"
-                            >
-                              <Building className="w-3.5 h-3.5 mr-1.5" />
-                              Add Department
-                            </Button>
-                          )}
                         </CardTitle>
                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
                           Manage all departments in your company
@@ -5233,16 +5317,6 @@ function DashboardContent() {
                           <span className="text-[10px] font-black bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full ml-2">
                             {userPagination.total} total
                           </span>
-                          {hasPermission(user, Permission.CREATE_USER) && (
-                            <Button
-                              type="button"
-                              onClick={() => setShowUserDialog(true)}
-                              className="w-auto bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-7 sm:h-8 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest rounded-lg px-3 sm:px-4 shadow-md"
-                            >
-                              <UserPlus className="w-3.5 h-3.5 mr-1.5" />
-                              Add User
-                            </Button>
-                          )}
                         </CardTitle>
                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
                           {isViewingCompany

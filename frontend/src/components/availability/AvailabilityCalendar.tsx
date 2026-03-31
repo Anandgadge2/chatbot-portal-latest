@@ -533,7 +533,7 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
       <DialogContent hideClose={true} className="max-w-[95vw] md:max-w-5xl h-[92vh] sm:h-[90vh] p-0 overflow-hidden bg-slate-50 border-0 rounded-[1.75rem] sm:rounded-[2.5rem] shadow-3xl flex flex-col gap-0">
         <div className="flex flex-col h-full bg-slate-50 relative">
           {/* Dashboard-style Header */}
-          <div className="bg-slate-900 px-4 sm:px-8 py-4 sm:py-8 relative overflow-hidden shrink-0">
+          <div className="bg-slate-900 px-4 sm:px-8 py-3 sm:py-6 relative overflow-hidden shrink-0">
             <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-transparent to-purple-500/10 hover:opacity-80 transition-opacity"></div>
             <div className="absolute -top-24 -right-24 w-80 h-80 bg-indigo-500/10 rounded-full blur-[100px]"></div>
             <div className="absolute top-1/2 -left-20 w-60 h-60 bg-purple-500/5 rounded-full blur-[80px]"></div>
@@ -566,7 +566,7 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
             {([
               { id: 'weekly', label: 'Weekly Schedule', icon: Calendar, tooltip: 'Set your default weekly availability' },
               { id: 'calendar', label: 'Calendar View', icon: CalendarDays, tooltip: 'View and manage specific dates' },
-              { id: 'holidays', label: 'Holidays', icon: PartyPopper, tooltip: 'Add national and custom holidays' },
+              // { id: 'holidays', label: 'Holidays', icon: PartyPopper, tooltip: 'Add national and custom holidays' },
               { id: 'settings', label: 'Settings', icon: Settings, tooltip: 'Configure booking rules and time slots' }
             ] as const).map((tab) => {
               const active = activeTab === tab.id;
@@ -608,13 +608,6 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
               {/* Weekly Schedule Tab */}
               {activeTab === 'weekly' && availability && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                  <div className="flex items-center gap-3 text-md text-indigo-700 bg-indigo-50/50 px-4 py-3 rounded-2xl border border-indigo-100/50 shadow-sm">
-                    <div className="p-2 bg-indigo-100 rounded-lg">
-                      <Info className="w-4 h-4 text-indigo-600 flex-shrink-0" />
-                    </div>
-                    <span>Configure your weekly availability schedule. Toggle days on/off and set time slots for morning, afternoon, and evening to fine-tune booking windows.</span>
-                  </div>
-
                   <div className="grid gap-4">
                     {DAYS_OF_WEEK.map((day) => {
                       const dayAvailability = availability.weeklySchedule[day.key];
@@ -786,13 +779,6 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
               {/* Calendar View Tab */}
               {activeTab === 'calendar' && availability && (
                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                  <div className="flex items-center gap-3 text-sm text-purple-700 bg-purple-50/50 px-5 py-4 rounded-2xl border border-purple-100/50 shadow-sm">
-                    <div className="p-2 bg-purple-100 rounded-lg">
-                      <CalendarDays className="w-4 h-4 text-purple-600 flex-shrink-0" />
-                    </div>
-                    <span>Visualise your monthly availability. Highlights show holidays, special dates, and default working periods. Click any day for detailed configuration.</span>
-                  </div>
-
                   {/* Month Navigation */}
                   <div className="flex items-center justify-between px-2">
                     <button
@@ -983,12 +969,6 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
               {/* Holidays Tab Content */}
               {activeTab === 'holidays' && availability && (
                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                  <div className="flex items-center gap-3 text-sm text-rose-700 bg-rose-50/50 px-5 py-4 rounded-2xl border border-rose-100/50 shadow-sm">
-                    <div className="p-2 bg-rose-100 rounded-lg">
-                      <PartyPopper className="w-4 h-4 text-rose-600 flex-shrink-0" />
-                    </div>
-                    <span>Manage regional and custom holidays. Adding a holiday will automatically block all appointment slots for the entire day.</span>
-                  </div>
 
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Public Holidays List */}
@@ -1112,12 +1092,6 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
               {/* Settings Tab Content */}
               {activeTab === 'settings' && availability && (
                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                  <div className="flex items-center gap-3 text-sm text-slate-900 bg-slate-100 px-5 py-4 rounded-2xl border border-slate-200 shadow-sm">
-                    <div className="p-2 bg-white rounded-lg shadow-sm">
-                      <Settings className="w-4 h-4 text-slate-900 flex-shrink-0" />
-                    </div>
-                    <span>Global settings for the appointment system. Configure buffer times, booking lead times, and daily capacity limits.</span>
-                  </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <Card className="rounded-3xl border-0 shadow-xl overflow-hidden bg-white hover:shadow-2xl transition-all border-l-4 border-l-indigo-600">
