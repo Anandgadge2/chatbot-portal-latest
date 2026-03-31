@@ -2151,6 +2151,7 @@ function DashboardContent() {
                 >
                   <Power className="w-5 h-5" />
                 </Button>
+                {/* User icon moved to sidebar for mobile-first cleanliness */}
                 <div className="hidden md:flex h-10 w-10 bg-indigo-600/10 rounded-xl items-center justify-center border border-indigo-500/20 shadow-inner group">
                   <UserIcon className="w-5 h-5 text-indigo-400 group-hover:scale-110 transition-transform duration-300" />
                 </div>
@@ -2301,18 +2302,6 @@ function DashboardContent() {
                 </>
               )}
             </TabsList>
-            <div className="md:hidden flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                Active tab
-              </span>
-              <button
-                type="button"
-                onClick={() => setIsMobileTabMenuOpen(true)}
-                className="text-[11px] font-black uppercase tracking-widest text-slate-800"
-              >
-                {activeTab.replace("-", " ")}
-              </button>
-            </div>
             <Button
               onClick={handleRefresh}
               variant="outline"
@@ -2335,7 +2324,12 @@ function DashboardContent() {
                 onClick={() => setIsMobileTabMenuOpen(false)}
                 className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm transition-opacity duration-300"
               />
-              <div className="absolute left-0 top-0 h-full w-[85%] max-w-[320px] bg-white shadow-2xl border-r border-slate-200 p-0 flex flex-col transform transition-transform duration-300 overflow-hidden">
+              <div 
+                className={cn(
+                  "absolute left-0 top-0 h-full w-[85%] max-w-[320px] bg-white shadow-2xl border-r border-slate-200 p-0 flex flex-col transform transition-all duration-500 ease-out overflow-hidden z-[80]",
+                  isMobileTabMenuOpen ? "translate-x-0 opacity-100" : "-translate-x-full opacity-0"
+                )}
+              >
                 {/* Sidebar Header with User Profile */}
                 <div className="bg-slate-900 p-6">
                   <div className="flex items-center justify-between mb-6">
@@ -2454,6 +2448,73 @@ function DashboardContent() {
                         Users
                       </Button>
                     )}
+
+                    {isSuperAdminUser && companyIdParam && (
+                      <Button
+                        type="button"
+                        variant={activeTab === "roles" ? "default" : "ghost"}
+                        onClick={() => handleTabChange("roles")}
+                        className={cn("w-full justify-start text-xs font-bold uppercase tracking-wider h-11 rounded-xl transition-all", activeTab === "roles" ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "text-slate-600 hover:bg-slate-50")}
+                      >
+                        <Shield className="w-4 h-4 mr-3" />
+                        Roles
+                      </Button>
+                    )}
+
+                    {hasModule(Module.LEAD_CAPTURE) && isViewingCompany && (
+                      <Button
+                        type="button"
+                        variant={activeTab === "leads" ? "default" : "ghost"}
+                        onClick={() => handleTabChange("leads")}
+                        className={cn("w-full justify-start text-xs font-bold uppercase tracking-wider h-11 rounded-xl transition-all", activeTab === "leads" ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "text-slate-600 hover:bg-slate-50")}
+                      >
+                        <Target className="w-4 h-4 mr-3" />
+                        Leads
+                      </Button>
+                    )}
+
+                    {isSuperAdminUser && companyIdParam && (
+                      <>
+                        <div className="h-px bg-slate-100 my-2 mx-2"></div>
+                        <h5 className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-2 px-2">Configuration</h5>
+                        <Button
+                          type="button"
+                          variant={activeTab === "whatsapp" ? "default" : "ghost"}
+                          onClick={() => handleTabChange("whatsapp")}
+                          className={cn("w-full justify-start text-xs font-bold uppercase tracking-wider h-11 rounded-xl transition-all", activeTab === "whatsapp" ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" : "text-slate-600 hover:bg-slate-50")}
+                        >
+                          <MessageSquare className="w-4 h-4 mr-3" />
+                          WhatsApp
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={activeTab === "flows" ? "default" : "ghost"}
+                          onClick={() => handleTabChange("flows")}
+                          className={cn("w-full justify-start text-xs font-bold uppercase tracking-wider h-11 rounded-xl transition-all", activeTab === "flows" ? "bg-violet-600 text-white shadow-lg shadow-violet-600/20" : "text-slate-600 hover:bg-slate-50")}
+                        >
+                          <Workflow className="w-4 h-4 mr-3" />
+                          Flows
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={activeTab === "notifications" ? "default" : "ghost"}
+                          onClick={() => handleTabChange("notifications")}
+                          className={cn("w-full justify-start text-xs font-bold uppercase tracking-wider h-11 rounded-xl transition-all", activeTab === "notifications" ? "bg-orange-600 text-white shadow-lg shadow-orange-600/20" : "text-slate-600 hover:bg-slate-50")}
+                        >
+                          <BellRing className="w-4 h-4 mr-3" />
+                          Notifications
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={activeTab === "email" ? "default" : "ghost"}
+                          onClick={() => handleTabChange("email")}
+                          className={cn("w-full justify-start text-xs font-bold uppercase tracking-wider h-11 rounded-xl transition-all", activeTab === "email" ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "text-slate-600 hover:bg-slate-50")}
+                        >
+                          <Mail className="w-4 h-4 mr-3" />
+                          Email
+                        </Button>
+                      </>
+                    )}
                   </div>
                   </div>
                 </div>
@@ -2476,7 +2537,7 @@ function DashboardContent() {
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
             {/* Dashboard Headers & Quick Stats */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2 sm:gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4">
               {/* Statistical KPI Cards */}
               <>
                 {/* Total Grievances */}
@@ -3149,12 +3210,7 @@ function DashboardContent() {
 
               {/* KPI Cards - Refined Design */}
               <div
-                className={cn(
-                  "grid gap-2 sm:gap-4",
-                  stats?.isHierarchicalEnabled && isViewingCompany
-                    ? "grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
-                    : "grid-cols-2 md:grid-cols-3 xl:grid-cols-5",
-                )}
+                className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4"
               >
                 {/* Total Grievances - Enhanced */}
                 {hasModule(Module.GRIEVANCE) && (
@@ -4508,24 +4564,6 @@ function DashboardContent() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => fetchDepartments(1, false)}
-                        className="h-8 w-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all border border-white/10"
-                        title="Refresh departments"
-                      >
-                        <RefreshCw className="w-3.5 h-3.5" />
-                      </button>
-                      {(isSuperAdminUser ||
-                        hasPermission(user, Permission.CREATE_DEPARTMENT)) && (
-                        <Button
-                          type="button"
-                          onClick={() => setShowDepartmentDialog(true)}
-                          className="w-auto bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-7 sm:h-8 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest rounded-lg px-3 sm:px-4 shadow-md"
-                        >
-                          <Building className="w-3.5 h-3.5 mr-1.5" />
-                          Add Department
-                        </Button>
-                      )}
                     </div>
 
                   </div>
@@ -4549,6 +4587,29 @@ function DashboardContent() {
 
                       {/* Action Buttons */}
                       <div className="flex items-center gap-2">
+                        {isSuperAdminUser && selectedDepartments.size > 0 && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={handleBulkDeleteDepartments}
+                            disabled={isDeleting}
+                            className="h-10 text-[10px] font-black uppercase bg-red-600 hover:bg-red-700 text-white rounded-xl border border-red-700 shadow-sm transition-all px-4"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 mr-2" />
+                            Delete ({selectedDepartments.size})
+                          </Button>
+                        )}
+                        {(isSuperAdminUser ||
+                          hasPermission(user, Permission.CREATE_DEPARTMENT)) && (
+                          <Button
+                            type="button"
+                            onClick={() => setShowDepartmentDialog(true)}
+                            className="h-10 bg-indigo-600 hover:bg-indigo-700 text-white border-0 text-[10px] sm:text-[11px] font-black uppercase tracking-widest rounded-xl px-4 sm:px-6 shadow-md shadow-indigo-200 transition-all hover:scale-[1.02] active:scale-95"
+                          >
+                            <Building className="w-4 h-4 mr-2" />
+                            Add Department
+                          </Button>
+                        )}
                         <Button
                           variant="outline"
                           size="sm"
@@ -5325,31 +5386,8 @@ function DashboardContent() {
                         </p>
                       </div>
                     </div>
-                    {hasPermission(user, Permission.CREATE_USER) && (
-                      <div className="flex items-center gap-2">
-                        {isSuperAdminUser && selectedUsers.size > 0 && (
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={handleBulkDeleteUsers}
-                            className="h-8 text-[10px] font-bold uppercase tracking-widest bg-red-600 hover:bg-red-700 shadow-md px-4"
-                          >
-                            <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                            Delete ({selectedUsers.size})
-                          </Button>
-                        )}
-
-                        <Button
-                          type="button"
-                          onClick={() => setShowUserDialog(true)}
-                          className="w-auto bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-7 sm:h-8 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest rounded-lg px-3 sm:px-4 shadow-md"
-                        >
-                          <UserPlus className="w-3.5 h-3.5 mr-1.5" />
-                          Add User
-                        </Button>
-
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2">
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
@@ -5374,6 +5412,30 @@ function DashboardContent() {
 
                       {/* Action Buttons */}
                       <div className="flex items-center gap-2">
+                        {isSuperAdminUser && selectedUsers.size > 0 && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={handleBulkDeleteUsers}
+                            disabled={isDeleting}
+                            className="h-10 text-[10px] font-black uppercase bg-red-600 hover:bg-red-700 text-white rounded-xl border border-red-700 shadow-sm transition-all px-4"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 mr-2" />
+                            Delete ({selectedUsers.size})
+                          </Button>
+                        )}
+
+                        {(isSuperAdminUser ||
+                          hasPermission(user, Permission.CREATE_USER)) && (
+                          <Button
+                            type="button"
+                            onClick={() => setShowUserDialog(true)}
+                            className="h-10 bg-indigo-600 hover:bg-indigo-700 text-white border-0 text-[10px] sm:text-[11px] font-black uppercase tracking-widest rounded-xl px-4 sm:px-6 shadow-md shadow-indigo-200 transition-all hover:scale-[1.02] active:scale-95"
+                          >
+                            <UserPlus className="w-4 h-4 mr-2" />
+                            Add User
+                          </Button>
+                        )}
                         <Button
                           variant="outline"
                           size="sm"

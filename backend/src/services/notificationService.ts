@@ -493,51 +493,49 @@ export async function getHierarchicalDepartmentAdmins(departmentId: any): Promis
       if (processedDeptIds.has(currentIdStr)) break;
       processedDeptIds.add(currentIdStr);
 
-      // 🔍 1. Identify roles that represent "Admins" for this department level.
-      const Role = (await import('../models/Role')).default;
-      const adminRoles = await Role.find({
-        companyId: dept.companyId,
-        $or: [
-          {
-            permissions: {
-              $elemMatch: {
-                module: { $regex: /^(departments|grievance|appointment)$/i },
-                actions: { $in: ['update', 'all', 'manage', 'UPDATE', 'ALL', 'MANAGE', 'status_change', 'assign'] }
-              }
-            }
-          },
-          { name: { $regex: /admin|head|manager|supervisor|collector|officer/i } }
-        ]
-      }).select('_id name');
-      
-      const adminRoleIds = adminRoles.map(r => r._id);
-      const adminRoleNames = adminRoles.map(r => r.name);
+      const isSubDept = !!dept.parentDepartmentId;
 
-      // 🔍 2. Build Query for Admins at this level
-      // We use $and to ensure the user MUST belong to the department AND have an admin role
+      // 🔍 1. Identify roles that represent "Admins" for this specific department level.
       const adminQuery: any = {
         companyId: dept.companyId,
         isActive: true,
         $and: [
-          // Part A: User must be specifically assigned to this department
           {
             $or: [
               { departmentId: new mongoose.Types.ObjectId(currentIdStr) },
               { departmentId: currentIdStr },
               { departmentIds: { $in: [new mongoose.Types.ObjectId(currentIdStr), currentIdStr] } }
             ]
-          },
-          // Part B: User must have an admin-level role or permission
-          {
-            $or: [
-              { customRoleId: { $in: adminRoleIds } },
-              { role: { $in: adminRoleNames } },
-              // Hardcoded fallbacks for standard name patterns
-              { role: { $regex: /^(SUB[- _]?)?DEPARTMENT[- _]?(ADMIN|ADMINISTRATOR)|COMPANY[- _]?(ADMIN|ADMINISTRATOR)|ADMIN|HEAD|MANAGER|SUPERVISOR|OFFICER$/i } }
-            ]
           }
         ]
       };
+
+      // 🔍 2. Build Query for Roles at this level
+      // If it's a sub-dept, we specifically want SUB_DEPARTMENT_ADMIN or similar.
+      // If it's a parent dept, we want DEPARTMENT_ADMIN or similar.
+      const levelAdminRoles = await (await import('../models/Role')).default.find({
+        companyId: dept.companyId,
+        $or: [
+          { key: isSubDept ? 'SUB_DEPARTMENT_ADMIN' : 'DEPARTMENT_ADMIN' },
+          { name: { $regex: isSubDept ? /sub[- _]?department[- _]?admin|sub[- _]?admin/i : /department[- _]?admin|dept[- _]?admin/i } },
+          { 
+            permissions: { 
+              $elemMatch: { 
+                module: { $regex: /grievance|appointment/i },
+                actions: { $in: ['all', 'manage', 'assign', 'status_change'] }
+              }
+            } 
+          }
+        ]
+      }).select('_id');
+
+      const adminRoleIds = levelAdminRoles.map(r => r._id);
+
+      // Add role filters to user query
+      adminQuery.$or = [
+        { customRoleId: { $in: adminRoleIds } },
+        { role: isSubDept ? /SUB[- _]?DEPARTMENT[- _]?ADMIN/i : /DEPARTMENT[- _]?ADMIN/i }
+      ];
 
       const levelAdmins = await User.find(adminQuery).populate('customRoleId');
       
@@ -578,47 +576,20 @@ export async function notifyDepartmentAdminOnCreation(
       deptAdmins.forEach(admin => adminsToNotify.push({ user: admin, type: 'DEPT_ADMIN' }));
     }
 
-    // 1. Identify roles that represent "Company Admins".
-    // We broaden this to include roles with SETTINGS/manage permissions,
-    // roles with general GRIEVANCE management permissions, or roles explicitly named Admin.
-    const Role = (await import('../models/Role')).default;
-    const companyAdminRoles = await Role.find({
-      companyId,
-      $or: [
-        {
-          permissions: {
-            $elemMatch: {
-              module: { $regex: /^(settings|grievance|appointment)$/i },
-              actions: { $in: ['update', 'all', 'manage', 'UPDATE', 'ALL', 'MANAGE', 'status_change', 'assign'] }
-            }
-          }
-        },
-        { key: { $in: ['COMPANY_ADMIN', 'ADMIN', 'COMPANY_HEAD', 'SUPER_ADMIN'] } },
-        { name: { $regex: /company\s*admin|admin|head|manager|supervisor/i } }
-      ]
-    }).select('_id name');
-    const companyAdminRoleIds = companyAdminRoles.map(r => r._id);
-    const companyAdminRoleNames = companyAdminRoles.map(r => r.name);
-
-    const fallbackAdminRoleNames = [
-      'Admin',
-      'COMPANY_ADMIN',
-      'COMPANY_HEAD',
-      'HEAD',
-      'MANAGER',
-      'SUPERVISOR'
-    ];
-
-    // 2. Find company admins using both permission-mapped roles and role-name fallbacks.
-    // Do NOT force departmentId:null; in many setups the company admin may be attached
-    // to a default department but should still receive company-level notifications.
+    // 1. Find Company Admins for top-level supervision
     const companyAdmins = await User.find({
       companyId,
       $or: [
-        ...(companyAdminRoleIds.length > 0 ? [{ customRoleId: { $in: companyAdminRoleIds } }] : []),
-        ...(companyAdminRoleNames.length > 0 ? [{ role: { $in: companyAdminRoleNames } }] : []),
-        { role: { $in: fallbackAdminRoleNames } },
-        { role: { $regex: /admin|head|manager|supervisor/i } }
+        { role: { $in: ['COMPANY_ADMIN', 'COMPANY_HEAD', 'SUPER_ADMIN', 'Collector'] } },
+        { role: { $regex: /^company[- _]?(admin|administrator|head)|collector$/i } },
+        { 
+          customRoleId: { 
+            $in: await (await import('../models/Role')).default.find({ 
+              companyId, 
+              key: { $in: ['COMPANY_ADMIN', 'ADMIN', 'COMPANY_HEAD', 'SUPER_ADMIN'] } 
+            }).distinct('_id') 
+          } 
+        }
       ],
       isActive: true
     }).populate('customRoleId');
@@ -668,16 +639,21 @@ export async function notifyDepartmentAdminOnCreation(
         if (canNotify(company, user, 'whatsapp', `${data.type}_created`)) {
           const whatsappTask = (async () => {
             const fullData = await populateNotificationData(notificationData);
+            // 🏷️ ALIGNMENT FIX: Use 'created_admin' to match DEFAULT_WA_MESSAGES
             let message = await getNotificationWhatsAppMessage(companyId, data.type, 'created_admin', fullData);
             
             if (!message) {
-              logger.error(`❌ Still no message found for ${data.type}_created_admin even with defaults.`);
+              logger.warn(`⚠️ No WhatsApp content found for ${user.email} (Action: created_admin)`);
               return;
             }
-            await safeSendWhatsApp(company, user.phone, message, {
+            logger.info(`📢 Dispatching WhatsApp to admin: ${user.phone} (${user.getFullName()})`);
+            const res = await safeSendWhatsApp(company, user.phone, message, {
               title: 'Access Dashboard',
               url: 'https://chatbot-portal-latest-frontend.vercel.app/'
             });
+            if (res.success) {
+              logger.info(`✅ WhatsApp sent to admin: ${user.phone}`);
+            }
             // Send attachments if any
             if (data.evidenceUrls && data.evidenceUrls.length > 0) {
               await sendMediaIfAvailable(company, user.phone, data.evidenceUrls, `Evidence for ${fullData.grievanceId || fullData.appointmentId}`);
@@ -946,55 +922,44 @@ export async function notifyHierarchyOnStatusChange(
     // All name lookups, date formatting, and resolution time done centrally
     const fullData = await populateNotificationData(data);
 
-    // Find ALL relevant admins interested in the status change
-    const hierarchyDepartmentId = normalizeId(data.subDepartmentId || data.departmentId);
-    const admins = await getHierarchicalDepartmentAdmins(hierarchyDepartmentId);
-    const adminIds = admins.map(a => a._id.toString());
-
-    // 1. Identify roles that represent "Company Admins"
-    // We broaden this to include roles with SETTINGS, GRIEVANCE, or APPOINTMENT manage permissions,
-    // or roles explicitly named Admin.
-    const Role = (await import('../models/Role')).default;
-    const companyAdminRoles = await Role.find({
+    // Find ALL relevant admins in the hierarchy
+    const hierarchyDeptId = data.subDepartmentId || data.departmentId;
+    const hierarchyAdmins = await getHierarchicalDepartmentAdmins(hierarchyDeptId);
+    
+    // Find Company Admins (top level)
+    const companyAdmins = await User.find({
       companyId,
       $or: [
-        {
-          permissions: {
-            $elemMatch: {
-              module: { $regex: /^(settings|grievance|appointment)$/i },
-              actions: { $in: ['update', 'all', 'manage', 'UPDATE', 'ALL', 'MANAGE', 'status_change', 'assign'] }
-            }
-          }
-        },
-        { key: { $in: ['COMPANY_ADMIN', 'ADMIN', 'COMPANY_HEAD', 'SUPER_ADMIN'] } },
-        { name: { $regex: /company\s*admin|admin|head|manager|supervisor/i } }
-      ]
-    }).select('_id name');
-    const companyAdminRoleIds = companyAdminRoles.map(r => r._id);
-    const companyAdminRoleNames = companyAdminRoles.map(r => r.name);
-
-    // 2. Find ALL relevant admins interested in the status change
-    const users = await User.find({
-      companyId,
-      isActive: true,
-      $or: [
-        // Company admins
-        {
-          $or: [
-            ...(companyAdminRoleIds.length > 0 ? [{ customRoleId: { $in: companyAdminRoleIds } }] : []),
-            ...(companyAdminRoleNames.length > 0 ? [{ role: { $in: companyAdminRoleNames } }] : []),
-            { role: { $in: ['Admin', 'COMPANY_ADMIN', 'COMPANY_HEAD', 'HEAD', 'MANAGER', 'SUPERVISOR', 'OFFICER', 'COLLECTOR'] } },
-            { role: { $regex: /admin|head|manager|supervisor|collector|officer/i } }
-          ]
-        },
-        // Department hierarchy admins
-        { _id: { $in: adminIds } },
-        // Specifically assigned user
-        { _id: data.assignedTo }
-      ]
+        { role: { $in: ['COMPANY_ADMIN', 'COMPANY_HEAD', 'SUPER_ADMIN', 'Collector'] } },
+        { role: { $regex: /^company[- _]?(admin|administrator|head)|collector$/i } },
+        { 
+          customRoleId: { 
+            $in: await (await import('../models/Role')).default.find({ 
+              companyId, 
+              key: { $in: ['COMPANY_ADMIN', 'ADMIN', 'COMPANY_HEAD', 'SUPER_ADMIN'] } 
+            }).distinct('_id') 
+          } 
+        }
+      ],
+      isActive: true
     }).populate('customRoleId');
 
-    logger.info(`🔍 Found ${users.length} potential hierarchy recipients for ${data.type} status change to ${newStatus}`);
+    // Combine recipients (Hierarchy + Company Admins + Explicit Assignee)
+    const potentialRecipients = [...hierarchyAdmins, ...companyAdmins];
+    if (data.assignedTo) {
+      const assignee = await User.findById(data.assignedTo).populate('customRoleId');
+      if (assignee) potentialRecipients.push(assignee);
+    }
+
+    // Deduplicate recipients
+    const uniqueRecipients = new Map<string, any>();
+    potentialRecipients.forEach(u => {
+      if (u && u._id) uniqueRecipients.set(u._id.toString(), u);
+    });
+
+    const users = Array.from(uniqueRecipients.values());
+
+    logger.info(`🔍 Found ${users.length} unique hierarchy recipients for ${data.type} status change to ${newStatus}`);
 
     // Dynamically choose status key based on newStatus
     // e.g., 'confirmed' -> 'appointment_confirmed' or 'grievance_confirmed'

@@ -294,12 +294,13 @@ export class ActionService {
       }
 
       if (departmentId) {
-        // 2. Admin Creation Notification
+        // 2. Admin Creation Notification — Hierarchy Only
+        // This traverses: Sub-Dept Admin -> Dept Admin -> Company Admin
         notifications.push(notifyDepartmentAdminOnCreation({
           ...notificationData,
           type: 'grievance',
           action: 'created',
-        }).catch(err => console.error('⚠️ ActionService: notifyDepartmentAdminOnCreation failed:', err)));
+        }));
 
         // 3. Skip separate assignment notification on creation as per requirements.
         // All hierarchy users (including the assigned officer) will receive the 'New Grievance Received' template
@@ -419,12 +420,12 @@ export class ActionService {
         await notifyCitizenOnCreation(notificationData);
       }
 
-      // 2. Admin Creation Notification
+      // 2. Admin Creation Notification — Hierarchy Only
       notifications.push(notifyDepartmentAdminOnCreation({
         ...notificationData,
         type: 'appointment',
         action: 'created',
-      }).catch(err => console.error('⚠️ ActionService: notifyDepartmentAdminOnCreation failed:', err)));
+      }));
 
       await Promise.allSettled(notifications);
 
