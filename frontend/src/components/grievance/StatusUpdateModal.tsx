@@ -462,7 +462,7 @@ export default function StatusUpdateModal({
       if (response.success) {
         toast.success(
           `${itemType === 'grievance' ? 'Grievance' : 'Appointment'} status updated! Citizen notified via WhatsApp.`,
-          { duration: 5000 }
+          { duration: 1000 }
         );
         onSuccess();
         onClose();

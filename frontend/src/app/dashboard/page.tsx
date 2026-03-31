@@ -1503,7 +1503,7 @@ function DashboardContent() {
             if (newCount > prevGrievanceCount) {
               toast.success(
                 `📋 New grievance received! (${newCount - prevGrievanceCount} new)`,
-                { duration: 2000 },
+                { duration: 1000 },
               );
               fetchDashboardData();
             }
@@ -1525,7 +1525,7 @@ function DashboardContent() {
             if (newCount > prevAppointmentCount) {
               toast.success(
                 `📅 New appointment scheduled! (${newCount - prevAppointmentCount} new)`,
-                { duration: 2000 },
+                { duration: 1000 },
               );
               fetchDashboardData();
             }
