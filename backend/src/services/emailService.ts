@@ -495,13 +495,18 @@ export async function getNotificationWhatsAppMessage(
   for (const key of attemptKeys) {
     const template = await CompanyWhatsAppTemplate.findOne({ 
       companyId: cid, 
-      templateKey: key as any, 
-      isActive: true 
+      templateKey: key as any
     });
     
-    if (template && template.message && template.message.trim()) {
-      logger.info(`✅ Found custom WhatsApp template in DB for key: ${key}`);
-      return replacePlaceholders(template.message.trim(), data);
+    if (template) {
+      if (template.isActive === false) {
+        logger.info(`🚫 WhatsApp template found but INACTIVE for key: ${key}`);
+        return null; // Explicitly suppress if inactive
+      }
+      if (template.message && template.message.trim()) {
+        logger.info(`✅ Found custom WhatsApp template in DB for key: ${key}`);
+        return replacePlaceholders(template.message.trim(), data);
+      }
     }
   }
 

@@ -461,15 +461,28 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
                      </div>
                      {!collapsedGroups[group.label] && (
                        <div className="pb-1 bg-white">
-                         {group.keys.map(k => (
-                           <div 
-                            key={k.key} 
-                            onClick={() => setSelectedWaTemplate(k.key)}
-                            className={cn("px-4 py-3 cursor-pointer border-l-2 text-[11px] font-bold", selectedWaTemplate === k.key ? "bg-indigo-50 border-indigo-500 text-indigo-700" : "border-transparent hover:bg-slate-50 text-slate-700")}
-                           >
-                              {k.label}
-                           </div>
-                         ))}
+                          {group.keys.map(k => {
+                            const template = waTemplates?.find((t: any) => t.templateKey === k.key);
+                            const isActive = template?.isActive !== false;
+                            
+                            return (
+                              <div 
+                                key={k.key} 
+                                onClick={() => setSelectedWaTemplate(k.key)}
+                                className={cn(
+                                  "px-4 py-3 cursor-pointer border-l-2 text-[11px] font-bold flex items-center justify-between", 
+                                  selectedWaTemplate === k.key 
+                                    ? "bg-indigo-50 border-indigo-500 text-indigo-700" 
+                                    : "border-transparent hover:bg-slate-50 text-slate-700"
+                                )}
+                              >
+                                 <span>{k.label}</span>
+                                 {!isActive && (
+                                   <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" title="Disabled" />
+                                 )}
+                              </div>
+                            );
+                          })}
                        </div>
                      )}
                    </div>
@@ -484,9 +497,22 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
               {/* Editor */}
               <div className="flex-1 p-6 space-y-4 bg-white relative">
                  <div className="flex items-center justify-between border-b pb-4">
-                    <div>
-                      <h3 className="text-xs font-black uppercase text-slate-800">{currentWaTemplate.label || selectedWaTemplate}</h3>
-                      <p className="text-[10px] text-slate-500 mt-1 italic">{KEY_META[selectedWaTemplate]?.when || "Manual Trigger"}</p>
+                    <div className="flex items-center gap-4">
+                        <div>
+                          <h3 className="text-xs font-black uppercase text-slate-800">{currentWaTemplate.label || selectedWaTemplate}</h3>
+                          <p className="text-[10px] text-slate-500 mt-1 italic">{KEY_META[selectedWaTemplate]?.when || "Manual Trigger"}</p>
+                        </div>
+                        <div className="flex items-center gap-2 px-3 py-1 bg-emerald-50 border border-emerald-200 rounded-full">
+                           <Label htmlFor="template-active-switch" className="text-[9px] font-black uppercase text-emerald-700 cursor-pointer select-none">
+                              {currentWaTemplate.isActive !== false ? "Active" : "Inactive"}
+                           </Label>
+                           <Switch 
+                              id="template-active-switch"
+                              checked={currentWaTemplate.isActive !== false}
+                              onCheckedChange={(checked) => updateSelectedField("isActive", checked)}
+                              className="scale-75 data-[state=checked]:bg-emerald-600"
+                           />
+                        </div>
                     </div>
                     <div className="flex gap-2">
                        <Button onClick={() => updateSelectedField("message", DEFAULT_WA_MESSAGES[selectedWaTemplate] || "")} variant="outline" size="sm" className="h-8 text-[10px] font-bold">
