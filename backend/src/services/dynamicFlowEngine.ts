@@ -2113,7 +2113,9 @@ export class DynamicFlowEngine {
         // Case 1: Grievance
         if (isGrievanceConfirm && isSubmitClick) {
           console.log(`🎯 Triggering createGrievance for button: ${buttonId}`);
-          await ActionService.createGrievance(this.session, this.company, this.userPhone);
+          await ActionService.createGrievance(this.session, this.company, this.userPhone, {
+            sendCitizenConfirmation: !isGrievanceSuccess,
+          });
           // If the flow has a success node, move to it. Otherwise, end session here.
           if (isGrievanceSuccess) {
             await this.runNextStepIfDifferent(nextStepId, currentStep.stepId);
@@ -2128,7 +2130,9 @@ export class DynamicFlowEngine {
         // Case 2: Appointment
         if (isAppointmentConfirm && isApptSubmitClick) {
           console.log(`🎯 Triggering createAppointment for button: ${buttonId}`);
-          await ActionService.createAppointment(this.session, this.company, this.userPhone);
+          await ActionService.createAppointment(this.session, this.company, this.userPhone, {
+            sendCitizenConfirmation: !isAppointmentSubmitted,
+          });
           // Move to success node or end session
           if (isAppointmentSubmitted) {
             await this.runNextStepIfDifferent(nextStepId, currentStep.stepId);
@@ -2230,6 +2234,7 @@ export class DynamicFlowEngine {
           this.session,
           this.company,
           this.userPhone,
+          { sendCitizenConfirmation: false },
         );
       } else if (bmIsAptConfirm && bmIsAptSuccess && bmIsSubmit) {
         console.log(
@@ -2239,6 +2244,7 @@ export class DynamicFlowEngine {
           this.session,
           this.company,
           this.userPhone,
+          { sendCitizenConfirmation: false },
         );
       }
       await this.runNextStepIfDifferent(
@@ -2307,6 +2313,7 @@ export class DynamicFlowEngine {
           this.session,
           this.company,
           this.userPhone,
+          { sendCitizenConfirmation: false },
         );
       } else {
         const dfIsAptConfirmStep =
@@ -2326,6 +2333,7 @@ export class DynamicFlowEngine {
             this.session,
             this.company,
             this.userPhone,
+            { sendCitizenConfirmation: false },
           );
         }
       }

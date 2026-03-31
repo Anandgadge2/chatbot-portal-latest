@@ -18,6 +18,10 @@ import { GrievanceStatus, AppointmentStatus, UserRole } from '../config/constant
 import { updateSession } from './sessionService';
 import { ForestService } from './forestService';
 
+interface CreateActionOptions {
+  sendCitizenConfirmation?: boolean;
+}
+
 /**
  * Action Service
  * 
@@ -52,8 +56,14 @@ export class ActionService {
   /**
    * Create grievance from session data
    */
-  static async createGrievance(session: any, company: any, userPhone: string): Promise<void> {
+  static async createGrievance(
+    session: any,
+    company: any,
+    userPhone: string,
+    options: CreateActionOptions = {},
+  ): Promise<void> {
     try {
+      const sendCitizenConfirmation = options.sendCitizenConfirmation !== false;
       let departmentId: mongoose.Types.ObjectId | null = null;
       
       if (session.data.departmentId) {
@@ -276,8 +286,11 @@ export class ActionService {
 
       const { notifyCitizenOnCreation, notifyDepartmentAdminOnCreation, notifyUserOnAssignment } = await import('./notificationService');
       
-      // Notify citizen about grievance creation
-      await notifyCitizenOnCreation(notificationData);
+      // Notify citizen only when flow does not already show a success/confirmation node.
+      // This prevents duplicate "success + grievance id" messages in WhatsApp chats.
+      if (sendCitizenConfirmation) {
+        await notifyCitizenOnCreation(notificationData);
+      }
 
       if (departmentId) {
         // 2. Admin Creation Notification
@@ -315,8 +328,14 @@ export class ActionService {
   /**
    * Create appointment from session data
    */
-  static async createAppointment(session: any, company: any, userPhone: string): Promise<void> {
+  static async createAppointment(
+    session: any,
+    company: any,
+    userPhone: string,
+    options: CreateActionOptions = {},
+  ): Promise<void> {
     try {
+      const sendCitizenConfirmation = options.sendCitizenConfirmation !== false;
       const appointmentDate = ActionService.parseAppointmentDate(session.data);
       const appointmentTime = session.data.appointmentTime || "TBD";
       const appointmentData = {
@@ -401,8 +420,11 @@ export class ActionService {
 
       const { notifyCitizenOnCreation, notifyDepartmentAdminOnCreation } = await import('./notificationService');
       
-      // Notify citizen about appointment creation
-      await notifyCitizenOnCreation(notificationData);
+      // Notify citizen only when flow does not already show a success/confirmation node.
+      // This prevents duplicate success messages in WhatsApp chats.
+      if (sendCitizenConfirmation) {
+        await notifyCitizenOnCreation(notificationData);
+      }
 
       // 2. Admin Creation Notification
       notifications.push(notifyDepartmentAdminOnCreation({
