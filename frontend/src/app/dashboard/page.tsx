@@ -435,6 +435,12 @@ function DashboardContent() {
     subDeptId: "",
   });
   const [showUserFiltersOnMobile, setShowUserFiltersOnMobile] = useState(false);
+  const [showDepartmentFiltersOnMobile, setShowDepartmentFiltersOnMobile] =
+    useState(false);
+  const [showGrievanceFiltersOnMobile, setShowGrievanceFiltersOnMobile] =
+    useState(false);
+  const [showAppointmentFiltersOnMobile, setShowAppointmentFiltersOnMobile] =
+    useState(false);
 
   const [grievanceFilters, setGrievanceFilters] = useState({
     status: "",
@@ -2046,6 +2052,17 @@ function DashboardContent() {
               )}
               <div className="flex items-center gap-3">
                 <Button
+                  onClick={handleRefresh}
+                  variant="ghost"
+                  disabled={refreshing}
+                  className="h-10 w-10 p-0 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-xl transition-all duration-300 border border-transparent hover:border-indigo-500/20 md:hidden"
+                  title="Refresh data"
+                >
+                  <RefreshCw
+                    className={cn("w-5 h-5", refreshing && "animate-spin")}
+                  />
+                </Button>
+                <Button
                   onClick={logout}
                   variant="ghost"
                   className="h-10 w-10 p-0 text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all duration-300 border border-transparent hover:border-rose-500/20"
@@ -2227,7 +2244,7 @@ function DashboardContent() {
               variant="outline"
               size="sm"
               disabled={refreshing}
-              className="h-10 w-full sm:w-auto px-4 bg-white border-slate-200 text-slate-600 hover:text-indigo-600 hover:border-indigo-200 transition-all rounded-xl shadow-sm font-bold text-[11px] uppercase tracking-widest gap-2 flex"
+              className="hidden md:flex h-10 w-full sm:w-auto px-4 bg-white border-slate-200 text-slate-600 hover:text-indigo-600 hover:border-indigo-200 transition-all rounded-xl shadow-sm font-bold text-[11px] uppercase tracking-widest gap-2"
             >
               <RefreshCw
                 className={cn("w-3.5 h-3.5", refreshing && "animate-spin")}
@@ -2915,8 +2932,8 @@ function DashboardContent() {
                 className={cn(
                   "grid gap-4",
                   stats?.isHierarchicalEnabled && isViewingCompany
-                    ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
-                    : "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5",
+                    ? "grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
+                    : "grid-cols-2 md:grid-cols-3 xl:grid-cols-5",
                 )}
               >
                 {/* Total Grievances - Enhanced */}
@@ -4313,6 +4330,18 @@ function DashboardContent() {
                         <Button
                           variant="outline"
                           size="sm"
+                          onClick={() =>
+                            setShowDepartmentFiltersOnMobile((prev) => !prev)
+                          }
+                          className="md:hidden h-10 px-4 border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-bold uppercase tracking-wider text-slate-600 shadow-sm transition-all"
+                          title="Toggle filters"
+                        >
+                          <Filter className="w-4 h-4 mr-2" />
+                          Filters
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => fetchDepartments(1, false)}
                           className="h-10 px-4 border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-bold uppercase tracking-wider text-slate-600 shadow-sm transition-all"
                         >
@@ -4336,7 +4365,14 @@ function DashboardContent() {
                     </div>
 
                     {/* Filters Row */}
-                    <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+                    <div
+                      className={cn(
+                        "flex-col lg:flex-row lg:items-center gap-3",
+                        showDepartmentFiltersOnMobile
+                          ? "flex"
+                          : "hidden md:flex",
+                      )}
+                    >
                       <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-slate-200">
                         <Filter className="w-4 h-4 text-indigo-500" />
                         <span className="text-sm font-semibold text-slate-700">Filters</span>
@@ -5117,6 +5153,18 @@ function DashboardContent() {
                         <Button
                           variant="outline"
                           size="sm"
+                          onClick={() =>
+                            setShowUserFiltersOnMobile((prev) => !prev)
+                          }
+                          className="md:hidden h-10 px-4 border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-bold uppercase tracking-wider text-slate-600 shadow-sm transition-all"
+                          title="Toggle filters"
+                        >
+                          <Filter className="w-4 h-4 mr-2" />
+                          Filters
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => fetchUsers(1, false)}
                           className="h-10 px-4 border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-bold uppercase tracking-wider text-slate-600 shadow-sm transition-all"
                         >
@@ -5142,7 +5190,12 @@ function DashboardContent() {
                     </div>
 
                     {/* Filters Row */}
-                    <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+                    <div
+                      className={cn(
+                        "flex-col lg:flex-row lg:items-center gap-3",
+                        showUserFiltersOnMobile ? "flex" : "hidden md:flex",
+                      )}
+                    >
                       <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-slate-200">
                         <Filter className="w-4 h-4 text-indigo-500" />
                         <span className="text-sm font-semibold text-slate-700">Filters</span>
@@ -5898,6 +5951,18 @@ function DashboardContent() {
                         <Button
                           variant="outline"
                           size="sm"
+                          onClick={() =>
+                            setShowGrievanceFiltersOnMobile((prev) => !prev)
+                          }
+                          className="md:hidden border-slate-200 hover:bg-slate-50 rounded-xl"
+                          title="Toggle filters"
+                        >
+                          <Filter className="w-4 h-4 mr-1.5" />
+                          Filters
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={handleRefreshData}
                           disabled={isRefreshing}
                           className="border-slate-200 hover:bg-slate-50 rounded-xl"
@@ -5935,7 +6000,14 @@ function DashboardContent() {
                     </div>
 
                     {/* Filters Row */}
-                    <div className="flex items-center gap-3 flex-wrap">
+                    <div
+                      className={cn(
+                        "items-center gap-3 flex-wrap",
+                        showGrievanceFiltersOnMobile
+                          ? "flex"
+                          : "hidden md:flex",
+                      )}
+                    >
                       <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-slate-200">
                         <Filter className="w-4 h-4 text-indigo-500" />
                         <span className="text-sm font-semibold text-slate-700">
@@ -7108,6 +7180,18 @@ function DashboardContent() {
                         <Button
                           variant="outline"
                           size="sm"
+                          onClick={() =>
+                            setShowAppointmentFiltersOnMobile((prev) => !prev)
+                          }
+                          className="md:hidden border-slate-200 hover:bg-slate-50 rounded-xl"
+                          title="Toggle filters"
+                        >
+                          <Filter className="w-4 h-4 mr-1.5" />
+                          Filters
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={handleRefreshData}
                           disabled={isRefreshing}
                           className="border-slate-200 hover:bg-slate-50 rounded-xl"
@@ -7146,7 +7230,14 @@ function DashboardContent() {
                     </div>
 
                     {/* Filters Row */}
-                    <div className="flex items-center gap-3 flex-wrap">
+                    <div
+                      className={cn(
+                        "items-center gap-3 flex-wrap",
+                        showAppointmentFiltersOnMobile
+                          ? "flex"
+                          : "hidden md:flex",
+                      )}
+                    >
                       <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-slate-200">
                         <Filter className="w-4 h-4 text-purple-500" />
                         <span className="text-sm font-semibold text-slate-700">
