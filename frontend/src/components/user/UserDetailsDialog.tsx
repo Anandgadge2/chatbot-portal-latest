@@ -64,10 +64,10 @@ export default function UserDetailsDialog({
   const roleGradient = getRoleColor(user.role || "");
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl shadow-2xl bg-white animate-in fade-in zoom-in duration-200 flex flex-col">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-2 sm:p-4">
+      <div className="w-full max-w-4xl max-h-[92vh] sm:max-h-[90vh] overflow-hidden rounded-xl sm:rounded-2xl shadow-2xl bg-white animate-in fade-in zoom-in duration-200 flex flex-col">
         {/* Dark Slate Header */}
-        <div className="bg-slate-900 p-5 relative overflow-hidden flex-shrink-0 border-b border-slate-800">
+        <div className="bg-slate-900 p-3 sm:p-5 relative overflow-hidden flex-shrink-0 border-b border-slate-800">
           {/* Subtle Background Pattern */}
           <div className="absolute inset-0 bg-white bg-opacity-5">
             <div
@@ -83,11 +83,11 @@ export default function UserDetailsDialog({
           <div className="relative">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-3 min-w-0 flex-1">
-                <div className="w-12 h-12 bg-white bg-opacity-10 rounded-xl flex items-center justify-center backdrop-blur-sm border border-white border-opacity-10 shadow-lg flex-shrink-0">
-                  <UserIcon className="w-6 h-6 text-white" />
+                <div className="w-9 h-9 sm:w-12 sm:h-12 bg-white bg-opacity-10 rounded-lg sm:rounded-xl flex items-center justify-center backdrop-blur-sm border border-white border-opacity-10 shadow-lg flex-shrink-0">
+                  <UserIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <div className="min-w-0">
-                  <h2 className="text-lg font-bold text-white uppercase tracking-tight">
+                  <h2 className="text-sm sm:text-lg font-bold text-white uppercase tracking-tight">
                     User Profile Details
                   </h2>
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
@@ -106,53 +106,53 @@ export default function UserDetailsDialog({
               </div>
               <button
                 onClick={onClose}
-                className="w-9 h-9 rounded-lg bg-white bg-opacity-10 hover:bg-opacity-20 flex items-center justify-center transition-all border border-white border-opacity-10 backdrop-blur-sm flex-shrink-0"
+                className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-white bg-opacity-10 hover:bg-opacity-20 flex items-center justify-center transition-all border border-white border-opacity-10 backdrop-blur-sm flex-shrink-0"
               >
-                <X className="w-5 h-5 text-white" />
+                <X className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </button>
             </div>
           </div>
         </div>
 
         {/* Scrollable Content */}
-        <div className="overflow-y-auto flex-1 p-5 space-y-5 custom-scrollbar">
+        <div className="overflow-y-auto flex-1 p-3 sm:p-5 space-y-3 sm:space-y-5 custom-scrollbar">
           {/* Quick Info Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg sm:rounded-xl p-2.5 sm:p-4 border border-blue-100">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
                   <UserIcon className="w-4 h-4 text-blue-600" />
                 </div>
-                <span className="text-xs font-bold text-blue-600 uppercase">
+                <span className="text-[10px] sm:text-xs font-bold text-blue-600 uppercase">
                   Name
                 </span>
               </div>
               <p
-                className="text-base font-bold text-gray-900 break-words whitespace-normal"
+                className="text-xs sm:text-base font-bold text-gray-900 break-words whitespace-normal"
                 title={`${user.firstName} ${user.lastName}`}
               >
                 {user.firstName} {user.lastName}
               </p>
             </div>
 
-            <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-100">
+            <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg sm:rounded-xl p-2.5 sm:p-4 border border-purple-100">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
                   <Shield className="w-4 h-4 text-purple-600" />
                 </div>
-                <span className="text-xs font-bold text-purple-600 uppercase">
+                <span className="text-[10px] sm:text-xs font-bold text-purple-600 uppercase">
                   Role
                 </span>
               </div>
               <p
-                className="text-base font-bold text-gray-900 break-words whitespace-normal"
+                className="text-xs sm:text-base font-bold text-gray-900 break-words whitespace-normal"
                 title={roleName}
               >
                 {roleName}
               </p>
             </div>
 
-            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-100">
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg sm:rounded-xl p-2.5 sm:p-4 border border-green-100">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
                   <Calendar className="w-4 h-4 text-green-600" />
@@ -161,12 +161,12 @@ export default function UserDetailsDialog({
                   Created
                 </span>
               </div>
-              <p className="text-base font-bold text-gray-900">
+              <p className="text-xs sm:text-base font-bold text-gray-900 break-words">
                 {formatDate(createdDate)}
               </p>
             </div>
 
-            <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-100">
+            <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg sm:rounded-xl p-2.5 sm:p-4 border border-amber-100">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
                   {user.isActive ? (
@@ -179,7 +179,7 @@ export default function UserDetailsDialog({
                   Status
                 </span>
               </div>
-              <p className="text-base font-bold text-gray-900">
+              <p className="text-xs sm:text-base font-bold text-gray-900 break-words">
                 {user.isActive ? "Active" : "Inactive"}
               </p>
             </div>

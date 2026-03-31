@@ -244,7 +244,7 @@ function ClockFacePicker({
         </div>
       </div>
 
-      <div className="relative w-64 h-64 group">
+      <div className="relative w-52 h-52 sm:w-64 sm:h-64 group">
         <svg
           ref={svgRef}
           viewBox="0 0 100 100"
@@ -530,32 +530,32 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
   if (!isOpen) return null;
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent hideClose={true} className="max-w-[95vw] md:max-w-5xl h-[90vh] p-0 overflow-hidden bg-slate-50 border-0 rounded-[2.5rem] shadow-3xl flex flex-col gap-0">
+      <DialogContent hideClose={true} className="max-w-[95vw] md:max-w-5xl h-[92vh] sm:h-[90vh] p-0 overflow-hidden bg-slate-50 border-0 rounded-[1.75rem] sm:rounded-[2.5rem] shadow-3xl flex flex-col gap-0">
         <div className="flex flex-col h-full bg-slate-50 relative">
           {/* Dashboard-style Header */}
-          <div className="bg-slate-900 px-8 py-8 relative overflow-hidden shrink-0">
+          <div className="bg-slate-900 px-4 sm:px-8 py-4 sm:py-8 relative overflow-hidden shrink-0">
             <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-transparent to-purple-500/10 hover:opacity-80 transition-opacity"></div>
             <div className="absolute -top-24 -right-24 w-80 h-80 bg-indigo-500/10 rounded-full blur-[100px]"></div>
             <div className="absolute top-1/2 -left-20 w-60 h-60 bg-purple-500/5 rounded-full blur-[80px]"></div>
             
             <div className="relative flex items-center justify-between">
-              <div className="flex items-center gap-6">
-                <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-xl border border-white/20 shadow-inner">
-                  <CalendarCheck className="w-8 h-8 text-indigo-400" />
+              <div className="flex items-center gap-3 sm:gap-6">
+                <div className="w-10 h-10 sm:w-16 sm:h-16 bg-white/10 rounded-xl sm:rounded-2xl flex items-center justify-center backdrop-blur-xl border border-white/20 shadow-inner">
+                  <CalendarCheck className="w-5 h-5 sm:w-8 sm:h-8 text-indigo-400" />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-black text-white tracking-tight leading-none mb-2">
+                  <h1 className="text-xl sm:text-3xl font-black text-white tracking-tight leading-none mb-1 sm:mb-2">
                     Availability <span className="text-indigo-400">Settings</span>
                   </h1>
-                  <p className="text-slate-400 text-sm font-medium">Manage your schedule, holidays, and appointment slots</p>
+                  <p className="text-slate-400 text-[11px] sm:text-sm font-medium leading-snug">Manage your schedule, holidays, and appointment slots</p>
                 </div>
               </div>
               
               <button
                 onClick={onClose}
-                className="w-12 h-12 bg-white/5 hover:bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/10 transition-all duration-300 group shadow-lg"
+                className="w-9 h-9 sm:w-12 sm:h-12 bg-white/5 hover:bg-white/10 rounded-xl sm:rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/10 transition-all duration-300 group shadow-lg"
               >
-                <X className="w-6 h-6 text-white/40 group-hover:text-white transition-colors" />
+                <X className="w-4 h-4 sm:w-6 sm:h-6 text-white/40 group-hover:text-white transition-colors" />
               </button>
             </div>
           </div>
@@ -576,11 +576,11 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
                   title={tab.tooltip}
-                  className={`flex items-center gap-2 px-6 py-4 text-[10px] font-black uppercase tracking-widest transition-all relative group ${
+                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-4 text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all relative group ${
                     active ? 'text-slate-900 border-b-2 border-indigo-600' : 'text-slate-400 hover:text-slate-600'
                   }`}
                 >
-                  <Icon className={`w-3.5 h-3.5 ${active ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-500'}`} />
+                  <Icon className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${active ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-500'}`} />
                   {tab.label}
                 </button>
               );
