@@ -139,6 +139,7 @@ import {
   BellRing,
   Workflow,
   LayoutGrid,
+  Menu,
 } from "lucide-react";
 
 interface DashboardStats {
@@ -308,6 +309,7 @@ function DashboardContent() {
     onConfirm: () => {},
     variant: "danger",
   });
+  const [isMobileTabMenuOpen, setIsMobileTabMenuOpen] = useState(false);
   const [loadingStats, setLoadingStats] = useState(false);
   const [loadingGrievances, setLoadingGrievances] = useState(false);
 
@@ -1986,6 +1988,28 @@ function DashboardContent() {
     userFilters.subDeptId,
   ].filter(Boolean).length;
 
+  const handleTabChange = (value: string) => {
+    if (activeTab !== value) {
+      setPreviousTab(activeTab);
+
+      if (activeTab === "reverted") {
+        setGrievanceFilters((prev) => ({ ...prev, status: "" }));
+      }
+      if (value === "reverted") {
+        setGrievanceFilters((prev) => ({
+          ...prev,
+          status: "REVERTED",
+        }));
+      }
+      if (activeTab === "overview" && value === "grievances") {
+        setGrievanceFilters((prev) => ({ ...prev, status: "" }));
+      }
+
+      setActiveTab(value);
+    }
+    setIsMobileTabMenuOpen(false);
+  };
+
   return (
     <div key="final-dashboard-root-v4" className="min-h-screen bg-white">
       {/* Premium Admin Header */}
@@ -2052,6 +2076,14 @@ function DashboardContent() {
               )}
               <div className="flex items-center gap-3">
                 <Button
+                  onClick={() => setIsMobileTabMenuOpen(true)}
+                  variant="ghost"
+                  className="h-10 w-10 p-0 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-xl transition-all duration-300 border border-transparent hover:border-indigo-500/20 md:hidden"
+                  title="Open navigation menu"
+                >
+                  <Menu className="w-5 h-5" />
+                </Button>
+                <Button
                   onClick={handleRefresh}
                   variant="ghost"
                   disabled={refreshing}
@@ -2082,32 +2114,12 @@ function DashboardContent() {
       <main className="max-w-[1600px] mx-auto px-4 lg:px-6 py-4">
         <Tabs
           value={activeTab}
-          onValueChange={(value) => {
-            if (activeTab !== value) {
-              setPreviousTab(activeTab);
-
-              // Filter logic for specialized tabs
-              if (activeTab === "reverted") {
-                setGrievanceFilters((prev) => ({ ...prev, status: "" }));
-              }
-              if (value === "reverted") {
-                setGrievanceFilters((prev) => ({
-                  ...prev,
-                  status: "REVERTED",
-                }));
-              }
-              if (activeTab === "overview" && value === "grievances") {
-                setGrievanceFilters((prev) => ({ ...prev, status: "" }));
-              }
-
-              setActiveTab(value);
-            }
-          }}
+          onValueChange={handleTabChange}
           className="space-y-4 sm:space-y-6"
         >
 
           <div className="mb-4 sticky top-[64px] z-40 bg-white/95 backdrop-blur-sm py-3 -mx-4 px-4 sm:mx-0 sm:px-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <TabsList className="w-full sm:w-auto bg-slate-200/50 p-1 border border-slate-300/50 h-10 shadow-sm overflow-x-auto no-scrollbar max-w-full">
+            <TabsList className="hidden md:flex w-full sm:w-auto bg-slate-200/50 p-1 border border-slate-300/50 h-10 shadow-sm overflow-x-auto no-scrollbar max-w-full">
               {(isSuperAdminUser ||
                 hasPermission(user, Permission.VIEW_ANALYTICS)) && (
                 <TabsTrigger
@@ -2239,6 +2251,18 @@ function DashboardContent() {
                 </>
               )}
             </TabsList>
+            <div className="md:hidden flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                Active tab
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsMobileTabMenuOpen(true)}
+                className="text-[11px] font-black uppercase tracking-widest text-slate-800"
+              >
+                {activeTab.replace("-", " ")}
+              </button>
+            </div>
             <Button
               onClick={handleRefresh}
               variant="outline"
@@ -2252,6 +2276,99 @@ function DashboardContent() {
               <span className="hidden sm:inline">Refresh Data</span>
             </Button>
           </div>
+
+          {isMobileTabMenuOpen && (
+            <div className="md:hidden fixed inset-0 z-[70]">
+              <button
+                type="button"
+                aria-label="Close navigation menu"
+                onClick={() => setIsMobileTabMenuOpen(false)}
+                className="absolute inset-0 bg-slate-950/70"
+              />
+              <div className="absolute right-0 top-0 h-full w-[82%] max-w-[320px] bg-white shadow-2xl border-l border-slate-200 p-4 overflow-y-auto">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xs font-black uppercase tracking-widest text-slate-500">
+                    Navigation
+                  </h3>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setIsMobileTabMenuOpen(false)}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  {(isSuperAdminUser ||
+                    hasPermission(user, Permission.VIEW_ANALYTICS)) && (
+                    <Button
+                      type="button"
+                      variant={activeTab === "overview" ? "default" : "outline"}
+                      onClick={() => handleTabChange("overview")}
+                      className="w-full justify-start text-xs font-bold uppercase tracking-wider"
+                    >
+                      Overview
+                    </Button>
+                  )}
+                  {(!isSuperAdminUser || (isSuperAdminUser && companyIdParam)) && (
+                    <Button
+                      type="button"
+                      variant={activeTab === "analytics" ? "default" : "outline"}
+                      onClick={() => handleTabChange("analytics")}
+                      className="w-full justify-start text-xs font-bold uppercase tracking-wider"
+                    >
+                      {isDFO ? "Command Center" : "Analytics"}
+                    </Button>
+                  )}
+                  {hasPermission(user, Permission.READ_GRIEVANCE) && (
+                    <Button
+                      type="button"
+                      variant={activeTab === "grievances" ? "default" : "outline"}
+                      onClick={() => handleTabChange("grievances")}
+                      className="w-full justify-start text-xs font-bold uppercase tracking-wider"
+                    >
+                      {isDFO ? "Incidents" : "Grievances"}
+                    </Button>
+                  )}
+                  {(isCompanyLevel ||
+                    isDepartmentLevel ||
+                    (isSuperAdminUser && companyIdParam)) &&
+                    hasModule(Module.APPOINTMENT) &&
+                    hasPermission(user, Permission.READ_APPOINTMENT) && (
+                      <Button
+                        type="button"
+                        variant={activeTab === "appointments" ? "default" : "outline"}
+                        onClick={() => handleTabChange("appointments")}
+                        className="w-full justify-start text-xs font-bold uppercase tracking-wider"
+                      >
+                        Appointments
+                      </Button>
+                    )}
+                  {isViewingCompany && (
+                    <Button
+                      type="button"
+                      variant={activeTab === "departments" ? "default" : "outline"}
+                      onClick={() => handleTabChange("departments")}
+                      className="w-full justify-start text-xs font-bold uppercase tracking-wider"
+                    >
+                      {isDFO ? "Patrol Units" : "Departments"}
+                    </Button>
+                  )}
+                  {(isViewingCompany || isDepartmentLevel) && (
+                    <Button
+                      type="button"
+                      variant={activeTab === "users" ? "default" : "outline"}
+                      onClick={() => handleTabChange("users")}
+                      className="w-full justify-start text-xs font-bold uppercase tracking-wider"
+                    >
+                      Users
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
@@ -4299,7 +4416,7 @@ function DashboardContent() {
                         <Button
                           type="button"
                           onClick={() => setShowDepartmentDialog(true)}
-                          className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-8 text-[10px] font-bold uppercase tracking-widest rounded-lg px-4 shadow-md"
+                          className="w-auto bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-7 sm:h-8 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest rounded-lg px-3 sm:px-4 shadow-md"
                         >
                           <Building className="w-3.5 h-3.5 mr-1.5" />
                           Add Department
@@ -5119,7 +5236,7 @@ function DashboardContent() {
                         <Button
                           type="button"
                           onClick={() => setShowUserDialog(true)}
-                          className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-8 text-[10px] font-bold uppercase tracking-widest rounded-lg px-4 shadow-md"
+                          className="w-auto bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-7 sm:h-8 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest rounded-lg px-3 sm:px-4 shadow-md"
                         >
                           <UserPlus className="w-3.5 h-3.5 mr-1.5" />
                           Add User
