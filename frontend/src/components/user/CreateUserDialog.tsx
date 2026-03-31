@@ -285,6 +285,11 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
     }
   }, [formData.companyId, formData.role, fetchCustomRoles, fetchDepartments]);
 
+  const isCompanyAdmin = () => {
+    const roleName = customRoles.find(r => `CUSTOM:${r._id}` === formData.role)?.name || formData.role;
+    return roleName.toLowerCase().includes("company administrator") || roleName.toLowerCase().includes("company admin");
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -315,23 +320,22 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
       let submissionRole = formData.role;
       let submissionCustomRoleId = "";
 
-      if (formData.role.startsWith("CUSTOM:")) {
-        submissionRole = "";
-        submissionCustomRoleId = formData.role.split(":")[1];
-      }
+      const finalDeptIds = isMultiDept 
+        ? formData.departmentIds 
+        : (selectedSubDeptId 
+            ? [selectedSubDeptId] 
+            : (selectedMainDeptId && selectedMainDeptId !== "NONE" ? [selectedMainDeptId] : []));
 
-      const submissionData = {
+      const submissionData: any = {
         ...formData,
         role: submissionRole || undefined,
         customRoleId: submissionCustomRoleId || null,
         companyId: formData.companyId || undefined,
         // Map hierarchy logic to departmentIds if in single mode
-        departmentIds: isMultiDept 
-          ? formData.departmentIds 
-          : (selectedSubDeptId || selectedMainDeptId ? [selectedSubDeptId || selectedMainDeptId] : []),
+        departmentIds: finalDeptIds,
         departmentId: isMultiDept 
           ? (formData.departmentIds.length > 0 ? formData.departmentIds[0] : undefined)
-          : (selectedSubDeptId || selectedMainDeptId || undefined),
+          : (selectedSubDeptId || (selectedMainDeptId === "NONE" ? undefined : selectedMainDeptId) || undefined),
       };
 
       let response;
@@ -546,7 +550,10 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
                     <div>
                         <Label>Main Department</Label>
                         <SearchableSelect
-                            options={departments.filter(d => !d.parentDepartmentId).map(d => ({ value: d._id, label: d.name }))}
+                            options={[
+                                ...(isCompanyAdmin() ? [{ value: "NONE", label: "🏢 FULL COMPANY (NO DEPARTMENT)" }] : []),
+                                ...departments.filter(d => !d.parentDepartmentId).map(d => ({ value: d._id, label: d.name }))
+                            ]}
                             value={selectedMainDeptId}
                             onValueChange={(value) => {
                                 setSelectedMainDeptId(value);

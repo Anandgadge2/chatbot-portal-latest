@@ -153,6 +153,11 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
     }
   }, [isOpen, user, departments]);
 
+  const isCompanyAdmin = () => {
+    const roleName = customRoles.find(r => `CUSTOM:${r._id}` === formData.role)?.name || formData.role;
+    return roleName.toLowerCase().includes("company administrator") || roleName.toLowerCase().includes("company admin");
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -167,16 +172,20 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
         submissionCustomRoleId = formData.role.split(":")[1];
       }
 
-      const submissionData = {
+      const finalDeptIds = isMultiDept 
+        ? formData.departmentIds 
+        : (selectedSubDeptId 
+            ? [selectedSubDeptId] 
+            : (selectedMainDeptId && selectedMainDeptId !== "NONE" ? [selectedMainDeptId] : []));
+
+      const submissionData: any = {
         ...formData,
         role: submissionRole,
         customRoleId: submissionCustomRoleId || undefined,
-        departmentIds: isMultiDept 
-          ? formData.departmentIds 
-          : (selectedSubDeptId || selectedMainDeptId ? [selectedSubDeptId || selectedMainDeptId] : []),
+        departmentIds: finalDeptIds,
         departmentId: isMultiDept 
           ? (formData.departmentIds.length > 0 ? formData.departmentIds[0] : undefined)
-          : (selectedSubDeptId || selectedMainDeptId || undefined),
+          : (selectedSubDeptId || (selectedMainDeptId === "NONE" ? undefined : selectedMainDeptId) || undefined),
       };
 
       await userAPI.update(user._id, submissionData);
@@ -458,7 +467,10 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
                       Main Department
                     </Label>
                     <SearchableSelect
-                      options={departments.filter(d => !d.parentDepartmentId).map(d => ({ value: d._id, label: d.name }))}
+                      options={[
+                        ...(isCompanyAdmin() ? [{ value: "NONE", label: "🏢 FULL COMPANY (NO DEPARTMENT)" }] : []),
+                        ...departments.filter(d => !d.parentDepartmentId).map(d => ({ value: d._id, label: d.name }))
+                      ]}
                       value={selectedMainDeptId}
                       onValueChange={(value) => {
                         setSelectedMainDeptId(value);
