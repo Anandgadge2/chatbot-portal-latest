@@ -164,20 +164,20 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
   const officerMedia = (grievance.media || []).filter(m => m.uploadedBy);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl shadow-2xl bg-white animate-in fade-in zoom-in duration-200 flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-2 sm:p-4">
+      <div className="w-full max-w-4xl max-h-[92vh] sm:max-h-[90vh] overflow-hidden rounded-xl sm:rounded-2xl shadow-2xl bg-white animate-in fade-in zoom-in duration-200 flex flex-col">
         {/* Dark Slate Header — consistent with superadmin theme */}
-        <div className="bg-slate-900 p-5 flex items-start justify-between gap-4 flex-shrink-0">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30 flex-shrink-0">
-              <FileText className="w-5 h-5 text-indigo-400" />
+        <div className="bg-slate-900 p-3 sm:p-5 flex items-start justify-between gap-3 sm:gap-4 flex-shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-indigo-500/20 rounded-lg sm:rounded-xl flex items-center justify-center border border-indigo-500/30 flex-shrink-0">
+              <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-400" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-base font-bold text-white">
+              <h2 className="text-sm sm:text-base font-bold text-white">
                 Grievance Details
               </h2>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <span className="px-2 py-0.5 bg-white/10 rounded-md text-[10px] font-bold text-slate-300 tracking-widest uppercase">
+                <span className="px-2 py-0.5 bg-white/10 rounded-md text-[9px] sm:text-[10px] font-bold text-slate-300 tracking-widest uppercase break-all">
                   {grievance.grievanceId}
                 </span>
                 <span className="text-slate-500 text-[10px]">•</span>
@@ -198,15 +198,15 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
             </div>
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all"
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all"
             >
-              <X className="w-4 h-4 text-white" />
+              <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
             </button>
           </div>
         </div>
 
         {/* Mobile Status Badge */}
-        <div className="sm:hidden px-5 pt-4">
+        <div className="sm:hidden px-3 pt-3">
           <div
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold uppercase tracking-wider ${statusConfig.bg} ${statusConfig.border} ${statusConfig.text}`}
           >
@@ -216,20 +216,20 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
         </div>
 
         {/* Scrollable Content */}
-        <div className="overflow-y-auto flex-1 p-5 space-y-5 custom-scrollbar">
+        <div className="overflow-y-auto flex-1 p-3 sm:p-5 space-y-3 sm:space-y-5 custom-scrollbar">
           {/* Quick Info Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-3 border border-blue-100">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-3">
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg sm:rounded-xl p-2.5 sm:p-3 border border-blue-100">
               <div className="flex items-center gap-2 mb-1.5">
                 <div className="w-7 h-7 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
                   <User className="w-3.5 h-3.5 text-blue-600" />
                 </div>
-                <span className="text-[10px] font-bold text-blue-600 uppercase">
+                <span className="text-[9px] sm:text-[10px] font-bold text-blue-600 uppercase">
                   Citizen
                 </span>
               </div>
               <p
-                className="text-sm font-bold text-gray-900 break-words whitespace-normal"
+                className="text-xs sm:text-sm font-bold text-gray-900 break-words whitespace-normal"
                 title={grievance.citizenName}
               >
                 {grievance.citizenName}
@@ -238,26 +238,26 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
 
 
 
-            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-3 border border-emerald-100">
+            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-lg sm:rounded-xl p-2.5 sm:p-3 border border-emerald-100">
               <div className="flex items-center gap-2 mb-1.5">
                 <div className="w-7 h-7 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
                   <Calendar className="w-3.5 h-3.5 text-emerald-600" />
                 </div>
-                <span className="text-[10px] font-bold text-emerald-600 uppercase">
+                <span className="text-[9px] sm:text-[10px] font-bold text-emerald-600 uppercase">
                   Filed On
                 </span>
               </div>
-              <p className="text-sm font-bold text-gray-900">
+              <p className="text-xs sm:text-sm font-bold text-gray-900 break-words">
                 {formatDate(createdDate)}
               </p>
             </div>
 
-            <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-3 border border-amber-100">
+            <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg sm:rounded-xl p-2.5 sm:p-3 border border-amber-100">
               <div className="flex items-center gap-2 mb-1.5">
                 <div className="w-7 h-7 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
                   <Clock className="w-3.5 h-3.5 text-amber-600" />
                 </div>
-                <span className="text-[10px] font-bold text-amber-600 uppercase">
+                <span className="text-[9px] sm:text-[10px] font-bold text-amber-600 uppercase">
                   Time
                 </span>
               </div>

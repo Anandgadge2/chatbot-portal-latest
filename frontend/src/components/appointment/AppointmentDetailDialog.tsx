@@ -101,22 +101,22 @@ const AppointmentDetailDialog: React.FC<AppointmentDetailDialogProps> = ({
   const appointmentDate = new Date(appointment.appointmentDate);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 focus:outline-none">
-      <div className="w-full max-w-3xl max-h-[90vh] overflow-hidden rounded-2xl shadow-2xl bg-white animate-in fade-in zoom-in duration-200 flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-2 sm:p-4 focus:outline-none">
+      <div className="w-full max-w-3xl max-h-[92vh] sm:max-h-[90vh] overflow-hidden rounded-xl sm:rounded-2xl shadow-2xl bg-white animate-in fade-in zoom-in duration-200 flex flex-col">
         {/* Dark Slate Header — consistent with superadmin theme */}
-        <div className="bg-slate-900 p-5 flex items-start justify-between gap-4 flex-shrink-0 border-b border-slate-800 relative overflow-hidden">
+        <div className="bg-slate-900 p-3 sm:p-5 flex items-start justify-between gap-3 sm:gap-4 flex-shrink-0 border-b border-slate-800 relative overflow-hidden">
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDZwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-10 pointer-events-none"></div>
 
           <div className="flex items-center gap-3 min-w-0 flex-1 relative z-10">
-            <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30 flex-shrink-0">
-              <Calendar className="w-5 h-5 text-indigo-400" />
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-indigo-500/20 rounded-lg sm:rounded-xl flex items-center justify-center border border-indigo-500/30 flex-shrink-0">
+              <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-400" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-base font-bold text-white uppercase tracking-tight">
+              <h2 className="text-sm sm:text-base font-bold text-white uppercase tracking-tight">
                 Appointment Details
               </h2>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <span className="px-2 py-0.5 bg-white/10 rounded-md text-[10px] font-bold text-slate-300 tracking-widest uppercase">
+                <span className="px-2 py-0.5 bg-white/10 rounded-md text-[9px] sm:text-[10px] font-bold text-slate-300 tracking-widest uppercase break-all">
                   {appointment.appointmentId}
                 </span>
                 <span className="text-slate-500 text-[10px]">•</span>
@@ -137,45 +137,45 @@ const AppointmentDetailDialog: React.FC<AppointmentDetailDialogProps> = ({
             </div>
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all"
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all"
             >
-              <X className="w-4 h-4 text-white" />
+              <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
             </button>
           </div>
         </div>
 
         {/* Scrollable Content */}
-        <div className="overflow-y-auto flex-1 p-5 space-y-5 custom-scrollbar">
+        <div className="overflow-y-auto flex-1 p-3 sm:p-5 space-y-3 sm:space-y-5 custom-scrollbar">
           {/* Quick Info Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-3 border border-blue-100">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3">
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg sm:rounded-xl p-2.5 sm:p-3 border border-blue-100">
               <div className="flex items-center gap-2 mb-1.5">
                 <div className="w-7 h-7 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
                   <User className="w-3.5 h-3.5 text-blue-600" />
                 </div>
-                <span className="text-[10px] font-bold text-blue-600 uppercase">
+                <span className="text-[9px] sm:text-[10px] font-bold text-blue-600 uppercase">
                   Citizen
                 </span>
               </div>
               <p
-                className="text-sm font-bold text-gray-900 break-words whitespace-normal"
+                className="text-xs sm:text-sm font-bold text-gray-900 break-words whitespace-normal"
                 title={appointment.citizenName}
               >
                 {appointment.citizenName}
               </p>
             </div>
 
-            <div className="bg-gradient-to-br from-purple-50 to-fuchsia-50 rounded-xl p-3 border border-purple-100 group relative">
+            <div className="bg-gradient-to-br from-purple-50 to-fuchsia-50 rounded-lg sm:rounded-xl p-2.5 sm:p-3 border border-purple-100 group relative">
               <div className="flex items-center gap-2 mb-1.5">
                 <div className="w-7 h-7 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
                   <Target className="w-3.5 h-3.5 text-purple-600" />
                 </div>
-                <span className="text-[10px] font-bold text-purple-600 uppercase">
+                <span className="text-[9px] sm:text-[10px] font-bold text-purple-600 uppercase">
                   Purpose
                 </span>
               </div>
               <p
-                className="text-sm font-bold text-gray-900 break-words whitespace-normal"
+                className="text-xs sm:text-sm font-bold text-gray-900 break-words whitespace-normal"
                 title={appointment.purpose}
               >
                 {appointment.purpose}
@@ -189,16 +189,16 @@ const AppointmentDetailDialog: React.FC<AppointmentDetailDialogProps> = ({
               )}
             </div>
 
-            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-3 border border-emerald-100">
+            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-lg sm:rounded-xl p-2.5 sm:p-3 border border-emerald-100">
               <div className="flex items-center gap-2 mb-1.5">
                 <div className="w-7 h-7 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
                   <Calendar className="w-3.5 h-3.5 text-emerald-600" />
                 </div>
-                <span className="text-[10px] font-bold text-emerald-600 uppercase">
+                <span className="text-[9px] sm:text-[10px] font-bold text-emerald-600 uppercase">
                   Scheduled
                 </span>
               </div>
-              <p className="text-sm font-bold text-gray-900">
+              <p className="text-xs sm:text-sm font-bold text-gray-900 break-words">
                 {formatDate(appointmentDate)}
               </p>
             </div>

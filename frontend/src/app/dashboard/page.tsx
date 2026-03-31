@@ -308,6 +308,7 @@ function DashboardContent() {
     onConfirm: () => {},
     variant: "danger",
   });
+  const [isMobileTabMenuOpen, setIsMobileTabMenuOpen] = useState(false);
   const [loadingStats, setLoadingStats] = useState(false);
   const [loadingGrievances, setLoadingGrievances] = useState(false);
 
@@ -1986,6 +1987,28 @@ function DashboardContent() {
     userFilters.subDeptId,
   ].filter(Boolean).length;
 
+  const handleTabChange = (value: string) => {
+    if (activeTab !== value) {
+      setPreviousTab(activeTab);
+
+      if (activeTab === "reverted") {
+        setGrievanceFilters((prev) => ({ ...prev, status: "" }));
+      }
+      if (value === "reverted") {
+        setGrievanceFilters((prev) => ({
+          ...prev,
+          status: "REVERTED",
+        }));
+      }
+      if (activeTab === "overview" && value === "grievances") {
+        setGrievanceFilters((prev) => ({ ...prev, status: "" }));
+      }
+
+      setActiveTab(value);
+    }
+    setIsMobileTabMenuOpen(false);
+  };
+
   return (
     <div key="final-dashboard-root-v4" className="min-h-screen bg-white">
       {/* Premium Admin Header */}
@@ -1996,7 +2019,15 @@ function DashboardContent() {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-8">
               <div className="flex items-center gap-3 group">
-                <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-900/40 border border-indigo-500/30 group-hover:scale-105 transition-transform duration-300">
+                <button
+                  type="button"
+                  onClick={() => setIsMobileTabMenuOpen(true)}
+                  className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-900/40 border border-indigo-500/30 active:scale-95 transition-transform duration-300 md:hidden"
+                  title="Open navigation menu"
+                >
+                  <LayoutDashboard className="w-5 h-5 text-white" />
+                </button>
+                <div className="hidden md:flex w-10 h-10 bg-indigo-600 rounded-xl items-center justify-center shadow-lg shadow-indigo-900/40 border border-indigo-500/30 group-hover:scale-105 transition-transform duration-300">
                   <LayoutDashboard className="w-5 h-5 text-white" />
                 </div>
                 <div className="hidden sm:block">
@@ -2082,32 +2113,12 @@ function DashboardContent() {
       <main className="max-w-[1600px] mx-auto px-4 lg:px-6 py-4">
         <Tabs
           value={activeTab}
-          onValueChange={(value) => {
-            if (activeTab !== value) {
-              setPreviousTab(activeTab);
-
-              // Filter logic for specialized tabs
-              if (activeTab === "reverted") {
-                setGrievanceFilters((prev) => ({ ...prev, status: "" }));
-              }
-              if (value === "reverted") {
-                setGrievanceFilters((prev) => ({
-                  ...prev,
-                  status: "REVERTED",
-                }));
-              }
-              if (activeTab === "overview" && value === "grievances") {
-                setGrievanceFilters((prev) => ({ ...prev, status: "" }));
-              }
-
-              setActiveTab(value);
-            }
-          }}
+          onValueChange={handleTabChange}
           className="space-y-4 sm:space-y-6"
         >
 
           <div className="mb-4 sticky top-[64px] z-40 bg-white/95 backdrop-blur-sm py-3 -mx-4 px-4 sm:mx-0 sm:px-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <TabsList className="w-full sm:w-auto bg-slate-200/50 p-1 border border-slate-300/50 h-10 shadow-sm overflow-x-auto no-scrollbar max-w-full">
+            <TabsList className="hidden md:flex w-full sm:w-auto bg-slate-200/50 p-1 border border-slate-300/50 h-10 shadow-sm overflow-x-auto no-scrollbar max-w-full">
               {(isSuperAdminUser ||
                 hasPermission(user, Permission.VIEW_ANALYTICS)) && (
                 <TabsTrigger
@@ -2253,10 +2264,103 @@ function DashboardContent() {
             </Button>
           </div>
 
+          {isMobileTabMenuOpen && (
+            <div className="md:hidden fixed inset-0 z-[70]">
+              <button
+                type="button"
+                aria-label="Close navigation menu"
+                onClick={() => setIsMobileTabMenuOpen(false)}
+                className="absolute inset-0 bg-slate-950/70"
+              />
+              <div className="absolute right-0 top-0 h-full w-[82%] max-w-[320px] bg-white shadow-2xl border-l border-slate-200 p-4 overflow-y-auto">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xs font-black uppercase tracking-widest text-slate-500">
+                    Navigation
+                  </h3>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setIsMobileTabMenuOpen(false)}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  {(isSuperAdminUser ||
+                    hasPermission(user, Permission.VIEW_ANALYTICS)) && (
+                    <Button
+                      type="button"
+                      variant={activeTab === "overview" ? "default" : "outline"}
+                      onClick={() => handleTabChange("overview")}
+                      className="w-full justify-start text-xs font-bold uppercase tracking-wider"
+                    >
+                      Overview
+                    </Button>
+                  )}
+                  {(!isSuperAdminUser || (isSuperAdminUser && companyIdParam)) && (
+                    <Button
+                      type="button"
+                      variant={activeTab === "analytics" ? "default" : "outline"}
+                      onClick={() => handleTabChange("analytics")}
+                      className="w-full justify-start text-xs font-bold uppercase tracking-wider"
+                    >
+                      {isDFO ? "Command Center" : "Analytics"}
+                    </Button>
+                  )}
+                  {hasPermission(user, Permission.READ_GRIEVANCE) && (
+                    <Button
+                      type="button"
+                      variant={activeTab === "grievances" ? "default" : "outline"}
+                      onClick={() => handleTabChange("grievances")}
+                      className="w-full justify-start text-xs font-bold uppercase tracking-wider"
+                    >
+                      {isDFO ? "Incidents" : "Grievances"}
+                    </Button>
+                  )}
+                  {(isCompanyLevel ||
+                    isDepartmentLevel ||
+                    (isSuperAdminUser && companyIdParam)) &&
+                    hasModule(Module.APPOINTMENT) &&
+                    hasPermission(user, Permission.READ_APPOINTMENT) && (
+                      <Button
+                        type="button"
+                        variant={activeTab === "appointments" ? "default" : "outline"}
+                        onClick={() => handleTabChange("appointments")}
+                        className="w-full justify-start text-xs font-bold uppercase tracking-wider"
+                      >
+                        Appointments
+                      </Button>
+                    )}
+                  {isViewingCompany && (
+                    <Button
+                      type="button"
+                      variant={activeTab === "departments" ? "default" : "outline"}
+                      onClick={() => handleTabChange("departments")}
+                      className="w-full justify-start text-xs font-bold uppercase tracking-wider"
+                    >
+                      {isDFO ? "Patrol Units" : "Departments"}
+                    </Button>
+                  )}
+                  {(isViewingCompany || isDepartmentLevel) && (
+                    <Button
+                      type="button"
+                      variant={activeTab === "users" ? "default" : "outline"}
+                      onClick={() => handleTabChange("users")}
+                      className="w-full justify-start text-xs font-bold uppercase tracking-wider"
+                    >
+                      Users
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
             {/* Dashboard Headers & Quick Stats */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2 sm:gap-4">
               {/* Statistical KPI Cards */}
               <>
                 {/* Total Grievances */}
@@ -2265,20 +2369,20 @@ function DashboardContent() {
                     onClick={() => setActiveTab("grievances")}
                     className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
                   >
-                    <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
-                      <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <CardHeader className="p-3 sm:p-6 pb-1 sm:pb-2 space-y-0 flex flex-row items-center justify-between">
+                      <CardTitle className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
                         {isDFO ? "Total Incidents" : "Total Grievances"}
                       </CardTitle>
-                      <div className="p-1.5 bg-indigo-50 rounded-lg">
-                        <FileText className="w-3.5 h-3.5 text-indigo-500" />
+                      <div className="p-1 sm:p-1.5 bg-indigo-50 rounded-lg">
+                        <FileText className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-indigo-500" />
                       </div>
                     </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-black text-slate-800 tabular-nums">
+                    <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6 pt-1">
+                      <div className="text-xl sm:text-2xl font-black text-slate-800 tabular-nums leading-none">
                         {loadingStats ? "..." : stats?.grievances.total || 0}
                       </div>
                       <div className="flex items-center gap-1 mt-1">
-                        <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-full">
+                        <span className="text-[9px] sm:text-[10px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-full">
                           {stats?.grievances.last7Days || 0} New
                         </span>
                         <span className="text-[9px] text-slate-400 font-medium">
@@ -2301,19 +2405,19 @@ function DashboardContent() {
                     }}
                     className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
                   >
-                    <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
-                      <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <CardHeader className="p-3 sm:p-6 pb-1 sm:pb-2 space-y-0 flex flex-row items-center justify-between">
+                      <CardTitle className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
                         {isDFO ? "Critical Alerts" : "Overdue Grievances"}
                       </CardTitle>
-                      <div className="p-1.5 bg-amber-50 rounded-lg">
-                        <Clock className="w-3.5 h-3.5 text-amber-500" />
+                      <div className="p-1 sm:p-1.5 bg-amber-50 rounded-lg">
+                        <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-500" />
                       </div>
                     </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-black text-amber-600 tabular-nums">
+                    <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6 pt-1">
+                      <div className="text-xl sm:text-2xl font-black text-amber-600 tabular-nums leading-none">
                         {loadingStats ? "..." : stats?.grievances.pending || 0}
                       </div>
-                      <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">
+                      <p className="text-[8px] sm:text-[9px] text-slate-400 font-bold uppercase mt-1">
                         Requiring Response
                       </p>
                     </CardContent>
@@ -2930,7 +3034,7 @@ function DashboardContent() {
               {/* KPI Cards - Refined Design */}
               <div
                 className={cn(
-                  "grid gap-4",
+                  "grid gap-2 sm:gap-4",
                   stats?.isHierarchicalEnabled && isViewingCompany
                     ? "grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
                     : "grid-cols-2 md:grid-cols-3 xl:grid-cols-5",
@@ -2940,27 +3044,27 @@ function DashboardContent() {
                 {hasModule(Module.GRIEVANCE) && (
                   <div
                     onClick={() => setActiveTab("grievances")}
-                    className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-4 transition-all duration-500 hover:shadow-xl hover:shadow-indigo-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden"
+                    className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-indigo-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden"
                   >
                     <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-indigo-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
                     <div className="relative">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600 border border-indigo-100/50 shadow-sm group-hover:rotate-6 transition-transform">
-                          <FileText className="w-5 h-5" />
+                      <div className="flex items-center justify-between mb-2 sm:mb-3">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600 border border-indigo-100/50 shadow-sm group-hover:rotate-6 transition-transform">
+                          <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
                         </div>
                         <div className="text-right">
-                          <div className="text-[9px] font-black text-indigo-600 bg-indigo-50/80 px-2 py-1 rounded-lg uppercase tracking-tight border border-indigo-100/30">
+                          <div className="text-[8px] sm:text-[9px] font-black text-indigo-600 bg-indigo-50/80 px-1.5 sm:px-2 py-1 rounded-lg uppercase tracking-tight border border-indigo-100/30">
                             {(stats?.grievances.resolutionRate || 0).toFixed(1)}
                             % Resolved
                           </div>
                         </div>
                       </div>
-                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                      <h4 className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
                         {isDFO
                           ? "Incident Reporting Trend"
                           : "Inbound Grievances"}
                       </h4>
-                      <p className="text-2xl font-black text-slate-900 tracking-tighter group-hover:text-indigo-600 transition-colors">
+                      <p className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter group-hover:text-indigo-600 transition-colors leading-none">
                         {stats?.grievances.total || 0}
                       </p>
                     </div>
@@ -2977,22 +3081,22 @@ function DashboardContent() {
                         status: "PENDING",
                       }));
                     }}
-                    className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-4 transition-all duration-500 hover:shadow-xl hover:shadow-amber-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden"
+                    className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-amber-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden"
                   >
                     <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-amber-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
                     <div className="relative">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center text-amber-600 border border-amber-100/50 shadow-sm group-hover:-rotate-6 transition-transform">
-                          <Clock className="w-5 h-5" />
+                      <div className="flex items-center justify-between mb-2 sm:mb-3">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-amber-50 rounded-lg flex items-center justify-center text-amber-600 border border-amber-100/50 shadow-sm group-hover:-rotate-6 transition-transform">
+                          <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
                         </div>
-                        <span className="text-[9px] font-black bg-rose-50 text-rose-600 px-2 py-1 rounded-lg uppercase tracking-tight border border-rose-100/30">
+                        <span className="text-[8px] sm:text-[9px] font-black bg-rose-50 text-rose-600 px-1.5 sm:px-2 py-1 rounded-lg uppercase tracking-tight border border-rose-100/30">
                           {stats?.highPriorityPending || 0} Urgent
                         </span>
                       </div>
-                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                      <h4 className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
                         {isDFO ? "Active Critical Cases" : "Overdue cases"}
                       </h4>
-                      <p className="text-2xl font-black text-amber-600 tracking-tighter">
+                      <p className="text-xl sm:text-2xl font-black text-amber-600 tracking-tighter leading-none">
                         {stats?.grievances.pending || 0}
                       </p>
                     </div>
@@ -4275,37 +4379,29 @@ function DashboardContent() {
                         <Building className="w-4 h-4 text-indigo-400" />
                       </div>
                       <div>
-                        <CardTitle className="text-base font-bold text-white flex items-center gap-2">
+                        <CardTitle className="text-base font-bold text-white flex items-center gap-2 flex-wrap">
                           Department Management
                           <span className="text-[10px] font-black bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full">
                             {departmentPagination.total} total
                           </span>
+                          {(isSuperAdminUser ||
+                            hasPermission(user, Permission.CREATE_DEPARTMENT)) && (
+                            <Button
+                              type="button"
+                              onClick={() => setShowDepartmentDialog(true)}
+                              className="w-auto bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-7 sm:h-8 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest rounded-lg px-3 sm:px-4 shadow-md"
+                            >
+                              <Building className="w-3.5 h-3.5 mr-1.5" />
+                              Add Department
+                            </Button>
+                          )}
                         </CardTitle>
                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
                           Manage all departments in your company
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => fetchDepartments(1, false)}
-                        className="h-8 w-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all border border-white/10"
-                        title="Refresh departments"
-                      >
-                        <RefreshCw className="w-3.5 h-3.5" />
-                      </button>
-                      {(isSuperAdminUser ||
-                        hasPermission(user, Permission.CREATE_DEPARTMENT)) && (
-                        <Button
-                          type="button"
-                          onClick={() => setShowDepartmentDialog(true)}
-                          className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-8 text-[10px] font-bold uppercase tracking-widest rounded-lg px-4 shadow-md"
-                        >
-                          <Building className="w-3.5 h-3.5 mr-1.5" />
-                          Add Department
-                        </Button>
-                      )}
-                    </div>
+                    <div />
                   </div>
                 </CardHeader>
 
@@ -5090,11 +5186,21 @@ function DashboardContent() {
                         <Users className="w-4 h-4 text-indigo-400" />
                       </div>
                       <div>
-                        <CardTitle className="text-base font-bold text-white">
+                        <CardTitle className="text-base font-bold text-white flex flex-wrap items-center gap-2">
                           User Management
                           <span className="text-[10px] font-black bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full ml-2">
                             {userPagination.total} total
                           </span>
+                          {hasPermission(user, Permission.CREATE_USER) && (
+                            <Button
+                              type="button"
+                              onClick={() => setShowUserDialog(true)}
+                              className="w-auto bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-7 sm:h-8 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest rounded-lg px-3 sm:px-4 shadow-md"
+                            >
+                              <UserPlus className="w-3.5 h-3.5 mr-1.5" />
+                              Add User
+                            </Button>
+                          )}
                         </CardTitle>
                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
                           {isViewingCompany
@@ -5116,14 +5222,6 @@ function DashboardContent() {
                             Delete ({selectedUsers.size})
                           </Button>
                         )}
-                        <Button
-                          type="button"
-                          onClick={() => setShowUserDialog(true)}
-                          className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-8 text-[10px] font-bold uppercase tracking-widest rounded-lg px-4 shadow-md"
-                        >
-                          <UserPlus className="w-3.5 h-3.5 mr-1.5" />
-                          Add User
-                        </Button>
                       </div>
                     )}
                   </div>
