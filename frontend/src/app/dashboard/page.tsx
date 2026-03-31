@@ -4435,7 +4435,7 @@ function DashboardContent() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <input
                           type="text"
-                          placeholder="Search by ID, name, contact info, or type..."
+                          placeholder="Search..."
                           value={deptSearch}
                           onChange={(e) => setDeptSearch(e.target.value)}
                           className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm text-sm placeholder:text-slate-400 font-medium transition-all"
@@ -5255,7 +5255,7 @@ function DashboardContent() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <input
                           type="text"
-                          placeholder="Search by ID, name, email, phone, or designation..."
+                          placeholder="Search..."
                           value={userSearch}
                           onChange={(e) => {
                             setUserSearch(e.target.value);
@@ -6017,7 +6017,7 @@ function DashboardContent() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <input
                           type="text"
-                          placeholder="Search by ID, name, phone, or category..."
+                          placeholder="Search..."
                           value={grievanceSearch}
                           onChange={(e) => {
                             setGrievanceSearch(e.target.value);
@@ -7249,7 +7249,7 @@ function DashboardContent() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <input
                           type="text"
-                          placeholder="Search by ID, name, phone, or purpose..."
+                          placeholder="Search..."
                           value={appointmentSearch}
                           onChange={(e) => setAppointmentSearch(e.target.value)}
                           className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white shadow-sm text-sm placeholder:text-slate-400"

@@ -56,10 +56,14 @@ router.get('/', requirePermission(Permission.READ_DEPARTMENT), async (req: Reque
       ];
 
       // ✨ Logical Search: Any Matching User's Department
-      // We look for users whose names match, and find their departments (primary or multiple)
+      // We look for users whose names, emails, or phones match, and find their departments (primary or multiple)
       const matchingUsers = await User.find({
         companyId: targetCompanyId || { $exists: true },
-        $or: buildNameSearchQuery(search as string, 'firstName', 'lastName')
+        $or: [
+          ...buildNameSearchQuery(search as string, 'firstName', 'lastName'),
+          { email: { $regex: escapedSearch, $options: 'i' } },
+          { phone: { $regex: escapedSearch, $options: 'i' } }
+        ]
       }).select('departmentId departmentIds');
       
       const deptIdsFromUsers = new Set<string>();
@@ -74,6 +78,11 @@ router.get('/', requirePermission(Permission.READ_DEPARTMENT), async (req: Reque
 
       if (deptIdsArr.length > 0) {
         searchCriteria.push({ _id: { $in: deptIdsArr } });
+      }
+
+      const userIdsArr = matchingUsers.map(u => u._id);
+      if (userIdsArr.length > 0) {
+        searchCriteria.push({ contactUserId: { $in: userIdsArr } });
       }
       
       if (query.$or) {
