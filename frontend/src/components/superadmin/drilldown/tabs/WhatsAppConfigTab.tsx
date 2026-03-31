@@ -446,9 +446,6 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
               <CardTitle className="text-[10px] font-black text-white uppercase flex items-center gap-2">
                 <Bell className="w-3 h-3 text-emerald-400" /> Outbound Designer
               </CardTitle>
-              <Button onClick={handleSaveWhatsAppTemplates} disabled={savingTemplates} size="sm" className="bg-emerald-600 text-[9px] font-black uppercase h-7 px-3 border-0">
-                {savingTemplates ? "Wait..." : "Update Logic"}
-              </Button>
             </CardHeader>
             <CardContent className="p-0 flex flex-col md:flex-row min-h-[500px]">
               {/* Sidebar */}
@@ -509,15 +506,34 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
                            <Switch 
                               id="template-active-switch"
                               checked={currentWaTemplate.isActive !== false}
-                              onCheckedChange={(checked) => updateSelectedField("isActive", checked)}
+                              onCheckedChange={async (checked) => {
+                                // 🔄 UPDATE: Instant save on toggle to ensure it's "automatically used in the flow"
+                                updateSelectedField("isActive", checked);
+                                
+                                // We need the updated list to send to backend, but setWaTemplates is async. 
+                                // So we manually construct the updated list for the immediate save call.
+                                const updatedTemplates = waTemplates.map(t => 
+                                  t.templateKey === selectedWaTemplate ? { ...t, isActive: checked } : t
+                                );
+                                
+                                try {
+                                  setSavingTemplates(true);
+                                  await apiClient.put(`/whatsapp-config/company/${companyId}/templates`, {
+                                    templates: updatedTemplates.map(t => ({
+                                      ...t,
+                                      isActive: t.isActive !== false
+                                    }))
+                                  });
+                                  toast.success(`Template ${checked ? 'activated' : 'deactivated'}`);
+                                } catch (error) {
+                                  toast.error("Failed to update status");
+                                } finally {
+                                  setSavingTemplates(false);
+                                }
+                              }}
                               className="scale-75 data-[state=checked]:bg-emerald-600"
                            />
                         </div>
-                    </div>
-                    <div className="flex gap-2">
-                       <Button onClick={() => updateSelectedField("message", DEFAULT_WA_MESSAGES[selectedWaTemplate] || "")} variant="outline" size="sm" className="h-8 text-[10px] font-bold">
-                          <RotateCcw className="w-3 h-3 mr-1" /> Load Default
-                       </Button>
                        <Button onClick={() => setIsPreviewOpen(true)} variant="outline" size="sm" className="h-8 text-[10px] font-bold border-indigo-200 text-indigo-600">
                           <Eye className="w-3 h-3 mr-1" /> Preview
                        </Button>
