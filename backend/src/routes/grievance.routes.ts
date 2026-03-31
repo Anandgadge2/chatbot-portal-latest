@@ -202,8 +202,22 @@ router.post('/', async (req: Request, res: Response) => {
     // ✅ AUTO-ASSIGNMENT (Designated Officer / Dept Admin)
     const { getHierarchicalDepartmentAdmins, notifyUserOnAssignment, notifyDepartmentAdminOnCreation, notifyCitizenOnCreation } = await import('../services/notificationService');
     const targetDeptId = (grievance as any).subDepartmentId || departmentId;
-    const potentialAdmins = await getHierarchicalDepartmentAdmins(targetDeptId);
-    const targetAdmin = findOptimalAdmin(potentialAdmins);
+    
+    let targetAdmin = null;
+
+    // 1. First priority: Check if the department has a designated head/contact person
+    if (targetDeptId) {
+      const dept = await Department.findById(targetDeptId).select('contactUserId');
+      if (dept && dept.contactUserId) {
+        targetAdmin = await User.findById(dept.contactUserId).populate('customRoleId');
+      }
+    }
+
+    // 2. Second priority: Hierarchical lookup if no designated head was found
+    if (!targetAdmin) {
+      const potentialAdmins = await getHierarchicalDepartmentAdmins(targetDeptId);
+      targetAdmin = findOptimalAdmin(potentialAdmins);
+    }
     
     if (targetAdmin) {
       grievance.assignedTo = targetAdmin._id;
@@ -211,26 +225,10 @@ router.post('/', async (req: Request, res: Response) => {
       await grievance.save();
       
       console.log(`🎯 Auto-assigned portal grievance ${grievance.grievanceId} to admin: ${targetAdmin.email}`);
-
-      await notifyUserOnAssignment({
-        type: 'grievance' as const,
-        action: 'assigned' as const,
-        grievanceId: grievance.grievanceId,
-        citizenName: grievance.citizenName,
-        citizenPhone: grievance.citizenPhone,
-        citizenWhatsApp: grievance.citizenWhatsApp,
-        departmentId: departmentId as any,
-        subDepartmentId: (grievance as any).subDepartmentId,
-        companyId: companyId as any,
-        assignedTo: targetAdmin._id,
-        assignedByName: 'System (Auto-assign)',
-        assignedAt: new Date(),
-        description: grievance.description,
-        category: grievance.category,
-        createdAt: grievance.createdAt,
-        timeline: grievance.timeline
-      }).catch(err => console.error('❌ Assignment Notification failed:', err));
     }
+
+
+
 
     // ✅ Notify Admins and Citizen about the new grievance creation
     const notificationPayload = {

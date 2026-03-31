@@ -123,7 +123,29 @@ const UserSchema: Schema = new Schema(
     },
     notificationSettings: {
       email: { type: Boolean, default: true },
-      whatsapp: { type: Boolean, default: true }
+      whatsapp: { type: Boolean, default: true },
+      actions: {
+        grievance_created: {
+          email: { type: Boolean, default: true },
+          whatsapp: { type: Boolean, default: true }
+        },
+        grievance_assigned: {
+          email: { type: Boolean, default: true },
+          whatsapp: { type: Boolean, default: true }
+        },
+        grievance_resolved: {
+          email: { type: Boolean, default: true },
+          whatsapp: { type: Boolean, default: true }
+        },
+        appointment_created: {
+          email: { type: Boolean, default: true },
+          whatsapp: { type: Boolean, default: true }
+        },
+        appointment_scheduled: {
+          email: { type: Boolean, default: true },
+          whatsapp: { type: Boolean, default: true }
+        }
+      }
     },
     responsibleAreas: {
       type: [String],

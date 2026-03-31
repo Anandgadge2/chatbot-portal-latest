@@ -25,6 +25,9 @@ export interface User {
   notificationSettings?: {
     email: boolean;
     whatsapp: boolean;
+    actions?: {
+      [action: string]: { email: boolean, whatsapp: boolean };
+    };
   };
   createdAt: string;
   updatedAt: string;
@@ -50,6 +53,9 @@ export interface CreateUserData {
   notificationSettings?: {
     email: boolean;
     whatsapp: boolean;
+    actions?: {
+      [action: string]: { email: boolean, whatsapp: boolean };
+    };
   };
 }
 
@@ -58,6 +64,9 @@ export interface UpdateUserData extends Omit<Partial<CreateUserData>, 'customRol
   notificationSettings?: {
     email: boolean;
     whatsapp: boolean;
+    actions?: {
+      [action: string]: { email: boolean, whatsapp: boolean };
+    };
   };
 }
 

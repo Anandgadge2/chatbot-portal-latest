@@ -301,21 +301,40 @@ async function findCompanyByIdOrCustomId(id: any): Promise<any | null> {
  * Checks if a notification type (email or whatsapp) is enabled for a specific role in a company.
  * Defaults to true if settings are missing.
  */
-function canNotify(company: any, user: any, type: 'email' | 'whatsapp'): boolean {
+function canNotify(company: any, user: any, type: 'email' | 'whatsapp', action?: string): boolean {
   // 1. Individual User Setting (Highest Priority Override)
-  if (user?.notificationSettings && typeof (user.notificationSettings as any)[type] === 'boolean') {
-    return (user.notificationSettings as any)[type];
+  if (user?.notificationSettings) {
+    const settings = user.notificationSettings;
+    
+    // Check granular first if action is provided
+    if (action && settings.actions && settings.actions[action]) {
+      if (typeof settings.actions[action][type] === 'boolean') {
+        return settings.actions[action][type];
+      }
+    }
+    
+    // Fallback to global user override
+    if (typeof settings[type] === 'boolean') {
+      return settings[type];
+    }
   }
 
   // 2. Role Based Setting (from the Populated customRoleId if available)
   const populatedRole = user?.customRoleId;
-  if (
-    populatedRole && 
-    typeof populatedRole === 'object' && 
-    populatedRole.notificationSettings && 
-    typeof populatedRole.notificationSettings[type] === 'boolean'
-  ) {
-    return populatedRole.notificationSettings[type];
+  if (populatedRole && typeof populatedRole === 'object' && populatedRole.notificationSettings) {
+    const rSettings = populatedRole.notificationSettings;
+
+    // Check granular first if action is provided
+    if (action && rSettings.actions && rSettings.actions[action]) {
+      if (typeof rSettings.actions[action][type] === 'boolean') {
+        return rSettings.actions[action][type];
+      }
+    }
+
+    // Fallback to role global override
+    if (typeof rSettings[type] === 'boolean') {
+      return rSettings[type];
+    }
   }
 
   // 3. Company Default / Legacy Role Map
@@ -333,6 +352,14 @@ function canNotify(company: any, user: any, type: 'email' | 'whatsapp'): boolean
   }
 
   if (!roleSettings) return true;
+
+  // Check granular role settings from company record
+  if (action && roleSettings.actions && roleSettings.actions[action]) {
+    if (typeof roleSettings.actions[action][type] === 'boolean') {
+      return roleSettings.actions[action][type];
+    }
+  }
+
   return roleSettings[type] !== false;
 }
 
@@ -625,7 +652,7 @@ export async function notifyDepartmentAdminOnCreation(
         }
 
         // 📱 WhatsApp
-        if (canNotify(company, user, 'whatsapp')) {
+        if (canNotify(company, user, 'whatsapp', `${data.type}_created`)) {
           const whatsappTask = (async () => {
             const fullData = await populateNotificationData(notificationData);
             let message = await getNotificationWhatsAppMessage(companyId, data.type, 'created_admin', fullData);
@@ -677,7 +704,7 @@ export async function notifyUserOnAssignment(
     });
 
     // 📧 Email
-    if (user.email && canNotify(company, user, 'email')) {
+    if (user.email && canNotify(company, user, 'email', `${data.type}_assigned`)) {
       try {
         const email = await getNotificationEmailContent(data.companyId, data.type, 'assigned', fullData, true);
         if (email) {
@@ -687,7 +714,7 @@ export async function notifyUserOnAssignment(
     }
 
     // 📱 WhatsApp — use DB template first, then fallback
-    if (canNotify(company, user, 'whatsapp')) {
+    if (canNotify(company, user, 'whatsapp', `${data.type}_assigned`)) {
       let message = await getNotificationWhatsAppMessage(data.companyId, data.type, 'assigned_admin', fullData);
       
       if (!message) {

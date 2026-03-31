@@ -9,6 +9,15 @@ import { UserRole } from '../config/constants';
  * 
  * Returns null if only Company Admins or Collectors are found.
  */
+/**
+ * 🎯 Finds the most suitable admin for auto-assignment.
+ * Priority: 
+ * 1. Sub-Department Admin
+ * 2. Department Admin
+ * 3. Any other non-Collector/non-Company Admin
+ * 
+ * Returns null if only Company Admins or Collectors are found.
+ */
 export function findOptimalAdmin(potentialAdmins: any[]): any | null {
   if (!potentialAdmins || potentialAdmins.length === 0) return null;
 
@@ -33,22 +42,37 @@ export function findOptimalAdmin(potentialAdmins: any[]): any | null {
   });
   if (deptAdmins.length > 0) return deptAdmins[0];
 
-  // 🔍 3. Exclude Company Admins and Collectors
+  // 🔍 3. Exclude Company Admins, Collectors, and Super Admins
   const filteredAdmins = potentialAdmins.filter(a => {
     const role = (a.role || '').toUpperCase();
     const name = ((a.firstName || '') + ' ' + (a.lastName || '')).toUpperCase();
     const customRoleName = (a.customRoleId?.name || '').toUpperCase();
+    const customRoleKey = (a.customRoleId?.key || '').toUpperCase();
     
-    const isCompanyAdmin = role.includes('COMPANY_ADMIN') || customRoleName.includes('COMPANY ADMIN');
-    const isCollector = role.includes('COLLECTOR') || name.includes('COLLECTOR') || customRoleName.includes('COLLECTOR');
-    const isSuperAdmin = role.includes('SUPER_ADMIN');
+    // Strict exclusion list
+    const isCompanyAdmin = role.includes('COMPANY_ADMIN') || 
+                          customRoleName.includes('COMPANY ADMIN') || 
+                          customRoleKey === 'COMPANY_ADMIN';
+                          
+    const isCollector = role.includes('COLLECTOR') || 
+                        name.includes('COLLECTOR') || 
+                        customRoleName.includes('COLLECTOR') ||
+                        customRoleKey.includes('COLLECTOR');
+                        
+    const isSuperAdmin = role.includes('SUPER_ADMIN') || 
+                         customRoleKey === 'SUPER_ADMIN';
 
-    return !isCompanyAdmin && !isCollector && !isSuperAdmin;
+    // Also exclude generic "ADMIN" roles if they appear to be company-level
+    // (e.g. if their departmentId is missing or they are top-level)
+    const isGenericAdmin = role === 'ADMIN' || customRoleName === 'ADMIN' || customRoleKey === 'ADMIN';
+    const isTopLevel = !a.departmentId && (!a.departmentIds || a.departmentIds.length === 0);
+
+    return !isCompanyAdmin && !isCollector && !isSuperAdmin && !(isGenericAdmin && isTopLevel);
   });
 
   if (filteredAdmins.length > 0) return filteredAdmins[0];
 
   // 🚫 Return null if only restricted users are available.
-  // This forces manual assignment instead of "spamming" the Collector.
   return null;
 }
+
