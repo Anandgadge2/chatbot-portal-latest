@@ -139,17 +139,32 @@ router.get('/', requirePermission(Permission.READ_DEPARTMENT), async (req: Reque
     // We look for users who have management permissions for these departments
     const deptIds = departments.map(d => d._id);
 
-    // 1. Identify roles that represent "Department Admins" (manage permissions)
     const adminRoles = await Role.find({
-      companyId: targetCompanyId || { $exists: true },
-      'permissions.module': 'DEPARTMENTS',
-      'permissions.actions': { $in: ['update', 'all', 'manage'] }
+      $and: [
+        {
+          $or: [
+            { companyId: targetCompanyId },
+            { companyId: null },
+            { isSystem: true }
+          ]
+        },
+        {
+          $or: [
+            { 
+              'permissions.module': 'DEPARTMENTS', 
+              'permissions.actions': { $in: ['update', 'all', 'manage', 'assign'] } 
+            },
+            { level: { $lte: 3 } }, // Platform(0), Company(1), Dept(2), SubDept(3)
+            { name: { $regex: /admin|head|manager|supervisor|administrator|coordinator/i } }
+          ]
+        }
+      ]
     }).select('_id name');
     const adminRoleIds = adminRoles.map(r => r._id);
     const adminRoleNames = adminRoles.map(r => r.name);
 
     // 2. Find users with those roles in the relevant departments
-    // We expand the role list to include all common variations found in the DB
+    // We expand the entry to include common string variations for broader match
     const adminRoleStrings = [
       ...adminRoleNames, 
       'DEPARTMENT_ADMIN', 'SUB_DEPARTMENT_ADMIN', 
@@ -157,7 +172,7 @@ router.get('/', requirePermission(Permission.READ_DEPARTMENT), async (req: Reque
       'DEPARTMENT ADMINISTRATOR', 'SUB DEPARTMENT ADMINISTRATOR',
       'Department Administrator', 'Sub Department Administrator',
       'ADMINISTRATOR', 'Administrator', 'Company Administrator', 'COMPANY ADMINISTRATOR',
-      'Company Admin', 'COMPANY ADMIN'
+      'Company Admin', 'COMPANY ADMIN', 'MANAGER', 'Manager'
     ];
 
     const admins = await User.find({
@@ -403,9 +418,25 @@ router.get('/:id', requirePermission(Permission.READ_DEPARTMENT), async (req: Re
     // Dynamically identify department head based on permissions
     const Role = (await import('../models/Role')).default;
     const adminRoles = await Role.find({
-      companyId: department.companyId._id,
-      'permissions.module': 'DEPARTMENTS',
-      'permissions.actions': { $in: ['update', 'all', 'manage'] }
+      $and: [
+        {
+          $or: [
+            { companyId: department.companyId._id },
+            { companyId: null },
+            { isSystem: true }
+          ]
+        },
+        {
+          $or: [
+            { 
+              'permissions.module': 'DEPARTMENTS', 
+              'permissions.actions': { $in: ['update', 'all', 'manage', 'assign'] } 
+            },
+            { level: { $lte: 3 } },
+            { name: { $regex: /admin|head|manager|supervisor|administrator|coordinator/i } }
+          ]
+        }
+      ]
     }).select('_id name');
     const adminRoleIds = adminRoles.map(r => r._id);
     const adminRoleNames = adminRoles.map(r => r.name);
@@ -417,7 +448,7 @@ router.get('/:id', requirePermission(Permission.READ_DEPARTMENT), async (req: Re
       'DEPARTMENT ADMINISTRATOR', 'SUB DEPARTMENT ADMINISTRATOR',
       'Department Administrator', 'Sub Department Administrator',
       'ADMINISTRATOR', 'Administrator', 'Company Administrator', 'COMPANY ADMINISTRATOR',
-      'Company Admin', 'COMPANY ADMIN'
+      'Company Admin', 'COMPANY ADMIN', 'MANAGER', 'Manager'
     ];
 
     const User = (await import('../models/User')).default;

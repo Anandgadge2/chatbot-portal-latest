@@ -154,7 +154,7 @@ export default function FlowsPage() {
       const toastId = toast.success(
         `Flow created from template: ${template.name}`,
         {
-          duration: 2000, // Auto dismiss after 2 seconds
+          duration: 1000, // Auto dismiss after 1 second
         },
       );
 

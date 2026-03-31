@@ -214,7 +214,7 @@ export default function FlowToolbar({
     if (!validation.isValid) {
       toast.error(`Cannot save: Flow has ${validation.errors.length} error(s)`);
       validation.errors.slice(0, 3).forEach((error) => {
-        toast.error(error.message, { duration: 5000 });
+        toast.error(error.message, { duration: 2000 });
       });
       return;
     }

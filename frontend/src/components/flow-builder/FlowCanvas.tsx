@@ -376,13 +376,13 @@ export default function FlowCanvas({
     } else {
       toast.error(`Flow has ${validation.errors.length} error(s)`);
       validation.errors.forEach((error) => {
-        toast.error(error.message, { duration: 5000 });
+        toast.error(error.message, { duration: 2000 });
       });
     }
 
     if (validation.warnings.length > 0) {
       validation.warnings.forEach((warning) => {
-        toast(warning.message, { icon: '⚠️', duration: 4000 });
+        toast(warning.message, { icon: '⚠️', duration: 1000 });
       });
     }
   }, [nodes, edges]);

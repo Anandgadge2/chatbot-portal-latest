@@ -313,7 +313,7 @@ export default function AssignmentDialog({
         const newDept = allDepartments.find(d => d._id === userDeptId);
         toast.success(
           `${itemType === 'grievance' ? 'Grievance' : 'Appointment'} assigned to ${userName} and transferred to ${newDept?.name || 'new department'}`,
-          { id: toastId, duration: 4000 }
+          { id: toastId, duration: 1000 }
         );
       } else {
         toast.success(`Successfully assigned to ${userName}!`, { id: toastId });

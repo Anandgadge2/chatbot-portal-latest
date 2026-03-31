@@ -135,13 +135,13 @@ export default function ChatbotFlowsPage() {
           toast.success(
             res.message ||
               "Default flows already exist and are available in the list below",
-            { duration: 1500 },
+            { duration: 1000 },
           );
         } else {
           toast.success(
             res.message ||
               `Generated ${res.data?.length || 0} default flow(s) successfully`,
-            { duration: 1500 },
+            { duration: 1000 },
           );
         }
         setHasDefaultFlows(true);
@@ -162,7 +162,7 @@ export default function ChatbotFlowsPage() {
         errorMessage.includes("already exist")
       ) {
         toast.success("Default flows already exist. Refreshing list...", {
-          duration: 1500,
+          duration: 1000,
         });
         setHasDefaultFlows(true);
         fetchData(true);
@@ -192,7 +192,7 @@ export default function ChatbotFlowsPage() {
       const res = await apiClient.post(`/chatbot-flows/${flowId}/duplicate`);
       if (res.success) {
         toast.success(res.message || "Flow duplicated successfully", {
-          duration: 1500,
+          duration: 1000,
         });
         fetchData(true);
       } else {
@@ -216,7 +216,7 @@ export default function ChatbotFlowsPage() {
         toast.success(
           res.message || "Flow activated and assigned successfully",
           {
-            duration: 2000,
+            duration: 1000,
           },
         );
         fetchData(true);
@@ -255,11 +255,11 @@ export default function ChatbotFlowsPage() {
 
           if (res?.success === true) {
             toast.success(res.message || "Flow deleted successfully", {
-              duration: 1500,
+              duration: 1000,
             });
             fetchData(true);
           } else if (res?.data?.success) {
-            toast.success("Flow deleted successfully", { duration: 1500 });
+            toast.success("Flow deleted successfully", { duration: 1000 });
             fetchData(true);
           } else {
             toast.error(res?.message || "Failed to delete flow");

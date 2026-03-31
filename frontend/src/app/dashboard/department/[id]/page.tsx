@@ -1268,7 +1268,7 @@ export default function DepartmentDetail() {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => {
-                      toast.loading(`Gathering ${isDFO ? "division" : "department"} data...`, { duration: 1500 });
+                      toast.loading(`Gathering ${isDFO ? "division" : "department"} data...`, { duration: 1000 });
                       setTimeout(() => {
                         toast.success(`${isDFO ? "Wildlife Protection" : "Department Performance"} Report (PDF) generated successfully!`);
                       }, 2000);

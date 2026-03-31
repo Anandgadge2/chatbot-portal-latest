@@ -26,7 +26,18 @@ export default function RootLayout({
         <QueryProvider>
           <AuthProvider>
             {children}
-            <Toaster position="top-right" />
+            <Toaster 
+              position="top-right" 
+              toastOptions={{
+                duration: 1000,
+                success: {
+                  duration: 1000,
+                },
+                error: {
+                  duration: 2000,
+                },
+              }}
+            />
           </AuthProvider>
         </QueryProvider>
         <SpeedInsights />

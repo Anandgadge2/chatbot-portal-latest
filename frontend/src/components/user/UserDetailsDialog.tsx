@@ -235,22 +235,29 @@ export default function UserDetailsDialog({
                     Designation(s)
                   </span>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {(() => {
-                    const uniqueDesignations = new Set<string>();
-                    if (user.designation) uniqueDesignations.add(user.designation);
-                    user.designations?.forEach(d => uniqueDesignations.add(d));
-                    
-                    const list = Array.from(uniqueDesignations);
-                    if (list.length === 0) return <span className="text-xs text-slate-400 italic font-medium">No designations assigned</span>;
-                    
-                    return list.map((d, index) => (
-                      <span key={index} className={`px-2.5 py-1 text-[9px] font-black rounded-lg uppercase tracking-wider border shadow-sm transition-all ${d === user.designation ? "bg-gradient-to-r from-indigo-600 to-blue-600 text-white border-indigo-700 ring-1 ring-indigo-300" : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300"}`}>
-                        {d}
-                      </span>
-                    ));
-                  })()}
-                </div>
+                        <div className="flex flex-wrap gap-2">
+                          {(() => {
+                            const uniqueDesignations = new Set<string>();
+                            if (user.designation) uniqueDesignations.add(user.designation);
+                            user.designations?.forEach(d => uniqueDesignations.add(d));
+                            
+                            const list = Array.from(uniqueDesignations);
+                            if (list.length === 0) return <span className="text-xs text-slate-400 italic font-medium">No designations assigned</span>;
+                            
+                            return list.map((d, index) => (
+                              <span 
+                                key={index} 
+                                className={`px-2.5 py-1 text-[10px] font-bold rounded-lg uppercase tracking-wider border shadow-sm transition-all ${
+                                  d === user.designation 
+                                    ? "bg-slate-100 text-slate-700 border-slate-300 ring-1 ring-slate-200" 
+                                    : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"
+                                }`}
+                              >
+                                {d}
+                              </span>
+                            ));
+                          })()}
+                        </div>
               </div>
 
 

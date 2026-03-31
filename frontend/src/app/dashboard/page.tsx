@@ -139,6 +139,7 @@ import {
   BellRing,
   Workflow,
   LayoutGrid,
+  Menu,
 } from "lucide-react";
 
 interface DashboardStats {
@@ -1510,7 +1511,7 @@ function DashboardContent() {
             if (newCount > prevGrievanceCount) {
               toast.success(
                 `📋 New grievance received! (${newCount - prevGrievanceCount} new)`,
-                { duration: 2000 },
+                { duration: 1000 },
               );
               fetchDashboardData();
             }
@@ -1532,7 +1533,7 @@ function DashboardContent() {
             if (newCount > prevAppointmentCount) {
               toast.success(
                 `📅 New appointment scheduled! (${newCount - prevAppointmentCount} new)`,
-                { duration: 2000 },
+                { duration: 1000 },
               );
               fetchDashboardData();
             }
@@ -2083,6 +2084,14 @@ function DashboardContent() {
               )}
               <div className="flex items-center gap-3">
                 <Button
+                  onClick={() => setIsMobileTabMenuOpen(true)}
+                  variant="ghost"
+                  className="h-10 w-10 p-0 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-xl transition-all duration-300 border border-transparent hover:border-indigo-500/20 md:hidden"
+                  title="Open navigation menu"
+                >
+                  <Menu className="w-5 h-5" />
+                </Button>
+                <Button
                   onClick={handleRefresh}
                   variant="ghost"
                   disabled={refreshing}
@@ -2250,6 +2259,18 @@ function DashboardContent() {
                 </>
               )}
             </TabsList>
+            <div className="md:hidden flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                Active tab
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsMobileTabMenuOpen(true)}
+                className="text-[11px] font-black uppercase tracking-widest text-slate-800"
+              >
+                {activeTab.replace("-", " ")}
+              </button>
+            </div>
             <Button
               onClick={handleRefresh}
               variant="outline"
@@ -4401,7 +4422,28 @@ function DashboardContent() {
                         </p>
                       </div>
                     </div>
-                    <div />
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => fetchDepartments(1, false)}
+                        className="h-8 w-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all border border-white/10"
+                        title="Refresh departments"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                      </button>
+                      {(isSuperAdminUser ||
+                        hasPermission(user, Permission.CREATE_DEPARTMENT)) && (
+                        <Button
+                          type="button"
+                          onClick={() => setShowDepartmentDialog(true)}
+                          className="w-auto bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-7 sm:h-8 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest rounded-lg px-3 sm:px-4 shadow-md"
+                        >
+                          <Building className="w-3.5 h-3.5 mr-1.5" />
+                          Add Department
+                        </Button>
+                      )}
+                    </div>
+
                   </div>
                 </CardHeader>
 
@@ -5222,6 +5264,16 @@ function DashboardContent() {
                             Delete ({selectedUsers.size})
                           </Button>
                         )}
+
+                        <Button
+                          type="button"
+                          onClick={() => setShowUserDialog(true)}
+                          className="w-auto bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-7 sm:h-8 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest rounded-lg px-3 sm:px-4 shadow-md"
+                        >
+                          <UserPlus className="w-3.5 h-3.5 mr-1.5" />
+                          Add User
+                        </Button>
+
                       </div>
                     )}
                   </div>
@@ -5586,23 +5638,19 @@ function DashboardContent() {
                                             if (list.length === 0) return null;
 
                                             return list.map((d, i) => (
-                                              <span key={i} className={`text-[8.5px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-tighter shadow-sm border transition-all ${d === u.designation ? "bg-indigo-600 text-white border-indigo-700 font-bold" : "bg-white text-slate-500 border-slate-200"}`}>
+                                              <span 
+                                                key={i} 
+                                                className={`text-[8.5px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-tight shadow-sm border transition-all ${
+                                                  d === u.designation 
+                                                    ? "bg-slate-100 text-slate-700 border-slate-300" 
+                                                    : "bg-white text-slate-400 border-slate-100"
+                                                }`}
+                                              >
                                                 {d}
                                               </span>
                                             ));
                                           })()}
-                                          {(u as any).designation && (
-                                            <span className="text-[9px] font-bold text-indigo-600 bg-indigo-50/80 px-2 py-0.5 rounded-md border border-indigo-100/50 uppercase tracking-wider w-fit shadow-sm">
-                                              {(u as any).designation}
-                                            </span>
-                                          )}
-                                          {/* Multiple Designations */}
-                                          {(u as any).designations?.filter((d: any) => d !== (u as any).designation).map((d: any, i: any) => (
-                                            <span key={i} className="text-[9px] font-bold text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100 uppercase tracking-wider w-fit">
-                                              {d}
-                                            </span>
-                                          ))}
-                                          <span className="text-[8px] font-black bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded border border-slate-200 uppercase tracking-widest w-fit">
+                                          <span className="text-[8px] font-black bg-slate-50 text-slate-400 px-1.5 py-0.5 rounded-md border border-slate-100 uppercase tracking-widest w-fit">
                                             ID: {u.userId}
                                           </span>
                                         </div>
@@ -5657,54 +5705,38 @@ function DashboardContent() {
                                   <td className="px-4 py-5">
                                     <div className="flex flex-col space-y-2">
                                       <div className="flex">
-                                        <span
-                                          className={`px-2.5 py-0.5 inline-flex items-center text-[10px] font-bold rounded-full border shadow-sm ${
-                                            u.level === 1
-                                              ? "bg-red-50 text-red-700 border-red-100 ring-1 ring-red-200"
-                                              : typeof u.customRoleId ===
-                                                    "object" && u.customRoleId
-                                                ? "bg-indigo-50 text-indigo-700 border-indigo-100 ring-1 ring-indigo-200 shadow-indigo-900/5"
-                                                : (u.level === 2 &&
-                                                      typeof u.departmentId ===
-                                                        "object" &&
-                                                      (u.departmentId as any)
-                                                        ?.parentDepartmentId) ||
-                                                    u.level === 3
-                                                  ? "bg-purple-50 text-purple-700 border-purple-100 ring-1 ring-purple-200 shadow-purple-900/5"
-                                                  : u.level === 2
-                                                    ? "bg-blue-50 text-blue-700 border-blue-100 ring-1 ring-blue-200"
-                                                    : u.level === 4
-                                                      ? "bg-emerald-50 text-emerald-700 border-emerald-100 ring-1 ring-emerald-200"
-                                                      : u.level === 5
-                                                        ? "bg-emerald-50 text-emerald-700 border-emerald-100 ring-1 ring-emerald-200"
-                                                        : "bg-slate-50 text-slate-700 border-slate-200"
-                                          }`}
-                                        >
-                                          <Shield className="w-2.5 h-2.5 mr-1" />
-                                          {typeof u.customRoleId === "object" &&
-                                          u.customRoleId
-                                            ? (u.customRoleId as any).name
-                                            : (u.level === 2 &&
-                                                  typeof u.departmentId ===
-                                                    "object" &&
-                                                  (u.departmentId as any)
-                                                    ?.parentDepartmentId) ||
-                                                u.level === 3
-                                              ? "Sub Department Admin"
-                                              : isSuperAdmin(u)
-                                                ? "Super Admin"
-                                                : u.level === 1
-                                                  ? "Company Admin"
-                                                  : u.level === 2
-                                                    ? "Department Admin"
-                                                    : u.level === 4
-                                                      ? "Operator"
-                                                      : u.level === 5
-                                                        ? "Analytics Viewer"
-                                                        : (
-                                                            u.role || ""
-                                                          ).replace(/_/g, " ")}
-                                        </span>
+                                          <span
+                                            className={`px-2.5 py-0.5 inline-flex items-center text-[10px] font-bold rounded-full border shadow-sm ${
+                                              u.level === 1
+                                                ? "bg-slate-100 text-slate-700 border-slate-300 ring-1 ring-slate-200 shadow-slate-900/5"
+                                                : typeof u.customRoleId === "object" && u.customRoleId
+                                                  ? "bg-slate-50 text-slate-600 border-slate-200 ring-1 ring-slate-100 shadow-slate-900/5"
+                                                  : (u.level === 2 && 
+                                                     typeof u.departmentId === "object" &&
+                                                     (u.departmentId as any)?.parentDepartmentId) || u.level === 3
+                                                    ? "bg-slate-50 text-slate-500 border-slate-200"
+                                                    : "bg-slate-50 text-slate-500 border-slate-200"
+                                            }`}
+                                          >
+                                            <Shield className="w-2.5 h-2.5 mr-1 opacity-60" />
+                                            {typeof u.customRoleId === "object" && u.customRoleId
+                                              ? (u.customRoleId as any).name
+                                              : (u.level === 2 && 
+                                                 typeof u.departmentId === "object" &&
+                                                 (u.departmentId as any)?.parentDepartmentId) || u.level === 3
+                                                ? "Sub Department Admin"
+                                                : isSuperAdmin(u)
+                                                  ? "Super Admin"
+                                                  : u.level === 1
+                                                    ? "Company Admin"
+                                                    : u.level === 2
+                                                      ? "Department Admin"
+                                                      : u.level === 4
+                                                        ? "Operator"
+                                                        : u.level === 5
+                                                          ? "Analytics Viewer"
+                                                          : (u.role || "").replace(/_/g, " ")}
+                                          </span>
                                       </div>
                                         <div className="flex flex-col gap-1.5 min-w-[150px]">
                                         {(() => {
@@ -5858,25 +5890,7 @@ function DashboardContent() {
                                           <Edit2 className="w-4 h-4" />
                                         </Button>
                                       )}
-                                      {hasPermission(
-                                        user,
-                                        Permission.UPDATE_USER,
-                                      ) && (
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="h-8 w-8 p-0 text-slate-400 hover:text-violet-600 hover:bg-violet-50 transition-colors flex-shrink-0"
-                                          title="Change Permissions"
-                                          onClick={() => {
-                                            setEditingUser(u);
-                                            setShowChangePermissionsDialog(
-                                              true,
-                                            );
-                                          }}
-                                        >
-                                          <Shield className="w-4 h-4" />
-                                        </Button>
-                                      )}
+
                                       {hasPermission(
                                         user,
                                         Permission.DELETE_USER,
