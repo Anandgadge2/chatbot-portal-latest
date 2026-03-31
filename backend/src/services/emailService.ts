@@ -460,11 +460,12 @@ export async function getNotificationEmailContent(
     return { subject, html, text };
   }
   
-  // Only use default for the core three actions
-  if (['created', 'assigned', 'resolved'].includes(action)) {
+  // Only use default for core citizen and admin notifications
+  if (['created', 'assigned', 'resolved', 'confirmation', 'status_update', 'status_change'].includes(action)) {
     return generateNotificationEmail(type, action as any, data, isAdmin);
   }
   
+  logger.warn(`⚠️ No email content template or default fallback for action: ${action}`);
   return null;
 }
 

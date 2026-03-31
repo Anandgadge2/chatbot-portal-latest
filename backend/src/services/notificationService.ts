@@ -249,10 +249,19 @@ async function getCompanyWithWhatsAppConfig(companyId: any): Promise<any | null>
     });
 
     if (config) {
+      if (!config.phoneNumberId || !config.accessToken) {
+        logger.warn(`⚠️ WhatsApp configuration exists but is incomplete for company ${company.name}`, {
+          hasPhoneId: !!config.phoneNumberId,
+          hasToken: !!config.accessToken
+        });
+      }
       (company as any).whatsappConfig = {
         phoneNumberId: config.phoneNumberId,
         accessToken: config.accessToken
       };
+      logger.info(`✅ Attached WhatsApp config to company ${company.name}`);
+    } else {
+      logger.info(`ℹ️ No active WhatsApp config found for company ${company.name}`);
     }
     return company;
   } catch (error) {
@@ -646,9 +655,13 @@ export async function notifyDepartmentAdminOnCreation(
               if (result.success) {
                 logger.info(`✅ Email sent to ${type} ${user.getFullName()} (${emailAddress})`);
               }
+            } else {
+              logger.warn(`⚠️ No email content found for admin ${emailAddress} (Action: created)`);
             }
           })();
           notificationTasks.push(emailTask);
+        } else {
+          logger.info(`ℹ️ Skipping email for admin ${user.email}: emailExists=${!!emailAddress}, canNotify=${canNotify(company, user, 'email')}`);
         }
 
         // 📱 WhatsApp
@@ -815,19 +828,23 @@ export async function notifyCitizenOnCreation(
 
     // 📱 WhatsApp
     const actionKey = data.action || 'confirmation';
-    const typeLabel = data.type === 'grievance' ? 'GRIEVANCE' : 'APPOINTMENT';
-    const idLabel = data.type === 'grievance' ? 'Grievance ID' : 'Appointment ID';
-    const refId = data.grievanceId || data.appointmentId;
+    const phoneToNotify = data.citizenWhatsApp || data.citizenPhone;
 
-    // Check if there's a custom template in the database first
-    let message = await getNotificationWhatsAppMessage(data.companyId, data.type, actionKey, fullData);
+    if (phoneToNotify && canNotify(company, null, 'whatsapp', `${data.type}_${actionKey}`)) {
+      logger.info(`📢 Preparing WhatsApp confirmation for citizen: ${phoneToNotify} (Action: ${actionKey})`);
+      
+      // Check if there's a custom template in the database first
+      let message = await getNotificationWhatsAppMessage(data.companyId, data.type, actionKey, fullData);
 
-    if (!message) {
-      logger.error(`❌ Still no message found for ${data.type}_confirmation even with defaults.`);
-      return;
+      if (!message) {
+        logger.error(`❌ Still no WhatsApp message found for citizen ${data.type}_${actionKey} even with defaults.`);
+        return;
+      }
+
+      await safeSendWhatsApp(company, phoneToNotify, message);
+    } else {
+      logger.info(`ℹ️ Skipping citizen WhatsApp: phone=${phoneToNotify}, action=${actionKey}, canNotify=${canNotify(company, null, 'whatsapp', `${data.type}_${actionKey}`)}`);
     }
-
-    await safeSendWhatsApp(company, data.citizenWhatsApp || data.citizenPhone, message);
 
     if (data.evidenceUrls && data.evidenceUrls.length > 0) {
       await sendMediaIfAvailable(company, data.citizenWhatsApp || data.citizenPhone, data.evidenceUrls, 'Submission Evidence');

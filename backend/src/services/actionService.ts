@@ -16,6 +16,7 @@ import {
 import { findOptimalAdmin } from '../utils/userUtils';
 import { GrievanceStatus, AppointmentStatus, UserRole } from '../config/constants';
 import { updateSession } from './sessionService';
+import { logger } from '../config/logger';
 import { ForestService } from './forestService';
 
 interface CreateActionOptions {
@@ -300,20 +301,12 @@ export class ActionService {
           action: 'created',
         }).catch(err => console.error('⚠️ ActionService: notifyDepartmentAdminOnCreation failed:', err)));
 
-        // 3. Auto-assignment Notification
+        // 3. Skip separate assignment notification on creation as per requirements.
+        // All hierarchy users (including the assigned officer) will receive the 'New Grievance Received' template
+        // via notifyDepartmentAdminOnCreation above. Only manual reassignments from the dashboard 
+        // will use the 'Grievance Assigned to You' template later.
         if (grievance.status === GrievanceStatus.ASSIGNED) {
-          const targetOfficers = (grievance as any)._allTargetOfficers || [grievance.assignedTo];
-          for (const officer of targetOfficers) {
-            if (!officer) continue;
-            notifications.push(notifyUserOnAssignment({
-              ...notificationData,
-              type: 'grievance',
-              action: 'assigned',
-              assignedTo: officer._id || officer,
-              assignedByName: 'System (Auto-assign)',
-              assignedAt: new Date()
-            } as any).catch(err => console.error('⚠️ ActionService: notifyUserOnAssignment failed for user:', officer._id, err)));
-          }
+          logger.info(`ℹ️ Grievance ${grievance.grievanceId} is AUTO-ASSIGNED. Skipping separate assignment notification to avoid duplication.`);
         }
       }
 
