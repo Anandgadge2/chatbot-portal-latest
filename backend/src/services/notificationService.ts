@@ -311,9 +311,12 @@ async function findCompanyByIdOrCustomId(id: any): Promise<any | null> {
  * Defaults to true if settings are missing.
  */
 function canNotify(company: any, user: any, type: 'email' | 'whatsapp', action?: string): boolean {
-  // 1. Individual User Setting (Highest Priority Override)
+  // 1. Individual User Setting (Highest Priority)
   if (user?.notificationSettings) {
     const settings = user.notificationSettings;
+    
+    // Global Kill Switch: If user expressly disabled this channel, stop here.
+    if (settings[type] === false) return false;
     
     // Check granular first if action is provided
     if (action && settings.actions && settings.actions[action]) {
@@ -321,82 +324,59 @@ function canNotify(company: any, user: any, type: 'email' | 'whatsapp', action?:
         return settings.actions[action][type];
       }
     }
-    
-    // Fallback to global user override
-    if (typeof settings[type] === 'boolean') {
-      return settings[type];
-    }
   }
 
-  // 2. Role Based Setting (from the Populated customRoleId if available)
+  // 2. Role Based Setting
   const populatedRole = user?.customRoleId;
   if (populatedRole && typeof populatedRole === 'object' && populatedRole.notificationSettings) {
     const rSettings = populatedRole.notificationSettings;
 
-    // Check granular first if action is provided
-    if (action && rSettings.actions && rSettings.actions[action]) {
-      if (typeof rSettings.actions[action][type] === 'boolean') {
-        return rSettings.actions[action][type];
-      }
-    }
+    // Global Kill Switch for Role: If the role itself prohibits this channel, stop here.
+    if (rSettings[type] === false) return false;
 
-    // Fallback to role global override
-    if (typeof rSettings[type] === 'boolean') {
-      return rSettings[type];
+    // Role-level action overrides (if available in future/extended schemas)
+    if (action && (rSettings as any).actions && (rSettings as any).actions[action]) {
+      if (typeof (rSettings as any).actions[action][type] === 'boolean') {
+        return (rSettings as any).actions[action][type];
+      }
     }
   }
 
   // 3. Company Default / Legacy Role Map
-  const role = user?.role;
-  if (!role) return true; 
-  if (!company?.notificationSettings?.roles) return true;
+  const rolesMap = company?.notificationSettings?.roles;
+  if (!rolesMap) return true; // Default to true if no company-level restrictions
 
-  const rolesMap = company.notificationSettings.roles;
-  const roleRaw = String(role || '').trim();
-  const roleUpperSnake = roleRaw.replace(/[\s-]+/g, '_').toUpperCase();
-  const roleLowerSnake = roleRaw.replace(/[\s-]+/g, '_').toLowerCase();
+  const roleRaw = String(user?.role || '').trim();
+  // Handle "CUSTOM:id" role format
+  const roleValue = roleRaw.startsWith('CUSTOM:') ? 'CUSTOM' : roleRaw;
+  
+  const roleUpperSnake = roleValue.replace(/[\s-]+/g, '_').toUpperCase();
+  const roleLowerSnake = roleValue.replace(/[\s-]+/g, '_').toLowerCase();
+  
   const roleCandidates = Array.from(new Set([
-    role,
-    roleRaw,
-    roleRaw.toLowerCase(),
-    roleRaw.toUpperCase(),
+    roleValue,
     roleUpperSnake,
     roleLowerSnake
   ])).filter(Boolean);
 
   let roleSettings: any;
 
-  if (typeof rolesMap.get === 'function') {
+  if (typeof (rolesMap as any).get === 'function') {
     for (const candidate of roleCandidates) {
-      roleSettings = rolesMap.get(candidate as any);
+      roleSettings = (rolesMap as Map<string, any>).get(candidate);
       if (roleSettings) break;
-    }
-    if (!roleSettings && typeof rolesMap.keys === 'function') {
-      for (const key of rolesMap.keys()) {
-        const keyNorm = String(key).replace(/[\s-]+/g, '_').toLowerCase();
-        if (roleCandidates.some(c => String(c).replace(/[\s-]+/g, '_').toLowerCase() === keyNorm)) {
-          roleSettings = rolesMap.get(key as any);
-          if (roleSettings) break;
-        }
-      }
     }
   } else {
     for (const candidate of roleCandidates) {
       roleSettings = rolesMap[candidate as any];
       if (roleSettings) break;
     }
-    if (!roleSettings && rolesMap && typeof rolesMap === 'object') {
-      for (const [key, value] of Object.entries(rolesMap)) {
-        const keyNorm = String(key).replace(/[\s-]+/g, '_').toLowerCase();
-        if (roleCandidates.some(c => String(c).replace(/[\s-]+/g, '_').toLowerCase() === keyNorm)) {
-          roleSettings = value;
-          break;
-        }
-      }
-    }
   }
 
   if (!roleSettings) return true;
+
+  // Global Kill Switch for Company Role setting
+  if (roleSettings[type] === false) return false;
 
   // Check granular role settings from company record
   if (action && roleSettings.actions && roleSettings.actions[action]) {
@@ -405,7 +385,7 @@ function canNotify(company: any, user: any, type: 'email' | 'whatsapp', action?:
     }
   }
 
-  return roleSettings[type] !== false;
+  return true;
 }
 
 function normalizePhone(phone?: string): string | null {
@@ -530,7 +510,53 @@ export async function getHierarchicalDepartmentAdmins(departmentId: any): Promis
 
       const isSubDept = !!dept.parentDepartmentId;
 
-      // 🔍 1. Identify roles that represent "Admins" for this specific department level.
+      // 🔍 2. Build Query for Roles at this level
+      const RoleModel = (await import('../models/Role')).default;
+      const levelAdminRoles = await RoleModel.find({
+        $or: [
+          { companyId: dept.companyId },
+          { companyId: null }
+        ],
+        $and: [
+          {
+            $or: [
+              { key: isSubDept ? /SUB[- _]?DEPARTMENT[- _]?ADMIN/i : /DEPARTMENT[- _]?ADMIN/i },
+              { name: { $regex: isSubDept ? /sub[- _]?department[- _]?admin|sub[- _]?admin/i : /department[- _]?admin|dept[- _]?admin/i } },
+              { 
+                permissions: { 
+                  $elemMatch: { 
+                    module: { $regex: /grievance|appointment|user_management/i },
+                    actions: { $in: ['all', 'manage', 'assign', 'status_change', 'view'] }
+                  }
+                } 
+              }
+            ]
+          }
+        ]
+      }).select('_id name key');
+      
+      const adminRoleIds = levelAdminRoles.map(r => r._id);
+      const adminRoleKeys = levelAdminRoles.filter(r => r.key).map(r => r.key);
+      const adminRoleIdStrings = adminRoleIds.map(id => id.toString());
+
+      logger.info(`🔍 [Hierarchy] Level: ${dept.name} (${isSubDept ? 'Sub-Dept' : 'Dept'}). Found ${levelAdminRoles.length} matching admin roles.`);
+
+      // Robust User Query to find admins at this department level
+      // We look for users who have either:
+      // 1. The customRoleId matching an admin role
+      // 2. The legacy 'role' field matching an admin role KEY
+      // 3. The legacy 'role' field containing "CUSTOM:roleId"
+      // 4. The legacy 'role' field matching the level regex
+      const roleFilters: any[] = [
+        { customRoleId: { $in: adminRoleIds } },
+        { role: { $in: adminRoleKeys } },
+        { role: isSubDept ? /SUB[- _]?DEPARTMENT[- _]?ADMIN/i : /DEPARTMENT[- _]?ADMIN/i }
+      ];
+
+      if (adminRoleIdStrings.length > 0) {
+        roleFilters.push({ role: { $regex: new RegExp(`CUSTOM:(${adminRoleIdStrings.join('|')})`, 'i') } });
+      }
+
       const adminQuery: any = {
         companyId: dept.companyId,
         isActive: true,
@@ -541,45 +567,10 @@ export async function getHierarchicalDepartmentAdmins(departmentId: any): Promis
               { departmentId: currentIdStr },
               { departmentIds: { $in: [new mongoose.Types.ObjectId(currentIdStr), currentIdStr] } }
             ]
-          }
+          },
+          { $or: roleFilters }
         ]
       };
-
-      // 🔍 2. Build Query for Roles at this level
-      // If it's a sub-dept, we specifically want SUB_DEPARTMENT_ADMIN or similar.
-      // If it's a parent dept, we want DEPARTMENT_ADMIN or similar.
-      // 🏷️ GLOBAL ROLE FIX: Include companyId: null to support system-wide standard roles
-      const levelAdminRoles = await (await import('../models/Role')).default.find({
-        $or: [
-          { companyId: dept.companyId },
-          { companyId: null }
-        ],
-        $and: [
-          {
-            $or: [
-              { key: isSubDept ? 'SUB_DEPARTMENT_ADMIN' : 'DEPARTMENT_ADMIN' },
-              { name: { $regex: isSubDept ? /sub[- _]?department[- _]?admin|sub[- _]?admin/i : /department[- _]?admin|dept[- _]?admin/i } },
-              { 
-                permissions: { 
-                  $elemMatch: { 
-                    module: { $regex: /grievance|appointment/i },
-                    actions: { $in: ['all', 'manage', 'assign', 'status_change'] }
-                  }
-                } 
-              }
-            ]
-          }
-        ]
-      }).select('_id name');
-      
-      const adminRoleIds = levelAdminRoles.map(r => r._id);
-      logger.info(`🔍 [Hierarchy] Level: ${dept.name} (${isSubDept ? 'Sub-Dept' : 'Dept'}). Found ${levelAdminRoles.length} matching admin roles.`);
-
-      // Add role filters to user query
-      adminQuery.$or = [
-        { customRoleId: { $in: adminRoleIds } },
-        { role: isSubDept ? /SUB[- _]?DEPARTMENT[- _]?ADMIN/i : /DEPARTMENT[- _]?ADMIN/i }
-      ];
 
       const levelAdmins = await User.find(adminQuery).populate('customRoleId');
       
@@ -642,7 +633,7 @@ export async function notifyDepartmentAdminOnCreation(
       $or: [
         { role: { $in: ['COMPANY_ADMIN', 'COMPANY_HEAD', 'SUPER_ADMIN', 'Collector', 'DM'] } },
         { role: { $regex: /^company[- _]?(admin|administrator|head)|collector|dm$/i } },
-        { designation: { $regex: /collector|dm|magistrate|tahasildar/i } }, // Robust identification for gov roles
+        { designation: { $regex: /collector|dm|magistrate/i } }, // Restricted: Tahasildars removed (they follow dept hierarchy)
         { 
           customRoleId: { 
             $in: [
