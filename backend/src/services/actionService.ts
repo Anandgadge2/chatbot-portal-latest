@@ -293,22 +293,21 @@ export class ActionService {
         await notifyCitizenOnCreation(notificationData);
       }
 
-      if (departmentId) {
-        // 2. Admin Creation Notification — Hierarchy Only
-        // This traverses: Sub-Dept Admin -> Dept Admin -> Company Admin
-        notifications.push(notifyDepartmentAdminOnCreation({
-          ...notificationData,
-          type: 'grievance',
-          action: 'created',
-        }));
+      // 2. Admin Creation Notification — always send.
+      // If department/sub-department exists, hierarchy admins are notified.
+      // If department is missing, service still notifies company-level admins.
+      notifications.push(notifyDepartmentAdminOnCreation({
+        ...notificationData,
+        type: 'grievance',
+        action: 'created',
+      }));
 
-        // 3. Skip separate assignment notification on creation as per requirements.
-        // All hierarchy users (including the assigned officer) will receive the 'New Grievance Received' template
-        // via notifyDepartmentAdminOnCreation above. Only manual reassignments from the dashboard 
-        // will use the 'Grievance Assigned to You' template later.
-        if (grievance.status === GrievanceStatus.ASSIGNED) {
-          logger.info(`ℹ️ Grievance ${grievance.grievanceId} is AUTO-ASSIGNED. Skipping separate assignment notification to avoid duplication.`);
-        }
+      // 3. Skip separate assignment notification on creation as per requirements.
+      // All hierarchy users (including the assigned officer) will receive the 'New Grievance Received' template
+      // via notifyDepartmentAdminOnCreation above. Only manual reassignments from the dashboard 
+      // will use the 'Grievance Assigned to You' template later.
+      if (grievance.status === GrievanceStatus.ASSIGNED) {
+        logger.info(`ℹ️ Grievance ${grievance.grievanceId} is AUTO-ASSIGNED. Skipping separate assignment notification to avoid duplication.`);
       }
 
       await Promise.allSettled(notifications);
