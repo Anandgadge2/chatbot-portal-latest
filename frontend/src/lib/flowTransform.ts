@@ -247,7 +247,7 @@ function transformNodeToStep(node: FlowNode, edges: FlowEdge[]): BackendFlowStep
       return {
         ...baseStep,
         stepType: 'end',
-        messageText: (node.data as any).endMessage || 'Thank you!',
+        messageText: (node.data as any).endMessage || '',
         messageTextTranslations: (node.data as any).endMessageTranslations || {}
       };
 

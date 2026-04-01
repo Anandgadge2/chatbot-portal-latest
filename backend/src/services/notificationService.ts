@@ -352,12 +352,48 @@ function canNotify(company: any, user: any, type: 'email' | 'whatsapp', action?:
   if (!company?.notificationSettings?.roles) return true;
 
   const rolesMap = company.notificationSettings.roles;
-  let roleSettings;
+  const roleRaw = String(role || '').trim();
+  const roleUpperSnake = roleRaw.replace(/[\s-]+/g, '_').toUpperCase();
+  const roleLowerSnake = roleRaw.replace(/[\s-]+/g, '_').toLowerCase();
+  const roleCandidates = Array.from(new Set([
+    role,
+    roleRaw,
+    roleRaw.toLowerCase(),
+    roleRaw.toUpperCase(),
+    roleUpperSnake,
+    roleLowerSnake
+  ])).filter(Boolean);
+
+  let roleSettings: any;
 
   if (typeof rolesMap.get === 'function') {
-    roleSettings = rolesMap.get(role);
+    for (const candidate of roleCandidates) {
+      roleSettings = rolesMap.get(candidate as any);
+      if (roleSettings) break;
+    }
+    if (!roleSettings && typeof rolesMap.keys === 'function') {
+      for (const key of rolesMap.keys()) {
+        const keyNorm = String(key).replace(/[\s-]+/g, '_').toLowerCase();
+        if (roleCandidates.some(c => String(c).replace(/[\s-]+/g, '_').toLowerCase() === keyNorm)) {
+          roleSettings = rolesMap.get(key as any);
+          if (roleSettings) break;
+        }
+      }
+    }
   } else {
-    roleSettings = rolesMap[role];
+    for (const candidate of roleCandidates) {
+      roleSettings = rolesMap[candidate as any];
+      if (roleSettings) break;
+    }
+    if (!roleSettings && rolesMap && typeof rolesMap === 'object') {
+      for (const [key, value] of Object.entries(rolesMap)) {
+        const keyNorm = String(key).replace(/[\s-]+/g, '_').toLowerCase();
+        if (roleCandidates.some(c => String(c).replace(/[\s-]+/g, '_').toLowerCase() === keyNorm)) {
+          roleSettings = value;
+          break;
+        }
+      }
+    }
   }
 
   if (!roleSettings) return true;
@@ -618,7 +654,7 @@ export async function notifyDepartmentAdminOnCreation(
 
         // 📧 Email
         const emailAddress = user.email;
-        if (emailAddress && canNotify(company, user, 'email')) {
+        if (emailAddress && canNotify(company, user, 'email', `${data.type}_created`)) {
           const emailTask = (async () => {
             const email = await getNotificationEmailContent(companyId, data.type, 'created', notificationData, true);
             if (email) {
@@ -632,7 +668,7 @@ export async function notifyDepartmentAdminOnCreation(
           })();
           notificationTasks.push(emailTask);
         } else {
-          logger.info(`ℹ️ Skipping email for admin ${user.email}: emailExists=${!!emailAddress}, canNotify=${canNotify(company, user, 'email')}`);
+          logger.info(`ℹ️ Skipping email for admin ${user.email}: emailExists=${!!emailAddress}, canNotify=${canNotify(company, user, 'email', `${data.type}_created`)}`);
         }
 
         // 📱 WhatsApp
@@ -961,9 +997,11 @@ export async function notifyHierarchyOnStatusChange(
 
     logger.info(`🔍 Found ${users.length} unique hierarchy recipients for ${data.type} status change to ${newStatus}`);
 
-    // Dynamically choose status key based on newStatus
-    // e.g., 'confirmed' -> 'appointment_confirmed' or 'grievance_confirmed'
     const statusAction = newStatus.toLowerCase();
+    const statusControlKey =
+      statusAction === 'resolved' || statusAction === 'completed' || statusAction === 'cancelled'
+        ? `${data.type}_resolved`
+        : `${data.type}_assigned`;
     
     // Determine if we should use CTA button
     const ctaButton = {
@@ -1012,7 +1050,7 @@ export async function notifyHierarchyOnStatusChange(
           logger.warn(`⚠️ Hierarchy admin ${user.email} (${user.getFullName()}) has NO phone number — skipping WhatsApp, will try email.`);
         } else if (isCitizenPhone) {
           logger.warn(`⚠️ Skipping WhatsApp for ${user.email} — phone matches citizen's phone (avoiding duplicate).`);
-        } else if (canNotify(company, user, 'whatsapp')) {
+        } else if (canNotify(company, user, 'whatsapp', statusControlKey)) {
           tasks.push(safeSendWhatsApp(company, user.phone as string, hierarchyMessage, ctaButton));
           if (data.evidenceUrls && data.evidenceUrls.length > 0) {
             tasks.push(sendMediaIfAvailable(company, user.phone as string, data.evidenceUrls, `Hierarchy Update: ${userFullData.grievanceId || userFullData.appointmentId}`));
@@ -1021,7 +1059,7 @@ export async function notifyHierarchyOnStatusChange(
 
         // 📧 Email — always attempt, regardless of phone availability
         const emailAddress = user.email;
-        if (emailAddress && canNotify(company, user, 'email')) {
+        if (emailAddress && canNotify(company, user, 'email', statusControlKey)) {
           const emailTask = (async () => {
             const emailPayload = {
               ...fullData,
@@ -1126,4 +1164,3 @@ export async function notifyCitizenOnAppointmentStatusChange(data: {
     logger.error('❌ notifyCitizenOnAppointmentStatusChange failed:', error);
   }
 }
-

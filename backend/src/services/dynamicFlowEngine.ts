@@ -1603,8 +1603,14 @@ export class DynamicFlowEngine {
   private async executeEndStep(step: IFlowStep): Promise<void> {
     const lang = this.session.language || "en";
     const message = this.replacePlaceholders(getLocalText(step, lang));
+    const normalizedMessage = (message || "").trim().toLowerCase();
+    const isGenericThankYouOnly =
+      normalizedMessage === "thank you!" ||
+      normalizedMessage === "thank you" ||
+      normalizedMessage === "thanks!" ||
+      normalizedMessage === "thanks";
 
-    if (message && message.trim()) {
+    if (message && message.trim() && !isGenericThankYouOnly) {
       await sendWhatsAppMessage(this.company, this.userPhone, message);
     }
 
@@ -2017,6 +2023,11 @@ export class DynamicFlowEngine {
     );
     console.log(`   Default nextStepId: ${currentStep.nextStepId}`);
 
+    const normalizedButtonId = String(buttonId || "")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "_");
+
     // ✅ FIRST: Check expectedResponses for button_click type
     if (
       currentStep.expectedResponses &&
@@ -2099,12 +2110,16 @@ export class DynamicFlowEngine {
           String(buttonId).startsWith("confirm_yes") ||
           String(buttonId).startsWith("submit_grv") ||
           String(buttonId).startsWith("submit_grievance") ||
-          buttonId === "grv_confirm_yes";
+          buttonId === "grv_confirm_yes" ||
+          normalizedButtonId === "confirm_submit" ||
+          normalizedButtonId.startsWith("confirm_submit_");
         const isApptSubmitClick =
           buttonId === "appt_confirm_yes" ||
           String(buttonId).startsWith("appt_confirm_yes") ||
           String(buttonId).startsWith("submit_apt") ||
-          String(buttonId).startsWith("confirm_apt");
+          String(buttonId).startsWith("confirm_apt") ||
+          normalizedButtonId === "confirm_request" ||
+          normalizedButtonId.startsWith("confirm_request_");
         const isLeadSubmitClick =
           buttonId === "lead_confirm_yes" ||
           String(buttonId).startsWith("lead_confirm_yes") ||
@@ -2113,9 +2128,7 @@ export class DynamicFlowEngine {
         // Case 1: Grievance
         if (isGrievanceConfirm && isSubmitClick) {
           console.log(`🎯 Triggering createGrievance for button: ${buttonId}`);
-          await ActionService.createGrievance(this.session, this.company, this.userPhone, {
-            sendCitizenConfirmation: !isGrievanceSuccess,
-          });
+          await ActionService.createGrievance(this.session, this.company, this.userPhone);
           // If the flow has a success node, move to it. Otherwise, end session here.
           if (isGrievanceSuccess) {
             await this.runNextStepIfDifferent(nextStepId, currentStep.stepId);
@@ -2130,9 +2143,7 @@ export class DynamicFlowEngine {
         // Case 2: Appointment
         if (isAppointmentConfirm && isApptSubmitClick) {
           console.log(`🎯 Triggering createAppointment for button: ${buttonId}`);
-          await ActionService.createAppointment(this.session, this.company, this.userPhone, {
-            sendCitizenConfirmation: !isAppointmentSubmitted,
-          });
+          await ActionService.createAppointment(this.session, this.company, this.userPhone);
           // Move to success node or end session
           if (isAppointmentSubmitted) {
             await this.runNextStepIfDifferent(nextStepId, currentStep.stepId);
@@ -2230,7 +2241,11 @@ export class DynamicFlowEngine {
         buttonId === "appt_confirm_yes" ||
         String(buttonId).startsWith("appt_confirm_yes") ||
         buttonId === "lead_confirm_yes" ||
-        String(buttonId).startsWith("lead_confirm_yes");
+        String(buttonId).startsWith("lead_confirm_yes") ||
+        normalizedButtonId === "confirm_submit" ||
+        normalizedButtonId.startsWith("confirm_submit_") ||
+        normalizedButtonId === "confirm_request" ||
+        normalizedButtonId.startsWith("confirm_request_");
 
       if (bmIsGrievanceConfirm && bmIsGrievanceSuccess && bmIsSubmit) {
         console.log(
