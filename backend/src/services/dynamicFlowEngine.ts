@@ -2223,14 +2223,24 @@ export class DynamicFlowEngine {
         currentStep.stepId?.startsWith("grv_confirm_") ||
         currentStep.stepId?.startsWith("grievance_confirm");
       const bmIsGrievanceSuccess =
-        nextStepIdFromMapping?.startsWith("grv_success_") ||
-        nextStepIdFromMapping?.startsWith("grievance_success");
+        nextStepIdFromMapping?.toLowerCase().includes("success") ||
+        nextStepIdFromMapping?.toLowerCase().includes("submitted") ||
+        nextStepIdFromMapping?.toLowerCase().includes("finish") ||
+        nextStepIdFromMapping?.toLowerCase().includes("grv_success") ||
+        nextStepIdFromMapping?.toLowerCase().startsWith("grv_") && 
+          nextStepIdFromMapping?.toLowerCase().includes("done");
+
       const bmIsAptConfirm =
         currentStep.stepId?.startsWith("apt_confirm_") ||
         currentStep.stepId?.startsWith("appointment_confirm");
+
       const bmIsAptSuccess =
-        nextStepIdFromMapping?.startsWith("apt_success_") ||
-        nextStepIdFromMapping?.startsWith("appointment_submitted");
+        nextStepIdFromMapping?.toLowerCase().includes("success") ||
+        nextStepIdFromMapping?.toLowerCase().includes("submitted") ||
+        nextStepIdFromMapping?.toLowerCase().includes("finish") ||
+        nextStepIdFromMapping?.toLowerCase().includes("apt_success") ||
+        nextStepIdFromMapping?.toLowerCase().startsWith("apt_") && 
+          nextStepIdFromMapping?.toLowerCase().includes("done");
       const bmIsSubmit =
         String(buttonId).startsWith("submit_grv") ||
         String(buttonId).startsWith("submit_apt") ||

@@ -895,14 +895,19 @@ export async function notifyCitizenOnGrievanceStatusChange(data: {
     const fullData = await populateNotificationData({ ...data, type: 'grievance', action: 'confirmation' });
     
     // Check for custom template in DB: grievance_status_{status}
-    const statusKey = `grievance_status_${data.newStatus.toLowerCase()}`;
-    const fallbackKey = 'grievance_status_update';
+    const statusLower = data.newStatus.toLowerCase();
+    const statusKey = `status_${statusLower}`;
     
-    let message = await getNotificationWhatsAppMessage(data.companyId, 'grievance', statusKey, fullData);
+    // Fallback order: 
+    // 1. grievance_status_resolved (if status is resolved)
+    // 2. grievance_resolved (standard key)
+    // 3. grievance_status_update (catch-all)
+    const attemptActions = [statusKey, statusLower, 'status_update'];
     
-    if (!message) {
-      // Try fallback key
-      message = await getNotificationWhatsAppMessage(data.companyId, 'grievance', fallbackKey, fullData);
+    let message = null;
+    for (const act of attemptActions) {
+      message = await getNotificationWhatsAppMessage(data.companyId, 'grievance', act, fullData);
+      if (message) break;
     }
 
     if (!message) {
@@ -926,7 +931,7 @@ export async function notifyCitizenOnGrievanceStatusChange(data: {
 
         let email = await getNotificationEmailContent(data.companyId, 'grievance', statusKey, emailData, false);
         if (!email) {
-          email = await getNotificationEmailContent(data.companyId, 'grievance', fallbackKey, emailData, false);
+          email = await getNotificationEmailContent(data.companyId, 'grievance', 'status_update', emailData, false);
         }
 
         if (email) {
@@ -1123,14 +1128,20 @@ export async function notifyCitizenOnAppointmentStatusChange(data: {
     const fullData = await populateNotificationData({ ...data, type: 'appointment', action: 'confirmation' });
     
     // Check for custom template in DB: appointment_status_{status}
-    const statusKey = `appointment_status_${data.newStatus.toLowerCase()}`;
-    const fallbackKey = 'appointment_status_update';
+    const statusLower = data.newStatus.toLowerCase();
+    const statusKey = `status_${statusLower}`;
     
-    let message = await getNotificationWhatsAppMessage(data.companyId, 'appointment', statusKey, fullData);
+    // Fallback order: 
+    // 1. appointment_status_confirmed (if status is confirmed)
+    // 2. appointment_confirmed (standard key)
+    // 3. appointment_confirmed_update (alternate match)
+    // 4. appointment_status_update (catch-all)
+    const attemptActions = [statusKey, statusLower, `${statusLower}_update`, 'status_update'];
     
-    if (!message) {
-      // Try fallback key
-      message = await getNotificationWhatsAppMessage(data.companyId, 'appointment', fallbackKey, fullData);
+    let message = null;
+    for (const act of attemptActions) {
+      message = await getNotificationWhatsAppMessage(data.companyId, 'appointment', act, fullData);
+      if (message) break;
     }
 
     if (!message) {
@@ -1145,12 +1156,12 @@ export async function notifyCitizenOnAppointmentStatusChange(data: {
       try {
         const emailData = {
           ...fullData,
-          action: data.newStatus.toLowerCase()
+          action: statusLower
         };
 
         let email = await getNotificationEmailContent(data.companyId, 'appointment', statusKey, emailData, false);
         if (!email) {
-          email = await getNotificationEmailContent(data.companyId, 'appointment', fallbackKey, emailData, false);
+          email = await getNotificationEmailContent(data.companyId, 'appointment', 'status_update', emailData, false);
         }
 
         if (email) {

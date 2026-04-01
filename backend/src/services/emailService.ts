@@ -484,13 +484,18 @@ export async function getNotificationWhatsAppMessage(
     
   const lang = data.language || data.lang || 'en';
   
+  const typePrefix = `${type}_`;
+  const normalizedAction = action.startsWith(typePrefix) 
+    ? action.slice(typePrefix.length) 
+    : action;
+
   const attemptKeys = [
-    `${type}_${action}_${lang}`,
-    `${type}_${action}`, 
-    action === 'confirmation' ? `${type}_created_${lang}` : '',
-    action === 'confirmation' ? `${type}_created` : '',
-    action === 'created' ? `${type}_confirmation_${lang}` : '',
-    action === 'created' ? `${type}_confirmation` : ''
+    `${type}_${normalizedAction}_${lang}`,
+    `${type}_${normalizedAction}`, 
+    normalizedAction === 'confirmation' ? `${type}_created_${lang}` : '',
+    normalizedAction === 'confirmation' ? `${type}_created` : '',
+    normalizedAction === 'created' ? `${type}_confirmation_${lang}` : '',
+    normalizedAction === 'created' ? `${type}_confirmation` : ''
   ].filter(Boolean);
 
   const canonicalKeys = new Set([
