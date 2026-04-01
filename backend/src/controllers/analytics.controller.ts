@@ -12,7 +12,7 @@ const getAnalyticsBaseQuery = async (req: any, companyId?: any, departmentId?: a
   const query: any = {};
   const currentUser = req.user;
 
-  if (currentUser.role === UserRole.SUPER_ADMIN) {
+  if (currentUser.isSuperAdmin) {
     if (companyId) {
       query.companyId = new mongoose.Types.ObjectId(companyId.toString());
     }
@@ -34,13 +34,8 @@ const getAnalyticsBaseQuery = async (req: any, companyId?: any, departmentId?: a
     query.companyId = currentUser.companyId;
 
     if (currentUser.departmentId || (currentUser.departmentIds && currentUser.departmentIds.length > 0)) {
-      const normalizedRole = (currentUser.role || '').toUpperCase().trim();
       const userLevel = currentUser.level !== undefined ? currentUser.level : (
-        normalizedRole === 'SUPER_ADMIN' || normalizedRole === 'SUPER ADMIN' ? 0 :
-        normalizedRole.includes('COMPANY') && (normalizedRole.includes('ADMIN')) ? 1 :
-        normalizedRole.includes('DEPARTMENT') && (normalizedRole.includes('ADMIN')) && !normalizedRole.includes('SUB') ? 2 :
-        normalizedRole.includes('SUB') && (normalizedRole.includes('ADMIN')) ? 3 :
-        4
+        currentUser.isSuperAdmin ? 0 : 4 // Default to lowest if no level
       );
 
       if (userLevel >= 4) {
@@ -331,7 +326,7 @@ export const dashboard = async (req: Request, res: Response) => {
       { $unwind: { path: '$customRole', preserveNullAndEmptyArrays: true } },
       {
         $group: {
-          _id: { $ifNull: ['$customRole.name', '$role'] },
+          _id: { $ifNull: ['$customRole.name', 'Staff'] }, // Default to 'Staff' for legacy or unassigned
           count: { $sum: 1 }
         }
       },

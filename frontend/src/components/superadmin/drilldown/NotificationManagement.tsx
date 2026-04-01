@@ -95,6 +95,7 @@ const NotificationManagement: React.FC<NotificationManagementProps> = ({
     { key: "grievance_resolved", label: "Grievance Resolution Updates" },
     { key: "appointment_created", label: "Appointment Booked / Received" },
     { key: "appointment_scheduled", label: "Appointment Scheduling / Confirmation" },
+    { key: "appointment_resolved", label: "Appointment Resolution / Completion" },
   ];
 
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());

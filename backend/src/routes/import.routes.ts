@@ -58,7 +58,7 @@ router.post(
     try {
       const currentUser = req.user!;
 
-      if (currentUser.role === UserRole.SUPER_ADMIN && !req.body.companyId) {
+      if (currentUser.isSuperAdmin && !req.body.companyId) {
         res.status(400).json({
           success: false,
           message: 'companyId is required for SuperAdmin imports'
@@ -74,7 +74,7 @@ router.post(
         return;
       }
 
-      const companyId = currentUser.role === UserRole.SUPER_ADMIN
+      const companyId = currentUser.isSuperAdmin
         ? req.body.companyId
         : currentUser.companyId?.toString();
 
@@ -254,7 +254,8 @@ router.post(
               email: email ? email.toLowerCase() : undefined,
               phone,
               designation: designation || undefined,
-              role,
+              // role field removed from schema, ignoring imported role for now
+              // customRoleId should be handled separately if needed
               companyId,
               departmentId: targetDepartment._id
             });
@@ -264,7 +265,7 @@ router.post(
             if (lastName && existingUser.lastName !== lastName) changes.lastName = lastName;
             if (phone && existingUser.phone !== phone) changes.phone = phone;
             if (designation && existingUser.designation !== designation) changes.designation = designation;
-            if (existingUser.role !== role) changes.role = role;
+            // role field removed from schema, ignoring imported role for now
             if (String(existingUser.departmentId) !== String(targetDepartment._id)) changes.departmentId = targetDepartment._id;
             
             if (Object.keys(changes).length > 0) {
@@ -352,7 +353,7 @@ router.post(
     try {
       const currentUser = req.user!;
 
-      if (currentUser.role !== UserRole.SUPER_ADMIN) {
+      if (!currentUser.isSuperAdmin) {
         res.status(403).json({
           success: false,
           message: 'Only SuperAdmin can import companies'
@@ -456,7 +457,7 @@ router.post(
       const data = XLSX.utils.sheet_to_json(worksheet);
 
       // 🚀 Optimization: Pre-fetch all departments for this company
-      const companyId = currentUser.role === UserRole.SUPER_ADMIN ? null : currentUser.companyId?.toString();
+      const companyId = currentUser.isSuperAdmin ? null : currentUser.companyId?.toString();
       const existingDepts = await Department.find(companyId ? { companyId } : {});
       const deptCache = new Map<string, any>();
       existingDepts.forEach(d => {
@@ -478,7 +479,7 @@ router.post(
         try {
           let targetCompanyId = row.companyId;
 
-          if (currentUser.role !== UserRole.SUPER_ADMIN) {
+          if (!currentUser.isSuperAdmin) {
             targetCompanyId = currentUser.companyId?.toString();
           }
 
@@ -582,7 +583,7 @@ router.post(
       const data = XLSX.utils.sheet_to_json(worksheet);
 
       // 🚀 Optimization: Pre-fetch all users and departments for faster lookups
-      const searchCompanyId = currentUser.role === UserRole.SUPER_ADMIN ? null : currentUser.companyId?.toString();
+      const searchCompanyId = currentUser.isSuperAdmin ? null : currentUser.companyId?.toString();
       const [existingUsers, allDepts] = await Promise.all([
         User.find(searchCompanyId ? { companyId: searchCompanyId } : {}),
         Department.find(searchCompanyId ? { companyId: searchCompanyId } : {})
@@ -620,7 +621,7 @@ router.post(
           if (currentUser.departmentId) {
              companyId = currentUser.companyId?.toString();
              departmentId = currentUser.departmentId?.toString();
-          } else if (currentUser.role !== UserRole.SUPER_ADMIN) {
+          } else if (!currentUser.isSuperAdmin) {
              companyId = currentUser.companyId?.toString();
           }
 
@@ -648,7 +649,7 @@ router.post(
             if (row.firstName || row.first_name) changes.firstName = row.firstName || row.first_name;
             if (row.lastName || row.last_name) changes.lastName = row.lastName || row.last_name;
             if (row.designation) changes.designation = row.designation;
-            if (row.role) changes.role = row.role;
+            // role field removed from schema
             if (departmentId && String(existingUser.departmentId) !== String(departmentId)) changes.departmentId = departmentId;
             changes.password = hashedPassword;
             changes.rawPassword = rawPassword;
@@ -667,7 +668,7 @@ router.post(
               email: row.email ? row.email.toLowerCase() : undefined,
               phone: row.phone,
               designation: row.designation,
-              role: row.role || 'CUSTOM',
+              // role: row.role || 'CUSTOM', (field removed)
               companyId,
               departmentId,
               password: hashedPassword,

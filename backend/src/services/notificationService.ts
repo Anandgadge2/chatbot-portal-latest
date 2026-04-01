@@ -346,17 +346,19 @@ function canNotify(company: any, user: any, type: 'email' | 'whatsapp', action?:
   const rolesMap = company?.notificationSettings?.roles;
   if (!rolesMap) return true; // Default to true if no company-level restrictions
 
-  const roleRaw = String(user?.role || '').trim();
-  // Handle "CUSTOM:id" role format
-  const roleValue = roleRaw.startsWith('CUSTOM:') ? 'CUSTOM' : roleRaw;
-  
-  const roleUpperSnake = roleValue.replace(/[\s-]+/g, '_').toUpperCase();
-  const roleLowerSnake = roleValue.replace(/[\s-]+/g, '_').toLowerCase();
-  
+  // Extract roles identifiers (Key and Name)
+  const roleKey = (user?.customRoleId as any)?.key || '';
+  const roleName = (user?.customRoleId as any)?.name || '';
+  const isSuper = user?.isSuperAdmin || roleKey === 'SUPER_ADMIN';
+
+  if (isSuper) return true; // Platform admins bypass company restrictions
+
   const roleCandidates = Array.from(new Set([
-    roleValue,
-    roleUpperSnake,
-    roleLowerSnake
+    roleKey,
+    roleName,
+    roleKey.toUpperCase(),
+    roleKey.replace(/[\s-]+/g, '_').toUpperCase(),
+    roleName.replace(/[\s-]+/g, '_').toUpperCase()
   ])).filter(Boolean);
 
   let roleSettings: any;
@@ -544,18 +546,11 @@ export async function getHierarchicalDepartmentAdmins(departmentId: any): Promis
       // Robust User Query to find admins at this department level
       // We look for users who have either:
       // 1. The customRoleId matching an admin role
-      // 2. The legacy 'role' field matching an admin role KEY
-      // 3. The legacy 'role' field containing "CUSTOM:roleId"
-      // 4. The legacy 'role' field matching the level regex
+      // 2. The designation matching known admin patterns
       const roleFilters: any[] = [
         { customRoleId: { $in: adminRoleIds } },
-        { role: { $in: adminRoleKeys } },
-        { role: isSubDept ? /SUB[- _]?DEPARTMENT[- _]?ADMIN/i : /DEPARTMENT[- _]?ADMIN/i }
+        { designation: isSubDept ? /SUB[- _]?DEPARTMENT[- _]?ADMIN|SUB[- _]?ADMIN|TAHASILDAR/i : /DEPARTMENT[- _]?ADMIN|DEPT[- _]?ADMIN|COLLECTOR|DM/i }
       ];
-
-      if (adminRoleIdStrings.length > 0) {
-        roleFilters.push({ role: { $regex: new RegExp(`CUSTOM:(${adminRoleIdStrings.join('|')})`, 'i') } });
-      }
 
       const adminQuery: any = {
         companyId: dept.companyId,
@@ -631,8 +626,7 @@ export async function notifyDepartmentAdminOnCreation(
     const companyAdmins = await User.find({
       companyId,
       $or: [
-        { role: { $in: ['COMPANY_ADMIN', 'COMPANY_HEAD', 'SUPER_ADMIN', 'Collector', 'DM'] } },
-        { role: { $regex: /^company[- _]?(admin|administrator|head)|collector|dm$/i } },
+        { isSuperAdmin: true },
         { designation: { $regex: /collector|dm|magistrate/i } }, // Restricted: Tahasildars removed (they follow dept hierarchy)
         { 
           customRoleId: { 
@@ -653,7 +647,8 @@ export async function notifyDepartmentAdminOnCreation(
 
     companyAdmins.forEach(admin => {
       if (!adminsToNotify.find(a => a.user._id.toString() === admin._id.toString())) {
-        logger.info(`✅ [Company Admin] Adding ${admin.getFullName()} (${admin.role}) to notification list.`);
+        const roleKey = (admin.customRoleId as any)?.name || (admin.customRoleId as any)?.key || 'Admin';
+        logger.info(`✅ [Company Admin] Adding ${admin.getFullName()} (${roleKey}) to notification list.`);
         adminsToNotify.push({ user: admin, type: 'COMPANY_ADMIN' });
       }
     });
@@ -751,7 +746,8 @@ export async function notifyUserOnAssignment(
     });
 
     // 📧 Email
-    if (user.email && canNotify(company, user, 'email', `${data.type}_assigned`)) {
+    const assignmentAction = data.type === 'appointment' ? 'appointment_scheduled' : `${data.type}_assigned`;
+    if (user.email && canNotify(company, user, 'email', assignmentAction)) {
       try {
         const email = await getNotificationEmailContent(data.companyId, data.type, 'assigned', fullData, true);
         if (email) {
@@ -761,7 +757,7 @@ export async function notifyUserOnAssignment(
     }
 
     // 📱 WhatsApp — use DB template first, then fallback
-    if (canNotify(company, user, 'whatsapp', `${data.type}_assigned`)) {
+    if (canNotify(company, user, 'whatsapp', assignmentAction)) {
       let message = await getNotificationWhatsAppMessage(data.companyId, data.type, 'assigned_admin', fullData);
       
       if (!message) {
@@ -993,8 +989,7 @@ export async function notifyHierarchyOnStatusChange(
     const companyAdmins = await User.find({
       companyId,
       $or: [
-        { role: { $in: ['COMPANY_ADMIN', 'COMPANY_HEAD', 'SUPER_ADMIN', 'Collector'] } },
-        { role: { $regex: /^company[- _]?(admin|administrator|head)|collector$/i } },
+        { isSuperAdmin: true },
         { 
           customRoleId: { 
             $in: await (await import('../models/Role')).default.find({ 
@@ -1028,7 +1023,7 @@ export async function notifyHierarchyOnStatusChange(
     const statusControlKey =
       statusAction === 'resolved' || statusAction === 'completed' || statusAction === 'cancelled'
         ? `${data.type}_resolved`
-        : `${data.type}_assigned`;
+        : (data.type === 'appointment' ? 'appointment_scheduled' : `${data.type}_assigned`);
     
     // Determine if we should use CTA button
     const ctaButton = {

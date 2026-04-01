@@ -65,10 +65,9 @@ export const list = async (req: Request, res: Response) => {
       isActive: true,
       $or: [
         { customRoleId: { $in: adminRoleIds } },
-        { role: { $in: [...adminRoleNames, 'Admin', 'COMPANY_ADMIN', 'COMPANY_HEAD', 'HEAD'] } },
-        { role: { $regex: /admin|head/i } }
+        { isSuperAdmin: true }
       ]
-    }).select('firstName lastName email phone companyId role customRoleId').sort({ createdAt: 1 });
+    }).select('firstName lastName email phone companyId customRoleId isSuperAdmin').sort({ createdAt: 1 });
 
     const Department = (await import('../models/Department')).default;
     const departmentCounts = await Department.aggregate([

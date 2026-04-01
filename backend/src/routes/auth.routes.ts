@@ -42,7 +42,6 @@ const buildSessionResponse = async (user: any) => {
       lastName: user.lastName,
       email: user.email,
       phone: user.phone,
-      role: user.role,
       roleId: access.roleId,
       companyId: user.companyId?._id || user.companyId,
       departmentId: user.departmentId,
@@ -290,7 +289,7 @@ router.get('/me', authenticate, async (req: Request, res: Response) => {
 // @access  Private
 router.post('/register', authenticate, async (req: Request, res: Response) => {
   try {
-    const { firstName, lastName, email, password, phone, role, companyId, departmentId } = req.body;
+    const { firstName, lastName, email, password, phone, customRoleId, companyId, departmentId } = req.body;
 
     if (!req.user?.isSuperAdmin && req.user?.level !== 1) {
       res.status(403).json({ success: false, message: 'Access denied.' });
@@ -308,10 +307,10 @@ router.post('/register', authenticate, async (req: Request, res: Response) => {
     }
 
     // Validation
-    if (!firstName || !lastName || !phone || !role) {
+    if (!firstName || !lastName || !phone || !customRoleId) {
       res.status(400).json({
         success: false,
-        message: 'Please provide first name, last name, phone, and role'
+        message: 'Please provide first name, last name, phone, and role ID'
       });
       return;
     }
@@ -382,7 +381,7 @@ router.post('/register', authenticate, async (req: Request, res: Response) => {
       email,
       password,
       phone,
-      role,
+      customRoleId: customRoleId || null,
       companyId,
       departmentId
     });
@@ -398,7 +397,7 @@ router.post('/register', authenticate, async (req: Request, res: Response) => {
           lastName: user.lastName,
           email: user.email,
           phone: user.phone,
-          role: user.role
+          customRoleId: user.customRoleId
         }
       }
     });

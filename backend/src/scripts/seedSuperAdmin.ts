@@ -1,7 +1,6 @@
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import User from '../models/User';
-import { UserRole } from '../config/constants';
 import { connectDatabase, closeDatabase } from '../config/database';
 import { logger } from '../config/logger';
 import { normalizePhoneNumber } from '../utils/phoneUtils';
@@ -24,22 +23,37 @@ const seedSuperAdmin = async () => {
 
     logger.info(`Checking for SuperAdmin with phone: ${phone} (raw: ${rawPhone})`);
 
-    // 1. Check if a user with this phone exists
+    // 1. Get the SuperAdmin role ID for proper mapping
+    const Role = (await import('../models/Role')).default;
+    const saRole = await Role.findOne({ key: 'SUPER_ADMIN', isSystem: true, companyId: null });
+    const saRoleId = saRole ? saRole._id : null;
+
+    if (!saRoleId) {
+      logger.warn('⚠️ Warning: System SUPER_ADMIN role object not found in database. User will rely only on isSuperAdmin flag.');
+    }
+
+    // 2. Check if a user with this phone exists
     const existingUser = await User.findOne({ phone });
 
     if (existingUser) {
-      if (existingUser.role === UserRole.SUPER_ADMIN) {
+      if (existingUser.isSuperAdmin) {
         logger.info('✅ SuperAdmin with these credentials already exists.');
         
-        // Optional: Update password if needed, but usually seeding shouldn't override existing data unless requested
-        // For now, we'll just report it exists
+        // Ensure customRoleId is also set for existing superadmins
+        if (!existingUser.customRoleId && saRoleId) {
+          existingUser.customRoleId = saRoleId as any;
+          await existingUser.save();
+          logger.info('Updated existing SuperAdmin with proper customRoleId.');
+        }
+
         logger.info(`User ID: ${existingUser.userId}`);
         return;
       } else {
-        logger.warn(`⚠️ Warning: A user with phone ${phone} exists but has role: ${existingUser.role}`);
+        logger.warn(`⚠️ Warning: A user with phone ${phone} exists but is not a SuperAdmin.`);
         logger.info('Promoting existing user to SuperAdmin...');
         
-        existingUser.role = UserRole.SUPER_ADMIN;
+        existingUser.isSuperAdmin = true;
+        existingUser.customRoleId = saRoleId as any;
         existingUser.password = password; // This will be hashed by the pre-save hook
         await existingUser.save();
         
@@ -55,7 +69,8 @@ const seedSuperAdmin = async () => {
       email: email,
       phone: phone,
       password: password, 
-      role: UserRole.SUPER_ADMIN,
+      isSuperAdmin: true,
+      customRoleId: saRoleId,
       isActive: true
     });
 
@@ -65,7 +80,7 @@ const seedSuperAdmin = async () => {
     logger.info(`Phone: ${superAdmin.phone}`);
     logger.info(`Password: ${password}`);
     logger.info(`Name: ${superAdmin.getFullName()}`);
-    logger.info(`Role: ${superAdmin.role}`);
+    logger.info(`Is SuperAdmin: ${superAdmin.isSuperAdmin}`);
     logger.info('='.repeat(50));
     logger.info('⚠️ IMPORTANT: Change the password after first login!');
 

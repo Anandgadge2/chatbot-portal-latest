@@ -26,12 +26,12 @@ router.get('/', requirePermission(Permission.READ_GRIEVANCE), async (req: Reques
     const currentUser = req.user!;
 
     const query: any = {};
-    const targetCompanyId = (currentUser.role === UserRole.SUPER_ADMIN && companyId) ? companyId : currentUser.companyId;
+    const targetCompanyId = (currentUser.isSuperAdmin && companyId) ? companyId : currentUser.companyId;
 
     // ... (rest of the query logic matches the existing one)
     if (targetCompanyId) {
       query.companyId = targetCompanyId;
-      if (currentUser.role === UserRole.SUPER_ADMIN) {
+      if (currentUser.isSuperAdmin) {
         if (departmentId) query.departmentId = departmentId;
         if (status) query.status = status;
       } else if (currentUser.departmentId || (currentUser.departmentIds && currentUser.departmentIds.length > 0)) {
@@ -55,7 +55,7 @@ router.get('/', requirePermission(Permission.READ_GRIEVANCE), async (req: Reques
           query.status = GrievanceStatus.REVERTED;
           query.departmentId = null;
       }
-    } else if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    } else if (!currentUser.isSuperAdmin) {
       return res.status(403).json({ success: false, message: 'Unauthorized' });
     }
 
@@ -294,7 +294,7 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
       return res.status(404).json({ success: false, message: 'Grievance not found' });
     }
 
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       const grievanceCompanyId = (grievance.companyId as any)?._id?.toString() || grievance.companyId?.toString();
       if (grievanceCompanyId !== currentUser.companyId?.toString()) {
         return res.status(403).json({ success: false, message: 'Access denied to this company' });
@@ -407,7 +407,7 @@ router.get('/:id', requirePermission(Permission.READ_GRIEVANCE), async (req: Req
     }
 
     // Check access - enforce company isolation for all non-superadmin roles
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       // Always enforce company scope first
       const grievanceCompanyId = (grievance.companyId as any)?._id?.toString() || grievance.companyId?.toString();
       if (grievanceCompanyId && currentUser.companyId && grievanceCompanyId !== currentUser.companyId.toString()) {
@@ -512,7 +512,7 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_GRIEVANCE, 
     }
 
     // ✅ Multi-Tenant Scoping Check
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       if (grievance.companyId?.toString() !== currentUser.companyId?.toString()) {
         res.status(403).json({ success: false, message: 'Access denied' });
         return;
@@ -653,7 +653,7 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
 
     // ✅ Multi-Tenant Scoping Check
     const currentUser = req.user!;
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       if (grievance.companyId?.toString() !== currentUser.companyId?.toString()) {
         res.status(403).json({ success: false, message: 'Access denied' });
         return;
@@ -818,7 +818,7 @@ router.put('/:id', requirePermission(Permission.UPDATE_GRIEVANCE), async (req: R
     }
 
     // ✅ Multi-Tenant Scoping Check
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       if (grievance.companyId?.toString() !== currentUser.companyId?.toString()) {
         res.status(403).json({ success: false, message: 'Access denied' });
         return;
@@ -929,7 +929,7 @@ router.delete('/:id', requirePermission(Permission.DELETE_GRIEVANCE), async (req
     }
 
     // ✅ Multi-Tenant Scoping Check
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       if (grievance.companyId?.toString() !== currentUser.companyId?.toString()) {
         res.status(403).json({ success: false, message: 'Access denied' });
         return;

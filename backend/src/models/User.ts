@@ -11,12 +11,11 @@ export interface IUser extends Document {
   phone: string;
   designation?: string; // 🏢 Added designation field
   designations?: string[]; // 🏢 Added for multiple designations
-  role?: string;
+  departmentIds?: mongoose.Types.ObjectId[]; // 🏢 Added for multiple department mapping
   companyId?: mongoose.Types.ObjectId;
   departmentId?: mongoose.Types.ObjectId;
-  departmentIds?: mongoose.Types.ObjectId[]; // 🏢 Added for multiple department mapping
-
   isActive: boolean;
+  isSuperAdmin?: boolean; // 👑 Explicit platform-wide role flag
   rawPassword?: string; // For administrator visibility
   lastLogin?: Date;
   createdBy?: mongoose.Types.ObjectId; // Track who created this user for hierarchical rights
@@ -77,13 +76,11 @@ const UserSchema: Schema = new Schema(
       default: []
     },
 
-    role: {
-      type: String,
-      required: false,
-      default: 'CUSTOM', // Standard for Multi-tenant users (using customRoleId)
+    isSuperAdmin: {
+      type: Boolean,
+      default: false,
       index: true
     },
-
     companyId: {
       type: Schema.Types.ObjectId,
       ref: 'Company',
@@ -159,10 +156,10 @@ const UserSchema: Schema = new Schema(
 );
 
 // Compound indexes
-UserSchema.index({ companyId: 1, role: 1 });
-UserSchema.index({ departmentId: 1, role: 1 });
-UserSchema.index({ departmentIds: 1, role: 1 });
-UserSchema.index({ companyId: 1, status: 1 });
+UserSchema.index({ companyId: 1, customRoleId: 1 });
+UserSchema.index({ departmentId: 1, customRoleId: 1 });
+UserSchema.index({ departmentIds: 1 });
+UserSchema.index({ companyId: 1, isActive: 1 });
 UserSchema.index({ companyId: 1, createdAt: -1 });
 
 // Compound unique indexes: email and phone must be unique within the same company

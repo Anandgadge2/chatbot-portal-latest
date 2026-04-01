@@ -85,7 +85,6 @@ export const canAccessAnyDashboard = (
       firstName: 'Super',
       lastName: 'Admin',
       email: 'superadmin@dashboard.com',
-      role: 'SUPER_ADMIN',
       isSuperAdmin: true,
       level: 0,
       scope: 'platform',

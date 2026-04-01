@@ -19,7 +19,7 @@ function canViewRole(req: Request, role: any): boolean {
   if (!user) return false;
   
   // Super Admins see everything
-  if (user.role === UserRole.SUPER_ADMIN) return true;
+  if (user.isSuperAdmin) return true;
   
   // Exclude level 0 roles (Platform Superadmin) for non-superadmins
   if (role.level === 0) return false;
@@ -35,7 +35,7 @@ function canModifyRole(req: Request, role: any): boolean {
   if (!user) return false;
 
   // Super Admins can modify everything
-  if (user.role === UserRole.SUPER_ADMIN) return true;
+  if (user.isSuperAdmin) return true;
 
   // Non-SuperAdmins can NEVER modify system/global roles
   if (role.isSystem || !role.companyId || role.level === 0) return false;
@@ -53,13 +53,13 @@ router.get('/', async (req: Request, res: Response) => {
 
     // Determine which company to fetch roles for
     const companyId =
-      user.role === UserRole.SUPER_ADMIN && rawCompanyId
+      user.isSuperAdmin && rawCompanyId
         ? rawCompanyId
         : user.companyId?.toString();
 
     // If SUPER_ADMIN but no companyId provided, allow fetching all roles OR just system roles
     if (!companyId) {
-       if (user.role === UserRole.SUPER_ADMIN) {
+       if (user.isSuperAdmin) {
          // Return all roles across all companies + system roles for SuperAdmin global view
          const allRoles = await Role.find({}).populate('companyId', 'name').sort({ level: 1, name: 1 });
          return res.json({ success: true, data: { roles: allRoles } });
@@ -67,7 +67,7 @@ router.get('/', async (req: Request, res: Response) => {
        return res.status(400).json({ success: false, message: 'companyId is required to fetch roles' });
     }
 
-    if (user.role !== UserRole.SUPER_ADMIN && companyId !== user.companyId?.toString()) {
+    if (!user.isSuperAdmin && companyId !== user.companyId?.toString()) {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
@@ -87,7 +87,7 @@ router.get('/', async (req: Request, res: Response) => {
     }
 
     // If not SuperAdmin, hide roles with level 0 (Platform Superadmin)
-    if (user.role !== UserRole.SUPER_ADMIN) {
+    if (!user.isSuperAdmin) {
       query.level = { $ne: 0 };
     }
 
@@ -217,12 +217,12 @@ router.post('/', async (req: Request, res: Response) => {
     const { companyId, name, description, permissions, level } = req.body;
 
     // 1. Scoping Check
-    if (user.role !== UserRole.SUPER_ADMIN && companyId !== user.companyId?.toString()) {
+    if (!user.isSuperAdmin && companyId !== user.companyId?.toString()) {
       return res.status(403).json({ success: false, message: 'Unauthorized: Company scoping violation' });
     }
 
     // 2. Protect SuperAdmin role (level 0) creation
-    if (user.role !== UserRole.SUPER_ADMIN && level === 0) {
+    if (!user.isSuperAdmin && level === 0) {
       return res.status(403).json({ success: false, message: 'Forbidden: Cannot create super-admin roles' });
     }
 
@@ -277,7 +277,7 @@ router.put('/:id', async (req: Request, res: Response) => {
     // 🛡️ ROLE FORKING LOGIC
     // If this is a global system role and we're editing it for a specific company,
     // we fork (clone) it instead of modifying the global one.
-    if ((role.isSystem || !role.companyId) && companyId && user.role === UserRole.SUPER_ADMIN) {
+    if ((role.isSystem || !role.companyId) && companyId && user.isSuperAdmin) {
       console.log(`[RoleForking] Cloning system role "${role.name}" for company "${companyId}"`);
       
       // Check if a role with this key/name already exists for this company
@@ -315,7 +315,7 @@ router.put('/:id', async (req: Request, res: Response) => {
 
     await logUserAction(req, AuditAction.UPDATE, 'Role', role._id.toString(), { 
       roleName: role.name,
-      isForked: !!companyId && user.role === UserRole.SUPER_ADMIN
+      isForked: !!companyId && user.isSuperAdmin
     });
 
     res.json({ success: true, data: { role }, message: 'Role updated successfully' });

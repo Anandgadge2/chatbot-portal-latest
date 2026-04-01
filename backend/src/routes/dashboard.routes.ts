@@ -39,7 +39,7 @@ router.get('/superadmin', authenticate, requireSuperAdminDashboard, async (req: 
           firstName: req.user?.firstName,
           lastName: req.user?.lastName,
           email: req.user?.email,
-          role: req.user?.role
+          role: req.user?.isSuperAdmin ? UserRole.SUPER_ADMIN : 'CUSTOM'
         }
       }
     });
@@ -56,7 +56,7 @@ router.get('/superadmin', authenticate, requireSuperAdminDashboard, async (req: 
 router.get('/company-admin', authenticate, requireCompanyAdminDashboard, async (req: Request, res: Response) => {
   try {
     let companyFilter = {};
-    if (req.user?.role !== UserRole.SUPER_ADMIN) {
+    if (!req.user?.isSuperAdmin) {
       companyFilter = { companyId: req.user?.companyId };
     }
 
@@ -68,7 +68,7 @@ router.get('/company-admin', authenticate, requireCompanyAdminDashboard, async (
 
     // Get company info if not SuperAdmin
     let company = null;
-    if (req.user?.role !== UserRole.SUPER_ADMIN && req.user?.companyId) {
+    if (!req.user?.isSuperAdmin && req.user?.companyId) {
       company = await Company.findById(req.user.companyId);
     }
 
@@ -84,7 +84,7 @@ router.get('/company-admin', authenticate, requireCompanyAdminDashboard, async (
           firstName: req.user?.firstName,
           lastName: req.user?.lastName,
           email: req.user?.email,
-          role: req.user?.role,
+          role: req.user?.isSuperAdmin ? UserRole.SUPER_ADMIN : 'CUSTOM',
           companyId: req.user?.companyId
         }
       }
@@ -102,7 +102,7 @@ router.get('/company-admin', authenticate, requireCompanyAdminDashboard, async (
 router.get('/department-admin', authenticate, requireDepartmentAdminDashboard, async (req: Request, res: Response) => {
   try {
     let filter: any = {};
-    if (req.user?.role === UserRole.SUPER_ADMIN) {
+    if (req.user?.isSuperAdmin) {
        // No mandatory filter for SuperAdmin, but can filter by query params if needed
     } else if (req.user?.departmentId || (req.user?.departmentIds && req.user.departmentIds.length > 0)) {
       // Scoped to specific department(s)
@@ -138,7 +138,7 @@ router.get('/department-admin', authenticate, requireDepartmentAdminDashboard, a
           firstName: req.user?.firstName,
           lastName: req.user?.lastName,
           email: req.user?.email,
-          role: req.user?.role,
+          role: req.user?.isSuperAdmin ? UserRole.SUPER_ADMIN : 'CUSTOM',
           companyId: req.user?.companyId,
           departmentId: req.user?.departmentId
         }
@@ -187,9 +187,9 @@ router.get('/any/:dashboardType', canAccessAnyDashboard, async (req: Request, re
           firstName: req.user?.firstName,
           lastName: req.user?.lastName,
           email: req.user?.email,
-          role: req.user?.role
+          role: req.user?.isSuperAdmin ? UserRole.SUPER_ADMIN : 'CUSTOM'
         },
-        accessLevel: req.user?.role === UserRole.SUPER_ADMIN ? 'full' : 'limited'
+        accessLevel: req.user?.isSuperAdmin ? 'full' : 'limited'
       }
     });
   } catch (error: any) {

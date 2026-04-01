@@ -320,6 +320,11 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
       let submissionRole = formData.role;
       let submissionCustomRoleId = "";
 
+      if (formData.role.startsWith("CUSTOM:")) {
+        submissionRole = "OPERATOR"; // Default base role for custom roles to satisfy backend legacy requirement
+        submissionCustomRoleId = formData.role.split(":")[1];
+      }
+
       const finalDeptIds = isMultiDept 
         ? formData.departmentIds 
         : (selectedSubDeptId 

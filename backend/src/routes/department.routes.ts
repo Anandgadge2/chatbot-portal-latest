@@ -23,7 +23,7 @@ router.get('/', requirePermission(Permission.READ_DEPARTMENT), async (req: Reque
   try {
     const { page = 1, limit = 20, search, companyId, listAll, type, status, mainDeptId, subDeptId } = req.query;
     const user = req.user!;
-    const targetCompanyId = (user.role === UserRole.SUPER_ADMIN && companyId) ? companyId : user.companyId;
+    const targetCompanyId = (user.isSuperAdmin && companyId) ? companyId : user.companyId;
 
     const query: any = {};
 
@@ -99,7 +99,7 @@ router.get('/', requirePermission(Permission.READ_DEPARTMENT), async (req: Reque
     }
 
     // 2. Role-based Scoping
-    if (user.role === UserRole.SUPER_ADMIN) {
+    if (user.isSuperAdmin) {
       if (companyId) query.companyId = companyId;
     } else {
       query.companyId = user.companyId;
@@ -329,7 +329,7 @@ router.post('/', requirePermission(Permission.CREATE_DEPARTMENT), async (req: Re
     }
 
     // Non-SuperAdmin users can only create departments for their own company
-    if (user.role !== UserRole.SUPER_ADMIN && companyId !== user.companyId?.toString()) {
+    if (!user.isSuperAdmin && companyId !== user.companyId?.toString()) {
       res.status(403).json({
         success: false,
         message: 'You can only create departments for your own company'
@@ -416,7 +416,7 @@ router.get('/:id', requirePermission(Permission.READ_DEPARTMENT), async (req: Re
     }
 
     // Check access
-    if (user.role !== UserRole.SUPER_ADMIN && department.companyId._id.toString() !== user.companyId?.toString()) {
+    if (!user.isSuperAdmin && department.companyId._id.toString() !== user.companyId?.toString()) {
       res.status(403).json({
         success: false,
         message: 'Access denied'
@@ -532,7 +532,7 @@ router.put('/:id', requirePermission(Permission.UPDATE_DEPARTMENT), async (req: 
     }
 
     // Check access
-    if (user.role !== UserRole.SUPER_ADMIN && existingDepartment.companyId.toString() !== user.companyId?.toString()) {
+    if (!user.isSuperAdmin && existingDepartment.companyId.toString() !== user.companyId?.toString()) {
       res.status(403).json({
         success: false,
         message: 'Access denied'
@@ -638,7 +638,7 @@ router.delete('/:id', requirePermission(Permission.DELETE_DEPARTMENT), async (re
     }
 
     // Check access
-    if (user.role !== UserRole.SUPER_ADMIN && existingDepartment.companyId.toString() !== user.companyId?.toString()) {
+    if (!user.isSuperAdmin && existingDepartment.companyId.toString() !== user.companyId?.toString()) {
       res.status(403).json({
         success: false,
         message: 'Access denied'

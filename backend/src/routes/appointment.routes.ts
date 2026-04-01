@@ -23,11 +23,11 @@ router.get('/', requirePermission(Permission.READ_APPOINTMENT), async (req: Requ
     const currentUser = req.user!;
 
     const query: any = {};
-    const targetCompanyId = (currentUser.role === UserRole.SUPER_ADMIN && companyId) ? companyId : currentUser.companyId;
+    const targetCompanyId = (currentUser.isSuperAdmin && companyId) ? companyId : currentUser.companyId;
 
     if (targetCompanyId) {
       query.companyId = targetCompanyId;
-      if (currentUser.departmentId && currentUser.role !== UserRole.SUPER_ADMIN) {
+      if (currentUser.departmentId && !currentUser.isSuperAdmin) {
         const canManage = req.checkPermission(Permission.STATUS_CHANGE_APPOINTMENT);
         if (!canManage) {
           query.assignedTo = currentUser._id;
@@ -43,7 +43,7 @@ router.get('/', requirePermission(Permission.READ_APPOINTMENT), async (req: Requ
         const deptIds = await getDepartmentHierarchyIds(departmentId as string);
         query.departmentId = { $in: deptIds };
       }
-    } else if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    } else if (!currentUser.isSuperAdmin) {
       return res.status(403).json({ success: false, message: 'Unauthorized' });
     }
 
@@ -245,7 +245,7 @@ router.get('/:id', requirePermission(Permission.READ_APPOINTMENT), async (req: R
     }
 
     // Check access
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       const apptCompanyId = appointment.companyId?._id?.toString() || appointment.companyId?.toString();
       if (apptCompanyId && apptCompanyId !== currentUser.companyId?.toString()) {
         res.status(403).json({ success: false, message: 'Access denied' });
@@ -322,7 +322,7 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_APPOINTMENT
     }
 
     // ✅ Multi-Tenant Scoping Check
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       if (appointment.companyId.toString() !== currentUser.companyId?.toString()) {
         res.status(403).json({ success: false, message: 'Access denied' });
         return;
@@ -484,7 +484,7 @@ router.put('/:id', requirePermission(Permission.UPDATE_APPOINTMENT), async (req:
     }
 
     // ✅ Multi-Tenant Scoping Check
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       if (appointment.companyId.toString() !== currentUser.companyId?.toString()) {
         return res.status(403).json({ success: false, message: 'Access denied - cross-company access prohibited' });
       }

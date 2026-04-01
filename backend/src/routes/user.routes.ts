@@ -25,7 +25,7 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
     const query: any = {};
 
     // Determine target companyId for scoping
-    const targetCompanyId = (currentUser.role === UserRole.SUPER_ADMIN && companyId) ? companyId : currentUser.companyId;
+    const targetCompanyId = (currentUser.isSuperAdmin && companyId) ? companyId : currentUser.companyId;
 
     // Strict multi-tenant scoping
     if (targetCompanyId) {
@@ -40,7 +40,7 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
       }
       const uniqueUserDepts = [...new Set(userDepts)];
 
-      if (uniqueUserDepts.length > 0 && currentUser.role !== UserRole.SUPER_ADMIN && currentUser.role !== UserRole.COMPANY_ADMIN) {
+      if (uniqueUserDepts.length > 0 && !currentUser.isSuperAdmin && currentUser.level !== 1) {
         // Hierarchical scoping: include all sub-departments
         const { getDepartmentHierarchyIds } = await import('../utils/departmentUtils');
         const deptIds = await getDepartmentHierarchyIds(uniqueUserDepts);
@@ -63,7 +63,7 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
           { departmentIds: { $in: filterDeptIds } }
         ];
       }
-    } else if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    } else if (!currentUser.isSuperAdmin) {
       // Safety check: Non-SuperAdmins MUST have a companyId
       return res.status(403).json({
         success: false,
@@ -92,7 +92,6 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
         { userId: { $regex: search, $options: 'i' } },
         { phone: { $regex: search, $options: 'i' } },
         { designation: { $regex: search, $options: 'i' } },
-        { role: { $regex: search, $options: 'i' } },
         ...buildNameSearchQuery(search as string, 'firstName', 'lastName')
       ];
 
@@ -145,13 +144,8 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
     }
 
     if (role) {
-      // If role looks like an ObjectId, it's a customRoleId filter.
-      // Otherwise, it's a legacy string-based role filter.
-      if (mongoose.Types.ObjectId.isValid(role as string)) {
-        query.customRoleId = role;
-      } else {
-        query.role = role;
-      }
+      // Role filter now always uses customRoleId (all users must have one)
+      query.customRoleId = role;
     }
 
     if (status === 'active') {
@@ -201,7 +195,7 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
     console.log('Request body:', JSON.stringify(req.body, null, 2));
     
     const currentUser = req.user!;
-    console.log('Current user:', { id: currentUser._id, role: currentUser.role, companyId: currentUser.companyId });
+    console.log('Current user:', { id: currentUser._id, isSuperAdmin: currentUser.isSuperAdmin, level: currentUser.level, companyId: currentUser.companyId });
     
     // Access is determined by CREATE_USER permission (already checked in middleware)
     // Permission-based RBAC is now the single source of truth.
@@ -210,11 +204,11 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
     let companyId = req.body.companyId;
 
     // Validation
-    if (!firstName || !lastName || !password || (!role && !customRoleId)) {
+    if (!firstName || !lastName || !password || !customRoleId) {
       console.log('❌ Validation failed: Missing required fields');
       return res.status(400).json({
         success: false,
-        message: 'Please provide all required fields (Name, Password, and Role)'
+        message: 'Please provide all required fields (Name, Password, and Role ID)'
       });
     }
 
@@ -246,7 +240,7 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
 
     // Scope validation and role-specific requirements
     // Scope validation
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       // Non-SuperAdmins can only create users in their own company
       if (companyId && companyId !== currentUser.companyId?.toString()) {
         return res.status(403).json({
@@ -278,10 +272,9 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
     }
 
     // ─── Hierarchical Creation Rights (Dynamic) ──────────────────────────────────
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       // 1. Operator Check: Operators cannot create any users
-      const currentUserRoleName = currentUser.role?.toLowerCase() || '';
-      if (currentUserRoleName.includes('operator')) {
+      if (currentUser.level === 4) {
         return res.status(403).json({
           success: false,
           message: 'Operators are not authorized to create personnel'
@@ -297,7 +290,7 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
       }
       
       const targetRoleLower = targetRoleName.toLowerCase();
-      const creatorRoleLower = currentUser.role?.toLowerCase() || '';
+      const creatorLevel = currentUser.level || 5;
 
       // 3. Level-Based Enforcement
       // Rules:
@@ -305,7 +298,7 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
       // - Dept Admin: Can create Dept Admin, Sub-Dept Admin, Operator
       // - Sub-Dept Admin: Can create Sub-Dept Admin, Operator
 
-      if (creatorRoleLower.includes('sub-department admin') || creatorRoleLower.includes('sub department admin')) {
+      if (creatorLevel === 3) {
         // Sub-Dept Admin can only create Sub-Dept Admin or Operator
         const allowedTargets = ['sub-department admin', 'sub department admin', 'operator'];
         if (!allowedTargets.some(t => targetRoleLower.includes(t))) {
@@ -314,7 +307,7 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
             message: 'Sub-Department Administrators can only create other Sub-Dept Admins or Operators'
           });
         }
-      } else if (creatorRoleLower.includes('department admin')) {
+      } else if (creatorLevel === 2) {
         // Dept Admin can create Dept Admin, Sub-Dept Admin, or Operator
         const allowedTargets = ['department admin', 'sub-department admin', 'sub department admin', 'operator'];
         if (!allowedTargets.some(t => targetRoleLower.includes(t))) {
@@ -341,7 +334,7 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
     }
 
     // Company ID remains mandatory for all roles except SuperAdmin
-    if (!finalCompanyId && role !== UserRole.SUPER_ADMIN) {
+    if (!finalCompanyId && !currentUser.isSuperAdmin) {
       return res.status(400).json({
         success: false,
         message: 'Company ID is required'
@@ -427,9 +420,8 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
         email: email.toLowerCase().trim(),
         password,
         phone: normalizedPhone,
-        role: role || (customRoleId ? 'CUSTOM' : undefined), // Default to 'CUSTOM' if customRoleId is provided and role is not
         designation,
-        customRoleId: customRoleId || undefined,
+        customRoleId: customRoleId,
         companyId: finalCompanyId || undefined,
         departmentId: departmentId || undefined,
         departmentIds: (Array.isArray(departmentIds) && departmentIds.length > 0) ? departmentIds : undefined,
@@ -522,7 +514,7 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
           firstName: user.firstName,
           lastName: user.lastName,
           email: user.email,
-          role: user.role,
+          customRoleId: user.customRoleId,
           isActive: user.isActive
         }
       }
@@ -562,7 +554,7 @@ router.get('/:id', requirePermission(Permission.READ_USER), async (req: Request,
     }
 
     // Check access
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       if (user.companyId?._id.toString() !== currentUser.companyId?.toString()) {
         res.status(403).json({ success: false, message: 'Access denied' });
         return;
@@ -636,9 +628,9 @@ router.put('/:id', requirePermission(Permission.UPDATE_USER), async (req: Reques
       return;
     }
 
-    // Prevent users from editing their own role and department
+    // Prevent users from editing their own scope
     if (existingUser._id.toString() === currentUser._id.toString()) {
-      if (req.body.role && req.body.role !== existingUser.role) {
+      if (req.body.customRoleId && req.body.customRoleId !== existingUser.customRoleId?.toString()) {
         res.status(403).json({
           success: false,
           message: 'You cannot change your own role'
@@ -666,7 +658,7 @@ router.put('/:id', requirePermission(Permission.UPDATE_USER), async (req: Reques
     }
 
     // Check access based on company/department scope
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       if (existingUser.companyId?.toString() !== currentUser.companyId?.toString()) {
         res.status(403).json({ success: false, message: 'Access denied' });
         return;
@@ -696,7 +688,7 @@ router.put('/:id', requirePermission(Permission.UPDATE_USER), async (req: Reques
     }
 
     // Hierarchical Rights Enforcement (Dynamic)
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       // 1. Level Check: Department users cannot edit Company-level users
       if (currentUser.departmentId && !existingUser.departmentId) {
         res.status(403).json({
@@ -714,7 +706,8 @@ router.put('/:id', requirePermission(Permission.UPDATE_USER), async (req: Reques
 
       if (isSameLevel && !isSelf) {
          const targetCreatorId = existingUser.createdBy?.toString();
-         const isCreatedBySuperAdmin = !targetCreatorId || (await User.findById(targetCreatorId))?.role === UserRole.SUPER_ADMIN;
+         const targetCreator = targetCreatorId ? await User.findById(targetCreatorId) : null;
+         const isCreatedBySuperAdmin = !targetCreatorId || targetCreator?.isSuperAdmin;
 
          // Primary admins (created by SuperAdmin) can only be edited by SuperAdmin
          if (isCreatedBySuperAdmin) {
@@ -737,12 +730,14 @@ router.put('/:id', requirePermission(Permission.UPDATE_USER), async (req: Reques
     }
 
     // Role-based restrictions for role changes
-    if (req.body.role) {
-      const newRole = req.body.role;
-      
-      // Prevent regular users from assigning SuperAdmin
-      if (currentUser.role !== UserRole.SUPER_ADMIN && newRole === UserRole.SUPER_ADMIN) {
-        return res.status(403).json({ success: false, message: 'You cannot assign SuperAdmin role' });
+    if (req.body.customRoleId) {
+      // Prevent regular users from assigning SuperAdmin roles via direct ID if they aren't SuperAdmins
+      if (!currentUser.isSuperAdmin) {
+         const Role = (await import('../models/Role')).default;
+         const targetRole = await Role.findById(req.body.customRoleId);
+         if (targetRole && targetRole.key === 'SUPER_ADMIN') {
+           return res.status(403).json({ success: false, message: 'You cannot assign SuperAdmin role' });
+         }
       }
     }
 
@@ -852,7 +847,7 @@ router.put('/:id', requirePermission(Permission.UPDATE_USER), async (req: Reques
     if (user && user.departmentId) {
       const Role = (await import('../models/Role')).default;
       const customRole = user.customRoleId ? await Role.findById(user.customRoleId) : null;
-      const roleName = customRole ? customRole.name : (user.role || '');
+      const roleName = customRole ? customRole.name : (user.designation || '');
       
       const managementRole = customRole ? await Role.findOne({
         _id: user.customRoleId,
@@ -917,7 +912,7 @@ router.delete('/:id', requirePermission(Permission.DELETE_USER), async (req: Req
     }
 
     // Check access based on company/department scope
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       if (existingUser.companyId?.toString() !== currentUser.companyId?.toString()) {
         res.status(403).json({ success: false, message: 'Access denied' });
         return;
@@ -953,7 +948,7 @@ router.delete('/:id', requirePermission(Permission.DELETE_USER), async (req: Req
     }
 
     // 2. Hierarchical Rights Enforcement (Dynamic)
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       // 2.1 Level Check: Department users cannot delete Company-level users
       if (currentUser.departmentId && !existingUser.departmentId) {
         res.status(403).json({
@@ -969,7 +964,8 @@ router.delete('/:id', requirePermission(Permission.DELETE_USER), async (req: Req
 
       if (isSameLevel && !isSelf) {
          const targetCreatorId = existingUser.createdBy?.toString();
-         const isCreatedBySuperAdmin = !targetCreatorId || (await User.findById(targetCreatorId))?.role === UserRole.SUPER_ADMIN;
+         const targetCreator = targetCreatorId ? await User.findById(targetCreatorId) : null;
+         const isCreatedBySuperAdmin = !targetCreatorId || targetCreator?.isSuperAdmin;
 
          if (isCreatedBySuperAdmin) {
            res.status(403).json({
@@ -1038,7 +1034,7 @@ router.put('/:id/activate', requirePermission(Permission.UPDATE_USER), async (re
     }
 
     // 1. Hierarchical Rights: Check if the user can activate/deactivate the target user
-    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    if (!currentUser.isSuperAdmin) {
       // 1.1 Level Check: Department users cannot manage Company-level users
       if (currentUser.departmentId && !existingUser.departmentId) {
         res.status(403).json({
@@ -1054,7 +1050,8 @@ router.put('/:id/activate', requirePermission(Permission.UPDATE_USER), async (re
 
       if (isSameLevel && !isSelf) {
          const targetCreatorId = existingUser.createdBy?.toString();
-         const isCreatedBySuperAdmin = !targetCreatorId || (await User.findById(targetCreatorId))?.role === UserRole.SUPER_ADMIN;
+         const targetCreator = targetCreatorId ? await User.findById(targetCreatorId) : null;
+         const isCreatedBySuperAdmin = !targetCreatorId || targetCreator?.isSuperAdmin;
 
          if (isCreatedBySuperAdmin) {
            res.status(403).json({
