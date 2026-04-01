@@ -94,7 +94,7 @@ The following grievance has been *REJECTED*.
 ✅ *GRIEVANCE SUBMITTED SUCCESSFULLY*
 
 Respected {citizenName},
-Thank you for reaching out. Your grievance has been registered.
+Your grievance has been registered.
 *Details:*
 🎫 *Reference ID:* {grievanceId}
 🏢 *Department:* {departmentName}
