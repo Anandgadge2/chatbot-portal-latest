@@ -493,6 +493,12 @@ export async function getNotificationWhatsAppMessage(
     action === 'created' ? `${type}_confirmation` : ''
   ].filter(Boolean);
 
+  const canonicalKeys = new Set([
+    `${type}_${action}_${lang}`,
+    `${type}_${action}`
+  ]);
+  let hasExplicitDisableForCanonicalKey = false;
+
   for (const key of attemptKeys) {
     const template = await CompanyWhatsAppTemplate.findOne({ 
       companyId: cid, 
@@ -502,13 +508,21 @@ export async function getNotificationWhatsAppMessage(
     if (template) {
       if (template.isActive === false) {
         logger.info(`🚫 WhatsApp template found but INACTIVE for key: ${key}`);
-        return null; // Explicitly suppress if inactive
+        if (canonicalKeys.has(key)) {
+          hasExplicitDisableForCanonicalKey = true;
+        }
+        continue;
       }
       if (template.message && template.message.trim()) {
         logger.info(`✅ Found custom WhatsApp template in DB for key: ${key}`);
         return replacePlaceholders(template.message.trim(), data);
       }
     }
+  }
+
+  if (hasExplicitDisableForCanonicalKey) {
+    logger.info(`🚫 WhatsApp notification suppressed due to inactive canonical template for ${type}_${action}`);
+    return null;
   }
 
   // Fallback to system defaults if no custom template was found
