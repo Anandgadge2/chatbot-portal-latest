@@ -91,7 +91,7 @@ export default function UserManagementTab({ companyId: propCompanyId }: UserMana
     try {
       const { roleAPI } = await import("@/lib/api/role");
       // If we are in global view, passing undefined/empty string to getRoles() will hit /roles endpoint
-      const res = await roleAPI.getRoles(effectiveCompanyId || "");
+      const res = await roleAPI.getRoles(effectiveCompanyId || "", true);
       if (res.success) {
         // Filter out level 0 roles (Platform Superadmin) for company-level management
         // but keep them all for SuperAdmin global view if they want to filter across roles

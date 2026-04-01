@@ -40,14 +40,17 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
       }
       const uniqueUserDepts = [...new Set(userDepts)];
 
-      if (uniqueUserDepts.length > 0 && currentUser.role !== UserRole.SUPER_ADMIN) {
+      if (uniqueUserDepts.length > 0 && currentUser.role !== UserRole.SUPER_ADMIN && currentUser.role !== UserRole.COMPANY_ADMIN) {
         // Hierarchical scoping: include all sub-departments
         const { getDepartmentHierarchyIds } = await import('../utils/departmentUtils');
         const deptIds = await getDepartmentHierarchyIds(uniqueUserDepts);
-        // Support both single and multiple department assignments
+        
+        // Multi-tenant Visibility Rule:
+        // Users see: 1. Their department chain, 2. GLOBAL personnel (Admins with no dept)
         query.$or = [
-          { departmentId: { $in: deptIds } },
-          { departmentIds: { $in: deptIds } }
+          { departmentId: { $in: [...deptIds, null] } },
+          { departmentIds: { $in: [...deptIds, null] } },
+          { departmentId: { $exists: false } }
         ];
       } else if (departmentId) {
         // Even Company Admins or Super Admins in drilldown can filter by department

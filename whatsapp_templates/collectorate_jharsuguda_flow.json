@@ -850,7 +850,7 @@
       },
       "data": {
         "label": "Helpdesk (EN)",
-        "messageText": "ℹ️ *Helpdesk & Support*\n\nFor further assistance:\n\n📞 *Helpline:* 06645 270 070\n📧 *Email:* dm-jharsuguda@nic.in\n🌐 *Website:* jharsuguda.odisha.gov.in\n📍 *Office:*\nCollectorate, Jharsuguda, PO- OMP Line,\n                              Dist- Jharsuguda, Odisha 768204\n\n*Office Hours:*\n10:00 AM – 5:30 PM (Mon–Sat)",
+        "messageText": "ℹ️ *Helpdesk & Support*\n\nFor further assistance:\n\n📞 *Helpline:* 06645 270 070\n📧 *Email:* dm-jharsuguda@nic.in\n🌐 *Website:* jharsuguda.odisha.gov.in\n📍 *Office:*Collectorate, Jharsuguda, PO- OMP Line,\nDist- Jharsuguda, Odisha 768204\n\n*Office Hours:*\n10:00 AM – 5:30 PM (Mon–Sat)",
         "buttons": [
           {
             "id": "back_to_menu_en",

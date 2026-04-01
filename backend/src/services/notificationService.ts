@@ -487,15 +487,14 @@ async function safeSendWhatsApp(
     }
 
     if (result.success) {
-      logger.info('✅ WhatsApp sent successfully', { to: phone, messageId: result.messageId });
+      logger.info(`✅ [WhatsApp] Sent successfully to ${phone} (${company.name})`, { messageId: result.messageId });
       return { success: true };
     } else {
-      logger.error('❌ WhatsApp send failed', { to: phone, error: result.error });
+      logger.error(`❌ [WhatsApp] Send failed to ${phone} (${company.name})`, { error: result.error });
       return { success: false, error: result.error };
     }
   } catch (error: any) {
-    logger.error('❌ WhatsApp send exception', {
-      to: phone,
+    logger.error(`❌ [WhatsApp] Send exception for ${phone} (${company.name})`, {
       error: error?.response?.data || error?.message || error
     });
     return { success: false, error: error?.message || 'Unknown error' };
@@ -549,23 +548,32 @@ export async function getHierarchicalDepartmentAdmins(departmentId: any): Promis
       // 🔍 2. Build Query for Roles at this level
       // If it's a sub-dept, we specifically want SUB_DEPARTMENT_ADMIN or similar.
       // If it's a parent dept, we want DEPARTMENT_ADMIN or similar.
+      // 🏷️ GLOBAL ROLE FIX: Include companyId: null to support system-wide standard roles
       const levelAdminRoles = await (await import('../models/Role')).default.find({
-        companyId: dept.companyId,
         $or: [
-          { key: isSubDept ? 'SUB_DEPARTMENT_ADMIN' : 'DEPARTMENT_ADMIN' },
-          { name: { $regex: isSubDept ? /sub[- _]?department[- _]?admin|sub[- _]?admin/i : /department[- _]?admin|dept[- _]?admin/i } },
-          { 
-            permissions: { 
-              $elemMatch: { 
-                module: { $regex: /grievance|appointment/i },
-                actions: { $in: ['all', 'manage', 'assign', 'status_change'] }
+          { companyId: dept.companyId },
+          { companyId: null }
+        ],
+        $and: [
+          {
+            $or: [
+              { key: isSubDept ? 'SUB_DEPARTMENT_ADMIN' : 'DEPARTMENT_ADMIN' },
+              { name: { $regex: isSubDept ? /sub[- _]?department[- _]?admin|sub[- _]?admin/i : /department[- _]?admin|dept[- _]?admin/i } },
+              { 
+                permissions: { 
+                  $elemMatch: { 
+                    module: { $regex: /grievance|appointment/i },
+                    actions: { $in: ['all', 'manage', 'assign', 'status_change'] }
+                  }
+                } 
               }
-            } 
+            ]
           }
         ]
-      }).select('_id');
-
+      }).select('_id name');
+      
       const adminRoleIds = levelAdminRoles.map(r => r._id);
+      logger.info(`🔍 [Hierarchy] Level: ${dept.name} (${isSubDept ? 'Sub-Dept' : 'Dept'}). Found ${levelAdminRoles.length} matching admin roles.`);
 
       // Add role filters to user query
       adminQuery.$or = [
@@ -575,14 +583,24 @@ export async function getHierarchicalDepartmentAdmins(departmentId: any): Promis
 
       const levelAdmins = await User.find(adminQuery).populate('customRoleId');
       
+      if (levelAdmins.length === 0) {
+        logger.warn(`⚠️ [Hierarchy] No matching admins found at level: ${dept.name}. Check if users have the correct Department ID and Role.`);
+      } else {
+        logger.info(`👥 [Hierarchy] Found ${levelAdmins.length} potential admins at ${dept.name} level.`);
+      }
+      
       levelAdmins.forEach(admin => {
         if (!admins.find(a => a._id.toString() === admin._id.toString())) {
+          logger.info(`✅ [Hierarchy] Adding admin recipient: ${admin.getFullName()} (${admin.email || admin.phone})`);
           admins.push(admin);
         }
       });
 
       // Move up the hierarchy
       currentDeptId = dept.parentDepartmentId;
+      if (currentDeptId) {
+        logger.info(`🪜 [Hierarchy] Moving up to parent department: ${currentDeptId}`);
+      }
     }
 
     return admins;
@@ -613,31 +631,44 @@ export async function notifyDepartmentAdminOnCreation(
     }
 
     // 1. Find Company Admins for top-level supervision
+    // 🏷️ GLOBAL ROLE FIX: Find global admin roles first
+    const globalAdminRoleIds = await (await import('../models/Role')).default.find({
+      companyId: null,
+      key: { $in: ['COMPANY_ADMIN', 'ADMIN', 'COMPANY_HEAD', 'SUPER_ADMIN'] }
+    }).distinct('_id');
+
     const companyAdmins = await User.find({
       companyId,
       $or: [
-        { role: { $in: ['COMPANY_ADMIN', 'COMPANY_HEAD', 'SUPER_ADMIN', 'Collector'] } },
-        { role: { $regex: /^company[- _]?(admin|administrator|head)|collector$/i } },
+        { role: { $in: ['COMPANY_ADMIN', 'COMPANY_HEAD', 'SUPER_ADMIN', 'Collector', 'DM'] } },
+        { role: { $regex: /^company[- _]?(admin|administrator|head)|collector|dm$/i } },
+        { designation: { $regex: /collector|dm|magistrate|tahasildar/i } }, // Robust identification for gov roles
         { 
           customRoleId: { 
-            $in: await (await import('../models/Role')).default.find({ 
-              companyId, 
-              key: { $in: ['COMPANY_ADMIN', 'ADMIN', 'COMPANY_HEAD', 'SUPER_ADMIN'] } 
-            }).distinct('_id') 
+            $in: [
+              ...globalAdminRoleIds,
+              ...(await (await import('../models/Role')).default.find({ 
+                companyId, 
+                key: { $in: ['COMPANY_ADMIN', 'ADMIN', 'COMPANY_HEAD', 'SUPER_ADMIN'] } 
+              }).distinct('_id'))
+            ]
           } 
         }
       ],
       isActive: true
     }).populate('customRoleId');
 
+    logger.info(`👨‍💼 [Company Admins] Found ${companyAdmins.length} users with high-level roles for company: ${company.name}`);
+
     companyAdmins.forEach(admin => {
       if (!adminsToNotify.find(a => a.user._id.toString() === admin._id.toString())) {
+        logger.info(`✅ [Company Admin] Adding ${admin.getFullName()} (${admin.role}) to notification list.`);
         adminsToNotify.push({ user: admin, type: 'COMPANY_ADMIN' });
       }
     });
 
     if (adminsToNotify.length === 0) {
-      logger.warn(`⚠️ No admins found to notify for company ${company.name} (${data.grievanceId || data.appointmentId})`);
+      logger.warn(`⚠️ [Broadcasting] No admins found to notify for company ${company.name} (${data.grievanceId || data.appointmentId})`);
       return;
     }
 
@@ -843,7 +874,7 @@ export async function notifyCitizenOnCreation(
     const phoneToNotify = data.citizenWhatsApp || data.citizenPhone;
 
     if (phoneToNotify && canNotify(company, null, 'whatsapp', `${data.type}_${actionKey}`)) {
-      logger.info(`📢 Preparing WhatsApp confirmation for citizen: ${phoneToNotify} (Action: ${actionKey})`);
+      logger.info(`📢 [Citizen Notify] Preparing WhatsApp confirmation for citizen: ${data.citizenName} (${phoneToNotify}) (Action: ${actionKey})`);
       
       // Check if there's a custom template in the database first
       let message = await getNotificationWhatsAppMessage(data.companyId, data.type, actionKey, fullData);

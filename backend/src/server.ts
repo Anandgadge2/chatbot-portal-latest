@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
+import mongoose from 'mongoose';
 import 'express-async-errors';
 
 // Load environment variables
@@ -277,6 +278,7 @@ const init = async () => {
     const { initializeCounters } = await import('./utils/idGenerator');
     await initializeCounters();
     logger.info('✅ ID counters initialized');
+
   } catch (error: any) {
     logger.warn('⚠️ Counter initialization failed (non-critical):', error.message);
   }

@@ -25,8 +25,12 @@ export interface CreateRoleData {
 }
 
 export const roleAPI = {
-  getRoles: async (companyId?: string): Promise<{ success: boolean; data: { roles: Role[] } }> => {
-    const url = companyId ? `/roles?companyId=${companyId}` : '/roles';
+  getRoles: async (companyId?: string, filterGlobal?: boolean): Promise<{ success: boolean; data: { roles: Role[] } }> => {
+    const params = new URLSearchParams();
+    if (companyId) params.append('companyId', companyId);
+    if (filterGlobal) params.append('filterGlobal', 'true');
+    
+    const url = params.toString() ? `/roles?${params.toString()}` : '/roles';
     return apiClient.get(url);
   },
 

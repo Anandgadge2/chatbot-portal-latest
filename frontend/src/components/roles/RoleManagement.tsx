@@ -134,7 +134,8 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
   const fetchRoles = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await apiClient.get(`/roles?companyId=${companyId}`);
+      const url = companyId ? `/roles?companyId=${companyId}&filterGlobal=true` : '/roles';
+      const data = await apiClient.get(url);
       if (data.success) {
         setRoles(data.data.roles);
         setSelectedIds(new Set()); // Clear selection on refresh

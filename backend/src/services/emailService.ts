@@ -504,6 +504,9 @@ export async function getNotificationWhatsAppMessage(
   ]);
   let hasExplicitDisableForCanonicalKey = false;
 
+  logger.info(`🔍 [WhatsApp Template] Resolving message for Type: ${type}, Action: ${action}, Lang: ${lang}`);
+  logger.info(`   Attempting keys: ${attemptKeys.join(', ')}`);
+
   for (const key of attemptKeys) {
     const template = await CompanyWhatsAppTemplate.findOne({ 
       companyId: cid, 
@@ -519,7 +522,7 @@ export async function getNotificationWhatsAppMessage(
         continue;
       }
       if (template.message && template.message.trim()) {
-        logger.info(`✅ Found custom WhatsApp template in DB for key: ${key}`);
+        logger.info(`✅ [WhatsApp Template] Found CUSTOM template in DB for key: ${key}`);
         return replacePlaceholders(template.message.trim(), data);
       }
     }
@@ -533,7 +536,7 @@ export async function getNotificationWhatsAppMessage(
   // Fallback to system defaults if no custom template was found
   for (const key of attemptKeys) {
     if (DEFAULT_WA_MESSAGES[key]) {
-      logger.info(`✅ Using System Default WhatsApp template for key: ${key}`);
+      logger.info(`✅ [WhatsApp Template] Using SYSTEM DEFAULT for key: ${key}`);
       return replacePlaceholders(DEFAULT_WA_MESSAGES[key], data);
     }
   }

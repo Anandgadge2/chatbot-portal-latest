@@ -2021,7 +2021,9 @@ export class DynamicFlowEngine {
     console.log(
       `   Button mapping: ${JSON.stringify(this.session.data.buttonMapping)}`,
     );
-    console.log(`   Default nextStepId: ${currentStep.nextStepId}`);
+    if (currentStep.nextStepId) {
+      console.log(`   Default nextStepId: ${currentStep.nextStepId}`);
+    }
 
     const normalizedButtonId = String(buttonId || "")
       .trim()
@@ -2039,7 +2041,7 @@ export class DynamicFlowEngine {
 
       if (matchingResponse) {
         console.log(
-          `✅ Found expected response match: ${buttonId} → ${matchingResponse.nextStepId || "NO NEXT STEP (will use fallback)"}`,
+          `✅ [Step Transition] ${currentStep.stepId} --(${buttonId})--> ${matchingResponse.nextStepId || "NO NEXT STEP (will use fallback)"}`,
         );
 
         // Handle language buttons specially - set language in session
@@ -2216,7 +2218,7 @@ export class DynamicFlowEngine {
       }
 
       console.log(
-        `   Executing next step from button mapping: ${nextStepIdFromMapping}`,
+        `✅ [Button Mapping Transition] ${currentStep.stepId} --(${buttonId})--> ${nextStepIdFromMapping}`,
       );
       // Also trigger grievance/appointment/lead creation if this is a submit button
       const bmIsGrievanceConfirm =
@@ -2259,7 +2261,7 @@ export class DynamicFlowEngine {
 
       if (bmIsGrievanceConfirm && bmIsGrievanceSuccess && bmIsSubmit) {
         console.log(
-          `🎯 [buttonMapping path] Triggering createGrievance for button: ${buttonId}`,
+          `🎯 [Grievance Trigger] Matched 'success/submit' path. Executing createGrievance...`,
         );
         await ActionService.createGrievance(
           this.session,

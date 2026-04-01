@@ -71,12 +71,20 @@ router.get('/', async (req: Request, res: Response) => {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
-    const query: any = { 
-      $or: [
+    const filterGlobal = req.query.filterGlobal === 'true';
+
+    const query: any = {};
+    
+    if (filterGlobal) {
+      // Only return company-specific roles
+      query.companyId = companyId;
+    } else {
+      // Return both company-specific and system roles (default behavior)
+      query.$or = [
         { companyId },
         { companyId: null }
-      ]
-    };
+      ];
+    }
 
     // If not SuperAdmin, hide roles with level 0 (Platform Superadmin)
     if (user.role !== UserRole.SUPER_ADMIN) {
@@ -88,30 +96,35 @@ router.get('/', async (req: Request, res: Response) => {
     // Attach user count per role
     const enriched = await Promise.all(
       roles.map(async (role: any) => {
-        // Count users who have this specific role assigned 
-        // OR legacy users who have the string role identifier that matches this role's key
-        // We use the companyId from the role itself or the request query
         const targetCompanyId = role.companyId || companyId;
         const countQuery: any = { companyId: targetCompanyId };
         
-        if (role.key) {
-          const roleRegex = new RegExp(`^${role.key.replace(/[\s_]/g, '[\\s_]')}$`, 'i');
+        // Mutually Exclusive Counting Standard:
+        // 1. Primary Match: Users explicitly assigned this Role Object ID
+        const primaryMatch = { customRoleId: role._id };
+
+        // 2. Legacy Fallback: Only for System Roles or when no customRoleId exists
+        if (role.isSystem) {
+          const roleRegex = new RegExp(`^${role.key?.replace(/[\s_]/g, '[\\s_]') || role.name.replace(/[\s_]/g, '[\\s_]')}$`, 'i');
           const nameRegex = new RegExp(`^${role.name.replace(/[\s_]/g, '[\\s_]')}$`, 'i');
+          
           countQuery.$or = [
-            { customRoleId: role._id },
-            { role: roleRegex },
-            { role: nameRegex }
+            primaryMatch,
+            { 
+              customRoleId: { $exists: false }, 
+              $or: [
+                { role: roleRegex },
+                { role: nameRegex }
+              ]
+            }
           ];
         } else {
-          const nameRegex = new RegExp(`^${role.name.replace(/[\s_]/g, '[\\s_]')}$`, 'i');
-          countQuery.$or = [
-            { customRoleId: role._id },
-            { role: nameRegex }
-          ];
+          // Company-specific roles ONLY count users with the exact ID
+          // This prevents them from "stealing" counts from system roles via string matching
+          Object.assign(countQuery, primaryMatch);
         }
 
         const userCount = await User.countDocuments(countQuery);
-        console.log(`[RoleCount] Role: ${role.name}, Key: ${role.key}, Company: ${targetCompanyId}, Query: ${JSON.stringify(countQuery)}, Result: ${userCount}`);
         return { ...role.toObject(), userCount };
       })
     );

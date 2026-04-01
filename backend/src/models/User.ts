@@ -80,7 +80,7 @@ const UserSchema: Schema = new Schema(
     role: {
       type: String,
       required: false,
-      default: 'CUSTOM',
+      default: 'CUSTOM', // Standard for Multi-tenant users (using customRoleId)
       index: true
     },
 

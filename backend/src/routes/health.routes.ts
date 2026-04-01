@@ -7,9 +7,12 @@ const router = express.Router();
 // @route   GET /api/health
 // @desc    Health check endpoint with database status
 // @access  Public
-router.get('/', (_req: Request, res: Response) => {
+// @route   GET /api/health
+// @desc    Health check endpoint with database status
+// @access  Public
+router.get('/', async (_req: Request, res: Response) => {
   const dbStatus = getDatabaseStatus();
-  
+
   res.json({
     status: 'OK',
     timestamp: new Date().toISOString(),

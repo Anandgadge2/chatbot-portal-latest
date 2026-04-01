@@ -91,7 +91,7 @@ export async function sendWhatsAppMessage(
 
     const response = await axios.post(url, payload, { headers });
 
-    console.log(`✅ WhatsApp text sent → ${to}`);
+    console.log(`✅ [WhatsApp API] Text message sent to ${to} (${company.name})`);
     console.log(`   Message ID: ${response.data.messages?.[0]?.id || 'N/A'}`);
     
     // Log to audit for SuperAdmin terminal
@@ -192,7 +192,7 @@ export async function sendWhatsAppTemplate(
 
     const response = await axios.post(url, payload, { headers });
 
-    console.log(`✅ WhatsApp template sent → ${to}`);
+    console.log(`✅ [WhatsApp API] Template '${templateName}' sent to ${to} (${company.name})`);
     
     // Log to audit for SuperAdmin terminal
     await logOutgoingMessage(company, to, `Template: ${templateName}`, 'template');
@@ -257,7 +257,7 @@ export async function sendWhatsAppButtons(
 
     const response = await axios.post(url, payload, { headers });
 
-    console.log(`✅ WhatsApp buttons sent → ${to}`);
+    console.log(`✅ [WhatsApp API] Buttons sent to ${to} (${company.name})`);
 
     // Log to audit for SuperAdmin terminal
     await logOutgoingMessage(company, to, message, 'buttons');
@@ -421,7 +421,7 @@ export async function sendWhatsAppList(
 
     const response = await axios.post(url, payload, { headers });
 
-    console.log(`✅ WhatsApp list sent → ${to}`);
+    console.log(`✅ [WhatsApp API] List sent to ${to} (${company.name})`);
 
     // Log to audit for SuperAdmin terminal
     await logOutgoingMessage(company, to, message, 'list');
@@ -494,7 +494,7 @@ export async function sendWhatsAppMedia(
 
     const response = await axios.post(url, payload, { headers });
 
-    console.log(`✅ WhatsApp ${mediaType} sent → ${to}`);
+    console.log(`✅ [WhatsApp API] Media (${mediaType}) sent to ${to} (${company.name})`);
     
     // Log to audit
     await logOutgoingMessage(company, to, `Media (${mediaType}): ${mediaUrl}`, 'media');
