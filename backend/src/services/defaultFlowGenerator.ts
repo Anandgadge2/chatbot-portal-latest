@@ -125,7 +125,7 @@ export async function generateDefaultFlows(companyId: string | mongoose.Types.Ob
             stepId: 'grievance_success',
             stepType: 'message',
             stepName: 'Success Message',
-            messageText: '✅ *Grievance Registered Successfully*\\n\\n📄 Reference Number: {grievanceId}\\n\\nYour grievance has been forwarded to the concerned department. You will be notified on status updates.\\n\\nThank you for contacting us.'
+            messageText: '✅ *Grievance Registered Successfully*\\n\\n📄 Reference Number: {grievanceId}\\n\\nYour grievance has been forwarded to the concerned department. You will be notified on status updates.'
           },
           {
             stepId: 'grievance_cancelled',

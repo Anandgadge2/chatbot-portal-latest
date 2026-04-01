@@ -2224,7 +2224,13 @@ export class DynamicFlowEngine {
         String(buttonId).startsWith("submit_grv") ||
         String(buttonId).startsWith("submit_apt") ||
         buttonId === "confirm_yes" ||
-        String(buttonId).startsWith("confirm_apt");
+        String(buttonId).startsWith("confirm_yes") ||
+        String(buttonId).startsWith("confirm_apt") ||
+        buttonId === "grv_confirm_yes" ||
+        buttonId === "appt_confirm_yes" ||
+        String(buttonId).startsWith("appt_confirm_yes") ||
+        buttonId === "lead_confirm_yes" ||
+        String(buttonId).startsWith("lead_confirm_yes");
 
       if (bmIsGrievanceConfirm && bmIsGrievanceSuccess && bmIsSubmit) {
         console.log(
@@ -2234,7 +2240,6 @@ export class DynamicFlowEngine {
           this.session,
           this.company,
           this.userPhone,
-          { sendCitizenConfirmation: false },
         );
       } else if (bmIsAptConfirm && bmIsAptSuccess && bmIsSubmit) {
         console.log(
@@ -2244,7 +2249,6 @@ export class DynamicFlowEngine {
           this.session,
           this.company,
           this.userPhone,
-          { sendCitizenConfirmation: false },
         );
       }
       await this.runNextStepIfDifferent(
@@ -2313,7 +2317,6 @@ export class DynamicFlowEngine {
           this.session,
           this.company,
           this.userPhone,
-          { sendCitizenConfirmation: false },
         );
       } else {
         const dfIsAptConfirmStep =
@@ -2333,7 +2336,6 @@ export class DynamicFlowEngine {
             this.session,
             this.company,
             this.userPhone,
-            { sendCitizenConfirmation: false },
           );
         }
       }
