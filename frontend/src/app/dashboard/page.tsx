@@ -210,6 +210,24 @@ const TacticalForestMap = dynamic(
 function DashboardContent() {
   const { user: authUser, loading, logout } = useAuth();
   const user = authUser as any;
+  const roleName = (user?.role || "").toString().toLowerCase();
+  const explicitLevel =
+    typeof user?.level === "number" ? (user.level as number) : undefined;
+  const resolvedRoleLevel = useMemo(() => {
+    if (user?.isSuperAdmin) return 0;
+    if (explicitLevel !== undefined) return explicitLevel;
+    if (roleName.includes("company")) return 1;
+    if (roleName.includes("department") && !roleName.includes("sub")) return 2;
+    if (roleName.includes("sub") && roleName.includes("department")) return 3;
+    if (roleName.includes("operator")) return 4;
+    return 5;
+  }, [user, explicitLevel, roleName]);
+  const isCompanyAdminRole = resolvedRoleLevel === 1;
+  const isDepartmentAdminRole = resolvedRoleLevel === 2;
+  const isSubDepartmentAdminRole = resolvedRoleLevel === 3;
+  const isOperatorRole = resolvedRoleLevel >= 4;
+  const hasMultiDepartmentMapping =
+    Array.isArray(user?.departmentIds) && user.departmentIds.length > 1;
   const isCompanyLevel = user && !user.departmentId && !user.isSuperAdmin;
   const isDepartmentLevel = user && (!!user.departmentId || (user?.departmentIds && user.departmentIds.length > 0)) && !user.isSuperAdmin;
   const isSuperAdminUser = useMemo(() => isSuperAdmin(user), [user]);
@@ -228,6 +246,31 @@ function DashboardContent() {
     () => isCompanyLevel || (isSuperAdminUser && !!companyIdParam),
     [isCompanyLevel, isSuperAdminUser, companyIdParam],
   );
+  const canSeeDepartmentsTab = useMemo(() => {
+    if (isSuperAdminUser && companyIdParam) return true;
+    if (isCompanyAdminRole || isDepartmentAdminRole) return true;
+    if (isSubDepartmentAdminRole) return hasMultiDepartmentMapping;
+    return false;
+  }, [
+    isSuperAdminUser,
+    companyIdParam,
+    isCompanyAdminRole,
+    isDepartmentAdminRole,
+    isSubDepartmentAdminRole,
+    hasMultiDepartmentMapping,
+  ]);
+  const canSeeUsersTab = useMemo(() => {
+    if (isSuperAdminUser && companyIdParam) return true;
+    return (
+      isCompanyAdminRole || isDepartmentAdminRole || isSubDepartmentAdminRole
+    );
+  }, [
+    isSuperAdminUser,
+    companyIdParam,
+    isCompanyAdminRole,
+    isDepartmentAdminRole,
+    isSubDepartmentAdminRole,
+  ]);
 
   const [mounted, setMounted] = useState(false);
   // Get initial tab from URL search params, default based on role
@@ -981,25 +1024,28 @@ function DashboardContent() {
         if (response.success) {
           let filteredDepartments = response.data.departments;
 
-          // For department admin, only show their own department
-          if (isDepartmentLevel && (user?.departmentId || (user?.departmentIds && user.departmentIds.length > 0))) {
-            const userDeptId =
-              typeof user.departmentId === "object" &&
-              user.departmentId !== null
-                ? (user.departmentId as any)._id ||
-                  (user.departmentId as any).toString()
-                : user.departmentId;
+          // For scoped roles, show only mapped departments and child sub-departments.
+          if (
+            isDepartmentLevel &&
+            (user?.departmentId || (user?.departmentIds && user.departmentIds.length > 0))
+          ) {
+            const mappedIds = new Set<string>();
+            const pushId = (value: any) => {
+              if (!value) return;
+              const normalized =
+                typeof value === "object" && value !== null
+                  ? value._id || value.toString?.()
+                  : value;
+              if (normalized) mappedIds.add(String(normalized));
+            };
+            pushId(user.departmentId);
+            (user.departmentIds || []).forEach((d: any) => pushId(d));
 
-            filteredDepartments = filteredDepartments.filter(
-              (dept: Department) => {
-                const deptId = dept._id?.toString() || dept._id;
-                const userDeptIdStr = userDeptId?.toString() || userDeptId;
-                const userDeptIds = (user.departmentIds || []).map((d: any) => 
-                  (typeof d === 'object' && d !== null ? d._id || d.toString() : d.toString())
-                );
-                return deptId === userDeptIdStr || userDeptIds.includes(deptId);
-              },
-            );
+            filteredDepartments = filteredDepartments.filter((dept: Department) => {
+              const deptId = String(dept._id);
+              const parentId = getParentDepartmentId(dept);
+              return mappedIds.has(deptId) || (parentId ? mappedIds.has(String(parentId)) : false);
+            });
           }
 
           setDepartments(filteredDepartments);
@@ -1033,6 +1079,7 @@ function DashboardContent() {
       isDepartmentLevel,
       user,
       companyIdParam,
+      getParentDepartmentId,
     ],
   );
 
@@ -1997,6 +2044,63 @@ function DashboardContent() {
     }
   };
 
+  const allowedTabs = useMemo(() => {
+    if (isSuperAdminUser && companyIdParam) {
+      return new Set([
+        "overview",
+        "analytics",
+        "grievances",
+        "appointments",
+        "departments",
+        "users",
+        "roles",
+        "leads",
+        "whatsapp",
+        "flows",
+        "notifications",
+        "email",
+      ]);
+    }
+    if (isCompanyAdminRole) {
+      return new Set([
+        "overview",
+        "analytics",
+        "grievances",
+        "appointments",
+        "departments",
+        "users",
+      ]);
+    }
+    if (isDepartmentAdminRole) {
+      return new Set(["overview", "analytics", "grievances", "departments", "users"]);
+    }
+    if (isSubDepartmentAdminRole) {
+      return new Set(
+        hasMultiDepartmentMapping
+          ? ["overview", "analytics", "grievances", "departments", "users"]
+          : ["overview", "analytics", "grievances", "users"],
+      );
+    }
+    if (isOperatorRole) {
+      return new Set(["overview", "grievances"]);
+    }
+    return new Set(["overview"]);
+  }, [
+    isSuperAdminUser,
+    companyIdParam,
+    isCompanyAdminRole,
+    isDepartmentAdminRole,
+    isSubDepartmentAdminRole,
+    hasMultiDepartmentMapping,
+    isOperatorRole,
+  ]);
+
+  useEffect(() => {
+    if (activeTab && !allowedTabs.has(activeTab)) {
+      setActiveTab("overview");
+    }
+  }, [activeTab, allowedTabs]);
+
   if (!mounted) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-900">
@@ -2021,6 +2125,9 @@ function DashboardContent() {
   ].filter(Boolean).length;
 
   const handleTabChange = (value: string) => {
+    if (!allowedTabs.has(value)) {
+      return;
+    }
     if (activeTab !== value) {
       setPreviousTab(activeTab);
 
@@ -2183,8 +2290,7 @@ function DashboardContent() {
                 </TabsTrigger>
               )}
 
-              {(isCompanyLevel ||
-                isDepartmentLevel ||
+              {(isCompanyAdminRole ||
                 (isSuperAdminUser && companyIdParam)) &&
                 hasModule(Module.APPOINTMENT) &&
                 hasPermission(user, Permission.READ_APPOINTMENT) && (
@@ -2196,7 +2302,7 @@ function DashboardContent() {
                   </TabsTrigger>
                 )}
 
-              {isViewingCompany && (
+              {canSeeDepartmentsTab && (
                 <TabsTrigger
                   value="departments"
                   className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
@@ -2224,7 +2330,7 @@ function DashboardContent() {
                 </>
               )}
 
-              {(isViewingCompany || isDepartmentLevel) && (
+              {canSeeUsersTab && (
                 <TabsTrigger
                   value="users"
                   className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
@@ -2393,8 +2499,7 @@ function DashboardContent() {
                         {isDFO ? "Incidents" : "Grievances"}
                       </Button>
                     )}
-                    {(isCompanyLevel ||
-                      isDepartmentLevel ||
+                    {(isCompanyAdminRole ||
                       (isSuperAdminUser && companyIdParam)) &&
                       hasModule(Module.APPOINTMENT) &&
                       hasPermission(user, Permission.READ_APPOINTMENT) && (
@@ -2408,7 +2513,7 @@ function DashboardContent() {
                           Appointments
                         </Button>
                       )}
-                    {isViewingCompany && (
+                    {canSeeDepartmentsTab && (
                       <Button
                         type="button"
                         variant={activeTab === "departments" ? "default" : "ghost"}
@@ -2419,7 +2524,7 @@ function DashboardContent() {
                         {isDFO ? "Patrol Units" : "Departments"}
                       </Button>
                     )}
-                    {(isViewingCompany || isDepartmentLevel) && (
+                    {canSeeUsersTab && (
                       <Button
                         type="button"
                         variant={activeTab === "users" ? "default" : "ghost"}
@@ -4522,7 +4627,7 @@ function DashboardContent() {
           )}
 
           {/* Departments Tab - For Company Admin & Superadmin Drilldown */}
-          {isViewingCompany && (
+          {canSeeDepartmentsTab && (
             <TabsContent value="departments" className="space-y-4">
               <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
                 {/* Header */}
@@ -4582,7 +4687,9 @@ function DashboardContent() {
                           </Button>
                         )}
                         {(isSuperAdminUser ||
-                          hasPermission(user, Permission.CREATE_DEPARTMENT)) && (
+                          (hasPermission(user, Permission.CREATE_DEPARTMENT) &&
+                            !isSubDepartmentAdminRole &&
+                            !isOperatorRole)) && (
                           <Button
                             type="button"
                             onClick={() => setShowDepartmentDialog(true)}
@@ -5355,7 +5462,7 @@ function DashboardContent() {
           )}
 
           {/* Users Tab Content (existing) */}
-          {(isViewingCompany || isDepartmentLevel) && (
+          {canSeeUsersTab && (
             <TabsContent value="users" className="space-y-6">
               <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
                 <CardHeader className="bg-slate-900 px-4 sm:px-6 py-2">

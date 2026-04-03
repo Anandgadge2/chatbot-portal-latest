@@ -190,8 +190,20 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
     try {
       const response = await roleAPI.getRoles(companyId);
       if (response.success) {
-        // Filter out level 0 roles (Platform Superadmin) for company personnel
-        const filteredRoles = (response.data.roles || []).filter((r: any) => r.level > 0);
+        // Filter out level 0 roles and keep only the four company roles.
+        const allowedRoleNames = new Set([
+          "company administrator",
+          "department admin",
+          "department administrator",
+          "sub department admin",
+          "sub-department admin",
+          "sub department administrator",
+          "sub-department administrator",
+          "operator",
+        ]);
+        const filteredRoles = (response.data.roles || []).filter(
+          (r: any) => r.level > 0 && allowedRoleNames.has((r.name || "").toLowerCase()),
+        );
         setCustomRoles(filteredRoles);
       }
     } catch (error) {

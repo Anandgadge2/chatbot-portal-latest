@@ -49,6 +49,17 @@ interface RoleManagementProps {
   companyId: string;
 }
 
+const ALLOWED_COMPANY_ROLE_NAMES = new Set([
+  "company administrator",
+  "department admin",
+  "department administrator",
+  "sub department admin",
+  "sub-department admin",
+  "sub department administrator",
+  "sub-department administrator",
+  "operator",
+]);
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 // Redundant MODULES constant removed. Using dynamic 'modules' state.
@@ -137,7 +148,10 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
       const url = companyId ? `/roles?companyId=${companyId}&filterGlobal=true` : '/roles';
       const data = await apiClient.get(url);
       if (data.success) {
-        setRoles(data.data.roles);
+        const scopedRoles = (data.data.roles || []).filter((role: Role) =>
+          ALLOWED_COMPANY_ROLE_NAMES.has(role.name.toLowerCase()),
+        );
+        setRoles(scopedRoles);
         setSelectedIds(new Set()); // Clear selection on refresh
       } else toast.error(data.message || "Failed to fetch roles");
     } catch (err: any) {
