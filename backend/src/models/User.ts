@@ -119,6 +119,7 @@ const UserSchema: Schema = new Schema(
       default: null
     },
     notificationSettings: {
+      hasOverride: { type: Boolean, default: false }, // 🚩 Option C: Allows individual override of role protocols
       email: { type: Boolean, default: true },
       whatsapp: { type: Boolean, default: true },
       actions: {
@@ -158,7 +159,7 @@ const UserSchema: Schema = new Schema(
 // Compound indexes
 UserSchema.index({ companyId: 1, customRoleId: 1 });
 UserSchema.index({ departmentId: 1, customRoleId: 1 });
-UserSchema.index({ departmentIds: 1 });
+
 UserSchema.index({ companyId: 1, isActive: 1 });
 UserSchema.index({ companyId: 1, createdAt: -1 });
 

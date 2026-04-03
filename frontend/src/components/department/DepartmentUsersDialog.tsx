@@ -16,6 +16,7 @@ import {
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { toast } from "react-hot-toast";
 import { formatTo10Digits } from "@/lib/utils/phoneUtils";
+import { getUserRoleLabel } from "@/lib/utils/userUtils";
 
 interface DepartmentUsersDialogProps {
   isOpen: boolean;
@@ -199,7 +200,7 @@ export default function DepartmentUsersDialog({
                             {user.userId || "NO ID"}
                           </span>
                           <span className="px-2 py-0.5 bg-indigo-50 rounded text-[9px] font-black text-indigo-600 border border-indigo-100 uppercase tracking-widest">
-                            {(user.role || "Operator").replace(/_/g, " ")}
+                            {getUserRoleLabel(user)}
                           </span>
                         </div>
                       </div>

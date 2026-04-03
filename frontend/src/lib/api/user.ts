@@ -23,6 +23,7 @@ export interface User {
   customRoleId?: string | { _id: string; name: string };
   rawPassword?: string;
   notificationSettings?: {
+    hasOverride?: boolean;
     email: boolean;
     whatsapp: boolean;
     actions?: {
@@ -51,6 +52,7 @@ export interface CreateUserData {
   departmentId?: string;
   departmentIds?: string[]; // 🏢 Added for multiple department mapping
   notificationSettings?: {
+    hasOverride?: boolean;
     email: boolean;
     whatsapp: boolean;
     actions?: {
@@ -62,6 +64,7 @@ export interface CreateUserData {
 export interface UpdateUserData extends Omit<Partial<CreateUserData>, 'customRoleId'> {
   customRoleId?: string | null;
   notificationSettings?: {
+    hasOverride?: boolean;
     email: boolean;
     whatsapp: boolean;
     actions?: {

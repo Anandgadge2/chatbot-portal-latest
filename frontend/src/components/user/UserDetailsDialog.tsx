@@ -16,6 +16,7 @@ import {
 import { formatDate, formatDateTime } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { formatTo10Digits } from "@/lib/utils/phoneUtils";
+import { getUserRoleLabel } from "@/lib/utils/userUtils";
 
 interface UserDetailsDialogProps {
   isOpen: boolean;
@@ -45,6 +46,7 @@ export default function UserDetailsDialog({
   const updatedDate = user?.updatedAt || null;
 
   // Get role color
+  // Get role color
   const getRoleColor = (role: string) => {
     switch (role) {
       case "SUPER_ADMIN":
@@ -54,14 +56,8 @@ export default function UserDetailsDialog({
     }
   };
 
-
-  const roleName = user.customRoleId
-    ? typeof user.customRoleId === "object"
-      ? (user.customRoleId as any).name
-      : "Custom Role"
-    : (user.role || "CUSTOM").replace(/_/g, " ");
-
-  const roleGradient = getRoleColor(user.role || "");
+  const roleName = getUserRoleLabel(user);
+  const roleGradient = getRoleColor(user.isSuperAdmin ? "SUPER_ADMIN" : "CUSTOM");
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-2 sm:p-4">

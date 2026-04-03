@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import Company from '../models/Company';
 import User from '../models/User';
 import { logUserAction } from '../utils/auditLogger';
@@ -372,7 +373,14 @@ export const create = async (req: Request, res: Response) => {
 
 export const me = async (req: Request, res: Response) => {
   try {
-    const currentUser = req.user!;
+    const currentUser = req.user;
+
+    if (!currentUser) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
 
     if (!currentUser.companyId) {
       return res.status(404).json({
@@ -381,12 +389,22 @@ export const me = async (req: Request, res: Response) => {
       });
     }
 
-    const company = await Company.findById(currentUser.companyId);
+    // Safely parse companyId
+    const companyIdStr = currentUser.companyId ? currentUser.companyId.toString() : '';
+
+    if (!mongoose.Types.ObjectId.isValid(companyIdStr)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid company association format'
+      });
+    }
+
+    const company = await Company.findById(companyIdStr);
 
     if (!company) {
       return res.status(404).json({
         success: false,
-        message: 'Company not found'
+        message: 'Associated company not found'
       });
     }
 
@@ -395,13 +413,13 @@ export const me = async (req: Request, res: Response) => {
       data: { company }
     });
   } catch (error: any) {
+    console.error('[CompanyController.me] Error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to fetch company',
+      message: 'Failed to fetch company information',
       error: error.message
     });
   }
-
 };
 
 export const getById = async (req: Request, res: Response) => {

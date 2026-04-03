@@ -48,7 +48,7 @@ const NotificationManagement: React.FC<NotificationManagementProps> = ({
   const [company, setCompany] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [notificationSettings, setNotificationSettings] = useState<any>({});
-  const [userSettings, setUserSettings] = useState<{ [userId: string]: { email: boolean, whatsapp: boolean, actions?: any } }>({});
+  const [userSettings, setUserSettings] = useState<{ [userId: string]: { email: boolean, whatsapp: boolean, hasOverride?: boolean, actions?: any } }>({});
   const [modifiedUsers, setModifiedUsers] = useState<Set<string>>(new Set());
 
   const fetchData = useCallback(async () => {
@@ -57,7 +57,7 @@ const NotificationManagement: React.FC<NotificationManagementProps> = ({
       const [companyRes, rolesRes, usersRes] = await Promise.all([
         apiClient.get(`/companies/${companyId}`),
         apiClient.get(`/roles?companyId=${companyId}`),
-        userAPI.getAll({ companyId, limit: 1000 }),
+        userAPI.getAll({ companyId, limit: 100 }),
       ]);
 
       if (companyRes.success) {
@@ -158,6 +158,7 @@ const NotificationManagement: React.FC<NotificationManagementProps> = ({
       [userId]: {
         ...(prev[userId] || { email: true, whatsapp: true, actions: {} }),
         [type]: value,
+        hasOverride: true, // 🚩 Set flag on manual modification
       },
     }));
     setModifiedUsers(prev => {
@@ -180,6 +181,7 @@ const NotificationManagement: React.FC<NotificationManagementProps> = ({
         ...prev,
         [userId]: {
           ...userSet,
+          hasOverride: true, // 🚩 Set flag on manual modification
           actions: {
             ...actions,
             [actionKey]: {

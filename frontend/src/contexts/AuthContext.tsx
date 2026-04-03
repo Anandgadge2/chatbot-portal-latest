@@ -30,8 +30,12 @@ export interface User {
   departmentIds?: (string | { _id: string; name: string; departmentId: string })[];
   permissions?: { module: string; actions: string[] }[];
   notificationSettings?: {
+    hasOverride?: boolean;
     email: boolean;
     whatsapp: boolean;
+    actions?: {
+      [action: string]: { email: boolean, whatsapp: boolean };
+    };
   };
 }
 

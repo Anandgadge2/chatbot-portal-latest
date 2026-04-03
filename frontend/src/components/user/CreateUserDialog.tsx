@@ -62,7 +62,8 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
     departmentIds: [] as string[], // 🏢 Added for multiple department mapping
     notificationSettings: {
       email: true,
-      whatsapp: true
+      whatsapp: true,
+      hasOverride: false
     }
   });
 
@@ -81,23 +82,29 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
 
     // Hierarchical Filtering Logic
     if (!isSuperAdmin(user)) {
-      if (creatorRoleLower.includes("operator")) {
-        // Operators shouldn't even be here, but for safety return nothing
+      const userLevel = (user as any).level || 4;
+
+      if (userLevel >= 4) {
+        // Operators cannot create anyone
         return [];
-      } else if (creatorRoleLower.includes("sub-department admin") || creatorRoleLower.includes("sub department admin")) {
-        // Sub-Dept Admin can only create Sub-Dept Admin or Operator
+      } else if (userLevel === 3) {
+        // 🔒 Sub-Dept Admin (Level 3) -> Operator (Level 4) ONLY
         filteredCustomRoles = customRoles.filter(r => {
           const name = r.name.toLowerCase();
-          return name.includes("sub-department admin") || name.includes("sub department admin") || name.includes("operator");
+          return name.includes("operator");
         });
-      } else if (creatorRoleLower.includes("department admin")) {
-        // Dept Admin can create Dept Admin, Sub-Dept Admin, or Operator
+      } else if (userLevel === 2) {
+        // 🛡️ Dept Admin (Level 2) -> Sub-Dept Admin (Level 3) or Operator (Level 4)
         filteredCustomRoles = customRoles.filter(r => {
           const name = r.name.toLowerCase();
-          return name.includes("department admin") || name.includes("sub-department admin") || name.includes("sub department admin") || name.includes("operator");
+          return (
+            name.includes("sub-department admin") || 
+            name.includes("sub department admin") || 
+            name.includes("operator")
+          );
         });
       }
-      // Company Admin (default) can see all custom roles for their company
+      // Company Admin (Level 1) can create everything
     }
 
     const options: { value: string; label: string }[] = [];
@@ -150,7 +157,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
 
   const fetchDepartments = useCallback(async (companyId?: string) => {
     try {
-      const response = await departmentAPI.getAll({ companyId, limit: 1000 });
+      const response = await departmentAPI.getAll({ companyId, limit: 100 });
       if (response.success) {
         let filteredDepartments = response.data.departments;
         if (!isSuperAdmin(user)) {
@@ -214,7 +221,8 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
           departmentIds: editingUser.departmentIds?.map(d => typeof d === "object" ? (d as any)?._id : d) || [],
           notificationSettings: {
             email: editingUser.notificationSettings?.email ?? true,
-            whatsapp: editingUser.notificationSettings?.whatsapp ?? true
+            whatsapp: editingUser.notificationSettings?.whatsapp ?? true,
+            hasOverride: (editingUser.notificationSettings as any)?.hasOverride ?? false
           }
         });
 
@@ -240,7 +248,8 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
           departmentIds: [],
           notificationSettings: {
             email: true,
-            whatsapp: true
+            whatsapp: true,
+            hasOverride: false
           }
         });
 
@@ -696,14 +705,14 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
                   <Mail className="w-4 h-4 text-indigo-500" />
                   <span className="text-[10px] font-black uppercase tracking-tight text-slate-700">Email</span>
                 </div>
-                <Switch checked={formData.notificationSettings.email} onCheckedChange={(checked) => setFormData(p => ({ ...p, notificationSettings: {...p.notificationSettings, email: checked} }))} />
+                <Switch checked={formData.notificationSettings.email} onCheckedChange={(checked) => setFormData(p => ({ ...p, notificationSettings: {...p.notificationSettings, email: checked, hasOverride: true} }))} />
               </div>
               <div className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50">
                 <div className="flex items-center gap-3">
                   <MessageSquare className="w-4 h-4 text-emerald-500" />
                   <span className="text-[10px] font-black uppercase tracking-tight text-slate-700">WhatsApp</span>
                 </div>
-                <Switch checked={formData.notificationSettings.whatsapp} onCheckedChange={(checked) => setFormData(p => ({ ...p, notificationSettings: {...p.notificationSettings, whatsapp: checked} }))} />
+                <Switch checked={formData.notificationSettings.whatsapp} onCheckedChange={(checked) => setFormData(p => ({ ...p, notificationSettings: {...p.notificationSettings, whatsapp: checked, hasOverride: true} }))} />
               </div>
             </div>
 

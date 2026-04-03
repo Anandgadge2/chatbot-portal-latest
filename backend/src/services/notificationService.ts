@@ -315,13 +315,25 @@ function canNotify(company: any, user: any, type: 'email' | 'whatsapp', action?:
   if (user?.notificationSettings) {
     const settings = user.notificationSettings;
     
-    // Global Kill Switch: If user expressly disabled this channel, stop here.
+    // 🚩 Option C: IF EXPLICIT OVERRIDE IS ENABLED → USER SETTINGS WIN
+    if (settings.hasOverride) {
+       // Check granular first if action is provided
+       if (action && settings.actions && settings.actions[action]) {
+         if (typeof settings.actions[action][type] === 'boolean') {
+           return settings.actions[action][type];
+         }
+       }
+       // Fallback to global user setting for this channel
+       return !!settings[type];
+    }
+
+    // Default Behavior (Kill Switch Only): If user expressly disabled this channel, stop here.
     if (settings[type] === false) return false;
     
-    // Check granular first if action is provided
+    // Check granular if action is provided (but only if it's explicitly disabled)
     if (action && settings.actions && settings.actions[action]) {
-      if (typeof settings.actions[action][type] === 'boolean') {
-        return settings.actions[action][type];
+      if (settings.actions[action][type] === false) {
+        return false;
       }
     }
   }

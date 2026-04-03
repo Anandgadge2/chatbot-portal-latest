@@ -159,7 +159,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
     try {
       const response = await userAPI.getAll({
         companyId: formData.companyId,
-        limit: 1000,
+        limit: 100,
         status: 'active'
       });
       if (response.success) {

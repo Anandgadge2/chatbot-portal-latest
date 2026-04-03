@@ -49,7 +49,8 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
     departmentIds: [] as string[], // 🏢 Added for multiple department mapping
     notificationSettings: {
       email: true,
-      whatsapp: true
+      whatsapp: true,
+      hasOverride: false
     }
   });
 
@@ -62,7 +63,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
   const fetchDepartments = useCallback(async (companyId: string) => {
     if (!companyId) return;
     try {
-      const response = await departmentAPI.getAll({ companyId, limit: 1000 });
+      const response = await departmentAPI.getAll({ companyId, limit: 100 });
       setDepartments(response.data.departments || []);
     } catch (error: any) {
       console.error("Failed to fetch departments:", error);
@@ -98,7 +99,8 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
         departmentIds: user.departmentIds?.map(d => typeof d === "object" ? (d as any)?._id : d) || [],
         notificationSettings: {
           email: user.notificationSettings?.email ?? true,
-          whatsapp: user.notificationSettings?.whatsapp ?? true
+          whatsapp: user.notificationSettings?.whatsapp ?? true,
+          hasOverride: (user.notificationSettings as any)?.hasOverride ?? false
         }
       });
 
@@ -218,10 +220,41 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
   };
 
   const getAllPossibleRoles = () => {
+    if (!currentUser) return [];
+
+    let filteredCustomRoles = [...customRoles];
+
+    // Hierarchical Filtering Logic
+    if (!isSuperAdmin(currentUser)) {
+      const userLevel = (currentUser as any).level || 4;
+
+      if (userLevel >= 4) {
+        // Operators cannot edit anyone's role to something higher
+        return [];
+      } else if (userLevel === 3) {
+        // 🔒 Sub-Dept Admin (Level 3) -> Operator (Level 4) ONLY
+        filteredCustomRoles = customRoles.filter(r => {
+          const name = r.name.toLowerCase();
+          return name.includes("operator");
+        });
+      } else if (userLevel === 2) {
+        // 🛡️ Dept Admin (Level 2) -> Sub-Dept Admin (Level 3) or Operator (Level 4)
+        filteredCustomRoles = customRoles.filter(r => {
+          const name = r.name.toLowerCase();
+          return (
+            name.includes("sub-department admin") || 
+            name.includes("sub department admin") || 
+            name.includes("operator")
+          );
+        });
+      }
+      // Company Admin (Level 1) can edit everything
+    }
+
     const options: { value: string; label: string }[] = [];
 
-    // Add ONLY custom roles created for this company
-    const customRoleOptions = customRoles.map((r) => ({
+    // Add ONLY filtered custom roles
+    const customRoleOptions = filteredCustomRoles.map((r) => ({
       value: `CUSTOM:${r._id}`,
       label: r.name,
     }));
@@ -622,7 +655,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
                     onCheckedChange={(checked) => 
                       setFormData({
                         ...formData,
-                        notificationSettings: { ...formData.notificationSettings, email: checked }
+                        notificationSettings: { ...formData.notificationSettings, email: checked, hasOverride: true }
                       })
                     }
                   />
@@ -643,7 +676,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
                     onCheckedChange={(checked) => 
                       setFormData({
                         ...formData,
-                        notificationSettings: { ...formData.notificationSettings, whatsapp: checked }
+                        notificationSettings: { ...formData.notificationSettings, whatsapp: checked, hasOverride: true }
                       })
                     }
                   />

@@ -200,7 +200,7 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
     // Access is determined by CREATE_USER permission (already checked in middleware)
     // Permission-based RBAC is now the single source of truth.
     
-    const { firstName, lastName, email, password, phone, role, departmentId, departmentIds, customRoleId, designation } = req.body;
+    const { firstName, lastName, email, password, phone, role, departmentId, departmentIds, customRoleId, designation, designations } = req.body;
     let companyId = req.body.companyId;
 
     // Validation
@@ -299,21 +299,21 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
       // - Sub-Dept Admin: Can create Sub-Dept Admin, Operator
 
       if (creatorLevel === 3) {
-        // Sub-Dept Admin can only create Sub-Dept Admin or Operator
+        // 🔒 Sub-Dept Admin (Level 3) can ONLY create Operators (Level 4)
+        const allowedTargets = ['operator'];
+        if (!allowedTargets.some(t => targetRoleLower.includes(t))) {
+          return res.status(403).json({
+            success: false,
+            message: 'Sub-Department Administrators can only create Operator level personnel'
+          });
+        }
+      } else if (creatorLevel === 2) {
+        // 🛡️ Dept Admin (Level 2) can create Sub-Dept Admin (Level 3) or Operator (Level 4)
         const allowedTargets = ['sub-department admin', 'sub department admin', 'operator'];
         if (!allowedTargets.some(t => targetRoleLower.includes(t))) {
           return res.status(403).json({
             success: false,
-            message: 'Sub-Department Administrators can only create other Sub-Dept Admins or Operators'
-          });
-        }
-      } else if (creatorLevel === 2) {
-        // Dept Admin can create Dept Admin, Sub-Dept Admin, or Operator
-        const allowedTargets = ['department admin', 'sub-department admin', 'sub department admin', 'operator'];
-        if (!allowedTargets.some(t => targetRoleLower.includes(t))) {
-          return res.status(403).json({
-            success: false,
-            message: 'Department Administrators can only create Departmental or Operator level personnel'
+            message: 'Department Administrators can only assign Sub-Department Admin or Operator roles'
           });
         }
       }
@@ -421,6 +421,7 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
         password,
         phone: normalizedPhone,
         designation,
+        designations: (Array.isArray(designations) && designations.length > 0) ? designations : undefined,
         customRoleId: customRoleId,
         companyId: finalCompanyId || undefined,
         departmentId: departmentId || undefined,
@@ -731,13 +732,38 @@ router.put('/:id', requirePermission(Permission.UPDATE_USER), async (req: Reques
 
     // Role-based restrictions for role changes
     if (req.body.customRoleId) {
-      // Prevent regular users from assigning SuperAdmin roles via direct ID if they aren't SuperAdmins
       if (!currentUser.isSuperAdmin) {
-         const Role = (await import('../models/Role')).default;
-         const targetRole = await Role.findById(req.body.customRoleId);
-         if (targetRole && targetRole.key === 'SUPER_ADMIN') {
-           return res.status(403).json({ success: false, message: 'You cannot assign SuperAdmin role' });
-         }
+        const Role = (await import('../models/Role')).default;
+        const targetRole = await Role.findById(req.body.customRoleId);
+        
+        if (targetRole) {
+          const targetRoleLower = targetRole.name.toLowerCase();
+          const creatorLevel = currentUser.level || 5;
+
+          if (targetRole.key === 'SUPER_ADMIN') {
+            return res.status(403).json({ success: false, message: 'You cannot assign SuperAdmin role' });
+          }
+
+          if (creatorLevel === 3) {
+            // 🔒 Sub-Dept Admin (Level 3) can ONLY assign Operators (Level 4)
+            const allowedTargets = ['operator'];
+            if (!allowedTargets.some(t => targetRoleLower.includes(t))) {
+              return res.status(403).json({
+                success: false,
+                message: 'Sub-Department Administrators can only assign Operator roles'
+              });
+            }
+          } else if (creatorLevel === 2) {
+            // 🛡️ Dept Admin (Level 2) can assign Sub-Dept Admin (Level 3) or Operator (Level 4)
+            const allowedTargets = ['sub-department admin', 'sub department admin', 'operator'];
+            if (!allowedTargets.some(t => targetRoleLower.includes(t))) {
+              return res.status(403).json({
+                success: false,
+                message: 'Department Administrators can only assign Sub-Department Admin or Operator roles'
+              });
+            }
+          }
+        }
       }
     }
 
@@ -982,6 +1008,13 @@ router.delete('/:id', requirePermission(Permission.DELETE_USER), async (req: Req
             });
             return;
          }
+      }
+      // 2.3 Sub-Dept Admin Check: Cannot delete any users
+      if (currentUser.level !== undefined && currentUser.level >= 3) {
+        return res.status(403).json({
+          success: false,
+          message: 'Sub-Department Administrators are not authorized to delete personnel'
+        });
       }
     }
 

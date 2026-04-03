@@ -877,6 +877,7 @@ function SuperAdminDashboardContent() {
                 getCompanyDisplay={getCompanyDisplay}
                 router={router}
                 onRefresh={() => { fetchDepartments(); fetchStats(); }}
+                userLevel={1}
               />
             )}
           </TabsContent>

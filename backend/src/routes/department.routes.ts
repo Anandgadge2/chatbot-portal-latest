@@ -328,13 +328,31 @@ router.post('/', requirePermission(Permission.CREATE_DEPARTMENT), async (req: Re
       normalizedContactPhone = normalizeTelephone(contactPhone);
     }
 
+    // 🛡️ ROLE-BASED ACCESS CONTROL (HIERARCHICAL)
+    const userLevel = user.level !== undefined ? user.level : 4;
+    
+    // Level 3 (Sub-Dept Admin) and below cannot create any departments
+    if (userLevel >= 3) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to create departments'
+      });
+    }
+
+    // Level 2 (Dept Admin) can only create SUB-DEPARTMENTS
+    if (userLevel === 2 && !parentDepartmentId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Department Administrators can only create sub-departments'
+      });
+    }
+
     // Non-SuperAdmin users can only create departments for their own company
     if (!user.isSuperAdmin && companyId !== user.companyId?.toString()) {
-      res.status(403).json({
+      return res.status(403).json({
         success: false,
         message: 'You can only create departments for your own company'
       });
-      return;
     }
 
     const department = await Department.create({
@@ -531,13 +549,49 @@ router.put('/:id', requirePermission(Permission.UPDATE_DEPARTMENT), async (req: 
       return;
     }
 
+    // 🛡️ ROLE-BASED ACCESS CONTROL (HIERARCHICAL)
+    const userLevel = user.level !== undefined ? user.level : 4;
+    
     // Check access
     if (!user.isSuperAdmin && existingDepartment.companyId.toString() !== user.companyId?.toString()) {
-      res.status(403).json({
+      return res.status(403).json({
         success: false,
         message: 'Access denied'
       });
-      return;
+    }
+
+    // Level 2 & 3 scoping: Can only update their assigned departments or descendants
+    if (userLevel > 1) {
+      const userDepts = [
+        ...(user.departmentId ? [user.departmentId.toString()] : []),
+        ...(user.departmentIds?.map(id => id.toString()) || [])
+      ];
+
+      if (userLevel === 2) {
+        // Dept Admin: Can update self or children
+        const isSelf = userDepts.includes(existingDepartment._id.toString());
+        const isChild = userDepts.includes(existingDepartment.parentDepartmentId?.toString() || "");
+        
+        if (!isSelf && !isChild) {
+          return res.status(403).json({
+            success: false,
+            message: 'You can only update your own department or its sub-departments'
+          });
+        }
+      } else if (userLevel === 3) {
+        // Sub-Dept Admin: Can only update self
+        if (!userDepts.includes(existingDepartment._id.toString())) {
+          return res.status(403).json({
+            success: false,
+            message: 'You can only update your assigned sub-department'
+          });
+        }
+      } else {
+        return res.status(403).json({
+          success: false,
+          message: 'Insufficient permissions to update department'
+        });
+      }
     }
 
     // Normalize phone number if provided in update
@@ -637,13 +691,23 @@ router.delete('/:id', requirePermission(Permission.DELETE_DEPARTMENT), async (re
       return;
     }
 
+    // 🛡️ ROLE-BASED ACCESS CONTROL (HIERARCHICAL)
+    const userLevel = user.level !== undefined ? user.level : 4;
+
+    // Only Company Admin (Level 1) or SuperAdmin (Level 0) can delete departments
+    if (userLevel > 1) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only Company Administrators can delete departments'
+      });
+    }
+
     // Check access
     if (!user.isSuperAdmin && existingDepartment.companyId.toString() !== user.companyId?.toString()) {
-      res.status(403).json({
+      return res.status(403).json({
         success: false,
         message: 'Access denied'
       });
-      return;
     }
 
     const department = await Department.findByIdAndDelete(req.params.id);
