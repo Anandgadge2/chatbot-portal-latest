@@ -762,7 +762,7 @@ export async function notifyDepartmentAdminOnCreation(
             }
             logger.info(`📢 Dispatching WhatsApp to admin: ${user.phone} (${user.getFullName()})`);
             const res = await safeSendWhatsApp(company, user.phone, message, {
-              title: 'Access',
+              title: 'Access Dashboard',
               url: 'https://chatbot-portal-latest-frontend.vercel.app/'
             });
             if (res.success) {
@@ -826,7 +826,7 @@ export async function notifyUserOnAssignment(
         return;
       }
       await safeSendWhatsApp(company, user.phone, message, {
-        title: 'Access',
+        title: 'Access Dashboard',
         url: 'https://chatbot-portal-latest-frontend.vercel.app/'
       });
       if (data.evidenceUrls && data.evidenceUrls.length > 0) {
@@ -1088,7 +1088,7 @@ export async function notifyHierarchyOnStatusChange(
     
     // Determine if we should use CTA button
     const ctaButton = {
-      title: 'Access',
+      title: 'Access Dashboard ',
       url: 'https://chatbot-portal-latest-frontend.vercel.app/'
     };
 

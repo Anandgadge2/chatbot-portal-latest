@@ -67,9 +67,8 @@ export function scopeToUser<T extends Record<string, any>>(user: Partial<Resolve
 }
 
 export async function resolveUserAccess(user: Pick<IUser, '_id' | 'companyId' | 'departmentId' | 'customRoleId'> & Partial<IUser>): Promise<ResolvedAccess> {
-  const isSuperAdmin = !user.companyId;
-
-  if (isSuperAdmin) {
+  // 👑 PRIORITY: If user is explicitly flagged as SuperAdmin, return platform scope immediately
+  if (user.isSuperAdmin || !user.companyId) {
     return {
       isSuperAdmin: true,
       roleId: '0',
@@ -111,6 +110,20 @@ export async function resolveUserAccess(user: Pick<IUser, '_id' | 'companyId' | 
     roleId = role._id.toString();
     roleName = role.name;
     level = typeof role.level === 'number' ? role.level : Math.max(level, 5);
+    
+    // Check if the custom role itself is a system-level role (level 0)
+    if (level === 0) {
+      return {
+        isSuperAdmin: true,
+        roleId,
+        roleName,
+        level: 0,
+        scope: 'platform',
+        filteredPermissions: SUPERADMIN_PERMISSIONS,
+        permissionsVersion,
+      };
+    }
+
     filteredPermissions = Array.isArray(role.permissions) ? role.permissions : [];
 
     return {
