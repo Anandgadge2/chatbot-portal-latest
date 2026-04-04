@@ -34,16 +34,13 @@ Respected {recipientName},
 
 Details:
 🎫 *Reference ID:* {grievanceId}
-👤 *Citizen:* {citizenName}
-🏢 *Department:* {departmentName}
-🏢 *Sub-Dept:* {subDepartmentName}
-📝 *Description:* {description}
+👤 *Citizen:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}
+
 👨‍💼 *Assigned By:* {assignedByName}
 📅 *Assigned On:* {formattedDate}
 
 Please investigate and take required action.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-*{companyName}*
 Digital Grievance Redressal System`,
 
   grievance_resolved_admin: `*{companyName}*

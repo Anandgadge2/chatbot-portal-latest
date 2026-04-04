@@ -199,7 +199,7 @@ router.get('/:id/users', async (req: Request, res: Response) => {
 
     const users = await User.find(query)
       .select('-password -rawPassword')
-      .populate('departmentId', 'name')
+      .populate('departmentIds', 'name')
       .sort({ firstName: 1 });
 
     res.json({ success: true, data: users });

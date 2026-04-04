@@ -528,7 +528,6 @@ router.get('/:id', requirePermission(Permission.READ_USER), async (req: Request,
     const currentUser = req.user!;
     const user = await User.findById(req.params.id)
       .populate('companyId', 'name companyId')
-      .populate('departmentId', 'name departmentId')
       .populate('departmentIds', 'name departmentId')
       .populate('customRoleId', 'name')
       .select('-password');
@@ -879,7 +878,6 @@ router.put('/:id', requirePermission(Permission.UPDATE_USER), async (req: Reques
       { new: true, runValidators: true }
     ).select('-password')
      .populate('companyId', 'name companyId')
-     .populate('departmentId', 'name departmentId')
      .populate('departmentIds', 'name departmentId')
      .populate('customRoleId', 'name');
 

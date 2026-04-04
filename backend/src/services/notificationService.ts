@@ -202,13 +202,15 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
   // If the grievance was previously REVERTED, it requires a clearer explanation in the notification
   const wasReverted = data.timeline?.some(t => t.action === 'STATUS_UPDATED' && (t.details as any)?.toStatus === 'REVERTED');
   if (wasReverted && (data.action === 'assigned' || data.action === 'assigned_admin')) {
-    description = `This grievance is being reassigned to your department by ${assignedByName || 'the company admin'}. Please investigate and take required action.`;
+    const originalDescription = description;
+    const reassignmentNote = `This grievance is being reassigned to your department by ${assignedByName || 'the company admin'}. Please investigate and take required action.`;
+    description = originalDescription ? `${reassignmentNote}\n\n*Original Description:*\n${originalDescription}` : reassignmentNote;
   }
 
   // Multi-line values (conditional blocks)
-  const deptLabel = departmentName ? `🏢 *Department:* ${departmentName}` : '';
-  const subDeptLabel = subDepartmentName ? `🏢 *Sub-Dept:* ${subDepartmentName}` : '';
-  const descriptionLabel = description ? `📝 *Description:*\n${description}` : '';
+  const deptLabel = departmentName ? `\n🏢 *Department:* ${departmentName}` : '';
+  const subDeptLabel = subDepartmentName ? `\n🏢 *Sub-Dept:* ${subDepartmentName}` : '';
+  const descriptionLabel = description ? `\n📝 *Description:*\n${description}` : '';
 
   return {
     ...data,
@@ -738,7 +740,7 @@ export async function notifyDepartmentAdminOnCreation(
             }
             logger.info(`📢 Dispatching WhatsApp to admin: ${user.phone} (${user.getFullName()})`);
             const res = await safeSendWhatsApp(company, user.phone, message, {
-              title: 'Access Dashboard',
+              title: 'Access',
               url: 'https://chatbot-portal-latest-frontend.vercel.app/'
             });
             if (res.success) {
@@ -802,7 +804,7 @@ export async function notifyUserOnAssignment(
         return;
       }
       await safeSendWhatsApp(company, user.phone, message, {
-        title: 'Access Dashboard',
+        title: 'Access',
         url: 'https://chatbot-portal-latest-frontend.vercel.app/'
       });
       if (data.evidenceUrls && data.evidenceUrls.length > 0) {
@@ -1064,7 +1066,7 @@ export async function notifyHierarchyOnStatusChange(
     
     // Determine if we should use CTA button
     const ctaButton = {
-      title: 'Access Dashboard',
+      title: 'Access',
       url: 'https://chatbot-portal-latest-frontend.vercel.app/'
     };
 
