@@ -125,7 +125,6 @@ import {
   ArrowRightCircle,
   Building2,
   Layers,
-  Map,
   Flame,
   ShieldAlert,
   ShieldCheck,
@@ -301,6 +300,75 @@ function DashboardContent() {
   useEffect(() => {
     allDepartmentsRef.current = allDepartments;
   }, [allDepartments]);
+  const normalizedDesignations = useMemo(() => {
+    const values = new Set<string>();
+    const pushValue = (value: unknown) => {
+      if (typeof value !== "string") return;
+      const normalized = value.trim();
+      if (normalized) values.add(normalized);
+    };
+
+    pushValue((user as any)?.designation);
+    ((user as any)?.designations || []).forEach((value: unknown) =>
+      pushValue(value),
+    );
+
+    return Array.from(values);
+  }, [user]);
+  const assignedDepartmentSummaries = useMemo(() => {
+    const departmentMap = new Map<string, Department>();
+    [...allDepartments, ...departments].forEach((dept) => {
+      if (!dept?._id) return;
+      departmentMap.set(String(dept._id), dept);
+    });
+
+    const summaries: Array<{ id: string; name: string; code?: string }> = [];
+    const seenIds = new Set<string>();
+    const pushSummary = (value: any) => {
+      if (!value) return;
+
+      const objectId =
+        typeof value === "object" && value !== null
+          ? value._id || value.id || value.departmentId
+          : value;
+      const id = objectId ? String(objectId) : "";
+      const mappedDepartment = id ? departmentMap.get(id) : undefined;
+
+      const candidateName =
+        mappedDepartment?.name ||
+        (typeof value === "object" && value !== null ? value.name : undefined);
+      const name =
+        typeof candidateName === "string" ? candidateName.trim() : "";
+      if (!name) return;
+
+      const codeCandidate =
+        mappedDepartment?.departmentId ||
+        (typeof value === "object" && value !== null
+          ? value.departmentId
+          : undefined);
+      const code =
+        typeof codeCandidate === "string" && codeCandidate.trim()
+          ? codeCandidate
+          : undefined;
+
+      const uniqueKey = id || `${name.toLowerCase()}::${code || "na"}`;
+      if (seenIds.has(uniqueKey)) return;
+      seenIds.add(uniqueKey);
+
+      summaries.push({
+        id: id || uniqueKey,
+        name,
+        code,
+      });
+    };
+
+    pushSummary(user?.departmentId);
+    (user?.departmentIds || []).forEach((departmentValue: any) =>
+      pushSummary(departmentValue),
+    );
+
+    return summaries;
+  }, [user, departments, allDepartments]);
   const [deptUserCounts, setDeptUserCounts] = useState<Record<string, number>>(
     {},
   );
@@ -2964,16 +3032,16 @@ function DashboardContent() {
                               <Shield className="w-3 h-3" />
                               {user.role}
                             </span>
-                            {(user as any).designation && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-200 text-slate-700 text-[9px] font-black rounded uppercase tracking-tighter">
-                                {(user as any).designation}
-                              </span>
-                            )}
-                            {(user as any).designations?.map((d: any, index: any) => (
+                            {normalizedDesignations.map((d, index) => (
                               <span key={index} className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-200 text-slate-700 text-[9px] font-black rounded uppercase tracking-tighter">
                                 {d}
                               </span>
                             ))}
+                            {normalizedDesignations.length === 0 && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 text-slate-500 text-[9px] font-black rounded uppercase tracking-tighter">
+                                Not specified
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -2984,34 +3052,7 @@ function DashboardContent() {
                 {/* My Department(s) Card */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
                   {(() => {
-                    // Collect all departments assigned to the user
-                    const assignedDepts: Department[] = [];
-                    
-                    // 1. Check primary departmentId
-                    if (user?.departmentId) {
-                      const dept = typeof user.departmentId === 'object' 
-                        ? (user.departmentId as any) 
-                        : departments.find(d => d._id === user.departmentId);
-                      if (dept && dept.name) assignedDepts.push(dept);
-                    }
-                    
-                    // 2. Check multiple departmentIds
-                    if (user?.departmentIds && user.departmentIds.length > 0) {
-                      user.departmentIds.forEach((dId: any) => {
-                        const id = typeof dId === 'object' ? dId._id : dId;
-                        const primaryId = typeof user.departmentId === 'object' ? (user.departmentId as any)._id || (user.departmentId as any).toString() : user.departmentId;
-                        if (id === primaryId) return;
-                        if (assignedDepts.some(d => d?._id === id || (d as any)?._id?.toString() === id)) return;
-
-                        
-                        const dept = typeof dId === 'object' 
-                          ? (dId as any) 
-                          : departments.find(d => d._id === id);
-                        if (dept && dept.name) assignedDepts.push(dept);
-                      });
-                    }
-
-                    if (assignedDepts.length === 0) {
+                    if (assignedDepartmentSummaries.length === 0) {
                       return (
                         <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
                           <CardContent className="py-12 flex flex-col items-center justify-center">
@@ -3022,8 +3063,8 @@ function DashboardContent() {
                       );
                     }
 
-                    return assignedDepts.map((dept, idx) => (
-                      <Card key={dept._id || idx} className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white flex flex-col">
+                    return assignedDepartmentSummaries.map((dept, idx) => (
+                      <Card key={dept.id || idx} className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white flex flex-col">
                         <CardHeader className="bg-slate-900 px-6 py-4">
                           <div className="flex items-center gap-4">
                             <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
@@ -3034,61 +3075,15 @@ function DashboardContent() {
                                 {dept.name}
                               </CardTitle>
                               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-                                {dept.departmentId} • {idx === 0 && user.departmentId ? "Primary Assignment" : "Additional Assignment"}
+                                {dept.code || "Assigned Department"} • {idx === 0 && user.departmentId ? "Primary Assignment" : "Additional Assignment"}
                               </p>
                             </div>
                           </div>
                         </CardHeader>
-                        <CardContent className="p-6 flex-1 flex flex-col gap-4">
-                          <div className="space-y-2">
-                             <p className="text-xs text-slate-600 line-clamp-2">
-                               {dept.description || "No description provided for this unit."}
-                             </p>
-                             <div className="flex flex-wrap gap-2 pt-2">
-                               <div className="bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 flex flex-col">
-                                 <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Manager</span>
-                                 <span className="text-[10px] font-bold text-slate-700">{dept.contactPerson || "Not Assigned"}</span>
-                               </div>
-                               <div className="bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 flex flex-col">
-                                 <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Support</span>
-                                 <span className="text-[10px] font-bold text-slate-700 truncate max-w-[120px]">{dept.contactEmail || "No Email"}</span>
-                               </div>
-                             </div>
-                          </div>
-
-                          <div className="mt-auto pt-4 border-t border-slate-100 grid grid-cols-2 gap-4">
-                            {(() => {
-                              const deptStats = stats?.grievances?.byDepartment?.find(
-                                (s) => s.departmentId === (typeof dept === 'object' ? dept._id : dept)
-                              );
-                              return (
-                                <>
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
-                                      <FileText className="w-4 h-4 text-indigo-500" />
-                                    </div>
-                                    <div>
-                                      <p className="text-[14px] font-black text-slate-900 leading-none">
-                                        {deptStats?.total || 0}
-                                      </p>
-                                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">Grievances</p>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
-                                      <Clock className="w-4 h-4 text-emerald-500" />
-                                    </div>
-                                    <div>
-                                      <p className="text-[14px] font-black text-slate-900 leading-none">
-                                        {deptStats?.pending || 0}
-                                      </p>
-                                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">Pending Action</p>
-                                    </div>
-                                  </div>
-                                </>
-                              );
-                            })()}
-                          </div>
+                        <CardContent className="p-6">
+                          <p className="text-xs text-slate-600">
+                            This department is assigned to your account.
+                          </p>
                         </CardContent>
                       </Card>
                     ));
