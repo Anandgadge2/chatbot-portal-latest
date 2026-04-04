@@ -97,7 +97,7 @@ Respected {citizenName},
 Your grievance status has been updated.
 
 *Details:*
-🎫 *Ref No:* {grievanceId}{deptLabel}{subDeptLabel}
+🎫 *Ref No:* {grievanceId}{deptLabel}{subDeptLabel}{descriptionLabel}
 📊 *New Status:* {newStatus}{remarksLabel}
 
 You will receive further updates via WhatsApp.

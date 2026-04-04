@@ -714,25 +714,50 @@ export async function notifyDepartmentAdminOnCreation(
     if (!company) return;
 
     const adminsToNotify: any[] = [];
-
     const targetChainId = normalizeId(data.subDepartmentId || data.departmentId);
+
+    // 1. Get Hierarchical Admins (Sub-Dept -> Dept -> Parent Dept)
     if (targetChainId) {
       const deptAdmins = await getHierarchicalDepartmentAdmins(targetChainId);
       deptAdmins.forEach(admin => adminsToNotify.push({ user: admin, type: 'DEPT_ADMIN' }));
     }
 
-    // 1. Hierarchical Admins are already added (Sub-Dept -> Dept -> Next Level)
-    logger.info(`🔍 [Notification] Found ${adminsToNotify.length} unique admins to notify for ${data.type} (hierarchy only)`);
+    // 2. Get Company Admins (Top Level) - they are at the peak level of the hierarchy
+    const companyAdmins = await User.find({
+      companyId,
+      $or: [
+        { isSuperAdmin: true },
+        { 
+          customRoleId: { 
+            $in: await (await import('../models/Role')).default.find({ 
+              companyId, 
+              key: { $in: ['COMPANY_ADMIN', 'ADMIN', 'COMPANY_HEAD', 'SUPER_ADMIN'] } 
+            }).distinct('_id') 
+          } 
+        }
+      ],
+      isActive: true
+    }).populate('customRoleId');
+    companyAdmins.forEach(admin => adminsToNotify.push({ user: admin, type: 'COMPANY_ADMIN' }));
 
+    // 3. Deduplicate (Prevent multiple notifications if user is both Dept and Company admin)
+    const uniqueAdminsStore = new Map<string, any>();
+    adminsToNotify.forEach(entry => {
+      if (entry.user && entry.user._id) {
+        uniqueAdminsStore.set(entry.user._id.toString(), entry);
+      }
+    });
+    
+    const finalAdminsToNotify = Array.from(uniqueAdminsStore.values());
+    logger.info(`🔍 [Notification] Found ${finalAdminsToNotify.length} unique admins (Hierarchy + Company) for ${data.type}`);
 
-    if (adminsToNotify.length === 0) {
+    if (finalAdminsToNotify.length === 0) {
       logger.warn(`⚠️ [Broadcasting] No admins found to notify for company ${company.name} (${data.grievanceId || data.appointmentId})`);
       return;
     }
 
     // ✅ CONCURRENT NOTIFICATIONS
-    // Run all admin notifications in parallel to prevent Vercel 30s timeout
-    await Promise.allSettled(adminsToNotify.map(async ({ user, type }) => {
+    await Promise.allSettled(finalAdminsToNotify.map(async ({ user, type }) => {
       try {
         const notificationData: NotificationData = {
           ...data,
@@ -829,6 +854,13 @@ export async function notifyUserOnAssignment(
 
     // 📱 WhatsApp — use DB template first, then fallback
     if (canNotify(company, user, 'whatsapp', assignmentAction)) {
+      // 🛡️ SECURITY: Explicitly exclude citizens from receiving administrative assignment messages
+      const isStaff = user.isSuperAdmin === true || (user.customRoleId != null);
+      if (!isStaff) {
+        logger.warn(`⚠️ Skipped admin assignment notification for ${user.email} - User is not identified as staff (citizen-to-staff assignment prevented).`);
+        return;
+      }
+
       let message = await getNotificationWhatsAppMessage(data.companyId, data.type, 'assigned_admin', fullData);
       
       if (!message) {
@@ -1079,10 +1111,16 @@ export async function notifyHierarchyOnStatusChange(
       if (assignee) potentialRecipients.push(assignee);
     }
 
-    // Deduplicate recipients
+    // Deduplicate recipients & EXCLUDE non-staff (citizens)
     const uniqueRecipients = new Map<string, any>();
     potentialRecipients.forEach(u => {
-      if (u && u._id) uniqueRecipients.set(u._id.toString(), u);
+      if (u && u._id) {
+        // Only include if user is SuperAdmin OR has a custom role (staff)
+        const isStaff = u.isSuperAdmin === true || (u.customRoleId != null);
+        if (isStaff) {
+          uniqueRecipients.set(u._id.toString(), u);
+        }
+      }
     });
 
     const users = Array.from(uniqueRecipients.values());
@@ -1113,9 +1151,31 @@ export async function notifyHierarchyOnStatusChange(
         };
 
         // 📱 WhatsApp — Get message for this specific user to ensure correct personalization
-        // Try admin-specific key first, then fallback to general key
-        let hierarchyMessage = await getNotificationWhatsAppMessage(companyId, data.type, `${statusAction}_admin`, userFullData);
+        // Try specialized reassignment keys if status is ASSIGNED as requested by user
+        let templateKey = `${statusAction}_admin`;
         
+        if (newStatus === 'ASSIGNED') {
+          // Identify role level for specialized reassignment messages
+          const userRole = user.customRoleId as any;
+          const roleKey = userRole?.key || '';
+          
+          if (roleKey === 'COMPANY_ADMIN' || roleKey === 'ADMIN' || user.isSuperAdmin) {
+            templateKey = 'grievance_reassigned_company_admin';
+          } else if (roleKey === 'DEPARTMENT_ADMIN') {
+            templateKey = 'grievance_received_dept_admin';
+          } else if (roleKey === 'SUB_DEPARTMENT_ADMIN') {
+            templateKey = 'grievance_reassigned_subdept_admin';
+          }
+        }
+
+        let hierarchyMessage = await getNotificationWhatsAppMessage(companyId, data.type, templateKey as any, userFullData);
+        
+        // Fallbacks for specialized keys
+        if (!hierarchyMessage && newStatus === 'ASSIGNED') {
+           // Fallback to standard assigned_admin if specialized keys aren't found in DB
+           hierarchyMessage = await getNotificationWhatsAppMessage(companyId, data.type, 'assigned_admin', userFullData);
+        }
+
         if (!hierarchyMessage) {
           hierarchyMessage = await getNotificationWhatsAppMessage(companyId, data.type, statusAction as any, userFullData);
         }

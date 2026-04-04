@@ -426,8 +426,10 @@ router.get('/users/available', async (req: Request, res: Response) => {
 
     if (currentUser.isSuperAdmin) {
       // SuperAdmin can see anyone
+      query.customRoleId = { $ne: null }; // Still only show people who can actually be assigned
     } else {
       query.companyId = currentUser.companyId;
+      query.customRoleId = { $ne: null }; // Only staff have roles
       if (currentUser.departmentId) {
         query.departmentIds = { $in: [currentUser.departmentId] };
       }
