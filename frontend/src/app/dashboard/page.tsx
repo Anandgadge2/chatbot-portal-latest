@@ -1168,7 +1168,7 @@ function DashboardContent() {
         listAll: true,
 
         page: 1,
-        limit: 1000,
+        limit: 100,
         companyId:
           isSuperAdminUser && companyIdParam ? companyIdParam : undefined,
       });

@@ -634,18 +634,24 @@ router.put('/:id', requirePermission(Permission.UPDATE_USER), async (req: Reques
       }
     }
 
-    // Clean up empty strings for ID fields
-    if (req.body.companyId === '') {
-      req.body.companyId = null;
-    }
-    if (req.body.departmentId === '') {
-      req.body.departmentId = null;
-    }
-    if (req.body.customRoleId === '') {
-      req.body.customRoleId = null;
-    }
-    if (req.body.email === '') {
-      req.body.email = null;
+    // Prevent editing of metadata and internal IDs
+    delete req.body._id;
+    delete req.body.id;
+    delete req.body.__v;
+    delete req.body.createdAt;
+    delete req.body.updatedAt;
+
+    // Clean up empty strings and ensure valid IDs
+    if (req.body.companyId === '') req.body.companyId = null;
+    if (req.body.departmentId === '') req.body.departmentId = null;
+    if (req.body.customRoleId === '') req.body.customRoleId = null;
+    if (req.body.email === '') req.body.email = null;
+
+    // Filter out invalid empty strings or nulls from departmentIds array
+    if (req.body.departmentIds && Array.isArray(req.body.departmentIds)) {
+      req.body.departmentIds = req.body.departmentIds.filter((id: any) => 
+        id && typeof id === 'string' && id.trim() !== ""
+      );
     }
 
     // Check access based on company/department scope
@@ -861,12 +867,12 @@ router.put('/:id', requirePermission(Permission.UPDATE_USER), async (req: Reques
 
     // Automatically update department contact info if the user has department management permissions OR is a Department Admin
     if (user && user.departmentId) {
-      const Role = (await import('../models/Role')).default;
-      const customRole = user.customRoleId ? await Role.findById(user.customRoleId) : null;
+      const customRole: any = user.customRoleId; // already populated with 'name'
       const roleName = customRole ? customRole.name : (user.designation || '');
       
+      const Role = (await import('../models/Role')).default;
       const managementRole = customRole ? await Role.findOne({
-        _id: user.customRoleId,
+        _id: (customRole as any)._id,
         'permissions.module': 'DEPARTMENTS',
         'permissions.actions': { $in: ['update', 'all', 'manage'] }
       }) : null;

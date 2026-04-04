@@ -87,6 +87,8 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
     isImage?: boolean;
   } | null>(null);
 
+  const [activeTab, setActiveTab] = useState("overview");
+
   if (!isOpen || !grievance) return null;
 
   const getStatusConfig = (status: string) => {
@@ -160,719 +162,396 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
       : null;
 
   // Split media into Citizen vs Officer
-  const citizenMedia = (grievance.media || []).filter(m => !m.uploadedBy);
-  const officerMedia = (grievance.media || []).filter(m => m.uploadedBy);
+  const citizenMedia = (grievance.media || []).filter((m) => !m.uploadedBy);
+  const officerMedia = (grievance.media || []).filter((m) => m.uploadedBy);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-2 sm:p-4">
-      <div className="w-full max-w-4xl max-h-[92vh] sm:max-h-[90vh] overflow-hidden rounded-xl sm:rounded-2xl shadow-2xl bg-white animate-in fade-in zoom-in duration-200 flex flex-col">
-        {/* Dark Slate Header — consistent with superadmin theme */}
-        <div className="bg-slate-900 p-3 sm:p-5 flex items-start justify-between gap-3 sm:gap-4 flex-shrink-0">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-indigo-500/20 rounded-lg sm:rounded-xl flex items-center justify-center border border-indigo-500/30 flex-shrink-0">
-              <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-400" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-[2px] p-2 sm:p-4">
+      <div className="w-full max-w-3xl max-h-[92vh] sm:max-h-[90vh] overflow-hidden rounded-2xl shadow-2xl bg-white border border-slate-200 animate-in fade-in zoom-in duration-200 flex flex-col">
+        {/* Compact & Clean Header */}
+        <div className="bg-slate-900 px-5 py-4 flex items-center justify-between gap-4 flex-shrink-0 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 opacity-50"></div>
+          
+          <div className="flex items-center gap-3 min-w-0 relative z-10">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br ${statusConfig.gradient} shadow-lg shadow-black/20`}>
+              {statusConfig.icon}
             </div>
             <div className="min-w-0">
-              <h2 className="text-sm sm:text-base font-bold text-white">
-                Grievance Details
-              </h2>
-              <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <span className="px-2 py-0.5 bg-white/10 rounded-md text-[9px] sm:text-[10px] font-bold text-slate-300 tracking-widest uppercase break-all">
-                  {grievance.grievanceId}
-                </span>
-                <span className="text-slate-500 text-[10px]">•</span>
-                <span className="text-slate-400 text-[10px] font-medium">
-                  {timeAgo}
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-black text-white uppercase tracking-tight">#{grievance.grievanceId}</h2>
+                <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border border-current bg-opacity-10 ${statusConfig.text.replace('text-', 'bg-')} ${statusConfig.text}`}>
+                  {statusConfig.label}
                 </span>
               </div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                Submitted {timeAgo} • {formatDate(createdDate)}
+              </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {/* Status Badge in header */}
-            <div
-              className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold uppercase tracking-wider ${statusConfig.bg} ${statusConfig.border} ${statusConfig.text}`}
-            >
-              {statusConfig.icon}
-              {statusConfig.label}
-            </div>
+          <div className="flex items-center gap-2 relative z-10">
             <button
               onClick={onClose}
-              className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all"
+              className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all border border-white/10 group active:scale-95"
             >
-              <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+              <X className="w-4 h-4 text-white/70 group-hover:text-white" />
             </button>
           </div>
         </div>
 
-        {/* Mobile Status Badge */}
-        <div className="sm:hidden px-3 pt-3">
-          <div
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold uppercase tracking-wider ${statusConfig.bg} ${statusConfig.border} ${statusConfig.text}`}
-          >
-            {statusConfig.icon}
-            {statusConfig.label}
-          </div>
+        {/* Tab Navigation */}
+        <div className="bg-slate-50 border-b border-slate-200 px-5 flex items-center gap-1 overflow-x-auto no-scrollbar">
+          {[
+            { id: "overview", label: "Overview", icon: <FileText className="w-3.5 h-3.5" /> },
+            { id: "media", label: "Media Assets", icon: <ImageIcon className="w-3.5 h-3.5" />, count: grievance.media?.length },
+            { id: "timeline", label: "History & Resolution", icon: <RefreshCw className="w-3.5 h-3.5" /> }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-3 text-[10px] font-black uppercase tracking-widest transition-all border-b-2 -mb-[1px] relative whitespace-nowrap ${
+                activeTab === tab.id 
+                  ? "border-indigo-600 text-indigo-600 bg-white shadow-[0_-4px_0_inset_rgba(79,70,229,0.05)]" 
+                  : "border-transparent text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+              }`}
+            >
+              {tab.icon}
+              {tab.label}
+              {tab.count !== undefined && (
+                <span className={`px-1.5 py-0.5 rounded-full text-[8px] font-black ${activeTab === tab.id ? "bg-indigo-100 text-indigo-600" : "bg-slate-200 text-slate-500"}`}>
+                  {tab.count}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
 
-        {/* Scrollable Content */}
-        <div className="overflow-y-auto flex-1 p-3 sm:p-5 space-y-3 sm:space-y-5 custom-scrollbar">
-          {/* Quick Info Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-3">
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg sm:rounded-xl p-2.5 sm:p-3 border border-blue-100">
-              <div className="flex items-center gap-2 mb-1.5">
-                <div className="w-7 h-7 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <User className="w-3.5 h-3.5 text-blue-600" />
-                </div>
-                <span className="text-[9px] sm:text-[10px] font-bold text-blue-600 uppercase">
-                  Citizen
-                </span>
-              </div>
-              <p
-                className="text-xs sm:text-sm font-bold text-gray-900 break-words whitespace-normal"
-                title={grievance.citizenName}
-              >
-                {grievance.citizenName}
-              </p>
-            </div>
-
-
-
-            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-lg sm:rounded-xl p-2.5 sm:p-3 border border-emerald-100">
-              <div className="flex items-center gap-2 mb-1.5">
-                <div className="w-7 h-7 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Calendar className="w-3.5 h-3.5 text-emerald-600" />
-                </div>
-                <span className="text-[9px] sm:text-[10px] font-bold text-emerald-600 uppercase">
-                  Filed On
-                </span>
-              </div>
-              <p className="text-xs sm:text-sm font-bold text-gray-900 break-words">
-                {formatDate(createdDate)}
-              </p>
-            </div>
-
-            <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg sm:rounded-xl p-2.5 sm:p-3 border border-amber-100">
-              <div className="flex items-center gap-2 mb-1.5">
-                <div className="w-7 h-7 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Clock className="w-3.5 h-3.5 text-amber-600" />
-                </div>
-                <span className="text-[9px] sm:text-[10px] font-bold text-amber-600 uppercase">
-                  Time
-                </span>
-              </div>
-              <p className="text-sm font-bold text-gray-900">
-                {formatISTTime(createdDate)}
-              </p>
-            </div>
-          </div>
-
-          {/* Department Information */}
-          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-            <div className="bg-slate-900 px-5 py-3 border-b border-slate-700">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Building className="w-4 h-4 text-indigo-400" />
-                Department Information
-              </h3>
-            </div>
-            <div className="p-5">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl shadow-sm border border-slate-100">
-                  <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Building className="w-5 h-5 text-indigo-600" />
+        {/* Main Content Area */}
+        <div className="overflow-y-auto flex-1 custom-scrollbar">
+          {activeTab === "overview" && (
+            <div className="p-6 space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              {/* Resolution Summary (Pinned if exists) */}
+              {grievance.resolution && (
+                <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-2xl p-5 shadow-lg shadow-emerald-500/10 border border-emerald-400/20 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-4 opacity-10">
+                    <CheckCircle2 className="w-20 h-20 text-white" />
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
-                      Main Department
-                    </p>
-                    <p
-                      className="text-sm font-bold text-slate-800 break-words whitespace-normal"
-                      title={
-                        typeof grievance.departmentId === "object" &&
-                        grievance.departmentId
-                          ? (grievance.departmentId as any).name
-                          : "General"
-                      }
-                    >
-                      {typeof grievance.departmentId === "object" &&
-                      grievance.departmentId
-                        ? (grievance.departmentId as any).name
-                        : "General"}
+                  <div className="relative z-10">
+                    <h3 className="text-white text-[10px] font-black uppercase tracking-widest mb-2 flex items-center gap-2">
+                       <CheckCircle2 className="w-4 h-4" /> Final Resolution Summary
+                    </h3>
+                    <p className="text-sm font-medium text-white leading-relaxed whitespace-pre-wrap">
+                      {grievance.resolution}
                     </p>
                   </div>
                 </div>
+              )}
 
-                {grievance.subDepartmentId && (
-                  <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl shadow-sm border border-slate-100">
-                    <div className="w-10 h-10 bg-violet-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <ArrowRight className="w-5 h-5 text-violet-600" />
+              {/* Data Grid: Citizen & Dept (Redesigned for density) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                {/* Citizen Information Group */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-slate-400">
+                    <User className="w-3.5 h-3.5" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Reporting Citizen</span>
+                    <div className="flex-1 h-px bg-slate-100"></div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 gap-y-3">
+                    <div className="flex flex-col">
+                      <span className="text-[9px] font-bold text-slate-400 tracking-wider uppercase mb-0.5">Full Name</span>
+                      <span className="text-sm font-bold text-slate-900">{grievance.citizenName}</span>
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
-                        Sub-Department
+                    <div className="flex flex-col">
+                      <span className="text-[9px] font-bold text-slate-400 tracking-wider uppercase mb-0.5">Contact Detail</span>
+                      <div className="flex items-center gap-2">
+                         <span className="text-sm font-bold text-slate-900">{formatTo10Digits(grievance.citizenPhone)}</span>
+                         <a href={`tel:${grievance.citizenPhone}`} className="p-1.5 rounded-md bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors">
+                            <Phone className="w-3 h-3" />
+                         </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Assignment Group */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-slate-400">
+                    <Building className="w-3.5 h-3.5" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Organizational Mapping</span>
+                    <div className="flex-1 h-px bg-slate-100"></div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-y-3">
+                    <div className="flex flex-col">
+                      <span className="text-[9px] font-bold text-slate-400 tracking-wider uppercase mb-0.5">Assigned Department</span>
+                      <span className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                        {typeof grievance.departmentId === "object" && grievance.departmentId ? (grievance.departmentId as any).name : "General / Non-Categorized"}
+                        {grievance.subDepartmentId && (
+                          <span className="text-slate-300 mx-1">/</span>
+                        )}
+                        {typeof grievance.subDepartmentId === "object" && grievance.subDepartmentId && (
+                          <span className="text-indigo-600">{(grievance.subDepartmentId as any).name}</span>
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[9px] font-bold text-slate-400 tracking-wider uppercase mb-0.5">Monitoring Officer</span>
+                      <div className="flex items-center gap-2">
+                         <span className="text-sm font-bold text-slate-900 italic">
+                           {assignedTo || "Unassigned / Pending Officer Allocation"}
+                         </span>
+                         {assignedTo && <UserCheck className="w-3.5 h-3.5 text-blue-500" />}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Full Width Info: Description & Location */}
+              <div className="space-y-6 pt-2 border-t border-slate-100">
+                {/* Description Block */}
+                <div className="space-y-3">
+                   <div className="flex items-center gap-2 text-slate-400">
+                      <Tag className="w-3.5 h-3.5" />
+                      <span className="text-[10px] font-black uppercase tracking-widest">Incident Description</span>
+                   </div>
+                   <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 shadow-inner">
+                      <p className="text-xs sm:text-sm text-slate-600 leading-relaxed whitespace-pre-wrap font-medium">
+                        {grievance.description || "The reporter provided no written description for this incident."}
                       </p>
-                      <p
-                        className="text-sm font-bold text-slate-800 break-words whitespace-normal"
-                        title={
-                          typeof grievance.subDepartmentId === "object" &&
-                          grievance.subDepartmentId
-                            ? (grievance.subDepartmentId as any).name
-                            : ""
-                        }
-                      >
-                        {typeof grievance.subDepartmentId === "object" &&
-                        grievance.subDepartmentId
-                          ? (grievance.subDepartmentId as any).name
-                          : "N/A"}
+                   </div>
+                </div>
+
+                {/* Location Block (Condensed) */}
+                {grievance.location && (grievance.location.address || grievance.location.coordinates) && (
+                  <div className="flex items-start gap-4 p-4 bg-slate-900 rounded-xl border border-slate-800 shadow-lg">
+                    <div className="w-10 h-10 bg-indigo-500/20 rounded-lg flex items-center justify-center border border-indigo-500/30 flex-shrink-0">
+                      <MapPin className="w-5 h-5 text-indigo-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-2">
+                        Geospatial context
                       </p>
+                      <p className="text-[11px] font-bold text-white mb-3 tracking-tight leading-snug">
+                        {grievance.location.address || "Coordinate-only location provided by device"}
+                      </p>
+                      {grievance.location.coordinates && (
+                        <div className="flex items-center gap-3">
+                           <code className="text-[10px] text-indigo-400 bg-indigo-950/50 px-2 py-0.5 rounded border border-indigo-900/50 font-mono">
+                             {grievance.location.coordinates[1]?.toFixed(6)}, {grievance.location.coordinates[0]?.toFixed(6)}
+                           </code>
+                           <a
+                              href={`https://www.google.com/maps?q=${grievance.location.coordinates[1]},${grievance.location.coordinates[0]}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[10px] font-black text-white bg-indigo-600 hover:bg-indigo-700 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all shadow-lg active:scale-95"
+                            > 
+                              <ExternalLink className="w-3 h-3" />
+                              Inspect on Maps
+                           </a>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
               </div>
             </div>
-          </div>
-
-          {/* Citizen Information */}
-          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-            <div className="bg-slate-900 px-5 py-3 border-b border-slate-700">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <User className="w-4 h-4 text-blue-400" />
-                Citizen Information
-              </h3>
-            </div>
-            <div className="p-5">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
-                  <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <User className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
-                      Full Name
-                    </p>
-                    <p className="text-sm font-bold text-slate-800 break-words whitespace-normal">
-                      {grievance.citizenName}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
-                  <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Phone className="w-5 h-5 text-green-600" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
-                      Phone Number
-                    </p>
-                    <p className="text-sm font-bold text-slate-800">
-                      {formatTo10Digits(grievance.citizenPhone)}
-                    </p>
-                  </div>
-                </div>
-
-
-              </div>
-            </div>
-          </div>
-
-          {/* Grievance Description */}
-          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-            <div className="bg-slate-900 px-5 py-3 border-b border-slate-700">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <FileText className="w-4 h-4 text-purple-400" />
-                Grievance Description
-              </h3>
-            </div>
-            <div className="p-5">
-              <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl p-4 border border-slate-100">
-                <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
-                  {grievance.description || "No description provided"}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Location Information */}
-          {grievance.location &&
-            (grievance.location.address || grievance.location.coordinates) && (
-              <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-                <div className="bg-slate-900 px-5 py-3 border-b border-slate-700">
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-emerald-400" />
-                    Location Information
-                  </h3>
-                </div>
-                <div className="p-5">
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <MapPin className="w-6 h-6 text-emerald-600" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      {grievance.location.address && (
-                        <p className="text-sm font-medium text-slate-800 mb-2">
-                          {grievance.location.address}
-                        </p>
-                      )}
-                      {grievance.location.coordinates && (
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-xs text-slate-500 font-mono bg-slate-100 px-2 py-1 rounded">
-                            {grievance.location.coordinates[1]?.toFixed(6)},{" "}
-                            {grievance.location.coordinates[0]?.toFixed(6)}
-                          </span>
-                          <a
-                            href={`https://www.google.com/maps?q=${grievance.location.coordinates[1]},${grievance.location.coordinates[0]}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
-                          >
-                            <ExternalLink className="w-3 h-3" />
-                            View on Maps
-                          </a>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-          {/* Citizen's Evidence */}
-          {citizenMedia.length > 0 && (
-            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-              <div className="bg-slate-900 px-5 py-3 border-b border-slate-700 flex items-center justify-between">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <ImageIcon className="w-4 h-4 text-pink-400" />
-                  Citizen&apos;s Evidence
-                </h3>
-                <span className="px-2 py-0.5 bg-white/10 text-slate-300 rounded-full text-[10px] font-bold">
-                  {citizenMedia.length} Files
-                </span>
-              </div>
-              <div className="p-5">
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {citizenMedia.map((media: any, index: number) => {
-                    const isImage = isImageMedia(media);
-                    return (
-                      <div
-                        key={index}
-                        className="relative group rounded-xl overflow-hidden border border-slate-200 aspect-video bg-slate-100"
-                      >
-                        {isImage ? (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setFullScreenMedia({
-                                url: media.url,
-                                alt: `Citizen Evidence ${index + 1}`,
-                                isImage: true,
-                              })
-                            }
-                            className="absolute inset-0 w-full h-full text-left focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-inset rounded-xl"
-                          >
-                            <Image
-                              src={media.url}
-                              alt={`Evidence ${index + 1}`}
-                              fill
-                              className="object-cover group-hover:scale-105 transition-transform duration-300 cursor-pointer"
-                              unoptimized
-                            />
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center pointer-events-none">
-                              <span className="opacity-0 group-hover:opacity-100 text-white text-[10px] font-bold bg-black/60 px-2 py-1 rounded-lg transition-all">
-                                View Full
-                              </span>
-                            </div>
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setFullScreenMedia({
-                                url: media.url,
-                                alt: getDocumentLabel(media),
-                                isImage: false,
-                              })
-                            }
-                            className="w-full h-full flex flex-col items-center justify-center hover:bg-slate-50 transition-all border-0 gap-1.5"
-                          >
-                            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm border border-slate-200">
-                              <FileType className="w-4 h-4 text-indigo-500" />
-                            </div>
-                            <span className="text-[10px] font-bold text-slate-700 truncate max-w-[90%]">
-                              {getDocumentLabel(media)}
-                            </span>
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
           )}
 
-          {/* Officer's Resolution Media */}
-          {officerMedia.length > 0 && (
-            <div className="bg-white rounded-xl border border-emerald-200 overflow-hidden shadow-sm">
-              <div className="bg-emerald-900 px-5 py-3 border-b border-emerald-800 flex items-center justify-between">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <UserCheck className="w-4 h-4 text-emerald-400" />
-                  Officer&apos;s Resolution Proof
-                </h3>
-                <span className="px-2 py-0.5 bg-white/10 text-emerald-100 rounded-full text-[10px] font-bold">
-                  {officerMedia.length} Files
-                </span>
-              </div>
-              <div className="p-5 bg-emerald-50/30">
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {officerMedia.map((media: any, index: number) => {
-                    const isImage = isImageMedia(media);
-                    const officerName = typeof media.uploadedBy === 'object' 
-                      ? `${media.uploadedBy.firstName} ${media.uploadedBy.lastName}`
-                      : 'Officer';
-
-                    return (
-                      <div
-                        key={index}
-                        className="relative group rounded-xl overflow-hidden border border-emerald-200 aspect-video bg-white"
-                      >
-                        {isImage ? (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setFullScreenMedia({
-                                url: media.url,
-                                alt: `Resolution proof by ${officerName}`,
-                                isImage: true,
-                              })
-                            }
-                            className="absolute inset-0 w-full h-full text-left"
-                          >
-                            <Image
-                              src={media.url}
-                              alt={`Officer upload ${index + 1}`}
-                              fill
-                              className="object-cover group-hover:scale-105 transition-transform duration-300"
-                              unoptimized
-                            />
-                            <div className="absolute top-1 right-1">
-                              <div className="bg-emerald-600 text-white p-1 rounded-md shadow-lg" title={`Uploaded by ${officerName}`}>
-                                <UserCheck className="w-3 h-3" />
-                              </div>
+          {activeTab === "media" && (
+            <div className="p-6 space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+               {/* Grid View for Media */}
+               <div className="space-y-6">
+                 {citizenMedia.length > 0 && (
+                   <div className="space-y-4">
+                     <div className="flex items-center justify-between pb-1 border-b border-slate-100">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                           <ImageIcon className="w-3.5 h-3.5" /> Citizen Evidence Folder
+                        </span>
+                        <span className="text-[9px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{citizenMedia.length} Files</span>
+                     </div>
+                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {citizenMedia.map((media: any, index: number) => {
+                          const isImage = isImageMedia(media);
+                          return (
+                            <div key={`c-${index}`} className="group relative aspect-video rounded-xl overflow-hidden border border-slate-200 bg-slate-50 hover:border-indigo-300 transition-all shadow-sm">
+                              {isImage ? (
+                                <button type="button" onClick={() => setFullScreenMedia({ url: media.url, alt: `Evidence ${index+1}`, isImage: true })} className="block w-full h-full relative">
+                                   <Image src={media.url} alt={`Evidence ${index + 1}`} fill className="object-cover group-hover:scale-105 transition-transform duration-500" unoptimized />
+                                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                      <span className="bg-white/90 backdrop-blur-sm text-[8px] font-black text-slate-900 px-2 py-1 rounded-lg uppercase tracking-tight shadow-lg">Enlarge</span>
+                                   </div>
+                                </button>
+                              ) : (
+                                <button type="button" onClick={() => setFullScreenMedia({ url: media.url, alt: getDocumentLabel(media), isImage: false })} className="w-full h-full flex flex-col items-center justify-center gap-1.5 hover:bg-slate-100 transition-colors">
+                                   <FileType className="w-5 h-5 text-indigo-500" />
+                                   <span className="text-[9px] font-bold text-slate-700 px-2 text-center line-clamp-1">{getDocumentLabel(media)}</span>
+                                </button>
+                              )}
                             </div>
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setFullScreenMedia({
-                                url: media.url,
-                                alt: getDocumentLabel(media),
-                                isImage: false,
-                              })
-                            }
-                            className="w-full h-full flex flex-col items-center justify-center hover:bg-emerald-50 transition-all border-0 gap-1.5"
-                          >
-                            <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center shadow-sm border border-emerald-200">
-                              <FileText className="w-4 h-4 text-emerald-600" />
-                            </div>
-                            <span className="text-[10px] font-bold text-emerald-800 truncate max-w-[90%]">
-                              {getDocumentLabel(media)}
-                            </span>
-                            <span className="text-[8px] text-emerald-500 font-bold uppercase tracking-tighter">By {officerName}</span>
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Service Timeline */}
-          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-            <div className="bg-slate-900 px-5 py-3 border-b border-slate-700">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Clock className="w-4 h-4 text-blue-400" />
-                Service Timeline
-              </h3>
-            </div>
-            <div className="p-4">
-              <div className="relative pl-8 space-y-4">
-                {/* Vertical Line */}
-                <div className="absolute left-[11px] top-3 bottom-3 w-0.5 bg-gradient-to-b from-emerald-400 via-blue-400 to-slate-200 rounded-full"></div>
-
-                {/* Creation Entry */}
-                <div className="relative">
-                  <div className="absolute -left-8 top-0 w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-200">
-                    <Calendar className="w-3 h-3 text-white" />
-                  </div>
-                  <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl p-3.5 border border-emerald-100 ml-2">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-emerald-700 uppercase tracking-wide">
-                        Grievance Registered
-                      </span>
-                      <span className="text-[10px] text-emerald-600 font-medium bg-emerald-100 px-2 py-0.5 rounded-full">
-                        {formatDateTime(createdDate)}
-                      </span>
-                    </div>
-                    <p className="text-sm text-slate-600">
-                      Grievance successfully submitted via WhatsApp Chatbot to {
-                        typeof grievance.departmentId === "object" && grievance.departmentId 
-                          ? (grievance.departmentId as any).name 
-                          : "Department"
-                      } {assignedTo ? `and it is assigned to ${assignedTo}` : "and is pending assignment"}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Dynamic Timeline Entries */}
-                {grievance.timeline && grievance.timeline.length > 0
-                  ? grievance.timeline.map((event, index) => {
-                      if (event.action === "CREATED") return null;
-
-                      let iconBg = "bg-blue-500";
-                      let cardBg = "from-blue-50 to-indigo-50";
-                      let borderColor = "border-blue-100";
-                      let textColor = "text-blue-700";
-                      let icon = <RefreshCw className="w-3 h-3 text-white" />;
-                      let title = "Activity Logged";
-                      let description = "";
-
-                      switch (event.action) {
-                        case "ASSIGNED":
-                          iconBg = "bg-orange-500";
-                          cardBg = "from-orange-50 to-amber-50";
-                          borderColor = "border-orange-100";
-                          textColor = "text-orange-700";
-                          icon = <User className="w-3 h-3 text-white" />;
-                          title = "Officer Assigned";
-                          description = `Assigned to ${event.details?.toUserName || "an officer"}`;
-                          break;
-                        case "STATUS_UPDATED":
-                          const isResolved =
-                            event.details?.toStatus === "RESOLVED" ||
-                            event.details?.toStatus === "CLOSED" ||
-                            event.details?.toStatus === "REJECTED";
-                          iconBg = isResolved
-                            ? "bg-emerald-500"
-                            : "bg-blue-500";
-                          cardBg = isResolved
-                            ? "from-emerald-50 to-green-50"
-                            : "from-blue-50 to-indigo-50";
-                          borderColor = isResolved
-                            ? "border-emerald-100"
-                            : "border-blue-100";
-                          textColor = isResolved
-                            ? "text-emerald-700"
-                            : "text-blue-700";
-                          icon = isResolved ? (
-                            <CheckCircle2 className="w-3 h-3 text-white" />
-                          ) : (
-                            <RefreshCw className="w-3 h-3 text-white" />
                           );
-                          title = `Status: ${event.details?.toStatus?.replace("_", " ")}`;
-                          description =
-                            event.details?.remarks ||
-                            "Status updated by administration";
-                          break;
-                        case "DEPARTMENT_TRANSFER":
-                          iconBg = "bg-purple-500";
-                          cardBg = "from-purple-50 to-fuchsia-50";
-                          borderColor = "border-purple-100";
-                          textColor = "text-purple-700";
-                          icon = <Building className="w-3 h-3 text-white" />;
-                          title = "Department Transferred";
-                          description = `Transferred to ${event.details?.toDepartmentName || "another department"} for resolution${event.details?.toUserName ? `, assigned to ${event.details.toUserName}` : ""}`;
-                          break;
-                      }
+                        })}
+                     </div>
+                   </div>
+                 )}
 
-                      const performer =
-                        typeof event.performedBy === "object"
-                          ? `${event.performedBy.firstName} ${event.performedBy.lastName}`
-                          : "System";
+                 {officerMedia.length > 0 && (
+                   <div className="space-y-4">
+                     <div className="flex items-center justify-between pb-1 border-b border-emerald-100">
+                        <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-2">
+                           <UserCheck className="w-3.5 h-3.5" /> Officer Documentation Proof
+                        </span>
+                        <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">{officerMedia.length} Files</span>
+                     </div>
+                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {officerMedia.map((media: any, index: number) => {
+                          const isImage = isImageMedia(media);
+                          const oName = typeof media.uploadedBy === "object" ? `${media.uploadedBy.firstName}` : "Officer";
+                          return (
+                            <div key={`o-${index}`} className="group relative aspect-video rounded-xl overflow-hidden border border-emerald-200 bg-emerald-50/30 hover:border-emerald-400 transition-all shadow-sm">
+                              {isImage ? (
+                                <button type="button" onClick={() => setFullScreenMedia({ url: media.url, alt: `Officer Doc ${index+1}`, isImage: true })} className="block w-full h-full relative">
+                                   <Image src={media.url} alt={`Officer Doc ${index + 1}`} fill className="object-cover group-hover:scale-105 transition-transform duration-500" unoptimized />
+                                   <div className="absolute inset-x-0 bottom-0 p-1.5 bg-gradient-to-t from-black/60 to-transparent">
+                                      <p className="text-[7px] text-white font-black uppercase tracking-widest line-clamp-1">By {oName}</p>
+                                   </div>
+                                </button>
+                              ) : (
+                                <button type="button" onClick={() => setFullScreenMedia({ url: media.url, alt: getDocumentLabel(media), isImage: false })} className="w-full h-full flex flex-col items-center justify-center gap-1.5 hover:bg-emerald-100 transition-colors">
+                                   <FileType className="w-5 h-5 text-emerald-600" />
+                                   <span className="text-[9px] font-bold text-emerald-800 px-2 text-center line-clamp-1">{getDocumentLabel(media)}</span>
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                     </div>
+                   </div>
+                 )}
 
-                      return (
-                        <div key={index} className="relative">
-                          <div
-                            className={`absolute -left-8 top-0 w-6 h-6 rounded-full ${iconBg} flex items-center justify-center shadow-lg`}
-                          >
-                            {icon}
-                          </div>
-                          <div
-                            className={`bg-gradient-to-r ${cardBg} rounded-xl p-3.5 border ${borderColor} ml-2`}
-                          >
-                            <div className="flex items-center justify-between mb-2">
-                              <span
-                                className={`text-xs font-bold ${textColor} uppercase tracking-wide`}
-                              >
-                                {title}
-                              </span>
-                              <span className="text-[10px] text-slate-500 font-medium bg-white/50 px-2 py-0.5 rounded-full">
-                                {formatDateTime(event.timestamp)}
-                              </span>
-                            </div>
-                            <p className="text-sm text-slate-600">
-                              {description}
-                            </p>
-                            <div className="mt-2 flex items-center gap-2">
-                              <span className="text-[10px] text-slate-400">
-                                By {performer}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })
-                  : grievance.statusHistory?.map((history, index) => {
-                      if (index === 0 && history.status === "PENDING")
-                        return null;
-                      return (
-                        <div key={`hist-${index}`} className="relative">
-                          <div className="absolute -left-8 top-0 w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center shadow-lg">
-                            <RefreshCw className="w-3 h-3 text-white" />
-                          </div>
-                          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100 ml-2">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-xs font-bold text-blue-700 uppercase tracking-wide">
-                                Status: {history.status}
-                              </span>
-                              <span className="text-[10px] text-slate-500 font-medium">
-                                {formatDateTime(history.changedAt)}
-                              </span>
-                            </div>
-                            {history.remarks && (
-                              <p className="text-sm text-slate-600 italic">
-                                &ldquo;{history.remarks}&rdquo;
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-              </div>
+                 {(!grievance.media || grievance.media.length === 0) && (
+                   <div className="flex flex-col items-center justify-center py-20 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                      <ImageIcon className="w-10 h-10 text-slate-300 mb-3" />
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No Media Artifacts Found</p>
+                   </div>
+                 )}
+               </div>
             </div>
-          </div>
+          )}
 
-          {/* Resolution Details */}
-          {grievance.resolution && (
-            <div className="bg-gradient-to-r from-emerald-500 to-green-600 rounded-2xl p-5 shadow-lg">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <CheckCircle2 className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-white mb-2">
-                    Resolution Summary
-                  </h3>
-                  <p className="text-sm text-white/90 whitespace-pre-wrap">
-                    {grievance.resolution}
-                  </p>
-                </div>
-              </div>
+          {activeTab === "timeline" && (
+            <div className="p-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+               <div className="relative pl-8 space-y-6">
+                 {/* Cohesive Modern Timeline Line */}
+                 <div className="absolute left-[11px] top-4 bottom-4 w-[1.5px] bg-slate-100"></div>
+
+                 {/* Registration Event (Root) */}
+                 <div className="relative">
+                    <div className="absolute -left-9 top-1 w-8 h-8 rounded-full bg-emerald-50 border-4 border-white ring-1 ring-emerald-100 flex items-center justify-center z-10">
+                       <Calendar className="w-3 h-3 text-emerald-600" />
+                    </div>
+                    <div className="flex flex-col gap-1 pl-4">
+                       <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Grievance Registered</span>
+                          <span className="text-[9px] font-bold text-slate-400 font-mono">{formatDateTime(createdDate)}</span>
+                       </div>
+                       <p className="text-xs text-slate-500 font-medium leading-relaxed bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                          Securely received via WhatsApp Chatbot and acknowledged in the system repository.
+                       </p>
+                    </div>
+                 </div>
+
+                 {/* Iterative Timeline Log */}
+                 {(grievance.timeline || []).filter(e => e.action !== "CREATED").map((event, idx) => {
+                    let c = { bg: "bg-indigo-50", ring: "ring-indigo-100", text: "text-indigo-600", i: <RefreshCw className="w-3 h-3" /> };
+                    let title = event.action.replace("_", " ");
+                    let desc = event.details?.remarks || "";
+
+                    if (event.action === "ASSIGNED") {
+                       c = { bg: "bg-orange-50", ring: "ring-orange-100", text: "text-orange-600", i: <UserCheck className="w-3 h-3" /> };
+                       title = "Personnel Allocation";
+                       desc = `Assigned to ${event.details?.toUserName || "a specialized officer"} for investigation.`;
+                    } else if (event.action === "STATUS_UPDATED") {
+                       const iR = ["RESOLVED", "CLOSED"].includes(event.details?.toStatus);
+                       c = { bg: iR ? "bg-emerald-50" : "bg-blue-50", ring: iR ? "ring-emerald-100" : "ring-blue-100", text: iR ? "text-emerald-600" : "text-blue-600", i: iR ? <CheckCircle2 className="w-3 h-3" /> : <RefreshCw className="w-3 h-3" /> };
+                       title = `Milestone: ${event.details?.toStatus}`;
+                    } else if (event.action === "DEPARTMENT_TRANSFER") {
+                       c = { bg: "bg-purple-50", ring: "ring-purple-100", text: "text-purple-600", i: <Building className="w-3 h-3" /> };
+                       title = "Cross-Department Routing";
+                       desc = `Re-routed to ${event.details?.toDepartmentName || "relevant authority"} for cross-unit resolution.`;
+                    }
+
+                    const perf = typeof event.performedBy === "object" ? `${event.performedBy.firstName} ${event.performedBy.lastName}` : "Automated System";
+
+                    return (
+                      <div key={idx} className="relative">
+                        <div className={`absolute -left-9 top-1 w-8 h-8 rounded-full ${c.bg} border-4 border-white ring-1 ${c.ring} flex items-center justify-center z-10 shadow-sm`}>
+                           <div className={c.text}>{c.i}</div>
+                        </div>
+                        <div className="flex flex-col gap-1 pl-4">
+                           <div className="flex items-center justify-between">
+                              <span className={`text-[10px] font-black ${c.text} uppercase tracking-widest`}>{title}</span>
+                              <span className="text-[9px] font-bold text-slate-400 font-mono">{formatDateTime(event.timestamp)}</span>
+                           </div>
+                           <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                             <p className="text-xs text-slate-600 font-medium leading-relaxed">{desc || "Status update logged without additional remarks."}</p>
+                             <div className="mt-2 flex items-center gap-1.5 opacity-60">
+                                <User className="w-2.5 h-2.5 text-slate-400" />
+                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Actioned By {perf}</span>
+                             </div>
+                           </div>
+                        </div>
+                      </div>
+                    );
+                 })}
+               </div>
             </div>
           )}
         </div>
 
-        {/* Footer */}
-        <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end flex-shrink-0">
-          <button
+        {/* Global Action Footer */}
+        <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-3 flex-shrink-0">
+          <Button
             onClick={onClose}
-            className="px-5 py-2 border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 rounded-lg text-xs font-bold uppercase tracking-wider transition-all"
+            className="h-9 px-6 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-black/10 transition-all active:scale-95"
           >
-            Close
-          </button>
+            Close Profile
+          </Button>
         </div>
       </div>
 
-      {/* Full Screen Media Modal — handles both images and documents */}
+      {/* Full Screen Media Modal — preserved logic with updated theme */}
       {fullScreenMedia && (
         <div
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-md animate-in fade-in duration-200"
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/98 backdrop-blur-md animate-in fade-in duration-300"
           onClick={() => setFullScreenMedia(null)}
-          role="dialog"
-          aria-modal="true"
-          aria-label={`Full screen view: ${fullScreenMedia.alt}`}
         >
-          {/* Top bar */}
-          <div className="absolute top-0 inset-x-0 h-16 flex items-center justify-between px-5 bg-gradient-to-b from-black/60 to-transparent pointer-events-none z-10">
-            <span className="text-white/80 text-sm font-semibold">
-              {fullScreenMedia.alt}
-            </span>
-            <div className="flex items-center gap-2 pointer-events-auto">
-              {/* Download button */}
-              <a
-                href={fullScreenMedia.url}
-                download
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-white/15 hover:bg-white/30 text-white text-xs font-semibold rounded-lg transition-all"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-                Open / Download
-              </a>
-              {/* Close button */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setFullScreenMedia(null);
-                }}
-                className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/30 flex items-center justify-center text-white transition-all"
-                aria-label="Close full screen view"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+          <div className="absolute top-6 right-6 z-[210] flex items-center gap-3">
+             <a href={fullScreenMedia.url} download target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-white text-[10px] font-black uppercase tracking-widest transition-all backdrop-blur-md border border-white/10">Download Source</a>
+             <button onClick={() => setFullScreenMedia(null)} className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all backdrop-blur-md border border-white/10"> <X className="w-5 h-5" /> </button>
           </div>
-
-          {fullScreenMedia.isImage ? (
-            /* Image viewer */
-            <div
-              className="relative flex items-center justify-center w-full h-full p-16"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={fullScreenMedia.url}
-                alt={fullScreenMedia.alt || "Full screen media"}
-                className="max-w-full max-h-full object-contain rounded-lg shadow-2xl select-none"
-                draggable={false}
-                onError={(e) => {
-                  e.currentTarget.alt = "Failed to load image";
-                }}
-              />
-            </div>
-          ) : (
-            /* Document viewer — embed in iframe for PDFs, otherwise open link */
-            <div
-              className="flex flex-col items-center justify-center gap-6 p-8"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="w-24 h-24 bg-white/10 rounded-2xl flex items-center justify-center border border-white/20">
-                <FileType className="w-12 h-12 text-white/80" />
+          
+          <div className="relative w-full h-full flex items-center justify-center p-4 sm:p-12" onClick={e => e.stopPropagation()}>
+            {fullScreenMedia.isImage ? (
+              <div className="relative w-full h-full max-w-5xl max-h-screen">
+                <Image src={fullScreenMedia.url} alt={fullScreenMedia.alt || "Proof"} fill className="object-contain" unoptimized />
               </div>
-              <div className="text-center">
-                <p className="text-white text-lg font-bold mb-1">
-                  {fullScreenMedia.alt}
-                </p>
-                <p className="text-white/60 text-sm mb-6">
-                  Click the button below to open or download this file
-                </p>
-                <a
-                  href={fullScreenMedia.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-500 hover:bg-indigo-400 text-white font-semibold rounded-xl transition-all shadow-lg"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                  Open Document
-                </a>
+            ) : (
+              <div className="bg-white p-8 rounded-2xl max-w-lg w-full text-center shadow-2xl relative">
+                <div className="w-20 h-20 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner ring-1 ring-indigo-100">
+                  <FileType className="w-10 h-10 text-indigo-500" />
+                </div>
+                <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-4">{fullScreenMedia.alt}</h3>
+                <div className="flex flex-col gap-3">
+                  <Button asChild className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-indigo-600/20">
+                    <a href={fullScreenMedia.url} target="_blank" rel="noopener noreferrer">Download Document</a>
+                  </Button>
+                  <button onClick={() => setFullScreenMedia(null)} className="h-11 w-full text-[10px] font-black text-slate-400 hover:text-slate-600 uppercase tracking-widest transition-all">Go Back</button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
     </div>
