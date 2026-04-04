@@ -150,9 +150,9 @@ const UserSchema: Schema = new Schema(
 );
 
 // Virtual for backward compatibility: designation -> designations[0]
-UserSchema.virtual('designation').get(function(this: IUser) {
-  return this.designations && this.designations.length > 0 ? this.designations[0] : undefined;
-}).set(function(this: IUser, val: string) {
+UserSchema.virtual('designation').get(function(this: any) {
+  return (this.designations && this.designations.length > 0) ? this.designations[0] : undefined;
+}).set(function(this: any, val: string) {
   if (!this.designations) this.designations = [];
   if (val) {
     if (!this.designations.includes(val)) {
@@ -162,9 +162,9 @@ UserSchema.virtual('designation').get(function(this: IUser) {
 });
 
 // Virtual for backward compatibility: departmentId -> departmentIds[0]
-UserSchema.virtual('departmentId').get(function(this: IUser) {
-  return this.departmentIds && this.departmentIds.length > 0 ? this.departmentIds[0] : undefined;
-}).set(function(this: IUser, val: mongoose.Types.ObjectId) {
+UserSchema.virtual('departmentId').get(function(this: any) {
+  return (this.departmentIds && this.departmentIds.length > 0) ? this.departmentIds[0] : undefined;
+}).set(function(this: any, val: mongoose.Types.ObjectId) {
   if (!this.departmentIds) this.departmentIds = [];
   if (val) {
     const valStr = val.toString();

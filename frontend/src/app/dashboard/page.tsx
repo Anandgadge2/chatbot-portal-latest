@@ -2526,15 +2526,8 @@ function DashboardContent() {
               >
                 {/* Sidebar Header with User Profile */}
                 <div className="bg-slate-900 p-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-2">
-                       <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg border border-blue-500/30">
-                        <LayoutGrid className="w-4 h-4 text-white" />
-                      </div>
-                      <h3 className="text-xs font-black uppercase tracking-widest text-white">
-                        Dashboard
-                      </h3>
-                    </div>
+                  <div className="flex items-center justify-end mb-6">
+
                     <Button
                       variant="ghost"
                       size="icon"
@@ -2737,9 +2730,9 @@ function DashboardContent() {
                 {hasPermission(user, Permission.READ_GRIEVANCE) && (
                   <Card
                     onClick={() => setActiveTab("grievances")}
-                    className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+                    className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer h-28 sm:h-32"
                   >
-                    <CardHeader className="p-3 sm:p-6 pb-1 sm:pb-2 space-y-0 flex flex-row items-center justify-between">
+                    <CardHeader className="p-3 sm:p-5 pb-1 sm:pb-1 space-y-0 flex flex-row items-center justify-between">
                       <CardTitle className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
                         {isDFO ? "Total Incidents" : "Total Grievances"}
                       </CardTitle>
@@ -2747,20 +2740,18 @@ function DashboardContent() {
                         <FileText className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-indigo-500" />
                       </div>
                     </CardHeader>
-                    <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6 pt-1">
+                    <CardContent className="px-3 sm:px-6 pb-2 pt-1">
                       <div className="text-xl sm:text-2xl font-black text-slate-800 tabular-nums leading-none">
                         {loadingStats ? "..." : stats?.grievances.total || 0}
                       </div>
-                      <div className="flex items-center gap-1 mt-1">
-                        <span className="text-[9px] sm:text-[10px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-full">
+                      <div className="flex items-center gap-1 mt-1.5">
+                        <span className="text-[8px] sm:text-[9px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-full">
                           {stats?.grievances.last7Days || 0} New
-                        </span>
-                        <span className="text-[9px] text-slate-400 font-medium">
-                          this week
                         </span>
                       </div>
                     </CardContent>
                   </Card>
+
                 )}
 
                 {/* Pending Grievances */}
@@ -2773,9 +2764,9 @@ function DashboardContent() {
                         status: "PENDING",
                       }));
                     }}
-                    className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+                    className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer h-28 sm:h-32"
                   >
-                    <CardHeader className="p-3 sm:p-6 pb-1 sm:pb-2 space-y-0 flex flex-row items-center justify-between">
+                    <CardHeader className="p-3 sm:p-5 pb-1 sm:pb-1 space-y-0 flex flex-row items-center justify-between">
                       <CardTitle className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
                         {isDFO ? "Critical Alerts" : "Overdue Grievances"}
                       </CardTitle>
@@ -2783,15 +2774,16 @@ function DashboardContent() {
                         <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-500" />
                       </div>
                     </CardHeader>
-                    <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6 pt-1">
+                    <CardContent className="px-3 sm:px-6 pb-2 pt-1">
                       <div className="text-xl sm:text-2xl font-black text-amber-600 tabular-nums leading-none">
                         {loadingStats ? "..." : stats?.grievances.pending || 0}
                       </div>
-                      <p className="text-[8px] sm:text-[9px] text-slate-400 font-bold uppercase mt-1">
-                        Requiring Response
+                      <p className="text-[8px] sm:text-[9px] text-slate-400 font-bold uppercase mt-1.5">
+                        Pending
                       </p>
                     </CardContent>
                   </Card>
+
                 )}
 
                 {/* Total Appointments */}
@@ -2799,29 +2791,30 @@ function DashboardContent() {
                   hasPermission(user, Permission.READ_APPOINTMENT) && (
                     <Card
                       onClick={() => setActiveTab("appointments")}
-                      className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+                      className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer h-28 sm:h-32"
                     >
-                      <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
-                        <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      <CardHeader className="p-3 sm:p-5 pb-1 sm:pb-1 space-y-0 flex flex-row items-center justify-between">
+                        <CardTitle className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
                           Appointments
                         </CardTitle>
-                        <div className="p-1.5 bg-emerald-50 rounded-lg">
-                          <CalendarCheck className="w-3.5 h-3.5 text-emerald-500" />
+                        <div className="p-1 sm:p-1.5 bg-emerald-50 rounded-lg">
+                          <CalendarCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-500" />
                         </div>
                       </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-black text-slate-800 tabular-nums">
+                      <CardContent className="px-3 sm:px-6 pb-2 pt-1">
+                        <div className="text-xl sm:text-2xl font-black text-slate-800 tabular-nums leading-none">
                           {loadingStats
                             ? "..."
                             : stats?.appointments.total || 0}
                         </div>
-                        <div className="flex items-center gap-1 mt-1">
-                          <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
+                        <div className="flex items-center gap-1 mt-1.5">
+                          <span className="text-[9px] sm:text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
                             {stats?.appointments.confirmed || 0} Confirmed
                           </span>
                         </div>
                       </CardContent>
                     </Card>
+
                   )}
 
                 {/* Departments (Mirroring Logic) */}
@@ -2831,32 +2824,32 @@ function DashboardContent() {
                       <>
                         <Card
                           onClick={() => setActiveTab("departments")}
-                          className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+                          className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer h-28 sm:h-32"
                         >
-                          <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
-                            <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                          <CardHeader className="p-3 sm:p-5 pb-1 sm:pb-1 space-y-0 flex flex-row items-center justify-between">
+                            <CardTitle className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
                               {isDFO ? "Forest Ranges" : "Main Departments"}
                             </CardTitle>
-                            <div className="p-1.5 bg-blue-50 rounded-lg">
+                            <div className="p-1 sm:p-1.5 bg-blue-50 rounded-lg">
                               <Building className="w-3.5 h-3.5 text-blue-500" />
                             </div>
                           </CardHeader>
-                          <CardContent>
-                            <div className="text-2xl font-black text-slate-800 tabular-nums">
+                          <CardContent className="px-3 sm:px-6 pb-2 pt-1">
+                            <div className="text-xl sm:text-2xl font-black text-slate-800 tabular-nums leading-none">
                               {loadingStats
                                 ? "..."
                                 : stats?.mainDepartments || 0}
                             </div>
-                            <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">
+                            <p className="text-[9px] text-slate-400 font-bold uppercase mt-1.5">
                               Primary Units
                             </p>
                           </CardContent>
                         </Card>
                         <Card
                           onClick={() => setActiveTab("departments")}
-                          className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer shadow-indigo-100/20"
+                          className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer h-28 sm:h-32"
                         >
-                          <CardHeader className="pb-2 space-y-0 flex flex-row items-center justify-between">
+                          <CardHeader className="p-3 sm:p-5 pb-1 sm:pb-1 space-y-0 flex flex-row items-center justify-between">
                             <CardTitle className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">
                               {isDFO ? "Forest Beats" : "Sub Departments"}
                             </CardTitle>
@@ -2864,13 +2857,13 @@ function DashboardContent() {
                               <Zap className="w-3.5 h-3.5 text-indigo-500" />
                             </div>
                           </CardHeader>
-                          <CardContent>
+                          <CardContent className="px-3 sm:px-6 pb-2 pt-1">
                             <div className="text-2xl font-black text-indigo-600 tabular-nums">
                               {loadingStats
                                 ? "..."
                                 : stats?.subDepartments || 0}
                             </div>
-                            <p className="text-[9px] text-indigo-300 font-bold uppercase mt-1">
+                            <p className="text-[9px] text-slate-400 font-bold uppercase mt-1.5">
                               Specialized Units
                             </p>
                           </CardContent>
@@ -2879,18 +2872,18 @@ function DashboardContent() {
                     ) : (
                       <Card
                         onClick={() => setActiveTab("departments")}
-                        className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+                        className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer h-28 sm:h-32"
                       >
-                        <CardHeader className="pb-1 space-y-0 flex flex-row items-center justify-between">
-                          <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        <CardHeader className="p-3 sm:p-5 pb-1 sm:pb-1 space-y-0 flex flex-row items-center justify-between">
+                          <CardTitle className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
                             Departments
                           </CardTitle>
-                          <div className="p-1.5 bg-blue-50 rounded-lg">
+                          <div className="p-1 sm:p-1.5 bg-blue-50 rounded-lg">
                             <Building className="w-3 h-3 text-blue-500" />
                           </div>
                         </CardHeader>
-                        <CardContent>
-                          <div className="text-xl font-black text-slate-800 tabular-nums">
+                        <CardContent className="px-3 sm:px-6 pb-2 pt-1">
+                          <div className="text-xl sm:text-2xl font-black text-slate-800 tabular-nums leading-none">
                             {loadingStats ? "..." : stats?.departments || 0}
                           </div>
                           <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">
@@ -2898,6 +2891,7 @@ function DashboardContent() {
                           </p>
                         </CardContent>
                       </Card>
+
                     )}
                   </>
                 )}
@@ -2913,29 +2907,30 @@ function DashboardContent() {
                           status: "REVERTED",
                         }));
                       }}
-                      className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+                      className="bg-white/50 backdrop-blur-sm border-rose-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer h-28 sm:h-32"
                     >
-                      <CardHeader className="pb-1 space-y-0 flex flex-row items-center justify-between">
-                        <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      <CardHeader className="p-3 sm:p-5 pb-1 sm:pb-1 space-y-0 flex flex-row items-center justify-between">
+                        <CardTitle className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
                           Reverted
                         </CardTitle>
-                        <div className="p-1.5 bg-rose-50 rounded-lg">
+                        <div className="p-1 sm:p-1.5 bg-rose-50 rounded-lg">
                           <ArrowLeft className="w-3 h-3 text-rose-500" />
                         </div>
                       </CardHeader>
-                      <CardContent>
-                        <div className="text-xl font-black text-rose-600 tabular-nums">
+                      <CardContent className="px-3 sm:px-6 pb-2 pt-1">
+                        <div className="text-xl sm:text-2xl font-black text-rose-600 tabular-nums leading-none">
                           {loadingStats
                             ? "..."
-                            : grievances.filter(
+                            : (grievances || []).filter(
                                 (g) => g.status?.toUpperCase() === "REVERTED",
                               ).length || 0}
                         </div>
                         <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">
-                          Pending Resolution
+                          Reassigned
                         </p>
                       </CardContent>
                     </Card>
+
                   )}
               </>
             </div>
@@ -3330,163 +3325,175 @@ function DashboardContent() {
 
               {/* KPI Cards - Refined Design */}
               <div
-                className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4"
-              >
-                {/* Total Grievances - Enhanced */}
+                className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4" >
+                {/* Analytics KPI Row - 6 Specific Cards */}
                 {hasModule(Module.GRIEVANCE) && (
-                  <div
-                    onClick={() => setActiveTab("grievances")}
-                    className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-indigo-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden"
-                  >
-                    <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-indigo-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
-                    <div className="relative">
-                      <div className="flex items-center justify-between mb-2 sm:mb-3">
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600 border border-indigo-100/50 shadow-sm group-hover:rotate-6 transition-transform">
-                          <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
-                        </div>
-                        <div className="text-right">
-                          <div className="text-[8px] sm:text-[9px] font-black text-indigo-600 bg-indigo-50/80 px-1.5 sm:px-2 py-1 rounded-lg uppercase tracking-tight border border-indigo-100/30">
-                            {(stats?.grievances.resolutionRate || 0).toFixed(1)}
-                            % Resolved
+                  <>
+                    {/* 1. Inbound Grievances */}
+                    <div
+                      onClick={() => setActiveTab("grievances")}
+                      className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-indigo-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden h-28 sm:h-32"
+                    >
+                      <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-indigo-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
+                      <div className="relative">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600 border border-indigo-100/50 shadow-sm group-hover:rotate-6 transition-transform">
+                            <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
+                          </div>
+                          <div className="text-right">
+                            <div className="text-[8px] sm:text-[9px] font-black text-indigo-600 bg-indigo-50/80 px-1.5 sm:px-2 py-1 rounded-lg uppercase tracking-tight border border-indigo-100/30">
+                              {(stats?.grievances.resolutionRate || 0).toFixed(1)}%
+                            </div>
                           </div>
                         </div>
+                        <h4 className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                          Inbound Grievances
+                        </h4>
+                        <p className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter group-hover:text-indigo-600 transition-colors leading-none">
+                          {stats?.grievances.total || 0}
+                        </p>
                       </div>
-                      <h4 className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                        {isDFO
-                          ? "Incident Reporting Trend"
-                          : "Inbound Grievances"}
-                      </h4>
-                      <p className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter group-hover:text-indigo-600 transition-colors leading-none">
-                        {stats?.grievances.total || 0}
-                      </p>
                     </div>
-                  </div>
+
+                    {/* 2. Overdue Grievances */}
+                    <div
+                      onClick={() => {
+                        setActiveTab("grievances");
+                        setGrievanceFilters((prev) => ({
+                          ...prev,
+                          status: "PENDING",
+                        }));
+                      }}
+                      className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-amber-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden h-28 sm:h-32"
+                    >
+                      <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-amber-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
+                      <div className="relative">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-amber-50 rounded-lg flex items-center justify-center text-amber-600 border border-amber-100/50 shadow-sm group-hover:-rotate-6 transition-transform">
+                            <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
+                          </div>
+                          <span className="text-[8px] sm:text-[9px] font-black bg-rose-50 text-rose-600 px-1.5 sm:px-2 py-1 rounded-lg uppercase tracking-tight border border-rose-100/30">
+                            {stats?.highPriorityPending || 0} Urgent
+                          </span>
+                        </div>
+                        <h4 className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                          Overdue Grievances
+                        </h4>
+                        <p className="text-xl sm:text-2xl font-black text-amber-600 tracking-tighter leading-none">
+                          {stats?.grievances.pending || 0}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* 3. Total Resolved */}
+                    <div
+                      onClick={() => {
+                        setActiveTab("grievances");
+                        setGrievanceFilters((prev) => ({
+                          ...prev,
+                          status: "RESOLVED",
+                        }));
+                      }}
+                      className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-emerald-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden h-28 sm:h-32"
+                    >
+                      <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-emerald-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
+                      <div className="relative">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600 border border-emerald-100/50 shadow-sm transition-all group-hover:bg-emerald-600 group-hover:text-white">
+                            <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                          </div>
+                          <div className="flex items-center gap-1 text-[8px] sm:text-[9px] font-black text-emerald-600 bg-emerald-50 px-1.5 sm:px-2 py-1 rounded-lg uppercase tracking-tight">
+                            Success
+                          </div>
+                        </div>
+                        <h4 className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                          Total Resolved
+                        </h4>
+                        <p className="text-xl sm:text-2xl font-black text-emerald-600 tracking-tighter leading-none">
+                          {stats?.grievances.resolved || 0}
+                        </p>
+                      </div>
+                    </div>
+                  </>
                 )}
 
-                {/* Actions Needed - Optimized */}
-                {hasModule(Module.GRIEVANCE) && (
-                  <div
-                    onClick={() => {
-                      setActiveTab("grievances");
-                      setGrievanceFilters((prev) => ({
-                        ...prev,
-                        status: "PENDING",
-                      }));
-                    }}
-                    className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-amber-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden"
-                  >
-                    <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-amber-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
-                    <div className="relative">
-                      <div className="flex items-center justify-between mb-2 sm:mb-3">
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-amber-50 rounded-lg flex items-center justify-center text-amber-600 border border-amber-100/50 shadow-sm group-hover:-rotate-6 transition-transform">
-                          <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
+                {hasModule(Module.APPOINTMENT) && (
+                  <>
+                    {/* 4. Total Appointments */}
+                    <div
+                      onClick={() => setActiveTab("appointments")}
+                      className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-purple-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden h-28 sm:h-32"
+                    >
+                      <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-purple-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
+                      <div className="relative">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-50 rounded-lg flex items-center justify-center text-purple-600 border border-purple-100/50 shadow-sm transition-all group-hover:rotate-12">
+                            <CalendarCheck className="w-4 h-4 sm:w-5 sm:h-5" />
+                          </div>
+                          <div className="text-[8px] sm:text-[9px] font-black text-purple-600 bg-purple-50 px-1.5 sm:px-2 py-1 rounded-lg uppercase tracking-tight">
+                            Total
+                          </div>
                         </div>
-                        <span className="text-[8px] sm:text-[9px] font-black bg-rose-50 text-rose-600 px-1.5 sm:px-2 py-1 rounded-lg uppercase tracking-tight border border-rose-100/30">
-                          {stats?.highPriorityPending || 0} Urgent
-                        </span>
+                        <h4 className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                          Total Appointments
+                        </h4>
+                        <p className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter leading-none">
+                          {stats?.appointments.total || 0}
+                        </p>
                       </div>
-                      <h4 className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                        {isDFO ? "Active Critical Cases" : "Overdue cases"}
-                      </h4>
-                      <p className="text-xl sm:text-2xl font-black text-amber-600 tracking-tighter leading-none">
-                        {stats?.grievances.pending || 0}
-                      </p>
                     </div>
-                  </div>
-                )}
 
-                {/* Resolved Page Content - Success Gradient */}
-                {hasModule(Module.GRIEVANCE) && (
-                  <div
-                    onClick={() => {
-                      setActiveTab("grievances");
-                      setGrievanceFilters((prev) => ({
-                        ...prev,
-                        status: "RESOLVED",
-                      }));
-                    }}
-                    className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-4 transition-all duration-500 hover:shadow-xl hover:shadow-emerald-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden"
-                  >
-                    <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-emerald-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
-                    <div className="relative">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600 border border-emerald-100/50 shadow-sm transition-all group-hover:bg-emerald-600 group-hover:text-white">
-                          <CheckCircle2 className="w-5 h-5" />
+                    {/* 5. Pending Appointments */}
+                    <div
+                      onClick={() => setActiveTab("appointments")}
+                      className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden h-28 sm:h-32"
+                    >
+                      <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-blue-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
+                      <div className="relative">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600 border border-blue-100/50 shadow-sm transition-all group-hover:rotate-6">
+                            <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
+                          </div>
+                          <div className="text-[8px] sm:text-[9px] font-black text-blue-600 bg-blue-50 px-1.5 sm:px-2 py-1 rounded-lg uppercase tracking-tight">
+                            Pending
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1 text-[9px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg uppercase tracking-tight">
-                          <Zap className="w-2 h-2 fill-emerald-500" /> +
-                          {stats?.resolvedToday || 0}
-                        </div>
+                        <h4 className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                          Pending Appointments
+                        </h4>
+                        <p className="text-xl sm:text-2xl font-black text-blue-600 tracking-tighter leading-none">
+                          {stats?.appointments.pending || 0}
+                        </p>
                       </div>
-                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                        Total Resolved
-                      </h4>
-                      <p className="text-2xl font-black text-emerald-600 tracking-tighter">
-                        {stats?.grievances.resolved || 0}
-                      </p>
                     </div>
-                  </div>
-                )}
 
-                {/* Pending Appointments - Modern Card */}
-                {hasModule(Module.APPOINTMENT) && isViewingCompany && (
-                  <div
-                    onClick={() => {
-                      setActiveTab("appointments");
-                      setAppointmentFilters((prev) => ({
-                        ...prev,
-                        status: "SCHEDULED",
-                      }));
-                    }}
-                    className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-4 transition-all duration-500 hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden"
-                  >
-                    <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-blue-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
-                    <div className="relative">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600 border border-blue-100/50 shadow-sm transition-all group-hover:-rotate-6">
-                          <CalendarClock className="w-5 h-5" />
+                    {/* 6. Completed Appointments */}
+                    <div
+                      onClick={() => setActiveTab("appointments")}
+                      className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-emerald-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden h-28 sm:h-32"
+                    >
+                      <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-emerald-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
+                      <div className="relative">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600 border border-emerald-100/50 shadow-sm transition-all group-hover:rotate-6">
+                            <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                          </div>
+                          <div className="text-[8px] sm:text-[9px] font-black text-emerald-600 bg-emerald-50 px-1.5 sm:px-2 py-1 rounded-lg uppercase tracking-tight">
+                            Done
+                          </div>
                         </div>
-                        <div className="text-[9px] font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-lg uppercase tracking-tight">
-                          Upcoming
-                        </div>
+                        <h4 className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                          Completed Appointments
+                        </h4>
+                        <p className="text-xl sm:text-2xl font-black text-emerald-600 tracking-tighter leading-none">
+                          {stats?.appointments.completed || 0}
+                        </p>
                       </div>
-                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                        Pending Appts
-                      </h4>
-                      <p className="text-2xl font-black text-slate-900 tracking-tighter">
-                        {stats?.appointments.pending || 0}
-                      </p>
                     </div>
-                  </div>
-                )}
-
-                {/* Appointments - Modern Card */}
-                {hasModule(Module.APPOINTMENT) && isViewingCompany && (
-                  <div
-                    onClick={() => setActiveTab("appointments")}
-                    className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-4 transition-all duration-500 hover:shadow-xl hover:shadow-purple-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden"
-                  >
-                    <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-purple-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
-                    <div className="relative">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center text-purple-600 border border-purple-100/50 shadow-sm transition-all group-hover:rotate-12">
-                          <CalendarCheck className="w-5 h-5" />
-                        </div>
-                        <div className="text-[9px] font-black text-purple-600 bg-purple-50 px-2 py-1 rounded-lg uppercase tracking-tight">
-                          {(stats?.appointments.completionRate || 0).toFixed(0)}
-                          %
-                        </div>
-                      </div>
-                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                        Appointments
-                      </h4>
-                      <p className="text-2xl font-black text-slate-900 tracking-tighter">
-                        {stats?.appointments.total || 0}
-                      </p>
-                    </div>
-                  </div>
+                  </>
                 )}
               </div>
+
 
               {/* Charts Row */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -4705,8 +4712,7 @@ function DashboardContent() {
                         />
                       </div>
 
-                      {/* Action Buttons */}
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
                         {isSuperAdminUser && selectedDepartments.size > 0 && (
                           <Button
                             variant="destructive"
@@ -4726,7 +4732,7 @@ function DashboardContent() {
                           <Button
                             type="button"
                             onClick={() => setShowDepartmentDialog(true)}
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-9 text-[10px] sm:text-[11px] font-black uppercase tracking-widest rounded-xl px-4 sm:px-6 shadow-md transition-all active:scale-95"
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-9 text-[10px] sm:text-[11px] font-black uppercase tracking-widest rounded-xl px-4 sm:px-6 shadow-md transition-all active:scale-95 whitespace-nowrap"
                           >
                             <Building className="w-4 h-4 mr-2" />
                             Add Department
@@ -4738,7 +4744,7 @@ function DashboardContent() {
                           onClick={() =>
                             setShowDepartmentFiltersOnMobile((prev) => !prev)
                           }
-                          className="md:hidden border-slate-200 hover:bg-slate-50 rounded-xl"
+                          className="md:hidden border-slate-200 hover:bg-slate-50 rounded-xl whitespace-nowrap"
                           title="Toggle filters"
                         >
                           <Filter className="w-4 h-4 mr-1.5" />
@@ -4749,7 +4755,7 @@ function DashboardContent() {
                           size="sm"
                           onClick={() => fetchDepartments(1, false)}
                           disabled={isRefreshing}
-                          className="border-slate-200 hover:bg-slate-50 rounded-xl font-bold text-[11px] uppercase tracking-wider"
+                          className="border-slate-200 hover:bg-slate-50 rounded-xl font-bold text-[11px] uppercase tracking-wider whitespace-nowrap"
                           title="Refresh data"
                         >
                           <RefreshCw
@@ -4765,13 +4771,14 @@ function DashboardContent() {
                             { key: "name", label: "Name" },
                             { key: "isActive", label: "Status" }
                           ])}
-                          className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 rounded-xl font-bold text-[11px] uppercase tracking-wider"
+                          className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 rounded-xl font-bold text-[11px] uppercase tracking-wider whitespace-nowrap"
                           title="Export to CSV"
                         >
                           <Download className="w-3.5 h-3.5 mr-1.5" />
                           Export
                         </Button>
                       </div>
+
                     </div>
 
                     {/* Filters Row */}
@@ -5542,8 +5549,7 @@ function DashboardContent() {
                         />
                       </div>
 
-                      {/* Action Buttons */}
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
                         {isSuperAdminUser && selectedUsers.size > 0 && (
                           <Button
                             variant="destructive"
@@ -5562,7 +5568,7 @@ function DashboardContent() {
                           <Button
                             type="button"
                             onClick={() => setShowUserDialog(true)}
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-9 text-[10px] sm:text-[11px] font-black uppercase tracking-widest rounded-xl px-4 sm:px-6 shadow-md transition-all active:scale-95"
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-9 text-[10px] sm:text-[11px] font-black uppercase tracking-widest rounded-xl px-4 sm:px-6 shadow-md transition-all active:scale-95 whitespace-nowrap"
                           >
                             <UserPlus className="w-4 h-4 mr-2" />
                             Add User
@@ -5574,7 +5580,7 @@ function DashboardContent() {
                           onClick={() =>
                             setShowUserFiltersOnMobile((prev) => !prev)
                           }
-                          className="md:hidden border-slate-200 hover:bg-slate-50 rounded-xl"
+                          className="md:hidden border-slate-200 hover:bg-slate-50 rounded-xl whitespace-nowrap"
                           title="Toggle filters"
                         >
                           <Filter className="w-4 h-4 mr-1.5" />
@@ -5585,7 +5591,7 @@ function DashboardContent() {
                           size="sm"
                           onClick={() => fetchUsers(1, false)}
                           disabled={isRefreshing}
-                          className="border-slate-200 hover:bg-slate-50 rounded-xl font-bold text-[11px] uppercase tracking-wider"
+                          className="border-slate-200 hover:bg-slate-50 rounded-xl font-bold text-[11px] uppercase tracking-wider whitespace-nowrap"
                           title="Refresh data"
                         >
                           <RefreshCw
@@ -5603,7 +5609,7 @@ function DashboardContent() {
                             { key: "phone", label: "Phone" },
                             { key: "role", label: "Role" }
                           ])}
-                          className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 rounded-xl font-bold text-[11px] uppercase tracking-wider"
+                          className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 rounded-xl font-bold text-[11px] uppercase tracking-wider whitespace-nowrap"
                           title="Export to CSV"
                         >
                           <Download className="w-3.5 h-3.5 mr-1.5" />
@@ -5611,6 +5617,7 @@ function DashboardContent() {
                         </Button>
                       </div>
                     </div>
+
 
                     {/* Filters Row */}
                     <div
@@ -5909,21 +5916,13 @@ function DashboardContent() {
                                         <div className="mt-1 flex flex-wrap gap-1">
                                           {/* Unified Multi-Designation Badges */}
                                           {(() => {
-                                            const designSet = new Set<string>();
-                                            if (u.designation) designSet.add(u.designation);
-                                            (u as any).designations?.forEach((d: string) => designSet.add(d));
-
-                                            const list = Array.from(designSet);
+                                            const list = u.designations || [];
                                             if (list.length === 0) return null;
 
-                                            return list.map((d, i) => (
+                                            return list.map((d: string, i: number) => (
                                               <span 
                                                 key={i} 
-                                                className={`text-[8.5px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-tight shadow-sm border transition-all ${
-                                                  d === u.designation 
-                                                    ? "bg-slate-100 text-slate-700 border-slate-300" 
-                                                    : "bg-white text-slate-400 border-slate-100"
-                                                }`}
+                                                className="bg-slate-100 text-slate-700 border-slate-300 text-[8.5px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-tight shadow-sm border transition-all"
                                               >
                                                 {d}
                                               </span>
@@ -6019,28 +6018,11 @@ function DashboardContent() {
                                       </div>
                                         <div className="flex flex-col gap-1.5 min-w-[150px]">
                                         {(() => {
-                                          const uniqueDepts = new globalThis.Map<
-                                            string,
-                                            { name: string; isPrimary: boolean }
-                                          >();
-                                          
-                                          // Add primary department
-                                          if (u.departmentId) {
-                                            const id = typeof u.departmentId === 'object' ? u.departmentId._id : u.departmentId;
-                                            const name = typeof u.departmentId === 'object' ? u.departmentId.name : allDepartments.find(d => d._id === id)?.name || id;
-                                            uniqueDepts.set(id, { name, isPrimary: true });
-                                          }
-                                          
-                                          // Add multiple department assignments
-                                          u.departmentIds?.forEach(d => {
+                                          const deptList = (u.departmentIds || []).map((d: any) => {
                                             const id = typeof d === 'object' ? d._id : d;
-                                            if (!uniqueDepts.has(id)) {
-                                              const name = typeof d === 'object' ? d.name : allDepartments.find(dept => dept._id === id)?.name || id;
-                                              uniqueDepts.set(id, { name, isPrimary: false });
-                                            }
+                                            const name = typeof d === 'object' ? d.name : allDepartments.find((dept: any) => dept._id === id)?.name || id;
+                                            return { id, name };
                                           });
-                                          
-                                          const deptList = Array.from(uniqueDepts.values());
                                           
                                           if (deptList.length === 0) return (
                                             <div className="flex items-center text-[10px] text-slate-400 font-bold uppercase tracking-widest italic">
@@ -6051,10 +6033,10 @@ function DashboardContent() {
                                           
                                           return (
                                             <div className="space-y-1">
-                                              {deptList.map((d, i) => (
-                                                <div key={i} className={`flex items-start text-[10px] font-black uppercase tracking-tight leading-tight transition-colors ${d.isPrimary ? "text-indigo-700" : "text-slate-500 hover:text-slate-700"}`}>
-                                                  <Building className={`w-3 h-3 mr-1.5 shrink-0 mt-0.5 ${d.isPrimary ? "text-indigo-400" : "text-slate-300"}`} />
-                                                  <span className="whitespace-normal">{d.name}</span>
+                                              {deptList.map((d: any, i: number) => (
+                                                <div key={i} className="flex items-start text-[10px] font-black uppercase tracking-tight leading-tight text-indigo-700 transition-colors">
+                                                  <Building className="w-2.5 h-2.5 mr-1 mt-0.5 opacity-60" />
+                                                  {d.name}
                                                 </div>
                                               ))}
                                             </div>
@@ -6338,14 +6320,14 @@ function DashboardContent() {
                           className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm text-sm placeholder:text-slate-400"
                         />
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() =>
                             setShowGrievanceFiltersOnMobile((prev) => !prev)
                           }
-                          className="md:hidden border-slate-200 hover:bg-slate-50 rounded-xl"
+                          className="md:hidden border-slate-200 hover:bg-slate-50 rounded-xl whitespace-nowrap"
                           title="Toggle filters"
                         >
                           <Filter className="w-4 h-4 mr-1.5" />
@@ -6356,7 +6338,7 @@ function DashboardContent() {
                           size="sm"
                           onClick={handleRefreshData}
                           disabled={isRefreshing}
-                          className="border-slate-200 hover:bg-slate-50 rounded-xl"
+                          className="border-slate-200 hover:bg-slate-50 rounded-xl whitespace-nowrap"
                           title="Refresh data"
                         >
                           <RefreshCw
@@ -6381,13 +6363,14 @@ function DashboardContent() {
                               ],
                             )
                           }
-                          className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 rounded-xl"
+                          className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 rounded-xl whitespace-nowrap"
                           title="Export to CSV"
                         >
                           <FileDown className="w-4 h-4 mr-1.5" />
                           Export
                         </Button>
                       </div>
+
                     </div>
 
                     {/* Filters Row */}
@@ -8638,7 +8621,6 @@ function DashboardContent() {
           user={selectedUserForDetails}
         />
 
-        {/* Department Hierarchy Tree Dialog */}
         <DepartmentHierarchyDialog
           isOpen={showHierarchyDialog}
           onClose={() => {

@@ -408,6 +408,7 @@ export const dashboard = async (req: Request, res: Response) => {
           }
         }
       },
+      { $match: { _id: { $ne: null } } }, // Filter out null departments to avoid blank bars
       {
         $lookup: {
           from: 'departments',
@@ -420,7 +421,7 @@ export const dashboard = async (req: Request, res: Response) => {
       {
         $project: {
           departmentId: '$_id',
-          departmentName: '$department.name',
+          departmentName: { $ifNull: ['$department.name', 'Unknown Department'] },
           total: 1,
           pending: 1
         }
