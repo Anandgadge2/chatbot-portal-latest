@@ -48,9 +48,8 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
         // Multi-tenant Visibility Rule:
         // Users see: 1. Their department chain, 2. GLOBAL personnel (Admins with no dept)
         query.$or = [
-          { departmentId: { $in: [...deptIds, null] } },
           { departmentIds: { $in: [...deptIds, null] } },
-          { departmentId: { $exists: false } }
+          { departmentIds: { $exists: false } }
         ];
       } else if (departmentId) {
         // Even Company Admins or Super Admins in drilldown can filter by department
@@ -58,10 +57,7 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
           ? departmentId.split(',') 
           : [departmentId];
           
-        query.$or = [
-          { departmentId: { $in: filterDeptIds } },
-          { departmentIds: { $in: filterDeptIds } }
-        ];
+        query.departmentIds = { $in: filterDeptIds };
       }
     } else if (!currentUser.isSuperAdmin) {
       // Safety check: Non-SuperAdmins MUST have a companyId
@@ -75,10 +71,7 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
          ? departmentId.split(',') 
          : [departmentId];
          
-       query.$or = [
-         { departmentId: { $in: filterDeptIds } },
-         { departmentIds: { $in: filterDeptIds } }
-       ];
+       query.departmentIds = { $in: filterDeptIds };
     }
     // If Super Admin and NO targetCompanyId, query remains empty (sees everything)
 
@@ -91,7 +84,7 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
         { email: { $regex: search, $options: 'i' } },
         { userId: { $regex: search, $options: 'i' } },
         { phone: { $regex: search, $options: 'i' } },
-        { designation: { $regex: search, $options: 'i' } },
+        { designations: { $regex: search, $options: 'i' } },
         ...buildNameSearchQuery(search as string, 'firstName', 'lastName')
       ];
 
@@ -104,17 +97,14 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
           { nameHi: { $regex: search as string, $options: 'i' } },
           { nameOr: { $regex: search as string, $options: 'i' } },
           { nameMr: { $regex: search as string, $options: 'i' } },
-          { departmentId: { $regex: search as string, $options: 'i' } }
+          { departmentIds: { $regex: search as string, $options: 'i' } }
         ]
       }).select('_id');
       
       if (matchingDepts.length > 0) {
         const deptIdsArr = matchingDepts.map(d => d._id);
         searchCriteria.push({ 
-          $or: [
-            { departmentId: { $in: deptIdsArr } },
-            { departmentIds: { $in: deptIdsArr } }
-          ]
+          departmentIds: { $in: deptIdsArr }
         });
       }
 
@@ -156,7 +146,6 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
 
     const users = await User.find(query)
       .populate('companyId', 'name companyId')
-      .populate('departmentId', 'name departmentId')
       .populate('departmentIds', 'name departmentId') // Populate multiple departments
       .populate('customRoleId', 'name')
       .limit(Number(limit))
@@ -326,7 +315,7 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
     let finalCompanyId = companyId;
     if (departmentId && !finalCompanyId) {
       const Department = (await import('../models/Department')).default;
-      const department = await Department.findById(departmentId);
+      const department = await Department.findById(departmentIds?.[0] || departmentId);
       if (department) {
         finalCompanyId = department.companyId.toString();
         console.log('✅ Auto-set companyId from department:', finalCompanyId);
@@ -420,12 +409,10 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
         email: email.toLowerCase().trim(),
         password,
         phone: normalizedPhone,
-        designation,
-        designations: (Array.isArray(designations) && designations.length > 0) ? designations : undefined,
+        designations: (Array.isArray(designations) && designations.length > 0) ? designations : (designation ? [designation] : undefined),
         customRoleId: customRoleId,
         companyId: finalCompanyId || undefined,
-        departmentId: departmentId || undefined,
-        departmentIds: (Array.isArray(departmentIds) && departmentIds.length > 0) ? departmentIds : undefined,
+        departmentIds: (Array.isArray(departmentIds) && departmentIds.length > 0) ? departmentIds : (departmentId ? [departmentId] : undefined),
         isActive: true,
         rawPassword: password,
         createdBy: currentUser._id // Track who created this user for hierarchical rights

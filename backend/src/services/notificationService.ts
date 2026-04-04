@@ -561,20 +561,14 @@ export async function getHierarchicalDepartmentAdmins(departmentId: any): Promis
       // 2. The designation matching known admin patterns
       const roleFilters: any[] = [
         { customRoleId: { $in: adminRoleIds } },
-        { designation: isSubDept ? /SUB[- _]?DEPARTMENT[- _]?ADMIN|SUB[- _]?ADMIN|TAHASILDAR/i : /DEPARTMENT[- _]?ADMIN|DEPT[- _]?ADMIN|COLLECTOR|DM/i }
+        { designations: isSubDept ? /SUB[- _]?DEPARTMENT[- _]?ADMIN|SUB[- _]?ADMIN|TAHASILDAR/i : /DEPARTMENT[- _]?ADMIN|DEPT[- _]?ADMIN|COLLECTOR|DM/i }
       ];
 
       const adminQuery: any = {
         companyId: dept.companyId,
         isActive: true,
         $and: [
-          {
-            $or: [
-              { departmentId: new mongoose.Types.ObjectId(currentIdStr) },
-              { departmentId: currentIdStr },
-              { departmentIds: { $in: [new mongoose.Types.ObjectId(currentIdStr), currentIdStr] } }
-            ]
-          },
+          { departmentIds: { $in: [new mongoose.Types.ObjectId(currentIdStr), currentIdStr] } },
           { $or: roleFilters }
         ]
       };
@@ -639,7 +633,7 @@ export async function notifyDepartmentAdminOnCreation(
       companyId,
       $or: [
         { isSuperAdmin: true },
-        { designation: { $regex: /collector|dm|magistrate/i } }, // Restricted: Tahasildars removed (they follow dept hierarchy)
+        { designations: { $regex: /collector|dm|magistrate/i } }, // Restricted: Tahasildars removed (they follow dept hierarchy)
         { 
           customRoleId: { 
             $in: [

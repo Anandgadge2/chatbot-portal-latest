@@ -100,7 +100,7 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
         if (grievance.departmentId?._id.toString() !== currentUser.departmentId?.toString()) {
           return res.status(403).json({ success: false, message: 'You can only assign within your department' });
         }
-        if (assignedUser.departmentId?.toString() !== currentUser.departmentId?.toString()) {
+        if (assignedUser.departmentIds && !assignedUser.departmentIds.some(id => id.toString() === currentUser.departmentId?.toString())) {
           return res.status(403).json({ success: false, message: 'Recipient must be in the same department' });
         }
 
@@ -127,7 +127,8 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
     
     // Auto-update department based on assigned user's department
     // If the assigned user belongs to a different department than the current one
-    if (assignedUser.departmentId && (!oldDepartmentId || oldDepartmentId.toString() !== assignedUser.departmentId.toString())) {
+    if (assignedUser.departmentIds && assignedUser.departmentIds.length > 0 && (!oldDepartmentId || !assignedUser.departmentIds.some(id => id.toString() === oldDepartmentId.toString()))) {
+      const firstDeptId = assignedUser.departmentIds[0];
       grievance.departmentId = assignedUser.departmentId as any;
       
       // Add department transfer event
@@ -135,7 +136,7 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
         action: 'DEPARTMENT_TRANSFER',
         details: {
           fromDepartmentId: oldDepartmentId,
-          toDepartmentId: assignedUser.departmentId,
+          toDepartmentId: firstDeptId,
           reason: 'Auto-updated during reassignment'
         },
         performedBy: currentUser._id,
@@ -301,7 +302,7 @@ router.put('/appointment/:id/assign', requirePermission(Permission.UPDATE_APPOIN
         if (appointment.departmentId?._id.toString() !== currentUser.departmentId?.toString()) {
           return res.status(403).json({ success: false, message: 'You can only assign within your department' });
         }
-        if (assignedUser.departmentId?.toString() !== currentUser.departmentId?.toString()) {
+        if (assignedUser.departmentIds && !assignedUser.departmentIds.some(id => id.toString() === currentUser.departmentId?.toString())) {
           return res.status(403).json({ success: false, message: 'Recipient must be in same department' });
         }
       }
@@ -318,7 +319,8 @@ router.put('/appointment/:id/assign', requirePermission(Permission.UPDATE_APPOIN
     }
     
     // Auto-update department based on assigned user's department
-    if (assignedUser.departmentId && (!oldDepartmentId || oldDepartmentId.toString() !== assignedUser.departmentId.toString())) {
+    if (assignedUser.departmentIds && assignedUser.departmentIds.length > 0 && (!oldDepartmentId || !assignedUser.departmentIds.some(id => id.toString() === oldDepartmentId.toString()))) {
+      const firstDeptId = assignedUser.departmentIds[0];
       appointment.departmentId = assignedUser.departmentId as any;
       
       // Add department transfer event
@@ -326,7 +328,7 @@ router.put('/appointment/:id/assign', requirePermission(Permission.UPDATE_APPOIN
         action: 'DEPARTMENT_TRANSFER',
         details: {
           fromDepartmentId: oldDepartmentId,
-          toDepartmentId: assignedUser.departmentId,
+          toDepartmentId: firstDeptId,
           reason: 'Auto-updated during reassignment'
         },
         performedBy: currentUser._id,
@@ -427,13 +429,13 @@ router.get('/users/available', async (req: Request, res: Response) => {
     } else {
       query.companyId = currentUser.companyId;
       if (currentUser.departmentId) {
-        query.departmentId = currentUser.departmentId;
+        query.departmentIds = { $in: [currentUser.departmentId] };
       }
     }
 
     const users = await User.find(query)
-      .select('firstName lastName email role departmentId userId')
-      .populate('departmentId', 'name')
+      .select('firstName lastName email role departmentIds userId')
+      .populate('departmentIds', 'name')
       .sort({ firstName: 1 });
 
     res.json({

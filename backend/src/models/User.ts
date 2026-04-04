@@ -9,11 +9,11 @@ export interface IUser extends Document {
   email?: string;
   password?: string;
   phone: string;
-  designation?: string; // 🏢 Added designation field
-  designations?: string[]; // 🏢 Added for multiple designations
-  departmentIds?: mongoose.Types.ObjectId[]; // 🏢 Added for multiple department mapping
+  designation?: string; // 🏢 Virtual for backward compatibility
+  designations?: string[]; // 🏢 Main field for multiple designations
+  departmentId?: mongoose.Types.ObjectId; // 🏢 Virtual for backward compatibility
+  departmentIds?: mongoose.Types.ObjectId[]; // 🏢 Main field for multiple department mapping
   companyId?: mongoose.Types.ObjectId;
-  departmentId?: mongoose.Types.ObjectId;
   isActive: boolean;
   isSuperAdmin?: boolean; // 👑 Explicit platform-wide role flag
   rawPassword?: string; // For administrator visibility
@@ -67,10 +67,6 @@ const UserSchema: Schema = new Schema(
       trim: true,
       index: true
     },
-    designation: {
-      type: String,
-      trim: true
-    },
     designations: {
       type: [String],
       default: []
@@ -84,11 +80,6 @@ const UserSchema: Schema = new Schema(
     companyId: {
       type: Schema.Types.ObjectId,
       ref: 'Company',
-      index: true
-    },
-    departmentId: {
-      type: Schema.Types.ObjectId,
-      ref: 'Department',
       index: true
     },
     departmentIds: {
@@ -152,13 +143,40 @@ const UserSchema: Schema = new Schema(
     }
   },
   {
-    timestamps: true
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
   }
 );
 
+// Virtual for backward compatibility: designation -> designations[0]
+UserSchema.virtual('designation').get(function(this: IUser) {
+  return this.designations && this.designations.length > 0 ? this.designations[0] : undefined;
+}).set(function(this: IUser, val: string) {
+  if (!this.designations) this.designations = [];
+  if (val) {
+    if (!this.designations.includes(val)) {
+      this.designations.unshift(val); // Add to beginning
+    }
+  }
+});
+
+// Virtual for backward compatibility: departmentId -> departmentIds[0]
+UserSchema.virtual('departmentId').get(function(this: IUser) {
+  return this.departmentIds && this.departmentIds.length > 0 ? this.departmentIds[0] : undefined;
+}).set(function(this: IUser, val: mongoose.Types.ObjectId) {
+  if (!this.departmentIds) this.departmentIds = [];
+  if (val) {
+    const valStr = val.toString();
+    if (!this.departmentIds.some((id: any) => id.toString() === valStr)) {
+      this.departmentIds.unshift(val); // Add to beginning
+    }
+  }
+});
+
 // Compound indexes
 UserSchema.index({ companyId: 1, customRoleId: 1 });
-UserSchema.index({ departmentId: 1, customRoleId: 1 });
+UserSchema.index({ departmentIds: 1, customRoleId: 1 });
 
 UserSchema.index({ companyId: 1, isActive: 1 });
 UserSchema.index({ companyId: 1, createdAt: -1 });
