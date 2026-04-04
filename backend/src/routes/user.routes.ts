@@ -634,25 +634,51 @@ router.put('/:id', requirePermission(Permission.UPDATE_USER), async (req: Reques
       }
     }
 
-    // Prevent editing of metadata and internal IDs
-    delete req.body._id;
-    delete req.body.id;
-    delete req.body.__v;
-    delete req.body.createdAt;
-    delete req.body.updatedAt;
+    // Build a clean update object with only whitelisted schema fields
+    // This prevents non-schema fields (role, designation virtual, etc.) from causing errors
+    const allowedFields = [
+      'firstName', 'lastName', 'email', 'phone',
+      'designations', 'departmentIds', 'companyId',
+      'customRoleId', 'isActive', 'notificationSettings', 'responsibleAreas'
+    ];
+
+    const updateData: any = {};
+    for (const field of allowedFields) {
+      if (req.body[field] !== undefined) {
+        updateData[field] = req.body[field];
+      }
+    }
+
+    // Handle 'designation' (virtual) -> push into designations array
+    if (req.body.designation && typeof req.body.designation === 'string' && req.body.designation.trim()) {
+      if (!updateData.designations || !Array.isArray(updateData.designations)) {
+        updateData.designations = existingUser.designations || [];
+      }
+      if (!updateData.designations.includes(req.body.designation.trim())) {
+        updateData.designations.unshift(req.body.designation.trim());
+      }
+    }
+
+    // Handle 'departmentId' (virtual) -> merge into departmentIds
+    if (req.body.departmentId && !updateData.departmentIds?.length) {
+      updateData.departmentIds = [req.body.departmentId];
+    }
 
     // Clean up empty strings and ensure valid IDs
-    if (req.body.companyId === '') req.body.companyId = null;
-    if (req.body.departmentId === '') req.body.departmentId = null;
-    if (req.body.customRoleId === '') req.body.customRoleId = null;
-    if (req.body.email === '') req.body.email = null;
+    if (updateData.companyId === '') updateData.companyId = null;
+    if (updateData.customRoleId === '') updateData.customRoleId = null;
+    if (updateData.email === '') updateData.email = null;
 
     // Filter out invalid empty strings or nulls from departmentIds array
-    if (req.body.departmentIds && Array.isArray(req.body.departmentIds)) {
-      req.body.departmentIds = req.body.departmentIds.filter((id: any) => 
+    if (updateData.departmentIds && Array.isArray(updateData.departmentIds)) {
+      updateData.departmentIds = updateData.departmentIds.filter((id: any) => 
         id && typeof id === 'string' && id.trim() !== ""
       );
     }
+
+    // Replace req.body with the cleaned update object for downstream usage
+    req.body = updateData;
+    console.log('🔄 Sanitized update payload:', JSON.stringify(updateData, null, 2));
 
     // Check access based on company/department scope
     if (!currentUser.isSuperAdmin) {
