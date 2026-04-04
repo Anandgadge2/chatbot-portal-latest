@@ -721,42 +721,9 @@ export async function notifyDepartmentAdminOnCreation(
       deptAdmins.forEach(admin => adminsToNotify.push({ user: admin, type: 'DEPT_ADMIN' }));
     }
 
-    // 1. Find Company Admins for top-level supervision
-    // 🏷️ GLOBAL ROLE FIX: Find global admin roles first
-    const globalAdminRoleIds = await (await import('../models/Role')).default.find({
-      companyId: null,
-      key: { $in: ['COMPANY_ADMIN', 'ADMIN', 'COMPANY_HEAD', 'SUPER_ADMIN'] }
-    }).distinct('_id');
+    // 1. Hierarchical Admins are already added (Sub-Dept -> Dept -> Next Level)
+    logger.info(`🔍 [Notification] Found ${adminsToNotify.length} unique admins to notify for ${data.type} (hierarchy only)`);
 
-    const companyAdmins = await User.find({
-      companyId,
-      $or: [
-        { isSuperAdmin: true },
-        { designations: { $regex: /collector|dm|magistrate/i } }, // Restricted: Tahasildars removed (they follow dept hierarchy)
-        { 
-          customRoleId: { 
-            $in: [
-              ...globalAdminRoleIds,
-              ...(await (await import('../models/Role')).default.find({ 
-                companyId, 
-                key: { $in: ['COMPANY_ADMIN', 'ADMIN', 'COMPANY_HEAD', 'SUPER_ADMIN'] } 
-              }).distinct('_id'))
-            ]
-          } 
-        }
-      ],
-      isActive: true
-    }).populate('customRoleId');
-
-    logger.info(`👨‍💼 [Company Admins] Found ${companyAdmins.length} users with high-level roles for company: ${company.name}`);
-
-    companyAdmins.forEach(admin => {
-      if (!adminsToNotify.find(a => a.user._id.toString() === admin._id.toString())) {
-        const roleKey = (admin.customRoleId as any)?.name || (admin.customRoleId as any)?.key || 'Admin';
-        logger.info(`✅ [Company Admin] Adding ${admin.getFullName()} (${roleKey}) to notification list.`);
-        adminsToNotify.push({ user: admin, type: 'COMPANY_ADMIN' });
-      }
-    });
 
     if (adminsToNotify.length === 0) {
       logger.warn(`⚠️ [Broadcasting] No admins found to notify for company ${company.name} (${data.grievanceId || data.appointmentId})`);
@@ -773,6 +740,8 @@ export async function notifyDepartmentAdminOnCreation(
         };
 
         const notificationTasks: Promise<any>[] = [];
+        const dashboardUrl = `${process.env.FRONTEND_URL}/dashboard`;
+        const adminCta = { title: "Access Dashboard", url: dashboardUrl };
 
         // 📧 Email
         const emailAddress = user.email;
@@ -805,10 +774,7 @@ export async function notifyDepartmentAdminOnCreation(
               return;
             }
             logger.info(`📢 Dispatching WhatsApp to admin: ${user.phone} (${user.getFullName()})`);
-            const res = await safeSendWhatsApp(company, user.phone, message, {
-              title: 'Access Dashboard',
-              url: 'https://chatbot-portal-latest-frontend.vercel.app/'
-            });
+            const res = await safeSendWhatsApp(company, user.phone, message, adminCta);
             if (res.success) {
               logger.info(`✅ WhatsApp sent to admin: ${user.phone}`);
             }
@@ -869,10 +835,9 @@ export async function notifyUserOnAssignment(
         logger.error(`❌ Still no message found for ${data.type}_assigned_admin even with defaults.`);
         return;
       }
-      await safeSendWhatsApp(company, user.phone, message, {
-        title: 'Access Dashboard',
-        url: 'https://chatbot-portal-latest-frontend.vercel.app/'
-      });
+      const dashboardUrl = `${process.env.FRONTEND_URL}/dashboard`;
+      const adminCta = { title: "Access Dashboard", url: dashboardUrl };
+      await safeSendWhatsApp(company, user.phone, message, adminCta);
       if (data.evidenceUrls && data.evidenceUrls.length > 0) {
         await sendMediaIfAvailable(company, user.phone, data.evidenceUrls, `Files for Assignment: ${fullData.grievanceId || fullData.appointmentId}`);
       }
@@ -1131,10 +1096,8 @@ export async function notifyHierarchyOnStatusChange(
         : (data.type === 'appointment' ? 'appointment_scheduled' : `${data.type}_assigned`);
     
     // Determine if we should use CTA button
-    const ctaButton = {
-      title: 'Access Dashboard ',
-      url: 'https://chatbot-portal-latest-frontend.vercel.app/'
-    };
+    const dashboardUrl = `${process.env.FRONTEND_URL}/dashboard`;
+    const adminCta = { title: "Access Dashboard", url: dashboardUrl };
 
     // ✅ CONCURRENT NOTIFICATIONS
     // Filter out the citizen from hierarchy notifications, but DON'T drop admins with no phone.
@@ -1178,7 +1141,7 @@ export async function notifyHierarchyOnStatusChange(
         } else if (isCitizenPhone) {
           logger.warn(`⚠️ Skipping WhatsApp for ${user.email} — phone matches citizen's phone (avoiding duplicate).`);
         } else if (canNotify(company, user, 'whatsapp', statusControlKey)) {
-          tasks.push(safeSendWhatsApp(company, user.phone as string, hierarchyMessage, ctaButton));
+          tasks.push(safeSendWhatsApp(company, user.phone as string, hierarchyMessage, adminCta));
           if (data.evidenceUrls && data.evidenceUrls.length > 0) {
             tasks.push(sendMediaIfAvailable(company, user.phone as string, data.evidenceUrls, `Hierarchy Update: ${userFullData.grievanceId || userFullData.appointmentId}`));
           }

@@ -81,7 +81,7 @@ The following grievance has been *REJECTED*.
 Respected {citizenName},
 Your grievance has been registered.
 *Details:*
-🎫 *Reference ID:* {grievanceId}{deptLabel}{subDeptLabel}
+🎫 *Reference ID:* {grievanceId}{deptLabel}{subDeptLabel}{descriptionLabel}
 📅 *Submitted On:* {formattedDate}
 
 You can track your status using the Reference ID: *{grievanceId}*

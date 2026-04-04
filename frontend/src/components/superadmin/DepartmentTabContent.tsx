@@ -230,8 +230,8 @@ const DepartmentTabContent: React.FC<DepartmentTabContentProps> = ({
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="px-2.5 py-1 bg-white text-[9px] font-bold text-slate-400 rounded-md border border-slate-200/60 uppercase tracking-tighter shadow-sm w-fit mr-4">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="inline-flex items-center px-2.5 py-1 bg-slate-50 text-[10px] font-bold text-slate-600 rounded-md border border-slate-200/60 uppercase tracking-tighter shadow-sm w-fit">
                             {dept.departmentId || "DEPT000000"}
                           </div>
                         </td>

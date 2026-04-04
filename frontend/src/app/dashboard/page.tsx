@@ -147,6 +147,7 @@ interface DashboardStats {
     pending: number;
     assigned?: number;
     inProgress: number;
+    reverted: number;
     resolved: number;
     last7Days: number;
     last30Days: number;
@@ -2911,7 +2912,7 @@ function DashboardContent() {
                   hasPermission(user, Permission.READ_GRIEVANCE) && (
                     <Card
                       onClick={() => {
-                        setActiveTab("reverted");
+                        setActiveTab("grievances");
                         setGrievanceFilters((prev) => ({
                           ...prev,
                           status: "REVERTED",
@@ -2931,9 +2932,7 @@ function DashboardContent() {
                         <div className="text-xl sm:text-2xl font-black text-rose-600 tabular-nums leading-none">
                           {loadingStats
                             ? <LoadingDots />
-                            : (grievances || []).filter(
-                                (g) => g.status?.toUpperCase() === "REVERTED",
-                              ).length || 0}
+                            : stats?.grievances.reverted || 0}
                         </div>
                         <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">
                           Reassigned
@@ -3643,6 +3642,12 @@ function DashboardContent() {
                             value: stats?.grievances.resolved || 0,
                             color: "#10b981",
                             subText: "Completed cases",
+                          },
+                          {
+                            name: "Reverted",
+                            value: stats?.grievances.reverted || 0,
+                            color: "#f43f5e",
+                            subText: "Reassigned cases",
                           },
                         ].filter((d) => d.value > 0);
                         return chart.length > 0 ? (
@@ -5083,8 +5088,8 @@ function DashboardContent() {
                                     </td>
 
                                     {/* Dept ID */}
-                                    <td className="px-4 py-4 whitespace-normal break-all">
-                                      <span className="text-[10px] font-mono bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border border-gray-200 uppercase">
+                                    <td className="px-4 py-4 whitespace-nowrap">
+                                      <span className="inline-flex items-center text-[10px] font-bold bg-slate-50 text-slate-600 px-2 py-0.5 rounded border border-slate-200 uppercase tracking-tighter shadow-sm">
                                         {dept.departmentId}
                                       </span>
                                     </td>
