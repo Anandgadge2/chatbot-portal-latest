@@ -8,6 +8,7 @@ export type AccessScope = 'platform' | 'company' | 'department' | 'subdepartment
 export type ResolvedAccess = {
   isSuperAdmin: boolean;
   roleId?: string;
+  roleName?: string;
   level: number;
   scope: AccessScope;
   filteredPermissions: IPermission[];
@@ -71,6 +72,8 @@ export async function resolveUserAccess(user: Pick<IUser, '_id' | 'companyId' | 
   if (isSuperAdmin) {
     return {
       isSuperAdmin: true,
+      roleId: '0',
+      roleName: 'Platform Administrator',
       level: 0,
       scope: 'platform',
       filteredPermissions: SUPERADMIN_PERMISSIONS,
@@ -87,12 +90,16 @@ export async function resolveUserAccess(user: Pick<IUser, '_id' | 'companyId' | 
     : DEFAULT_PERMISSIONS_VERSION;
 
   let roleId: string | undefined;
-  let level = user.departmentId ? 2 : 1;
+  let roleName: string | undefined = 'Department Administrator'; // Default if level is 2
+  let level = (user.departmentId || (user.departmentIds && user.departmentIds.length > 0)) ? 2 : 1;
+
+  if (level === 1) roleName = 'Company Administrator';
+
   let filteredPermissions: IPermission[] = [];
 
   if (user.customRoleId) {
     const role = await Role.findById(user.customRoleId)
-      .select('_id level permissions')
+      .select('_id name level permissions')
       .lean();
 
     if (!role) {
@@ -102,13 +109,25 @@ export async function resolveUserAccess(user: Pick<IUser, '_id' | 'companyId' | 
     }
 
     roleId = role._id.toString();
+    roleName = role.name;
     level = typeof role.level === 'number' ? role.level : Math.max(level, 5);
     filteredPermissions = Array.isArray(role.permissions) ? role.permissions : [];
+
+    return {
+      isSuperAdmin: false,
+      roleId,
+      roleName,
+      level,
+      scope: getScopeFromLevel(level),
+      filteredPermissions,
+      permissionsVersion,
+    };
   }
 
   return {
     isSuperAdmin: false,
     roleId,
+    roleName,
     level,
     scope: getScopeFromLevel(level),
     filteredPermissions,

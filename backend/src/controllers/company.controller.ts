@@ -23,6 +23,9 @@ export const list = async (req: Request, res: Response) => {
     const { page = 1, limit = 20, search, companyType, isActive } = req.query;
 
     const query: any = {};
+    if (!req.user?.isSuperAdmin) {
+      query._id = req.user?.companyId;
+    }
 
     if (search) {
       query.$or = [

@@ -43,7 +43,11 @@ const getAnalyticsBaseQuery = async (req: any, companyId?: any, departmentId?: a
       if (departmentId) {
         const deptId = new mongoose.Types.ObjectId(departmentId.toString());
         const allDeptIds = await getDepartmentHierarchyIds(deptId.toString());
-        query.departmentId = { $in: allDeptIds.map(id => new mongoose.Types.ObjectId(id)) };
+        const mongoIds = allDeptIds.map(id => new mongoose.Types.ObjectId(id));
+        query.$or = [
+          { departmentId: { $in: mongoIds } },
+          { subDepartmentId: { $in: mongoIds } }
+        ];
       }
       // Otherwise, no department filter (sees all company data)
     } else {
@@ -67,7 +71,11 @@ const getAnalyticsBaseQuery = async (req: any, companyId?: any, departmentId?: a
         if (authorizedDeptIds.includes(requestedIdStr)) {
           // Valid request: filter by this specific department (including its children if level 2)
           const nestedIds = userLevel === 2 ? await getDepartmentHierarchyIds(requestedIdStr) : [requestedIdStr];
-          query.departmentId = { $in: nestedIds.map(id => new mongoose.Types.ObjectId(id)) };
+          const mongoIds = nestedIds.map(id => new mongoose.Types.ObjectId(id));
+          query.$or = [
+            { departmentId: { $in: mongoIds } },
+            { subDepartmentId: { $in: mongoIds } }
+          ];
         } else {
           // ⚠️ SECURITY: Requested an unauthorized department. Force filter to empty or authorized scope.
           // For analytics, it's safer to just return nothing for the unauthorized filter.
@@ -75,7 +83,11 @@ const getAnalyticsBaseQuery = async (req: any, companyId?: any, departmentId?: a
         }
       } else {
         // No filter requested: show full authorized scope
-        query.departmentId = { $in: authorizedDeptIds.map(id => new mongoose.Types.ObjectId(id)) };
+        const mongoIds = authorizedDeptIds.map(id => new mongoose.Types.ObjectId(id));
+        query.$or = [
+          { departmentId: { $in: mongoIds } },
+          { subDepartmentId: { $in: mongoIds } }
+        ];
       }
     }
   }
@@ -88,6 +100,37 @@ export const dashboard = async (req: Request, res: Response) => {
     const { companyId, departmentId } = req.query;
 
     const baseQuery = await getAnalyticsBaseQuery(req, companyId, departmentId);
+
+    // 🔍 Extract authorized department IDs from baseQuery for User/Department scoping
+    let authorizedMongoDeptIds: mongoose.Types.ObjectId[] = [];
+    if (baseQuery.$or) {
+      // Collect all IDs mentioned in any $or branch
+      const idsSet = new Set<string>();
+      baseQuery.$or.forEach((branch: any) => {
+        ['departmentId', 'subDepartmentId', 'departmentIds'].forEach(key => {
+          const val = branch[key];
+          if (val) {
+            if (val.$in) val.$in.forEach((id: any) => idsSet.add(id.toString()));
+            else idsSet.add(val.toString());
+          }
+        });
+      });
+      authorizedMongoDeptIds = Array.from(idsSet).map(id => new mongoose.Types.ObjectId(id));
+    } else if (baseQuery.departmentId) {
+      authorizedMongoDeptIds = [new mongoose.Types.ObjectId(baseQuery.departmentId.toString())];
+    } else if (baseQuery.departmentIds) {
+      // Handle the case where the base query might use the array field directly
+      const ids = Array.isArray(baseQuery.departmentIds) ? baseQuery.departmentIds : [baseQuery.departmentIds];
+      authorizedMongoDeptIds = ids.map((id: any) => new mongoose.Types.ObjectId(id.toString()));
+    }
+
+    const scopeFilter = authorizedMongoDeptIds.length > 0 
+      ? { $or: [{ _id: { $in: authorizedMongoDeptIds } }, { parentDepartmentId: { $in: authorizedMongoDeptIds } }] }
+      : {};
+
+    const userScopeFilter = authorizedMongoDeptIds.length > 0
+      ? { $or: [{ departmentId: { $in: authorizedMongoDeptIds } }, { departmentIds: { $in: authorizedMongoDeptIds } }] }
+      : {};
 
     // Fetch company to check for modules
     const targetCompanyId = currentUser.companyId || companyId;
@@ -175,29 +218,24 @@ export const dashboard = async (req: Request, res: Response) => {
       // Counts (Scoped to authorized departments for restricted admins)
       Department.countDocuments({ 
         companyId: targetCompanyId,
-        ...(baseQuery.departmentId ? { _id: baseQuery.departmentId } : {})
+        ...scopeFilter
       }),
         
       User.countDocuments({ 
         companyId: targetCompanyId,
-        ...(baseQuery.departmentId ? { 
-          $or: [
-            { departmentId: baseQuery.departmentId },
-            { departmentIds: baseQuery.departmentId }
-          ]
-        } : {})
+        ...userScopeFilter
       }),
 
       // Hierarchical Dept Counts (Scoped)
       isHierarchicalEnabled ? Department.countDocuments({ 
         companyId: targetCompanyId, 
-        ...(baseQuery.departmentId ? { _id: baseQuery.departmentId } : {}),
+        ...scopeFilter,
         $or: [{ parentDepartmentId: null }, { parentDepartmentId: { $exists: false } }] 
       }) : Promise.resolve(0),
       
       isHierarchicalEnabled ? Department.countDocuments({ 
         companyId: targetCompanyId, 
-        ...(baseQuery.departmentId ? { _id: baseQuery.departmentId } : {}),
+        ...scopeFilter,
         parentDepartmentId: { $ne: null } 
       }) : Promise.resolve(0),
 
@@ -207,8 +245,14 @@ export const dashboard = async (req: Request, res: Response) => {
       Grievance.countDocuments({ ...baseQuery, priority: 'URGENT', status: { $ne: GrievanceStatus.RESOLVED } }),
       targetCompanyId
         ? User.aggregate([
-            { $match: { companyId: new mongoose.Types.ObjectId(targetCompanyId.toString()) } },
-            { $group: { _id: '$departmentId', count: { $sum: 1 } } }
+            { 
+              $match: { 
+                companyId: new mongoose.Types.ObjectId(targetCompanyId.toString()),
+                ...userScopeFilter
+              } 
+            },
+            { $unwind: { path: "$departmentIds", preserveNullAndEmptyArrays: true } },
+            { $group: { _id: { $ifNull: ["$departmentIds", "$departmentId"] }, count: { $sum: 1 } } }
           ])
         : Promise.resolve([])
     ]);
@@ -328,7 +372,12 @@ export const dashboard = async (req: Request, res: Response) => {
     // 👤 User distribution by role (Across whole company/scope)
     // This is more accurate than client-side grouping of paginated data
     const usersByRole = await User.aggregate([
-      { $match: { ...baseQuery } },
+      { 
+        $match: { 
+          companyId: targetCompanyId,
+          ...userScopeFilter
+        } 
+      },
       {
         $lookup: {
           from: 'roles',
@@ -358,6 +407,23 @@ export const dashboard = async (req: Request, res: Response) => {
             $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.PENDING] }, 1, 0] }
           }
         }
+      },
+      {
+        $lookup: {
+          from: 'departments',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'department'
+        }
+      },
+      { $unwind: { path: '$department', preserveNullAndEmptyArrays: true } },
+      {
+        $project: {
+          departmentId: '$_id',
+          departmentName: '$department.name',
+          total: 1,
+          pending: 1
+        }
       }
     ]);
 
@@ -380,7 +446,8 @@ export const dashboard = async (req: Request, res: Response) => {
           daily: dailyGrievances.map(d => ({ date: d._id, count: d.count })),
           monthly: monthlyGrievances.map(m => ({ month: m._id, count: m.count, resolved: m.resolved })),
           byDepartment: grievancesByDept.map(d => ({
-            departmentId: d._id,
+            departmentId: d.departmentId,
+            departmentName: d.departmentName || 'Unknown',
             total: d.total,
             pending: d.pending
           }))

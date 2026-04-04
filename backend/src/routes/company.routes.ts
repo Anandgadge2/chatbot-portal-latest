@@ -13,7 +13,7 @@ router.use(authenticate);
 // @route   GET /api/companies
 // @desc    Get all companies (SuperAdmin only)
 // @access  Private/SuperAdmin
-router.get('/', requireSuperAdmin, companyController.list);
+router.get('/', companyController.list); // Returns scoped companies for non-SuperAdmins
 
 // @route   POST /api/companies
 // @desc    Create new company with admin (SuperAdmin only)
