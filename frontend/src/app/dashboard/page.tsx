@@ -206,6 +206,14 @@ const TacticalForestMap = dynamic(
   },
 );
 
+const LoadingDots = () => (
+  <span className="inline-flex items-center gap-0.5 ml-1">
+    <span className="w-1 h-1 bg-current rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+    <span className="w-1 h-1 bg-current rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+    <span className="w-1 h-1 bg-current rounded-full animate-bounce"></span>
+  </span>
+);
+
 function DashboardContent() {
   const { user: authUser, loading, logout } = useAuth();
   const user = authUser as any;
@@ -421,7 +429,7 @@ function DashboardContent() {
     variant: "danger",
   });
   const [isMobileTabMenuOpen, setIsMobileTabMenuOpen] = useState(false);
-  const [loadingStats, setLoadingStats] = useState(false);
+  const [loadingStats, setLoadingStats] = useState(true);
   const [loadingGrievances, setLoadingGrievances] = useState(false);
 
   // Sync state with URL manually updated
@@ -584,9 +592,11 @@ function DashboardContent() {
       // If we are viewing a specific company dashboard (either as Company Admin or Super Admin drilldown)
       // we MUST respect the specific company's enabled modules configuration.
       if (isViewingCompany) {
-        // If company data is not loaded yet, do NOT show the module tab
-        // to prevent flickering of unauthorized modules for SuperAdmin.
-        if (!company) return false;
+        // If company data is not loaded yet, assume basic modules to prevent layout jumps
+        // This ensures the dashboard has a consistent 'Single Structure' as requested.
+        if (!company) {
+          return [Module.GRIEVANCE, Module.APPOINTMENT].includes(module);
+        }
 
         const enabledModules = (company.enabledModules || []) as string[];
         return enabledModules.includes(module as string);
@@ -2244,7 +2254,7 @@ function DashboardContent() {
                       `Viewing: ${company?.name || "..."}`
                     ) : (
                       <>
-                        {isCompanyLevel && (company?.name || "Company Level")}
+                        {isCompanyLevel && (company?.name || "...")}
                         {isDepartmentLevel && "Department"}
                         {!hasPermission(user, Permission.VIEW_ANALYTICS) &&
                           !isSuperAdminUser &&
@@ -2742,7 +2752,7 @@ function DashboardContent() {
                     </CardHeader>
                     <CardContent className="px-3 sm:px-6 pb-2 pt-1">
                       <div className="text-xl sm:text-2xl font-black text-slate-800 tabular-nums leading-none">
-                        {loadingStats ? "..." : stats?.grievances.total || 0}
+                        {loadingStats ? <LoadingDots /> : stats?.grievances.total || 0}
                       </div>
                       <div className="flex items-center gap-1 mt-1.5">
                         <span className="text-[8px] sm:text-[9px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-full">
@@ -2776,7 +2786,7 @@ function DashboardContent() {
                     </CardHeader>
                     <CardContent className="px-3 sm:px-6 pb-2 pt-1">
                       <div className="text-xl sm:text-2xl font-black text-amber-600 tabular-nums leading-none">
-                        {loadingStats ? "..." : stats?.grievances.pending || 0}
+                        {loadingStats ? <LoadingDots /> : stats?.grievances.pending || 0}
                       </div>
                       <p className="text-[8px] sm:text-[9px] text-slate-400 font-bold uppercase mt-1.5">
                         Pending
@@ -2804,7 +2814,7 @@ function DashboardContent() {
                       <CardContent className="px-3 sm:px-6 pb-2 pt-1">
                         <div className="text-xl sm:text-2xl font-black text-slate-800 tabular-nums leading-none">
                           {loadingStats
-                            ? "..."
+                            ? <LoadingDots />
                             : stats?.appointments.total || 0}
                         </div>
                         <div className="flex items-center gap-1 mt-1.5">
@@ -2837,7 +2847,7 @@ function DashboardContent() {
                           <CardContent className="px-3 sm:px-6 pb-2 pt-1">
                             <div className="text-xl sm:text-2xl font-black text-slate-800 tabular-nums leading-none">
                               {loadingStats
-                                ? "..."
+                                ? <LoadingDots />
                                 : stats?.mainDepartments || 0}
                             </div>
                             <p className="text-[9px] text-slate-400 font-bold uppercase mt-1.5">
@@ -2860,7 +2870,7 @@ function DashboardContent() {
                           <CardContent className="px-3 sm:px-6 pb-2 pt-1">
                             <div className="text-2xl font-black text-indigo-600 tabular-nums">
                               {loadingStats
-                                ? "..."
+                                ? <LoadingDots />
                                 : stats?.subDepartments || 0}
                             </div>
                             <p className="text-[9px] text-slate-400 font-bold uppercase mt-1.5">
@@ -2884,7 +2894,7 @@ function DashboardContent() {
                         </CardHeader>
                         <CardContent className="px-3 sm:px-6 pb-2 pt-1">
                           <div className="text-xl sm:text-2xl font-black text-slate-800 tabular-nums leading-none">
-                            {loadingStats ? "..." : stats?.departments || 0}
+                            {loadingStats ? <LoadingDots /> : stats?.departments || 0}
                           </div>
                           <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">
                             Functional Depts
@@ -2920,7 +2930,7 @@ function DashboardContent() {
                       <CardContent className="px-3 sm:px-6 pb-2 pt-1">
                         <div className="text-xl sm:text-2xl font-black text-rose-600 tabular-nums leading-none">
                           {loadingStats
-                            ? "..."
+                            ? <LoadingDots />
                             : (grievances || []).filter(
                                 (g) => g.status?.toUpperCase() === "REVERTED",
                               ).length || 0}
@@ -2936,7 +2946,7 @@ function DashboardContent() {
             </div>
 
             {/* Company Info (for Company Admin) - Beautified Modern Design */}
-            {isViewingCompany && company && (
+            {isViewingCompany && (
               <Card className="overflow-hidden border border-slate-200 shadow-sm bg-white rounded-xl">
                 <div className="bg-slate-900 px-6 py-2">
                   <div className="relative flex items-center justify-between">
@@ -2946,7 +2956,7 @@ function DashboardContent() {
                       </div>
                       <div>
                         <h3 className="text-xl font-bold text-white leading-tight">
-                          {company.name}
+                          {company?.name || <LoadingDots />}
                         </h3>
                         <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1">
                           Company Profile & Statistics
@@ -2955,7 +2965,7 @@ function DashboardContent() {
                     </div>
                     <div className="flex items-center space-x-2">
                       <span className="px-4 py-1.5 rounded-lg bg-white/10 border border-white/20 text-indigo-400 text-[10px] font-black uppercase tracking-widest">
-                        {company.companyType}
+                        {company?.companyType || <LoadingDots />}
                       </span>
                     </div>
                   </div>
@@ -2971,7 +2981,7 @@ function DashboardContent() {
                       </div>
                       <div className="flex items-baseline space-x-2">
                         <span className="text-2xl font-black text-slate-900 tracking-tighter leading-none">
-                          {stats?.users ?? users.length}
+                          {loadingStats ? <LoadingDots /> : (stats?.users ?? users.length)}
                         </span>
                         <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 uppercase tracking-tighter">
                           Live
@@ -2987,9 +2997,9 @@ function DashboardContent() {
                       </div>
                       <div className="flex items-baseline space-x-2">
                         <span className="text-2xl font-black text-slate-900 tracking-tighter leading-none">
-                          {departmentPagination.total ||
+                          {loadingStats ? <LoadingDots /> : (departmentPagination.total ||
                             stats?.departments ||
-                            departments.length}
+                            departments.length)}
                         </span>
                         <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 uppercase tracking-tighter">
                           Verified
@@ -3004,7 +3014,7 @@ function DashboardContent() {
                         Support Channel
                       </div>
                       <div className="text-xs font-bold text-slate-700 truncate">
-                        {company.contactEmail}
+                        {company?.contactEmail || <LoadingDots />}
                       </div>
                     </div>
                     <div className="p-4 hover:bg-slate-50 transition-all duration-200 group">
@@ -3015,7 +3025,7 @@ function DashboardContent() {
                         Direct Line
                       </div>
                       <div className="text-xs font-bold text-slate-700">
-                        {formatTo10Digits(company.contactPhone)}
+                        {company ? formatTo10Digits(company.contactPhone) : <LoadingDots />}
                       </div>
                     </div>
                   </div>
@@ -3730,7 +3740,7 @@ function DashboardContent() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* High Grievance Departments */}
                 {hasModule(Module.GRIEVANCE) && isViewingCompany && (
-                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[320px]">
                     <div className="px-4 py-3 border-b border-slate-50 flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-rose-50 rounded-xl flex items-center justify-center border border-rose-100/50">
@@ -3747,11 +3757,13 @@ function DashboardContent() {
                       </div>
                     </div>
                     <div className="p-4 flex-1">
-                      <ResponsiveContainer width="100%" height={160}>
+                      <ResponsiveContainer width="100%" height={240}>
                         <BarChart
-                          data={departmentData.slice(0, 5)}
+                          data={departmentData
+                            .filter((d: any) => d.departmentName && d.departmentName.trim() !== "")
+                            .slice(0, 5)}
                           layout="vertical"
-                          margin={{ left: 10, right: 30, top: 0, bottom: 0 }}
+                          margin={{ left: 20, right: 40, top: 10, bottom: 10 }}
                         >
                           <CartesianGrid
                             strokeDasharray="3 3"
@@ -3762,12 +3774,13 @@ function DashboardContent() {
                           <YAxis
                             dataKey="departmentName"
                             type="category"
+                            interval={0}
                             tick={{
                               fontSize: 9,
                               fontWeight: "bold",
                               fill: "#64748b",
                             }}
-                            width={80}
+                            width={140}
                           />
                           <Tooltip
                             cursor={{ fill: "#f8fafc" }}
@@ -4671,7 +4684,7 @@ function DashboardContent() {
             <TabsContent value="departments" className="space-y-4">
               <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
                 {/* Header */}
-                <CardHeader className="bg-slate-900 px-4 sm:px-6 py-2">
+                {/* <CardHeader className="bg-slate-900 px-4 sm:px-6 py-2">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
@@ -4694,7 +4707,7 @@ function DashboardContent() {
                     </div>
 
                   </div>
-                </CardHeader>
+                </CardHeader> */}
 
                 <CardContent className="p-0">
                   <div className="px-6 py-4 bg-slate-50/50 border-b border-slate-200 space-y-4">
@@ -5505,7 +5518,7 @@ function DashboardContent() {
           {canSeeUsersTab && (
             <TabsContent value="users" className="space-y-6">
               <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
-                <CardHeader className="bg-slate-900 px-4 sm:px-6 py-2">
+                {/* <CardHeader className="bg-slate-900 px-4 sm:px-6 py-2">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
@@ -5528,7 +5541,7 @@ function DashboardContent() {
                     <div className="flex items-center gap-2">
                     </div>
                   </div>
-                </CardHeader>
+                </CardHeader> */}
                 <CardContent className="p-0">
                   <>
                     <div className="px-6 py-4 bg-slate-50/50 border-b border-slate-200 space-y-4">
@@ -6273,7 +6286,7 @@ function DashboardContent() {
             (isViewingCompany || isDepartmentLevel) && (
               <TabsContent value="grievances" className="space-y-4">
                 <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
-                  <CardHeader className="bg-slate-900 px-6 py-2">
+                  {/* <CardHeader className="bg-slate-900 px-6 py-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
@@ -6301,7 +6314,7 @@ function DashboardContent() {
                         </div>
                       </div>
                     </div>
-                  </CardHeader>
+                  </CardHeader> */}
 
                   {/* Grievance Filters */}
                   <div className="px-6 py-4 bg-slate-50/50 border-b border-slate-200">
@@ -7506,7 +7519,7 @@ function DashboardContent() {
             (isViewingCompany || isDepartmentLevel) && (
               <TabsContent value="appointments" className="space-y-4">
                 <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
-                  <CardHeader className="bg-slate-900 px-6 py-2">
+                  {/* <CardHeader className="bg-slate-900 px-6 py-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
@@ -7521,20 +7534,9 @@ function DashboardContent() {
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {(isViewingCompany || isDepartmentLevel) && (
-                          <Button
-                            onClick={() => setShowAvailabilityCalendar(true)}
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-8 text-[10px] font-bold uppercase tracking-widest rounded-lg px-4 shadow-md"
-                            title="Configure when appointments can be scheduled"
-                          >
-                            <CalendarClock className="w-3.5 h-3.5 mr-1.5" />
-                            Availability
-                          </Button>
-                        )}
-                      </div>
+                      
                     </div>
-                  </CardHeader>
+                  </CardHeader> */}
 
                   {/* Appointment Filters */}
                   <div className="px-6 py-4 bg-gradient-to-r from-slate-50 to-purple-50/30 border-b border-slate-200">
@@ -7563,6 +7565,18 @@ function DashboardContent() {
                           <Filter className="w-4 h-4 mr-1.5" />
                           Filters
                         </Button>
+                        <div className="flex items-center gap-2">
+                        {(isViewingCompany || isDepartmentLevel) && (
+                          <Button
+                            onClick={() => setShowAvailabilityCalendar(true)}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-8 text-[10px] font-bold uppercase tracking-widest rounded-lg px-4 shadow-md"
+                            title="Configure when appointments can be scheduled"
+                          >
+                            <CalendarClock className="w-3.5 h-3.5 mr-1.5" />
+                            Availability
+                          </Button>
+                        )}
+                      </div>
                         <Button
                           variant="outline"
                           size="sm"

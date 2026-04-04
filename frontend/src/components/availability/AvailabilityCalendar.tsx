@@ -540,7 +540,7 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
             
             <div className="relative flex items-center justify-between">
               <div className="flex items-center gap-3 sm:gap-6">
-                <div className="w-10 h-10 sm:w-16 sm:h-16 bg-white/10 rounded-xl sm:rounded-2xl flex items-center justify-center backdrop-blur-xl border border-white/20 shadow-inner">
+                <div className="w-8 h-8 sm:w-14 sm:h-14 bg-white/10 rounded-xl sm:rounded-2xl flex items-center justify-center backdrop-blur-xl border border-white/20 shadow-inner">
                   <CalendarCheck className="w-5 h-5 sm:w-8 sm:h-8 text-indigo-400" />
                 </div>
                 <div>
