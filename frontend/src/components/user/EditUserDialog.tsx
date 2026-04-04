@@ -63,7 +63,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
   const fetchDepartments = useCallback(async (companyId: string) => {
     if (!companyId) return;
     try {
-      const response = await departmentAPI.getAll({ companyId, limit: 100 });
+      const response = await departmentAPI.getAll({ companyId, listAll: true });
       setDepartments(response.data.departments || []);
     } catch (error: any) {
       console.error("Failed to fetch departments:", error);

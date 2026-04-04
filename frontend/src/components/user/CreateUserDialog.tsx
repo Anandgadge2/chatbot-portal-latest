@@ -157,7 +157,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
 
   const fetchDepartments = useCallback(async (companyId?: string) => {
     try {
-      const response = await departmentAPI.getAll({ companyId, limit: 100 });
+      const response = await departmentAPI.getAll({ companyId, listAll: true });
       if (response.success) {
         let filteredDepartments = response.data.departments;
         if (!isSuperAdmin(user)) {

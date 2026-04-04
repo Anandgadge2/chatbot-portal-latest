@@ -181,29 +181,60 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
     }
   }
 
+  let departmentName = (department
+    ? department.name
+    : (data.departmentName || (data.type === 'appointment' ? 'Collector Office' : 'General'))).trim();
+  
+  // Clean departmentName if it contains location suffix (e.g. "Tahasil Office, Jharsuguda")
+  if (departmentName.includes(',') && !departmentName.includes('Department')) {
+    departmentName = departmentName.split(',')[0].trim();
+  }
+
+  let subDepartmentName = subDept ? subDept.name : (data.subDepartmentName || '');
+  if (subDepartmentName.toLowerCase() === 'not provided' || subDepartmentName === departmentName) {
+    subDepartmentName = '';
+  }
+
+  let description = (data.description || '').trim();
+  if (description.toLowerCase() === 'not provided') description = '';
+
+  // 📝 CASE: REASSIGNED REVERTED GRIEVANCE
+  // If the grievance was previously REVERTED, it requires a clearer explanation in the notification
+  const wasReverted = data.timeline?.some(t => t.action === 'STATUS_UPDATED' && (t.details as any)?.toStatus === 'REVERTED');
+  if (wasReverted && (data.action === 'assigned' || data.action === 'assigned_admin')) {
+    description = `This grievance is being reassigned to your department by ${assignedByName || 'the company admin'}. Please investigate and take required action.`;
+  }
+
+  // Multi-line values (conditional blocks)
+  const deptLabel = departmentName ? `🏢 *Department:* ${departmentName}` : '';
+  const subDeptLabel = subDepartmentName ? `🏢 *Sub-Dept:* ${subDepartmentName}` : '';
+  const descriptionLabel = description ? `📝 *Description:*\n${description}` : '';
+
   return {
     ...data,
     companyName: company?.name || 'Portal Admin',
     recipientName: data.recipientName || data.citizenName || 'Citizen',
-    departmentName: department
-      ? department.name
-      : (data.departmentName || (data.type === 'appointment' ? 'Collector Office' : 'General')),
-    subDepartmentName: subDept ? subDept.name : (data.subDepartmentName || ''),
+    departmentName,
+    subDepartmentName,
+    description,
+    deptLabel,
+    subDeptLabel,
+    descriptionLabel,
     assignedByName,
     resolvedByName,
     formattedDate,
     formattedResolvedDate,
     formattedAppointmentDate,
     formattedAppointmentTime,
-    appointmentDate: formattedAppointmentDate || data.appointmentDate, // Fallback for templates using old field
-    appointmentTime: formattedAppointmentTime || data.appointmentTime, // Fallback for templates using old field
+    appointmentDate: formattedAppointmentDate || data.appointmentDate,
+    appointmentTime: formattedAppointmentTime || data.appointmentTime,
     resolutionTimeText,
     'Submitted On': formattedDate,
     submittedOn: formattedDate,
     forest_range: (data as any).forest_range || '',
     forest_beat: (data as any).forest_beat || '',
     forest_compartment: (data as any).forest_compartment || '',
-    remarks: data.remarks || '' // Ensure it's at least an empty string for replacePlaceholders
+    remarks: data.remarks || ''
   };
 }
 

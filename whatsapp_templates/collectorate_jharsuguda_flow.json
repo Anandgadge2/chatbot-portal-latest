@@ -189,7 +189,7 @@
       },
       "data": {
         "label": "Language Selection",
-        "messageText": "🇮🇳 *ଝାରସୁଗୁଡା ପ୍ରଶାସନ ଦ୍ୱାରା ସହଜ - ସ୍ୱିଫ୍ଟ ଆକ୍ସେସ ଏବଂ ସହାୟତାକୁ ସ୍ୱାଗତ।*\n*सहज में आपका स्वागत है - प्रशासन, झारसुगुड़ा द्वारा त्वरित पहुँच और सहायता*\n*Welcome to Sahaj - Swift Access & Help by Administration, Jharsuguda*\n\nଆପଣ ଏବେ ଏହି ପ୍ଲାଟଫର୍ମ ମାଧ୍ୟମରେ ସହଜରେ ପଞ୍ଜୀକରଣ କରିପାରିବେ ଏବଂ ଆପଣଙ୍କର ଅଭିଯୋଗଗୁଡ଼ିକୁ ଟ୍ରାକ୍ କରିପାରିବେ।\nअब आप इस प्लेटफ़ॉर्म के माध्यम से अपनी शिकायतें आसानी से दर्ज और ट्रैक कर सकते हैं।\nYou can now register and track your grievances easily through this platform.\n\n👇 Please select your preferred language:",
+        "messageText": "🇮🇳 *Welcome to Sahaj - Swift Access & Help by Administration, Jharsuguda*\n*ଝାରସୁଗୁଡା ପ୍ରଶାସନ ଦ୍ୱାରା ସହଜ - ସ୍ୱିଫ୍ଟ ଆକ୍ସେସ ଏବଂ ସହାୟତାକୁ ସ୍ୱାଗତ।*\n\nYou can now register and track your grievances easily through this platform.\nଆପଣ ଏବେ ଏହି ପ୍ଲାଟଫର୍ମ ମାଧ୍ୟମରେ ସହଜରେ ପଞ୍ଜୀକରଣ କରିପାରିବେ ଏବଂ ଆପଣଙ୍କର ଅଭିଯୋଗଗୁଡ଼ିକୁ ଟ୍ରାକ୍ କରିପାରିବେ।\n\n👇 Please select your preferred language:",
         "buttons": [
           {
             "id": "lang_or",

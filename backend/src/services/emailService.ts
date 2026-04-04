@@ -434,7 +434,7 @@ export function replacePlaceholders(str: string, data: Record<string, any>): str
   return str.replace(/\{([^{}]+)\}/g, (_, key) => {
     const v = data[key];
     // Return the value if it exists, otherwise provide a user-friendly fallback
-    return (v != null && v !== '') ? String(v) : 'Not provided';
+    return (v != null && v !== '') ? String(v) : '';
   });
 }
 

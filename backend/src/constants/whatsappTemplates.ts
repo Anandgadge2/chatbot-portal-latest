@@ -14,10 +14,9 @@ A new grievance has been submitted by a citizen.
 *Details:*
 🎫 *Reference ID:* {grievanceId}
 👤 *Citizen Name:* {citizenName}
-🏢 *Department:* {departmentName}
-🏢 *Sub-Dept:* {subDepartmentName}
-📝 *Description:*
-{description}
+{deptLabel}
+{subDeptLabel}
+{descriptionLabel}
 📅 *Received On:* {formattedDate}
 
 *Action Required:*
@@ -36,10 +35,9 @@ Respected {recipientName},
 Details:
 🎫 *Reference ID:* {grievanceId}
 👤 *Citizen:* {citizenName}
-🏢 *Department:* {departmentName}
-🏢 *Sub-Dept:* {subDepartmentName}
-📝 *Description:*
-{description}
+{deptLabel}
+{subDeptLabel}
+{descriptionLabel}
 👨‍💼 *Assigned By:* {assignedByName}
 📅 *Assigned On:* {formattedDate}
 
