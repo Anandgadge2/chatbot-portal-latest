@@ -94,6 +94,17 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
   const department = deptId ? await findDepartmentByIdOrCustomId(deptId) : null;
   const subDept = subDeptId ? await findDepartmentByIdOrCustomId(subDeptId) : null;
 
+  // 🏢 HIERARCHY RESOLUTION: 
+  // If the 'department' is actually a sub-department (has a parent), 
+  // and we don't have a subDept already, shift them so we show both Parent and Child.
+  let finalDept = department;
+  let finalSubDept = subDept;
+
+  if (finalDept && finalDept.parentDepartmentId && !finalSubDept) {
+    finalSubDept = finalDept;
+    finalDept = await findDepartmentByIdOrCustomId(finalDept.parentDepartmentId);
+  }
+
   let assignedByName = data.assignedByName || 'Administrator';
   if (!data.assignedByName && data.assignedTo) {
     try {
@@ -181,8 +192,8 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
     }
   }
 
-  let departmentName = (department
-    ? department.name
+  let departmentName = (finalDept
+    ? finalDept.name
     : (data.departmentName || (data.type === 'appointment' ? 'Collector Office' : 'General'))).trim();
   
   // Clean departmentName if it contains location suffix (e.g. "Tahasil Office, Jharsuguda")
@@ -190,7 +201,7 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
     departmentName = departmentName.split(',')[0].trim();
   }
 
-  let subDepartmentName = subDept ? subDept.name : (data.subDepartmentName || '');
+  let subDepartmentName = finalSubDept ? finalSubDept.name : (data.subDepartmentName || '');
   if (subDepartmentName.toLowerCase() === 'not provided' || subDepartmentName === departmentName) {
     subDepartmentName = '';
   }
@@ -200,7 +211,8 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
 
   // 📝 CASE: REASSIGNED REVERTED GRIEVANCE
   // If the grievance was previously REVERTED, it requires a clearer explanation in the notification
-  const wasReverted = data.timeline?.some(t => t.action === 'STATUS_UPDATED' && (t.details as any)?.toStatus === 'REVERTED');
+  const wasReverted = data.timeline?.some(t => t.action === 'REVERTED_TO_COMPANY_ADMIN');
+  
   if (wasReverted && (data.action === 'assigned' || data.action === 'assigned_admin')) {
     const originalDescription = description;
     const reassignmentNote = `This grievance is being reassigned to your department by ${assignedByName || 'the company admin'}. Please investigate and take required action.`;
