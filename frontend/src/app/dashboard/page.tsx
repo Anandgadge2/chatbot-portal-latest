@@ -4802,7 +4802,7 @@ function DashboardContent() {
                     {/* Filters Row */}
                     <div
                       className={cn(
-                        "items-center gap-3",
+                        "gap-3 md:items-center",
                         showDepartmentFiltersOnMobile
                           ? "flex flex-col"
                           : "hidden md:flex md:flex-row md:flex-nowrap",
@@ -4813,11 +4813,11 @@ function DashboardContent() {
                         <span className="text-sm font-semibold text-slate-700">Filters</span>
                       </div>
 
-                      <div className="flex items-center gap-2 flex-nowrap flex-1 overflow-x-auto no-scrollbar pb-1 md:pb-0">
+                      <div className="flex w-full flex-col md:flex-row md:items-center gap-2 md:flex-nowrap flex-1 md:overflow-x-auto md:no-scrollbar pb-1 md:pb-0">
                         <select
                           value={deptFilters.type}
                           onChange={(e) => setDeptFilters(prev => ({ ...prev, type: e.target.value }))}
-                          className="text-xs px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer min-w-[130px] font-medium"
+                          className="w-full md:w-auto text-xs px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer min-w-[130px] font-medium"
                           title="Filter by department type"
                         >
                           <option value="">🏢 All Types</option>
@@ -4828,7 +4828,7 @@ function DashboardContent() {
                         <select
                           value={deptFilters.status}
                           onChange={(e) => setDeptFilters(prev => ({ ...prev, status: e.target.value }))}
-                          className="text-xs px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer min-w-[130px] font-medium"
+                          className="w-full md:w-auto text-xs px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer min-w-[130px] font-medium"
                           title="Filter by status"
                         >
                           <option value="">📊 All Status</option>
@@ -4839,7 +4839,7 @@ function DashboardContent() {
                         <select
                           value={deptFilters.mainDeptId}
                           onChange={(e) => setDeptFilters(prev => ({ ...prev, mainDeptId: e.target.value, subDeptId: "" }))}
-                          className="text-xs px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer min-w-[160px] font-medium"
+                          className="w-full md:w-auto text-xs px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer min-w-[160px] font-medium"
                           title="Filter by main department"
                         >
                           <option value="">🏢 Main Depts</option>
@@ -4852,7 +4852,7 @@ function DashboardContent() {
                           value={deptFilters.subDeptId}
                           onChange={(e) => setDeptFilters(prev => ({ ...prev, subDeptId: e.target.value }))}
                           disabled={!deptFilters.mainDeptId}
-                          className={`text-xs px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm transition-all min-w-[160px] font-medium ${!deptFilters.mainDeptId ? "opacity-50 cursor-not-allowed bg-slate-50" : "cursor-pointer hover:border-indigo-300"}`}
+                          className={`w-full md:w-auto text-xs px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm transition-all min-w-[160px] font-medium ${!deptFilters.mainDeptId ? "opacity-50 cursor-not-allowed bg-slate-50" : "cursor-pointer hover:border-indigo-300"}`}
                           title="Filter by sub department"
                         >
                           <option value="">📍 Sub Depts</option>
@@ -4881,7 +4881,7 @@ function DashboardContent() {
                       </div>
 
                       {/* Pagination Limit & Count */}
-                      <div className="flex items-center gap-3 ml-auto shrink-0">
+                      <div className="flex items-center gap-3 ml-0 md:ml-auto shrink-0 w-full md:w-auto justify-between md:justify-start">
                         <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-slate-200">
                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Rows:</span>
                           <select
@@ -5640,7 +5640,7 @@ function DashboardContent() {
                     {/* Filters Row */}
                     <div
                       className={cn(
-                        "items-center gap-3",
+                        "gap-3 md:items-center",
                         showUserFiltersOnMobile ? "flex flex-col" : "hidden md:flex md:flex-row md:flex-nowrap",
                       )}
                     >
@@ -5649,14 +5649,14 @@ function DashboardContent() {
                         <span className="text-sm font-semibold text-slate-700">Filters</span>
                       </div>
 
-                      <div className="flex items-center gap-2 flex-nowrap flex-1 overflow-x-auto no-scrollbar">
+                      <div className="flex w-full flex-col md:flex-row md:items-center gap-2 md:flex-nowrap flex-1 md:overflow-x-auto md:no-scrollbar">
                         <select
                           value={userFilters.role}
                           onChange={(e) => {
                             setUserFilters(prev => ({ ...prev, role: e.target.value }));
                             setUserPage(1);
                           }}
-                          className="text-xs px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer min-w-[130px] font-medium"
+                          className="w-full md:w-auto text-xs px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer min-w-[130px] font-medium"
                           title="Filter by role"
                         >
                           <option value="">👤 All Roles</option>
@@ -5672,7 +5672,7 @@ function DashboardContent() {
                             setUserFilters(prev => ({ ...prev, status: e.target.value }));
                             setUserPage(1);
                           }}
-                          className="text-xs px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer min-w-[130px] font-medium"
+                          className="w-full md:w-auto text-xs px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer min-w-[130px] font-medium"
                           title="Filter by status"
                         >
                           <option value="">📊 All Status</option>
@@ -5690,7 +5690,7 @@ function DashboardContent() {
                             }));
                             setUserPage(1);
                           }}
-                          className="text-xs px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer min-w-[160px] font-medium"
+                          className="w-full md:w-auto text-xs px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer min-w-[160px] font-medium"
                           title="Filter by main department"
                         >
                           <option value="">🏢 Main Depts</option>
@@ -5709,7 +5709,7 @@ function DashboardContent() {
                             setUserPage(1);
                           }}
                           disabled={!userFilters.mainDeptId}
-                          className={`text-xs px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm transition-all min-w-[160px] font-medium ${!userFilters.mainDeptId ? "opacity-50 cursor-not-allowed bg-slate-50" : "cursor-pointer hover:border-indigo-300"}`}
+                          className={`w-full md:w-auto text-xs px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm transition-all min-w-[160px] font-medium ${!userFilters.mainDeptId ? "opacity-50 cursor-not-allowed bg-slate-50" : "cursor-pointer hover:border-indigo-300"}`}
                           title="Filter by sub department"
                         >
                           <option value="">📍 Sub Depts</option>
@@ -5744,7 +5744,7 @@ function DashboardContent() {
                       </div>
 
                       {/* Pagination Limit & Count */}
-                      <div className="flex items-center gap-3 ml-auto shrink-0">
+                      <div className="flex items-center gap-3 ml-0 md:ml-auto shrink-0 w-full md:w-auto justify-between md:justify-start">
                         <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-slate-200">
                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Rows:</span>
                           <select
@@ -7546,7 +7546,7 @@ function DashboardContent() {
                   {/* Appointment Filters */}
                   <div className="px-6 py-4 bg-gradient-to-r from-slate-50 to-purple-50/30 border-b border-slate-200">
                     {/* Search and Actions Bar */}
-                    <div className="flex items-center justify-between gap-4 mb-3">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
                       <div className="relative flex-1 max-w-md">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <input
@@ -7557,7 +7557,7 @@ function DashboardContent() {
                           className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white shadow-sm text-sm placeholder:text-slate-400"
                         />
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap md:flex-nowrap">
                         <Button
                           variant="outline"
                           size="sm"
@@ -7574,7 +7574,7 @@ function DashboardContent() {
                         {(isViewingCompany || isDepartmentLevel) && (
                           <Button
                             onClick={() => setShowAvailabilityCalendar(true)}
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-8 text-[10px] font-bold uppercase tracking-widest rounded-lg px-4 shadow-md"
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-9 text-[10px] font-bold uppercase tracking-widest rounded-lg px-4 shadow-md whitespace-nowrap"
                             title="Configure when appointments can be scheduled"
                           >
                             <CalendarClock className="w-3.5 h-3.5 mr-1.5" />
@@ -7587,7 +7587,7 @@ function DashboardContent() {
                           size="sm"
                           onClick={handleRefreshData}
                           disabled={isRefreshing}
-                          className="border-slate-200 hover:bg-slate-50 rounded-xl"
+                          className="border-slate-200 hover:bg-slate-50 rounded-xl whitespace-nowrap"
                           title="Refresh data"
                         >
                           <RefreshCw
@@ -7613,7 +7613,7 @@ function DashboardContent() {
                               ],
                             )
                           }
-                          className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 rounded-xl"
+                          className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 rounded-xl whitespace-nowrap"
                           title="Export to CSV"
                         >
                           <FileDown className="w-4 h-4 mr-1.5" />
@@ -7625,10 +7625,10 @@ function DashboardContent() {
                     {/* Filters Row */}
                     <div
                       className={cn(
-                        "items-center gap-3 flex-wrap",
+                        "gap-3 md:items-center",
                         showAppointmentFiltersOnMobile
-                          ? "flex"
-                          : "hidden md:flex",
+                          ? "flex flex-col md:flex-row"
+                          : "hidden md:flex md:flex-row",
                       )}
                     >
                       <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-slate-200">
@@ -7647,7 +7647,7 @@ function DashboardContent() {
                             status: e.target.value,
                           }))
                         }
-                        className="text-xs px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white shadow-sm hover:border-purple-300 transition-colors cursor-pointer"
+                        className="w-full md:w-auto text-xs px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white shadow-sm hover:border-purple-300 transition-colors cursor-pointer"
                         title="Filter by appointment status"
                       >
                         <option value="">📋 All Status</option>
@@ -7669,7 +7669,7 @@ function DashboardContent() {
                             dateFilter: e.target.value,
                           }))
                         }
-                        className="text-xs px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white shadow-sm hover:border-purple-300 transition-colors cursor-pointer"
+                        className="w-full md:w-auto text-xs px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white shadow-sm hover:border-purple-300 transition-colors cursor-pointer"
                         title="Filter by date"
                       >
                         <option value="">📅 All Time</option>
@@ -7716,7 +7716,7 @@ function DashboardContent() {
                       )}
 
                       {/* Results count */}
-                      <div className="flex items-center gap-4 ml-auto">
+                      <div className="flex items-center gap-4 ml-0 md:ml-auto w-full md:w-auto justify-between md:justify-start">
                         <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm">
                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                             Rows:
