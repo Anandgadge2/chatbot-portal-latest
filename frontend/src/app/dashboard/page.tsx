@@ -2326,151 +2326,189 @@ function DashboardContent() {
           className="space-y-4 sm:space-y-6"
         >
 
-          <div className="mb-4 sticky top-[64px] z-40 bg-white/95 backdrop-blur-sm py-3 -mx-4 px-4 sm:mx-0 sm:px-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <TabsList className="hidden md:flex w-full sm:w-auto bg-slate-200/50 p-1 border border-slate-300/50 h-10 shadow-sm overflow-x-auto no-scrollbar max-w-full">
-              {(isSuperAdminUser ||
-                hasPermission(user, Permission.VIEW_ANALYTICS)) && (
-                <TabsTrigger
-                  value="overview"
-                  className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
-                >
-                  Overview
-                </TabsTrigger>
-              )}
-
-              {/* Analytics Tab - Professional Monitoring */}
-              {(!isSuperAdminUser || (isSuperAdminUser && companyIdParam)) && (
-                <TabsTrigger
-                  value="analytics"
-                  className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg flex items-center"
-                >
-                  <TrendingUp className="w-3.5 h-3.5 mr-1.5" />
-                  {isDFO ? "Command Center" : "Analytics"}
-                </TabsTrigger>
-              )}
-
-              {hasPermission(user, Permission.READ_GRIEVANCE) && (
-                <TabsTrigger
-                  value="grievances"
-                  className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
-                >
-                  {isDFO ? "Incidents" : "Grievances"}
-                </TabsTrigger>
-              )}
-
-              {(isCompanyAdminRole ||
-                (isSuperAdminUser && companyIdParam)) &&
-                hasModule(Module.APPOINTMENT) &&
-                hasPermission(user, Permission.READ_APPOINTMENT) && (
-                  <TabsTrigger
-                    value="appointments"
-                    className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
+          <div className="flex gap-4">
+            <aside className="hidden md:block sticky top-[84px] self-start z-30">
+              <div className="group w-[72px] hover:w-[260px] transition-all duration-300 ease-out rounded-2xl border border-slate-200 bg-white/95 backdrop-blur-sm shadow-sm overflow-hidden">
+                <div className="p-2 border-b border-slate-100">
+                  <Button
+                    onClick={handleRefresh}
+                    variant="ghost"
+                    size="sm"
+                    disabled={refreshing}
+                    className="w-full justify-start h-10 rounded-xl text-slate-500 hover:text-indigo-600 hover:bg-indigo-50/60 font-bold text-[11px] uppercase tracking-wider"
                   >
-                    Appointments
-                  </TabsTrigger>
-                )}
+                    <RefreshCw
+                      className={cn(
+                        "w-4 h-4 shrink-0",
+                        refreshing && "animate-spin",
+                      )}
+                    />
+                    <span className="ml-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                      Refresh Data
+                    </span>
+                  </Button>
+                </div>
+                <TabsList className="h-auto bg-transparent p-2 flex flex-col gap-1">
+                  {(isSuperAdminUser ||
+                    hasPermission(user, Permission.VIEW_ANALYTICS)) && (
+                    <TabsTrigger
+                      value="overview"
+                      className="w-full justify-start h-10 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white"
+                    >
+                      <LayoutDashboard className="w-4 h-4 shrink-0" />
+                      <span className="ml-3 text-[11px] font-black uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                        Overview
+                      </span>
+                    </TabsTrigger>
+                  )}
+                  {(!isSuperAdminUser || (isSuperAdminUser && companyIdParam)) && (
+                    <TabsTrigger
+                      value="analytics"
+                      className="w-full justify-start h-10 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white"
+                    >
+                      <TrendingUp className="w-4 h-4 shrink-0" />
+                      <span className="ml-3 text-[11px] font-black uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                        {isDFO ? "Command Center" : "Analytics"}
+                      </span>
+                    </TabsTrigger>
+                  )}
+                  {hasPermission(user, Permission.READ_GRIEVANCE) && (
+                    <TabsTrigger
+                      value="grievances"
+                      className="w-full justify-start h-10 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white"
+                    >
+                      <FileText className="w-4 h-4 shrink-0" />
+                      <span className="ml-3 text-[11px] font-black uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                        {isDFO ? "Incidents" : "Grievances"}
+                      </span>
+                    </TabsTrigger>
+                  )}
+                  {(isCompanyAdminRole ||
+                    (isSuperAdminUser && companyIdParam)) &&
+                    hasModule(Module.APPOINTMENT) &&
+                    hasPermission(user, Permission.READ_APPOINTMENT) && (
+                      <TabsTrigger
+                        value="appointments"
+                        className="w-full justify-start h-10 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white"
+                      >
+                        <CalendarCheck className="w-4 h-4 shrink-0" />
+                        <span className="ml-3 text-[11px] font-black uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                          Appointments
+                        </span>
+                      </TabsTrigger>
+                    )}
+                  {canSeeDepartmentsTab && (
+                    <TabsTrigger
+                      value="departments"
+                      className="w-full justify-start h-10 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white"
+                    >
+                      <Building className="w-4 h-4 shrink-0" />
+                      <span className="ml-3 text-[11px] font-black uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                        {isDFO ? "Patrol Units" : "Departments"}
+                      </span>
+                    </TabsTrigger>
+                  )}
+                  {isDFO && (
+                    <>
+                      <TabsTrigger
+                        value="live-incidents"
+                        className="w-full justify-start h-10 rounded-xl data-[state=active]:bg-rose-600 data-[state=active]:text-white"
+                      >
+                        <LocateFixed className="w-4 h-4 shrink-0" />
+                        <span className="ml-3 text-[11px] font-black uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                          Tactical Map
+                        </span>
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="geofences"
+                        className="w-full justify-start h-10 rounded-xl data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
+                      >
+                        <Layers className="w-4 h-4 shrink-0" />
+                        <span className="ml-3 text-[11px] font-black uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                          Boundaries
+                        </span>
+                      </TabsTrigger>
+                    </>
+                  )}
+                  {canSeeUsersTab && (
+                    <TabsTrigger
+                      value="users"
+                      className="w-full justify-start h-10 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white"
+                    >
+                      <Users className="w-4 h-4 shrink-0" />
+                      <span className="ml-3 text-[11px] font-black uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                        Users
+                      </span>
+                    </TabsTrigger>
+                  )}
+                  {isSuperAdminUser && companyIdParam && (
+                    <TabsTrigger
+                      value="roles"
+                      className="w-full justify-start h-10 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white"
+                    >
+                      <Shield className="w-4 h-4 shrink-0" />
+                      <span className="ml-3 text-[11px] font-black uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                        Roles
+                      </span>
+                    </TabsTrigger>
+                  )}
+                  {hasModule(Module.LEAD_CAPTURE) && isViewingCompany && (
+                    <TabsTrigger
+                      value="leads"
+                      className="w-full justify-start h-10 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white"
+                    >
+                      <Target className="w-4 h-4 shrink-0" />
+                      <span className="ml-3 text-[11px] font-black uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                        Leads
+                      </span>
+                    </TabsTrigger>
+                  )}
+                  {isSuperAdminUser && companyIdParam && (
+                    <>
+                      <div className="h-px bg-slate-100 my-1 mx-2" />
+                      <TabsTrigger
+                        value="whatsapp"
+                        className="w-full justify-start h-10 rounded-xl data-[state=active]:bg-indigo-600 data-[state=active]:text-white"
+                      >
+                        <MessageSquare className="w-4 h-4 shrink-0" />
+                        <span className="ml-3 text-[11px] font-black uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                          WhatsApp
+                        </span>
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="flows"
+                        className="w-full justify-start h-10 rounded-xl data-[state=active]:bg-violet-600 data-[state=active]:text-white"
+                      >
+                        <Workflow className="w-4 h-4 shrink-0" />
+                        <span className="ml-3 text-[11px] font-black uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                          Flows
+                        </span>
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="notifications"
+                        className="w-full justify-start h-10 rounded-xl data-[state=active]:bg-orange-600 data-[state=active]:text-white"
+                      >
+                        <BellRing className="w-4 h-4 shrink-0" />
+                        <span className="ml-3 text-[11px] font-black uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                          Notifications
+                        </span>
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="email"
+                        className="w-full justify-start h-10 rounded-xl data-[state=active]:bg-blue-600 data-[state=active]:text-white"
+                      >
+                        <Mail className="w-4 h-4 shrink-0" />
+                        <span className="ml-3 text-[11px] font-black uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                          Email
+                        </span>
+                      </TabsTrigger>
+                    </>
+                  )}
+                </TabsList>
+              </div>
+            </aside>
 
-              {canSeeDepartmentsTab && (
-                <TabsTrigger
-                  value="departments"
-                  className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
-                >
-                  {isDFO ? "Patrol Units" : "Departments"}
-                </TabsTrigger>
-              )}
-
-              {isDFO && (
-                <>
-                  <TabsTrigger
-                    value="live-incidents"
-                    className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-rose-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-300 rounded-lg flex items-center"
-                  >
-                    <LocateFixed className="w-3.5 h-3.5 mr-1.5" />
-                    Tactical Map
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="geofences"
-                    className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-300 rounded-lg flex items-center"
-                  >
-                    <Layers className="w-3.5 h-3.5 mr-1.5" />
-                    Boundaries
-                  </TabsTrigger>
-                </>
-              )}
-
-              {canSeeUsersTab && (
-                <TabsTrigger
-                  value="users"
-                  className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
-                >
-                  Users
-                </TabsTrigger>
-              )}
-
-              {isSuperAdminUser && companyIdParam && (
-                <TabsTrigger
-                  value="roles"
-                  className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
-                >
-                  Roles
-                </TabsTrigger>
-              )}
-
-              {hasModule(Module.LEAD_CAPTURE) && isViewingCompany && (
-                <TabsTrigger
-                  value="leads"
-                  className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
-                >
-                  Leads
-                </TabsTrigger>
-              )}
-
-              {isSuperAdminUser && companyIdParam && (
-                <>
-                  <TabsTrigger
-                    value="whatsapp"
-                    className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg flex items-center"
-                  >
-                    <MessageSquare className="w-3.5 h-3.5 mr-1.5" />
-                    WhatsApp
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="flows"
-                    className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-violet-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg flex items-center"
-                  >
-                    <Workflow className="w-3.5 h-3.5 mr-1.5" />
-                    Flows
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="notifications"
-                    className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-orange-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg flex items-center"
-                  >
-                    <BellRing className="w-3.5 h-3.5 mr-1.5" />
-                    Notifications
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="email"
-                    className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg flex items-center"
-                  >
-                    <Mail className="w-3.5 h-3.5 mr-1.5" />
-                    Email
-                  </TabsTrigger>
-                </>
-              )}
-            </TabsList>
-            <Button
-              onClick={handleRefresh}
-              variant="outline"
-              size="sm"
-              disabled={refreshing}
-              className="hidden md:flex h-10 w-full sm:w-auto px-4 bg-white border-slate-200 text-slate-600 hover:text-indigo-600 hover:border-indigo-200 transition-all rounded-xl shadow-sm font-bold text-[11px] uppercase tracking-widest gap-2"
-            >
-              <RefreshCw
-                className={cn("w-3.5 h-3.5", refreshing && "animate-spin")}
-              />
-              <span className="hidden sm:inline">Refresh Data</span>
-            </Button>
-          </div>
+            <div className="flex-1 min-w-0">
 
           {isMobileTabMenuOpen && (
             <div className="md:hidden fixed inset-0 z-[70]">
@@ -8263,6 +8301,8 @@ function DashboardContent() {
               </TabsContent>
             </CompanyProvider>
           )}
+            </div>
+          </div>
         </Tabs>
 
         {/* Dialogs */}
