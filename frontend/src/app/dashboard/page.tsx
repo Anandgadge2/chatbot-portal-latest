@@ -3760,7 +3760,7 @@ function DashboardContent() {
                       <ResponsiveContainer width="100%" height={240}>
                         <BarChart
                           data={departmentData
-                            .filter((d: any) => d.departmentName && d.departmentName.trim() !== "")
+                            .filter((d: any) => d.departmentName && d.departmentName.trim() !== "" && d.departmentName !== "Unnamed Department")
                             .slice(0, 5)}
                           layout="vertical"
                           margin={{ left: 20, right: 40, top: 10, bottom: 10 }}

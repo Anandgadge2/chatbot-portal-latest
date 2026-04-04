@@ -644,6 +644,9 @@ router.put('/:id', requirePermission(Permission.UPDATE_USER), async (req: Reques
     if (req.body.customRoleId === '') {
       req.body.customRoleId = null;
     }
+    if (req.body.email === '') {
+      req.body.email = null;
+    }
 
     // Check access based on company/department scope
     if (!currentUser.isSuperAdmin) {
@@ -873,12 +876,17 @@ router.put('/:id', requirePermission(Permission.UPDATE_USER), async (req: Reques
       if (managementRole || isDeptAdmin || req.checkPermission(Permission.UPDATE_DEPARTMENT)) {
         try {
           const Department = (await import('../models/Department')).default;
-          await Department.findByIdAndUpdate(user.departmentId, {
+          // Use ID string even if populated
+          const deptId = user.departmentId instanceof Object && '_id' in user.departmentId 
+            ? (user.departmentId as any)._id 
+            : user.departmentId;
+
+          await Department.findByIdAndUpdate(deptId, {
             contactPerson: `${user.firstName} ${user.lastName}`,
             contactEmail: user.email,
             contactPhone: user.phone
           });
-          console.log(`✅ Updated department ${user.departmentId} contact info with admin details`);
+          console.log(`✅ Updated department ${deptId} contact info with admin details`);
         } catch (deptUpdateError: any) {
           console.error('⚠️ Failed to update department contact info (non-critical):', deptUpdateError.message);
         }
@@ -891,6 +899,18 @@ router.put('/:id', requirePermission(Permission.UPDATE_USER), async (req: Reques
       data: { user }
     });
   } catch (error: any) {
+    console.error('❌ Error updating user:', error);
+
+    // Handle MongoDB Duplicate Key errors (Code 11000)
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern || {})[0] || 'field';
+      const value = error.keyValue ? error.keyValue[field] : 'unknown';
+      return res.status(400).json({
+        success: false,
+        message: `User with this ${field} (${value}) already exists.`
+      });
+    }
+
     res.status(500).json({
       success: false,
       message: 'Failed to update user',
