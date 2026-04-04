@@ -314,7 +314,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                 <div className="space-y-3">
                    <div className="flex items-center gap-2 text-slate-400">
                       <Tag className="w-3.5 h-3.5" />
-                      <span className="text-[10px] font-black uppercase tracking-widest">Incident Description</span>
+                      <span className="text-[10px] font-black uppercase tracking-widest">Description</span>
                    </div>
                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 shadow-inner">
                       <p className="text-xs sm:text-sm text-slate-600 leading-relaxed whitespace-pre-wrap font-medium">
