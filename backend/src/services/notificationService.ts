@@ -209,14 +209,41 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
   let description = (data.description || '').trim();
   if (description.toLowerCase() === 'not provided') description = '';
 
-  // 📝 CASE: REASSIGNED REVERTED GRIEVANCE
-  // If the grievance was previously REVERTED, it requires a clearer explanation in the notification
-  const wasReverted = data.timeline?.some(t => t.action === 'REVERTED_TO_COMPANY_ADMIN');
-  
-  if (wasReverted && (data.action === 'assigned' || data.action === 'assigned_admin')) {
-    const originalDescription = description;
-    const reassignmentNote = `This grievance is being reassigned to your department by ${assignedByName || 'the company admin'}. Please investigate and take required action.`;
-    description = originalDescription ? `${reassignmentNote}\n\n*Original Description:*\n${originalDescription}` : reassignmentNote;
+  // 🔄 REASSIGNMENT CONTEXT: If this was reverted and is being reassigned
+  let originalDeptName = '';
+  let originalSubDeptName = '';
+  let reassignmentRemarks = '';
+
+  if (data.timeline && Array.isArray(data.timeline)) {
+    // Look for the latest revert event to get context
+    const revertEvent = [...data.timeline].reverse().find((t: any) => t.action === 'REVERTED_TO_COMPANY_ADMIN');
+    if (revertEvent && revertEvent.details) {
+      reassignmentRemarks = revertEvent.details.remarks || '';
+      
+      const prevDeptId = revertEvent.details.previousDepartmentId;
+      const prevSubDeptId = revertEvent.details.previousSubDepartmentId;
+
+      if (prevDeptId) {
+        const pDept = await findDepartmentByIdOrCustomId(prevDeptId);
+        if (pDept) originalDeptName = pDept.name;
+      }
+      if (prevSubDeptId) {
+        const pSubDept = await findDepartmentByIdOrCustomId(prevSubDeptId);
+        if (pSubDept) originalSubDeptName = pSubDept.name;
+      }
+    }
+  }
+
+  const originalDeptLabel = originalDeptName ? `\n🏢 *Original Dept:* ${originalDeptName}` : '';
+  const originalSubDeptLabel = (originalSubDeptName && originalSubDeptName !== originalDeptName) ? `\n🏢 *Original Sub-Dept:* ${originalSubDeptName}` : '';
+  const reassignmentRemarksLabel = reassignmentRemarks ? `\n📝 *Reassignment Note:* ${reassignmentRemarks}` : '';
+
+  if ((data.action === 'assigned' || data.action === 'assigned_admin') && data.timeline) {
+    const wasReverted = data.timeline.some((t: any) => t.action === 'REVERTED_TO_COMPANY_ADMIN');
+    if (wasReverted) {
+      const reassignmentNote = `This grievance is being reassigned to your department by ${assignedByName || 'the company admin'}. Please investigate and take required action.`;
+      description = `${reassignmentNote}\n${reassignmentRemarksLabel}\n${originalDeptLabel}${originalSubDeptLabel}\n\n*Original Citizen Description:*\n${description}`;
+    }
   }
 
   // Multi-line values (conditional blocks)
@@ -243,7 +270,9 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
   return {
     ...data,
     companyName: company?.name || 'Portal Admin',
-    recipientName: data.recipientName || data.citizenName || 'Citizen',
+    recipientName: (data.recipientName && String(data.recipientName).trim()) 
+      ? String(data.recipientName).trim() 
+      : ((data.action === 'assigned' || data.action === 'assigned_admin') ? (assignedByName || 'Admin') : (data.citizenName || 'Citizen')),
     departmentName,
     subDepartmentName,
     description,
@@ -262,15 +291,18 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
     formattedResolvedDate,
     formattedAppointmentDate,
     formattedAppointmentTime,
-    appointmentDate: formattedAppointmentDate || data.appointmentDate,
-    appointmentTime: formattedAppointmentTime || data.appointmentTime,
+    appointmentDate: formattedAppointmentDate || data.appointmentDate || '',
+    appointmentTime: formattedAppointmentTime || data.appointmentTime || '',
     resolutionTimeText,
     'Submitted On': formattedDate,
     submittedOn: formattedDate,
     forest_range: (data as any).forest_range || '',
     forest_beat: (data as any).forest_beat || '',
     forest_compartment: (data as any).forest_compartment || '',
-    remarks: data.remarks || ''
+    remarks: data.remarks || '',
+    'Case ID': data.grievanceId || data.appointmentId || 'N/A',
+    grievanceId: data.grievanceId || 'N/A',
+    appointmentId: data.appointmentId || 'N/A'
   };
 }
 
@@ -815,7 +847,7 @@ export async function notifyUserOnAssignment(
 
     const fullData = await populateNotificationData({
       ...data,
-      recipientName: user.getFullName()
+      recipientName: user.getFullName() || 'Admin'
     });
 
     // 📧 Email
