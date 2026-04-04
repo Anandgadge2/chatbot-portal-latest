@@ -215,6 +215,13 @@ const WA_PLACEHOLDERS: Array<{
   { ph: "{appointmentId}", desc: "Appointment ID", relevance: ["appointment"] },
   { ph: "{departmentName}", desc: "Department name", relevance: ["all"] },
   { ph: "{subDepartmentName}", desc: "Sub-department name", relevance: ["all"] },
+  { ph: "{deptLabel}", desc: "Smart Dept (hides if empty)", relevance: ["all"] },
+  { ph: "{subDeptLabel}", desc: "Smart Sub-Dept (hides if empty)", relevance: ["all"] },
+  { ph: "{descriptionLabel}", desc: "Smart Description (hides if empty)", relevance: ["grievance"] },
+  { ph: "{remarksLabel}", desc: "Smart Remarks (hides if empty)", relevance: ["all"] },
+  { ph: "{reasonLabel}", desc: "Smart Reason (hides if empty)", relevance: ["all"] },
+  { ph: "{resolutionLabel}", desc: "Smart Resolution (hides if empty)", relevance: ["all"] },
+  { ph: "{purposeLabel}", desc: "Smart Purpose (hides if empty)", relevance: ["appointment"] },
   { ph: "{description}", desc: "Grievance description", relevance: ["grievance"] },
   { ph: "{purpose}", desc: "Appointment purpose", relevance: ["appointment"] },
   { ph: "{assignedByName}", desc: "Assigned by name", relevance: ["assigned"] },
@@ -230,11 +237,11 @@ const WA_PLACEHOLDERS: Array<{
 ];
 
 const DEFAULT_WA_MESSAGES: Record<string, string> = {
-  grievance_created_admin: `*{companyName}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📋 *NEW GRIEVANCE RECEIVED*\n\nRespected {recipientName},\nA new grievance has been submitted.\n\n🎫 *ID:* {grievanceId}\n👤 *Citizen:* {citizenName}\n🏢 *Dept:* {departmentName}\n📅 *On:* {formattedDate}\n\n*Description:*\n{description}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-  grievance_assigned_admin: `*{companyName}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n👤 *GRIEVANCE ASSIGNED*\n\nRespected {recipientName},\n\n🎫 *ID:* {grievanceId}\n👤 *Citizen:* {citizenName}\n👨💼 *Assigned By:* {assignedByName}\n📅 *On:* {formattedDate}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-  grievance_confirmation: `*{companyName}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n✅ *GRIEVANCE SUBMITTED*\n\nRespected {citizenName},\nYour grievance is registered.\n\n🎫 *Ref ID:* {grievanceId}\n🏢 *Dept:* {departmentName}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-  appointment_created_admin: `*{companyName}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📋 *NEW APPOINTMENT*\n\nRespected {recipientName},\n\n🎫 *ID:* {appointmentId}\n👤 *Citizen:* {citizenName}\n🎯 *Purpose:* {purpose}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-  appointment_confirmation: `*{companyName}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n✅ *APPOINTMENT REQUESTED*\n\nRespected {citizenName},\nYour request is received.\n\n🎫 *Ref ID:* {appointmentId}\n🎯 *Purpose:* {purpose}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+  grievance_created_admin: `*{companyName}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📋 *NEW GRIEVANCE RECEIVED*\n\nRespected {recipientName},\nA new grievance has been submitted.\n\n🎫 *ID:* {grievanceId}\n👤 *Citizen:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}\n📅 *On:* {formattedDate}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+  grievance_assigned_admin: `*{companyName}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n👤 *GRIEVANCE ASSIGNED*\n\nRespected {recipientName},\n\n🎫 *ID:* {grievanceId}\n👤 *Citizen:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}\n👨💼 *Assigned By:* {assignedByName}\n📅 *On:* {formattedDate}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+  grievance_confirmation: `*{companyName}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n✅ *GRIEVANCE SUBMITTED*\n\nRespected {citizenName},\nYour grievance is registered.\n\n🎫 *Ref ID:* {grievanceId}{deptLabel}{subDeptLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+  appointment_created_admin: `*{companyName}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📋 *NEW APPOINTMENT*\n\nRespected {recipientName},\n\n🎫 *ID:* {appointmentId}\n👤 *Citizen:* {citizenName}{purposeLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+  appointment_confirmation: `*{companyName}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n✅ *APPOINTMENT REQUESTED*\n\nRespected {citizenName},\nYour request is received.\n\n🎫 *Ref ID:* {appointmentId}{purposeLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
   cmd_stop: "🛑 Conversation ended. Type 'hi' to restart.",
   cmd_restart: "🔄 Restarting...",
   cmd_menu: "🏠 Returning to menu.",
@@ -537,8 +544,18 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
                        <Button onClick={() => setIsPreviewOpen(true)} variant="outline" size="sm" className="h-8 text-[10px] font-bold border-indigo-200 text-indigo-600">
                           <Eye className="w-3 h-3 mr-1" /> Preview
                        </Button>
-                       <Button onClick={handleSaveWhatsAppTemplates} size="sm" className="h-8 bg-indigo-600 text-[10px] font-black uppercase">
-                          <Save className="w-3 h-3 mr-1" /> Save
+                       <Button 
+                          onClick={handleSaveWhatsAppTemplates} 
+                          disabled={savingTemplates}
+                          size="sm" 
+                          className="h-8 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[10px] uppercase px-4 shadow-sm transition-all"
+                       >
+                          {savingTemplates ? (
+                            <LoadingSpinner className="w-3 h-3 mr-1" />
+                          ) : (
+                            <Save className="w-3 h-3 mr-1" />
+                          )}
+                          {savingTemplates ? "Updating..." : "Save Logic"}
                        </Button>
                     </div>
                  </div>

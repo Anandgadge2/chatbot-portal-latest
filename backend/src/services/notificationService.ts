@@ -208,9 +208,25 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
   }
 
   // Multi-line values (conditional blocks)
+  // Multi-line values (conditional blocks)
   const deptLabel = departmentName ? `\n🏢 *Department:* ${departmentName}` : '';
   const subDeptLabel = subDepartmentName ? `\n🏢 *Sub-Dept:* ${subDepartmentName}` : '';
   const descriptionLabel = description ? `\n📝 *Description:*\n${description}` : '';
+  
+  const rawRemarks = String(data.remarks || '').trim();
+  const remarksLabel = rawRemarks ? `\n📝 *Remarks:*\n${rawRemarks}` : '';
+  const reasonLabel = rawRemarks ? `\n❌ *Reason:* ${rawRemarks}` : '';
+  const resolutionLabel = rawRemarks ? `\n✅ *Resolution Remarks:*\n${rawRemarks}` : '';
+  
+  const rawPurpose = String(data.purpose || '').trim();
+  const purposeLabel = rawPurpose ? `\n🎯 *Purpose:* ${rawPurpose}` : '';
+  
+  const rawCategory = String(data.category || '').trim();
+  const categoryLabel = rawCategory ? `\n📁 *Category:* ${rawCategory}` : '';
+  
+  const loc = data.location as any;
+  const locAddress = (loc && typeof loc === 'object') ? (loc.address || loc.name || '') : (loc || '');
+  const locationLabel = String(locAddress).trim() ? `\n📍 *Location:* ${String(locAddress).trim()}` : '';
 
   return {
     ...data,
@@ -222,6 +238,12 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
     deptLabel,
     subDeptLabel,
     descriptionLabel,
+    remarksLabel,
+    reasonLabel,
+    resolutionLabel,
+    purposeLabel,
+    categoryLabel,
+    locationLabel,
     assignedByName,
     resolvedByName,
     formattedDate,

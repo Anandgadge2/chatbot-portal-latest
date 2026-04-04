@@ -13,16 +13,12 @@ A new grievance has been submitted by a citizen.
 
 *Details:*
 🎫 *Reference ID:* {grievanceId}
-👤 *Citizen Name:* {citizenName}
-🏢 *Department:* {departmentName}
-🏢 *Sub-Dept:* {subDepartmentName}
-📝 *Description:* {description}
+👤 *Citizen Name:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}
 📅 *Received On:* {formattedDate}
 
 *Action Required:*
 Please review this grievance promptly. Resolution should be provided as per SLA.
 ━━━━━━━━━━━━━━━━━━━━━
-*{companyName}*
 Digital Grievance Redressal System
 This is an automated notification.`,
 
@@ -53,17 +49,13 @@ The following grievance has been marked as *RESOLVED*.
 
 *Details:*
 🎫 *Reference ID:* {grievanceId}
-👤 *Citizen:* {citizenName}
-🏢 *Department:* {departmentName}
-🏢 *Sub-Dept:* {subDepartmentName}
+👤 *Citizen:* {citizenName}{deptLabel}{subDeptLabel}
 📊 *Status:* RESOLVED
 👨‍💼 *Resolved By:* {resolvedByName}
 📅 *Resolved On:* {formattedResolvedDate}
-⏱️ *Time Taken:* {resolutionTimeText}
-📝 *Resolution Remarks:*
-{remarks}
+⏱️ *Time Taken:* {resolutionTimeText}{resolutionLabel}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-*Digital Grievance System*`,
+Digital Grievance System`,
 
   grievance_rejected_admin: `*{companyName}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -75,11 +67,9 @@ The following grievance has been *REJECTED*.
 
 *Details:*
 🎫 *Ref No:* {grievanceId}
-👤 *Citizen:* {citizenName}
-🏢 *Department:* {departmentName}
+👤 *Citizen:* {citizenName}{deptLabel}
 📊 *Status:* REJECTED
-👨‍💼 *Action By:* {resolvedByName}
-📝 *Reason:* {remarks}
+👨‍💼 *Action By:* {resolvedByName}{reasonLabel}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 *{companyName}*`,
@@ -91,15 +81,12 @@ The following grievance has been *REJECTED*.
 Respected {citizenName},
 Your grievance has been registered.
 *Details:*
-🎫 *Reference ID:* {grievanceId}
-🏢 *Department:* {departmentName}
-🏢 *Sub-Dept:* {subDepartmentName}
+🎫 *Reference ID:* {grievanceId}{deptLabel}{subDeptLabel}
 📅 *Submitted On:* {formattedDate}
 
 You can track your status using the Reference ID: *{grievanceId}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Your grievance, our priority.
-– District Administration`,
+Your grievance, our priority.`,
 
   grievance_status_update: `*{companyName}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -110,15 +97,11 @@ Respected {citizenName},
 Your grievance status has been updated.
 
 *Details:*
-🎫 *Ref No:* {grievanceId}
-🏢 *Department:* {departmentName}
-🏢 *Sub-Dept:* {subDepartmentName}
-📊 *New Status:* {newStatus}
-📝 *Remarks:* {remarks}
+🎫 *Ref No:* {grievanceId}{deptLabel}{subDeptLabel}
+📊 *New Status:* {newStatus}{remarksLabel}
 
 You will receive further updates via WhatsApp.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-*{companyName}*
 Digital Grievance Redressal System`,
 
   grievance_resolved: `*{companyName}*
@@ -127,17 +110,13 @@ Digital Grievance Redressal System`,
 
 Respected {citizenName},
 
-🎫 *Reference ID:* {grievanceId}
-🏢 *Department:* {departmentName}
-🏢 *Sub-Dept:* {subDepartmentName}
+🎫 *Reference ID:* {grievanceId}{deptLabel}{subDeptLabel}
 📊 *Status:* RESOLVED
 👨‍💼 *Resolved By:* {resolvedByName}
-📅 *Resolved On:* {formattedResolvedDate}
-📝 *Remarks:* {remarks}
+📅 *Resolved On:* {formattedResolvedDate}{resolutionLabel}
 
 Thank you for your patience.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-*{companyName}*
 Digital Grievance Redressal System`,
 
   grievance_rejected: `*{companyName}*
@@ -149,10 +128,8 @@ Respected {citizenName},
 We regret to inform you that your grievance has been rejected.
 
 *Details:*
-🎫 *Ref No:* {grievanceId}
-🏢 *Department:* {departmentName}
-📊 *Status:* REJECTED
-📝 *Remarks:* {remarks}
+🎫 *Ref No:* {grievanceId}{deptLabel}
+📊 *Status:* REJECTED{reasonLabel}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 *{companyName}*`,
@@ -166,16 +143,13 @@ Respected {recipientName},
 Details:
 🎫 *Reference ID:* {appointmentId}
 👤 *Citizen Name:* {citizenName}
-📞 *Contact Number:* {citizenPhone}
-🎯 *Purpose:* {purpose}
+📞 *Contact Number:* {citizenPhone}{purposeLabel}
 📅 *Received On:* {formattedDate}
 
 *Action Required:*
 Please review this appointment promptly.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-*{companyName}*
-Digital Appointment System
-This is an automated notification.`,
+Digital Appointment System`,
 
   appointment_confirmed_admin: `*{companyName}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -185,8 +159,7 @@ Respected {recipientName},
 
 Details:
 🎫 *Reference ID:* {appointmentId}
-👤 *Citizen:* {citizenName}
-🎯 *Purpose:* {purpose}
+👤 *Citizen:* {citizenName}{purposeLabel}
 📅 *Date:* {appointmentDate}
 ⏰ *Time:* {appointmentTime}
 
@@ -203,15 +176,12 @@ The following appointment has been *CANCELLED*.
 
 *Details:*
 🎫 *Reference ID:* {appointmentId}
-👤 *Citizen:* {citizenName}
-🎯 *Purpose:* {purpose}
+👤 *Citizen:* {citizenName}{purposeLabel}
 📊 *Status:* CANCELLED
 👨‍💼 *Updated By:* {resolvedByName}
-📅 *Updated On:* {formattedResolvedDate}
-📝 *Cancellation Remarks:*
-{remarks}
+📅 *Updated On:* {formattedResolvedDate}{reasonLabel}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-*Digital Appointment System*`,
+Digital Appointment System`,
 
   appointment_completed_admin: `*{companyName}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -223,15 +193,12 @@ The following appointment has been marked as *COMPLETED*.
 
 *Details:*
 🎫 *Reference ID:* {appointmentId}
-👤 *Citizen:* {citizenName}
-🎯 *Purpose:* {purpose}
+👤 *Citizen:* {citizenName}{purposeLabel}
 📊 *Status:* COMPLETED
 👨‍💼 *Completed By:* {resolvedByName}
-📅 *Completed On:* {formattedResolvedDate}
-📝 *Resolution Remarks:*
-{remarks}
+📅 *Completed On:* {formattedResolvedDate}{resolutionLabel}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-*Digital Appointment System*`,
+Digital Appointment System`,
 
   appointment_confirmation: `*{companyName}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -242,14 +209,12 @@ Respected {citizenName},
 Your appointment request has been received.
 
 *Details:*
-🎫 *Reference ID:* {appointmentId}
-🎯 *Purpose:* {purpose}
+🎫 *Reference ID:* {appointmentId}{purposeLabel}
 📅 *Booked On:* {formattedDate}
 
 Please note your Reference ID: *{appointmentId}*
 We will notify you once it's scheduled/confirmed.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-*{companyName}*
 Digital Appointment System`,
 
   appointment_scheduled_update: `*{companyName}*
@@ -263,14 +228,11 @@ Your appointment has been scheduled.
 *Appointment Details:*
 🎫 *Ref No:* {appointmentId}
 📅 *Date:* {appointmentDate}
-⏰ *Time:* {appointmentTime}
-🎯 *Purpose:* {purpose}
-📊 *Status:* SCHEDULED
-📝 *Remarks:* {remarks}
+⏰ *Time:* {appointmentTime}{purposeLabel}
+📊 *Status:* SCHEDULED{remarksLabel}
 
 Please wait for final confirmation.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-*{companyName}*
 Digital Appointment System`,
 
   appointment_confirmed_update: `*{companyName}*
@@ -284,14 +246,11 @@ Your appointment has been confirmed.
 *Appointment Details:*
 🎫 *Ref No:* {appointmentId}
 📅 *Date:* {appointmentDate}
-⏰ *Time:* {appointmentTime}
-🎯 *Purpose:* {purpose}
-📊 *Status:* CONFIRMED
-📝 *Remarks:* {remarks}
+⏰ *Time:* {appointmentTime}{purposeLabel}
+📊 *Status:* CONFIRMED{remarksLabel}
 
 Please arrive 15 minutes early with valid ID.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-*{companyName}*
 Digital Appointment System`,
 
   appointment_cancelled_update: `*{companyName}*
@@ -305,13 +264,10 @@ We regret to inform you that your appointment has been cancelled.
 *Appointment Details:*
 🎫 *Ref No:* {appointmentId}
 📅 *Date:* {appointmentDate}
-⏰ *Time:* {appointmentTime}
-🎯 *Purpose:* {purpose}
-📝 *Remarks:* {remarks}
+⏰ *Time:* {appointmentTime}{purposeLabel}{reasonLabel}
 
 We apologize for any inconvenience caused.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-*{companyName}*
 Digital Appointment System`,
 
   appointment_completed_update: `*{companyName}*
@@ -325,12 +281,10 @@ Your appointment has been marked as completed.
 *Appointment Details:*
 🎫 *Ref No:* {appointmentId}
 📅 *Date:* {appointmentDate}
-⏰ *Time:* {appointmentTime}
-📝 *Remarks:* {remarks}
+⏰ *Time:* {appointmentTime}{resolutionLabel}
 
 Thank you for visiting us.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-*{companyName}*
 Digital Appointment System`,
 
   appointment_status_update: `*{companyName}*
@@ -343,11 +297,9 @@ Your appointment status has been updated.
 
 *Details:*
 🎫 *Ref No:* {appointmentId}
-📊 *New Status:* {newStatus}
-📝 *Remarks:* {remarks}
+📊 *New Status:* {newStatus}{remarksLabel}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-*{companyName}*
 Digital Appointment System`,
 
   cmd_stop:
