@@ -12,7 +12,6 @@ import {
   RefreshCw,
   CheckCircle2,
   Clock,
-  Building,
   AlertCircle,
   Phone,
   MessageCircle,
@@ -206,30 +205,6 @@ const AppointmentDetailDialog: React.FC<AppointmentDetailDialogProps> = ({
                       </div>
                    </div>
 
-                   {/* Col 2: Mapping */}
-                   <div className="space-y-4">
-                      <div className="flex items-center gap-2 text-slate-400">
-                        <Building className="w-3.5 h-3.5" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Organizational Node</span>
-                        <div className="flex-1 h-px bg-slate-100"></div>
-                      </div>
-                      <div className="space-y-3">
-                         <div className="flex flex-col">
-                            <span className="text-[9px] font-bold text-slate-400 uppercase mb-0.5">Department Node</span>
-                            <span className="text-sm font-bold text-slate-900">
-                               {typeof appointment.departmentId === "object" && appointment.departmentId ? (appointment.departmentId as any).name : "General Sector"}
-                            </span>
-                         </div>
-                         <div className="flex flex-col">
-                            <span className="text-[9px] font-bold text-slate-400 uppercase mb-0.5">Designated Officer</span>
-                            <span className="text-sm font-bold text-slate-600 italic">
-                               {appointment.assignedTo && typeof appointment.assignedTo === "object" 
-                                 ? `${(appointment.assignedTo as any).firstName} ${(appointment.assignedTo as any).lastName}`
-                                 : "Awaiting Personnel Allocation"}
-                            </span>
-                         </div>
-                      </div>
-                   </div>
                 </div>
 
                 {/* Purpose Block */}
