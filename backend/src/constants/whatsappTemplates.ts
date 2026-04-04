@@ -5,7 +5,7 @@
  */
 export const DEFAULT_WA_MESSAGES: Record<string, string> = {
   grievance_created_admin: `*{companyName}*
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━
 📋 *NEW GRIEVANCE RECEIVED*
 
 Respected {recipientName},
@@ -14,14 +14,14 @@ A new grievance has been submitted by a citizen.
 *Details:*
 🎫 *Reference ID:* {grievanceId}
 👤 *Citizen Name:* {citizenName}
-{deptLabel}
-{subDeptLabel}
-{descriptionLabel}
+🏢 *Department:* {departmentName}
+🏢 *Sub-Dept:* {subDepartmentName}
+📝 *Description:* {description}
 📅 *Received On:* {formattedDate}
 
 *Action Required:*
 Please review this grievance promptly. Resolution should be provided as per SLA.
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━
 *{companyName}*
 Digital Grievance Redressal System
 This is an automated notification.`,
@@ -35,9 +35,9 @@ Respected {recipientName},
 Details:
 🎫 *Reference ID:* {grievanceId}
 👤 *Citizen:* {citizenName}
-{deptLabel}
-{subDeptLabel}
-{descriptionLabel}
+🏢 *Department:* {departmentName}
+🏢 *Sub-Dept:* {subDepartmentName}
+📝 *Description:* {description}
 👨‍💼 *Assigned By:* {assignedByName}
 📅 *Assigned On:* {formattedDate}
 
