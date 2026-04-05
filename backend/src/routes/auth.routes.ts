@@ -7,6 +7,11 @@ import mongoose from 'mongoose';
 import Company from '../models/Company';
 import { resolveUserAccess } from '../utils/accessControl';
 import { authenticate } from '../middleware/auth';
+import crypto from 'crypto';
+import { sendEmail } from '../services/emailService';
+import CompanyWhatsAppConfig from '../models/CompanyWhatsAppConfig';
+import { sendWhatsAppMessage } from '../services/whatsappService';
+import { sendSmsOtp } from '../services/smsService';
 
 
 const router = express.Router();
@@ -250,6 +255,193 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     return res.status(500).json({ success: false, message: 'Login failed' });
+  }
+});
+
+// @route   POST /api/auth/forgot-password
+// @desc    Request a password reset link
+// @access  Public
+router.post('/forgot-password', async (req: Request, res: Response) => {
+  try {
+    const { phone, deliveryChannel } = req.body as {
+      phone?: string;
+      deliveryChannel?: 'email' | 'whatsapp' | 'sms';
+    };
+
+    if (!phone || !phone.trim()) {
+      return res.status(400).json({ success: false, message: 'Phone number is required' });
+    }
+
+    const channel = deliveryChannel || 'sms';
+    if (!['email', 'whatsapp', 'sms'].includes(channel)) {
+      return res.status(400).json({ success: false, message: 'deliveryChannel must be email, whatsapp or sms' });
+    }
+
+    const { validatePhoneNumber, normalizePhoneNumber } = await import('../utils/phoneUtils');
+    const phoneTrimmed = phone.trim();
+    if (!validatePhoneNumber(phoneTrimmed)) {
+      return res.status(400).json({ success: false, message: 'Phone number must be 10 digits or 12 digits (with country code)' });
+    }
+    const normalizedPhone = normalizePhoneNumber(phoneTrimmed);
+
+    const user = await User.findOne({ phone: normalizedPhone })
+      .select('+resetPasswordOtpHash +resetPasswordOtpExpires +resetPasswordOtpChannel +resetPasswordOtpAttempts')
+      .populate('companyId');
+
+    // Always respond success to prevent account enumeration
+    if (!user || !user.isActive) {
+      return res.json({
+        success: true,
+        message: 'If an account exists, an OTP has been sent.'
+      });
+    }
+
+    const otp = String(Math.floor(100000 + Math.random() * 900000));
+    const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    user.resetPasswordOtpHash = otpHash;
+    user.resetPasswordOtpExpires = otpExpiry;
+    user.resetPasswordOtpChannel = channel;
+    user.resetPasswordOtpAttempts = 0;
+    await user.save();
+
+    let deliverySuccess = false;
+    let deliveryError: string | undefined;
+
+    if (channel === 'email' && user.email) {
+      const fullName = `${user.firstName} ${user.lastName}`.trim();
+      const subject = 'Your password reset OTP';
+      const html = `
+        <p>Hello ${fullName || 'User'},</p>
+        <p>Your OTP for password reset is: <strong>${otp}</strong></p>
+        <p>This OTP will expire in 10 minutes.</p>
+        <p>If you did not request this, you can safely ignore this email.</p>
+      `;
+      const emailResult = await sendEmail(
+        user.email,
+        subject,
+        html,
+        `Your password reset OTP is ${otp}. It expires in 10 minutes.`,
+        { companyId: user.companyId as any }
+      );
+      deliverySuccess = emailResult.success;
+      deliveryError = emailResult.success ? undefined : emailResult.error;
+    } else if (channel === 'whatsapp') {
+      const companyId = user.companyId instanceof mongoose.Types.ObjectId
+        ? user.companyId
+        : (user.companyId as any)?._id;
+      const waConfig = companyId
+        ? await CompanyWhatsAppConfig.findOne({ companyId, isActive: true })
+        : null;
+
+      if (waConfig) {
+        const waCompany = {
+          name: (user.companyId as any)?.name || 'Portal',
+          whatsappConfig: {
+            phoneNumberId: waConfig.phoneNumberId,
+            accessToken: waConfig.accessToken
+          }
+        };
+        const waResult = await sendWhatsAppMessage(
+          waCompany,
+          user.phone,
+          `Your password reset OTP is ${otp}. It expires in 10 minutes.`
+        );
+        deliverySuccess = !!waResult?.success;
+        deliveryError = waResult?.error;
+      } else {
+        deliveryError = 'WhatsApp is not configured for this company';
+      }
+    } else if (channel === 'sms') {
+      const smsResult = await sendSmsOtp(user.phone, otp);
+      deliverySuccess = smsResult.success;
+      deliveryError = smsResult.error;
+    } else {
+      deliveryError = 'Selected delivery channel is unavailable for this account';
+    }
+
+    if (!deliverySuccess) {
+      user.resetPasswordOtpHash = undefined;
+      user.resetPasswordOtpExpires = undefined;
+      user.resetPasswordOtpChannel = undefined;
+      user.resetPasswordOtpAttempts = 0;
+      await user.save();
+      return res.status(400).json({
+        success: false,
+        message: deliveryError || 'Unable to send OTP. Please try another method.'
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: 'If an account exists, an OTP has been sent.',
+      data: process.env.NODE_ENV === 'production' ? undefined : { otp }
+    });
+  } catch (_error: any) {
+    return res.status(500).json({ success: false, message: 'Unable to process forgot password request' });
+  }
+});
+
+// @route   POST /api/auth/reset-password
+// @desc    Reset password using reset token
+// @access  Public
+router.post('/reset-password', async (req: Request, res: Response) => {
+  try {
+    const { phone, otp, password } = req.body;
+
+    if (!phone || !otp || !password) {
+      return res.status(400).json({ success: false, message: 'Phone, OTP and password are required' });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
+    }
+
+    const { validatePhoneNumber, normalizePhoneNumber } = await import('../utils/phoneUtils');
+    const phoneTrimmed = phone.trim();
+    if (!validatePhoneNumber(phoneTrimmed)) {
+      return res.status(400).json({ success: false, message: 'Phone number must be 10 digits or 12 digits (with country code)' });
+    }
+    const normalizedPhone = normalizePhoneNumber(phoneTrimmed);
+
+    const user = await User.findOne({
+      phone: normalizedPhone
+    }).select('+resetPasswordOtpHash +resetPasswordOtpExpires +resetPasswordOtpAttempts +password');
+
+    if (!user || !user.isActive) {
+      return res.status(400).json({ success: false, message: 'Invalid OTP or OTP has expired' });
+    }
+
+    if (
+      !user.resetPasswordOtpHash ||
+      !user.resetPasswordOtpExpires ||
+      user.resetPasswordOtpExpires <= new Date()
+    ) {
+      return res.status(400).json({ success: false, message: 'Invalid OTP or OTP has expired' });
+    }
+
+    if ((user.resetPasswordOtpAttempts || 0) >= 5) {
+      return res.status(429).json({ success: false, message: 'Too many invalid OTP attempts. Request a new OTP.' });
+    }
+
+    const otpHash = crypto.createHash('sha256').update(String(otp).trim()).digest('hex');
+    if (otpHash !== user.resetPasswordOtpHash) {
+      user.resetPasswordOtpAttempts = (user.resetPasswordOtpAttempts || 0) + 1;
+      await user.save();
+      return res.status(400).json({ success: false, message: 'Invalid OTP or OTP has expired' });
+    }
+
+    user.password = password;
+    user.resetPasswordOtpHash = undefined;
+    user.resetPasswordOtpExpires = undefined;
+    user.resetPasswordOtpChannel = undefined;
+    user.resetPasswordOtpAttempts = 0;
+    await user.save();
+
+    return res.json({ success: true, message: 'Password has been reset successfully' });
+  } catch (_error: any) {
+    return res.status(500).json({ success: false, message: 'Unable to reset password' });
   }
 });
 

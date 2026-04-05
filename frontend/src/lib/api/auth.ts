@@ -45,6 +45,17 @@ export interface RegisterData {
   departmentId?: string;
 }
 
+export interface ForgotPasswordPayload {
+  phone: string;
+  deliveryChannel: 'email' | 'whatsapp' | 'sms';
+}
+
+export interface ResetPasswordPayload {
+  phone: string;
+  otp: string;
+  password: string;
+}
+
 export const authAPI = {
   login: async (credentials: LoginCredentials): Promise<LoginResponse> => {
     return apiClient.post('/auth/login', credentials);
@@ -83,5 +94,13 @@ export const authAPI = {
   
   getCurrentProfile: async (): Promise<any> => {
     return apiClient.get('/auth/me');
+  },
+
+  forgotPassword: async (payload: ForgotPasswordPayload): Promise<any> => {
+    return apiClient.post('/auth/forgot-password', payload);
+  },
+
+  resetPassword: async (payload: ResetPasswordPayload): Promise<any> => {
+    return apiClient.post('/auth/reset-password', payload);
   },
 };

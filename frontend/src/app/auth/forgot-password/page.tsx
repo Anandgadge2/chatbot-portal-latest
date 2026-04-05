@@ -1,0 +1,115 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
+import { ArrowLeft, Mail, MessageCircle, Phone } from "lucide-react";
+import { authAPI } from "@/lib/api/auth";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+
+export default function ForgotPasswordPage() {
+  const router = useRouter();
+  const [phone, setPhone] = useState("");
+  const [deliveryChannel, setDeliveryChannel] = useState<"email" | "whatsapp" | "sms">("sms");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!phone.trim()) {
+      toast.error("Please enter your registered phone number");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await authAPI.forgotPassword({
+        phone: phone.trim(),
+        deliveryChannel
+      });
+      toast.success("If your account exists, an OTP has been sent.");
+      router.push(`/auth/reset-password?phone=${encodeURIComponent(phone.trim())}`);
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Unable to process your request right now.";
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+      <div className="w-full max-w-md bg-white rounded-3xl border border-slate-200 shadow-sm p-8">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-900 mb-6 uppercase tracking-widest"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to login
+        </Link>
+
+        <h1 className="text-2xl font-black text-slate-900 tracking-tight">Forgot password</h1>
+        <p className="text-sm text-slate-500 mt-2">
+          Enter your registered phone number and choose where to receive OTP.
+        </p>
+
+        <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+          <div className="space-y-2">
+            <Label htmlFor="phone" className="text-[11px] font-black uppercase tracking-wider text-slate-700">
+              Registered phone number
+            </Label>
+            <div className="relative">
+              <Input
+                id="phone"
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 12))}
+                placeholder="9876543210"
+                className="pr-20"
+                required
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2 text-slate-400">
+                <Phone className="w-4 h-4" />
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-[11px] font-black uppercase tracking-wider text-slate-700">
+              Send OTP via
+            </Label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {[
+                { id: "sms", label: "SMS", icon: <Phone className="w-3.5 h-3.5" /> },
+                { id: "whatsapp", label: "WhatsApp", icon: <MessageCircle className="w-3.5 h-3.5" /> },
+                { id: "email", label: "Email", icon: <Mail className="w-3.5 h-3.5" /> }
+              ].map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => setDeliveryChannel(option.id as "email" | "whatsapp" | "sms")}
+                  className={`h-10 rounded-xl border text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors ${
+                    deliveryChannel === option.id
+                      ? "bg-slate-900 text-white border-slate-900"
+                      : "bg-white text-slate-700 border-slate-200 hover:border-slate-400"
+                  }`}
+                >
+                  {option.icon}
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? "Sending OTP..." : "Send OTP"}
+          </Button>
+        </form>
+      </div>
+    </div>
+  );
+}
