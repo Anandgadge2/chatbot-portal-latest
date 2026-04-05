@@ -17,6 +17,10 @@ export interface IUser extends Document {
   isActive: boolean;
   isSuperAdmin?: boolean; // 👑 Explicit platform-wide role flag
   rawPassword?: string; // For administrator visibility
+  resetPasswordOtpHash?: string;
+  resetPasswordOtpExpires?: Date;
+  resetPasswordOtpChannel?: 'email' | 'whatsapp' | 'sms';
+  resetPasswordOtpAttempts?: number;
   lastLogin?: Date;
   createdBy?: mongoose.Types.ObjectId; // Track who created this user for hierarchical rights
   customRoleId?: mongoose.Types.ObjectId; // Optional: points to a company-defined Role for custom permissions
@@ -94,6 +98,24 @@ const UserSchema: Schema = new Schema(
     rawPassword: {
       type: String,
       required: false
+    },
+    resetPasswordOtpHash: {
+      type: String,
+      select: false
+    },
+    resetPasswordOtpExpires: {
+      type: Date,
+      select: false
+    },
+    resetPasswordOtpChannel: {
+      type: String,
+      enum: ['email', 'whatsapp', 'sms'],
+      select: false
+    },
+    resetPasswordOtpAttempts: {
+      type: Number,
+      default: 0,
+      select: false
     },
     lastLogin: {
       type: Date
