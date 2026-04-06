@@ -114,6 +114,15 @@ export default function UserManagementTab({ companyId: propCompanyId }: UserMana
   useEffect(() => {
     fetchUsers();
     fetchCustomRoles();
+
+    // Synchronization listener
+    const handleRefresh = () => {
+      fetchUsers();
+      fetchCustomRoles();
+    };
+
+    window.addEventListener('REFRESH_PORTAL_DATA', handleRefresh);
+    return () => window.removeEventListener('REFRESH_PORTAL_DATA', handleRefresh);
   }, [fetchUsers, fetchCustomRoles]);
 
   const filteredUsers = useMemo(() => {

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,7 +32,7 @@ import { SearchableSelect } from "@/components/ui/SearchableSelect";
 interface CreateUserDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onUserCreated: () => void;
+  onUserCreated: (user?: User) => void;
   editingUser?: User | null;
   defaultCompanyId?: string;
 }
@@ -405,8 +406,12 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
         }
 
         toast.success(isEditing ? "User updated successfully!" : "User created successfully!");
+        
+        // Dispatch global refresh event for synchronization
+        window.dispatchEvent(new CustomEvent('REFRESH_PORTAL_DATA'));
+        
         onClose();
-        onUserCreated();
+        onUserCreated(response.data.user);
       }
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Operation failed");
@@ -426,11 +431,21 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  if (!isOpen) return null;
+  const [isMounted, setIsMounted] = useState(false);
 
-  return (
-    <div className="fixed inset-0 bg-gray-500/10 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-lg max-h-[90vh] flex flex-col bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden">
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isOpen || !isMounted) return null;
+
+  const modalRoot = typeof document !== 'undefined' ? document.body : null;
+
+  if (!modalRoot) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 bg-gray-500/10 backdrop-blur-sm flex items-center justify-center z-[100] p-4 text-slate-900">
+      <Card className="w-full max-w-lg max-h-[90vh] flex flex-col bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden focus-within:ring-0">
         <CardHeader className="bg-slate-900 px-6 py-4 border-b border-slate-800">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -585,8 +600,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
                 <Switch 
                   checked={isMultiDept} 
                   onCheckedChange={setIsMultiDept} 
-                  disabled={true} 
-                  className="data-[state=checked]:bg-slate-400 data-[state=unchecked]:bg-slate-200 cursor-not-allowed opacity-50"
+                  className="data-[state=checked]:bg-indigo-600"
                 />
               </div>
 
@@ -756,7 +770,8 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
           </form>
         </CardContent>
       </Card>
-    </div>
+    </div>,
+    modalRoot
   );
 };
 

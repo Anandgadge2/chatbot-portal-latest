@@ -115,7 +115,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
 
 
       // 🏢 Per user request: Multiple assignment button should be disabled by default
-      setIsMultiDept(false);
+      setIsMultiDept(user.departmentIds && user.departmentIds.length > 1 ? true : false);
 
       const companyId = user?.companyId
         ? typeof user.companyId === "object"
@@ -216,6 +216,10 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
       }
 
       toast.success("User updated successfully");
+      
+      // Dispatch global refresh event for synchronization
+      window.dispatchEvent(new CustomEvent('REFRESH_PORTAL_DATA'));
+
       onUserUpdated();
       onClose();
     } catch (error: any) {
@@ -496,8 +500,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
                 <Switch 
                   checked={isMultiDept} 
                   onCheckedChange={setIsMultiDept} 
-                  disabled={true} 
-                  className="data-[state=checked]:bg-slate-400 data-[state=unchecked]:bg-slate-200 cursor-not-allowed opacity-50"
+                  className="data-[state=checked]:bg-indigo-600"
                 />
               </div>
 

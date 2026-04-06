@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { isSuperAdmin } from "@/lib/permissions";
 import toast from "react-hot-toast";
+import { cn } from "@/lib/utils";
 import {
   Card,
   CardContent,
@@ -254,11 +255,11 @@ function SuperAdminOverviewContent() {
       }
     },
     [
+      companyPage,
+      companyPagination.limit,
       companyDebouncedSearchTerm,
       companyStatusFilter,
       companyTypeFilter,
-      companyPagination.limit,
-      companyPage,
     ],
   );
 
@@ -322,7 +323,7 @@ function SuperAdminOverviewContent() {
     ],
   );
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const response = await apiClient.get("/dashboard/superadmin");
       if (response.success && response.data.stats) {
@@ -339,7 +340,23 @@ function SuperAdminOverviewContent() {
     } catch (e) {
       console.error("Critical error in fetchStats", e);
     }
-  };
+  }, []);
+
+  // Global Synchronization Listener
+  useEffect(() => {
+    if (mounted && user && isSuperAdmin(user)) {
+      const handleRefresh = () => {
+        fetchAllInitialData();
+        fetchStats();
+        fetchCompanies();
+        fetchUsers();
+        fetchDepartments();
+      };
+
+      window.addEventListener('REFRESH_PORTAL_DATA', handleRefresh);
+      return () => window.removeEventListener('REFRESH_PORTAL_DATA', handleRefresh);
+    }
+  }, [mounted, user, fetchAllInitialData, fetchStats, fetchCompanies, fetchUsers, fetchDepartments]);
 
   const handleDeleteCompany = (company: Company) => {
     setConfirmDialog({
@@ -347,16 +364,25 @@ function SuperAdminOverviewContent() {
       title: "Delete Company",
       message: `Are you sure you want to delete "${company.name}"? This action cannot be undone and will delete all associated departments, users, grievances, and appointments.`,
       onConfirm: async () => {
+        // Optimistic delete: remove from UI immediately
+        const originalCompanies = [...companies];
+        setCompanies(prev => prev.filter(c => c._id !== company._id));
+        setStats(prev => ({ ...prev, companies: prev.companies - 1 }));
+        setConfirmDialog({ ...confirmDialog, isOpen: false });
+
         try {
           const response = await companyAPI.delete(company._id);
           if (response.success) {
             toast.success("Company deleted successfully");
-            fetchCompanies();
-            setConfirmDialog({ ...confirmDialog, isOpen: false });
           } else {
+            // Revert on failure
+            setCompanies(originalCompanies);
+            setStats(prev => ({ ...prev, companies: prev.companies + 1 }));
             toast.error("Failed to delete company");
           }
         } catch (error: any) {
+          setCompanies(originalCompanies);
+          setStats(prev => ({ ...prev, companies: prev.companies + 1 }));
           toast.error(
             error?.response?.data?.message ||
               error?.message ||
@@ -374,16 +400,25 @@ function SuperAdminOverviewContent() {
       title: "Delete Department",
       message: `Are you sure you want to delete "${department.name}"? This action cannot be undone and will delete all associated users, grievances, and appointments.`,
       onConfirm: async () => {
+        // Optimistic delete: remove from UI immediately
+        const originalDepts = [...departments];
+        setDepartments(prev => prev.filter(d => d._id !== department._id));
+        setStats(prev => ({ ...prev, departments: prev.departments - 1 }));
+        setConfirmDialog({ ...confirmDialog, isOpen: false });
+
         try {
           const response = await departmentAPI.delete(department._id);
           if (response.success) {
             toast.success("Department deleted successfully");
-            fetchDepartments();
-            setConfirmDialog({ ...confirmDialog, isOpen: false });
           } else {
+            // Revert on failure
+            setDepartments(originalDepts);
+            setStats(prev => ({ ...prev, departments: prev.departments + 1 }));
             toast.error("Failed to delete department");
           }
         } catch (error: any) {
+          setDepartments(originalDepts);
+          setStats(prev => ({ ...prev, departments: prev.departments + 1 }));
           toast.error(
             error?.response?.data?.message ||
               error?.message ||
@@ -411,52 +446,83 @@ function SuperAdminOverviewContent() {
   };
 
   const toggleCompanyStatus = async (company: Company) => {
+    const newStatus = !company.isActive;
+    
+    // Optimistic Update
+    setCompanies(prev => prev.map(c => c._id === company._id ? { ...c, isActive: newStatus } : c));
+    
     try {
       const response = await companyAPI.update(company._id, {
-        isActive: !company.isActive,
+        isActive: newStatus,
       } as any);
+      
       if (response.success) {
         toast.success(
-          `Company ${!company.isActive ? "activated" : "suspended"} successfully`,
+          `Company ${newStatus ? "activated" : "suspended"} successfully`,
         );
-        fetchCompanies();
-        fetchStats();
+        fetchStats(); // Update stats in background
+      } else {
+        // Revert
+        setCompanies(prev => prev.map(c => c._id === company._id ? { ...c, isActive: !newStatus } : c));
+        toast.error("Failed to update company status");
       }
     } catch (error: any) {
+      // Revert
+      setCompanies(prev => prev.map(c => c._id === company._id ? { ...c, isActive: !newStatus } : c));
       toast.error("Failed to update company status");
     }
   };
 
   const toggleDepartmentStatus = async (dept: Department) => {
+    const newStatus = !dept.isActive;
+    
+    // Optimistic Update
+    setDepartments(prev => prev.map(d => d._id === dept._id ? { ...d, isActive: newStatus } : d));
+
     try {
       const response = await departmentAPI.update(dept._id, {
-        isActive: !dept.isActive,
+        isActive: newStatus,
       });
       if (response.success) {
         toast.success(
-          `Department ${!dept.isActive ? "activated" : "deactivated"} successfully`,
+          `Department ${newStatus ? "activated" : "deactivated"} successfully`,
         );
-        fetchDepartments();
         fetchStats();
+      } else {
+        // Revert
+        setDepartments(prev => prev.map(d => d._id === dept._id ? { ...d, isActive: !newStatus } : d));
+        toast.error("Failed to update department status");
       }
     } catch (error: any) {
+      // Revert
+      setDepartments(prev => prev.map(d => d._id === dept._id ? { ...d, isActive: !newStatus } : d));
       toast.error("Failed to update department status");
     }
   };
 
   const toggleUserStatus = async (u: User) => {
+    const newStatus = !u.isActive;
+    
+    // Optimistic Update
+    setUsers(prev => prev.map(user => user._id === u._id ? { ...user, isActive: newStatus } : user));
+
     try {
       const response = await userAPI.update(u._id, {
-        isActive: !u.isActive,
+        isActive: newStatus,
       } as any);
       if (response.success) {
         toast.success(
-          `User ${!u.isActive ? "activated" : "deactivated"} successfully`,
+          `User ${newStatus ? "activated" : "deactivated"} successfully`,
         );
-        fetchUsers();
         fetchStats();
+      } else {
+        // Revert
+        setUsers(prev => prev.map(user => user._id === u._id ? { ...user, isActive: !newStatus } : user));
+        toast.error("Failed to update user status");
       }
     } catch (error: any) {
+      // Revert
+      setUsers(prev => prev.map(user => user._id === u._id ? { ...user, isActive: !newStatus } : user));
       toast.error("Failed to update user status");
     }
   };
@@ -467,16 +533,25 @@ function SuperAdminOverviewContent() {
       title: "Delete User",
       message: `Are you sure you want to delete ${u.firstName} ${u.lastName}? This action cannot be undone.`,
       onConfirm: async () => {
+        // Optimistic delete: remove from UI immediately
+        const originalUsers = [...users];
+        setUsers(prev => prev.filter(user => user._id !== u._id));
+        setStats(prev => ({ ...prev, users: prev.users - 1 }));
+        setConfirmDialog({ ...confirmDialog, isOpen: false });
+
         try {
           const response = await userAPI.delete(u._id);
           if (response.success) {
             toast.success("User deleted successfully");
-            fetchUsers();
-            setConfirmDialog({ ...confirmDialog, isOpen: false });
           } else {
+            // Revert on failure
+            setUsers(originalUsers);
+            setStats(prev => ({ ...prev, users: prev.users + 1 }));
             toast.error("Failed to delete user");
           }
         } catch (error: any) {
+          setUsers(originalUsers);
+          setStats(prev => ({ ...prev, users: prev.users + 1 }));
           toast.error(
             error?.response?.data?.message ||
               error?.message ||
@@ -491,9 +566,23 @@ function SuperAdminOverviewContent() {
   useEffect(() => {
     const handler = setTimeout(() => {
       setCompanyDebouncedSearchTerm(companySearchTerm);
-    }, 500);
+    }, 300);
     return () => clearTimeout(handler);
   }, [companySearchTerm]);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDeptDebouncedSearchTerm(deptSearchTerm);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [deptSearchTerm]);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchTerm(userSearchTerm);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [userSearchTerm]);
 
   useEffect(() => {
     if (mounted && user) {
@@ -511,13 +600,6 @@ function SuperAdminOverviewContent() {
   ]);
 
   useEffect(() => {
-    const handler = setTimeout(() => {
-      setDeptDebouncedSearchTerm(deptSearchTerm);
-    }, 500);
-    return () => clearTimeout(handler);
-  }, [deptSearchTerm]);
-
-  useEffect(() => {
     if (mounted && user) {
       fetchDepartments(departmentPage);
     }
@@ -530,13 +612,6 @@ function SuperAdminOverviewContent() {
     departmentPagination.limit,
     fetchDepartments,
   ]);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedSearchTerm(userSearchTerm);
-    }, 500);
-    return () => clearTimeout(handler);
-  }, [userSearchTerm]);
 
   useEffect(() => {
     if (mounted && user) {
@@ -557,7 +632,7 @@ function SuperAdminOverviewContent() {
     if (mounted && user) {
       fetchStats();
     }
-  }, [mounted, user]);
+  }, [mounted, user, fetchStats]);
 
   if (!mounted) {
     return (
@@ -744,7 +819,13 @@ function SuperAdminOverviewContent() {
               </div>
             </div>
 
-            {loading ? <StatsSkeleton /> : <DashboardStats stats={stats} setActiveTab={setActiveTab} />}
+            {loading && stats.companies === 0 ? (
+              <StatsSkeleton />
+            ) : (
+              <div className={`transition-opacity duration-300 ${loading ? "opacity-50 pointer-events-none" : ""}`}>
+                <DashboardStats stats={stats} setActiveTab={setActiveTab} />
+              </div>
+            )}
 
             <div className="mt-6">
               {showLogs ? (
@@ -770,30 +851,32 @@ function SuperAdminOverviewContent() {
           </TabsContent>
 
           <TabsContent value="companies" className="space-y-4 outline-none">
-            {companiesLoading ? (
+            {companiesLoading && companies.length === 0 ? (
               <TableSkeleton rows={10} cols={5} />
             ) : (
-              <CompanyTabContent
-                companies={companies}
-                companiesLoading={companiesLoading}
-                companySearchTerm={companySearchTerm}
-                setCompanySearchTerm={setCompanySearchTerm}
-                companyStatusFilter={companyStatusFilter}
-                setCompanyStatusFilter={setCompanyStatusFilter}
-                companyTypeFilter={companyTypeFilter}
-                setCompanyTypeFilter={setCompanyTypeFilter}
-                companyPage={companyPage}
-                setCompanyPage={setCompanyPage}
-                companyPagination={companyPagination}
-                setCompanyLimit={(limit: number) => setCompanyPagination(p => ({ ...p, limit }))}
-                navigatingCompanyId={navigatingCompanyId}
-                setShowCreateDialog={setShowCreateDialog}
-                handleOpenCompanyDashboard={handleOpenCompanyDashboard}
-                handleEditCompany={handleEditCompany}
-                handleDeleteCompany={handleDeleteCompany}
-                toggleCompanyStatus={toggleCompanyStatus}
-                onRefresh={() => { fetchCompanies(); fetchStats(); }}
-              />
+              <div className={`transition-opacity duration-300 ${companiesLoading ? "opacity-50 pointer-events-none" : ""}`}>
+                <CompanyTabContent
+                  companies={companies}
+                  companiesLoading={companiesLoading}
+                  companySearchTerm={companySearchTerm}
+                  setCompanySearchTerm={setCompanySearchTerm}
+                  companyStatusFilter={companyStatusFilter}
+                  setCompanyStatusFilter={setCompanyStatusFilter}
+                  companyTypeFilter={companyTypeFilter}
+                  setCompanyTypeFilter={setCompanyTypeFilter}
+                  companyPage={companyPage}
+                  setCompanyPage={setCompanyPage}
+                  companyPagination={companyPagination}
+                  setCompanyLimit={(limit: number) => setCompanyPagination(p => ({ ...p, limit }))}
+                  navigatingCompanyId={navigatingCompanyId}
+                  setShowCreateDialog={setShowCreateDialog}
+                  handleOpenCompanyDashboard={handleOpenCompanyDashboard}
+                  handleEditCompany={handleEditCompany}
+                  handleDeleteCompany={handleDeleteCompany}
+                  toggleCompanyStatus={toggleCompanyStatus}
+                  onRefresh={() => Promise.all([fetchCompanies(), fetchStats()])}
+                />
+              </div>
             )}
           </TabsContent>
 
@@ -857,7 +940,10 @@ function SuperAdminOverviewContent() {
             setShowUserDialog(false);
             setEditingUser(null);
           }}
-          onUserCreated={fetchUsers}
+          onUserCreated={() => {
+            fetchUsers(userPage);
+            fetchStats();
+          }}
           editingUser={editingUser}
         />
       </main>

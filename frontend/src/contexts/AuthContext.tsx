@@ -66,17 +66,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (credentials: LoginCredentials) => {
-    const startTime = Date.now();
-    const minDelay = 800; // Minimum 800ms delay to prevent flash of errors
-    
     try {
       const response = await authAPI.login(credentials);
-      
-      // Ensure minimum delay has passed
-      const elapsed = Date.now() - startTime;
-      if (elapsed < minDelay) {
-        await new Promise(resolve => setTimeout(resolve, minDelay - elapsed));
-      }
       
       if (response.success) {
         const { user, accessToken, refreshToken } = response.data;
@@ -101,12 +92,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toast.error(response.message || 'Login failed');
       }
     } catch (error: any) {
-      // Ensure minimum delay has passed before showing error
-      const elapsed = Date.now() - startTime;
-      if (elapsed < minDelay) {
-        await new Promise(resolve => setTimeout(resolve, minDelay - elapsed));
-      }
-      
       // Extract error message from response
       let errorMessage = 'Login failed. Please try again.';
       
@@ -144,14 +129,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         authAPI.saveUser(userWithActive);
         setUser(userWithActive);
         
-        toast.success('SSO Login successful!');
-        
-        router.push('/dashboard');
+        const dashboardUrl = '/dashboard';
+        window.location.href = dashboardUrl;
       }
     } catch (error: any) {
       const message = error.response?.data?.message || error.message || 'SSO Login failed.';
       toast.error(message);
-      router.push('/'); // Redirect to home if failed
+      window.location.href = '/'; // Redirect to local login/home if failed
       throw error;
     } finally {
       setLoading(false);

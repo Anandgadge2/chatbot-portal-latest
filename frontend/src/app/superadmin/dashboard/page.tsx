@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { isSuperAdmin } from "@/lib/permissions";
 import toast from "react-hot-toast";
+import { cn } from "@/lib/utils";
 import {
   Card,
   CardContent,
@@ -158,7 +159,7 @@ function SuperAdminDashboardContent() {
     try {
       const [statsRes, companiesRes] = await Promise.all([
         apiClient.get("/dashboard/superadmin"),
-        companyAPI.getAll({ limit: 100 }), // Fetch more for dropdowns
+        companyAPI.getAll({ limit: 100 }), 
       ]);
 
       if (statsRes.success) {
@@ -327,7 +328,7 @@ function SuperAdminDashboardContent() {
     ],
   );
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const response = await apiClient.get("/dashboard/superadmin");
       if (response.success && response.data.stats) {
@@ -344,7 +345,7 @@ function SuperAdminDashboardContent() {
     } catch (e) {
       console.error("Critical error in fetchStats", e);
     }
-  };
+  }, []);
 
   const handleDeleteCompany = (company: Company) => {
     setConfirmDialog({
@@ -496,7 +497,7 @@ function SuperAdminDashboardContent() {
   useEffect(() => {
     const handler = setTimeout(() => {
       setCompanyDebouncedSearchTerm(companySearchTerm);
-    }, 500);
+    }, 300);
     return () => clearTimeout(handler);
   }, [companySearchTerm]);
 
@@ -517,7 +518,7 @@ function SuperAdminDashboardContent() {
   useEffect(() => {
     const handler = setTimeout(() => {
       setDeptDebouncedSearchTerm(deptSearchTerm);
-    }, 500);
+    }, 300);
     return () => clearTimeout(handler);
   }, [deptSearchTerm]);
 
@@ -537,7 +538,7 @@ function SuperAdminDashboardContent() {
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearchTerm(userSearchTerm);
-    }, 500);
+    }, 300);
     return () => clearTimeout(handler);
   }, [userSearchTerm]);
 
@@ -562,7 +563,7 @@ function SuperAdminDashboardContent() {
     if (mounted && user) {
       fetchStats();
     }
-  }, [mounted, user]);
+  }, [mounted, user, fetchStats]);
 
   if (!mounted) {
     return (
@@ -749,7 +750,13 @@ function SuperAdminDashboardContent() {
               </div>
             </div>
 
-            {loading ? <StatsSkeleton /> : <DashboardStats stats={stats} setActiveTab={setActiveTab} />}
+            {loading && stats === null ? (
+              <StatsSkeleton />
+            ) : (
+              <div className={cn("transition-opacity duration-300", loading && "opacity-50 pointer-events-none")}>
+                <DashboardStats stats={stats} setActiveTab={setActiveTab} />
+              </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
@@ -827,30 +834,32 @@ function SuperAdminDashboardContent() {
           </TabsContent>
 
           <TabsContent value="companies" className="space-y-4 outline-none">
-            {companiesLoading ? (
+            {companiesLoading && companies.length === 0 ? (
               <TableSkeleton rows={10} cols={5} />
             ) : (
-              <CompanyTabContent
-                companies={companies}
-                companiesLoading={companiesLoading}
-                companySearchTerm={companySearchTerm}
-                setCompanySearchTerm={setCompanySearchTerm}
-                companyStatusFilter={companyStatusFilter}
-                setCompanyStatusFilter={setCompanyStatusFilter}
-                companyTypeFilter={companyTypeFilter}
-                setCompanyTypeFilter={setCompanyTypeFilter}
-                companyPage={companyPage}
-                setCompanyPage={setCompanyPage}
-                companyPagination={companyPagination}
-                setCompanyLimit={(limit: number) => setCompanyPagination(p => ({ ...p, limit }))}
-                navigatingCompanyId={navigatingCompanyId}
-                setShowCreateDialog={setShowCreateDialog}
-                handleOpenCompanyDashboard={handleOpenCompanyDashboard}
-                handleEditCompany={handleEditCompany}
-                handleDeleteCompany={handleDeleteCompany}
-                toggleCompanyStatus={toggleCompanyStatus}
-                onRefresh={() => { fetchCompanies(); fetchStats(); }}
-              />
+              <div className={cn("transition-opacity duration-300", companiesLoading && "opacity-50 pointer-events-none")}>
+                <CompanyTabContent
+                  companies={companies}
+                  companiesLoading={companiesLoading}
+                  companySearchTerm={companySearchTerm}
+                  setCompanySearchTerm={setCompanySearchTerm}
+                  companyStatusFilter={companyStatusFilter}
+                  setCompanyStatusFilter={setCompanyStatusFilter}
+                  companyTypeFilter={companyTypeFilter}
+                  setCompanyTypeFilter={setCompanyTypeFilter}
+                  companyPage={companyPage}
+                  setCompanyPage={setCompanyPage}
+                  companyPagination={companyPagination}
+                  setCompanyLimit={(limit: number) => setCompanyPagination(p => ({ ...p, limit }))}
+                  navigatingCompanyId={navigatingCompanyId}
+                  setShowCreateDialog={setShowCreateDialog}
+                  handleOpenCompanyDashboard={handleOpenCompanyDashboard}
+                  handleEditCompany={handleEditCompany}
+                  handleDeleteCompany={handleDeleteCompany}
+                  toggleCompanyStatus={toggleCompanyStatus}
+                  onRefresh={() => Promise.all([fetchCompanies(), fetchStats()])}
+                />
+              </div>
             )}
           </TabsContent>
 
@@ -1017,7 +1026,10 @@ function SuperAdminDashboardContent() {
             setShowUserDialog(false);
             setEditingUser(null);
           }}
-          onUserCreated={fetchUsers}
+          onUserCreated={() => {
+            fetchUsers(userPage);
+            fetchStats();
+          }}
           editingUser={editingUser}
         />
       </main>

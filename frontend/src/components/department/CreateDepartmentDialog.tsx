@@ -16,11 +16,12 @@ import { companyAPI, Company } from "@/lib/api/company";
 import { userAPI, User as APIUser } from "@/lib/api/user";
 import { useAuth } from "@/contexts/AuthContext";
 import { isSuperAdmin } from "@/lib/permissions";
-import { Building, Shield, Languages, X, User } from "lucide-react";
+import { Building, Shield, Languages, X, User, UserPlus } from "lucide-react";
 import toast from "react-hot-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { SearchableSelect } from "@/components/ui/SearchableSelect";
+import CreateUserDialog from "@/components/user/CreateUserDialog";
 
 const LANGUAGE_OPTIONS = [
   { code: "en", label: "English" },
@@ -72,6 +73,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
     contactPhone: "",
   });
   const [companyUsers, setCompanyUsers] = useState<any[]>([]);
+  const [showCreateUser, setShowCreateUser] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -297,6 +299,9 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
       }
 
       if (response.success) {
+        // Dispatch global refresh event for synchronization
+        window.dispatchEvent(new CustomEvent('REFRESH_PORTAL_DATA'));
+        
         setFormData({
           name: "",
           nameHi: "",
@@ -511,6 +516,16 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                     contactPhone: selectedUser?.phone || "",
                   }));
                 }}
+                action={
+                  <Button
+                    type="button"
+                    onClick={() => setShowCreateUser(true)}
+                    className="w-full h-9 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-600/10 transition-all active:scale-95 flex items-center justify-center gap-2"
+                  >
+                    <UserPlus className="w-3.5 h-3.5 mt-[-2px]" />
+                    Add New User Account
+                  </Button>
+                }
                 placeholder="-- Select Lead --"
                 className="w-full bg-white"
               />
@@ -520,6 +535,32 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                   : "Associate an existing user account to receive administrative notifications."}
               </p>
             </div>
+
+            {/* Nested Create User Dialog */}
+            {showCreateUser && (
+              <CreateUserDialog
+                isOpen={showCreateUser}
+                onClose={() => setShowCreateUser(false)}
+                defaultCompanyId={formData.companyId}
+                onUserCreated={async (newUser) => {
+                  await fetchCompanyUsers();
+                  setShowCreateUser(false);
+                  
+                  if (newUser && (newUser as any).id) {
+                    const newId = (newUser as any).id;
+                    setFormData((prev) => ({
+                      ...prev,
+                      contactUserId: newId,
+                      contactPerson: `${newUser.firstName} ${newUser.lastName}`,
+                      contactEmail: newUser.email || "",
+                      contactPhone: newUser.phone || "",
+                    }));
+                  }
+                  
+                  toast.success("New user synchronized and selected as lead");
+                }}
+              />
+            )}
 
             <div className="pt-2 space-y-4">
               <div className="flex items-center gap-2 mb-2">

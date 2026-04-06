@@ -104,29 +104,30 @@ router.get('/', requirePermission(Permission.READ_DEPARTMENT), async (req: Reque
     } else {
       query.companyId = user.companyId;
 
-      // Support multiple department scoping for Dept Admins
+      // Support multiple department scoping for restricted roles
       const userDepts = [];
       if (user.departmentId) userDepts.push(user.departmentId.toString());
       if (user.departmentIds && Array.isArray(user.departmentIds)) {
         user.departmentIds.forEach(id => userDepts.push(id.toString()));
       }
-      
       const uniqueUserDepts = [...new Set(userDepts)];
+      const wantsAllDepts = listAll === "true";
 
-      if (uniqueUserDepts.length > 0) {
-        const userLevel = user.level !== undefined ? user.level : 4;
-        const wantsAllDepts = listAll === "true";
-        if (userLevel > 1 && !wantsAllDepts) {
-          if (userLevel === 2) {
-            // Include these depts and all their children
-            const subDeptIds = await Department.find({ 
-              parentDepartmentId: { $in: uniqueUserDepts }
-            }).distinct('_id');
-            query._id = { $in: [...uniqueUserDepts, ...subDeptIds] };
-          } else {
-            // Strictly just these depts
-            query._id = { $in: uniqueUserDepts };
-          }
+      if (user.scope === 'department' && !wantsAllDepts) {
+        if (uniqueUserDepts.length > 0) {
+          // Include these depts and all their children
+          const subDeptIds = await Department.find({ 
+            parentDepartmentId: { $in: uniqueUserDepts }
+          }).distinct('_id');
+          query._id = { $in: [...uniqueUserDepts, ...subDeptIds] };
+        }
+      } else if (user.scope === 'subdepartment' && !wantsAllDepts) {
+        if (uniqueUserDepts.length > 0) {
+          query._id = { $in: uniqueUserDepts };
+        }
+      } else if (user.scope === 'assigned' && !wantsAllDepts) {
+        if (uniqueUserDepts.length > 0) {
+          query._id = { $in: uniqueUserDepts };
         }
       }
     }

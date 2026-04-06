@@ -412,7 +412,7 @@ export default function AssignmentDialog({
           </div>
         </div>
 
-        <div className="p-5 space-y-4 flex-1 overflow-hidden flex flex-col bg-slate-50">
+        <div className="p-5 space-y-4 flex-1 overflow-visible flex flex-col bg-slate-50">
           {/* Filters */}
           <div className="flex flex-col space-y-3">
             {/* Search */}

@@ -16,6 +16,7 @@ interface SearchableSelectProps {
   emptyMessage?: string;
   className?: string;
   disabled?: boolean;
+  action?: React.ReactNode;
 }
 
 export const SearchableSelect: React.FC<SearchableSelectProps> = ({
@@ -26,6 +27,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
   emptyMessage = "No results found.",
   className = "",
   disabled = false,
+  action,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -110,7 +112,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
               )}
             </div>
           </div>
-          <div className="max-h-[400px] overflow-y-auto p-1.5 custom-scrollbar">
+          <div className="max-h-[500px] overflow-y-auto p-1.5 custom-scrollbar scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
             {filteredOptions.length === 0 ? (
               <div className="py-6 text-center text-sm text-slate-400 font-medium">
                 {emptyMessage}
@@ -133,6 +135,11 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
               ))
             )}
           </div>
+          {action && (
+            <div className="p-2 border-t border-slate-100 bg-slate-50/50">
+              {action}
+            </div>
+          )}
         </div>
       )}
     </div>

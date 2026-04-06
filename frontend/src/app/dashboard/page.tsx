@@ -1112,7 +1112,7 @@ function DashboardContent() {
         // For company admin, fetch ALL departments (no pagination limit)
         const fetchLimit =
           isCompanyLevel || (isSuperAdminUser && companyIdParam)
-            ? 1000
+            ? 200
             : departmentPagination.limit;
         const response = await departmentAPI.getAll({
           page: page,
@@ -1432,30 +1432,54 @@ function DashboardContent() {
     fetchLeads,
   ]);
 
-  // 1. Initial Dashboard Stats & Page-independent data
+  // 1. Core Profile & Config - Fetch only once when user/company context changes
   useEffect(() => {
-    // Skip if in SuperAdmin overview mode to avoid redundant fetching
     if (isSuperAdminUser && !companyIdParam) return;
-
     if (mounted && user) {
-      if (isSuperAdminUser || hasPermission(user, Permission.VIEW_ANALYTICS)) {
-        fetchDashboardData();
-      }
       if (user.companyId || (isSuperAdminUser && companyIdParam)) {
         fetchCompany();
         fetchRoles();
         fetchAllDepartments();
       }
     }
+  }, [mounted, user, companyIdParam, fetchCompany, fetchRoles, fetchAllDepartments, isSuperAdminUser]);
+
+  // 2. Dashboard Stats - Fetch on mount and when active tab changes to overview/analytics
+  useEffect(() => {
+    if (isSuperAdminUser && !companyIdParam) return;
+    if (mounted && user) {
+      if (activeTab === "overview" || activeTab === "analytics") {
+        if (isSuperAdminUser || hasPermission(user, Permission.VIEW_ANALYTICS)) {
+          fetchDashboardData();
+        }
+      }
+    }
+  }, [mounted, user, activeTab, fetchDashboardData, isSuperAdminUser, companyIdParam]);
+
+  // 3. Global Synchronization Listener
+  useEffect(() => {
+    const handleGlobalRefresh = () => {
+      fetchDashboardData(true);
+      fetchGrievances(grievancePage, true);
+      fetchAppointments(appointmentPage, true);
+      fetchDepartments(departmentPage, true);
+      fetchUsers(userPage, true);
+      fetchLeads();
+    };
+
+    window.addEventListener("REFRESH_PORTAL_DATA", handleGlobalRefresh);
+    return () => window.removeEventListener("REFRESH_PORTAL_DATA", handleGlobalRefresh);
   }, [
-    mounted,
-    user,
     fetchDashboardData,
-    fetchCompany,
-    fetchRoles,
-    fetchAllDepartments,
-    isSuperAdminUser,
-    companyIdParam,
+    fetchGrievances,
+    grievancePage,
+    fetchAppointments,
+    appointmentPage,
+    fetchDepartments,
+    departmentPage,
+    fetchUsers,
+    userPage,
+    fetchLeads
   ]);
 
   // 2. Specialized effects for each paginated module (Gated by activeTab for SPA performance)
@@ -1865,42 +1889,21 @@ function DashboardContent() {
           }
         });
       }
-      // Search filter
+      // Search filter - Instant, case-insensitive, whitespace-resilient
       if (grievanceSearch.trim()) {
-        const search = grievanceSearch.toLowerCase().trim();
+        const searchTerms = grievanceSearch.toLowerCase().trim().split(/\s+/).filter(Boolean);
         filteredData = filteredData.filter((g: Grievance) => {
-          const idMatch = g.grievanceId?.toLowerCase().includes(search);
-          const citizenNameMatch = g.citizenName
-            ?.toLowerCase()
-            .includes(search);
-          const citizenPhoneMatch = g.citizenPhone?.includes(search);
-          const categoryMatch = g.category?.toLowerCase().includes(search);
-          const descriptionMatch = g.description
-            ?.toLowerCase()
-            .includes(search);
+          const searchContent = [
+            g.grievanceId,
+            g.citizenName,
+            g.citizenPhone,
+            g.category,
+            g.description,
+            typeof g.assignedTo === 'object' ? `${(g.assignedTo as any).firstName} ${(g.assignedTo as any).lastName}` : g.assignedTo,
+            typeof g.assignedTo === 'object' ? (g.assignedTo as any).email : ''
+          ].join(' ').toLowerCase();
 
-          // Enhanced: Search by assigned official's name/details
-          let assignedMatch = false;
-          if (g.assignedTo) {
-            if (typeof g.assignedTo === "object") {
-              const fullName =
-                `${(g.assignedTo as any).firstName || ""} ${(g.assignedTo as any).lastName || ""}`.toLowerCase();
-              assignedMatch =
-                fullName.includes(search) ||
-                (g.assignedTo as any).email?.toLowerCase().includes(search);
-            } else {
-              assignedMatch = g.assignedTo.toLowerCase().includes(search);
-            }
-          }
-
-          return (
-            idMatch ||
-            citizenNameMatch ||
-            citizenPhoneMatch ||
-            categoryMatch ||
-            descriptionMatch ||
-            assignedMatch
-          );
+          return searchTerms.every(term => searchContent.includes(term));
         });
       }
     }
@@ -1962,38 +1965,20 @@ function DashboardContent() {
           }
         });
       }
-      // Search filter
+      // Search filter - Instant, case-insensitive, whitespace-resilient
       if (appointmentSearch.trim()) {
-        const search = appointmentSearch.toLowerCase().trim();
+        const searchTerms = appointmentSearch.toLowerCase().trim().split(/\s+/).filter(Boolean);
         filteredData = filteredData.filter((a: Appointment) => {
-          const idMatch = a.appointmentId?.toLowerCase().includes(search);
-          const citizenNameMatch = a.citizenName
-            ?.toLowerCase()
-            .includes(search);
-          const citizenPhoneMatch = a.citizenPhone?.includes(search);
-          const purposeMatch = a.purpose?.toLowerCase().includes(search);
+          const searchContent = [
+            a.appointmentId,
+            a.citizenName,
+            a.citizenPhone,
+            a.purpose,
+            typeof a.assignedTo === 'object' ? `${(a.assignedTo as any).firstName} ${(a.assignedTo as any).lastName}` : a.assignedTo,
+            typeof a.assignedTo === 'object' ? (a.assignedTo as any).email : ''
+          ].join(' ').toLowerCase();
 
-          // Enhanced: Search by assigned official's name/details
-          let assignedMatch = false;
-          if (a.assignedTo) {
-            if (typeof a.assignedTo === "object") {
-              const fullName =
-                `${(a.assignedTo as any).firstName || ""} ${(a.assignedTo as any).lastName || ""}`.toLowerCase();
-              assignedMatch =
-                fullName.includes(search) ||
-                (a.assignedTo as any).email?.toLowerCase().includes(search);
-            } else {
-              assignedMatch = a.assignedTo.toLowerCase().includes(search);
-            }
-          }
-
-          return (
-            idMatch ||
-            citizenNameMatch ||
-            citizenPhoneMatch ||
-            purposeMatch ||
-            assignedMatch
-          );
+          return searchTerms.every(term => searchContent.includes(term));
         });
       }
     }
@@ -2014,17 +1999,20 @@ function DashboardContent() {
           deptFilters.status === "active" ? d.isActive : !d.isActive,
         );
       }
-      // Search filter
+      // Search filter - Instant, case-insensitive, whitespace-resilient
       if (deptSearch.trim()) {
-        const search = deptSearch.toLowerCase().trim();
-        filteredData = filteredData.filter(
-          (d: Department) =>
-            d.name.toLowerCase().includes(search) ||
-            d.departmentId?.toLowerCase().includes(search) ||
-            d.head?.toLowerCase().includes(search) ||
-            d.contactPerson?.toLowerCase().includes(search) ||
-            (d as any).headName?.toLowerCase().includes(search),
-        );
+        const searchTerms = deptSearch.toLowerCase().trim().split(/\s+/).filter(Boolean);
+        filteredData = filteredData.filter((d: Department) => {
+          const searchContent = [
+            d.name,
+            d.departmentId,
+            d.head,
+            d.contactPerson,
+            (d as any).headName
+          ].join(' ').toLowerCase();
+
+          return searchTerms.every(term => searchContent.includes(term));
+        });
       }
       // Main Department filter (show main + its subs)
       if (deptFilters.mainDeptId) {
@@ -2032,6 +2020,12 @@ function DashboardContent() {
           (d: Department) =>
             d._id === deptFilters.mainDeptId ||
             getParentDepartmentId(d) === deptFilters.mainDeptId,
+        );
+      }
+      // Specific Sub Department filter
+      if (deptFilters.subDeptId) {
+        filteredData = filteredData.filter(
+          (d: Department) => d._id === deptFilters.subDeptId,
         );
       }
     }
@@ -2061,44 +2055,45 @@ function DashboardContent() {
       // Main Department filter
       if (userFilters.mainDeptId) {
         filteredData = filteredData.filter((u: User) => {
-          const deptId =
-            typeof u.departmentId === "object" && u.departmentId
-              ? (u.departmentId as any)._id
-              : u.departmentId;
-          const dept = allDepartments.find((d) => d._id === deptId);
-          return (
-            deptId === userFilters.mainDeptId ||
-            getParentDepartmentId(dept) === userFilters.mainDeptId
-          );
+          const userDepts = [
+            typeof u.departmentId === "object" && u.departmentId ? (u.departmentId as any)._id : u.departmentId,
+            ...(u.departmentIds || []).map(d => typeof d === "object" && d ? (d as any)._id : d)
+          ].filter(Boolean);
+
+          return userDepts.some(deptId => {
+            const dept = allDepartments.find((d) => d._id === deptId);
+            return (
+              deptId === userFilters.mainDeptId ||
+              getParentDepartmentId(dept) === userFilters.mainDeptId
+            );
+          });
         });
       }
       // Sub Department filter
       if (userFilters.subDeptId) {
         filteredData = filteredData.filter((u: User) => {
-          const deptId =
-            typeof u.departmentId === "object" && u.departmentId
-              ? (u.departmentId as any)._id
-              : u.departmentId;
-          return deptId === userFilters.subDeptId;
+          const userDepts = [
+            typeof u.departmentId === "object" && u.departmentId ? (u.departmentId as any)._id : u.departmentId,
+            ...(u.departmentIds || []).map(d => typeof d === "object" && d ? (d as any)._id : d)
+          ].filter(Boolean);
+          
+          return userDepts.includes(userFilters.subDeptId);
         });
       }
-      // Search filter
+      // Search filter - Instant, case-insensitive, whitespace-resilient
       if (userSearch.trim()) {
-        const search = userSearch.toLowerCase().trim();
+        const searchTerms = userSearch.toLowerCase().trim().split(/\s+/).filter(Boolean);
         filteredData = filteredData.filter((u: User) => {
-          const nameMatch =
-            u.firstName?.toLowerCase().includes(search) ||
-            u.lastName?.toLowerCase().includes(search);
-          const contactMatch =
-            u.email?.toLowerCase().includes(search) ||
-            u.phone?.includes(search);
-          const designationMatch =
-            u.designation?.toLowerCase().includes(search) ||
-            (u as any).designations?.some((d: string) =>
-              d.toLowerCase().includes(search),
-            );
+          const searchContent = [
+            u.firstName,
+            u.lastName,
+            u.email,
+            u.phone,
+            u.designation,
+            ...((u as any).designations || [])
+          ].join(' ').toLowerCase();
 
-          return nameMatch || contactMatch || designationMatch;
+          return searchTerms.every(term => searchContent.includes(term));
         });
       }
     }
@@ -2394,7 +2389,7 @@ function DashboardContent() {
                     variant="ghost"
                     size="sm"
                     disabled={refreshing}
-                    className="w-full justify-start h-10 rounded-xl text-slate-500 hover:text-slate-900 font-black text-[10px] uppercase tracking-widest transition-all"
+                    className="w-full justify-center group-hover:justify-start h-10 px-0 group-hover:px-4 rounded-xl text-slate-500 hover:text-slate-900 font-black text-[10px] uppercase tracking-widest transition-all"
                   >
                     <RefreshCw
                       className={cn(
@@ -2402,7 +2397,7 @@ function DashboardContent() {
                         refreshing && "animate-spin",
                       )}
                     />
-                    <span className="ml-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                    <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap">
                       Refresh Data
                     </span>
                   </Button>
@@ -2412,10 +2407,10 @@ function DashboardContent() {
                     hasPermission(user, Permission.VIEW_ANALYTICS)) && (
                     <TabsTrigger
                       value="overview"
-                      className="w-full justify-start h-10 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all duration-200"
+                      className="w-full justify-center group-hover:justify-start h-10 px-0 group-hover:px-4 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all duration-200"
                     >
                       <LayoutGrid className="w-4 h-4 shrink-0" />
-                      <span className="ml-3 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                      <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap">
                         Overview
                       </span>
                     </TabsTrigger>
@@ -2424,10 +2419,10 @@ function DashboardContent() {
                     (isSuperAdminUser && companyIdParam)) && (
                     <TabsTrigger
                       value="analytics"
-                      className="w-full justify-start h-10 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all duration-200"
+                      className="w-full justify-center group-hover:justify-start h-10 px-0 group-hover:px-4 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all duration-200"
                     >
                       <TrendingUp className="w-4 h-4 shrink-0" />
-                      <span className="ml-3 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                      <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap">
                         {isDFO ? "Command Center" : "Analytics"}
                       </span>
                     </TabsTrigger>
@@ -2435,10 +2430,10 @@ function DashboardContent() {
                   {hasPermission(user, Permission.READ_GRIEVANCE) && (
                     <TabsTrigger
                       value="grievances"
-                      className="w-full justify-start h-10 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all duration-200"
+                      className="w-full justify-center group-hover:justify-start h-10 px-0 group-hover:px-4 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all duration-200"
                     >
                       <FileText className="w-4 h-4 shrink-0" />
-                      <span className="ml-3 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                      <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap">
                         {isDFO ? "Incidents" : "Grievances"}
                       </span>
                     </TabsTrigger>
@@ -2449,10 +2444,10 @@ function DashboardContent() {
                     hasPermission(user, Permission.READ_APPOINTMENT) && (
                       <TabsTrigger
                         value="appointments"
-                        className="w-full justify-start h-10 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all duration-200"
+                        className="w-full justify-center group-hover:justify-start h-10 px-0 group-hover:px-4 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all duration-200"
                       >
                         <CalendarCheck className="w-4 h-4 shrink-0" />
-                        <span className="ml-3 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                        <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap">
                           Appointments
                         </span>
                       </TabsTrigger>
@@ -2460,10 +2455,10 @@ function DashboardContent() {
                   {canSeeDepartmentsTab && (
                     <TabsTrigger
                       value="departments"
-                      className="w-full justify-start h-10 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all duration-200"
+                      className="w-full justify-center group-hover:justify-start h-10 px-0 group-hover:px-4 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all duration-200"
                     >
                       <Building className="w-4 h-4 shrink-0" />
-                      <span className="ml-3 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                      <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap">
                         {isDFO ? "Patrol Units" : "Departments"}
                       </span>
                     </TabsTrigger>
@@ -2493,10 +2488,10 @@ function DashboardContent() {
                   {canSeeUsersTab && (
                     <TabsTrigger
                       value="users"
-                      className="w-full justify-start h-10 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all duration-200"
+                      className="w-full justify-center group-hover:justify-start h-10 px-0 group-hover:px-4 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all duration-200"
                     >
                       <Users className="w-4 h-4 shrink-0" />
-                      <span className="ml-3 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                      <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap">
                         Users
                       </span>
                     </TabsTrigger>
@@ -2504,10 +2499,10 @@ function DashboardContent() {
                   {isSuperAdminUser && companyIdParam && (
                     <TabsTrigger
                       value="roles"
-                      className="w-full justify-start h-10 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all duration-200"
+                      className="w-full justify-center group-hover:justify-start h-10 px-0 group-hover:px-4 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all duration-200"
                     >
                       <Shield className="w-4 h-4 shrink-0" />
-                      <span className="ml-3 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                      <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap">
                         Roles
                       </span>
                     </TabsTrigger>
@@ -2515,10 +2510,10 @@ function DashboardContent() {
                   {hasModule(Module.LEAD_CAPTURE) && isViewingCompany && (
                     <TabsTrigger
                       value="leads"
-                      className="w-full justify-start h-10 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all duration-200"
+                      className="w-full justify-center group-hover:justify-start h-10 px-0 group-hover:px-4 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all duration-200"
                     >
                       <Target className="w-4 h-4 shrink-0" />
-                      <span className="ml-3 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                      <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap">
                         Leads
                       </span>
                     </TabsTrigger>
@@ -2528,37 +2523,37 @@ function DashboardContent() {
                       <div className="h-px bg-slate-100 my-1 mx-2" />
                       <TabsTrigger
                         value="whatsapp"
-                        className="w-full justify-start h-10 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all duration-200"
+                        className="w-full justify-center group-hover:justify-start h-10 px-0 group-hover:px-4 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all duration-200"
                       >
                         <MessageSquare className="w-4 h-4 shrink-0" />
-                        <span className="ml-3 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                        <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap">
                           WhatsApp
                         </span>
                       </TabsTrigger>
                       <TabsTrigger
                         value="flows"
-                        className="w-full justify-start h-10 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all duration-200"
+                        className="w-full justify-center group-hover:justify-start h-10 px-0 group-hover:px-4 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all duration-200"
                       >
                         <Workflow className="w-4 h-4 shrink-0" />
-                        <span className="ml-3 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                        <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap">
                           Flows
                         </span>
                       </TabsTrigger>
                       <TabsTrigger
                         value="notifications"
-                        className="w-full justify-start h-10 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all duration-200"
+                        className="w-full justify-center group-hover:justify-start h-10 px-0 group-hover:px-4 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all duration-200"
                       >
                         <BellRing className="w-4 h-4 shrink-0" />
-                        <span className="ml-3 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                        <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap">
                           Notifications
                         </span>
                       </TabsTrigger>
                       <TabsTrigger
                         value="email"
-                        className="w-full justify-start h-10 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all duration-200"
+                        className="w-full justify-center group-hover:justify-start h-10 px-0 group-hover:px-4 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all duration-200"
                       >
                         <Mail className="w-4 h-4 shrink-0" />
-                        <span className="ml-3 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                        <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap">
                           Email
                         </span>
                       </TabsTrigger>
