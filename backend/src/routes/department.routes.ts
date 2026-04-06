@@ -381,6 +381,34 @@ router.post('/', requirePermission(Permission.CREATE_DEPARTMENT), async (req: Re
       { departmentName: department.name }
     );
 
+    // If a lead (contactUserId) is provided, automatically map this department to the user
+    if (contactUserId) {
+       const User = (await import('../models/User')).default;
+       const userDoc = await User.findById(contactUserId);
+       if (userDoc) {
+          const deptId = department._id;
+          let updated = false;
+          
+          // Check departmentId (legacy)
+          if (!userDoc.departmentId) {
+             userDoc.departmentId = deptId;
+             updated = true;
+          }
+          
+          // Check departmentIds (multi-mapping)
+          if (!userDoc.departmentIds) userDoc.departmentIds = [];
+          if (!userDoc.departmentIds.some(id => id.toString() === deptId.toString())) {
+             userDoc.departmentIds.push(deptId);
+             updated = true;
+          }
+          
+          if (updated) {
+             await userDoc.save();
+             console.log(`✅ Automatically mapped user ${contactUserId} to new department ${deptId.toString()}`);
+          }
+       }
+    }
+
     res.status(201).json({
       success: true,
       message: 'Department created successfully',
@@ -640,6 +668,31 @@ router.put('/:id', requirePermission(Permission.UPDATE_DEPARTMENT), async (req: 
       department._id.toString(),
       { updates: req.body }
     );
+
+    // Sync handle if lead (contactUserId) was changed or set
+    if (updateData.contactUserId) {
+       const User = (await import('../models/User')).default;
+       const userDoc = await User.findById(updateData.contactUserId);
+       if (userDoc) {
+          const deptId = department._id;
+          let updated = false;
+          
+          if (!userDoc.departmentId) {
+             userDoc.departmentId = deptId;
+             updated = true;
+          }
+          if (!userDoc.departmentIds) userDoc.departmentIds = [];
+          if (!userDoc.departmentIds.some(id => id.toString() === deptId.toString())) {
+             userDoc.departmentIds.push(deptId);
+             updated = true;
+          }
+          
+          if (updated) {
+             await userDoc.save();
+             console.log(`✅ Automatically mapped new lead ${updateData.contactUserId} to department ${deptId.toString()}`);
+          }
+       }
+    }
 
     res.json({
       success: true,

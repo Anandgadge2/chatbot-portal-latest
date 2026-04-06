@@ -35,6 +35,7 @@ import {
 import toast from "react-hot-toast";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { SearchableSelect } from "@/components/ui/SearchableSelect";
+import CreateUserDialog from "@/components/user/CreateUserDialog";
 
 interface UserManagementTabProps {
   companyId?: string;
@@ -62,6 +63,8 @@ export default function UserManagementTab({ companyId: propCompanyId }: UserMana
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [customRoles, setCustomRoles] = useState<any[]>([]);
+  const [showUserDialog, setShowUserDialog] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -158,7 +161,16 @@ export default function UserManagementTab({ companyId: propCompanyId }: UserMana
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-5 font-bold text-xs uppercase tracking-wider h-10 shadow-lg shadow-indigo-600/20 transition-all active:scale-95">
+          <Button 
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setEditingUser(null);
+              setShowUserDialog(true);
+            }}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-5 font-bold text-xs uppercase tracking-wider h-10 shadow-lg shadow-indigo-600/20 transition-all active:scale-95"
+          >
             <UserPlus className="w-4 h-4 mr-2" />
             Provision New Agent
           </Button>
@@ -302,6 +314,20 @@ export default function UserManagementTab({ companyId: propCompanyId }: UserMana
           </Card>
         </div>
       </div>
+
+      <CreateUserDialog
+        isOpen={showUserDialog}
+        onClose={() => {
+          setShowUserDialog(false);
+          setEditingUser(null);
+        }}
+        onUserCreated={() => {
+          fetchUsers();
+          setShowUserDialog(false);
+        }}
+        editingUser={editingUser}
+        defaultCompanyId={effectiveCompanyId}
+      />
     </div>
   );
 }

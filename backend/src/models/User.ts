@@ -24,6 +24,8 @@ export interface IUser extends Document {
   lastLogin?: Date;
   createdBy?: mongoose.Types.ObjectId; // Track who created this user for hierarchical rights
   customRoleId?: mongoose.Types.ObjectId; // Optional: points to a company-defined Role for custom permissions
+  role?: string; // 👑 Dynamic role string (e.g. 'SUPER_ADMIN', 'COMPANY_ADMIN')
+  level?: number; // 👑 Authorization level (0 = platform, 1 = company, etc)
   notificationSettings?: {
     email: boolean;
     whatsapp: boolean;
@@ -205,7 +207,14 @@ UserSchema.index({ companyId: 1, createdAt: -1 });
 
 // Compound unique indexes: email and phone must be unique within the same company
 // This allows the same email/phone to be used in different companies, but not in the same company
-UserSchema.index({ phone: 1, companyId: 1 }, { unique: true });
+UserSchema.index({ phone: 1, companyId: 1 }, { 
+  unique: true,
+  partialFilterExpression: { phone: { $type: "string" } }
+});
+UserSchema.index({ email: 1, companyId: 1 }, { 
+  unique: true, 
+  partialFilterExpression: { email: { $type: "string" } } 
+});
 UserSchema.index({ userId: 1, companyId: 1 }, { unique: true });
 
 // Pre-validate hook to generate userId (per-company)

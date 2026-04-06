@@ -903,8 +903,6 @@ function DashboardContent() {
 
   // Sync tab state to URL
   useEffect(() => {
-    if (isSuperAdminUser && !companyIdParam) return;
-
     const params = new URLSearchParams(searchParams.toString());
     const currentUrlTab = params.get("tab");
 
@@ -1388,8 +1386,10 @@ function DashboardContent() {
         setLeads(response.data);
       }
     } catch (error: any) {
-      console.error("Failed to fetch leads:", error);
-      toast.error("Failed to load leads");
+      if (error.response?.status !== 403) {
+        console.error("Failed to fetch leads:", error);
+        toast.error("Failed to load leads");
+      }
     } finally {
       setLoadingLeads(false);
     }
@@ -1458,13 +1458,24 @@ function DashboardContent() {
 
   // 3. Global Synchronization Listener
   useEffect(() => {
-    const handleGlobalRefresh = () => {
-      fetchDashboardData(true);
-      fetchGrievances(grievancePage, true);
-      fetchAppointments(appointmentPage, true);
-      fetchDepartments(departmentPage, true);
-      fetchUsers(userPage, true);
-      fetchLeads();
+    const handleGlobalRefresh = (e?: any) => {
+      const scope = e?.detail?.scope;
+      const isAll = !scope || scope === "ALL";
+      const scopes = Array.isArray(scope) ? scope : [scope];
+
+      if (isAll || scopes.includes("DASHBOARD")) fetchDashboardData(true);
+      if (isAll || scopes.includes("GRIEVANCES")) fetchGrievances(grievancePage, true);
+      if (isAll || scopes.includes("APPOINTMENTS")) fetchAppointments(appointmentPage, true);
+      if (isAll || scopes.includes("DEPARTMENTS")) {
+        fetchDepartments(departmentPage, true);
+        fetchAllDepartments(); // Update hierarchy data
+      }
+      if (isAll || scopes.includes("USERS")) fetchUsers(userPage, true);
+      if (isAll || scopes.includes("LEADS")) {
+        if (isSuperAdminUser || hasModule(Module.LEAD_CAPTURE)) {
+          fetchLeads();
+        }
+      }
     };
 
     window.addEventListener("REFRESH_PORTAL_DATA", handleGlobalRefresh);
@@ -1477,9 +1488,12 @@ function DashboardContent() {
     appointmentPage,
     fetchDepartments,
     departmentPage,
+    fetchAllDepartments,
     fetchUsers,
     userPage,
-    fetchLeads
+    fetchLeads,
+    isSuperAdminUser,
+    hasModule
   ]);
 
   // 2. Specialized effects for each paginated module (Gated by activeTab for SPA performance)
@@ -2137,6 +2151,13 @@ function DashboardContent() {
       return;
     }
 
+    // Optimistic Update
+    setUsers((prev) =>
+      prev.map((u) =>
+        u._id === userId ? { ...u, isActive: !currentStatus } : u,
+      ),
+    );
+
     try {
       const response = await userAPI.update(userId, {
         isActive: !currentStatus,
@@ -2145,14 +2166,23 @@ function DashboardContent() {
         toast.success(
           `User ${!currentStatus ? "activated" : "deactivated"} successfully`,
         );
+        // Refresh purely for data integrity, silently
+        fetchUsers(userPage, true);
+      } else {
+        // Rollback on failure
         setUsers((prev) =>
           prev.map((u) =>
-            u._id === userId ? { ...u, isActive: !currentStatus } : u,
+            u._id === userId ? { ...u, isActive: currentStatus } : u,
           ),
         );
-        fetchUsers(userPage, true);
       }
     } catch (error: any) {
+      // Rollback on error
+      setUsers((prev) =>
+        prev.map((u) =>
+          u._id === userId ? { ...u, isActive: currentStatus } : u,
+        ),
+      );
       const errorMessage =
         error.response?.data?.message ||
         error.message ||
@@ -5387,30 +5417,28 @@ function DashboardContent() {
                                         {/* User Count */}
                                         <td className="px-4 py-4 text-center">
                                           <div className="inline-flex items-center justify-center">
-                                            {userCount > 0 && (
-                                              <button
-                                                className={`min-w-[32px] h-8 px-2 rounded-xl flex items-center justify-center text-xs font-black transition-all shadow-sm border ${
-                                                  userCount > 0
-                                                    ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:scale-105 active:scale-95"
-                                                    : "bg-slate-50 text-slate-400 border-slate-200"
-                                                }`}
-                                                onClick={() => {
-                                                  if (userCount > 0) {
-                                                    setSelectedDeptForUsers({
-                                                      id: dept._id,
-                                                      name: dept.name,
-                                                    });
-                                                    setShowDeptUsersDialog(
-                                                      true,
-                                                    );
-                                                  }
-                                                }}
-                                                title="Click to view personnel"
-                                              >
-                                                <Users className="w-3 h-3 mr-1.5 text-emerald-500" />
-                                                {userCount}
-                                              </button>
-                                            )}
+                                            <button
+                                              className={`min-w-[32px] h-8 px-2 rounded-xl flex items-center justify-center text-xs font-black transition-all shadow-sm border ${
+                                                userCount > 0
+                                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:scale-105 active:scale-95"
+                                                  : "bg-slate-50 text-slate-400 border-slate-200"
+                                              }`}
+                                              onClick={() => {
+                                                if (userCount > 0) {
+                                                  setSelectedDeptForUsers({
+                                                    id: dept._id,
+                                                    name: dept.name,
+                                                  });
+                                                  setShowDeptUsersDialog(
+                                                    true,
+                                                  );
+                                                }
+                                              }}
+                                              title={userCount > 0 ? "Click to view personnel" : "No users assigned"}
+                                            >
+                                              <Users className={`w-3 h-3 mr-1.5 ${userCount > 0 ? "text-emerald-500" : "text-slate-400"}`} />
+                                              {userCount}
+                                            </button>
                                           </div>
                                         </td>
 
@@ -9113,6 +9141,7 @@ function DashboardContent() {
           }}
           departmentId={selectedDeptForUsers?.id || null}
           departmentName={selectedDeptForUsers?.name || null}
+          companyId={targetCompanyId}
           onUserClick={(u) => {
             setSelectedUserForDetails(u);
             setShowUserDetailsDialog(true);
@@ -9120,6 +9149,10 @@ function DashboardContent() {
           onEditUser={(u) => {
             setEditingUser(u);
             setShowEditUserDialog(true);
+            setShowDeptUsersDialog(false);
+          }}
+          onCreateNewUser={() => {
+            setShowUserDialog(true);
             setShowDeptUsersDialog(false);
           }}
         />

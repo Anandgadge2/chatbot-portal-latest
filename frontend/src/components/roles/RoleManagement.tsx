@@ -49,16 +49,8 @@ interface RoleManagementProps {
   companyId: string;
 }
 
-const ALLOWED_COMPANY_ROLE_NAMES = new Set([
-  "company administrator",
-  "department admin",
-  "department administrator",
-  "sub department admin",
-  "sub-department admin",
-  "sub department administrator",
-  "sub-department administrator",
-  "operator",
-]);
+// ALLOWED_COMPANY_ROLE_NAMES removed as it is too restrictive and prevents custom roles from appearing.
+
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -145,15 +137,18 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
   const fetchRoles = useCallback(async () => {
     try {
       setLoading(true);
-      const url = companyId ? `/roles?companyId=${companyId}&filterGlobal=true` : '/roles';
+      // We removed filterGlobal=true to allow associated system roles to be visible 
+      // alongside company-specific custom roles.
+      const url = companyId ? `/roles?companyId=${companyId}` : '/roles';
       const data = await apiClient.get(url);
       if (data.success) {
-        const scopedRoles = (data.data.roles || []).filter((role: Role) =>
-          ALLOWED_COMPANY_ROLE_NAMES.has(role.name.toLowerCase()),
+        const scopedRoles = (data.data.roles || []).filter((role: Role) => 
+          role.name !== "Platform Superadmin"
         );
         setRoles(scopedRoles);
         setSelectedIds(new Set()); // Clear selection on refresh
       } else toast.error(data.message || "Failed to fetch roles");
+
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Error fetching roles");
     } finally {
@@ -165,6 +160,17 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
     fetchRoles();
     fetchModules();
   }, [fetchRoles, fetchModules]);
+
+  // ─── Global Refresh Listener ────────────────────────────────────────────────
+  useEffect(() => {
+    const handleGlobalRefresh = () => {
+      fetchRoles();
+      fetchModules();
+    };
+    window.addEventListener('REFRESH_PORTAL_DATA', handleGlobalRefresh);
+    return () => window.removeEventListener('REFRESH_PORTAL_DATA', handleGlobalRefresh);
+  }, [fetchRoles, fetchModules]);
+
 
   // -- Bulk Selection Helpers --
   const filtered = roles.filter((r) =>

@@ -25,7 +25,11 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
     const query: any = {};
 
     // Determine target companyId for scoping
-    const targetCompanyId = (currentUser.isSuperAdmin && companyId) ? companyId : currentUser.companyId;
+    const isSuperAdmin = !!currentUser.isSuperAdmin || 
+                         currentUser.role === UserRole.SUPER_ADMIN || 
+                         (typeof currentUser.role === 'string' && currentUser.role.toUpperCase() === 'SUPER_ADMIN') ||
+                         currentUser.level === 0;
+    const targetCompanyId = (isSuperAdmin && companyId) ? companyId : currentUser.companyId;
 
     // Strict multi-tenant scoping
     if (targetCompanyId) {
@@ -40,7 +44,7 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
       }
       const uniqueUserDepts = [...new Set(userDepts)];
 
-      if (uniqueUserDepts.length > 0 && !currentUser.isSuperAdmin && currentUser.level !== 1) {
+      if (uniqueUserDepts.length > 0 && !isSuperAdmin && currentUser.level !== 1) {
         // Hierarchical scoping: include all sub-departments
         const { getDepartmentHierarchyIds } = await import('../utils/departmentUtils');
         const deptIds = await getDepartmentHierarchyIds(uniqueUserDepts);
@@ -59,7 +63,7 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
           
         query.departmentIds = { $in: filterDeptIds };
       }
-    } else if (!currentUser.isSuperAdmin) {
+    } else if (!isSuperAdmin) {
       // Safety check: Non-SuperAdmins MUST have a companyId
       return res.status(403).json({
         success: false,
@@ -193,11 +197,21 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
     let companyId = req.body.companyId;
 
     // Validation
-    if (!firstName || !lastName || !password || !customRoleId) {
+    let submissionCustomRoleId = customRoleId;
+    if (!submissionCustomRoleId && role === UserRole.SUPER_ADMIN) {
+      const Role = (await import('../models/Role')).default;
+      const systemSuperAdminRole = await Role.findOne({ level: 0 });
+      if (systemSuperAdminRole) {
+          submissionCustomRoleId = systemSuperAdminRole._id;
+          console.log('✅ Auto-assigned system Super Admin role ID:', submissionCustomRoleId);
+      }
+    }
+
+    if (!firstName || !lastName || !password || !submissionCustomRoleId) {
       console.log('❌ Validation failed: Missing required fields');
       return res.status(400).json({
         success: false,
-        message: 'Please provide all required fields (Name, Password, and Role ID)'
+        message: 'Please provide all required fields (Name, Password, and Role)'
       });
     }
 
@@ -400,20 +414,30 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
     
     // Database connection is already checked by middleware
 
+    // Synchronize departmentId and departmentIds for compatibility
+    const finalDeptIds = (Array.isArray(departmentIds) && departmentIds.length > 0) 
+      ? departmentIds.map(id => id.toString())
+      : (departmentId ? [departmentId.toString()] : []);
+    
+    // Set singular for backward compatibility if it's not set but plural is
+    const finalDeptId = departmentId || (finalDeptIds.length > 0 ? finalDeptIds[0] : undefined);
+
     // Create user in database
     let user;
     try {
       user = await User.create({
         firstName,
         lastName,
-        email: email.toLowerCase().trim(),
+        email: email ? email.toLowerCase().trim() : undefined,
         password,
         phone: normalizedPhone,
         designations: (Array.isArray(designations) && designations.length > 0) ? designations : (designation ? [designation] : undefined),
-        customRoleId: customRoleId,
+        customRoleId: submissionCustomRoleId,
         companyId: finalCompanyId || undefined,
-        departmentIds: (Array.isArray(departmentIds) && departmentIds.length > 0) ? departmentIds : (departmentId ? [departmentId] : undefined),
+        departmentId: finalDeptId,
+        departmentIds: finalDeptIds,
         isActive: true,
+        isSuperAdmin: role === UserRole.SUPER_ADMIN,
         rawPassword: password,
         createdBy: currentUser._id // Track who created this user for hierarchical rights
       });
@@ -492,18 +516,16 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
       }
     }
 
+    const userResponse = savedUser.toObject();
+    delete userResponse.password;
+
     return res.status(201).json({
       success: true,
       message: 'User created successfully',
       data: {
         user: {
-          id: user._id,
-          userId: user.userId,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-          customRoleId: user.customRoleId,
-          isActive: user.isActive
+          ...userResponse,
+          id: savedUser._id // include both for compatibility
         }
       }
     });
@@ -791,6 +813,10 @@ router.put('/:id', requirePermission(Permission.UPDATE_USER), async (req: Reques
     // Don't allow password update through this route
     delete req.body.password;
 
+    // Normalize empty strings to undefined for optional fields
+    if (req.body.email === "") req.body.email = undefined;
+    if (req.body.phone === "") req.body.phone = undefined;
+
     // Check if email/phone is being updated and validate uniqueness within the same company
     // For SUPER_ADMIN (companyId = null), keep email/phone globally unique
     if (req.body.email && req.body.email !== existingUser.email) {
@@ -872,6 +898,21 @@ router.put('/:id', requirePermission(Permission.UPDATE_USER), async (req: Reques
       req.body.phone = normalizedPhone;
     }
 
+    // Synchronize departmentId and departmentIds for compatibility in update
+    if (req.body.departmentIds || req.body.departmentId) {
+       const plural = Array.isArray(req.body.departmentIds) ? req.body.departmentIds : [];
+       const singular = req.body.departmentId;
+       
+       if (req.body.departmentIds && !req.body.departmentId && plural.length > 0) {
+          req.body.departmentId = plural[0];
+       } else if (req.body.departmentId && (!req.body.departmentIds || plural.length === 0)) {
+          req.body.departmentIds = [req.body.departmentId];
+       } else if (req.body.departmentId && req.body.departmentIds && !plural.includes(req.body.departmentId)) {
+          // Both provided, ensure singular is part of plural
+          req.body.departmentIds.unshift(req.body.departmentId);
+       }
+    }
+
     let user = await User.findByIdAndUpdate(
       req.params.id,
       req.body,
@@ -904,22 +945,24 @@ router.put('/:id', requirePermission(Permission.UPDATE_USER), async (req: Reques
       const isDeptAdmin = roleName.toLowerCase().includes('admin');
 
       if (managementRole || isDeptAdmin || req.checkPermission(Permission.UPDATE_DEPARTMENT)) {
-        try {
-          const Department = (await import('../models/Department')).default;
-          // Use ID string even if populated
-          const deptId = user.departmentId instanceof Object && '_id' in user.departmentId 
-            ? (user.departmentId as any)._id 
-            : user.departmentId;
+        // Fire and forget (don't await for faster response)
+        (async () => {
+          try {
+            const Department = (await import('../models/Department')).default;
+            const deptId = user.departmentId instanceof Object && '_id' in user.departmentId 
+              ? (user.departmentId as any)._id 
+              : user.departmentId;
 
-          await Department.findByIdAndUpdate(deptId, {
-            contactPerson: `${user.firstName} ${user.lastName}`,
-            contactEmail: user.email,
-            contactPhone: user.phone
-          });
-          console.log(`✅ Updated department ${deptId} contact info with admin details`);
-        } catch (deptUpdateError: any) {
-          console.error('⚠️ Failed to update department contact info (non-critical):', deptUpdateError.message);
-        }
+            await Department.findByIdAndUpdate(deptId, {
+              contactPerson: `${user.firstName} ${user.lastName}`,
+              contactEmail: user.email,
+              contactPhone: user.phone
+            });
+            console.log(`✅ Automatically updated department ${deptId} contact info`);
+          } catch (deptUpdateError: any) {
+            console.error('⚠️ Failed to update department contact info:', deptUpdateError.message);
+          }
+        })();
       }
     }
 

@@ -80,7 +80,12 @@ router.get('/', async (req: Request, res: Response) => {
 
     // ✅ Multi-Tenant Scoping Check
     const currentUser = req.user!;
-    if (!currentUser.isSuperAdmin && companyId !== currentUser.companyId?.toString()) {
+    const isSuperAdmin = !!currentUser.isSuperAdmin || 
+                         currentUser.role === UserRole.SUPER_ADMIN || 
+                         (typeof currentUser.role === 'string' && currentUser.role.toUpperCase() === 'SUPER_ADMIN') ||
+                         currentUser.level === 0;
+    
+    if (!isSuperAdmin && companyId !== currentUser.companyId?.toString()) {
       return res.status(403).json({ success: false, message: 'Access denied - you can only view leads for your own company' });
     }
 
@@ -91,7 +96,7 @@ router.get('/', async (req: Request, res: Response) => {
     }
 
     // Non-SuperAdmins must have the module enabled
-    if (!currentUser.isSuperAdmin && !company.enabledModules?.includes(Module.LEAD_CAPTURE)) {
+    if (!isSuperAdmin && !company.enabledModules?.includes(Module.LEAD_CAPTURE)) {
       return res.status(403).json({
         success: false,
         message: 'Lead Capture module is not enabled for this company'

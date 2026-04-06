@@ -35,26 +35,20 @@ interface CreateUserDialogProps {
   onUserCreated: (user?: User) => void;
   editingUser?: User | null;
   defaultCompanyId?: string;
+  hideDepartmentSelection?: boolean;
 }
 
-const allowedRoleNames = [
-  "company administrator",
-  "department admin",
-  "department administrator",
-  "sub department admin",
-  "sub-department admin",
-  "sub department administrator",
-  "sub-department administrator",
-  "operator",
-];
+// allowedRoleNames removed to allow all custom roles to be visible and selectable.
 
-const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
+
+export default function CreateUserDialog({
   isOpen,
   onClose,
   onUserCreated,
   editingUser,
   defaultCompanyId,
-}) => {
+  hideDepartmentSelection = false,
+}: CreateUserDialogProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -67,46 +61,42 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
     password: "",
     phone: "",
     designation: "",
-    designations: [] as string[], // 🏢 Added for multiple designations
-    role: "Select Role", // Now stores "STATIC:ROLE" or "CUSTOM:ID"
+    designations: [] as string[],
+    role: "Select Role",
     companyId: "",
     departmentId: "",
-    departmentIds: [] as string[], // 🏢 Added for multiple department mapping
+    departmentIds: [] as string[],
     notificationSettings: {
       email: true,
       whatsapp: true,
       hasOverride: false
-    }
+    },
+    setAsLead: true
   });
 
 
-  const [isMultiDept, setIsMultiDept] = useState(false); // 🏢 Toggle for multiple departments
+  const [isMultiDept, setIsMultiDept] = useState(false);
 
   const [selectedMainDeptId, setSelectedMainDeptId] = useState<string>("");
   const [selectedSubDeptId, setSelectedSubDeptId] = useState<string>("");
 
-  // Get available roles based on current user's role and hierarchical rules
-  const getAllPossibleRoles = () => {
+  const getAllPossibleRoles = useCallback(() => {
     if (!user) return [];
 
     let filteredCustomRoles = [...customRoles];
     const creatorRoleLower = (user.role || "").toLowerCase();
 
-    // Hierarchical Filtering Logic
     if (!isSuperAdmin(user)) {
       const userLevel = (user as any).level || 4;
 
       if (userLevel >= 4) {
-        // Operators cannot create anyone
         return [];
       } else if (userLevel === 3) {
-        // 🔒 Sub-Dept Admin (Level 3) -> Operator (Level 4) ONLY
         filteredCustomRoles = customRoles.filter(r => {
           const name = r.name.toLowerCase();
           return name.includes("operator");
         });
       } else if (userLevel === 2) {
-        // 🛡️ Dept Admin (Level 2) -> Sub-Dept Admin (Level 3) or Operator (Level 4)
         filteredCustomRoles = customRoles.filter(r => {
           const name = r.name.toLowerCase();
           return (
@@ -116,12 +106,10 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
           );
         });
       }
-      // Company Admin (Level 1) can create everything
     }
 
     const options: { value: string; label: string }[] = [];
 
-    // Add custom roles fetched from backend (created by Superadmin for this company)
     const customRoleOptions = filteredCustomRoles.map((r) => ({
       value: `CUSTOM:${r._id}`,
       label: r.name,
@@ -129,19 +117,12 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
 
     options.push(...customRoleOptions);
 
-    // Special case: Only Super Admin can assign the Super Admin role
     if (isSuperAdmin(user)) {
       options.push({ value: UserRole.SUPER_ADMIN, label: "Super Admin" });
     }
 
     return options;
-  };
-
-  const canCreateUsers = (): boolean => {
-    if (!user) return false;
-    // Only SUPER_ADMIN and users with specific CREATE_USER permission can create users
-    return isSuperAdmin(user) || hasPermission(user, Permission.CREATE_USER);
-  };
+  }, [user, customRoles]);
 
   const fetchCompanies = useCallback(async () => {
     try {
@@ -173,7 +154,6 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
       if (response.success) {
         let filteredDepartments = response.data.departments;
         if (!isSuperAdmin(user)) {
-          // If user is restricted to a department, scope them
           const userDeptId = user?.departmentId ? (typeof user.departmentId === "object" ? (user.departmentId as any)._id : user.departmentId) : "";
           if (userDeptId) {
             filteredDepartments = filteredDepartments.filter(
@@ -200,23 +180,19 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
       return;
     }
     try {
-      // First try fetching ONLY company-specific roles
       let response = await roleAPI.getRoles(companyId, true);
       let roles = response.data.roles || [];
 
-      // If no company roles exist (new company), fallback to all roles including system ones
       if (roles.length === 0) {
         response = await roleAPI.getRoles(companyId, false);
         roles = response.data.roles || [];
       }
 
       if (response.success) {
-        // Filter out level 0 roles and keep only the four company roles.
         const filteredRoles = roles.filter(
           (r: any) => {
-            if (r.level === 0) return false;
-            const nameLower = (r.name || "").toLowerCase();
-            return allowedRoleNames.some(allowed => nameLower.includes(allowed));
+            // Keep all roles except Platform Superadmin (level 0) for user creation
+            return r.level !== 0;
           }
         );
         setCustomRoles(filteredRoles);
@@ -239,7 +215,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
           password: "",
           phone: editingUser.phone ? denormalizePhoneNumber(editingUser.phone) : "",
           designation: editingUser.designation || "",
-          designations: (editingUser as any).designations || [], // 🏢 Added for multiple designations
+          designations: (editingUser as any).designations || [],
           role: editingUser.customRoleId
             ? `CUSTOM:${typeof editingUser.customRoleId === "object" ? (editingUser.customRoleId as any)._id : editingUser.customRoleId}`
             : editingUser.role || "",
@@ -250,10 +226,10 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
             email: editingUser.notificationSettings?.email ?? true,
             whatsapp: editingUser.notificationSettings?.whatsapp ?? true,
             hasOverride: (editingUser.notificationSettings as any)?.hasOverride ?? false
-          }
+          },
+          setAsLead: false // Default to false when editing unless explicitly changed
         });
 
-        
         if (editingUser.departmentIds && editingUser.departmentIds.length > 0) {
           setIsMultiDept(true);
         }
@@ -277,11 +253,11 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
             email: true,
             whatsapp: true,
             hasOverride: false
-          }
+          },
+          setAsLead: true // Default to true for new users
         });
 
         setIsMultiDept(false);
-        
         const effectiveCompanyId = defaultCompanyId || userCompanyId;
         if (effectiveCompanyId) {
           fetchDepartments(effectiveCompanyId);
@@ -289,25 +265,6 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
       }
     }
   }, [isOpen, user, editingUser, fetchCompanies, fetchDepartments, defaultCompanyId]);
-
-  useEffect(() => {
-    if (isOpen && departments.length > 0) {
-        const currentDeptId = editingUser ? (typeof editingUser.departmentId === "object" ? editingUser.departmentId?._id : editingUser.departmentId) : formData.departmentId;
-        if (currentDeptId) {
-            const dept = departments.find(d => d._id === currentDeptId);
-            if (dept) {
-                const parentId = typeof dept.parentDepartmentId === "object" ? (dept.parentDepartmentId as any)?._id : dept.parentDepartmentId;
-                if (parentId) {
-                    setSelectedMainDeptId(parentId);
-                    setSelectedSubDeptId(currentDeptId);
-                } else {
-                    setSelectedMainDeptId(currentDeptId);
-                    setSelectedSubDeptId("");
-                }
-            }
-        }
-    }
-  }, [isOpen, departments, editingUser, formData.departmentId]);
 
   useEffect(() => {
     if (formData.companyId) {
@@ -328,6 +285,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation(); // Prevent bubbling to parent forms
 
     const isEditing = !!editingUser;
 
@@ -357,7 +315,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
       let submissionCustomRoleId = "";
 
       if (formData.role.startsWith("CUSTOM:")) {
-        submissionRole = "OPERATOR"; // Default base role for custom roles to satisfy backend legacy requirement
+        submissionRole = "OPERATOR"; 
         submissionCustomRoleId = formData.role.split(":")[1];
       }
 
@@ -372,7 +330,6 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
         role: submissionRole || undefined,
         customRoleId: submissionCustomRoleId || null,
         companyId: formData.companyId || undefined,
-        // Map hierarchy logic to departmentIds if in single mode
         departmentIds: finalDeptIds,
         departmentId: isMultiDept 
           ? (formData.departmentIds.length > 0 ? formData.departmentIds[0] : undefined)
@@ -388,30 +345,35 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
       }
 
       if (response.success) {
-        // 🔄 SYNC: If user is an Admin, update Department Contact Person
-        const assignedDeptId = submissionData.departmentId;
-        if (assignedDeptId) {
-          const roleName = customRoles.find(r => `CUSTOM:${r._id}` === formData.role)?.name || formData.role;
-          if (roleName.toLowerCase().includes("admin")) {
-            try {
-              await departmentAPI.update(assignedDeptId, {
-                contactPerson: `${formData.firstName} ${formData.lastName}`,
-                contactEmail: formData.email,
-                contactPhone: normalizePhoneNumber(formData.phone)
-              });
-            } catch (syncError) {
-              console.error("Failed to sync department head info:", syncError);
+        const assignedDeptIds = submissionData.departmentIds || [];
+        if (formData.setAsLead && assignedDeptIds.length > 0) {
+          try {
+            const newUser = response.data.user;
+            const userId = isEditing ? editingUser!._id : newUser?._id;
+            
+            if (userId) {
+              await Promise.all(assignedDeptIds.map((deptId: string) => 
+                departmentAPI.update(deptId, {
+                  contactUserId: userId,
+                  contactPerson: `${formData.firstName} ${formData.lastName}`,
+                  contactEmail: formData.email,
+                  contactPhone: normalizePhoneNumber(formData.phone)
+                })
+              ));
             }
+          } catch (syncError) {
+            console.error("Failed to sync department lead info:", syncError);
           }
         }
 
         toast.success(isEditing ? "User updated successfully!" : "User created successfully!");
-        
-        // Dispatch global refresh event for synchronization
-        window.dispatchEvent(new CustomEvent('REFRESH_PORTAL_DATA'));
-        
+        window.dispatchEvent(new CustomEvent('REFRESH_PORTAL_DATA', { 
+          detail: { scope: ['USERS', 'DEPARTMENTS', 'DASHBOARD'] } 
+        }));
         onClose();
-        onUserCreated(response.data.user);
+        if (response.data?.user) {
+          onUserCreated(response.data.user);
+        }
       }
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Operation failed");
@@ -432,7 +394,6 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
   };
 
   const [isMounted, setIsMounted] = useState(false);
-
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -440,7 +401,6 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
   if (!isOpen || !isMounted) return null;
 
   const modalRoot = typeof document !== 'undefined' ? document.body : null;
-
   if (!modalRoot) return null;
 
   return createPortal(
@@ -462,7 +422,11 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
               </div>
             </div>
             <button
-              onClick={onClose}
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+              }}
               className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all duration-300 border border-white/10 group cursor-pointer"
             >
               <X className="w-5 h-5 text-slate-400 group-hover:text-white transition-colors" />
@@ -529,10 +493,12 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
                   variant="outline"
                   onClick={() => {
                     const input = document.getElementById('new-designation') as HTMLInputElement;
-                    const val = input.value.trim();
-                    if (val && !formData.designations.includes(val)) {
-                      setFormData(prev => ({ ...prev, designations: [...prev.designations, val] }));
-                      input.value = '';
+                    if (input) {
+                      const val = input.value.trim();
+                      if (val && !formData.designations.includes(val)) {
+                        setFormData(prev => ({ ...prev, designations: [...prev.designations, val] }));
+                        input.value = '';
+                      }
                     }
                   }}
                 >Add</Button>
@@ -553,7 +519,6 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
               </div>
             </div>
 
-
             <div>
               <Label htmlFor="role">Role *</Label>
               <SearchableSelect
@@ -572,7 +537,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
             </div>
 
             {isSuperAdmin(user) && !defaultCompanyId && (
-                <div>
+                <div className="animate-in fade-in slide-in-from-top-2 duration-300">
                     <Label htmlFor="companyId">Company *</Label>
                     <SearchableSelect
                         options={companies.map(c => ({ value: c._id, label: c.name }))}
@@ -588,161 +553,181 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
                 </div>
             )}
 
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50">
-                <div className="flex items-center gap-3">
-                  <Building className="w-4 h-4 text-indigo-500" />
-                  <div className="flex flex-col">
-                    <span className="text-[10px] font-black uppercase tracking-tight text-slate-700">Assign Multiple Departments</span>
-                    <span className="text-[8px] font-medium text-slate-400">Map this user to multiple organizational units</span>
+            {!hideDepartmentSelection && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50">
+                  <div className="flex items-center gap-3">
+                    <Building className="w-4 h-4 text-indigo-500" />
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-black uppercase tracking-tight text-slate-700">Assign Multiple Departments</span>
+                      <span className="text-[8px] font-medium text-slate-400">Map this user to multiple organizational units</span>
+                    </div>
                   </div>
+                  <Switch 
+                    checked={isMultiDept} 
+                    onCheckedChange={setIsMultiDept} 
+                    className="data-[state=checked]:bg-indigo-600"
+                  />
                 </div>
-                <Switch 
-                  checked={isMultiDept} 
-                  onCheckedChange={setIsMultiDept} 
-                  className="data-[state=checked]:bg-indigo-600"
-                />
-              </div>
 
-              {!isMultiDept ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                    <div>
-                        <Label>Main Department</Label>
-                        <SearchableSelect
-                            options={[
-                                ...(isCompanyAdmin() ? [{ value: "NONE", label: "🏢 FULL COMPANY (NO DEPARTMENT)" }] : []),
-                                ...departments.filter(d => !d.parentDepartmentId).map(d => ({ value: d._id, label: d.name }))
-                            ]}
-                            value={selectedMainDeptId}
-                            onValueChange={(value) => {
-                                setSelectedMainDeptId(value);
-                                setSelectedSubDeptId("");
-                            }}
-                            placeholder={formData.companyId ? "No Department" : "Select Company First"}
-                            disabled={!formData.companyId}
-                            className="w-full"
-                        />
-                    </div>
-                    {selectedMainDeptId && (
-                        <div>
-                            <Label>Sub Department</Label>
-                            <SearchableSelect
-                                options={departments.filter(d => {
-                                    const pid = typeof d.parentDepartmentId === "object" ? (d.parentDepartmentId as any)?._id : d.parentDepartmentId;
-                                    return pid === selectedMainDeptId;
-                                }).map(d => ({ value: d._id, label: d.name }))}
-                                value={selectedSubDeptId}
-                                onValueChange={(value) => setSelectedSubDeptId(value)}
-                                placeholder="None (Map to Main)"
-                                className="w-full"
-                            />
-                        </div>
-                    )}
-                </div>
-              ) : (
-                <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                    <div>
-                        <Label className="text-[10px] font-black uppercase text-indigo-500 mb-1.5 flex items-center gap-1.5 leading-none">
-                          <Building className="w-3 h-3" />
-                          Department Branch
-                        </Label>
-                        <SearchableSelect
-                            options={departments.filter(d => !d.parentDepartmentId).map(d => ({ value: d._id, label: d.name }))}
-                            value={selectedMainDeptId}
-                            onValueChange={(val) => {
-                                setSelectedMainDeptId(val);
-                                setSelectedSubDeptId("");
-                            }}
-                            placeholder="Find Branch"
-                            className="w-full bg-white"
-                        />
-                    </div>
-                    <div>
-                        <Label className="text-[10px] font-black uppercase text-indigo-500 mb-1.5 flex items-center gap-1.5 leading-none">
-                          <Users className="w-3 h-3" />
-                          Sub-Unit Filter
-                        </Label>
-                        <SearchableSelect
-                            options={departments.filter(d => {
-                                const pid = typeof d.parentDepartmentId === "object" ? (d.parentDepartmentId as any)?._id : d.parentDepartmentId;
-                                return pid === selectedMainDeptId;
-                            }).map(d => ({ value: d._id, label: d.name }))}
-                            value={selectedSubDeptId}
-                            onValueChange={(val) => setSelectedSubDeptId(val)}
-                            placeholder="Find Specific Unit"
-                            className="w-full bg-white"
-                        />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between px-1">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                      Organizational Multi-Mapping ({formData.departmentIds.length})
-                    </Label>
-                    {formData.departmentIds.length > 0 && (
-                      <button 
-                        type="button" 
-                        onClick={() => setFormData(p => ({ ...p, departmentIds: [] }))}
-                        className="text-[9px] font-black uppercase text-red-500 hover:text-red-700 transition-colors"
-                      >
-                        [ Clear All Assignments ]
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="border rounded-xl px-2 py-2 bg-slate-50 max-h-[160px] overflow-y-auto custom-scrollbar space-y-1">
-                    {departments.length === 0 && <p className="text-[10px] text-slate-400 text-center py-4">No departments found for this company</p>}
-                    {departments
-                      .filter(dept => {
-                         // Filter logic: show unit if it's already selected, OR matches any of the category filters. 
-                         // If no filters are active, show all units.
-                         if (formData.departmentIds.includes(dept._id)) return true;
-                         if (!selectedMainDeptId && !selectedSubDeptId) return true;
-                         
-                         const isMain = dept._id === selectedMainDeptId;
-                         const pid = typeof dept.parentDepartmentId === "object" ? (dept.parentDepartmentId as any)?._id : dept.parentDepartmentId;
-                         const isChildOfSelectedMain = pid === selectedMainDeptId;
-                         const isSelectedSub = dept._id === selectedSubDeptId;
-                         
-                         return isMain || isChildOfSelectedMain || isSelectedSub;
-                      })
-                      .map((dept) => {
-                        const isSub = !!dept.parentDepartmentId;
-                        const isSelected = formData.departmentIds.includes(dept._id);
-                        return (
-                          <div 
-                            key={dept._id} 
-                            className={`flex items-center gap-3 p-2 rounded-lg transition-all cursor-pointer ${isSelected ? "bg-indigo-50 border border-indigo-100 shadow-sm" : "hover:bg-white border border-transparent"}`}
-                            onClick={() => {
-                              setFormData(prev => {
-                                const newIds = isSelected 
-                                  ? prev.departmentIds.filter(id => id !== dept._id)
-                                  : [...prev.departmentIds, dept._id];
-                                return { ...prev, departmentIds: newIds };
-                              });
-                            }}
-                          >
-                            <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${isSelected ? "bg-indigo-600 border-indigo-600 shadow-sm" : "bg-white border-slate-300"}`}>
-                              {isSelected && <Check className="w-2.5 h-2.5 text-white" />}
-                            </div>
-                            <div className="flex flex-col">
-                              <span className={`text-[11px] font-bold ${isSelected ? "text-indigo-700" : "text-slate-700"}`}>
-                                {dept.name}
-                              </span>
-                              {isSub && (
-                                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">
-                                  Sub-Unit mapping
-                                </span>
-                              )}
-                            </div>
+                {!isMultiDept ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                      <div>
+                          <Label>Main Department</Label>
+                          <SearchableSelect
+                              options={[
+                                  ...(isCompanyAdmin() ? [{ value: "NONE", label: "🏢 FULL COMPANY (NO DEPARTMENT)" }] : []),
+                                  ...departments.filter(d => !d.parentDepartmentId).map(d => ({ value: d._id, label: d.name }))
+                              ]}
+                              value={selectedMainDeptId}
+                              onValueChange={(value) => {
+                                  setSelectedMainDeptId(value);
+                                  setSelectedSubDeptId("");
+                              }}
+                              placeholder={formData.companyId ? "No Department" : "Select Company First"}
+                              disabled={!formData.companyId}
+                              className="w-full"
+                          />
+                      </div>
+                      {selectedMainDeptId && (
+                          <div>
+                              <Label>Sub Department</Label>
+                              <SearchableSelect
+                                  options={departments.filter(d => {
+                                      const pid = typeof d.parentDepartmentId === "object" ? (d.parentDepartmentId as any)?._id : d.parentDepartmentId;
+                                      return pid === selectedMainDeptId;
+                                  }).map(d => ({ value: d._id, label: d.name }))}
+                                  value={selectedSubDeptId}
+                                  onValueChange={(value) => setSelectedSubDeptId(value)}
+                                  placeholder="None (Map to Main)"
+                                  className="w-full"
+                              />
                           </div>
-                        );
-                      })}
+                      )}
                   </div>
-                </div>
-              )}
-            </div>
+                ) : (
+                  <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                      <div>
+                          <Label className="text-[10px] font-black uppercase text-indigo-500 mb-1.5 flex items-center gap-1.5 leading-none">
+                            <Building className="w-3 h-3" />
+                            Department Branch
+                          </Label>
+                          <SearchableSelect
+                              options={departments.filter(d => !d.parentDepartmentId).map(d => ({ value: d._id, label: d.name }))}
+                              value={selectedMainDeptId}
+                              onValueChange={(val) => {
+                                  setSelectedMainDeptId(val);
+                                  setSelectedSubDeptId("");
+                              }}
+                              placeholder="Find Branch"
+                              className="w-full bg-white"
+                          />
+                      </div>
+                      <div>
+                          <Label className="text-[10px] font-black uppercase text-indigo-500 mb-1.5 flex items-center gap-1.5 leading-none">
+                            <Users className="w-3 h-3" />
+                            Sub-Unit Filter
+                          </Label>
+                          <SearchableSelect
+                              options={departments.filter(d => {
+                                  const pid = typeof d.parentDepartmentId === "object" ? (d.parentDepartmentId as any)?._id : d.parentDepartmentId;
+                                  return pid === selectedMainDeptId;
+                              }).map(d => ({ value: d._id, label: d.name }))}
+                              value={selectedSubDeptId}
+                              onValueChange={(val) => setSelectedSubDeptId(val)}
+                              placeholder="Find Specific Unit"
+                              className="w-full bg-white"
+                          />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between px-1">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                        Organizational Multi-Mapping ({formData.departmentIds.length})
+                      </Label>
+                      {formData.departmentIds.length > 0 && (
+                        <button 
+                          type="button" 
+                          onClick={() => setFormData(p => ({ ...p, departmentIds: [] }))}
+                          className="text-[9px] font-black uppercase text-red-500 hover:text-red-700 transition-colors"
+                        >
+                          [ Clear All Assignments ]
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="border rounded-xl px-2 py-2 bg-slate-50 max-h-[160px] overflow-y-auto custom-scrollbar space-y-1">
+                      {departments.length === 0 && <p className="text-[10px] text-slate-400 text-center py-4">No departments found for this company</p>}
+                      {departments
+                        .filter(dept => {
+                           if (formData.departmentIds.includes(dept._id)) return true;
+                           if (!selectedMainDeptId && !selectedSubDeptId) return true;
+                           
+                           const isMain = dept._id === selectedMainDeptId;
+                           const pid = typeof dept.parentDepartmentId === "object" ? (dept.parentDepartmentId as any)?._id : dept.parentDepartmentId;
+                           const isChildOfSelectedMain = pid === selectedMainDeptId;
+                           const isSelectedSub = dept._id === selectedSubDeptId;
+                           
+                           return isMain || isChildOfSelectedMain || isSelectedSub;
+                        })
+                        .map((dept) => {
+                          const isSub = !!dept.parentDepartmentId;
+                          const isSelected = formData.departmentIds.includes(dept._id);
+                          return (
+                            <div 
+                              key={dept._id} 
+                              className={`flex items-center gap-3 p-2 rounded-lg transition-all cursor-pointer ${isSelected ? "bg-indigo-50 border border-indigo-100 shadow-sm" : "hover:bg-white border border-transparent"}`}
+                              onClick={() => {
+                                setFormData(prev => {
+                                  const newIds = isSelected 
+                                    ? prev.departmentIds.filter(id => id !== dept._id)
+                                    : [...prev.departmentIds, dept._id];
+                                  return { ...prev, departmentIds: newIds };
+                                });
+                              }}
+                            >
+                              <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${isSelected ? "bg-indigo-600 border-indigo-600 shadow-sm" : "bg-white border-slate-300"}`}>
+                                {isSelected && <Check className="w-2.5 h-2.5 text-white" />}
+                              </div>
+                              <div className="flex flex-col">
+                                <span className={`text-[11px] font-bold ${isSelected ? "text-indigo-700" : "text-slate-700"}`}>
+                                  {dept.name}
+                                </span>
+                                {isSub && (
+                                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">
+                                    Sub-Unit mapping
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Automation Toggle: Set as Lead */}
+                {(isMultiDept ? formData.departmentIds.length > 0 : (selectedMainDeptId && selectedMainDeptId !== "NONE")) && (
+                  <div className="flex items-center justify-between p-3 rounded-xl border border-indigo-100 bg-indigo-50/30 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center border border-indigo-200">
+                        <Users className="w-4 h-4 text-indigo-600" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-black uppercase tracking-tight text-indigo-700">Set as Department Lead</span>
+                        <span className="text-[8px] font-medium text-indigo-400">Automatically update department contact personnel</span>
+                      </div>
+                    </div>
+                    <Switch 
+                      checked={formData.setAsLead} 
+                      onCheckedChange={(val) => setFormData(p => ({ ...p, setAsLead: val }))}
+                      className="data-[state=checked]:bg-indigo-600"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <div className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50">
@@ -773,6 +758,4 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
     </div>,
     modalRoot
   );
-};
-
-export default CreateUserDialog;
+}

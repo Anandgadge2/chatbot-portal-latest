@@ -300,7 +300,9 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
 
       if (response.success) {
         // Dispatch global refresh event for synchronization
-        window.dispatchEvent(new CustomEvent('REFRESH_PORTAL_DATA'));
+        window.dispatchEvent(new CustomEvent('REFRESH_PORTAL_DATA', {
+          detail: { scope: ['DEPARTMENTS', 'USERS', 'DASHBOARD'] }
+        }));
         
         setFormData({
           name: "",
@@ -369,7 +371,11 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
             </div>
           </div>
           <button
-            onClick={onClose}
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
             className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all duration-300 border border-white/10 group cursor-pointer"
           >
             <X className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
@@ -472,95 +478,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
               </div>
             )}
 
-            {/* Department Lead / Contact Selection */}
-            <div className="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 mb-4 animate-in fade-in slide-in-from-top-4 duration-500">
-              <div className="flex items-center justify-between mb-3">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-indigo-500 flex items-center gap-2">
-                  <Shield className="w-3 h-3" />
-                  Department Lead / Contact Personnel
-                </Label>
-                {formData.contactUserId && onEditUser && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const selected = companyUsers.find(u => u._id === formData.contactUserId);
-                      if (selected) onEditUser(selected);
-                    }}
-                    className="text-[9px] font-black uppercase tracking-[0.1em] text-indigo-600 hover:text-white hover:bg-indigo-600 bg-white px-2 py-1 rounded-md border border-indigo-200 shadow-sm transition-all active:scale-95 flex items-center gap-1.5"
-                  >
-                    <User className="w-2.5 h-2.5" />
-                    Edit User Profile
-                  </button>
-                )}
-              </div>
-              <SearchableSelect
-                options={companyUsers
-                  .sort((a, b) => a.firstName.localeCompare(b.firstName))
-                  .map((u) => {
-                    const roleName = (u.customRoleId && typeof u.customRoleId === 'object') 
-                      ? u.customRoleId.name 
-                      : (u.role || 'No Role');
-                    return {
-                      value: u._id,
-                      label: `${u.firstName} ${u.lastName} (${roleName})`,
-                    };
-                  })}
-                value={formData.contactUserId}
-                onValueChange={(value) => {
-                  const selectedUser = companyUsers.find((u) => u._id === value);
-                  setFormData((prev) => ({
-                    ...prev,
-                    contactUserId: value,
-                    contactPerson: selectedUser ? `${selectedUser.firstName} ${selectedUser.lastName}` : "",
-                    contactEmail: selectedUser?.email || "",
-                    contactPhone: selectedUser?.phone || "",
-                  }));
-                }}
-                action={
-                  <Button
-                    type="button"
-                    onClick={() => setShowCreateUser(true)}
-                    className="w-full h-9 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-600/10 transition-all active:scale-95 flex items-center justify-center gap-2"
-                  >
-                    <UserPlus className="w-3.5 h-3.5 mt-[-2px]" />
-                    Add New User Account
-                  </Button>
-                }
-                placeholder="-- Select Lead --"
-                className="w-full bg-white"
-              />
-              <p className="mt-2 text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-relaxed">
-                {formData.contactUserId 
-                  ? "This user will be designated as the primary point of contact for this unit."
-                  : "Associate an existing user account to receive administrative notifications."}
-              </p>
-            </div>
-
-            {/* Nested Create User Dialog */}
-            {showCreateUser && (
-              <CreateUserDialog
-                isOpen={showCreateUser}
-                onClose={() => setShowCreateUser(false)}
-                defaultCompanyId={formData.companyId}
-                onUserCreated={async (newUser) => {
-                  await fetchCompanyUsers();
-                  setShowCreateUser(false);
-                  
-                  if (newUser && (newUser as any).id) {
-                    const newId = (newUser as any).id;
-                    setFormData((prev) => ({
-                      ...prev,
-                      contactUserId: newId,
-                      contactPerson: `${newUser.firstName} ${newUser.lastName}`,
-                      contactEmail: newUser.email || "",
-                      contactPhone: newUser.phone || "",
-                    }));
-                  }
-                  
-                  toast.success("New user synchronized and selected as lead");
-                }}
-              />
-            )}
+            
 
             <div className="pt-2 space-y-4">
               <div className="flex items-center gap-2 mb-2">
@@ -609,7 +527,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                       className="border-slate-200 focus:border-indigo-500"
                     />
                   </div>
-                  <div className="space-y-2">
+                  {/* <div className="space-y-2">
                     <Label
                       htmlFor="description"
                       className="text-[10px] font-black uppercase tracking-widest text-slate-500"
@@ -625,7 +543,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                       placeholder="Define the functional scope of this department..."
                       className="border-slate-200 focus:border-indigo-500 min-h-[80px]"
                     />
-                  </div>
+                  </div> */}
                 </TabsContent>}
 
                 {/* Hindi Content */}
@@ -650,7 +568,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                       className="border-slate-200 focus:border-indigo-500"
                     />
                   </div>
-                  <div className="space-y-2">
+                  {/* <div className="space-y-2">
                     <Label
                       htmlFor="descriptionHi"
                       className="text-[10px] font-black uppercase tracking-widest text-slate-500"
@@ -666,7 +584,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                       placeholder="विवरण यहाँ लिखें..."
                       className="border-slate-200 focus:border-indigo-500 min-h-[80px]"
                     />
-                  </div>
+                  </div> */}
                 </TabsContent>}
 
                 {/* Odia Content */}
@@ -691,7 +609,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                       className="border-slate-200 focus:border-indigo-500"
                     />
                   </div>
-                  <div className="space-y-2">
+                  {/* <div className="space-y-2">
                     <Label
                       htmlFor="descriptionOr"
                       className="text-[10px] font-black uppercase tracking-widest text-slate-500"
@@ -707,7 +625,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                       placeholder="ବିବରଣୀ ଏଠାରେ ଲେଖନ୍ତୁ..."
                       className="border-slate-200 focus:border-indigo-500 min-h-[80px]"
                     />
-                  </div>
+                  </div> */}
                 </TabsContent>}
 
                 {/* Marathi Content */}
@@ -732,7 +650,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                       className="border-slate-200 focus:border-indigo-500"
                     />
                   </div>
-                  <div className="space-y-2">
+                  {/* <div className="space-y-2">
                     <Label
                       htmlFor="descriptionMr"
                       className="text-[10px] font-black uppercase tracking-widest text-slate-500"
@@ -748,11 +666,78 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                       placeholder="वर्णन येथे लिहा..."
                       className="border-slate-200 focus:border-indigo-500 min-h-[80px]"
                     />
-                  </div>
+                  </div> */}
                 </TabsContent>}
               </Tabs>
             </div>
-
+ {/* Department Lead / Contact Selection */}
+            <div className="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 mb-4 animate-in fade-in slide-in-from-top-4 duration-500">
+              <div className="flex items-center justify-between mb-3">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-indigo-500 flex items-center gap-2">
+                  <Shield className="w-3 h-3" />
+                  Department Lead / Contact Personnel
+                </Label>
+                {formData.contactUserId && onEditUser && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const selected = companyUsers.find(u => u._id === formData.contactUserId);
+                      if (selected) onEditUser(selected);
+                    }}
+                    className="text-[9px] font-black uppercase tracking-[0.1em] text-indigo-600 hover:text-white hover:bg-indigo-600 bg-white px-2 py-1 rounded-md border border-indigo-200 shadow-sm transition-all active:scale-95 flex items-center gap-1.5"
+                  >
+                    <User className="w-2.5 h-2.5" />
+                    Edit User Profile
+                  </button>
+                )}
+              </div>
+              <SearchableSelect
+                options={companyUsers
+                  .sort((a, b) => a.firstName.localeCompare(b.firstName))
+                  .map((u) => {
+                    const roleName = (u.customRoleId && typeof u.customRoleId === 'object') 
+                      ? u.customRoleId.name 
+                      : (u.role || 'No Role');
+                    return {
+                      value: u._id,
+                      label: `${u.firstName} ${u.lastName} (${roleName})`,
+                    };
+                  })}
+                value={formData.contactUserId}
+                onValueChange={(value) => {
+                  const selectedUser = companyUsers.find((u) => u._id === value);
+                  setFormData((prev) => ({
+                    ...prev,
+                    contactUserId: value,
+                    contactPerson: selectedUser ? `${selectedUser.firstName} ${selectedUser.lastName}` : "",
+                    contactEmail: selectedUser?.email || "",
+                    contactPhone: selectedUser?.phone || "",
+                  }));
+                }}
+                actionInHeader={true}
+                action={
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setShowCreateUser(true);
+                    }}
+                    className="w-8 h-8 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center justify-center shadow-lg shadow-emerald-600/20 transition-all active:scale-95 flex-shrink-0"
+                    title="Add New User Account"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                  </button>
+                }
+                placeholder="-- Select Lead --"
+                className="w-full bg-white"
+              />
+              <p className="mt-2 text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-relaxed">
+                {formData.contactUserId 
+                  ? "This user will be designated as the primary point of contact for this unit."
+                  : "Associate an existing user account to receive administrative notifications."}
+              </p>
+            </div>
             <div className="flex justify-end space-x-3 pt-6 border-t border-slate-200">
               <Button
                 type="button"
@@ -799,6 +784,54 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
           </form>
         </CardContent>
       </Card>
+
+      {/* Nested Create User Dialog - Rendered outside the main form to prevent nesting errors */}
+      {showCreateUser && (
+        <CreateUserDialog
+          isOpen={showCreateUser}
+          onClose={() => setShowCreateUser(false)}
+          defaultCompanyId={formData.companyId}
+          hideDepartmentSelection={true}
+          onUserCreated={async (newUser) => {
+            const newId = newUser?._id || (newUser as any)?.id;
+            if (newUser && newId) {
+              // Create a display-ready version of the new user to ensure the label renders correctly
+              const roleName = (newUser.customRoleId && typeof newUser.customRoleId === 'object') 
+                ? (newUser.customRoleId as any).name 
+                : (newUser.role || 'Personnel');
+
+              const formattedUser = {
+                ...newUser,
+                displayName: `${newUser.firstName} ${newUser.lastName} (${roleName})`
+              };
+
+              // Update the list immediately
+              setCompanyUsers(prev => {
+                const exists = prev.some(u => (u._id || (u as any).id) === newId);
+                if (!exists) return [formattedUser, ...prev];
+                return prev.map(u => (u._id || (u as any).id) === newId ? formattedUser : u);
+              });
+              
+              // Set the lead info immediately
+              setFormData((prev) => ({
+                ...prev,
+                contactUserId: newId,
+                contactPerson: `${newUser.firstName} ${newUser.lastName}`,
+                contactEmail: newUser.email || "",
+                contactPhone: newUser.phone || "",
+              }));
+              
+              toast.success(`Personnel "${newUser.firstName}" mapped as Department Lead`);
+              
+              // Background sync to ensure full data consistency from server
+              fetchCompanyUsers();
+            }
+            
+            // Finally close the dialog
+            setShowCreateUser(false);
+          }}
+        />
+      )}
     </div>
   );
 };

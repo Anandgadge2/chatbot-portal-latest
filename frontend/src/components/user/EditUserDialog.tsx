@@ -168,6 +168,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     if (!user) return;
 
     setLoading(true);
@@ -616,7 +617,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
                          return isMain || isChildOfSelectedMain || isSelectedSub;
                       })
                       .map((dept) => {
-                        const isSub = !!dept.parentDepartmentId;
+                         const isSub = !!dept.parentDepartmentId;
                         const isSelected = formData.departmentIds.includes(dept._id);
                         return (
                           <div 
@@ -703,6 +704,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
             <Button
               type="button"
               variant="outline"
+              size="sm"
               onClick={onClose}
               disabled={loading}
               className="h-9 px-5 rounded-lg border-slate-200 text-slate-600 hover:bg-slate-100 text-[11px] font-bold uppercase tracking-widest"

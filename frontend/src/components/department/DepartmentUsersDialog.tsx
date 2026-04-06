@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { User, userAPI } from "@/lib/api/user";
 import {
   X,
@@ -12,6 +12,8 @@ import {
   Search,
   Users,
   Edit2,
+  Plus,
+  RefreshCw,
 } from "lucide-react";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { toast } from "react-hot-toast";
@@ -25,6 +27,8 @@ interface DepartmentUsersDialogProps {
   departmentName: string | null;
   onUserClick: (user: User) => void;
   onEditUser?: (user: User) => void;
+  onCreateNewUser?: () => void;
+  companyId?: string | null;
 }
 
 export default function DepartmentUsersDialog({
@@ -34,34 +38,97 @@ export default function DepartmentUsersDialog({
   departmentName,
   onUserClick,
   onEditUser,
+  onCreateNewUser,
+  companyId,
 }: DepartmentUsersDialogProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showAddExisting, setShowAddExisting] = useState(false);
+  const [allCompanyUsers, setAllCompanyUsers] = useState<User[]>([]);
+  const [loadingAllUsers, setLoadingAllUsers] = useState(false);
+  const [assigningUser, setAssigningUser] = useState<string | null>(null);
+
+  const fetchUsers = useCallback(async () => {
+    if (!departmentId) return;
+    setLoading(true);
+    try {
+      const response = await userAPI.getAll({
+        departmentId: departmentId,
+        limit: 100,
+      });
+      if (response.success) {
+        setUsers(response.data.users);
+      }
+    } catch (error) {
+      console.error("Failed to fetch department users:", error);
+      toast.error("Failed to load users for this department");
+    } finally {
+      setLoading(false);
+    }
+  }, [departmentId]);
+
+  const fetchAllCompanyUsers = useCallback(async () => {
+    if (!companyId) return;
+    setLoadingAllUsers(true);
+    try {
+      const response = await userAPI.getAll({
+        companyId: companyId,
+        limit: 500,
+      });
+      if (response.success) {
+        // Filter out users already in this department
+        const existingIds = users.map((u) => u._id);
+        const filtered = response.data.users.filter(
+          (u: User) => !existingIds.includes(u._id),
+        );
+        setAllCompanyUsers(filtered);
+      }
+    } catch (error) {
+      console.error("Failed to fetch all company users:", error);
+    } finally {
+      setLoadingAllUsers(false);
+    }
+  }, [companyId, users]);
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      setLoading(true);
-      try {
-        const response = await userAPI.getAll({
-          departmentId: departmentId!,
-          limit: 100, // Show up to 100 users for this department
-        });
-        if (response.success) {
-          setUsers(response.data.users);
-        }
-      } catch (error) {
-        console.error("Failed to fetch department users:", error);
-        toast.error("Failed to load users for this department");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     if (isOpen && departmentId) {
       fetchUsers();
     }
-  }, [isOpen, departmentId]);
+  }, [isOpen, departmentId, fetchUsers]);
+
+  useEffect(() => {
+    if (showAddExisting) {
+      fetchAllCompanyUsers();
+    }
+  }, [showAddExisting, fetchAllCompanyUsers]);
+
+  const handleAssignUser = async (userToAssign: User) => {
+    setAssigningUser(userToAssign._id);
+    try {
+      // Update user's departmentIds to include this one
+      const currentDeptIds = userToAssign.departmentIds?.map((d: any) =>
+        typeof d === "object" ? d._id : d,
+      ) || [];
+      if (!currentDeptIds.includes(departmentId)) {
+        const newDeptIds = [...currentDeptIds, departmentId];
+        const response = await userAPI.update(userToAssign._id, {
+          departmentIds: newDeptIds,
+        });
+        if (response.success) {
+          toast.success(`${userToAssign.firstName} assigned to department`);
+          fetchUsers();
+          setShowAddExisting(false);
+        }
+      } else {
+        toast.error("User is already in this department");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Failed to assign user");
+    } finally {
+      setAssigningUser(null);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -109,14 +176,98 @@ export default function DepartmentUsersDialog({
                 </div>
               </div>
             </div>
-            <button
-              onClick={onClose}
-              className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all border border-white/10 group"
-            >
-              <X className="w-5 h-5 text-slate-400 group-hover:text-white transition-colors" />
-            </button>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center bg-white/10 rounded-xl p-1 border border-white/10 mr-2">
+                <button
+                  onClick={() => setShowAddExisting(!showAddExisting)}
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-tight transition-all flex items-center gap-1.5 ${
+                    showAddExisting
+                      ? "bg-indigo-500 text-white shadow-lg"
+                      : "text-slate-300 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <Users className="w-3 h-3" />
+                  Add User
+                </button>
+                <div className="w-px h-3 bg-white/10 mx-1" />
+                <button
+                  onClick={onCreateNewUser}
+                  className="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-tight text-slate-300 hover:text-emerald-400 hover:bg-white/5 transition-all flex items-center gap-1.5"
+                >
+                  <Plus className="w-3 h-3" />
+                  Create New
+                </button>
+              </div>
+              <button
+                onClick={onClose}
+                className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all border border-white/10 group"
+              >
+                <X className="w-5 h-5 text-slate-400 group-hover:text-white transition-colors" />
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* Add User Dropdown (Conditional) */}
+        {showAddExisting && (
+          <div className="px-6 py-4 bg-indigo-50 border-b border-indigo-100 animate-in slide-in-from-top duration-300">
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-black text-indigo-900 uppercase tracking-widest">
+                  Assign Existing Personnel
+                </h3>
+                <span className="text-[10px] text-indigo-500 font-bold">
+                  {allCompanyUsers.length} Users Available
+                </span>
+              </div>
+              <div className="max-h-48 overflow-y-auto custom-scrollbar bg-white rounded-xl border border-indigo-100 shadow-inner">
+                {loadingAllUsers ? (
+                  <div className="p-4 flex items-center justify-center">
+                    <LoadingSpinner />
+                  </div>
+                ) : allCompanyUsers.length === 0 ? (
+                  <div className="p-8 text-center text-slate-400 text-xs font-medium">
+                    No other users found in this company
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-50">
+                    {allCompanyUsers.map((u) => (
+                      <div
+                        key={u._id}
+                        className="p-3 hover:bg-indigo-50/50 transition-colors flex items-center justify-between group"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400">
+                            <UserIcon className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-slate-900 leading-tight">
+                              {u.firstName} {u.lastName}
+                            </p>
+                            <p className="text-[10px] text-slate-500 font-medium">
+                              {u.email}
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleAssignUser(u)}
+                          disabled={assigningUser === u._id}
+                          className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-[10px] font-black uppercase tracking-tight rounded-lg transition-all shadow-md active:scale-95"
+                        >
+                          {assigningUser === u._id ? (
+                            <RefreshCw className="w-3 h-3 animate-spin" />
+                          ) : (
+                            "Assign"
+                          )}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Search */}
         <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex-shrink-0">

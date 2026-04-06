@@ -151,12 +151,14 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({ isOpen, onClo
         response = await companyAPI.update(editingCompany._id, formData);
         if (response.success) {
           toast.success('Company updated successfully!');
+          window.dispatchEvent(new CustomEvent('REFRESH_PORTAL_DATA'));
         }
       } else {
         // Create new company
         response = await companyAPI.create(formData);
         if (response.success) {
           toast.success('Company created successfully!');
+          window.dispatchEvent(new CustomEvent('REFRESH_PORTAL_DATA'));
         }
       }
       

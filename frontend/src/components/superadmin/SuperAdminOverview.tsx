@@ -374,6 +374,7 @@ function SuperAdminOverviewContent() {
           const response = await companyAPI.delete(company._id);
           if (response.success) {
             toast.success("Company deleted successfully");
+            window.dispatchEvent(new CustomEvent('REFRESH_PORTAL_DATA'));
           } else {
             // Revert on failure
             setCompanies(originalCompanies);
@@ -410,6 +411,7 @@ function SuperAdminOverviewContent() {
           const response = await departmentAPI.delete(department._id);
           if (response.success) {
             toast.success("Department deleted successfully");
+            window.dispatchEvent(new CustomEvent('REFRESH_PORTAL_DATA'));
           } else {
             // Revert on failure
             setDepartments(originalDepts);
@@ -460,7 +462,7 @@ function SuperAdminOverviewContent() {
         toast.success(
           `Company ${newStatus ? "activated" : "suspended"} successfully`,
         );
-        fetchStats(); // Update stats in background
+        window.dispatchEvent(new CustomEvent('REFRESH_PORTAL_DATA'));
       } else {
         // Revert
         setCompanies(prev => prev.map(c => c._id === company._id ? { ...c, isActive: !newStatus } : c));
@@ -487,7 +489,7 @@ function SuperAdminOverviewContent() {
         toast.success(
           `Department ${newStatus ? "activated" : "deactivated"} successfully`,
         );
-        fetchStats();
+        window.dispatchEvent(new CustomEvent('REFRESH_PORTAL_DATA'));
       } else {
         // Revert
         setDepartments(prev => prev.map(d => d._id === dept._id ? { ...d, isActive: !newStatus } : d));
@@ -514,7 +516,7 @@ function SuperAdminOverviewContent() {
         toast.success(
           `User ${newStatus ? "activated" : "deactivated"} successfully`,
         );
-        fetchStats();
+        window.dispatchEvent(new CustomEvent('REFRESH_PORTAL_DATA'));
       } else {
         // Revert
         setUsers(prev => prev.map(user => user._id === u._id ? { ...user, isActive: !newStatus } : user));
@@ -543,6 +545,7 @@ function SuperAdminOverviewContent() {
           const response = await userAPI.delete(u._id);
           if (response.success) {
             toast.success("User deleted successfully");
+            window.dispatchEvent(new CustomEvent('REFRESH_PORTAL_DATA'));
           } else {
             // Revert on failure
             setUsers(originalUsers);
@@ -921,7 +924,6 @@ function SuperAdminOverviewContent() {
             setEditingCompany(null);
           }}
           onCompanyCreated={() => {
-            fetchCompanies();
             setEditingCompany(null);
           }}
           editingCompany={editingCompany}
@@ -941,8 +943,7 @@ function SuperAdminOverviewContent() {
             setEditingUser(null);
           }}
           onUserCreated={() => {
-            fetchUsers(userPage);
-            fetchStats();
+            setEditingUser(null);
           }}
           editingUser={editingUser}
         />
