@@ -34,7 +34,23 @@ Details:
 📊 *Status:* ASSIGNED
 👨‍💼 *Assigned By:* {assignedByName}
 📅 *Assigned On:* {formattedDate}
-{descriptionLabel}
+
+Please investigate and take required action.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Digital Grievance Redressal System`,
+
+  grievance_reassigned_admin: `*{companyName}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+👤 *GRIEVANCE REASSIGNED TO YOU*
+
+Respected {recipientName},
+
+Details:
+🎫 *Reference ID:* {grievanceId}
+👤 *Citizen:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}
+📊 *Status:* REASSIGNED
+👨‍💼 *Reassigned By:* {assignedByName}
+📅 *Reassigned On:* {formattedDate}
 
 Please investigate and take required action.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━

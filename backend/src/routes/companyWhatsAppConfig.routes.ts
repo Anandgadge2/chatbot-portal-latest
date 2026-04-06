@@ -9,6 +9,7 @@ const BUILTIN_TEMPLATE_KEYS = [
   // Grievance Admin
   { key: 'grievance_created_admin',    label: 'Grievance Received (Admin/Hierarchy)' },
   { key: 'grievance_assigned_admin',   label: 'Grievance Assigned (Admin/Hierarchy)' },
+  { key: 'grievance_reassigned_admin', label: 'Grievance Reassigned (Admin/Hierarchy)' },
   { key: 'grievance_resolved_admin',   label: 'Grievance Resolved (Admin/Hierarchy)' },
   { key: 'grievance_rejected_admin',   label: 'Grievance Rejected (Admin/Hierarchy)' },
 

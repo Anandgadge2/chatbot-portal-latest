@@ -108,6 +108,17 @@ const corsOptions = {
           cb(null, true);
           return;
         }
+
+        // 🔗 PugArch Multi-tenant Support
+        const PUGARCH_ORIGINS = [
+          'https://connect-pugarch-backend.vercel.app',
+          'https://connect.pugarch.in',
+          'http://connect.pugarch.in'
+        ];
+        if (PUGARCH_ORIGINS.some(allowed => normalized === normalizeOrigin(allowed))) {
+          cb(null, true);
+          return;
+        }
         
         // Reject all other origins
         logger.warn(`CORS blocked origin: ${origin}`);

@@ -60,6 +60,12 @@ const TEMPLATE_GROUPS = [
         when: "A grievance is assigned to a department officer",
       },
       {
+        key: "grievance_reassigned_admin",
+        label: "Grievance Reassigned (Admin/Hierarchy)",
+        to: "Hierarchy & Company Admin",
+        when: "A grievance is reassigned to your department by another admin",
+      },
+      {
         key: "grievance_resolved_admin",
         label: "Grievance Resolved (Admin/Hierarchy)",
         to: "Hierarchy & Company Admin",
@@ -239,6 +245,7 @@ const WA_PLACEHOLDERS: Array<{
 const DEFAULT_WA_MESSAGES: Record<string, string> = {
   grievance_created_admin: `*{companyName}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📋 *NEW GRIEVANCE RECEIVED*\n\nRespected {recipientName},\nA new grievance has been submitted.\n\n🎫 *ID:* {grievanceId}\n👤 *Citizen:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}\n📅 *On:* {formattedDate}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
   grievance_assigned_admin: `*{companyName}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n👤 *GRIEVANCE ASSIGNED*\n\nRespected {recipientName},\n\n🎫 *ID:* {grievanceId}\n👤 *Citizen:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}\n👨💼 *Assigned By:* {assignedByName}\n📅 *On:* {formattedDate}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+  grievance_reassigned_admin: `*{companyName}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n👤 *GRIEVANCE REASSIGNED*\n\nRespected {recipientName},\n\n🎫 *ID:* {grievanceId}\n👤 *Citizen:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}\n📊 *Status:* REASSIGNED\n👨💼 *Reassigned By:* {assignedByName}\n📅 *On:* {formattedDate}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
   grievance_confirmation: `*{companyName}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n✅ *GRIEVANCE SUBMITTED*\n\nRespected {citizenName},\nYour grievance is registered.\n\n🎫 *Ref ID:* {grievanceId}{deptLabel}{subDeptLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
   appointment_created_admin: `*{companyName}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📋 *NEW APPOINTMENT*\n\nRespected {recipientName},\n\n🎫 *ID:* {appointmentId}\n👤 *Citizen:* {citizenName}{purposeLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
   appointment_confirmation: `*{companyName}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n✅ *APPOINTMENT REQUESTED*\n\nRespected {citizenName},\nYour request is received.\n\n🎫 *Ref ID:* {appointmentId}{purposeLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,

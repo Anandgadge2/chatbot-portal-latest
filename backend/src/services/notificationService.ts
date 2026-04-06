@@ -214,6 +214,7 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
   let originalDeptName = '';
   let originalSubDeptName = '';
   let reassignmentRemarks = '';
+  let revertedByName = '';
 
   if (data.timeline && Array.isArray(data.timeline)) {
     // Look for the latest revert event to get context
@@ -221,6 +222,14 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
     if (revertEvent && revertEvent.details) {
       reassignmentRemarks = revertEvent.details.remarks || '';
       
+      // Resolve the name of the person who reverted
+      if (revertEvent.performedBy) {
+        try {
+          const rUser = await User.findById(revertEvent.performedBy).select('firstName lastName');
+          if (rUser) revertedByName = rUser.getFullName();
+        } catch (e) {}
+      }
+
       const prevDeptId = revertEvent.details.previousDepartmentId;
       const prevSubDeptId = revertEvent.details.previousSubDepartmentId;
 
@@ -237,7 +246,9 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
 
   const originalDeptLabel = originalDeptName ? `\n🏢 *Original Dept:* ${originalDeptName}` : '';
   const originalSubDeptLabel = (originalSubDeptName && originalSubDeptName !== originalDeptName) ? `\n🏢 *Original Sub-Dept:* ${originalSubDeptName}` : '';
-  const reassignmentRemarksLabel = reassignmentRemarks ? `\n📝 *Reassignment Note:* ${reassignmentRemarks}` : '';
+  
+  const fromAdminSuffix = revertedByName ? ` the previous ${revertedByName}` : ' the previous department admin';
+  const reassignmentRemarksLabel = reassignmentRemarks ? `\n📝 *Note from${fromAdminSuffix}:* ${reassignmentRemarks}` : '';
 
   if ((data.action === 'assigned' || data.action === 'assigned_admin') && data.timeline) {
     const wasReverted = data.timeline.some((t: any) => t.action === 'REVERTED_TO_COMPANY_ADMIN');
@@ -843,7 +854,11 @@ export async function notifyUserOnAssignment(
     });
 
     // 📧 Email
-    const assignmentAction = data.type === 'appointment' ? 'appointment_scheduled' : `${data.type}_assigned`;
+    const wasReverted = data.timeline?.some((t: any) => t.action === 'REVERTED_TO_COMPANY_ADMIN');
+    const assignmentAction = data.type === 'appointment' 
+      ? 'appointment_scheduled' 
+      : (wasReverted ? `${data.type}_reassigned` : `${data.type}_assigned`);
+      
     if (user.email && canNotify(company, user, 'email', assignmentAction)) {
       try {
         const email = await getNotificationEmailContent(data.companyId, data.type, 'assigned', fullData, true);
@@ -862,7 +877,8 @@ export async function notifyUserOnAssignment(
         return;
       }
 
-      let message = await getNotificationWhatsAppMessage(data.companyId, data.type, 'assigned_admin', fullData);
+      const actionKey = wasReverted ? 'reassigned_admin' : 'assigned_admin';
+      let message = await getNotificationWhatsAppMessage(data.companyId, data.type, actionKey, fullData);
       
       if (!message) {
         logger.error(`❌ Still no message found for ${data.type}_assigned_admin even with defaults.`);
