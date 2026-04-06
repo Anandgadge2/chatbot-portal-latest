@@ -613,7 +613,7 @@ function SuperAdminOverviewContent() {
                     <TabsTrigger
                       key={t.val}
                       value={t.val}
-                      className="px-5 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-500 data-[state=active]:bg-white/5 data-[state=active]:text-white data-[state=active]:shadow-none text-slate-400 font-black text-[10px] uppercase tracking-widest transition-all hover:text-white hover:bg-white/5"
+                      className="px-5 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-white/5 data-[state=active]:text-white data-[state=active]:shadow-none text-slate-400 font-black text-[10px] uppercase tracking-widest transition-all hover:text-white hover:bg-white/5"
                     >
                       <t.icon className="w-3.5 h-3.5 mr-2" />
                       {t.label}
@@ -682,7 +682,7 @@ function SuperAdminOverviewContent() {
                   }}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold uppercase tracking-wider transition-all ${
                     activeTab === t.val
-                      ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20"
+                      ? "bg-slate-800 text-white shadow-lg shadow-slate-900/40 ring-1 ring-blue-500/50"
                       : "text-slate-400 hover:text-white hover:bg-white/5"
                   }`}
                 >
@@ -721,7 +721,7 @@ function SuperAdminOverviewContent() {
                 {!showLogs && (
                   <Button 
                     onClick={() => setShowLogs(true)}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] uppercase tracking-wider h-9 rounded-xl px-5 border-0 shadow-lg shadow-indigo-900/20"
+                    className="bg-slate-800 hover:bg-slate-900 text-white font-bold text-[10px] uppercase tracking-wider h-9 rounded-xl px-5 border-0 shadow-lg shadow-slate-900/40 ring-1 ring-blue-500/50 transition-all active:scale-95"
                   >
                     <FileText className="w-3.5 h-3.5 mr-2" />
                     See Audit Logs

@@ -39,9 +39,18 @@ const ChangePermissionsDialog: React.FC<ChangePermissionsDialogProps> = ({
   const fetchCustomRoles = useCallback(async (companyId: string) => {
     if (!companyId) return;
     try {
-      const response = await roleAPI.getRoles(companyId);
+      // First try fetching ONLY company-specific roles
+      let response = await roleAPI.getRoles(companyId, true);
+      let roles = response.data.roles || [];
+
+      // If no company roles exist (new company), fallback to all roles including system ones
+      if (roles.length === 0) {
+        response = await roleAPI.getRoles(companyId, false);
+        roles = response.data.roles || [];
+      }
+
       if (response.success) {
-        setCustomRoles(response.data.roles || []);
+        setCustomRoles(roles);
       }
     } catch (error) {
       console.error("Failed to fetch custom roles:", error);

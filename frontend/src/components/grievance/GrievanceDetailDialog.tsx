@@ -166,11 +166,11 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
   const officerMedia = (grievance.media || []).filter((m) => m.uploadedBy);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-[2px] p-2 sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-500/10 backdrop-blur-[2px] p-2 sm:p-4">
       <div className="w-full max-w-3xl max-h-[92vh] sm:max-h-[90vh] overflow-hidden rounded-2xl shadow-2xl bg-white border border-slate-200 animate-in fade-in zoom-in duration-200 flex flex-col">
-        {/* Compact & Clean Header */}
-        <div className="bg-slate-900 px-5 py-4 flex items-center justify-between gap-4 flex-shrink-0 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 opacity-50"></div>
+        {/* Header — matching the new overview theme */}
+        <div className="bg-slate-900 px-5 py-4 flex items-center justify-between gap-4 flex-shrink-0 relative overflow-hidden border-b border-slate-800">
+          <div className="absolute inset-0 bg-gradient-to-r from-gray-500/10 to-slate-500/10 opacity-50"></div>
           
           <div className="flex items-center gap-3 min-w-0 relative z-10">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br ${statusConfig.gradient} shadow-lg shadow-black/20`}>
@@ -211,7 +211,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-3 text-[10px] font-black uppercase tracking-widest transition-all border-b-2 -mb-[1px] relative whitespace-nowrap ${
                 activeTab === tab.id 
-                  ? "border-indigo-600 text-indigo-600 bg-white shadow-[0_-4px_0_inset_rgba(79,70,229,0.05)]" 
+                  ? "border-blue-500 text-slate-800 bg-white ring-1 ring-blue-500/20" 
                   : "border-transparent text-slate-400 hover:text-slate-600 hover:bg-slate-100"
               }`}
             >
@@ -325,9 +325,9 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
 
                 {/* Location Block (Condensed) */}
                 {grievance.location && (grievance.location.address || grievance.location.coordinates) && (
-                  <div className="flex items-start gap-4 p-4 bg-slate-900 rounded-xl border border-slate-800 shadow-lg">
-                    <div className="w-10 h-10 bg-indigo-500/20 rounded-lg flex items-center justify-center border border-indigo-500/30 flex-shrink-0">
-                      <MapPin className="w-5 h-5 text-indigo-400" />
+                  <div className="flex items-start gap-4 p-4 bg-slate-900 rounded-xl border border-slate-800 shadow-lg ring-1 ring-blue-500/30">
+                    <div className="w-10 h-10 bg-slate-800/50 rounded-lg flex items-center justify-center border border-slate-700/50 flex-shrink-0">
+                      <MapPin className="w-5 h-5 text-blue-400" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-2">
@@ -345,7 +345,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                               href={`https://www.google.com/maps?q=${grievance.location.coordinates[1]},${grievance.location.coordinates[0]}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-[10px] font-black text-white bg-indigo-600 hover:bg-indigo-700 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all shadow-lg active:scale-95"
+                              className="text-[10px] font-black text-white bg-slate-800 hover:bg-slate-900 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all shadow-lg ring-1 ring-blue-500/50 active:scale-95"
                             > 
                               <ExternalLink className="w-3 h-3" />
                               Inspect on Maps
@@ -514,7 +514,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
         <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-3 flex-shrink-0">
           <Button
             onClick={onClose}
-            className="h-9 px-6 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-black/10 transition-all active:scale-95"
+            className="h-9 px-6 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-slate-900/40 ring-1 ring-blue-500/50 transition-all active:scale-95"
           >
             Close Profile
           </Button>

@@ -140,8 +140,8 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
     try {
       const response = await departmentAPI.getAll({
         companyId: formData.companyId,
-        type: 'main',
         listAll: true,
+        limit: 1000,
       });
       if (response.success) {
         setAllDepartments(response.data.departments);
@@ -159,7 +159,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
     try {
       const response = await userAPI.getAll({
         companyId: formData.companyId,
-        limit: 100,
+        limit: 1000,
         status: 'active'
       });
       if (response.success) {
@@ -264,7 +264,9 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
       let response;
       const dataToSubmit: any = {
         ...formData,
-        parentDepartmentId: isSubDepartment && formData.parentDepartmentId ? formData.parentDepartmentId : undefined,
+        parentDepartmentId: isSubDepartment 
+          ? (formData.parentDepartmentId || undefined) 
+          : null,
         contactUserId: formData.contactUserId || undefined,
       };
 
@@ -343,12 +345,12 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-gray-500/10 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <Card className="w-full max-w-lg max-h-[90vh] flex flex-col bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden">
         <CardHeader className="bg-slate-900 px-6 py-4 border-b border-slate-800 flex flex-row items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-md border border-white/20 shadow-inner">
-              <Shield className="w-5 h-5 text-indigo-400" />
+            <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center border border-white/20 shadow-inner">
+              <Shield className="w-5 h-5 text-gray-400" />
             </div>
             <div>
               <CardTitle className="text-base font-bold text-white uppercase tracking-tight">
@@ -356,7 +358,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                   ? "Modify Department Node"
                   : "Initialize New Department"}
               </CardTitle>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
                 Global Infrastructure Registry
               </p>
             </div>
@@ -365,7 +367,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
             onClick={onClose}
             className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all duration-300 border border-white/10 group cursor-pointer"
           >
-            <X className="w-5 h-5 text-slate-400 group-hover:text-white transition-colors" />
+            <X className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
           </button>
         </CardHeader>
         <CardContent className="flex-1 overflow-y-auto p-6 custom-scrollbar">
@@ -408,8 +410,8 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                   }}
                   className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all border ${
                     !isSubDepartment
-                      ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200"
-                      : "bg-white text-slate-500 border-slate-200 hover:border-indigo-300 hover:text-indigo-600"
+                      ? "bg-slate-800 text-white border-slate-700 shadow-md shadow-slate-900/40 ring-1 ring-blue-500/50"
+                      : "bg-white text-slate-500 border-slate-200 hover:border-slate-800 hover:text-slate-800"
                   }`}
                 >
                   <Building className="w-3.5 h-3.5" />
@@ -420,8 +422,8 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                   onClick={() => setIsSubDepartment(true)}
                   className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all border ${
                     isSubDepartment
-                      ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200"
-                      : "bg-white text-slate-500 border-slate-200 hover:border-indigo-300 hover:text-indigo-600"
+                      ? "bg-slate-800 text-white border-slate-700 shadow-md shadow-slate-900/40 ring-1 ring-blue-500/50"
+                      : "bg-white text-slate-500 border-slate-200 hover:border-slate-800 hover:text-slate-800"
                   }`}
                 >
                   <div className="flex items-center">
@@ -489,10 +491,15 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
               <SearchableSelect
                 options={companyUsers
                   .sort((a, b) => a.firstName.localeCompare(b.firstName))
-                  .map((u) => ({
-                    value: u._id,
-                    label: `${u.firstName} ${u.lastName} (${u.role || 'No Role'})`,
-                  }))}
+                  .map((u) => {
+                    const roleName = (u.customRoleId && typeof u.customRoleId === 'object') 
+                      ? u.customRoleId.name 
+                      : (u.role || 'No Role');
+                    return {
+                      value: u._id,
+                      label: `${u.firstName} ${u.lastName} (${roleName})`,
+                    };
+                  })}
                 value={formData.contactUserId}
                 onValueChange={(value) => {
                   const selectedUser = companyUsers.find((u) => u._id === value);
@@ -717,7 +724,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
               <Button
                 type="submit"
                 disabled={loading}
-                className="px-6 bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-700 hover:to-fuchsia-700 text-white shadow-lg shadow-purple-500/25"
+                className="px-6 bg-slate-800 hover:bg-slate-900 text-white shadow-lg shadow-slate-900/40 border-0 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ring-1 ring-blue-500/50 active:scale-95"
               >
                 {loading ? (
                   <span className="flex items-center gap-2">

@@ -62,7 +62,7 @@ export default function UserDetailsDialog({
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-2 sm:p-4">
       <div className="w-full max-w-4xl max-h-[92vh] sm:max-h-[90vh] overflow-hidden rounded-xl sm:rounded-2xl shadow-2xl bg-white animate-in fade-in zoom-in duration-200 flex flex-col">
-        {/* Dark Slate Header */}
+        {/* Header — matching the new overview theme */}
         <div className="bg-slate-900 p-3 sm:p-5 relative overflow-hidden flex-shrink-0 border-b border-slate-800">
           {/* Subtle Background Pattern */}
           <div className="absolute inset-0 bg-white bg-opacity-5">
@@ -296,11 +296,11 @@ export default function UserDetailsDialog({
                     if (deptList.length === 0) return <span className="text-xs text-slate-400 italic">No departments mapped</span>;
 
                     return deptList.map((dept, idx) => (
-                      <div key={idx} className={`px-3 py-1.5 border rounded-lg flex flex-col ${dept.isPrimary ? "bg-indigo-600 border-indigo-700 shadow-sm" : "bg-white border-slate-200"}`}>
+                      <div key={idx} className={`px-3 py-1.5 border rounded-lg flex flex-col ${dept.isPrimary ? "bg-slate-900 border-slate-800 shadow-sm ring-1 ring-blue-500/30" : "bg-white border-slate-200"}`}>
                         <span className={`text-sm font-bold ${dept.isPrimary ? "text-white" : "text-slate-800"}`}>
                           {dept.name}
                         </span>
-                        <span className={`text-[8px] font-black uppercase tracking-widest mt-0.5 ${dept.isPrimary ? "text-indigo-200" : "text-slate-400"}`}>
+                        <span className={`text-[8px] font-black uppercase tracking-widest mt-0.5 ${dept.isPrimary ? "text-slate-300" : "text-slate-400"}`}>
                           {dept.isPrimary ? "Primary Unit" : "Secondary Mapping"}
                         </span>
                       </div>
@@ -360,7 +360,7 @@ export default function UserDetailsDialog({
         <div className="flex-shrink-0 px-5 py-4 bg-gradient-to-r from-slate-50 to-white border-t border-slate-200">
           <button
             onClick={onClose}
-            className="w-full py-3 px-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
+            className="w-full py-3.5 px-4 bg-slate-800 hover:bg-slate-900 text-white font-black rounded-xl transition-all duration-200 shadow-lg shadow-slate-900/40 ring-1 ring-blue-500/50 uppercase text-xs tracking-widest active:scale-95"
           >
             Close
           </button>

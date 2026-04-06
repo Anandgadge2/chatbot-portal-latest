@@ -236,7 +236,7 @@ function PremiumClockPicker({
         className={`w-full py-5 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl transition-all flex items-center justify-center gap-3 group ${
           value === currentResult
             ? 'bg-emerald-600 text-white shadow-emerald-200'
-            : 'bg-indigo-600 hover:bg-slate-900 text-white shadow-indigo-200'
+            : 'bg-slate-800 hover:bg-slate-900 text-white shadow-slate-900/40 ring-1 ring-blue-500/50'
         }`}
       >
         <span>{value === currentResult ? `Time Confirmed: ${currentResult}` : `Confirm Time: ${currentResult}`}</span>
@@ -482,8 +482,8 @@ export default function StatusUpdateModal({
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-150">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
-        {/* Dark Header */}
-        <div className="bg-slate-900 p-5 flex items-center justify-between flex-shrink-0">
+        {/* Header — matching the new overview theme */}
+        <div className="bg-slate-900 p-5 flex items-center justify-between flex-shrink-0 border-b border-slate-800">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center border border-emerald-500/30">
               <RefreshCw className="w-5 h-5 text-emerald-400" />
@@ -623,7 +623,7 @@ export default function StatusUpdateModal({
           <button
             onClick={handleUpdate}
             disabled={selectedStatus === currentStatus || submitting || (itemType === 'appointment' && selectedStatus === 'CONFIRMED' && (!appointmentDate || !appointmentTime))}
-            className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold uppercase tracking-wider shadow-md shadow-indigo-900/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-bold uppercase tracking-wider shadow-lg shadow-slate-900/40 ring-1 ring-blue-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {submitting ? (
               <>

@@ -73,10 +73,19 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
   const fetchCustomRoles = useCallback(async (companyId: string) => {
     if (!companyId) return;
     try {
-      const response = await roleAPI.getRoles(companyId);
+      // First try fetching ONLY company-specific roles
+      let response = await roleAPI.getRoles(companyId, true);
+      let roles = response.data.roles || [];
+
+      // If no company roles exist (new company), fallback to all roles including system ones
+      if (roles.length === 0) {
+        response = await roleAPI.getRoles(companyId, false);
+        roles = response.data.roles || [];
+      }
+
       if (response.success) {
         // Filter out level 0 roles (Platform Superadmin) for company personnel
-        const filteredRoles = (response.data.roles || []).filter((r: any) => r.level > 0);
+        const filteredRoles = roles.filter((r: any) => r.level > 0);
         setCustomRoles(filteredRoles);
       }
     } catch (error) {
@@ -105,11 +114,8 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
       });
 
 
-      if (user.departmentIds && user.departmentIds.length > 0) {
-        setIsMultiDept(true);
-      } else {
-        setIsMultiDept(false);
-      }
+      // 🏢 Per user request: Multiple assignment button should be disabled by default
+      setIsMultiDept(false);
 
       const companyId = user?.companyId
         ? typeof user.companyId === "object"
@@ -487,7 +493,12 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Map to multiple organizational units</p>
                   </div>
                 </div>
-                <Switch checked={isMultiDept} onCheckedChange={setIsMultiDept} />
+                <Switch 
+                  checked={isMultiDept} 
+                  onCheckedChange={setIsMultiDept} 
+                  disabled={true} 
+                  className="data-[state=checked]:bg-slate-400 data-[state=unchecked]:bg-slate-200 cursor-not-allowed opacity-50"
+                />
               </div>
 
               {!isMultiDept ? (

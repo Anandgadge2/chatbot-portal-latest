@@ -36,6 +36,17 @@ interface CreateUserDialogProps {
   defaultCompanyId?: string;
 }
 
+const allowedRoleNames = [
+  "company administrator",
+  "department admin",
+  "department administrator",
+  "sub department admin",
+  "sub-department admin",
+  "sub department administrator",
+  "sub-department administrator",
+  "operator",
+];
+
 const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
   isOpen,
   onClose,
@@ -188,21 +199,24 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
       return;
     }
     try {
-      const response = await roleAPI.getRoles(companyId);
+      // First try fetching ONLY company-specific roles
+      let response = await roleAPI.getRoles(companyId, true);
+      let roles = response.data.roles || [];
+
+      // If no company roles exist (new company), fallback to all roles including system ones
+      if (roles.length === 0) {
+        response = await roleAPI.getRoles(companyId, false);
+        roles = response.data.roles || [];
+      }
+
       if (response.success) {
         // Filter out level 0 roles and keep only the four company roles.
-        const allowedRoleNames = new Set([
-          "company administrator",
-          "department admin",
-          "department administrator",
-          "sub department admin",
-          "sub-department admin",
-          "sub department administrator",
-          "sub-department administrator",
-          "operator",
-        ]);
-        const filteredRoles = (response.data.roles || []).filter(
-          (r: any) => r.level > 0 && allowedRoleNames.has((r.name || "").toLowerCase()),
+        const filteredRoles = roles.filter(
+          (r: any) => {
+            if (r.level === 0) return false;
+            const nameLower = (r.name || "").toLowerCase();
+            return allowedRoleNames.some(allowed => nameLower.includes(allowed));
+          }
         );
         setCustomRoles(filteredRoles);
       }
@@ -415,13 +429,13 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-gray-500/10 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <Card className="w-full max-w-lg max-h-[90vh] flex flex-col bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden">
         <CardHeader className="bg-slate-900 px-6 py-4 border-b border-slate-800">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-md border border-white/20 shadow-inner">
-                <Users className="w-5 h-5 text-indigo-400" />
+                <Users className="w-5 h-5 text-gray-400" />
               </div>
               <div>
                 <CardTitle className="text-base font-bold text-white uppercase tracking-tight">
@@ -568,7 +582,12 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
                     <span className="text-[8px] font-medium text-slate-400">Map this user to multiple organizational units</span>
                   </div>
                 </div>
-                <Switch checked={isMultiDept} onCheckedChange={setIsMultiDept} />
+                <Switch 
+                  checked={isMultiDept} 
+                  onCheckedChange={setIsMultiDept} 
+                  disabled={true} 
+                  className="data-[state=checked]:bg-slate-400 data-[state=unchecked]:bg-slate-200 cursor-not-allowed opacity-50"
+                />
               </div>
 
               {!isMultiDept ? (
@@ -730,7 +749,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
 
             <div className="flex justify-end space-x-3 pt-6 border-t">
               <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-              <Button type="submit" disabled={loading} className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg">
+              <Button type="submit" disabled={loading} className="bg-slate-800 hover:bg-slate-900 text-white shadow-lg shadow-slate-900/40 border-0 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ring-1 ring-blue-500/50 active:scale-95">
                 {loading ? "Processing..." : (editingUser ? "Update User" : "Create User")}
               </Button>
             </div>

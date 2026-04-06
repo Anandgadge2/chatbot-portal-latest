@@ -375,7 +375,7 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="bg-slate-900 rounded-xl p-5 flex items-center justify-between">
+      <div className="bg-slate-900 rounded-xl p-5 flex items-center justify-between border border-slate-800 shadow-lg shadow-slate-900/20">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
             <Shield className="w-5 h-5 text-indigo-400" />
@@ -401,7 +401,7 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
               setEditingRole(null);
               setForm(emptyForm);
             }}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ring-1 ring-blue-500/50 shadow-lg shadow-slate-900/40 active:scale-95"
           >
             <Plus className="w-4 h-4" /> New Role
           </button>
@@ -646,10 +646,10 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
             {/* Form Header */}
-            <div className="bg-slate-900 px-8 py-6 flex items-center justify-between">
+            <div className="bg-slate-900 px-8 py-6 flex items-center justify-between border-b border-slate-800">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center border border-white/20">
-                  <Shield className="w-6 h-6 text-indigo-400" />
+                <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center border border-white/20 shadow-inner">
+                  <Shield className="w-6 h-6 text-blue-400" />
                 </div>
                 <div>
                   <h3 className="text-white font-black text-lg uppercase tracking-tight">
@@ -667,7 +667,7 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
                   setShowForm(false);
                   setEditingRole(null);
                 }}
-                className="text-slate-400 hover:text-white transition-colors p-2 hover:bg-white/5 rounded-xl"
+                className="text-slate-400 hover:text-white transition-colors p-2 hover:bg-white/5 rounded-xl border border-transparent hover:border-white/10"
               >
                 <X className="w-6 h-6" />
               </button>
