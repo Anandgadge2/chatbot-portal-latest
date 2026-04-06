@@ -1,9 +1,17 @@
 import type { Metadata } from 'next'
+import { Poppins } from 'next/font/google'
 import './globals.css'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { QueryProvider } from '@/lib/query/cache'
+
+const poppins = Poppins({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
+  variable: '--font-theme',
+})
 
 export const metadata: Metadata = {
   title: 'WhatsApp Chatbot Platform',
@@ -22,7 +30,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="antialiased">
+      <body className={`${poppins.variable} antialiased`}>
         <QueryProvider>
           <AuthProvider>
             {children}
