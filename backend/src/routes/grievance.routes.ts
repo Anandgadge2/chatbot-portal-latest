@@ -764,11 +764,13 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
       citizenName: grievance.citizenName,
       citizenPhone: grievance.citizenPhone,
       citizenWhatsApp: grievance.citizenWhatsApp,
+      description: grievance.description,
       departmentId: grievance.departmentId,
       subDepartmentId: grievance.subDepartmentId,
       departmentName: dept ? dept.name : undefined,
       newStatus: GrievanceStatus.ASSIGNED,
-      remarks: `Your grievance has been assigned to ${assignedUser.getFullName()} for resolution.`
+      remarks: `Your grievance has been assigned to ${assignedUser.getFullName()} for resolution.`,
+      timeline: grievance.timeline
     });
 
     await logUserAction(

@@ -31,7 +31,7 @@ Respected {recipientName},
 Details:
 🎫 *Reference ID:* {grievanceId}
 👤 *Citizen:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}
-
+📊 *Status:* ASSIGNED
 👨‍💼 *Assigned By:* {assignedByName}
 📅 *Assigned On:* {formattedDate}
 

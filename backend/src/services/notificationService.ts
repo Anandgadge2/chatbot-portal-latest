@@ -998,6 +998,7 @@ export async function notifyCitizenOnGrievanceStatusChange(data: {
   citizenPhone: string;
   citizenWhatsApp?: string;
   citizenEmail?: string;
+  description?: string;
   departmentId?: any;
   subDepartmentId?: any;
   departmentName?: string;
@@ -1006,26 +1007,30 @@ export async function notifyCitizenOnGrievanceStatusChange(data: {
   remarks?: string;
   evidenceUrls?: string[];
   createdAt?: Date | string;
+  timeline?: any[];
 }): Promise<void> {
   try {
     const company = await getCompanyWithWhatsAppConfig(data.companyId);
     if (!company) return;
 
     // Use centralized data population (includes formattedDate for "Submitted On")
-    const fullData = await populateNotificationData({ ...data, type: 'grievance', action: 'confirmation' });
+    const fullData = await populateNotificationData({ ...data, type: 'grievance', action: 'status_update' });
     
     // Check for custom template in DB: grievance_status_{status}
     const statusLower = data.newStatus.toLowerCase();
     const statusKey = `status_${statusLower}`;
     
     // Fallback order: 
-    // 1. grievance_status_resolved (if status is resolved)
-    // 2. grievance_resolved (standard key)
-    // 3. grievance_status_update (catch-all)
+    // 1. status_assigned (specific)
+    // 2. assigned (generic status name)
+    // 3. status_update (catch-all)
+    // 🛡️ SECURITY: NEVER match keys ending in _admin for citizens
     const attemptActions = [statusKey, statusLower, 'status_update'];
     
     let message = null;
     for (const act of attemptActions) {
+      if (act.endsWith('_admin')) continue;
+      
       message = await getNotificationWhatsAppMessage(data.companyId, 'grievance', act, fullData);
       if (message) break;
     }
@@ -1142,47 +1147,63 @@ export async function notifyHierarchyOnStatusChange(
     // Admins without a phone will still receive EMAIL notifications.
     const citizenPhoneNormalized = data.citizenWhatsApp?.replace(/\D/g, '') || data.citizenPhone?.replace(/\D/g, '');
     
+    // Determine direct assignee ID for specialized messaging
+    const directAssigneeId = data.assignedTo?.toString ? data.assignedTo.toString() : data.assignedTo;
+
     await Promise.allSettled(users.map(async (user) => {
       try {
+        const userIdStr = user._id.toString();
+        const isDirectAssignee = userIdStr === directAssigneeId;
+
         // Personalize data for each admin recipient
         const userFullData: Record<string, any> = {
           ...fullData,
           recipientName: user.getFullName()
         };
 
-        // 📱 WhatsApp — Get message for this specific user to ensure correct personalization
-        // Try specialized reassignment keys if status is ASSIGNED as requested by user
-        let templateKey = `${statusAction}_admin`;
-        
-        if (newStatus === 'ASSIGNED') {
-          // Identify role level for specialized reassignment messages
+        // 📱 WhatsApp — Get message for this specific user
+        let hierarchyMessage = null;
+        let templateKey = '';
+
+        if (newStatus === 'ASSIGNED' && isDirectAssignee) {
+          // Direct assignee gets the "Assigned to You" style message
+          templateKey = 'assigned_admin';
+          
+          // Try specialized role-based assignment keys first
           const userRole = user.customRoleId as any;
           const roleKey = userRole?.key || '';
           
+          let specializedKey = '';
           if (roleKey === 'COMPANY_ADMIN' || roleKey === 'ADMIN' || user.isSuperAdmin) {
-            templateKey = 'grievance_reassigned_company_admin';
+            specializedKey = 'grievance_reassigned_company_admin';
           } else if (roleKey === 'DEPARTMENT_ADMIN') {
-            templateKey = 'grievance_received_dept_admin';
+            specializedKey = 'grievance_received_dept_admin';
           } else if (roleKey === 'SUB_DEPARTMENT_ADMIN') {
-            templateKey = 'grievance_reassigned_subdept_admin';
+            specializedKey = 'grievance_reassigned_subdept_admin';
           }
-        }
 
-        let hierarchyMessage = await getNotificationWhatsAppMessage(companyId, data.type, templateKey as any, userFullData);
-        
-        // Fallbacks for specialized keys
-        if (!hierarchyMessage && newStatus === 'ASSIGNED') {
-           // Fallback to standard assigned_admin if specialized keys aren't found in DB
-           hierarchyMessage = await getNotificationWhatsAppMessage(companyId, data.type, 'assigned_admin', userFullData);
-        }
-
-        if (!hierarchyMessage) {
-          hierarchyMessage = await getNotificationWhatsAppMessage(companyId, data.type, statusAction as any, userFullData);
-        }
-        
-        if (!hierarchyMessage && (newStatus === 'RESOLVED' || newStatus === 'COMPLETED')) {
-          // Additional fallback for legacy resolved keys
-          hierarchyMessage = await getNotificationWhatsAppMessage(companyId, data.type, 'resolved', userFullData);
+          if (specializedKey) {
+            hierarchyMessage = await getNotificationWhatsAppMessage(companyId, data.type, specializedKey as any, userFullData);
+          }
+          
+          if (!hierarchyMessage) {
+            hierarchyMessage = await getNotificationWhatsAppMessage(companyId, data.type, 'assigned_admin', userFullData);
+          }
+        } else {
+          // Others in the hierarchy (or non-assignment status changes) get a general status update
+          // This avoids the "ASSIGNED TO YOU" confusion for non-assignees.
+          const updateKey = `status_${statusAction}`;
+          hierarchyMessage = await getNotificationWhatsAppMessage(companyId, data.type, updateKey as any, userFullData);
+          
+          if (!hierarchyMessage) {
+            // Fallback to general status_update
+            hierarchyMessage = await getNotificationWhatsAppMessage(companyId, data.type, 'status_update', userFullData);
+          }
+          
+          // Final fallbacks for resolved/common states
+          if (!hierarchyMessage && (newStatus === 'RESOLVED' || newStatus === 'COMPLETED')) {
+            hierarchyMessage = await getNotificationWhatsAppMessage(companyId, data.type, 'resolved', userFullData);
+          }
         }
 
         if (!hierarchyMessage) {
