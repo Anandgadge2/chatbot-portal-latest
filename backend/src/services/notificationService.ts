@@ -870,9 +870,14 @@ export async function notifyUserOnAssignment(
       }
       const dashboardUrl = `${process.env.FRONTEND_URL}/dashboard`;
       const adminCta = { title: "Access Dashboard", url: dashboardUrl };
-      const citizenPhoneNormalized = data.citizenWhatsApp?.replace(/\D/g, '') || data.citizenPhone?.replace(/\D/g, '');
+      const citizenPhones = [
+        data.citizenWhatsApp?.replace(/\D/g, ''),
+        data.citizenPhone?.replace(/\D/g, ''),
+        (data as any).phone?.replace(/\D/g, '') // Fallback for various data structures
+      ].filter(Boolean);
+
       const userPhoneNormalized = user.phone?.replace(/\D/g, '');
-      const isCitizenPhone = userPhoneNormalized && userPhoneNormalized === citizenPhoneNormalized;
+      const isCitizenPhone = userPhoneNormalized && citizenPhones.includes(userPhoneNormalized);
 
       if (isCitizenPhone) {
         logger.warn(`⚠️ Skipping notifyUserOnAssignment for ${user.email} — phone matches citizen's phone (avoiding duplicate).`);
@@ -1030,12 +1035,9 @@ export async function notifyCitizenOnGrievanceStatusChange(data: {
     const statusLower = data.newStatus.toLowerCase();
     const statusKey = `status_${statusLower}`;
     
-    // Fallback order: 
-    // 1. status_assigned (specific)
-    // 2. assigned (generic status name)
-    // 3. status_update (catch-all)
-    // 🛡️ SECURITY: NEVER match keys ending in _admin for citizens
-    const attemptActions = [statusKey, statusLower, 'status_update'];
+    // 🛡️ SECURITY: ONLY match explicit status_ keys or the generic status_update for citizens.
+    // NEVER match the naked status name (e.g. "assigned") as that matches the STAFF template.
+    const attemptActions = [statusKey, 'status_update'];
     
     let message = null;
     for (const act of attemptActions) {
