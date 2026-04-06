@@ -750,7 +750,7 @@ export function generateNotificationEmail(
     }
   `;
 
-  const dashboardLink = 'https://chatbot-portal-latest-frontend.vercel.app/';
+  const dashboardLink = `${process.env.FRONTEND_URL}/dashboard`;
   const adminLinkHtml = isAdmin ? `
     <div class="admin-link-section">
       <p style="margin: 0 0 15px 0; font-size: 14px; color: #475569; font-weight: 600;">🔐 ADMIN ACCESS ONLY</p>

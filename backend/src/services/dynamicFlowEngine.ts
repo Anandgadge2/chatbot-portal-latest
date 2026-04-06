@@ -1997,6 +1997,30 @@ export class DynamicFlowEngine {
       `   Flow ID: ${this.flow.flowId}, Flow Name: ${this.flow.flowName}`,
     );
 
+    // ✅ 0. Check for CANCEL button click
+    const isCancelClick = buttonId && String(buttonId).toLowerCase().startsWith('cancel');
+    if (isCancelClick) {
+      console.log(`🚫 Cancel button clicked: ${buttonId}. Resetting session...`);
+      const lang = this.session.language || 'en';
+      const cancelMsgs: Record<string, string> = {
+        en: "❌ *Request Cancelled.*\n\nYour current action has been cancelled. Returning to the main menu.",
+        hi: "❌ *अनुरोध रद्द कर दिया गया।*\n\nआपकी वर्तमान कार्रवाई रद्द कर दी गई है। मुख्य मेनू पर वापस जा रहे हैं।",
+        or: "❌ *ଅନୁରୋଧ ବାତିଲ ହେଲା।*\n\nଆପଣଙ୍କର ବର୍ତ୍ତମାନର କାର୍ଯ୍ୟ ବାତିଲ କରାଯାଇଛି | ମୁଖ୍ୟ ମେନୁକୁ ଫେରୁଛି |",
+        mr: "❌ *विनंती रद्द केली.*\n\nतुमची सध्याची कृती रद्द करण्यात आली आहे. मुख्य मेनूवर परत जात आहे."
+      };
+      await sendWhatsAppMessage(this.company, this.userPhone, cancelMsgs[lang] || cancelMsgs['en']);
+      
+      // Clear session data but keep language and flowId
+      const flowId = this.session.data.flowId;
+      this.session.data = { flowId, language: lang };
+      await updateSession(this.session);
+      
+      // Navigate to Menu
+      const menuTarget = (this.flow as any).settings?.commands?.menu?.navigateTo || this.flow.startStepId;
+      await this.executeStep(menuTarget);
+      return;
+    }
+
     // Get current step
     const currentStep = this.flow.steps.find(
       (s) => s.stepId === this.session.data.currentStepId,

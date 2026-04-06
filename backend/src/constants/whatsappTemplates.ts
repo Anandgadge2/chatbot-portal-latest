@@ -34,6 +34,7 @@ Details:
 📊 *Status:* ASSIGNED
 👨‍💼 *Assigned By:* {assignedByName}
 📅 *Assigned On:* {formattedDate}
+{descriptionLabel}
 
 Please investigate and take required action.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━

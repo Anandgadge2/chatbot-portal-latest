@@ -870,6 +870,15 @@ export async function notifyUserOnAssignment(
       }
       const dashboardUrl = `${process.env.FRONTEND_URL}/dashboard`;
       const adminCta = { title: "Access Dashboard", url: dashboardUrl };
+      const citizenPhoneNormalized = data.citizenWhatsApp?.replace(/\D/g, '') || data.citizenPhone?.replace(/\D/g, '');
+      const userPhoneNormalized = user.phone?.replace(/\D/g, '');
+      const isCitizenPhone = userPhoneNormalized && userPhoneNormalized === citizenPhoneNormalized;
+
+      if (isCitizenPhone) {
+        logger.warn(`⚠️ Skipping notifyUserOnAssignment for ${user.email} — phone matches citizen's phone (avoiding duplicate).`);
+        return;
+      }
+
       await safeSendWhatsApp(company, user.phone, message, adminCta);
       if (data.evidenceUrls && data.evidenceUrls.length > 0) {
         await sendMediaIfAvailable(company, user.phone, data.evidenceUrls, `Files for Assignment: ${fullData.grievanceId || fullData.appointmentId}`);
