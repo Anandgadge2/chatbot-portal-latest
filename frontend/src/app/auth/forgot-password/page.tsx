@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 export default function ForgotPasswordPage() {
   const router = useRouter();
   const [phone, setPhone] = useState("");
-  const [deliveryChannel, setDeliveryChannel] = useState<"email" | "whatsapp" | "sms">("sms");
+  const [deliveryChannel, setDeliveryChannel] = useState<"email" | "whatsapp">("whatsapp");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -84,14 +84,13 @@ export default function ForgotPasswordPage() {
             </Label>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               {[
-                { id: "sms", label: "SMS", icon: <Phone className="w-3.5 h-3.5" /> },
                 { id: "whatsapp", label: "WhatsApp", icon: <MessageCircle className="w-3.5 h-3.5" /> },
                 { id: "email", label: "Email", icon: <Mail className="w-3.5 h-3.5" /> }
               ].map((option) => (
                 <button
                   key={option.id}
                   type="button"
-                  onClick={() => setDeliveryChannel(option.id as "email" | "whatsapp" | "sms")}
+                  onClick={() => setDeliveryChannel(option.id as "email" | "whatsapp")}
                   className={`h-10 rounded-xl border text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors ${
                     deliveryChannel === option.id
                       ? "bg-slate-900 text-white border-slate-900"

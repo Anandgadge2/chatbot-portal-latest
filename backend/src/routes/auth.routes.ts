@@ -11,7 +11,7 @@ import crypto from 'crypto';
 import { sendEmail } from '../services/emailService';
 import CompanyWhatsAppConfig from '../models/CompanyWhatsAppConfig';
 import { sendWhatsAppMessage } from '../services/whatsappService';
-import { sendSmsOtp } from '../services/smsService';
+// SMS service import removed as per user request to disable SMS channel
 
 
 const router = express.Router();
@@ -265,16 +265,16 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
   try {
     const { phone, deliveryChannel } = req.body as {
       phone?: string;
-      deliveryChannel?: 'email' | 'whatsapp' | 'sms';
+      deliveryChannel?: 'email' | 'whatsapp';
     };
 
     if (!phone || !phone.trim()) {
       return res.status(400).json({ success: false, message: 'Phone number is required' });
     }
 
-    const channel = deliveryChannel || 'sms';
-    if (!['email', 'whatsapp', 'sms'].includes(channel)) {
-      return res.status(400).json({ success: false, message: 'deliveryChannel must be email, whatsapp or sms' });
+    const channel = deliveryChannel || 'whatsapp';
+    if (!['email', 'whatsapp'].includes(channel)) {
+      return res.status(400).json({ success: false, message: 'deliveryChannel must be email or whatsapp' });
     }
 
     const { validatePhoneNumber, normalizePhoneNumber } = await import('../utils/phoneUtils');
@@ -353,10 +353,6 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
       } else {
         deliveryError = 'WhatsApp is not configured for this company';
       }
-    } else if (channel === 'sms') {
-      const smsResult = await sendSmsOtp(user.phone, otp);
-      deliverySuccess = smsResult.success;
-      deliveryError = smsResult.error;
     } else {
       deliveryError = 'Selected delivery channel is unavailable for this account';
     }
