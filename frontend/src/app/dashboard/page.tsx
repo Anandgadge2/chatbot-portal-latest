@@ -388,6 +388,11 @@ function DashboardContent() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [company, setCompany] = useState<Company | null>(null);
+  const isHierarchicalCompany = useMemo(() => {
+    const fromStats = stats?.isHierarchicalEnabled;
+    if (typeof fromStats === "boolean") return fromStats;
+    return !!company?.enabledModules?.includes(Module.HIERARCHICAL_DEPARTMENTS);
+  }, [stats?.isHierarchicalEnabled, company]);
   const isDFO = useMemo(() => {
     return (
       company?.name?.toUpperCase().includes("D.F.O.") ||
@@ -2831,7 +2836,7 @@ function DashboardContent() {
                 {/* Departments (Mirroring Logic) */}
                 {isViewingCompany && (
                   <>
-                    {stats?.isHierarchicalEnabled ? (
+                    {isHierarchicalCompany ? (
                       <>
                         <Card
                           onClick={() => setActiveTab("departments")}

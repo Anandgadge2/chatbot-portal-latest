@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -280,9 +281,9 @@ export default function LoginPage() {
                     <Label htmlFor="password" className="text-slate-900 font-black text-[10px] uppercase tracking-widest leading-none">
                       Password Key
                     </Label>
-                    <button type="button" className="text-[9px] font-black text-indigo-600 hover:text-indigo-700 uppercase tracking-widest transition-colors">
+                    <Link href="/auth/forgot-password" className="text-[9px] font-black text-indigo-600 hover:text-indigo-700 uppercase tracking-widest transition-colors">
                       Recovery?
-                    </button>
+                    </Link>
                   </div>
                   <div className="relative group/input">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
