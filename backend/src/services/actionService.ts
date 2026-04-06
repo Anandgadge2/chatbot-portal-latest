@@ -239,6 +239,7 @@ export class ActionService {
       await updateSession(session);
       
       // ✅ PREPARE NOTIFICATIONS
+      logger.info(`🔍 [ActionService] Creating Grievance ${grievance.grievanceId}. Session Desc: "${session.data.description || ''}", Flow Prop: "${session.data.grievance_description || ''}"`);
       const notificationData = {
         grievanceId: grievance.grievanceId,
         citizenName: session.data.citizenName,
@@ -247,7 +248,7 @@ export class ActionService {
         departmentId: departmentId as any,
         subDepartmentId: session.data.subDepartmentId,
         companyId: company._id,
-        description: session.data.description,
+        description: session.data.description || session.data.grievance_description || 'N/A',
         category: session.data.category,
         departmentName: dept ? dept.name : session.data.category,
         subDepartmentName: subDept ? subDept.name : undefined,

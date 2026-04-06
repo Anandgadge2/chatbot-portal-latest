@@ -207,6 +207,7 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
   }
 
   let description = (data.description || '').trim();
+  logger.info(`🔍 [PopulateData] Action: ${data.action}, ID: ${data.grievanceId || data.appointmentId}, Description: "${description}"`);
   if (description.toLowerCase() === 'not provided') description = '';
 
   // 🔄 REASSIGNMENT CONTEXT: If this was reverted and is being reassigned

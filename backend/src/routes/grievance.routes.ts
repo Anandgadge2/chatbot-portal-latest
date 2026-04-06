@@ -252,8 +252,10 @@ router.post('/', async (req: Request, res: Response) => {
     // ✅ EXECUTE NOTIFICATIONS IN PARALLEL
     Promise.allSettled([
       notifyDepartmentAdminOnCreation(notificationPayload).catch(err => console.error('❌ Admin Notification failed:', err)),
+      // 📢 Send confirmation to citizen
       notifyCitizenOnCreation({
         ...notificationPayload,
+        description: grievance.description || description || 'N/A',
         action: 'confirmation'
       }).catch(err => console.error('❌ Citizen Confirmation failed:', err))
     ]);
