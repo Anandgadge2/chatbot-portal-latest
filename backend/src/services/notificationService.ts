@@ -215,12 +215,18 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
   let originalSubDeptName = '';
   let reassignmentRemarks = '';
   let revertedByName = '';
+  let formattedRevertedDate = '';
 
   if (data.timeline && Array.isArray(data.timeline)) {
     // Look for the latest revert event to get context
     const revertEvent = [...data.timeline].reverse().find((t: any) => t.action === 'REVERTED_TO_COMPANY_ADMIN');
     if (revertEvent && revertEvent.details) {
       reassignmentRemarks = revertEvent.details.remarks || '';
+      if (revertEvent.timestamp) {
+        try {
+          formattedRevertedDate = formatFn(new Date(revertEvent.timestamp));
+        } catch (e) {}
+      }
       
       // Resolve the name of the person who reverted
       if (revertEvent.performedBy) {
@@ -299,8 +305,10 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
     locationLabel,
     assignedByName,
     resolvedByName,
+    revertedByName,
     formattedDate,
     formattedResolvedDate,
+    formattedRevertedDate,
     formattedAppointmentDate,
     formattedAppointmentTime,
     appointmentDate: formattedAppointmentDate || data.appointmentDate || '',
@@ -834,6 +842,48 @@ export async function notifyDepartmentAdminOnCreation(
   }
 }
 
+export async function notifyCompanyAdminsOnRevert(
+  data: NotificationData
+): Promise<void> {
+  try {
+    const companyId = normalizeId(data.companyId);
+    const company = await getCompanyWithWhatsAppConfig(companyId);
+    if (!company) return;
+
+    const companyAdminRoleIds = await (await import('../models/Role')).default.find({
+      companyId,
+      key: { $in: ['COMPANY_ADMIN', 'ADMIN', 'COMPANY_HEAD', 'SUPER_ADMIN'] }
+    }).distinct('_id');
+
+    const companyAdmins = await User.find({
+      companyId,
+      $or: [
+        { isSuperAdmin: true },
+        { customRoleId: { $in: companyAdminRoleIds } }
+      ],
+      isActive: true
+    });
+
+    if (!companyAdmins.length) return;
+
+    const dashboardUrl = `${process.env.FRONTEND_URL}/dashboard`;
+    const adminCta = { title: 'Access Dashboard', url: dashboardUrl };
+
+    await Promise.allSettled(companyAdmins.map(async (user) => {
+      if (!user.phone) return;
+      const fullData = await populateNotificationData({
+        ...data,
+        recipientName: user.getFullName()
+      });
+      const message = await getNotificationWhatsAppMessage(companyId, data.type, 'reverted_admin', fullData);
+      if (!message) return;
+      await safeSendWhatsApp(company, user.phone, message, adminCta);
+    }));
+  } catch (error) {
+    logger.error('❌ notifyCompanyAdminsOnRevert failed:', error);
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /* Assignment Notification                                             */
 /* ------------------------------------------------------------------ */
@@ -848,17 +898,17 @@ export async function notifyUserOnAssignment(
     const user = await User.findById(data.assignedTo).populate('customRoleId');
     if (!user) return;
 
-    const fullData = await populateNotificationData({
-      ...data,
-      recipientName: user.getFullName() || 'Admin'
-    });
-
     // 📧 Email
     const wasReverted = data.timeline?.some((t: any) => t.action === 'REVERTED_TO_COMPANY_ADMIN');
     const assignmentAction = data.type === 'appointment' 
       ? 'appointment_scheduled' 
       : (wasReverted ? `${data.type}_reassigned` : `${data.type}_assigned`);
       
+    const fullData = await populateNotificationData({
+      ...data,
+      recipientName: user.getFullName() || 'Admin'
+    });
+
     if (user.email && canNotify(company, user, 'email', assignmentAction)) {
       try {
         const email = await getNotificationEmailContent(data.companyId, data.type, 'assigned', fullData, true);
@@ -868,43 +918,44 @@ export async function notifyUserOnAssignment(
       } catch (e) {}
     }
 
-    // 📱 WhatsApp — use DB template first, then fallback
-    if (canNotify(company, user, 'whatsapp', assignmentAction)) {
-      // 🛡️ SECURITY: Explicitly exclude citizens from receiving administrative assignment messages
-      const isStaff = user.isSuperAdmin === true || (user.customRoleId != null);
-      if (!isStaff) {
-        logger.warn(`⚠️ Skipped admin assignment notification for ${user.email} - User is not identified as staff (citizen-to-staff assignment prevented).`);
-        return;
-      }
-
-      const actionKey = wasReverted ? 'reassigned_admin' : 'assigned_admin';
-      let message = await getNotificationWhatsAppMessage(data.companyId, data.type, actionKey, fullData);
-      
-      if (!message) {
-        logger.error(`❌ Still no message found for ${data.type}_assigned_admin even with defaults.`);
-        return;
-      }
-      const dashboardUrl = `${process.env.FRONTEND_URL}/dashboard`;
-      const adminCta = { title: "Access Dashboard", url: dashboardUrl };
-      const citizenPhones = [
-        data.citizenWhatsApp?.replace(/\D/g, ''),
-        data.citizenPhone?.replace(/\D/g, ''),
-        (data as any).phone?.replace(/\D/g, '') // Fallback for various data structures
-      ].filter(Boolean);
-
-      const userPhoneNormalized = user.phone?.replace(/\D/g, '');
-      const isCitizenPhone = userPhoneNormalized && citizenPhones.includes(userPhoneNormalized);
-
-      if (isCitizenPhone) {
-        logger.warn(`⚠️ Skipping notifyUserOnAssignment for ${user.email} — phone matches citizen's phone (avoiding duplicate).`);
-        return;
-      }
-
-      await safeSendWhatsApp(company, user.phone, message, adminCta);
-      if (data.evidenceUrls && data.evidenceUrls.length > 0) {
-        await sendMediaIfAvailable(company, user.phone, data.evidenceUrls, `Files for Assignment: ${fullData.grievanceId || fullData.appointmentId}`);
+    // 📱 WhatsApp — notify hierarchy for grievance reassignment/assignment
+    const recipients = new Map<string, any>([[user._id.toString(), user]]);
+    if (data.type === 'grievance') {
+      const hierarchyDeptId = data.subDepartmentId || data.departmentId;
+      if (hierarchyDeptId) {
+        const hierarchyAdmins = await getHierarchicalDepartmentAdmins(hierarchyDeptId);
+        hierarchyAdmins.forEach((admin) => recipients.set(admin._id.toString(), admin));
       }
     }
+
+    const actionKey = wasReverted ? 'reassigned_admin' : 'assigned_admin';
+    const dashboardUrl = `${process.env.FRONTEND_URL}/dashboard`;
+    const adminCta = { title: "Access Dashboard", url: dashboardUrl };
+    const citizenPhones = [
+      data.citizenWhatsApp?.replace(/\D/g, ''),
+      data.citizenPhone?.replace(/\D/g, ''),
+      (data as any).phone?.replace(/\D/g, '')
+    ].filter(Boolean);
+
+    await Promise.allSettled(Array.from(recipients.values()).map(async (recipient: any) => {
+      const isStaff = recipient.isSuperAdmin === true || (recipient.customRoleId != null);
+      if (!isStaff || !recipient.phone || !canNotify(company, recipient, 'whatsapp', assignmentAction)) return;
+
+      const userPhoneNormalized = recipient.phone?.replace(/\D/g, '');
+      if (userPhoneNormalized && citizenPhones.includes(userPhoneNormalized)) return;
+
+      const recipientData = await populateNotificationData({
+        ...data,
+        recipientName: recipient.getFullName() || 'Admin'
+      });
+
+      const message = await getNotificationWhatsAppMessage(data.companyId, data.type, actionKey, recipientData);
+      if (!message) return;
+      await safeSendWhatsApp(company, recipient.phone, message, adminCta);
+      if (data.evidenceUrls?.length) {
+        await sendMediaIfAvailable(company, recipient.phone, data.evidenceUrls, `Files for Assignment: ${recipientData.grievanceId || recipientData.appointmentId}`);
+      }
+    }));
 
   } catch (error) {
     logger.error('❌ notifyUserOnAssignment failed:', error);
@@ -1117,7 +1168,9 @@ export async function notifyHierarchyOnStatusChange(
     const fullData = await populateNotificationData(data);
 
     // Find ALL relevant admins in the hierarchy
-    const hierarchyDeptId = data.subDepartmentId || data.departmentId;
+    const hierarchyDeptId = (newStatus === 'RESOLVED' && data.type === 'grievance')
+      ? data.departmentId
+      : (data.subDepartmentId || data.departmentId);
     const hierarchyAdmins = await getHierarchicalDepartmentAdmins(hierarchyDeptId);
     
     // Find Company Admins (top level)

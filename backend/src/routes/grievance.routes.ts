@@ -363,6 +363,21 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
 
     await grievance.save();
 
+    const { notifyCompanyAdminsOnRevert } = await import('../services/notificationService');
+    await notifyCompanyAdminsOnRevert({
+      type: 'grievance',
+      action: 'reverted_admin',
+      grievanceId: grievance.grievanceId,
+      citizenName: grievance.citizenName,
+      citizenPhone: grievance.citizenPhone,
+      citizenWhatsApp: grievance.citizenWhatsApp,
+      departmentId: previousDepartmentId as any,
+      subDepartmentId: previousSubDepartmentId as any,
+      companyId: grievance.companyId,
+      remarks: remarks.trim(),
+      timeline: grievance.timeline
+    }).catch(err => logger.error('❌ Failed to notify company admins on revert:', err));
+
     await logUserAction(req, AuditAction.UPDATE, 'Grievance', grievance._id.toString(), {
       action: 'revert_to_company_admin',
       grievanceId: grievance.grievanceId,

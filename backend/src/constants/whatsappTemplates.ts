@@ -48,11 +48,31 @@ Respected {recipientName},
 Details:
 🎫 *Reference ID:* {grievanceId}
 👤 *Citizen:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}
-📊 *Status:* REASSIGNED
 👨‍💼 *Reassigned By:* {assignedByName}
 📅 *Reassigned On:* {formattedDate}
 
 Please investigate and take required action.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Digital Grievance Redressal System`,
+
+  grievance_reverted_admin: `*{companyName}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔄 *GRIEVANCE REVERTED*
+
+Respected {recipientName},
+
+The following grievance has been *REVERTED* for further action/review.
+
+*Details:*
+🎫 *Reference ID:* {grievanceId}
+👤 *Citizen:* {citizenName}{deptLabel}{subDeptLabel}
+📊 *Status:* REVERTED
+👨‍💼 *Reverted By:* {revertedByName}
+📅 *Reverted On:* {formattedRevertedDate}{remarksLabel}
+
+*Action Required:*
+Please review the updates and take necessary corrective action to ensure timely resolution as per SLA.
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Digital Grievance Redressal System`,
 
@@ -70,7 +90,9 @@ The following grievance has been marked as *RESOLVED*.
 📊 *Status:* RESOLVED
 👨‍💼 *Resolved By:* {resolvedByName}
 📅 *Resolved On:* {formattedResolvedDate}
-⏱️ *Time Taken:* {resolutionTimeText}{resolutionLabel}
+⏱️ *Time Taken:* {resolutionTimeText}
+📝 *Resolution Remarks:*
+{remarks}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Digital Grievance System`,
 
@@ -96,14 +118,18 @@ The following grievance has been *REJECTED*.
 ✅ *GRIEVANCE SUBMITTED SUCCESSFULLY*
 
 Respected {citizenName},
-Your grievance has been registered.
+Thank you for reaching out. Your grievance has been registered.
 *Details:*
-🎫 *Reference ID:* {grievanceId}{deptLabel}{subDeptLabel}{descriptionLabel}
+🎫 *Reference ID:* {grievanceId}
+🏢 *Department:* {departmentName}
+🏢 *Sub-Dept:* {subDepartmentName}
+📝 *Description:* {description}
 📅 *Submitted On:* {formattedDate}
 
 You can track your status using the Reference ID: *{grievanceId}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Your grievance, our priority.`,
+Your grievance, our priority.
+– District Administration, Jharsuguda,`,
 
   grievance_status_update: `*{companyName}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -114,11 +140,14 @@ Respected {citizenName},
 Your grievance status has been updated.
 
 *Details:*
-🎫 *Ref No:* {grievanceId}{deptLabel}{subDeptLabel}{descriptionLabel}
+🎫 *Ref No:* {grievanceId}
+🏢 *Department:* {departmentName}
+🏢 *Sub-Dept:* {subDepartmentName}
 📊 *New Status:* {newStatus}{remarksLabel}
 
 You will receive further updates via WhatsApp.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*{companyName}*
 Digital Grievance Redressal System`,
 
   grievance_resolved: `*{companyName}*
@@ -127,13 +156,16 @@ Digital Grievance Redressal System`,
 
 Respected {citizenName},
 
-🎫 *Reference ID:* {grievanceId}{deptLabel}{subDeptLabel}
+🎫 *Reference ID:* {grievanceId}
+🏢 *Department:* {departmentName}
+🏢 *Sub-Dept:* {subDepartmentName}
 📊 *Status:* RESOLVED
 👨‍💼 *Resolved By:* {resolvedByName}
-📅 *Resolved On:* {formattedResolvedDate}{resolutionLabel}
+📅 *Resolved On:* {formattedResolvedDate}{remarksLabel}
 
 Thank you for your patience.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*{companyName}*
 Digital Grievance Redressal System`,
 
   grievance_rejected: `*{companyName}*
