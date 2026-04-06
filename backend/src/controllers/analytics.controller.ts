@@ -274,160 +274,185 @@ export const dashboard = async (req: Request, res: Response) => {
       ? (((totalGrievances - slaBreachedGrievances) / totalGrievances) * 100).toFixed(1)
       : '100';
 
-    // Average resolution time (for resolved grievances)
-    const avgResolutionTime = await Grievance.aggregate([
-      { $match: { ...baseQuery, status: GrievanceStatus.RESOLVED, resolvedAt: { $exists: true } } },
-      {
-        $project: {
-          resolutionTime: {
-            $divide: [
-              { $subtract: ['$resolvedAt', '$createdAt'] },
-              1000 * 60 * 60 * 24 // Convert to days
-            ]
-          }
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          avgDays: { $avg: '$resolutionTime' }
-        }
-      }
-    ]);
-
-    // Grievances by priority (exclude deleted)
-    const grievancesByPriority = await Grievance.aggregate([
-      { $match: { ...baseQuery } },
-      {
-        $group: {
-          _id: '$priority',
-          count: { $sum: 1 }
-        }
-      },
-      { $sort: { count: -1 } }
-    ]);
-
-    // Appointments by department (exclude deleted)
-    const appointmentsByDepartment = await Appointment.aggregate([
-      { $match: { ...baseQuery } },
-      {
-        $group: {
-          _id: { $ifNull: ['$subDepartmentId', '$departmentId'] },
-          count: { $sum: 1 },
-          completed: {
-            $sum: { $cond: [{ $eq: ['$status', AppointmentStatus.COMPLETED] }, 1, 0] }
-          }
-        }
-      },
-      {
-        $lookup: {
-          from: 'departments',
-          localField: '_id',
-          foreignField: '_id',
-          as: 'department'
-        }
-      },
-      { $unwind: { path: '$department', preserveNullAndEmptyArrays: true } },
-      {
-        $project: {
-          departmentId: '$_id',
-          departmentName: '$department.name',
-          count: 1,
-          completed: 1
-        }
-      },
-      { $sort: { count: -1 } }
-    ]);
-
     // Monthly trends (last 6 months)
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-    
-    const monthlyGrievances = await Grievance.aggregate([
-      { $match: { ...baseQuery, createdAt: { $gte: sixMonthsAgo } } },
-      {
-        $group: {
-          _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } },
-          count: { $sum: 1 },
-          resolved: {
-            $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.RESOLVED] }, 1, 0] }
+
+    const normalizedCompanyId = targetCompanyId
+      ? new mongoose.Types.ObjectId(targetCompanyId.toString())
+      : null;
+
+    const [
+      avgResolutionTime,
+      grievancesByPriority,
+      appointmentsByDepartment,
+      monthlyGrievances,
+      monthlyAppointments,
+      usersByRole,
+      grievancesByDept,
+      activeUsers,
+    ] = await Promise.all([
+      // Average resolution time (for resolved grievances)
+      Grievance.aggregate([
+        { $match: { ...baseQuery, status: GrievanceStatus.RESOLVED, resolvedAt: { $exists: true } } },
+        {
+          $project: {
+            resolutionTime: {
+              $divide: [
+                { $subtract: ['$resolvedAt', '$createdAt'] },
+                1000 * 60 * 60 * 24 // Convert to days
+              ]
+            }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            avgDays: { $avg: '$resolutionTime' }
           }
         }
-      },
-      { $sort: { _id: 1 } }
-    ]);
+      ]),
 
-    const monthlyAppointments = await Appointment.aggregate([
-      { $match: { ...baseQuery, createdAt: { $gte: sixMonthsAgo } } },
-      {
-        $group: {
-          _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } },
-          count: { $sum: 1 },
-          completed: {
-            $sum: { $cond: [{ $eq: ['$status', AppointmentStatus.COMPLETED] }, 1, 0] }
+      // Grievances by priority (exclude deleted)
+      Grievance.aggregate([
+        { $match: { ...baseQuery } },
+        {
+          $group: {
+            _id: '$priority',
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { count: -1 } }
+      ]),
+
+      // Appointments by department (exclude deleted)
+      Appointment.aggregate([
+        { $match: { ...baseQuery } },
+        {
+          $group: {
+            _id: { $ifNull: ['$subDepartmentId', '$departmentId'] },
+            count: { $sum: 1 },
+            completed: {
+              $sum: { $cond: [{ $eq: ['$status', AppointmentStatus.COMPLETED] }, 1, 0] }
+            }
+          }
+        },
+        {
+          $lookup: {
+            from: 'departments',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'department'
+          }
+        },
+        { $unwind: { path: '$department', preserveNullAndEmptyArrays: true } },
+        {
+          $project: {
+            departmentId: '$_id',
+            departmentName: '$department.name',
+            count: 1,
+            completed: 1
+          }
+        },
+        { $sort: { count: -1 } }
+      ]),
+
+      Grievance.aggregate([
+        { $match: { ...baseQuery, createdAt: { $gte: sixMonthsAgo } } },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } },
+            count: { $sum: 1 },
+            resolved: {
+              $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.RESOLVED] }, 1, 0] }
+            }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]),
+
+      Appointment.aggregate([
+        { $match: { ...baseQuery, createdAt: { $gte: sixMonthsAgo } } },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } },
+            count: { $sum: 1 },
+            completed: {
+              $sum: { $cond: [{ $eq: ['$status', AppointmentStatus.COMPLETED] }, 1, 0] }
+            }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]),
+
+      // 👤 User distribution by role (Across whole company/scope)
+      // This is more accurate than client-side grouping of paginated data
+      normalizedCompanyId
+        ? User.aggregate([
+            {
+              $match: {
+                companyId: normalizedCompanyId,
+                ...userScopeFilter
+              }
+            },
+            {
+              $lookup: {
+                from: 'roles',
+                localField: 'customRoleId',
+                foreignField: '_id',
+                as: 'customRole'
+              }
+            },
+            { $unwind: { path: '$customRole', preserveNullAndEmptyArrays: true } },
+            {
+              $group: {
+                _id: { $ifNull: ['$customRole.name', 'Staff'] }, // Default to 'Staff' for legacy or unassigned
+                count: { $sum: 1 }
+              }
+            },
+            { $sort: { count: -1 } }
+          ])
+        : Promise.resolve([]),
+
+      // Grievances by department (for per-card stats in multi-tenant view)
+      Grievance.aggregate([
+        { $match: { ...baseQuery } },
+        {
+          $group: {
+            _id: { $ifNull: ['$subDepartmentId', '$departmentId'] },
+            total: { $sum: 1 },
+            pending: {
+              $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.PENDING] }, 1, 0] }
+            }
+          }
+        },
+        { $match: { _id: { $ne: null } } }, // Filter out null departments to avoid blank bars
+        {
+          $lookup: {
+            from: 'departments',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'department'
+          }
+        },
+        { $unwind: { path: '$department', preserveNullAndEmptyArrays: true } },
+        {
+          $project: {
+            departmentId: '$_id',
+            departmentName: { $ifNull: ['$department.name', 'Unknown Department'] },
+            total: 1,
+            pending: 1
           }
         }
-      },
-      { $sort: { _id: 1 } }
-    ]);
+      ]),
 
-    // 👤 User distribution by role (Across whole company/scope)
-    // This is more accurate than client-side grouping of paginated data
-    const usersByRole = await User.aggregate([
-      { 
-        $match: { 
-          companyId: targetCompanyId,
-          ...userScopeFilter
-        } 
-      },
-      {
-        $lookup: {
-          from: 'roles',
-          localField: 'customRoleId',
-          foreignField: '_id',
-          as: 'customRole'
-        }
-      },
-      { $unwind: { path: '$customRole', preserveNullAndEmptyArrays: true } },
-      {
-        $group: {
-          _id: { $ifNull: ['$customRole.name', 'Staff'] }, // Default to 'Staff' for legacy or unassigned
-          count: { $sum: 1 }
-        }
-      },
-      { $sort: { count: -1 } }
-    ]);
-
-    // Grievances by department (for per-card stats in multi-tenant view)
-    const grievancesByDept = await Grievance.aggregate([
-      { $match: { ...baseQuery } },
-      {
-        $group: {
-          _id: { $ifNull: ['$subDepartmentId', '$departmentId'] },
-          total: { $sum: 1 },
-          pending: {
-            $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.PENDING] }, 1, 0] }
-          }
-        }
-      },
-      { $match: { _id: { $ne: null } } }, // Filter out null departments to avoid blank bars
-      {
-        $lookup: {
-          from: 'departments',
-          localField: '_id',
-          foreignField: '_id',
-          as: 'department'
-        }
-      },
-      { $unwind: { path: '$department', preserveNullAndEmptyArrays: true } },
-      {
-        $project: {
-          departmentId: '$_id',
-          departmentName: { $ifNull: ['$department.name', 'Unknown Department'] },
-          total: 1,
-          pending: 1
-        }
-      }
+      userCount > 0 && normalizedCompanyId
+        ? User.countDocuments({
+            companyId: normalizedCompanyId,
+            ...userScopeFilter,
+            isActive: true
+          })
+        : Promise.resolve(0),
     ]);
 
     res.json({
@@ -475,7 +500,7 @@ export const dashboard = async (req: Request, res: Response) => {
         mainDepartments: mainDepartmentCount,
         subDepartments: subDepartmentCount,
         users: userCount,
-        activeUsers: userCount > 0 ? await User.countDocuments({ ...baseQuery, isActive: true }) : 0,
+        activeUsers,
         resolvedToday: resolvedToday,
         highPriorityPending: highPriorityPending + urgentPriorityPending,
         isHierarchicalEnabled: !!isHierarchicalEnabled,
