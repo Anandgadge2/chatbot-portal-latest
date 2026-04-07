@@ -474,6 +474,103 @@ router.get('/me', authenticate, async (req: Request, res: Response) => {
   }
 });
 
+// @route   PUT /api/auth/profile
+// @desc    Update current user profile
+// @access  Private
+router.put('/profile', authenticate, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?._id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Not authenticated' });
+    }
+
+    const { firstName, lastName, email, phone, designation, password } = req.body;
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // 1. Validation for Email Uniqueness (within company)
+    if (email && email.toLowerCase().trim() !== user.email) {
+      const normalizedEmail = email.toLowerCase().trim();
+      const emailQuery: any = {
+        email: normalizedEmail,
+        _id: { $ne: user._id }
+      };
+      
+      if (user.companyId) {
+        emailQuery.companyId = user.companyId;
+      } else {
+        emailQuery.$or = [{ companyId: null }, { companyId: { $exists: false } }];
+      }
+      
+      const conflictingUser = await User.findOne(emailQuery);
+      if (conflictingUser) {
+        return res.status(400).json({ success: false, message: 'Email already in use' });
+      }
+      user.email = normalizedEmail;
+    }
+
+    // 2. Validation for Phone Uniqueness (within company)
+    if (phone && phone.trim() !== user.phone) {
+      const { validatePhoneNumber, normalizePhoneNumber } = await import('../utils/phoneUtils');
+      const phoneTrimmed = phone.trim();
+      if (!validatePhoneNumber(phoneTrimmed)) {
+        return res.status(400).json({ success: false, message: 'Invalid phone number format' });
+      }
+      const normalizedPhone = normalizePhoneNumber(phoneTrimmed);
+      
+      const phoneQuery: any = {
+        phone: normalizedPhone,
+        _id: { $ne: user._id }
+      };
+      
+      if (user.companyId) {
+        phoneQuery.companyId = user.companyId;
+      } else {
+        phoneQuery.$or = [{ companyId: null }, { companyId: { $exists: false } }];
+      }
+      
+      const conflictingPhone = await User.findOne(phoneQuery);
+      if (conflictingPhone) {
+        return res.status(400).json({ success: false, message: 'Phone number already in use' });
+      }
+      user.phone = normalizedPhone;
+    }
+
+    // 3. Update basic fields
+    if (firstName) user.firstName = firstName;
+    if (lastName) user.lastName = lastName;
+    if (designation) {
+      user.designation = designation; // Uses the virtual setter to unshift into designations
+    }
+    
+    // 4. Update password if provided
+    if (password) {
+      if (password.length < 6) {
+        return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
+      }
+      user.password = password; // Pre-save hook will hash this
+    }
+
+    await user.save();
+
+    await logUserAction(
+      { user, ip: req.ip, get: req.get.bind(req) } as any,
+      AuditAction.UPDATE,
+      'User',
+      user._id.toString(),
+      { update: 'profile' }
+    );
+
+    const { user: responseUser } = await buildSessionResponse(user);
+    res.json({ success: true, message: 'Profile updated successfully', data: { user: responseUser } });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to update profile', error: error.message });
+  }
+});
+
 
 // @route   POST /api/auth/register
 // @desc    Register new user (Admin only)

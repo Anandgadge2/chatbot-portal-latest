@@ -14,8 +14,8 @@ const poppins = Poppins({
 })
 
 export const metadata: Metadata = {
-  title: 'WhatsApp Chatbot Platform',
-  description: 'Multi-tenant WhatsApp chatbot platform for government and enterprises',
+  title: 'PugArch Connect Portal',
+  description: 'PugArch Connect Portal',
   icons: {
     icon: '/icon.svg',
     shortcut: '/icon.svg',

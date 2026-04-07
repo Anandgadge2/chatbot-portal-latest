@@ -35,7 +35,7 @@ const getAnalyticsBaseQuery = async (req: any, companyId?: any, departmentId?: a
 
     const userLevel = currentUser.level !== undefined ? currentUser.level : 4;
     const assignedDeptIds = (currentUser.departmentIds && currentUser.departmentIds.length > 0)
-      ? currentUser.departmentIds.map((id: any) => id.toString())
+      ? currentUser.departmentIds.map((id: string | mongoose.Types.ObjectId) => id.toString())
       : (currentUser.departmentId ? [currentUser.departmentId.toString()] : []);
 
     // Determine unauthorized request early
@@ -101,36 +101,33 @@ export const dashboard = async (req: Request, res: Response) => {
 
     const baseQuery = await getAnalyticsBaseQuery(req, companyId, departmentId);
 
-    // 🔍 Extract authorized department IDs from baseQuery for User/Department scoping
+    // 🔍 Extract authorized department IDs from user context for proper scoping of counts
     let authorizedMongoDeptIds: mongoose.Types.ObjectId[] = [];
-    if (baseQuery.$or) {
-      // Collect all IDs mentioned in any $or branch
-      const idsSet = new Set<string>();
-      baseQuery.$or.forEach((branch: any) => {
-        ['departmentId', 'subDepartmentId', 'departmentIds'].forEach(key => {
-          const val = branch[key];
-          if (val) {
-            if (val.$in) val.$in.forEach((id: any) => idsSet.add(id.toString()));
-            else idsSet.add(val.toString());
-          }
-        });
-      });
-      authorizedMongoDeptIds = Array.from(idsSet).map(id => new mongoose.Types.ObjectId(id));
-    } else if (baseQuery.departmentId) {
-      authorizedMongoDeptIds = [new mongoose.Types.ObjectId(baseQuery.departmentId.toString())];
-    } else if (baseQuery.departmentIds) {
-      // Handle the case where the base query might use the array field directly
-      const ids = Array.isArray(baseQuery.departmentIds) ? baseQuery.departmentIds : [baseQuery.departmentIds];
-      authorizedMongoDeptIds = ids.map((id: any) => new mongoose.Types.ObjectId(id.toString()));
+    const currentAssignedDeptIds = (currentUser.departmentIds && currentUser.departmentIds.length > 0)
+      ? currentUser.departmentIds
+      : (currentUser.departmentId ? [currentUser.departmentId] : []);
+    
+    if (currentUser.isSuperAdmin) {
+      if (departmentId) {
+        authorizedMongoDeptIds = [new mongoose.Types.ObjectId(departmentId.toString())];
+      }
+    } else if (currentUser.level === 1) { // Company Admin
+      if (departmentId) {
+        authorizedMongoDeptIds = [new mongoose.Types.ObjectId(departmentId.toString())];
+      }
+    // 🛡️ All other roles (Dept Admin, Sub Dept Admin, Operator) are scoped to their assigned departments
+      authorizedMongoDeptIds = currentAssignedDeptIds.map((id: string | mongoose.Types.ObjectId) => new mongoose.Types.ObjectId(id.toString()));
     }
 
     const scopeFilter = authorizedMongoDeptIds.length > 0 
       ? { $or: [{ _id: { $in: authorizedMongoDeptIds } }, { parentDepartmentId: { $in: authorizedMongoDeptIds } }] }
       : {};
 
-    const userScopeFilter = authorizedMongoDeptIds.length > 0
-      ? { $or: [{ departmentId: { $in: authorizedMongoDeptIds } }, { departmentIds: { $in: authorizedMongoDeptIds } }] }
-      : {};
+    const userScopeFilter = (currentUser.level !== undefined && currentUser.level >= 4)
+      ? { _id: currentUser._id } // Operators only see themselves
+      : authorizedMongoDeptIds.length > 0
+        ? { $or: [{ departmentId: { $in: authorizedMongoDeptIds } }, { departmentIds: { $in: authorizedMongoDeptIds } }] }
+        : {};
 
     // Fetch company to check for modules
     const targetCompanyId = currentUser.companyId || companyId;
@@ -455,6 +452,9 @@ export const dashboard = async (req: Request, res: Response) => {
         : Promise.resolve(0),
     ]);
 
+    // 🔒 SECURITY: Restrict appointments to Company Admin+
+    const canSeeAppointments = currentUser.isSuperAdmin || currentUser.level === 1;
+
     res.json({
       success: true,
       data: {
@@ -481,7 +481,7 @@ export const dashboard = async (req: Request, res: Response) => {
             pending: d.pending
           }))
         },
-        appointments: {
+        appointments: canSeeAppointments ? {
           total: totalAppointments,
           pending: requestedAppointments + scheduledAppointments, // REQUESTED + SCHEDULED
           requested: requestedAppointments,
@@ -495,6 +495,20 @@ export const dashboard = async (req: Request, res: Response) => {
           byDepartment: appointmentsByDepartment,
           daily: dailyAppointments.map(d => ({ date: d._id, count: d.count })),
           monthly: monthlyAppointments.map(m => ({ month: m._id, count: m.count, completed: m.completed }))
+        } : {
+          total: 0,
+          pending: 0,
+          requested: 0,
+          scheduled: 0,
+          confirmed: 0,
+          completed: 0,
+          cancelled: 0,
+          last7Days: 0,
+          last30Days: 0,
+          completionRate: 0,
+          byDepartment: [],
+          daily: [],
+          monthly: []
         },
         departments: departmentCount,
         mainDepartments: mainDepartmentCount,

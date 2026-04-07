@@ -116,7 +116,14 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
             : user.companyId
           : "";
 
-        setIsSubDepartment(false);
+        const isDeptAdmin = user?.level === 2;
+        const userDeptId = user?.departmentId
+          ? typeof user.departmentId === "object"
+            ? user.departmentId._id
+            : user.departmentId
+          : "";
+
+        setIsSubDepartment(isDeptAdmin ? true : false);
         setFormData({
           name: "",
           nameHi: "",
@@ -127,7 +134,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
           descriptionOr: "",
           descriptionMr: "",
           companyId: defaultCompanyId || userCompanyId || "",
-          parentDepartmentId: "",
+          parentDepartmentId: isDeptAdmin ? userDeptId : "",
           contactUserId: "",
           contactPerson: "",
           contactEmail: "",
@@ -409,42 +416,51 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
               <input type="hidden" name="companyId" value={formData.companyId} />
             )}
 
-            {/* Department Hierarchy Toggle */}
-            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/60 mb-4">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 block text-center">Department Structure</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsSubDepartment(false);
-                    setFormData(prev => ({ ...prev, parentDepartmentId: "" }));
-                  }}
-                  className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all border ${
-                    !isSubDepartment
-                      ? "bg-slate-800 text-white border-slate-700 shadow-md shadow-slate-900/40 ring-1 ring-blue-500/50"
-                      : "bg-white text-slate-500 border-slate-200 hover:border-slate-800 hover:text-slate-800"
-                  }`}
-                >
-                  <Building className="w-3.5 h-3.5" />
-                  Main Department
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsSubDepartment(true)}
-                  className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all border ${
-                    isSubDepartment
-                      ? "bg-slate-800 text-white border-slate-700 shadow-md shadow-slate-900/40 ring-1 ring-blue-500/50"
-                      : "bg-white text-slate-500 border-slate-200 hover:border-slate-800 hover:text-slate-800"
-                  }`}
-                >
-                  <div className="flex items-center">
+            {/* Department Hierarchy Toggle - Restricted for Dept Admins */}
+            {(user?.level || 4) <= 1 ? (
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/60 mb-4">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 block text-center">Department Structure</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsSubDepartment(false);
+                      setFormData(prev => ({ ...prev, parentDepartmentId: "" }));
+                    }}
+                    className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all border ${
+                      !isSubDepartment
+                        ? "bg-slate-800 text-white border-slate-700 shadow-md shadow-slate-900/40 ring-1 ring-blue-500/50"
+                        : "bg-white text-slate-500 border-slate-200 hover:border-slate-800 hover:text-slate-800"
+                    }`}
+                  >
                     <Building className="w-3.5 h-3.5" />
-                    <Building className="w-2.5 h-2.5 -ml-1 mt-1 opacity-70" />
-                  </div>
-                  Sub Department
-                </button>
+                    Main Department
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsSubDepartment(true)}
+                    className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all border ${
+                      isSubDepartment
+                        ? "bg-slate-800 text-white border-slate-700 shadow-md shadow-slate-900/40 ring-1 ring-blue-500/50"
+                        : "bg-white text-slate-500 border-slate-200 hover:border-slate-800 hover:text-slate-800"
+                    }`}
+                  >
+                    <div className="flex items-center">
+                      <Building className="w-3.5 h-3.5" />
+                      <Building className="w-2.5 h-2.5 -ml-1 mt-1 opacity-70" />
+                    </div>
+                    Sub Department
+                  </button>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="bg-indigo-50/50 p-3 rounded-xl border border-indigo-100 mb-4">
+                <div className="flex items-baseline justify-between px-2">
+                  <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Target Unit Level</span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sub-Department</span>
+                </div>
+              </div>
+            )}
 
             {/* Parent Department Selection for Sub Department */}
             {isSubDepartment && (
@@ -452,29 +468,38 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                 <Label htmlFor="parentDepartmentId" className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5 block">
                   Select Main Department *
                 </Label>
-                <SearchableSelect
-                  options={allDepartments
-                    .filter((d) => {
-                      const parentId = typeof d.parentDepartmentId === 'object' && d.parentDepartmentId !== null
-                        ? (d.parentDepartmentId as any)._id
-                        : d.parentDepartmentId;
-                      return !parentId;
-                    })
-                    .filter((d) => !editingDepartment || d._id !== editingDepartment._id)
-                    .map((dept) => ({
-                      value: dept._id,
-                      label: dept.name,
-                    }))}
-                  value={formData.parentDepartmentId}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      parentDepartmentId: value,
-                    }))
-                  }
-                  placeholder="-- Choose Parent Department --"
-                  className="w-full"
-                />
+                {(user?.level || 4) <= 1 ? (
+                  <SearchableSelect
+                    options={allDepartments
+                      .filter((d) => {
+                        const parentId = typeof d.parentDepartmentId === 'object' && d.parentDepartmentId !== null
+                          ? (d.parentDepartmentId as any)._id
+                          : d.parentDepartmentId;
+                        return !parentId;
+                      })
+                      .filter((d) => !editingDepartment || d._id !== editingDepartment._id)
+                      .map((dept) => ({
+                        value: dept._id,
+                        label: dept.name,
+                      }))}
+                    value={formData.parentDepartmentId}
+                    onValueChange={(value) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        parentDepartmentId: value,
+                      }))
+                    }
+                    placeholder="-- Choose Parent Department --"
+                    className="w-full"
+                  />
+                ) : (
+                  <div className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-xl">
+                    <Building className="w-4 h-4 text-indigo-500" />
+                    <span className="text-sm font-bold text-slate-700">
+                      {allDepartments.find(d => (d._id === formData.parentDepartmentId))?.name || "Your Assigned Department"}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
 

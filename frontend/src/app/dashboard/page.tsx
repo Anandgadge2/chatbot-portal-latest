@@ -91,6 +91,7 @@ import {
   UserMinus,
   ChevronUp,
   ChevronDown,
+  ChevronRight,
   User as UserIcon,
   Users,
   Mail,
@@ -342,52 +343,41 @@ function DashboardContent() {
       departmentMap.set(String(dept._id), dept);
     });
 
-    const summaries: Array<{ id: string; name: string; code?: string }> = [];
-    const seenIds = new Set<string>();
-    const pushSummary = (value: any) => {
-      if (!value) return;
+    const primaryDepartmentId = user?.departmentId
+      ? String(
+          typeof user.departmentId === "object"
+            ? user.departmentId._id
+            : user.departmentId,
+        )
+      : null;
 
-      const objectId =
-        typeof value === "object" && value !== null
-          ? value._id || value.id || value.departmentId
-          : value;
-      const id = objectId ? String(objectId) : "";
-      const mappedDepartment = id ? departmentMap.get(id) : undefined;
+    const mappedDepartmentIds = (user?.departmentIds || [])
+      .map((departmentValue: NonNullable<User["departmentIds"]>[number]) =>
+        String(
+          typeof departmentValue === "object"
+            ? departmentValue?._id
+            : departmentValue,
+        ),
+      )
+      .filter(Boolean);
 
-      const candidateName =
-        mappedDepartment?.name ||
-        (typeof value === "object" && value !== null ? value.name : undefined);
-      const name =
-        typeof candidateName === "string" ? candidateName.trim() : "";
-      if (!name) return;
-
-      const codeCandidate =
-        mappedDepartment?.departmentId ||
-        (typeof value === "object" && value !== null
-          ? value.departmentId
-          : undefined);
-      const code =
-        typeof codeCandidate === "string" && codeCandidate.trim()
-          ? codeCandidate
-          : undefined;
-
-      const uniqueKey = id || `${name.toLowerCase()}::${code || "na"}`;
-      if (seenIds.has(uniqueKey)) return;
-      seenIds.add(uniqueKey);
-
-      summaries.push({
-        id: id || uniqueKey,
-        name,
-        code,
-      });
-    };
-
-    pushSummary(user?.departmentId);
-    (user?.departmentIds || []).forEach((departmentValue: any) =>
-      pushSummary(departmentValue),
+    // Use `departmentIds` as the source of all mapped departments.
+    // Keep `departmentId` only as a backward-compatible primary marker/fallback.
+    const allMappedDepartmentIds = Array.from(
+      new Set(
+        [primaryDepartmentId, ...mappedDepartmentIds].filter(Boolean) as string[],
+      ),
     );
 
-    return summaries;
+    return allMappedDepartmentIds.map((departmentId) => {
+      const mapped = departmentMap.get(departmentId);
+      return {
+        id: departmentId,
+        name: mapped?.name || "Unknown Unit",
+        code: mapped?.departmentId || "UNIT",
+        isPrimary: departmentId === primaryDepartmentId,
+      };
+    });
   }, [user, departments, allDepartments]);
   const [deptUserCounts, setDeptUserCounts] = useState<Record<string, number>>(
     {},
@@ -398,6 +388,74 @@ function DashboardContent() {
   const [grievances, setGrievances] = useState<Grievance[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
+
+  // Profile Form States
+  const [profileForm, setProfileForm] = useState({
+    firstName: user?.firstName || "",
+    lastName: user?.lastName || "",
+    email: user?.email || "",
+    phone: user?.phone || "",
+    designations: normalizedDesignations.join(", "),
+  });
+  const [passwordForm, setPasswordForm] = useState({
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [updatingProfile, setUpdatingProfile] = useState(false);
+  const [updatingPassword, setUpdatingPassword] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setProfileForm({
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        designations: normalizedDesignations.join(", "),
+      });
+    }
+  }, [user, normalizedDesignations]);
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setUpdatingProfile(true);
+    try {
+      const payload = {
+        ...profileForm,
+        designations: profileForm.designations.split(",").map(d => d.trim()).filter(Boolean)
+      };
+      const response = await apiClient.put("/api/auth/profile", payload);
+      if (response.data.success) {
+        toast.success("Profile updated successfully");
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to update profile");
+    } finally {
+      setUpdatingProfile(false);
+    }
+  };
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+    setUpdatingPassword(true);
+    try {
+      const response = await apiClient.put("/api/auth/profile", {
+        password: passwordForm.newPassword,
+      });
+      if (response.data.success) {
+        toast.success("Password updated successfully");
+        setPasswordForm({ newPassword: "", confirmPassword: "" });
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to update password");
+    } finally {
+      setUpdatingPassword(false);
+    }
+  };
+
   const [company, setCompany] = useState<Company | null>(null);
   const isHierarchicalCompany = useMemo(() => {
     const fromStats = stats?.isHierarchicalEnabled;
@@ -1778,6 +1836,23 @@ function DashboardContent() {
   const getSortedData = (data: any[], tab: string) => {
     let filteredData = data;
 
+    // Filter users tab for department admins - Strict Scoping
+    if (tab === "users" && user && (isDepartmentAdminRole || isSubDepartmentAdminRole) && !isViewingCompany) {
+      const myDeptIds = new Set([
+        user.departmentId, 
+        ...(user.departmentIds || [])
+      ].filter(Boolean).map(d => String(typeof d === 'object' ? d._id || d : d)));
+      
+      filteredData = data.filter((u: any) => {
+        const uDeptId = String(typeof u.departmentId === 'object' ? u.departmentId?._id || u.departmentId : u.departmentId);
+        const uDeptIds = (u.departmentIds || []).map((d: any) => String(typeof d === 'object' ? d?._id || d : d));
+        const uIdMatch = uDeptId && myDeptIds.has(uDeptId);
+        const uIdsMatch = uDeptIds.some((id: string) => myDeptIds.has(id));
+        return uIdMatch || uIdsMatch;
+      });
+    }
+
+
     // For lower level users (Operators, Sub-Department etc.), only show items assigned to them
     if (user && !isDepartmentAdminOrHigher(user) && user.id) {
       if (tab === "grievances" || tab === "appointments") {
@@ -2206,6 +2281,7 @@ function DashboardContent() {
         "flows",
         "notifications",
         "email",
+        "profile",
       ]);
     }
     if (isCompanyAdminRole) {
@@ -2216,6 +2292,7 @@ function DashboardContent() {
         "appointments",
         "departments",
         "users",
+        "profile",
       ]);
     }
     if (isDepartmentAdminRole) {
@@ -2225,19 +2302,20 @@ function DashboardContent() {
         "grievances",
         "departments",
         "users",
+        "profile",
       ]);
     }
     if (isSubDepartmentAdminRole) {
       return new Set(
         hasMultiDepartmentMapping
-          ? ["overview", "analytics", "grievances", "departments", "users"]
-          : ["overview", "analytics", "grievances", "users"],
+          ? ["overview", "analytics", "grievances", "departments", "users", "profile"]
+          : ["overview", "analytics", "grievances", "users", "profile"],
       );
     }
     if (isOperatorRole) {
-      return new Set(["overview", "grievances"]);
+      return new Set(["overview", "grievances", "profile"]);
     }
-    return new Set(["overview"]);
+    return new Set(["overview", "profile"]);
   }, [
     isSuperAdminUser,
     companyIdParam,
@@ -2358,8 +2436,9 @@ function DashboardContent() {
                 <span className="text-[10px] font-black text-white leading-none uppercase tracking-tight">
                   {user.firstName} {user.lastName}
                 </span>
-                <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-tighter mt-1 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20">
+                <span className="text-[9px] font-black text-white/90 uppercase  mt-1 bg-white/10 px-1.5 py-0.5 rounded border border-white/20 shadow-sm">
                   {(user.role || "CUSTOM").replace("_", " ")}
+                  {user?.companyId?.name && ` (${user.companyId.name})`}
                 </span>
               </div>
 
@@ -2393,10 +2472,13 @@ function DashboardContent() {
                 >
                   <Power className="w-5 h-5" />
                 </Button>
-                {/* User icon moved to sidebar for mobile-first cleanliness */}
-                <div className="hidden md:flex h-10 w-10 bg-indigo-600/10 rounded-xl items-center justify-center border border-indigo-500/20 shadow-inner group">
-                  <UserIcon className="w-5 h-5 text-indigo-400 group-hover:scale-110 transition-transform duration-300" />
-                </div>
+                {/* Profile Button - Optimized for Visibility */}
+                <button
+                  onClick={() => handleTabChange("profile")}
+                  className="hidden md:flex h-10 w-10 bg-white/10 rounded-xl items-center justify-center border border-white/20 shadow-lg group hover:bg-white/20 transition-all duration-300 active:scale-95"
+                >
+                  <UserIcon className="w-5 h-5 text-white group-hover:scale-110 transition-transform duration-300" />
+                </button>
               </div>
             </div>
           </div>
@@ -2624,10 +2706,16 @@ function DashboardContent() {
                       </div>
 
                       <div className="flex items-center gap-4">
-                        <div className="h-14 w-14 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-2xl flex items-center justify-center text-white text-xl font-bold border-2 border-slate-800 shadow-xl">
+                        <button
+                          onClick={() => {
+                            handleTabChange("profile");
+                            setIsMobileTabMenuOpen(false);
+                          }}
+                          className="h-14 w-14 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-2xl flex items-center justify-center text-white text-xl font-bold border-2 border-slate-800 shadow-xl hover:scale-105 transition-transform"
+                        >
                           {user.firstName[0]}
                           {user.lastName[0]}
-                        </div>
+                        </button>
                         <div>
                           <h4 className="text-sm font-black text-white leading-tight uppercase tracking-tight">
                             {user.firstName} {user.lastName}
@@ -2914,8 +3002,9 @@ function DashboardContent() {
                       </Card>
                     )}
 
-                    {/* Pending Grievances */}
-                    {hasPermission(user, Permission.READ_GRIEVANCE) && (
+                    {/* Overdue Grievances (Shown for Dept Admins, Sub-Dept Admins, and Operators) */}
+                    {hasPermission(user, Permission.READ_GRIEVANCE) && 
+                      (isDepartmentAdminRole || isSubDepartmentAdminRole || isOperatorRole) && (
                       <Card
                         onClick={() => {
                           setActiveTab("grievances");
@@ -2949,8 +3038,46 @@ function DashboardContent() {
                       </Card>
                     )}
 
+                    {/* Total Resolved */}
+                    {hasPermission(user, Permission.READ_GRIEVANCE) && !isCompanyAdminRole && (
+                      <Card
+                        onClick={() => {
+                          setActiveTab("grievances");
+                          setGrievanceFilters((prev) => ({
+                            ...prev,
+                            status: "RESOLVED",
+                          }));
+                        }}
+                        className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer h-28 sm:h-32"
+                      >
+                        <CardHeader className="p-3 sm:p-5 pb-1 sm:pb-1 space-y-0 flex flex-row items-center justify-between">
+                          <CardTitle className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                            Resolved Grievances
+                          </CardTitle>
+                          <div className="p-1 sm:p-1.5 bg-emerald-50 rounded-lg">
+                            <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-500" />
+                          </div>
+                        </CardHeader>
+                        <CardContent className="px-3 sm:px-6 pb-2 pt-1">
+                          <div className="text-xl sm:text-2xl font-black text-emerald-600 tabular-nums leading-none">
+                            {loadingStats ? (
+                              <LoadingDots />
+                            ) : (
+                              stats?.grievances.resolved || 0
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 mt-1.5">
+                            <span className="text-[8px] sm:text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
+                              Completed
+                            </span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
                     {/* Total Appointments */}
                     {hasModule(Module.APPOINTMENT) &&
+                      isViewingCompany &&
                       hasPermission(user, Permission.READ_APPOINTMENT) && (
                         <Card
                           onClick={() => setActiveTab("appointments")}
@@ -3006,9 +3133,6 @@ function DashboardContent() {
                                     stats?.mainDepartments || 0
                                   )}
                                 </div>
-                                <p className="text-[9px] text-slate-400 font-bold uppercase mt-1.5">
-                                  Primary Units
-                                </p>
                               </CardContent>
                             </Card>
                             <Card
@@ -3112,19 +3236,19 @@ function DashboardContent() {
                       <div className="relative flex items-center justify-between">
                         <div className="flex items-center space-x-4">
                           <div className="h-16 w-16 bg-white/10 rounded-2xl flex items-center justify-center border border-white/20 shadow-lg">
-                            <Building className="text-indigo-400 w-8 h-8" />
+                            <Building className="text-white w-8 h-8" />
                           </div>
                           <div>
                             <h3 className="text-xl font-bold text-white leading-tight">
                               {company?.name || <LoadingDots />}
                             </h3>
-                            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1">
+                            <p className="text-white/60 text-[10px] font-bold uppercase tracking-widest mt-1">
                               Company Profile & Statistics
                             </p>
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <span className="px-4 py-1.5 rounded-lg bg-white/10 border border-white/20 text-indigo-400 text-[10px] font-black uppercase tracking-widest">
+                          <span className="px-4 py-1.5 rounded-lg bg-white/20 border border-white/30 text-white text-[10px] font-black uppercase tracking-widest shadow-sm">
                             {company?.companyType || <LoadingDots />}
                           </span>
                         </div>
@@ -3208,111 +3332,135 @@ function DashboardContent() {
                 {/* Department Admin - Profile & Department Info in Overview */}
                 {isDepartmentLevel && (
                   <div className="space-y-6">
-                    {/* Department Admin Profile Card */}
-                    <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
-                      <CardContent className="p-6">
-                        <div className="flex items-start gap-6">
-                          {/* Profile Avatar */}
-                          <div className="flex-shrink-0">
-                            <div className="w-24 h-24 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 text-white rounded-2xl flex items-center justify-center shadow-xl text-3xl font-bold">
-                              {user?.firstName?.[0]}
-                              {user?.lastName?.[0]}
-                            </div>
-                          </div>
-                          {/* Profile Details */}
-                          <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                            <div className="bg-slate-50/50 rounded-xl p-3 border border-slate-200/60">
-                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                                Identity
-                              </p>
-                              <p className="text-sm font-black text-slate-900">
-                                {user?.firstName} {user?.lastName}
-                              </p>
-                            </div>
-                            <div className="bg-slate-50/50 rounded-xl p-3 border border-slate-200/60">
-                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                                Communication
-                              </p>
-                              <p className="text-xs font-bold text-slate-600 truncate">
-                                {user?.email}
-                              </p>
-                            </div>
-                            <div className="bg-slate-50/50 rounded-xl p-3 border border-slate-200/60">
-                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                                Authorized Role & Designations
-                              </p>
-                              <div className="flex flex-wrap gap-1.5">
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-600 text-white text-[9px] font-black rounded uppercase tracking-tighter">
-                                  <Shield className="w-3 h-3" />
-                                  {user.role}
-                                </span>
-                                {normalizedDesignations.map((d, index) => (
-                                  <span
-                                    key={index}
-                                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-200 text-slate-700 text-[9px] font-black rounded uppercase tracking-tighter"
-                                  >
-                                    {d}
-                                  </span>
-                                ))}
-                                {normalizedDesignations.length === 0 && (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 text-slate-500 text-[9px] font-black rounded uppercase tracking-tighter">
-                                    Not specified
-                                  </span>
-                                )}
-                              </div>
-                            </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-sm flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center text-md font-black text-white shadow-md flex-shrink-0">
+                          {user?.firstName?.[0]}
+                          {user?.lastName?.[0]}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+                            Identity
+                          </p>
+                          <h2 className="text-[11px] font-black text-slate-900 uppercase truncate leading-none">
+                            {user?.firstName} {user?.lastName}
+                          </h2>
+                        </div>
+                      </div>
+
+                      <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-sm flex items-center gap-3">
+                        <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Mail className="w-5 h-5 text-emerald-600" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+                            Contact
+                          </p>
+                          <h2 className="text-[10px] font-bold text-slate-600 truncate leading-none">
+                            {user?.email}
+                          </h2>
+                        </div>
+                      </div>
+
+                      <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-sm flex items-center gap-3">
+                        <div className="w-10 h-10 bg-slate-900 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Shield className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="min-w-0 overflow-hidden">
+                          <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5">
+                            Authorization
+                          </p>
+                          <div className="flex flex-wrap gap-1">
+                            <span className="px-1.5 py-0.5 bg-indigo-600 text-white text-[8px] font-black rounded uppercase leading-none">
+                              {user.role?.replace(/_/g, " ")}
+                            </span>
+                            {normalizedDesignations.map((designation, index) => (
+                              <span
+                                key={index}
+                                className="px-1.5 py-0.5 bg-slate-100 text-slate-600 text-[8px] font-black rounded uppercase border border-slate-200 leading-none"
+                              >
+                                {designation}
+                              </span>
+                            ))}
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
+                      </div>
+                    </div>
 
-                    {/* My Department(s) Card */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-                      {(() => {
-                        if (assignedDepartmentSummaries.length === 0) {
-                          return (
-                            <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
-                              <CardContent className="py-12 flex flex-col items-center justify-center">
-                                <Building className="w-12 h-12 text-slate-200 mb-4" />
-                                <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">
-                                  No departments assigned
-                                </p>
-                              </CardContent>
-                            </Card>
-                          );
-                        }
+                    <div className="space-y-4 pt-3">
+                      <div className="flex items-center justify-between ml-1">
+                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                          <Building2 className="w-3.5 h-3.5 text-slate-400/60" />
+                          Active Department Assignments
+                        </h4>
+                        {assignedDepartmentSummaries.length > 1 && (
+                          <span className="text-[8px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100 uppercase tracking-tight">
+                            {assignedDepartmentSummaries.length} Units
+                          </span>
+                        )}
+                      </div>
 
-                        return assignedDepartmentSummaries.map((dept, idx) => (
-                          <Card
-                            key={dept.id || idx}
-                            className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white flex flex-col"
-                          >
-                            <CardHeader className="bg-[#52c798] px-4 sm:px-6 py-4">
-                              <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
-                                  <Building className="w-5 h-5 text-indigo-400" />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {assignedDepartmentSummaries.length > 0 ? (
+                          assignedDepartmentSummaries.map((dept, idx) => {
+                            const statsForDept = stats?.grievances?.byDepartment?.find(
+                              (departmentStat) => departmentStat.departmentId === dept.id,
+                            );
+
+                            return (
+                              <div
+                                key={dept.id || `dept-assignment-${idx}`}
+                                className="bg-white border border-slate-200 rounded-[18px] p-3 sm:p-4 flex items-center gap-3 hover:shadow-md hover:border-indigo-200 transition-all duration-300 cursor-default group shadow-sm relative overflow-hidden"
+                              >
+                                <div className="absolute inset-0 bg-gradient-to-r from-indigo-50/0 to-indigo-50/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+
+                                <div className="h-10 w-10 shrink-0 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-center shadow-inner group-hover:bg-indigo-600 group-hover:border-indigo-500 transition-all duration-300 relative z-10">
+                                  <Building className="w-4 h-4 text-slate-400 group-hover:text-white transition-colors" />
                                 </div>
-                                <div>
-                                  <CardTitle className="text-base font-bold text-white uppercase tracking-tight">
+
+                                <div className="flex-1 min-w-0 relative z-10">
+                                  <h5 className="text-[11px] font-black text-slate-900 uppercase leading-tight truncate group-hover:text-indigo-600 transition-colors mb-1">
                                     {dept.name}
-                                  </CardTitle>
-                                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-                                    {dept.code || "Assigned Department"} •{" "}
-                                    {idx === 0 && user.departmentId
-                                      ? "Primary Assignment"
-                                      : "Additional Assignment"}
-                                  </p>
+                                  </h5>
+
+                                  <div className="flex flex-wrap items-center gap-1.5">
+                                    <div className="flex items-center gap-1 px-1.5 py-0.5 bg-slate-50 border border-slate-100 rounded-md">
+                                      <Terminal className="w-2.5 h-2.5 text-slate-400" />
+                                      <span className="text-[8px] font-black text-slate-500 uppercase tracking-tight">
+                                        {dept.code || "UNIT"}
+                                      </span>
+                                    </div>
+
+                                    {dept.isPrimary && (
+                                      <div className="px-1.5 py-0.5 bg-indigo-50 border border-indigo-100 rounded-md">
+                                        <span className="text-[8px] font-black text-indigo-600 uppercase tracking-tight">
+                                          Primary
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="text-right pl-3 border-l border-slate-100 shrink-0 relative z-10">
+                                  <div className="text-xl font-black text-slate-900 tracking-tighter leading-none group-hover:text-indigo-600 transition-colors">
+                                    {statsForDept?.total || 0}
+                                  </div>
+                                  <div className="text-[7px] font-black text-slate-400 uppercase tracking-widest mt-0.5">
+                                    Grievances
+                                  </div>
                                 </div>
                               </div>
-                            </CardHeader>
-                            <CardContent className="p-6">
-                              <p className="text-xs text-slate-600">
-                                This department is assigned to your account.
-                              </p>
-                            </CardContent>
-                          </Card>
-                        ));
-                      })()}
+                            );
+                          })
+                        ) : (
+                          <div className="col-span-full p-6 border-2 border-dashed border-slate-100 rounded-2xl flex flex-col items-center justify-center text-slate-400 bg-slate-50/30">
+                            <Building2 className="w-8 h-8 mb-2 opacity-20" />
+                            <p className="text-[9px] font-black uppercase tracking-widest">
+                              No assigned units
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -3610,7 +3758,7 @@ function DashboardContent() {
                       </>
                     )}
 
-                    {hasModule(Module.APPOINTMENT) && (
+                    {hasModule(Module.APPOINTMENT) && isViewingCompany && (
                       <>
                         {/* 4. Total Appointments */}
                         <div
@@ -4129,8 +4277,10 @@ function DashboardContent() {
                     )}
 
                     {/* Staff by Role */}
-                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-                      <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-3">
+                    {/* Staff by Role Distribution - Hidden for Operators */}
+                    {!isOperatorRole && (
+                      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                        <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-3">
                         <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
                           <Users className="w-4 h-4 text-emerald-600" />
                         </div>
@@ -4150,8 +4300,22 @@ function DashboardContent() {
                           const roleDataRaw = stats?.usersByRole || [];
                           const localRoleMap: Record<string, number> = {};
 
-                          if (roleDataRaw.length === 0) {
-                            users.forEach((u) => {
+                          if (roleDataRaw.length === 0 || isDepartmentLevel) {
+                            // Extract all department IDs the current user is mapped to
+                            const myDeptIds = new Set([
+                              user?.departmentId, 
+                              ...(user?.departmentIds || [])
+                            ].filter(Boolean).map(d => String(typeof d === 'object' ? d._id || d : d)));
+
+                            const filteredForStats = isViewingCompany ? users : users.filter(u => {
+                              const uDeptId = String(typeof u.departmentId === 'object' ? u.departmentId?._id || u.departmentId : u.departmentId);
+                              const uDeptIds = (u.departmentIds || []).map((d: any) => String(typeof d === 'object' ? d?._id || d : d));
+                              const uIdMatch = uDeptId && myDeptIds.has(uDeptId);
+                              const uIdsMatch = uDeptIds.some((id: string) => myDeptIds.has(id));
+                              return uIdMatch || uIdsMatch;
+                            });
+
+                            filteredForStats.forEach((u) => {
                               let roleName = "";
                               if (
                                 typeof u.customRoleId === "object" &&
@@ -4176,7 +4340,7 @@ function DashboardContent() {
                             "#8b5cf6",
                           ];
 
-                          const roleData =
+                          const roleData = (
                             roleDataRaw.length > 0
                               ? roleDataRaw.map((r, i) => ({
                                   name: r.name.toUpperCase(),
@@ -4189,9 +4353,22 @@ function DashboardContent() {
                                     value,
                                     color: roleColors[i % roleColors.length],
                                   }),
-                                );
+                                )
+                          ).filter((r) => {
+                            const uLevel = user?.level ?? 4;
+                            if (uLevel <= 1) return true; // Company Admin+: Full access
+                            if (uLevel === 2) {
+                              // Dept Admin: Dept Admin + Sub-Dept Admin + Operator
+                              return !r.name.includes("COMPANY") && !r.name.includes("SUPER");
+                            }
+                            if (uLevel === 3) {
+                              // Sub-Dept Admin: Sub-Dept Admin + Operator
+                              return (r.name.includes("SUB") || r.name.includes("OPERATOR")) && !r.name.includes("COMPANY");
+                            }
+                            return false;
+                          });
 
-                          const totalStaffCount = stats?.users || users.length;
+                          const totalStaffCount = roleData.reduce((acc, curr) => acc + curr.value, 0);
 
                           if (roleData.length === 0) {
                             return (
@@ -4235,8 +4412,9 @@ function DashboardContent() {
                             </div>
                           );
                         })()}
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
 
                   {isDFO && (
@@ -5000,22 +5178,24 @@ function DashboardContent() {
                               />
                               Refresh
                             </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                exportToCSV(departments, "departments", [
-                                  { key: "departmentId", label: "ID" },
-                                  { key: "name", label: "Name" },
-                                  { key: "isActive", label: "Status" },
-                                ])
-                              }
-                              className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 rounded-xl font-bold text-[11px] uppercase tracking-wider whitespace-nowrap"
-                              title="Export to CSV"
-                            >
-                              <Download className="w-3.5 h-3.5 mr-1.5" />
-                              Export
-                            </Button>
+                            {isViewingCompany && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  exportToCSV(departments, "departments", [
+                                    { key: "departmentId", label: "ID" },
+                                    { key: "name", label: "Name" },
+                                    { key: "isActive", label: "Status" },
+                                  ])
+                                }
+                                className="border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl font-bold text-[11px] uppercase tracking-wider whitespace-nowrap"
+                                title="Export to CSV"
+                              >
+                                <Download className="w-3.5 h-3.5 mr-1.5" />
+                                Export
+                              </Button>
+                            )}
                           </div>
                         </div>
 
@@ -5684,23 +5864,25 @@ function DashboardContent() {
                             </p>
                           </div>
                         </div>
-                        <button
-                          onClick={() =>
-                            exportToCSV(leads, "leads", [
-                              { key: "leadId", label: "Lead ID" },
-                              { key: "name", label: "Name" },
-                              { key: "companyName", label: "Company" },
-                              { key: "contactInfo", label: "Phone" },
-                              { key: "projectType", label: "Project Type" },
-                              { key: "budgetRange", label: "Budget" },
-                              { key: "status", label: "Status" },
-                            ])
-                          }
-                          className="flex items-center gap-2 px-4 h-8 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-all border border-white/20 text-[10px] font-bold uppercase tracking-wider"
-                        >
-                          <Download className="w-3.5 h-3.5" />
-                          Export CSV
-                        </button>
+                        {isViewingCompany && (
+                          <button
+                            onClick={() =>
+                              exportToCSV(leads, "leads", [
+                                { key: "leadId", label: "Lead ID" },
+                                { key: "name", label: "Name" },
+                                { key: "companyName", label: "Company" },
+                                { key: "contactInfo", label: "Phone" },
+                                { key: "projectType", label: "Project Type" },
+                                { key: "budgetRange", label: "Budget" },
+                                { key: "status", label: "Status" },
+                              ])
+                            }
+                            className="flex items-center gap-2 px-4 h-8 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-all border border-white/20 text-[10px] font-bold uppercase tracking-wider"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            Export CSV
+                          </button>
+                        )}
                       </div>
                     </CardHeader>
 
@@ -5925,6 +6107,7 @@ function DashboardContent() {
                                 />
                                 Refresh
                               </Button>
+                            {isViewingCompany && (
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -5937,12 +6120,13 @@ function DashboardContent() {
                                     { key: "role", label: "Role" },
                                   ])
                                 }
-                                className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 rounded-xl font-bold text-[11px] uppercase tracking-wider whitespace-nowrap"
+                                className="border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl font-bold text-[11px] uppercase tracking-wider whitespace-nowrap"
                                 title="Export to CSV"
                               >
                                 <Download className="w-3.5 h-3.5 mr-1.5" />
                                 Export
                               </Button>
+                            )}
                             </div>
                           </div>
 
@@ -6803,32 +6987,34 @@ function DashboardContent() {
                               />
                               Refresh
                             </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                exportToCSV(
-                                  getSortedData(grievances, "grievances"),
-                                  "grievances",
-                                  [
-                                    { key: "grievanceId", label: "ID" },
-                                    {
-                                      key: "citizenName",
-                                      label: "Citizen Name",
-                                    },
-                                    { key: "citizenPhone", label: "Phone" },
-                                    { key: "category", label: "Category" },
-                                    { key: "status", label: "Status" },
-                                    { key: "createdAt", label: "Created At" },
-                                  ],
-                                )
-                              }
-                              className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 rounded-xl whitespace-nowrap"
-                              title="Export to CSV"
-                            >
-                              <FileDown className="w-4 h-4 mr-1.5" />
-                              Export
-                            </Button>
+                            {isViewingCompany && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  exportToCSV(
+                                    getSortedData(grievances, "grievances"),
+                                    "grievances",
+                                    [
+                                      { key: "grievanceId", label: "ID" },
+                                      {
+                                        key: "citizenName",
+                                        label: "Citizen Name",
+                                      },
+                                      { key: "citizenPhone", label: "Phone" },
+                                      { key: "category", label: "Category" },
+                                      { key: "status", label: "Status" },
+                                      { key: "createdAt", label: "Created At" },
+                                    ],
+                                  )
+                                }
+                                className="border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl whitespace-nowrap"
+                                title="Export to CSV"
+                              >
+                                <FileDown className="w-4 h-4 mr-1.5" />
+                                Export
+                              </Button>
+                            )}
                           </div>
                         </div>
 
@@ -8095,33 +8281,35 @@ function DashboardContent() {
                               />
                               Refresh
                             </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                exportToCSV(
-                                  getSortedData(appointments, "appointments"),
-                                  "appointments",
-                                  [
-                                    { key: "appointmentId", label: "ID" },
-                                    {
-                                      key: "citizenName",
-                                      label: "Citizen Name",
-                                    },
-                                    { key: "citizenPhone", label: "Phone" },
-                                    { key: "purpose", label: "Purpose" },
-                                    { key: "appointmentDate", label: "Date" },
-                                    { key: "appointmentTime", label: "Time" },
-                                    { key: "status", label: "Status" },
-                                  ],
-                                )
-                              }
-                              className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 rounded-xl whitespace-nowrap"
-                              title="Export to CSV"
-                            >
-                              <FileDown className="w-4 h-4 mr-1.5" />
-                              Export
-                            </Button>
+                            {isViewingCompany && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  exportToCSV(
+                                    getSortedData(appointments, "appointments"),
+                                    "appointments",
+                                    [
+                                      { key: "appointmentId", label: "ID" },
+                                      {
+                                        key: "citizenName",
+                                        label: "Citizen Name",
+                                      },
+                                      { key: "citizenPhone", label: "Phone" },
+                                      { key: "purpose", label: "Purpose" },
+                                      { key: "appointmentDate", label: "Date" },
+                                      { key: "appointmentTime", label: "Time" },
+                                      { key: "status", label: "Status" },
+                                    ],
+                                  )
+                                }
+                                className="border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl whitespace-nowrap"
+                                title="Export to CSV"
+                              >
+                                <FileDown className="w-4 h-4 mr-1.5" />
+                                Export
+                              </Button>
+                            )}
                           </div>
                         </div>
 
@@ -8825,9 +9013,166 @@ function DashboardContent() {
                   </TabsContent>
                 </CompanyProvider>
               )}
-            </div>
-          </div>
-        </Tabs>
+              <TabsContent value="profile" className="space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2">
+                    <Card className="border-slate-200 shadow-sm overflow-hidden">
+                      <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-indigo-200">
+                            {user.firstName[0]}
+                            {user.lastName[0]}
+                          </div>
+                          <div>
+                            <CardTitle className="text-lg font-black uppercase tracking-tight text-slate-900">
+                              Personal Information
+                            </CardTitle>
+                            <CardDescription className="text-[10px] font-bold uppercase tracking-tighter text-slate-500">
+                              Update your account details and contact information
+                            </CardDescription>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="pt-6">
+                        <form onSubmit={handleUpdateProfile} className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">First Name</label>
+                              <input
+                                type="text"
+                                value={profileForm.firstName}
+                                onChange={(e) => setProfileForm({ ...profileForm, firstName: e.target.value })}
+                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none"
+                                required
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Last Name</label>
+                              <input
+                                type="text"
+                                value={profileForm.lastName}
+                                onChange={(e) => setProfileForm({ ...profileForm, lastName: e.target.value })}
+                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none"
+                                required
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Designations (Comma separated)</label>
+                              <input
+                                type="text"
+                                value={profileForm.designations}
+                                onChange={(e) => setProfileForm({ ...profileForm, designations: e.target.value })}
+                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none"
+                                placeholder="e.g. Senior Manager"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Email Address</label>
+                              <input
+                                type="email"
+                                value={profileForm.email}
+                                onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none"
+                              />
+                            </div>
+                            <div className="space-y-1.5 md:col-span-2">
+                              <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Phone Number</label>
+                              <input
+                                type="tel"
+                                value={profileForm.phone}
+                                onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none"
+                                required
+                              />
+                            </div>
+                          </div>
+                          <div className="pt-4 flex justify-end">
+                            <Button type="submit" disabled={updatingProfile} className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest shadow-lg shadow-indigo-200 transition-all active:scale-95 disabled:opacity-70">
+                              {updatingProfile ? (
+                                <>
+                                  <RefreshCw className="w-3 h-3 mr-2 animate-spin" />
+                                  Updating...
+                                </>
+                              ) : (
+                                "Save Changes"
+                              )}
+                            </Button>
+                          </div>
+                        </form>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <div className="space-y-6">
+                    <Card className="border-slate-200 shadow-sm overflow-hidden">
+                      <CardHeader className="bg-rose-50/50 border-b border-rose-100 pb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-rose-500/10 rounded-xl flex items-center justify-center text-rose-600">
+                            <Lock className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <CardTitle className="text-md font-black uppercase tracking-tight text-slate-900">Security</CardTitle>
+                            <CardDescription className="text-[9px] font-bold uppercase tracking-tighter text-slate-500">
+                              Update your account password
+                            </CardDescription>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="pt-6 space-y-4">
+                        <form onSubmit={handleUpdatePassword} className="space-y-4">
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">New Password</label>
+                            <input
+                              type="password"
+                              value={passwordForm.newPassword}
+                              onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all outline-none"
+                              placeholder="********"
+                              required
+                              minLength={6}
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Confirm New Password</label>
+                            <input
+                              type="password"
+                              value={passwordForm.confirmPassword}
+                              onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all outline-none"
+                              placeholder="********"
+                              required
+                              minLength={6}
+                            />
+                          </div>
+                          <Button type="submit" disabled={updatingPassword} className="w-full bg-rose-600 hover:bg-rose-700 text-white py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest shadow-lg shadow-rose-100 transition-all active:scale-95 disabled:opacity-70">
+                            {updatingPassword ? (
+                              <>
+                                <RefreshCw className="w-3 h-3 mr-2 animate-spin" />
+                                Security Patching...
+                              </>
+                            ) : (
+                              "Update Security"
+                            )}
+                          </Button>
+                        </form>
+                        <div className="p-4 bg-amber-50 rounded-xl border border-amber-100/50">
+                          <div className="flex gap-3">
+                            <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0" />
+                            <p className="text-[10px] text-amber-700 font-bold leading-relaxed">
+                              Changing your password will require you to log in again on all other devices.
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                 
+                  </div>
+                </div>
+              </TabsContent>
+                </div>
+              </div>
+            </Tabs>
 
         {/* Dialogs */}
         {(isViewingCompany || isDepartmentLevel) && (
@@ -8964,6 +9309,7 @@ function DashboardContent() {
               setSelectedGrievanceForAssignment(null);
             }}
             onAssign={async (userId: string, departmentId?: string) => {
+              if (!selectedGrievanceForAssignment) return;
               await grievanceAPI.assign(
                 selectedGrievanceForAssignment._id,
                 userId,
@@ -8973,14 +9319,15 @@ function DashboardContent() {
               fetchDashboardData(true);
             }}
             itemType="grievance"
-            itemId={selectedGrievanceForAssignment._id}
+            itemId={selectedGrievanceForAssignment?._id || ""}
             companyId={
               typeof user.companyId === "object" && user.companyId !== null
                 ? user.companyId._id
                 : user.companyId || ""
             }
-            currentAssignee={selectedGrievanceForAssignment.assignedTo}
+            currentAssignee={selectedGrievanceForAssignment?.assignedTo}
             currentDepartmentId={(() => {
+              if (!selectedGrievanceForAssignment) return null;
               if (selectedGrievanceForAssignment.status === "REVERTED") {
                 const revertEntry = selectedGrievanceForAssignment.timeline
                   ?.filter((t: any) => t.action === "REVERTED_TO_COMPANY_ADMIN")
@@ -8995,12 +9342,11 @@ function DashboardContent() {
                 }
               }
 
-              return selectedGrievanceForAssignment.departmentId &&
-                typeof selectedGrievanceForAssignment.departmentId === "object"
-                ? (selectedGrievanceForAssignment.departmentId as any)._id
-                : selectedGrievanceForAssignment.departmentId;
+              const dept = selectedGrievanceForAssignment.departmentId;
+              return dept && typeof dept === "object" ? (dept as any)._id : dept;
             })()}
             currentSubDepartmentId={(() => {
+              if (!selectedGrievanceForAssignment) return null;
               if (selectedGrievanceForAssignment.status === "REVERTED") {
                 const revertEntry = selectedGrievanceForAssignment.timeline
                   ?.filter((t: any) => t.action === "REVERTED_TO_COMPANY_ADMIN")
@@ -9015,11 +9361,10 @@ function DashboardContent() {
                 }
               }
 
-              return selectedGrievanceForAssignment.subDepartmentId &&
-                typeof selectedGrievanceForAssignment.subDepartmentId ===
-                  "object"
-                ? (selectedGrievanceForAssignment.subDepartmentId as any)._id
-                : selectedGrievanceForAssignment.subDepartmentId;
+              const subDept = selectedGrievanceForAssignment.subDepartmentId;
+              return subDept && typeof subDept === "object"
+                ? (subDept as any)._id
+                : subDept;
             })()}
             userRole={user.role}
             userDepartmentId={
@@ -9176,6 +9521,8 @@ function DashboardContent() {
           department={selectedDeptForHierarchy}
           allDepartments={allDepartments}
         />
+
+
       </main>
     </div>
   );
