@@ -100,7 +100,7 @@ export default function LoginPage() {
       {/* ── LEFT PANEL — Branding ── */}
       <div className="hidden lg:flex lg:w-1/2 flex-col relative bg-[#0b1120] overflow-hidden">
         {/* Radial gradient overlays */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,rgba(99,102,241,0.25)_0%,transparent_55%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,rgba(2,175,241,0.25)_0%,transparent_55%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_70%_75%,rgba(14,165,233,0.18)_0%,transparent_55%)]" />
         {/* Grid / dot pattern */}
         <div
@@ -115,7 +115,7 @@ export default function LoginPage() {
         <div className="relative z-10 flex flex-col h-full p-12 xl:p-20">
           {/* Logo */}
           <div className="flex items-center gap-4 group">
-            <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-sky-500 rounded-2xl flex items-center justify-center shadow-2xl shadow-indigo-500/30 transition-all group-hover:scale-110 duration-500 group-hover:rotate-3">
+            <div className="w-14 h-14 bg-gradient-to-br from-sky-500 to-cyan-500 rounded-2xl flex items-center justify-center shadow-2xl shadow-sky-500/30 transition-all group-hover:scale-110 duration-500 group-hover:rotate-3">
               <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                   d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -133,7 +133,7 @@ export default function LoginPage() {
 
           {/* Hero Copy */}
           <div className="mt-auto mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 mb-8 backdrop-blur-sm">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-sky-500/10 border border-sky-500/20 mb-8 backdrop-blur-sm">
               <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
               <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest leading-none">
                 Active
@@ -141,7 +141,7 @@ export default function LoginPage() {
             </div>
             <h1 className="text-4xl xl:text-6xl font-black text-white leading-[1.05] tracking-tight mb-6">
               Empowering <br />
-              <span className="italic font-medium text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-sky-400 to-emerald-400">
+              <span className="italic font-medium text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-cyan-400 to-emerald-400">
                 Digital Republic
               </span>
             </h1>
@@ -156,7 +156,7 @@ export default function LoginPage() {
             {[
               {
                 icon: <Shield className="w-4 h-4" />,
-                color: "text-indigo-400 bg-indigo-500/10 border-indigo-500/20",
+                color: "text-sky-300 bg-sky-500/10 border-sky-500/20",
                 title: "Military Security",
                 sub: "AES-256 encrypted records",
               },
@@ -194,23 +194,23 @@ export default function LoginPage() {
       </div>
 
       {/* ── RIGHT PANEL — Login Form ── */}
-      <div className="flex-1 flex flex-col justify-center items-center p-6 sm:p-12 relative z-10 overflow-y-auto">
+      <div className="flex-1 flex flex-col justify-center items-center p-6 sm:p-12 relative z-10 overflow-y-auto min-h-screen">
         {/* Subtle background flourishes */}
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-100/30 blur-[120px] rounded-full pointer-events-none" />
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-sky-100/30 blur-[120px] rounded-full pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-sky-100/30 blur-[100px] rounded-full pointer-events-none" />
         
         <div className="w-full max-w-[460px] animate-in fade-in slide-in-from-bottom-4 duration-700">
           {/* Mobile Heading */}
           <div className="lg:hidden flex flex-col items-center gap-4 mb-10 text-center">
             <div className="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center shadow-xl border border-slate-800">
-              <svg className="w-8 h-8 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-8 h-8 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                   d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
             </div>
             <div>
               <h1 className="text-3xl font-black text-slate-900 tracking-tighter">
-                Citizen<span className="text-indigo-600">Helpdesk</span>
+                Citizen<span className="text-sky-600">Helpdesk</span>
               </h1>
               <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-1">
                 Admin Command Center
@@ -231,12 +231,12 @@ export default function LoginPage() {
           {/* Login Card */}
           <div className="relative group">
             {/* Soft shadow glow */}
-            <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-sky-500 rounded-[32px] blur-xl opacity-20 group-hover:opacity-30 transition-all duration-1000" />
+            <div className="absolute -inset-1 bg-gradient-to-r from-sky-500 to-cyan-500 rounded-[32px] blur-xl opacity-20 group-hover:opacity-30 transition-all duration-1000" />
             
             <div className="relative bg-white border border-slate-200 rounded-[32px] shadow-[0_32px_80px_-16px_rgba(0,0,0,0.1)] overflow-hidden">
               {/* Card Title Tab */}
               <div className="absolute top-0 left-0 bg-slate-900 px-6 py-2 rounded-br-2xl flex items-center gap-2">
-                <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse" />
+                <div className="w-1.5 h-1.5 bg-sky-500 rounded-full animate-pulse" />
                 <span className="text-[9px] font-black text-white uppercase tracking-widest whitespace-nowrap">Secure Gateway</span>
               </div>
 
@@ -258,7 +258,7 @@ export default function LoginPage() {
                   </div>
                   <div className="relative group/input">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <div className="w-9 h-9 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-400 group-focus-within/input:text-indigo-600 group-focus-within/input:bg-indigo-50 group-focus-within/input:border-indigo-100 transition-all">
+                      <div className="w-9 h-9 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-400 group-focus-within/input:text-sky-600 group-focus-within/input:bg-sky-50 group-focus-within/input:border-sky-100 transition-all">
                         <Phone className="w-4 h-4" />
                       </div>
                     </div>
@@ -270,7 +270,7 @@ export default function LoginPage() {
                       onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 12))}
                       maxLength={12}
                       required
-                      className="pl-16 h-14 border-slate-200 focus:border-indigo-600 focus:ring-0 bg-slate-50/50 rounded-2xl text-slate-900 placeholder:text-slate-400 font-black text-sm tracking-widest transition-all"
+                      className="pl-16 h-14 border-slate-200 focus:border-sky-600 focus:ring-0 bg-slate-50/50 rounded-2xl text-slate-900 placeholder:text-slate-400 font-black text-sm tracking-widest transition-all"
                     />
                   </div>
                 </div>
@@ -281,13 +281,13 @@ export default function LoginPage() {
                     <Label htmlFor="password" className="text-slate-900 font-black text-[10px] uppercase tracking-widest leading-none">
                       Password Key
                     </Label>
-                    <Link href="/auth/forgot-password" className="text-[9px] font-black text-indigo-600 hover:text-indigo-700 uppercase tracking-widest transition-colors">
+                    <Link href="/auth/forgot-password" className="text-[9px] font-black text-sky-600 hover:text-sky-700 uppercase tracking-widest transition-colors">
                       Recovery?
                     </Link>
                   </div>
                   <div className="relative group/input">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <div className="w-9 h-9 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-400 group-focus-within/input:text-indigo-600 group-focus-within/input:bg-indigo-100 group-focus-within/input:border-indigo-200 transition-all">
+                      <div className="w-9 h-9 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-400 group-focus-within/input:text-sky-600 group-focus-within/input:bg-sky-100 group-focus-within/input:border-sky-200 transition-all">
                         <LockIcon className="w-4 h-4" />
                       </div>
                     </div>
@@ -300,12 +300,12 @@ export default function LoginPage() {
                       minLength={6}
                       maxLength={128}
                       required
-                      className="pl-16 pr-14 h-14 border-slate-200 focus:border-indigo-600 focus:ring-0 bg-slate-50/50 rounded-2xl text-slate-900 placeholder:text-slate-400 font-bold text-sm transition-all"
+                      className="pl-16 pr-14 h-14 border-slate-200 focus:border-sky-600 focus:ring-0 bg-slate-50/50 rounded-2xl text-slate-900 placeholder:text-slate-400 font-bold text-sm transition-all"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-indigo-600 transition-colors"
+                      className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-sky-600 transition-colors"
                     >
                       {showPassword ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
                     </button>
@@ -335,7 +335,7 @@ export default function LoginPage() {
                 {/* Trust Badges */}
                 <div className="flex items-center justify-center gap-6 pt-4 grayscale opacity-40 hover:grayscale-0 hover:opacity-100 transition-all duration-500">
                    <div className="flex flex-col items-center gap-1">
-                      <ShieldCheckIcon className="w-5 h-5 text-indigo-600" />
+                      <ShieldCheckIcon className="w-5 h-5 text-sky-600" />
                       <span className="text-[8px] font-black uppercase tracking-tighter">Verified</span>
                    </div>
                    <div className="flex flex-col items-center gap-1">
@@ -347,9 +347,14 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <p className="mt-10 text-center text-slate-400 text-[10px] font-black uppercase tracking-[0.3em]">
-            Authorized Personnel Only <br />
-          </p>
+          <div className="mt-10 w-full rounded-2xl border border-slate-200/80 bg-white/70 px-4 py-3 text-center">
+            <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.22em]">
+              Authorized Personnel Only
+            </p>
+            <p className="mt-1 text-[10px] text-slate-400 font-semibold">
+              Need help signing in? Contact your company administrator.
+            </p>
+          </div>
         </div>
       </div>
     </div>
