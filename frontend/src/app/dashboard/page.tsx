@@ -2470,7 +2470,7 @@ function DashboardContent() {
               {isSuperAdminUser && companyIdParam && (
                 <Link
                   href="/dashboard"
-                  className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700 transition-all duration-300 text-[10px] font-black uppercase tracking-widest shadow-xl"
+                  className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700 transition-all duration-300 text-xs font-bold uppercase tracking-wide shadow-xl"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   Back to Master Admin
@@ -2498,7 +2498,8 @@ function DashboardContent() {
                 {/* Profile Button - Optimized for Visibility */}
                 <button
                   onClick={() => handleTabChange("profile")}
-                  className="hidden md:flex h-10 w-10 bg-white/10 rounded-xl items-center justify-center border border-white/20 shadow-lg group hover:bg-white/20 transition-all duration-300 active:scale-95"
+                  className="flex h-10 w-10 bg-white/15 rounded-xl items-center justify-center border border-white/40 shadow-lg group hover:bg-white/25 transition-all duration-300 active:scale-95"
+                  title="Profile"
                 >
                   <UserIcon className="w-5 h-5 text-white group-hover:scale-110 transition-transform duration-300" />
                 </button>
@@ -2545,7 +2546,7 @@ function DashboardContent() {
                       className="w-full justify-center group-hover:justify-start h-10 px-0 group-hover:px-4 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all duration-200"
                     >
                       <LayoutGrid className="w-4 h-4 shrink-0" />
-                      <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap">
+                      <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-xs font-bold uppercase tracking-wide opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap">
                         Overview
                       </span>
                     </TabsTrigger>
@@ -2557,7 +2558,7 @@ function DashboardContent() {
                       className="w-full justify-center group-hover:justify-start h-10 px-0 group-hover:px-4 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all duration-200"
                     >
                       <TrendingUp className="w-4 h-4 shrink-0" />
-                      <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap">
+                      <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-xs font-bold uppercase tracking-wide opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap">
                         {isDFO ? "Command Center" : "Analytics"}
                       </span>
                     </TabsTrigger>
@@ -2568,7 +2569,7 @@ function DashboardContent() {
                       className="w-full justify-center group-hover:justify-start h-10 px-0 group-hover:px-4 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all duration-200"
                     >
                       <FileText className="w-4 h-4 shrink-0" />
-                      <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap">
+                      <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-xs font-bold uppercase tracking-wide opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap">
                         {isDFO ? "Incidents" : "Grievances"}
                       </span>
                     </TabsTrigger>
@@ -2582,7 +2583,7 @@ function DashboardContent() {
                         className="w-full justify-center group-hover:justify-start h-10 px-0 group-hover:px-4 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all duration-200"
                       >
                         <CalendarCheck className="w-4 h-4 shrink-0" />
-                        <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap">
+                        <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-xs font-bold uppercase tracking-wide opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap">
                           Appointments
                         </span>
                       </TabsTrigger>
@@ -2593,7 +2594,7 @@ function DashboardContent() {
                       className="w-full justify-center group-hover:justify-start h-10 px-0 group-hover:px-4 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all duration-200"
                     >
                       <Building className="w-4 h-4 shrink-0" />
-                      <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap">
+                      <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-xs font-bold uppercase tracking-wide opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap">
                         {isDFO ? "Patrol Units" : "Departments"}
                       </span>
                     </TabsTrigger>
@@ -2626,7 +2627,7 @@ function DashboardContent() {
                       className="w-full justify-center group-hover:justify-start h-10 px-0 group-hover:px-4 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all duration-200"
                     >
                       <Users className="w-4 h-4 shrink-0" />
-                      <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap">
+                      <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-xs font-bold uppercase tracking-wide opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap">
                         Users
                       </span>
                     </TabsTrigger>
@@ -2637,7 +2638,7 @@ function DashboardContent() {
                       className="w-full justify-center group-hover:justify-start h-10 px-0 group-hover:px-4 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all duration-200"
                     >
                       <Shield className="w-4 h-4 shrink-0" />
-                      <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap">
+                      <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-xs font-bold uppercase tracking-wide opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap">
                         Roles
                       </span>
                     </TabsTrigger>
@@ -2648,7 +2649,7 @@ function DashboardContent() {
                       className="w-full justify-center group-hover:justify-start h-10 px-0 group-hover:px-4 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all duration-200"
                     >
                       <Target className="w-4 h-4 shrink-0" />
-                      <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap">
+                      <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-xs font-bold uppercase tracking-wide opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap">
                         Leads
                       </span>
                     </TabsTrigger>
@@ -2661,7 +2662,7 @@ function DashboardContent() {
                         className="w-full justify-center group-hover:justify-start h-10 px-0 group-hover:px-4 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all duration-200"
                       >
                         <MessageSquare className="w-4 h-4 shrink-0" />
-                        <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap">
+                        <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-xs font-bold uppercase tracking-wide opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap">
                           WhatsApp
                         </span>
                       </TabsTrigger>
@@ -2670,7 +2671,7 @@ function DashboardContent() {
                         className="w-full justify-center group-hover:justify-start h-10 px-0 group-hover:px-4 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all duration-200"
                       >
                         <Workflow className="w-4 h-4 shrink-0" />
-                        <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap">
+                        <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-xs font-bold uppercase tracking-wide opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap">
                           Flows
                         </span>
                       </TabsTrigger>
@@ -2679,7 +2680,7 @@ function DashboardContent() {
                         className="w-full justify-center group-hover:justify-start h-10 px-0 group-hover:px-4 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all duration-200"
                       >
                         <BellRing className="w-4 h-4 shrink-0" />
-                        <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap">
+                        <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-xs font-bold uppercase tracking-wide opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap">
                           Notifications
                         </span>
                       </TabsTrigger>
@@ -2688,7 +2689,7 @@ function DashboardContent() {
                         className="w-full justify-center group-hover:justify-start h-10 px-0 group-hover:px-4 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all duration-200"
                       >
                         <Mail className="w-4 h-4 shrink-0" />
-                        <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap">
+                        <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-xs font-bold uppercase tracking-wide opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap">
                           Email
                         </span>
                       </TabsTrigger>
@@ -2772,7 +2773,7 @@ function DashboardContent() {
                               variant="ghost"
                               onClick={() => handleTabChange("overview")}
                               className={cn(
-                                "w-full justify-start text-[10px] font-black uppercase tracking-widest h-11 rounded-xl transition-all duration-200",
+                                "w-full justify-start text-xs font-bold uppercase tracking-wide h-11 rounded-xl transition-all duration-200",
                                 activeTab === "overview"
                                   ? "bg-slate-900 text-white shadow-lg shadow-slate-900/20"
                                   : "text-slate-600 hover:bg-slate-100/50 hover:text-slate-900",
@@ -2789,7 +2790,7 @@ function DashboardContent() {
                               variant="ghost"
                               onClick={() => handleTabChange("analytics")}
                               className={cn(
-                                "w-full justify-start text-[10px] font-black uppercase tracking-widest h-11 rounded-xl transition-all duration-200",
+                                "w-full justify-start text-xs font-bold uppercase tracking-wide h-11 rounded-xl transition-all duration-200",
                                 activeTab === "analytics"
                                   ? "bg-slate-900 text-white shadow-lg shadow-slate-900/20"
                                   : "text-slate-600 hover:bg-slate-100/50 hover:text-slate-900",
@@ -2805,7 +2806,7 @@ function DashboardContent() {
                               variant="ghost"
                               onClick={() => handleTabChange("grievances")}
                               className={cn(
-                                "w-full justify-start text-[10px] font-black uppercase tracking-widest h-11 rounded-xl transition-all duration-200",
+                                "w-full justify-start text-xs font-bold uppercase tracking-wide h-11 rounded-xl transition-all duration-200",
                                 activeTab === "grievances"
                                   ? "bg-slate-900 text-white shadow-lg shadow-slate-900/20"
                                   : "text-slate-600 hover:bg-slate-100/50 hover:text-slate-900",
@@ -2827,7 +2828,7 @@ function DashboardContent() {
                                 variant="ghost"
                                 onClick={() => handleTabChange("appointments")}
                                 className={cn(
-                                  "w-full justify-start text-[10px] font-black uppercase tracking-widest h-11 rounded-xl transition-all duration-200",
+                                  "w-full justify-start text-xs font-bold uppercase tracking-wide h-11 rounded-xl transition-all duration-200",
                                   activeTab === "appointments"
                                     ? "bg-slate-900 text-white shadow-lg shadow-slate-900/20"
                                     : "text-slate-600 hover:bg-slate-100/50 hover:text-slate-900",
@@ -2843,7 +2844,7 @@ function DashboardContent() {
                               variant="ghost"
                               onClick={() => handleTabChange("departments")}
                               className={cn(
-                                "w-full justify-start text-[10px] font-black uppercase tracking-widest h-11 rounded-xl transition-all duration-200",
+                                "w-full justify-start text-xs font-bold uppercase tracking-wide h-11 rounded-xl transition-all duration-200",
                                 activeTab === "departments"
                                   ? "bg-slate-900 text-white shadow-lg shadow-slate-900/20"
                                   : "text-slate-600 hover:bg-slate-100/50 hover:text-slate-900",
@@ -2859,7 +2860,7 @@ function DashboardContent() {
                               variant="ghost"
                               onClick={() => handleTabChange("users")}
                               className={cn(
-                                "w-full justify-start text-[10px] font-black uppercase tracking-widest h-11 rounded-xl transition-all duration-200",
+                                "w-full justify-start text-xs font-bold uppercase tracking-wide h-11 rounded-xl transition-all duration-200",
                                 activeTab === "users"
                                   ? "bg-slate-900 text-white shadow-lg shadow-slate-900/20"
                                   : "text-slate-600 hover:bg-slate-100/50 hover:text-slate-900",
@@ -2876,7 +2877,7 @@ function DashboardContent() {
                               variant="ghost"
                               onClick={() => handleTabChange("roles")}
                               className={cn(
-                                "w-full justify-start text-[10px] font-black uppercase tracking-widest h-11 rounded-xl transition-all duration-200",
+                                "w-full justify-start text-xs font-bold uppercase tracking-wide h-11 rounded-xl transition-all duration-200",
                                 activeTab === "roles"
                                   ? "bg-slate-900 text-white shadow-lg shadow-slate-900/20"
                                   : "text-slate-600 hover:bg-slate-100/50 hover:text-slate-900",
@@ -2894,7 +2895,7 @@ function DashboardContent() {
                                 variant="ghost"
                                 onClick={() => handleTabChange("leads")}
                                 className={cn(
-                                  "w-full justify-start text-[10px] font-black uppercase tracking-widest h-11 rounded-xl transition-all duration-200",
+                                  "w-full justify-start text-xs font-bold uppercase tracking-wide h-11 rounded-xl transition-all duration-200",
                                   activeTab === "leads"
                                     ? "bg-slate-900 text-white shadow-lg shadow-slate-900/20"
                                     : "text-slate-600 hover:bg-slate-100/50 hover:text-slate-900",
@@ -2916,7 +2917,7 @@ function DashboardContent() {
                                 variant="ghost"
                                 onClick={() => handleTabChange("whatsapp")}
                                 className={cn(
-                                  "w-full justify-start text-[10px] font-black uppercase tracking-widest h-11 rounded-xl transition-all duration-200",
+                                  "w-full justify-start text-xs font-bold uppercase tracking-wide h-11 rounded-xl transition-all duration-200",
                                   activeTab === "whatsapp"
                                     ? "bg-slate-900 text-white shadow-lg shadow-slate-900/20"
                                     : "text-slate-600 hover:bg-slate-100/50 hover:text-slate-900",
@@ -2930,7 +2931,7 @@ function DashboardContent() {
                                 variant="ghost"
                                 onClick={() => handleTabChange("flows")}
                                 className={cn(
-                                  "w-full justify-start text-[10px] font-black uppercase tracking-widest h-11 rounded-xl transition-all duration-200",
+                                  "w-full justify-start text-xs font-bold uppercase tracking-wide h-11 rounded-xl transition-all duration-200",
                                   activeTab === "flows"
                                     ? "bg-slate-900 text-white shadow-lg shadow-slate-900/20"
                                     : "text-slate-600 hover:bg-slate-100/50 hover:text-slate-900",
@@ -2944,7 +2945,7 @@ function DashboardContent() {
                                 variant="ghost"
                                 onClick={() => handleTabChange("notifications")}
                                 className={cn(
-                                  "w-full justify-start text-[10px] font-black uppercase tracking-widest h-11 rounded-xl transition-all duration-200",
+                                  "w-full justify-start text-xs font-bold uppercase tracking-wide h-11 rounded-xl transition-all duration-200",
                                   activeTab === "notifications"
                                     ? "bg-slate-900 text-white shadow-lg shadow-slate-900/20"
                                     : "text-slate-600 hover:bg-slate-100/50 hover:text-slate-900",
@@ -2958,7 +2959,7 @@ function DashboardContent() {
                                 variant="ghost"
                                 onClick={() => handleTabChange("email")}
                                 className={cn(
-                                  "w-full justify-start text-[10px] font-black uppercase tracking-widest h-11 rounded-xl transition-all duration-200",
+                                  "w-full justify-start text-xs font-bold uppercase tracking-wide h-11 rounded-xl transition-all duration-200",
                                   activeTab === "email"
                                     ? "bg-slate-900 text-white shadow-lg shadow-slate-900/20"
                                     : "text-slate-600 hover:bg-slate-100/50 hover:text-slate-900",
@@ -2978,7 +2979,7 @@ function DashboardContent() {
                       <Button
                         onClick={logout}
                         variant="ghost"
-                        className="w-full justify-start text-[10px] font-black uppercase tracking-widest h-11 rounded-xl text-rose-500 hover:bg-rose-50 hover:text-rose-600 transition-all duration-200"
+                        className="w-full justify-start text-xs font-bold uppercase tracking-wide h-11 rounded-xl text-rose-500 hover:bg-rose-50 hover:text-rose-600 transition-all duration-200"
                       >
                         <Power className="w-4 h-4 mr-3" />
                         Logout Account
@@ -2998,7 +2999,7 @@ function DashboardContent() {
                     {hasPermission(user, Permission.READ_GRIEVANCE) && (
                       <Card
                         onClick={() => setActiveTab("grievances")}
-                        className="h-28 sm:h-32 cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(15,23,42,0.1)]"
+                        className="min-h-[8.5rem] sm:min-h-[9.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(15,23,42,0.1)]"
                       >
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-[#2f5aa6] bg-slate-50/70 px-4 py-4 pb-3">
                           <CardTitle className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-[0.16em] text-slate-400">
@@ -3040,7 +3041,7 @@ function DashboardContent() {
                             overdueStatus: "overdue",
                           }));
                         }}
-                        className="h-28 sm:h-32 cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(15,23,42,0.1)]"
+                        className="min-h-[8.5rem] sm:min-h-[9.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(15,23,42,0.1)]"
                       >
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-[#2f5aa6] bg-slate-50/70 px-4 py-4 pb-3">
                           <CardTitle className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-[0.16em] text-slate-400">
@@ -3075,7 +3076,7 @@ function DashboardContent() {
                             status: "RESOLVED",
                           }));
                         }}
-                        className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer h-28 sm:h-32"
+                        className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer min-h-[8.5rem] sm:min-h-[9.5rem]"
                       >
                         <CardHeader className="p-3 sm:p-5 pb-1 sm:pb-1 space-y-0 flex flex-row items-center justify-between">
                           <CardTitle className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
@@ -3108,7 +3109,7 @@ function DashboardContent() {
                       hasPermission(user, Permission.READ_APPOINTMENT) && (
                         <Card
                           onClick={() => setActiveTab("appointments")}
-                          className="h-28 sm:h-32 cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(15,23,42,0.1)]"
+                          className="min-h-[8.5rem] sm:min-h-[9.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(15,23,42,0.1)]"
                         >
                           <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-[#2f5aa6] bg-slate-50/70 px-4 py-4 pb-3">
                             <CardTitle className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-[0.16em] text-slate-400">
@@ -3142,7 +3143,7 @@ function DashboardContent() {
                           <>
                             <Card
                               onClick={() => setActiveTab("departments")}
-                              className="h-28 sm:h-32 cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(15,23,42,0.1)]"
+                              className="min-h-[8.5rem] sm:min-h-[9.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(15,23,42,0.1)]"
                             >
                               <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-[#2f5aa6] bg-slate-50/70 px-4 py-4 pb-3">
                                 <CardTitle className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-[0.16em] text-slate-400">
@@ -3167,7 +3168,7 @@ function DashboardContent() {
                             </Card>
                             <Card
                               onClick={() => setActiveTab("departments")}
-                              className="h-28 sm:h-32 cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(15,23,42,0.1)]"
+                              className="min-h-[8.5rem] sm:min-h-[9.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(15,23,42,0.1)]"
                             >
                               <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-[#2f5aa6] bg-slate-50/70 px-4 py-4 pb-3">
                                 <CardTitle className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-[0.16em] text-indigo-400">
@@ -3194,7 +3195,7 @@ function DashboardContent() {
                         ) : (
                           <Card
                             onClick={() => setActiveTab("departments")}
-                            className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer h-28 sm:h-32"
+                            className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer min-h-[8.5rem] sm:min-h-[9.5rem]"
                           >
                             <CardHeader className="p-3 sm:p-5 pb-1 sm:pb-1 space-y-0 flex flex-row items-center justify-between">
                               <CardTitle className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
@@ -3232,7 +3233,7 @@ function DashboardContent() {
                               status: "REVERTED",
                             }));
                           }}
-                          className="h-28 sm:h-32 cursor-pointer overflow-hidden rounded-xl border border-rose-200/70 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(244,63,94,0.12)]"
+                          className="min-h-[8.5rem] sm:min-h-[9.5rem] cursor-pointer overflow-hidden rounded-xl border border-rose-200/70 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(244,63,94,0.12)]"
                         >
                           <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-[#2f5aa6] bg-slate-50/70 px-4 py-4 pb-3">
                             <CardTitle className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-[0.16em] text-slate-400">
@@ -3278,7 +3279,7 @@ function DashboardContent() {
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <span className="px-4 py-1.5 rounded-lg bg-white/20 border border-white/30 text-white text-[10px] font-black uppercase tracking-widest shadow-sm">
+                          <span className="px-4 py-1.5 rounded-lg bg-white/20 border border-white/30 text-white text-xs font-bold uppercase tracking-wide shadow-sm">
                             {company?.companyType || <LoadingDots />}
                           </span>
                         </div>
@@ -3608,7 +3609,7 @@ function DashboardContent() {
                               High Alert
                             </span>
                           </div>
-                          <h4 className="text-white/80 text-[10px] font-black uppercase tracking-widest">
+                          <h4 className="text-white/80 text-xs font-bold uppercase tracking-wide">
                             Active Wildfires
                           </h4>
                           <p className="text-3xl font-black tracking-tighter mt-1">
@@ -3632,7 +3633,7 @@ function DashboardContent() {
                               Secured
                             </span>
                           </div>
-                          <h4 className="text-white/80 text-[10px] font-black uppercase tracking-widest">
+                          <h4 className="text-white/80 text-xs font-bold uppercase tracking-wide">
                             Wildlife Incidents
                           </h4>
                           <p className="text-3xl font-black tracking-tighter mt-1">
@@ -3658,7 +3659,7 @@ function DashboardContent() {
                               Monitored
                             </span>
                           </div>
-                          <h4 className="text-white/80 text-[10px] font-black uppercase tracking-widest">
+                          <h4 className="text-white/80 text-xs font-bold uppercase tracking-wide">
                             Total Patrol Areas
                           </h4>
                           <p className="text-3xl font-black tracking-tighter mt-1">
@@ -3671,7 +3672,7 @@ function DashboardContent() {
                       </div>
 
                       <div className="group relative bg-white rounded-2xl p-4 border border-slate-200 shadow-sm overflow-hidden flex flex-col justify-center">
-                        <h4 className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">
+                        <h4 className="text-slate-400 text-xs font-bold uppercase tracking-wide mb-1">
                           Encroachment Alerts
                         </h4>
                         <div className="flex items-baseline gap-2">
@@ -3700,7 +3701,7 @@ function DashboardContent() {
                         {/* 1. Inbound Grievances */}
                         <div
                           onClick={() => setActiveTab("grievances")}
-                          className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-indigo-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden h-28 sm:h-32"
+                          className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-indigo-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden min-h-[8.5rem] sm:min-h-[9.5rem]"
                         >
                           <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-indigo-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
                           <div className="relative">
@@ -3736,7 +3737,7 @@ function DashboardContent() {
                               overdueStatus: "overdue",
                             }));
                           }}
-                          className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-amber-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden h-28 sm:h-32"
+                          className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-amber-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden min-h-[8.5rem] sm:min-h-[9.5rem]"
                         >
                           <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-amber-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
                           <div className="relative">
@@ -3766,7 +3767,7 @@ function DashboardContent() {
                               status: "RESOLVED",
                             }));
                           }}
-                          className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-emerald-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden h-28 sm:h-32"
+                          className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-emerald-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden min-h-[8.5rem] sm:min-h-[9.5rem]"
                         >
                           <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-emerald-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
                           <div className="relative">
@@ -3794,7 +3795,7 @@ function DashboardContent() {
                         {/* 4. Total Appointments */}
                         <div
                           onClick={() => setActiveTab("appointments")}
-                          className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-purple-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden h-28 sm:h-32"
+                          className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-purple-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden min-h-[8.5rem] sm:min-h-[9.5rem]"
                         >
                           <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-purple-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
                           <div className="relative">
@@ -3818,7 +3819,7 @@ function DashboardContent() {
                         {/* 5. Pending Appointments */}
                         <div
                           onClick={() => setActiveTab("appointments")}
-                          className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden h-28 sm:h-32"
+                          className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden min-h-[8.5rem] sm:min-h-[9.5rem]"
                         >
                           <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-blue-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
                           <div className="relative">
@@ -3842,7 +3843,7 @@ function DashboardContent() {
                         {/* 6. Completed Appointments */}
                         <div
                           onClick={() => setActiveTab("appointments")}
-                          className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-emerald-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden h-28 sm:h-32"
+                          className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-emerald-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden min-h-[8.5rem] sm:min-h-[9.5rem]"
                         >
                           <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-emerald-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
                           <div className="relative">
@@ -4862,7 +4863,7 @@ function DashboardContent() {
                               >
                                 <div className="flex items-center justify-between mb-1">
                                   <span
-                                    className={`text-[10px] font-black uppercase tracking-widest ${incident.severity === "CRITICAL" ? "text-rose-500" : "text-amber-500"}`}
+                                    className={`text-xs font-bold uppercase tracking-wide ${incident.severity === "CRITICAL" ? "text-rose-500" : "text-amber-500"}`}
                                   >
                                     {incident.severity}
                                   </span>
@@ -4906,19 +4907,19 @@ function DashboardContent() {
                           <div className="bg-black/60 backdrop-blur-xl border border-white/10 px-4 py-3 rounded-2xl text-white shadow-2xl flex items-center gap-6">
                             <div className="flex items-center gap-2">
                               <span className="w-3 h-3 rounded-full bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.8)]"></span>
-                              <span className="text-[10px] font-black uppercase tracking-widest">
+                              <span className="text-xs font-bold uppercase tracking-wide">
                                 Fire Hazard
                               </span>
                             </div>
                             <div className="flex items-center gap-2">
                               <span className="w-3 h-3 rounded-full bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.8)]"></span>
-                              <span className="text-[10px] font-black uppercase tracking-widest">
+                              <span className="text-xs font-bold uppercase tracking-wide">
                                 Wildlife Move
                               </span>
                             </div>
                             <div className="flex items-center gap-2">
                               <span className="w-3 h-3 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.8)]"></span>
-                              <span className="text-[10px] font-black uppercase tracking-widest">
+                              <span className="text-xs font-bold uppercase tracking-wide">
                                 Active Patrol
                               </span>
                             </div>
@@ -4937,7 +4938,7 @@ function DashboardContent() {
                           <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-4 backdrop-blur-md">
                             <Layers className="w-6 h-6 text-white" />
                           </div>
-                          <h3 className="text-white/80 text-[10px] font-black uppercase tracking-widest mb-1">
+                          <h3 className="text-white/80 text-xs font-bold uppercase tracking-wide mb-1">
                             Total Protected Area
                           </h3>
                           <p className="text-3xl font-black tracking-tighter">
@@ -4959,7 +4960,7 @@ function DashboardContent() {
                         <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center mb-4">
                           <ShieldAlert className="w-6 h-6 text-indigo-600" />
                         </div>
-                        <h3 className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">
+                        <h3 className="text-slate-400 text-xs font-bold uppercase tracking-wide mb-1">
                           Boundary Violations
                         </h3>
                         <p className="text-3xl font-black tracking-tighter text-slate-900">
@@ -4977,7 +4978,7 @@ function DashboardContent() {
                         <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center mb-4">
                           <Trees className="w-6 h-6 text-emerald-600" />
                         </div>
-                        <h3 className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">
+                        <h3 className="text-slate-400 text-xs font-bold uppercase tracking-wide mb-1">
                           Operational Ranges
                         </h3>
                         <p className="text-3xl font-black tracking-tighter text-slate-900">
@@ -5014,12 +5015,12 @@ function DashboardContent() {
                                 },
                               );
                             }}
-                            className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 border-0"
+                            className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wide hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 border-0"
                           >
                             <RefreshCw className="w-3.5 h-3.5" />
                             Sync KMZ Data
                           </Button>
-                          <button className="flex items-center gap-2 bg-[#52c798] text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#45b687] shadow-lg shadow-[#52c798]/20 transition-all">
+                          <button className="flex items-center gap-2 bg-[#52c798] text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wide hover:bg-[#45b687] shadow-lg shadow-[#52c798]/20 transition-all">
                             <ScanSearch className="w-4 h-4" />
                             Verify Bounds
                           </button>
@@ -5089,7 +5090,7 @@ function DashboardContent() {
                                 </td>
                                 <td className="px-6 py-4 text-right">
                                   <span
-                                    className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg ${beat.status === "Active" ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-400"}`}
+                                    className={`text-xs font-bold uppercase tracking-wide px-2.5 py-1 rounded-lg ${beat.status === "Active" ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-400"}`}
                                   >
                                     {beat.status === "Active"
                                       ? "VERIFIED"
@@ -8956,7 +8957,7 @@ function DashboardContent() {
                         <form onSubmit={handleUpdateProfile} className="space-y-4">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-1.5">
-                              <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">First Name</label>
+                              <label className="text-xs font-bold uppercase tracking-wide text-slate-500 ml-1">First Name</label>
                               <input
                                 type="text"
                                 value={profileForm.firstName}
@@ -8966,7 +8967,7 @@ function DashboardContent() {
                               />
                             </div>
                             <div className="space-y-1.5">
-                              <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Last Name</label>
+                              <label className="text-xs font-bold uppercase tracking-wide text-slate-500 ml-1">Last Name</label>
                               <input
                                 type="text"
                                 value={profileForm.lastName}
@@ -8976,7 +8977,7 @@ function DashboardContent() {
                               />
                             </div>
                             <div className="space-y-1.5">
-                              <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Designations (Comma separated)</label>
+                              <label className="text-xs font-bold uppercase tracking-wide text-slate-500 ml-1">Designations (Comma separated)</label>
                               <input
                                 type="text"
                                 value={profileForm.designations}
@@ -8986,7 +8987,7 @@ function DashboardContent() {
                               />
                             </div>
                             <div className="space-y-1.5">
-                              <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Email Address</label>
+                              <label className="text-xs font-bold uppercase tracking-wide text-slate-500 ml-1">Email Address</label>
                               <input
                                 type="email"
                                 value={profileForm.email}
@@ -8995,7 +8996,7 @@ function DashboardContent() {
                               />
                             </div>
                             <div className="space-y-1.5 md:col-span-2">
-                              <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Phone Number</label>
+                              <label className="text-xs font-bold uppercase tracking-wide text-slate-500 ml-1">Phone Number</label>
                               <input
                                 type="tel"
                                 value={profileForm.phone}
@@ -9040,7 +9041,7 @@ function DashboardContent() {
                       <CardContent className="pt-6 space-y-4">
                         <form onSubmit={handleUpdatePassword} className="space-y-4">
                           <div className="space-y-1.5">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">New Password</label>
+                            <label className="text-xs font-bold uppercase tracking-wide text-slate-500 ml-1">New Password</label>
                             <input
                               type="password"
                               value={passwordForm.newPassword}
@@ -9052,7 +9053,7 @@ function DashboardContent() {
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Confirm New Password</label>
+                            <label className="text-xs font-bold uppercase tracking-wide text-slate-500 ml-1">Confirm New Password</label>
                             <input
                               type="password"
                               value={passwordForm.confirmPassword}

@@ -380,24 +380,24 @@ export default function AssignmentDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent hideClose className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col p-0 gap-0 rounded-[2rem] border-0 shadow-2xl bg-white">
+      <DialogContent hideClose className="w-[96vw] max-w-2xl max-h-[92vh] sm:max-h-[85vh] overflow-hidden flex flex-col p-0 gap-0 rounded-2xl sm:rounded-[2rem] border-0 shadow-2xl bg-white">
         {/* Modern Slate Header */}
-        <div className="bg-slate-900 p-8 relative overflow-hidden">
+        <div className="bg-slate-900 p-4 sm:p-8 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-transparent to-purple-500/10"></div>
           <div className="absolute -top-10 -right-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl"></div>
           
-          <div className="relative flex items-start justify-between">
-            <div className="flex items-center gap-5">
-              <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-xl border border-white/20 shadow-inner">
-                <UserCheck className="w-7 h-7 text-indigo-400" />
+          <div className="relative flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3 sm:gap-5 min-w-0">
+              <div className="w-10 h-10 sm:w-14 sm:h-14 bg-white/10 rounded-xl sm:rounded-2xl flex items-center justify-center backdrop-blur-xl border border-white/20 shadow-inner flex-shrink-0">
+                <UserCheck className="w-5 h-5 sm:w-7 sm:h-7 text-cyan-100" />
               </div>
-              <div>
-                <h2 className="text-2xl font-black text-white tracking-tight">
+              <div className="min-w-0">
+                <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight truncate">
                   Assign {itemType === 'grievance' ? 'Grievance' : 'Appointment'}
                 </h2>
-                <div className="flex items-center gap-2 mt-2">
-                  <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Currently With:</span>
-                  <span className="px-3 py-1 bg-indigo-500/20 rounded-full text-[10px] font-black uppercase tracking-wider text-indigo-300 backdrop-blur-md border border-indigo-500/30">
+                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                  <span className="text-cyan-50 text-[11px] sm:text-xs font-semibold uppercase tracking-[0.08em]">Currently With:</span>
+                  <span className="px-2.5 py-1 bg-white/15 rounded-full text-[10px] font-bold uppercase tracking-[0.06em] text-white backdrop-blur-md border border-white/30 max-w-full truncate">
                     {getCurrentAssigneeName()}
                   </span>
                 </div>
@@ -405,9 +405,9 @@ export default function AssignmentDialog({
             </div>
             <button 
               onClick={onClose}
-              className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all duration-300 border border-white/10 group cursor-pointer"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all duration-300 border border-white/40 group cursor-pointer flex-shrink-0"
             >
-              <X className="w-5 h-5 text-slate-400 group-hover:text-white transition-colors" />
+              <X className="w-4 h-4 sm:w-5 sm:h-5 text-white group-hover:text-white transition-colors" />
             </button>
           </div>
         </div>
@@ -456,14 +456,14 @@ export default function AssignmentDialog({
               {/* Sub-Department Dropdown */}
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1 flex items-center gap-1.5">
-                  <Layers className="w-3.5 h-3.5 text-purple-400" />
+                  <Layers className="w-3.5 h-3.5 text-slate-700" />
                   Sub Department
                   {!hasSubDepts && selectedDepartment && (
                     <span className="text-[9px] bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded-full border">None available</span>
                   )}
                 </label>
                 <div className="relative group">
-                  <Layers className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4 group-focus-within:text-purple-500 transition-colors" />
+                  <Layers className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500 w-4 h-4 group-focus-within:text-slate-900 transition-colors" />
                   <SearchableSelect
                     options={visibleSubDepts.map(d => ({ value: d._id, label: d.name }))}
                     value={selectedSubDepartment}
