@@ -2477,7 +2477,8 @@ function DashboardContent() {
                 {/* Profile Button - Optimized for Visibility */}
                 <button
                   onClick={() => handleTabChange("profile")}
-                  className="hidden md:flex h-10 w-10 bg-white/10 rounded-xl items-center justify-center border border-white/20 shadow-lg group hover:bg-white/20 transition-all duration-300 active:scale-95"
+                  className="flex h-10 w-10 bg-white/15 rounded-xl items-center justify-center border border-white/40 shadow-lg group hover:bg-white/25 transition-all duration-300 active:scale-95"
+                  title="Profile"
                 >
                   <UserIcon className="w-5 h-5 text-white group-hover:scale-110 transition-transform duration-300" />
                 </button>

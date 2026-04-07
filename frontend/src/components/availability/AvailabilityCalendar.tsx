@@ -166,7 +166,7 @@ function ClockFacePicker({
         y1={50 + r1 * Math.sin(rad)}
         x2={50 + r2 * Math.cos(rad)}
         y2={50 + r2 * Math.sin(rad)}
-        stroke={isMajor ? "#818cf8" : "rgba(99, 102, 241, 0.2)"}
+        stroke={isMajor ? "#02aff1" : "rgba(2, 175, 241, 0.25)"}
         strokeWidth={isMajor ? 1.5 : 0.8}
         strokeLinecap="round"
       />
@@ -189,7 +189,7 @@ function ClockFacePicker({
         dominantBaseline="central"
         fontSize="6"
         fontWeight={isActive ? "700" : "400"}
-        fill={isActive ? "#ffffff" : "#64748b"}
+        fill={isActive ? "#111827" : "#64748b"}
         style={{ userSelect: "none", fontFamily: "'DM Sans', sans-serif" }}
       >
         {mode === "hour" ? i : String(val % 60).padStart(2, '0')}
@@ -198,45 +198,45 @@ function ClockFacePicker({
   }
 
   return (
-    <div className="flex flex-col items-center gap-4 bg-slate-900 p-6 rounded-[2.5rem] shadow-2xl border border-white/10 relative overflow-hidden">
+    <div className="flex flex-col items-center gap-4 bg-white p-4 sm:p-6 rounded-[2rem] shadow-2xl border border-sky-200 relative overflow-hidden w-[320px] sm:w-[380px]">
       <div className="absolute top-0 right-0 p-3">
-        <button type="button" onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
-          <X className="w-4 h-4 text-white/50" />
+        <button type="button" onClick={onClose} className="p-2 hover:bg-sky-50 rounded-full transition-colors">
+          <X className="w-4 h-4 text-slate-500" />
         </button>
       </div>
 
       <div className="text-center mt-2">
-        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-indigo-400 mb-4 px-3 py-1 bg-white/5 rounded-full inline-block">Select Appointment Time</p>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-600 mb-3 px-3 py-1 bg-sky-50 rounded-full inline-block">Select Appointment Time</p>
       </div>
 
-      <div className="flex gap-2 p-1 bg-white/5 rounded-2xl mb-2">
+      <div className="flex gap-2 p-1 bg-slate-100 rounded-2xl mb-2">
         {(["hour", "minute"] as const).map((m) => (
           <button
             key={m}
             type="button"
             onClick={() => setMode(m)}
-            className={`px-8 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 ${mode === m ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' : 'text-slate-400 hover:text-white'}`}
+            className={`px-8 py-2.5 rounded-xl text-xs font-bold uppercase tracking-[0.08em] transition-all duration-300 ${mode === m ? 'bg-[#02aff1] text-white shadow-md' : 'text-slate-500 hover:text-slate-900'}`}
           >
             {m}
           </button>
         ))}
       </div>
 
-      <div className="text-5xl font-black text-white flex items-center gap-3 mb-2 font-mono tracking-tighter">
-        <span className={mode === 'hour' ? 'text-indigo-400' : 'text-white'}>
+      <div className="text-5xl font-black text-slate-900 flex items-center gap-3 mb-2 font-mono tracking-tight">
+        <span className={mode === 'hour' ? 'text-[#028fc4]' : 'text-slate-900'}>
           {isNaN(hour12) ? '12' : String(hour12).padStart(2, '0')}
         </span>
-        <span className="text-indigo-900 animate-pulse">:</span>
-        <span className={mode === 'minute' ? 'text-indigo-400' : 'text-white'}>
+        <span className="text-slate-300 animate-pulse">:</span>
+        <span className={mode === 'minute' ? 'text-[#028fc4]' : 'text-slate-900'}>
           {isNaN(minute) ? '00' : String(minute).padStart(2, '0')}
         </span>
-        <div className="flex flex-col gap-1 ml-4 py-1 px-2 bg-white/5 rounded-xl">
+        <div className="flex flex-col gap-1 ml-4 py-1 px-2 bg-slate-100 rounded-xl">
           {(["AM", "PM"] as const).map((p) => (
             <button
               key={p}
               type="button"
               onClick={() => setPeriod(p)}
-              className={`px-3 py-1.5 rounded-lg text-[10px] font-black transition-all ${period === p ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-500 hover:text-white'}`}
+              className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${period === p ? 'bg-[#02aff1] text-white shadow-md' : 'text-slate-500 hover:text-slate-900'}`}
             >
               {p}
             </button>
@@ -244,33 +244,33 @@ function ClockFacePicker({
         </div>
       </div>
 
-      <div className="relative w-52 h-52 sm:w-64 sm:h-64 group">
+      <div className="relative w-48 h-48 sm:w-56 sm:h-56 group">
         <svg
           ref={svgRef}
           viewBox="0 0 100 100"
-          className="w-full h-full cursor-pointer rounded-full bg-slate-950/20"
+          className="w-full h-full cursor-pointer rounded-full bg-sky-50"
           onMouseDown={handlePointer}
           onMouseMove={(e) => e.buttons === 1 && handlePointer(e)}
           onTouchStart={handlePointer}
           onTouchMove={handlePointer}
         >
-          <circle cx="50" cy="50" r="49" fill="none" stroke="rgba(99, 102, 241, 0.1)" strokeWidth="0.5" />
+          <circle cx="50" cy="50" r="49" fill="none" stroke="rgba(2, 175, 241, 0.22)" strokeWidth="0.7" />
           {ticks}
           {labels}
           <circle
             cx="50" cy="50" r="22"
             fill="none"
-            stroke={mode === 'hour' ? "#6366f1" : "rgba(99,102,241, 0.4)"}
+            stroke={mode === 'hour' ? "#02aff1" : "rgba(2,175,241,0.45)"}
             strokeWidth="1.5"
             strokeDasharray={`${((mode === 'hour' ? hourAngle : minuteAngle) / 360) * 138.2} 138.2`}
             transform="rotate(-90 50 50)"
             strokeLinecap="round"
             className="opacity-20 transition-all duration-300"
           />
-          <ClockHand angle={hourAngle} length={20} width={3} color="#818cf8" />
-          <ClockHand angle={minuteAngle} length={28} width={1.2} color="#6366f1" />
-          <circle cx="50" cy="50" r="3" fill="#ffffff" />
-          <circle cx="50" cy="50" r="1.2" fill="#1e1b4b" />
+          <ClockHand angle={hourAngle} length={20} width={3} color="#028fc4" />
+          <ClockHand angle={minuteAngle} length={28} width={1.5} color="#02aff1" />
+          <circle cx="50" cy="50" r="3" fill="#0f172a" />
+          <circle cx="50" cy="50" r="1.2" fill="#ffffff" />
           {(() => {
             const a = mode === "hour" ? hourAngle : minuteAngle;
             if (isNaN(a)) return null;
@@ -280,9 +280,9 @@ function ClockFacePicker({
                 cx={50 + 44 * Math.cos(rad)}
                 cy={50 + 44 * Math.sin(rad)}
                 r="2.2"
-                fill="#818cf8"
+                fill="#02aff1"
                 className="shadow-xl"
-                style={{ filter: "drop-shadow(0 0 5px #6366f1)" }}
+                style={{ filter: "drop-shadow(0 0 5px #02aff1)" }}
               />
             );
           })()}
@@ -292,7 +292,7 @@ function ClockFacePicker({
       <button
         type="button"
         onClick={() => onChange(to24HourTime(hour12, minute, period))}
-        className="w-full py-5 mt-2 rounded-[1.5rem] bg-indigo-600 hover:bg-white hover:text-indigo-900 text-white text-[11px] font-black uppercase tracking-[0.15em] shadow-xl shadow-indigo-900/40 transition-all active:scale-95 flex items-center justify-center gap-2 group"
+        className="w-full py-4 mt-2 rounded-[1.25rem] bg-[#02aff1] hover:bg-[#0298d1] text-white text-[11px] font-bold uppercase tracking-[0.1em] shadow-lg shadow-sky-200 transition-all active:scale-95 flex items-center justify-center gap-2 group"
       >
         <span>Apply: {to24HourTime(hour12, minute, period)}</span>
         <CheckCircle className="w-4 h-4 group-hover:scale-110 transition-transform" />
@@ -541,13 +541,13 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
             <div className="relative flex items-center justify-between">
               <div className="flex items-center gap-3 sm:gap-6">
                 <div className="w-8 h-8 sm:w-14 sm:h-14 bg-white/10 rounded-xl sm:rounded-2xl flex items-center justify-center backdrop-blur-xl border border-white/20 shadow-inner">
-                  <CalendarCheck className="w-5 h-5 sm:w-8 sm:h-8 text-indigo-400" />
+                  <CalendarCheck className="w-5 h-5 sm:w-8 sm:h-8 text-cyan-100" />
                 </div>
                 <div>
                   <h1 className="text-xl sm:text-3xl font-black text-white tracking-tight leading-none mb-1 sm:mb-2">
-                    Availability <span className="text-indigo-400">Settings</span>
+                    Availability <span className="text-slate-900">Settings</span>
                   </h1>
-                  <p className="text-slate-400 text-[11px] sm:text-sm font-medium leading-snug">Manage your schedule, holidays, and appointment slots</p>
+                  <p className="text-cyan-50 text-[11px] sm:text-sm font-medium leading-snug">Manage your schedule, holidays, and appointment slots</p>
                 </div>
               </div>
               
@@ -577,10 +577,10 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
                   onClick={() => setActiveTab(tab.id as any)}
                   title={tab.tooltip}
                   className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-4 text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all relative group ${
-                    active ? 'text-slate-900 border-b-2 border-indigo-600' : 'text-slate-400 hover:text-slate-600'
+                    active ? 'text-slate-900 border-b-2 border-[#02aff1]' : 'text-slate-400 hover:text-slate-600'
                   }`}
                 >
-                  <Icon className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${active ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-500'}`} />
+                  <Icon className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${active ? 'text-[#0298d1]' : 'text-slate-400 group-hover:text-slate-500'}`} />
                   {tab.label}
                 </button>
               );
@@ -803,7 +803,7 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
                   </div>
 
                     {/* Calendar Grid */}
-                    <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-2xl overflow-hidden mx-auto backdrop-blur-xl max-w-4xl p-8">
+                    <div className="bg-white rounded-[1.5rem] border border-slate-200 shadow-xl overflow-hidden mx-auto backdrop-blur-xl max-w-3xl p-4 sm:p-6">
                       {/* Week Headers */}
                       <div className="grid grid-cols-7 mb-4">
                         {DAYS_OF_WEEK.map((day) => (
@@ -821,7 +821,7 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
                       </div>
 
                       {/* Calendar Days */}
-                      <div className="grid grid-cols-7 gap-3">
+                      <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
                         {getCalendarDays().map((date, index) => {
                         if (!date) {
                           return <div key={`empty-${index}`} className="aspect-square sm:h-16 bg-slate-50/30" />;
@@ -1093,19 +1093,19 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
               {activeTab === 'settings' && availability && (
                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Card className="rounded-3xl border-0 shadow-xl overflow-hidden bg-white hover:shadow-2xl transition-all border-l-4 border-l-indigo-600">
-                      <CardHeader className="py-7 px-8 pb-4">
-                        <CardTitle className="text-xl font-black italic text-slate-800 flex items-center gap-3">
-                          <Clock className="w-6 h-6 text-indigo-600" />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Card className="rounded-2xl border-0 shadow-lg overflow-hidden bg-white hover:shadow-xl transition-all border-l-4 border-l-[#02aff1]">
+                      <CardHeader className="py-5 px-5 sm:px-6 pb-3">
+                        <CardTitle className="text-lg font-bold text-slate-900 flex items-center gap-2.5">
+                          <Clock className="w-5 h-5 text-[#0298d1]" />
                           Timing Rules
                         </CardTitle>
                       </CardHeader>
-                      <CardContent className="px-8 pb-8 space-y-8">
-                        <div className="space-y-3">
-                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 flex items-center justify-between">
+                      <CardContent className="px-5 sm:px-6 pb-6 space-y-5">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-600 flex items-center justify-between">
                             Slot Duration (Minutes)
-                            <span className="bg-indigo-50 text-indigo-600 px-2 rounded-lg font-black">{availability.slotDuration || 30}m</span>
+                            <span className="bg-sky-50 text-[#0298d1] px-2 rounded-lg font-bold">{availability.slotDuration || 30}m</span>
                           </label>
                           <input
                             type="range"
@@ -1114,13 +1114,13 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
                             step="15"
                             value={availability.slotDuration}
                             onChange={(e) => updateSettings({ slotDuration: parseInt(e.target.value) })}
-                            className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                            className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-[#02aff1]"
                           />
                         </div>
-                        <div className="space-y-3">
-                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 flex items-center justify-between">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-600 flex items-center justify-between">
                             Advance Booking Lead (Days)
-                            <span className="bg-indigo-50 text-indigo-600 px-2 rounded-lg font-black">{availability.maxAdvanceDays || 30}d</span>
+                            <span className="bg-sky-50 text-[#0298d1] px-2 rounded-lg font-bold">{availability.maxAdvanceDays || 30}d</span>
                           </label>
                           <input
                             type="range"
@@ -1128,31 +1128,31 @@ export default function AvailabilityCalendar({ isOpen, onClose, departmentId }: 
                             max="90"
                             value={availability.maxAdvanceDays}
                             onChange={(e) => updateSettings({ maxAdvanceDays: parseInt(e.target.value) })}
-                            className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                            className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-[#02aff1]"
                           />
                         </div>
                       </CardContent>
                     </Card>
 
-                    <Card className="rounded-3xl border-0 shadow-xl overflow-hidden bg-white hover:shadow-2xl transition-all border-l-4 border-l-slate-900">
-                      <CardHeader className="py-7 px-8 pb-4">
-                        <CardTitle className="text-xl font-black italic text-slate-800 flex items-center gap-3">
-                          <Target className="w-6 h-6 text-slate-900" />
+                    <Card className="rounded-2xl border-0 shadow-lg overflow-hidden bg-white hover:shadow-xl transition-all border-l-4 border-l-slate-900">
+                      <CardHeader className="py-5 px-5 sm:px-6 pb-3">
+                        <CardTitle className="text-lg font-bold text-slate-900 flex items-center gap-2.5">
+                          <Target className="w-5 h-5 text-slate-900" />
                           Capacity Limits
                         </CardTitle>
                       </CardHeader>
-                      <CardContent className="px-8 pb-8 space-y-8">
-                        <div className="space-y-3">
-                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 flex items-center justify-between">
+                      <CardContent className="px-5 sm:px-6 pb-6 space-y-5">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-600 flex items-center justify-between">
                             Simultaneous Bookings
-                            <span className="bg-slate-100 text-slate-900 px-2 rounded-lg font-black">{availability.maxConcurrentAppointments || 1} staff</span>
+                            <span className="bg-slate-100 text-slate-900 px-2 rounded-lg font-bold">{availability.maxConcurrentAppointments || 1} staff</span>
                           </label>
                           <div className="flex items-center gap-4">
                              <button 
                               onClick={() => updateSettings({ maxConcurrentAppointments: Math.max(1, (availability.maxConcurrentAppointments || 1) - 1) })}
                               className="w-12 h-12 flex items-center justify-center bg-slate-50 rounded-2xl text-slate-400 hover:bg-slate-900 hover:text-white transition-all shadow-inner font-black text-xl"
                              >-</button>
-                             <div className="flex-1 text-center font-black text-3xl text-slate-800 tracking-tighter">
+                             <div className="flex-1 text-center font-bold text-2xl text-slate-800 tracking-tight">
                                {availability.maxConcurrentAppointments || 1}
                              </div>
                              <button 
