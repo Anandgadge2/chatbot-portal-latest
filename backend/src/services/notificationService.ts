@@ -1190,9 +1190,13 @@ export async function notifyHierarchyOnStatusChange(
       isActive: true
     }).populate('customRoleId');
 
-    // Combine recipients (Hierarchy + Company Admins + Explicit Assignee)
+    // Combine recipients (Hierarchy + Company Admins + optional explicit assignee)
     const potentialRecipients = [...hierarchyAdmins, ...companyAdmins];
-    if (data.assignedTo) {
+
+    // For grievance resolution, only Company Admin + Department hierarchy should be notified.
+    // Do not add explicit assignee here because it can be a sub-department assignee.
+    const shouldIncludeDirectAssignee = !(data.type === 'grievance' && newStatus === 'RESOLVED');
+    if (shouldIncludeDirectAssignee && data.assignedTo) {
       const assignee = await User.findById(data.assignedTo).populate('customRoleId');
       if (assignee) potentialRecipients.push(assignee);
     }
