@@ -60,14 +60,14 @@ const DepartmentHierarchyDialog: React.FC<DepartmentHierarchyDialogProps> = ({
           <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl pointer-events-none" />
           
           <div className="flex items-center gap-3 sm:gap-4 relative z-10">
-            <div className="w-9 h-9 sm:w-12 sm:h-12 bg-indigo-500/20 rounded-xl sm:rounded-2xl flex items-center justify-center border border-indigo-500/30 shadow-inner">
-              <Share2 className="w-4 h-4 sm:w-6 sm:h-6 text-indigo-400" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-indigo-500/30 rounded-xl sm:rounded-2xl flex items-center justify-center border border-indigo-400/50 shadow-lg group-hover:scale-105 transition-transform">
+              <Share2 className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
             <div>
               <CardTitle className="text-base sm:text-lg font-black text-white uppercase tracking-tight">
                 Organization Hierarchy
               </CardTitle>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+              <p className="text-[10px] text-indigo-100/70 font-bold uppercase tracking-widest mt-0.5">
                 Departmental Relationship Map
               </p>
             </div>

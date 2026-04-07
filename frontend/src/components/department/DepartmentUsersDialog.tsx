@@ -157,16 +157,16 @@ export default function DepartmentUsersDialog({
 
           <div className="relative flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-emerald-500/20 rounded-2xl flex items-center justify-center border border-emerald-500/30">
-                <Users className="w-6 h-6 text-emerald-400" />
+              <div className="w-12 h-12 bg-emerald-500/30 rounded-2xl flex items-center justify-center border border-emerald-400/40 shadow-lg group-hover:scale-105 transition-transform">
+                <Users className="w-6 h-6 text-white" />
               </div>
               <div>
                 <h2 className="text-xl font-black text-white tracking-tight">
                   Department Personnel
                 </h2>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                    <Building className="w-3 h-3" />
+                  <span className="text-[10px] font-bold text-slate-200/80 uppercase tracking-widest flex items-center gap-1.5">
+                    <Building className="w-3 h-3 text-emerald-400" />
                    {departmentName || "General Department"}
                   </span>
                   <span className="text-slate-600 font-bold">•</span>

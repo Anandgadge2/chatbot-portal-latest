@@ -363,8 +363,8 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
       <Card className="w-full max-w-lg max-h-[90vh] flex flex-col bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden">
         <CardHeader className="bg-slate-900 px-6 py-4 border-b border-slate-800 flex flex-row items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center border border-white/20 shadow-inner">
-              <Shield className="w-5 h-5 text-gray-400" />
+            <div className="w-10 h-10 bg-white/15 rounded-xl flex items-center justify-center border border-white/25 shadow-lg group-hover:scale-105 transition-transform">
+              <Shield className="w-5 h-5 text-white" />
             </div>
             <div>
               <CardTitle className="text-base font-bold text-white uppercase tracking-tight">
@@ -372,7 +372,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                   ? "Modify Department Node"
                   : "Initialize New Department"}
               </CardTitle>
-              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
+              <p className="text-[10px] text-gray-100/70 font-bold uppercase tracking-widest mt-0.5">
                 Global Infrastructure Registry
               </p>
             </div>
