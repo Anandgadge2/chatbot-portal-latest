@@ -211,10 +211,7 @@ UserSchema.index({ phone: 1, companyId: 1 }, {
   unique: true,
   partialFilterExpression: { phone: { $type: "string" } }
 });
-UserSchema.index({ email: 1, companyId: 1 }, { 
-  unique: true, 
-  partialFilterExpression: { email: { $type: "string" } } 
-});
+UserSchema.index({ email: 1, companyId: 1 });
 UserSchema.index({ userId: 1, companyId: 1 }, { unique: true });
 
 // Pre-validate hook to generate userId (per-company)

@@ -27,16 +27,17 @@ export const connectDatabase = async (): Promise<void> => {
     // 3. Start a new connection
     const options = {
       maxPoolSize: 10,
-      serverSelectionTimeoutMS: 45000, 
-      socketTimeoutMS: 45000,
-      connectTimeoutMS: 30000,
+      serverSelectionTimeoutMS: 5000, // Reduced for serverless (Hobby limit is 10s)
+      socketTimeoutMS: 15000,
+      connectTimeoutMS: 5000, // Reduced for serverless
       autoIndex: true,
+      family: 4 // Force IPv4 (can help with some DNS resolution issues on Vercel)
     };
 
     logger.info(`🔌 Connecting to MongoDB (v${mongoose.version})...`);
     
-    // Set global buffer timeout longer for serverless
-    mongoose.set('bufferTimeoutMS', 30000);
+    // Set global buffer timeout shorter for serverless
+    mongoose.set('bufferTimeoutMS', 5000);
 
     connectionPromise = mongoose.connect(mongoUri, options).then(() => {
       logger.info('✅ MongoDB connected successfully');

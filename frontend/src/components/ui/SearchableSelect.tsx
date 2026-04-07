@@ -15,6 +15,7 @@ interface SearchableSelectProps {
   placeholder?: string;
   emptyMessage?: string;
   className?: string;
+  triggerClassName?: string;
   disabled?: boolean;
   action?: React.ReactNode;
   actionInHeader?: boolean;
@@ -27,6 +28,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
   placeholder = "Select an option...",
   emptyMessage = "No results found.",
   className = "",
+  triggerClassName = "",
   disabled = false,
   action,
   actionInHeader = false,
@@ -79,9 +81,9 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
         type="button"
         onClick={handleToggle}
         disabled={disabled}
-        className={`w-full flex items-center gap-2 justify-between px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium transition-all ${
+        className={`w-full flex items-center gap-2 justify-between px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold shadow-sm transition-all ${
           disabled ? "bg-slate-50 text-slate-400 cursor-not-allowed" : "hover:border-indigo-300 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-        }`}
+        } ${triggerClassName}`}
       >
         <span className={`text-left break-words ${!selectedOption ? "text-slate-400" : "text-slate-900"}`}>
           {selectedOption ? selectedOption.label : placeholder}

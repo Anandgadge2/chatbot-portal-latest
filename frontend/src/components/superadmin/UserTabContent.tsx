@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from "react";
+import { SearchableSelect } from "@/components/ui/SearchableSelect";
 import {
   Card,
   CardContent,
@@ -201,35 +202,52 @@ const UserTabContent: React.FC<UserTabContentProps> = ({
           </div>
           <div className="flex items-center gap-2">
             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Company</span>
-            <select
+            <SearchableSelect
+              options={[
+                { value: "", label: "🏢 All Companies" },
+                ...allCompanies.map((c) => ({ value: c._id, label: c.name })),
+              ]}
               value={userCompanyFilter}
-              onChange={(e) => { setUserCompanyFilter(e.target.value); setUserPage(1); }}
-              className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-600 outline-none cursor-pointer min-w-[120px]"
-            >
-              <option value="">All Companies</option>
-              {allCompanies.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
-            </select>
+              onValueChange={(val) => {
+                setUserCompanyFilter(val);
+                setUserPage(1);
+              }}
+              placeholder="Company"
+              className="h-8 min-w-[150px] text-[10px] font-bold"
+            />
           </div>
           <div className="flex items-center gap-2">
             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Role</span>
-            <select
+            <SearchableSelect
+              options={[
+                { value: "", label: "🛡️ All Roles" },
+                { value: "SUPER_ADMIN", label: "Super Admin" },
+                ...(allRoles || [])
+                  .filter(
+                    (r) =>
+                      r &&
+                      r.name &&
+                      r.name !== "Platform Superadmin" &&
+                      r.name !== "Super Admin",
+                  )
+                  .map((r) => {
+                    const companyName =
+                      r.companyId?.name ||
+                      (typeof r.companyId === "string" ? r.companyId : null);
+                    return {
+                      value: r._id || r.key || r.name.toUpperCase(),
+                      label: `${r.name} ${companyName ? `(${companyName})` : "(System)"}`,
+                    };
+                  }),
+              ]}
               value={userRoleFilter}
-              onChange={(e) => { setUserRoleFilter(e.target.value); setUserPage(1); }}
-              className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-600 outline-none cursor-pointer min-w-[140px]"
-            >
-              <option value="">All Roles</option>
-              <option value="SUPER_ADMIN">Super Admin</option>
-              {(allRoles || [])
-                .filter(r => r && r.name && r.name !== 'Platform Superadmin' && r.name !== 'Super Admin')
-                .map((r) => {
-                  const companyName = r.companyId?.name || (typeof r.companyId === 'string' ? r.companyId : null);
-                  return (
-                    <option key={r._id} value={r._id || r.key || r.name.toUpperCase()}>
-                      {r.name} {companyName ? `(${companyName})` : '(System)'}
-                    </option>
-                  );
-                })}
-            </select>
+              onValueChange={(val) => {
+                setUserRoleFilter(val);
+                setUserPage(1);
+              }}
+              placeholder="Role"
+              className="h-8 min-w-[200px] text-[10px] font-bold"
+            />
           </div>
         </div>
 

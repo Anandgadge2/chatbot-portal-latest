@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo } from "react";
+import { SearchableSelect } from "@/components/ui/SearchableSelect";
 import {
   Card,
   CardContent,
@@ -116,27 +117,27 @@ const DepartmentTabContent: React.FC<DepartmentTabContentProps> = ({
           </select>
         </div>
 
-        <div className="flex items-center bg-white border border-slate-200 rounded-lg px-2 h-9 min-w-[180px]">
+        <div className="flex items-center bg-white border border-slate-200 rounded-lg px-2 h-9 min-w-[200px] flex-1">
           <Building className="w-3.5 h-3.5 text-slate-400 mr-2" />
-          <select 
-            className="text-xs font-bold text-slate-600 outline-none pr-1 bg-transparent cursor-pointer w-full"
+          <SearchableSelect
+            options={[
+              { value: "", label: "🏢 All Companies" },
+              ...allCompanies.map((c) => ({ value: c._id, label: c.name })),
+            ]}
             value={deptCompanyFilter}
-            onChange={(e) => setDeptCompanyFilter(e.target.value)}
-          >
-            <option value="">Main Depts</option>
-            {allCompanies.map(c => (
-              <option key={c._id} value={c._id}>{c.name}</option>
-            ))}
-          </select>
+            onValueChange={setDeptCompanyFilter}
+            placeholder="Search Company..."
+            className="flex-1 border-0 h-full p-0 bg-transparent text-[10px] font-bold"
+          />
         </div>
 
-        <div className="flex items-center bg-white border border-slate-200 rounded-lg px-2 h-9 flex-1 min-w-[150px]">
+        <div className="flex items-center bg-white border border-slate-200 rounded-lg px-2 h-9 flex-1 min-w-[200px]">
           <Search className="w-3.5 h-3.5 text-slate-400 mr-2" />
           <input 
-            placeholder="Sub Depts"
+            placeholder="Search Dept by Name or ID..."
             value={deptSearchTerm}
             onChange={(e) => setDeptSearchTerm(e.target.value)}
-            className="text-xs font-bold text-slate-600 outline-none bg-transparent w-full"
+            className="text-[10px] font-bold text-slate-600 outline-none bg-transparent w-full"
           />
         </div>
 

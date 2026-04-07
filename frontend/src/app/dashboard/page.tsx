@@ -78,6 +78,7 @@ import NotificationManagement from "@/components/superadmin/drilldown/Notificati
 import { CompanyProvider } from "@/contexts/CompanyContext";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
+import { DashboardDepartmentFilters } from "@/components/dashboard/DashboardDepartmentFilters";
 import { formatTo10Digits } from "@/lib/utils/phoneUtils";
 
 import {
@@ -424,7 +425,7 @@ function DashboardContent() {
         ...profileForm,
         designations: profileForm.designations.split(",").map(d => d.trim()).filter(Boolean)
       };
-      const response = await apiClient.put("/api/auth/profile", payload);
+      const response = await apiClient.put("/auth/profile", payload);
       if (response.data.success) {
         toast.success("Profile updated successfully");
       }
@@ -443,7 +444,7 @@ function DashboardContent() {
     }
     setUpdatingPassword(true);
     try {
-      const response = await apiClient.put("/api/auth/profile", {
+      const response = await apiClient.put("/auth/profile", {
         password: passwordForm.newPassword,
       });
       if (response.data.success) {
@@ -640,6 +641,8 @@ function DashboardContent() {
   const [showAppointmentFiltersOnMobile, setShowAppointmentFiltersOnMobile] =
     useState(false);
 
+  const [overviewFilters, setOverviewFilters] = useState({ mainDeptId: "", subDeptId: "" });
+  const [analyticsFilters, setAnalyticsFilters] = useState({ mainDeptId: "", subDeptId: "" });
   const [grievanceFilters, setGrievanceFilters] = useState({
     status: "",
     department: "",
@@ -1072,8 +1075,13 @@ function DashboardContent() {
   const fetchDepartmentData = useCallback(async () => {
     if (isSuperAdminUser && !companyIdParam) return;
     try {
+      const deptId = analyticsFilters.subDeptId || analyticsFilters.mainDeptId || "";
+      const params = new URLSearchParams();
+      if (companyIdParam) params.append("companyId", companyIdParam);
+      if (deptId) params.append("departmentId", deptId);
+      
       const response = await apiClient.get(
-        `/analytics/grievances/by-department${companyIdParam ? "?companyId=" + companyIdParam : ""}`,
+        `/analytics/grievances/by-department?${params.toString()}`,
       );
       if (response.success) {
         setDepartmentData(response.data);
@@ -1081,7 +1089,7 @@ function DashboardContent() {
     } catch (error: any) {
       console.error("Failed to fetch department data:", error);
     }
-  }, [companyIdParam, isSuperAdminUser]);
+  }, [companyIdParam, isSuperAdminUser, analyticsFilters]);
 
   const fetchRoles = useCallback(async () => {
     const cid = targetCompanyId;
@@ -1109,16 +1117,22 @@ function DashboardContent() {
   }, [targetCompanyId]);
 
   const fetchDashboardData = useCallback(
-    async (refresh = false) => {
+    async (refresh = false, overrideFilters?: { mainDeptId?: string; subDeptId?: string }) => {
       if (isSuperAdminUser && !companyIdParam) return;
       if (!refresh) setLoadingStats(true);
       try {
+        const currentFilters = overrideFilters || (activeTab === "analytics" ? analyticsFilters : overviewFilters);
+        const deptId = currentFilters?.subDeptId || currentFilters?.mainDeptId || "";
+        
+        const params = new URLSearchParams();
+        if (companyIdParam) params.append("companyId", companyIdParam);
+        if (deptId) params.append("departmentId", deptId);
+
         const response = await apiClient.get<{
           success: boolean;
           data: DashboardStats;
-        }>(
-          `/analytics/dashboard${companyIdParam ? "?companyId=" + companyIdParam : ""}`,
-        );
+        }>(`/analytics/dashboard?${params.toString()}`);
+        
         if (response.success) {
           setStats(response.data);
         }
@@ -1131,7 +1145,7 @@ function DashboardContent() {
         if (!refresh) setLoadingStats(false);
       }
     },
-    [companyIdParam, isSuperAdminUser],
+    [companyIdParam, isSuperAdminUser, activeTab, analyticsFilters, overviewFilters],
   );
 
   const fetchCompany = useCallback(async () => {
@@ -1514,7 +1528,7 @@ function DashboardContent() {
         }
       }
     }
-  }, [mounted, user, activeTab, fetchDashboardData, isSuperAdminUser, companyIdParam]);
+  }, [mounted, user, activeTab, fetchDashboardData, isSuperAdminUser, companyIdParam, overviewFilters, analyticsFilters]);
 
   // 3. Global Synchronization Listener
   useEffect(() => {
@@ -1570,6 +1584,7 @@ function DashboardContent() {
     fetchDepartmentData,
     isSuperAdminUser,
     companyIdParam,
+    analyticsFilters
   ]);
 
   useEffect(() => {
@@ -1598,6 +1613,8 @@ function DashboardContent() {
     isSuperAdminUser,
     isDepartmentLevel,
     companyIdParam,
+    deptFilters,
+    deptSearch
   ]);
 
   useEffect(() => {
@@ -1619,6 +1636,8 @@ function DashboardContent() {
     fetchUsers,
     isSuperAdminUser,
     companyIdParam,
+    userFilters,
+    userSearch
   ]);
 
   useEffect(() => {
@@ -1643,6 +1662,8 @@ function DashboardContent() {
     hasModule,
     isSuperAdminUser,
     companyIdParam,
+    grievanceFilters,
+    grievanceSearch
   ]);
 
   useEffect(() => {
@@ -2109,14 +2130,14 @@ function DashboardContent() {
       if (deptFilters.mainDeptId) {
         filteredData = filteredData.filter(
           (d: Department) =>
-            d._id === deptFilters.mainDeptId ||
-            getParentDepartmentId(d) === deptFilters.mainDeptId,
+            String(d._id) === String(deptFilters.mainDeptId) ||
+            String(getParentDepartmentId(d)) === String(deptFilters.mainDeptId),
         );
       }
       // Specific Sub Department filter
       if (deptFilters.subDeptId) {
         filteredData = filteredData.filter(
-          (d: Department) => d._id === deptFilters.subDeptId,
+          (d: Department) => String(d._id) === String(deptFilters.subDeptId),
         );
       }
     }
@@ -2149,13 +2170,13 @@ function DashboardContent() {
           const userDepts = [
             typeof u.departmentId === "object" && u.departmentId ? (u.departmentId as any)._id : u.departmentId,
             ...(u.departmentIds || []).map(d => typeof d === "object" && d ? (d as any)._id : d)
-          ].filter(Boolean);
+          ].filter(Boolean).map(id => String(id));
 
           return userDepts.some(deptId => {
-            const dept = allDepartments.find((d) => d._id === deptId);
+            const dept = allDepartments.find((d) => String(d._id) === String(deptId));
             return (
-              deptId === userFilters.mainDeptId ||
-              getParentDepartmentId(dept) === userFilters.mainDeptId
+              String(deptId) === String(userFilters.mainDeptId) ||
+              String(getParentDepartmentId(dept)) === String(userFilters.mainDeptId)
             );
           });
         });
@@ -2166,9 +2187,9 @@ function DashboardContent() {
           const userDepts = [
             typeof u.departmentId === "object" && u.departmentId ? (u.departmentId as any)._id : u.departmentId,
             ...(u.departmentIds || []).map(d => typeof d === "object" && d ? (d as any)._id : d)
-          ].filter(Boolean);
+          ].filter(Boolean).map(id => String(id));
           
-          return userDepts.includes(userFilters.subDeptId);
+          return userDepts.includes(String(userFilters.subDeptId));
         });
       }
       // Search filter - Instant, case-insensitive, whitespace-resilient
@@ -5225,7 +5246,7 @@ function DashboardContent() {
                             </span>
                           </div>
 
-                          <div className="flex w-full flex-col md:flex-row md:items-center gap-2 md:flex-nowrap flex-1 md:overflow-x-auto md:no-scrollbar pb-1 md:pb-0">
+                          <div className="flex w-full flex-col md:flex-row md:items-center gap-2 flex-wrap flex-1 pb-1 md:pb-0">
                             <select
                               value={deptFilters.type}
                               onChange={(e) =>
@@ -5258,53 +5279,20 @@ function DashboardContent() {
                               <option value="inactive">Inactive</option>
                             </select>
 
-                            <select
-                              value={deptFilters.mainDeptId}
-                              onChange={(e) =>
+                            <DashboardDepartmentFilters 
+                              allDepartments={allDepartments}
+                              getParentDepartmentId={getParentDepartmentId}
+                              onFiltersChange={(filters) => {
                                 setDeptFilters((prev) => ({
                                   ...prev,
-                                  mainDeptId: e.target.value,
-                                  subDeptId: "",
-                                }))
-                              }
-                              className="w-full md:w-auto text-xs px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer min-w-[160px] font-medium"
-                              title="Filter by main department"
-                            >
-                              <option value="">🏢 Main Depts</option>
-                              {allDepartments
-                                .filter((d) => !getParentDepartmentId(d))
-                                .map((dept) => (
-                                  <option key={dept._id} value={dept._id}>
-                                    {dept.name}
-                                  </option>
-                                ))}
-                            </select>
-
-                            <select
-                              value={deptFilters.subDeptId}
-                              onChange={(e) =>
-                                setDeptFilters((prev) => ({
-                                  ...prev,
-                                  subDeptId: e.target.value,
-                                }))
-                              }
-                              disabled={!deptFilters.mainDeptId}
-                              className={`w-full md:w-auto text-xs px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm transition-all min-w-[160px] font-medium ${!deptFilters.mainDeptId ? "opacity-50 cursor-not-allowed bg-slate-50" : "cursor-pointer hover:border-indigo-300"}`}
-                              title="Filter by sub department"
-                            >
-                              <option value="">📍 Sub Depts</option>
-                              {allDepartments
-                                .filter(
-                                  (d) =>
-                                    getParentDepartmentId(d) ===
-                                    deptFilters.mainDeptId,
-                                )
-                                .map((dept) => (
-                                  <option key={dept._id} value={dept._id}>
-                                    {dept.name}
-                                  </option>
-                                ))}
-                            </select>
+                                  mainDeptId: filters.mainDeptId,
+                                  subDeptId: filters.subDeptId,
+                                }));
+                                setDepartmentPage(1);
+                              }}
+                              currentFilters={deptFilters}
+                              className="w-full md:w-auto"
+                            />
 
                             {(deptFilters.type ||
                               deptFilters.status ||
@@ -6146,7 +6134,7 @@ function DashboardContent() {
                               "gap-3 md:items-center",
                               showUserFiltersOnMobile
                                 ? "flex flex-col"
-                                : "hidden md:flex md:flex-row md:flex-nowrap",
+                                : "hidden md:flex md:flex-row md:flex-wrap",
                             )}
                           >
                             <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-slate-200">
@@ -6156,7 +6144,7 @@ function DashboardContent() {
                               </span>
                             </div>
 
-                            <div className="flex w-full flex-col md:flex-row md:items-center gap-2 md:flex-nowrap flex-1 md:overflow-x-auto md:no-scrollbar">
+                            <div className="flex w-full flex-col md:flex-row md:items-center gap-2 flex-wrap flex-1 pb-1 md:pb-0">
                               <select
                                 value={userFilters.role}
                                 onChange={(e) => {
@@ -6202,57 +6190,20 @@ function DashboardContent() {
                                 <option value="inactive">Inactive</option>
                               </select>
 
-                              <select
-                                value={userFilters.mainDeptId}
-                                onChange={(e) => {
+                              <DashboardDepartmentFilters 
+                                allDepartments={allDepartments}
+                                getParentDepartmentId={getParentDepartmentId}
+                                onFiltersChange={(filters) => {
                                   setUserFilters((prev) => ({
                                     ...prev,
-                                    mainDeptId: e.target.value,
-                                    subDeptId: "",
+                                    mainDeptId: filters.mainDeptId,
+                                    subDeptId: filters.subDeptId,
                                   }));
                                   setUserPage(1);
                                 }}
-                                className="w-full md:w-auto text-xs px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer min-w-[160px] font-medium"
-                                title="Filter by main department"
-                              >
-                                <option value="">🏢 Main Depts</option>
-                                {allDepartments
-                                  .filter(
-                                    (d) => getParentDepartmentId(d) === null,
-                                  )
-                                  .map((dept) => (
-                                    <option key={dept._id} value={dept._id}>
-                                      {dept.name}
-                                    </option>
-                                  ))}
-                              </select>
-
-                              <select
-                                value={userFilters.subDeptId}
-                                onChange={(e) => {
-                                  setUserFilters((prev) => ({
-                                    ...prev,
-                                    subDeptId: e.target.value,
-                                  }));
-                                  setUserPage(1);
-                                }}
-                                disabled={!userFilters.mainDeptId}
-                                className={`w-full md:w-auto text-xs px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm transition-all min-w-[160px] font-medium ${!userFilters.mainDeptId ? "opacity-50 cursor-not-allowed bg-slate-50" : "cursor-pointer hover:border-indigo-300"}`}
-                                title="Filter by sub department"
-                              >
-                                <option value="">📍 Sub Depts</option>
-                                {allDepartments
-                                  .filter(
-                                    (d) =>
-                                      getParentDepartmentId(d) ===
-                                      userFilters.mainDeptId,
-                                  )
-                                  .map((dept) => (
-                                    <option key={dept._id} value={dept._id}>
-                                      {dept.name}
-                                    </option>
-                                  ))}
-                              </select>
+                                currentFilters={userFilters}
+                                className="w-full md:w-auto"
+                              />
 
                               {(userFilters.role ||
                                 userFilters.status ||
@@ -7070,63 +7021,21 @@ function DashboardContent() {
                             )}
                           </select>
 
-                          {isCompanyLevel && (
-                            <>
-                              {/* Main Department Filter */}
-                              <select
-                                value={grievanceFilters.mainDeptId}
-                                onChange={(e) => {
+                               <DashboardDepartmentFilters 
+                                allDepartments={allDepartments}
+                                getParentDepartmentId={getParentDepartmentId}
+                                onFiltersChange={(filters) => {
                                   setGrievanceFilters((prev) => ({
                                     ...prev,
-                                    mainDeptId: e.target.value,
-                                    subDeptId: "",
+                                    mainDeptId: filters.mainDeptId,
+                                    subDeptId: filters.subDeptId,
                                     department: "", // reset old filter
                                   }));
                                   setGrievancePage(1);
                                 }}
-                                className="text-xs px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer min-w-[150px]"
-                                title="Filter by main department"
-                              >
-                                <option value="">🏢 Main Dept</option>
-                                {allDepartments
-                                  .filter((d) => !d.parentDepartmentId)
-                                  .map((dept) => (
-                                    <option key={dept._id} value={dept._id}>
-                                      {dept.name}
-                                    </option>
-                                  ))}
-                              </select>
-
-                              {/* Sub Department Filter */}
-                              <select
-                                value={grievanceFilters.subDeptId}
-                                onChange={(e) => {
-                                  setGrievanceFilters((prev) => ({
-                                    ...prev,
-                                    subDeptId: e.target.value,
-                                  }));
-                                  setGrievancePage(1);
-                                }}
-                                className="text-xs px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer min-w-[150px]"
-                                title="Filter by sub department"
-                                disabled={!grievanceFilters.mainDeptId}
-                              >
-                                <option value="">🏢 Sub Dept</option>
-                                {grievanceFilters.mainDeptId &&
-                                  allDepartments
-                                    .filter(
-                                      (d) =>
-                                        getParentDepartmentId(d) ===
-                                        grievanceFilters.mainDeptId,
-                                    )
-                                    .map((dept) => (
-                                      <option key={dept._id} value={dept._id}>
-                                        {dept.name}
-                                      </option>
-                                    ))}
-                              </select>
-                            </>
-                          )}
+                                currentFilters={grievanceFilters}
+                                className="w-full md:w-auto"
+                              />
 
                           {/* Assignment Status Filter */}
                           <select
