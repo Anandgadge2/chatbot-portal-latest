@@ -161,6 +161,7 @@ interface DashboardStats {
     last30Days: number;
     resolutionRate: number;
     slaBreached?: number;
+    pendingOverdue?: number;
     slaComplianceRate?: number;
     avgResolutionDays?: number;
     byPriority?: Array<{ priority: string; count: number }>;
@@ -462,6 +463,7 @@ function DashboardContent() {
     if (typeof fromStats === "boolean") return fromStats;
     return !!company?.enabledModules?.includes(Module.HIERARCHICAL_DEPARTMENTS);
   }, [stats?.isHierarchicalEnabled, company]);
+  const overdueGrievancesCount = stats?.grievances.pendingOverdue || 0;
   const isDFO = useMemo(() => {
     return (
       company?.name?.toUpperCase().includes("D.F.O.") ||
@@ -2975,26 +2977,26 @@ function DashboardContent() {
                     {hasPermission(user, Permission.READ_GRIEVANCE) && (
                       <Card
                         onClick={() => setActiveTab("grievances")}
-                        className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer h-28 sm:h-32"
+                        className="h-28 sm:h-32 cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(15,23,42,0.1)]"
                       >
-                        <CardHeader className="p-3 sm:p-5 pb-1 sm:pb-1 space-y-0 flex flex-row items-center justify-between">
-                          <CardTitle className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-[#2f5aa6] bg-slate-50/70 px-4 py-4 pb-3">
+                          <CardTitle className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-[0.16em] text-slate-400">
                             {isDFO ? "Total Incidents" : "Total Grievances"}
                           </CardTitle>
-                          <div className="p-1 sm:p-1.5 bg-indigo-50 rounded-lg">
-                            <FileText className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-indigo-500" />
+                          <div className="rounded-md bg-indigo-50 p-1.5">
+                            <FileText className="h-3.5 w-3.5 text-indigo-500" />
                           </div>
                         </CardHeader>
-                        <CardContent className="px-3 sm:px-6 pb-2 pt-1">
-                          <div className="text-xl sm:text-2xl font-black text-slate-800 tabular-nums leading-none">
+                        <CardContent className="px-4 pb-3 pt-2">
+                          <div className="text-[2rem] font-extrabold leading-none tracking-tight text-slate-800 tabular-nums">
                             {loadingStats ? (
                               <LoadingDots />
                             ) : (
                               stats?.grievances.total || 0
                             )}
                           </div>
-                          <div className="flex items-center gap-1 mt-1.5">
-                            <span className="text-[8px] sm:text-[9px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-full">
+                          <div className="mt-2 flex items-center gap-1">
+                            <span className="rounded-full bg-indigo-50 px-1.5 py-0.5 text-[8px] sm:text-[9px] font-bold text-indigo-600">
                               {stats?.grievances.last7Days || 0} New
                             </span>
                           </div>
@@ -3002,36 +3004,40 @@ function DashboardContent() {
                       </Card>
                     )}
 
-                    {/* Overdue Grievances (Shown for Dept Admins, Sub-Dept Admins, and Operators) */}
+                    {/* Overdue Grievances */}
                     {hasPermission(user, Permission.READ_GRIEVANCE) && 
-                      (isDepartmentAdminRole || isSubDepartmentAdminRole || isOperatorRole) && (
+                      (isViewingCompany ||
+                        isDepartmentAdminRole ||
+                        isSubDepartmentAdminRole ||
+                        isOperatorRole) && (
                       <Card
                         onClick={() => {
                           setActiveTab("grievances");
                           setGrievanceFilters((prev) => ({
                             ...prev,
                             status: "PENDING",
+                            overdueStatus: "overdue",
                           }));
                         }}
-                        className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer h-28 sm:h-32"
+                        className="h-28 sm:h-32 cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(15,23,42,0.1)]"
                       >
-                        <CardHeader className="p-3 sm:p-5 pb-1 sm:pb-1 space-y-0 flex flex-row items-center justify-between">
-                          <CardTitle className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-[#2f5aa6] bg-slate-50/70 px-4 py-4 pb-3">
+                          <CardTitle className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-[0.16em] text-slate-400">
                             {isDFO ? "Critical Alerts" : "Overdue Grievances"}
                           </CardTitle>
-                          <div className="p-1 sm:p-1.5 bg-amber-50 rounded-lg">
-                            <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-500" />
+                          <div className="rounded-md bg-amber-50 p-1.5">
+                            <Clock className="h-3.5 w-3.5 text-amber-500" />
                           </div>
                         </CardHeader>
-                        <CardContent className="px-3 sm:px-6 pb-2 pt-1">
-                          <div className="text-xl sm:text-2xl font-black text-amber-600 tabular-nums leading-none">
+                        <CardContent className="px-4 pb-3 pt-2">
+                          <div className="text-[2rem] font-extrabold leading-none tracking-tight text-amber-600 tabular-nums">
                             {loadingStats ? (
                               <LoadingDots />
                             ) : (
-                              stats?.grievances.pending || 0
+                              overdueGrievancesCount
                             )}
                           </div>
-                          <p className="text-[8px] sm:text-[9px] text-slate-400 font-bold uppercase mt-1.5">
+                          <p className="mt-2 text-[8px] sm:text-[9px] font-bold uppercase text-slate-400">
                             Pending
                           </p>
                         </CardContent>
@@ -3081,26 +3087,26 @@ function DashboardContent() {
                       hasPermission(user, Permission.READ_APPOINTMENT) && (
                         <Card
                           onClick={() => setActiveTab("appointments")}
-                          className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer h-28 sm:h-32"
+                          className="h-28 sm:h-32 cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(15,23,42,0.1)]"
                         >
-                          <CardHeader className="p-3 sm:p-5 pb-1 sm:pb-1 space-y-0 flex flex-row items-center justify-between">
-                            <CardTitle className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-[#2f5aa6] bg-slate-50/70 px-4 py-4 pb-3">
+                            <CardTitle className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-[0.16em] text-slate-400">
                               Appointments
                             </CardTitle>
-                            <div className="p-1 sm:p-1.5 bg-emerald-50 rounded-lg">
-                              <CalendarCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-500" />
+                            <div className="rounded-md bg-emerald-50 p-1.5">
+                              <CalendarCheck className="h-3.5 w-3.5 text-emerald-500" />
                             </div>
                           </CardHeader>
-                          <CardContent className="px-3 sm:px-6 pb-2 pt-1">
-                            <div className="text-xl sm:text-2xl font-black text-slate-800 tabular-nums leading-none">
+                          <CardContent className="px-4 pb-3 pt-2">
+                            <div className="text-[2rem] font-extrabold leading-none tracking-tight text-slate-800 tabular-nums">
                               {loadingStats ? (
                                 <LoadingDots />
                               ) : (
                                 stats?.appointments.total || 0
                               )}
                             </div>
-                            <div className="flex items-center gap-1 mt-1.5">
-                              <span className="text-[9px] sm:text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
+                            <div className="mt-2 flex items-center gap-1">
+                              <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[8px] sm:text-[9px] font-bold text-emerald-600">
                                 {stats?.appointments.confirmed || 0} Confirmed
                               </span>
                             </div>
@@ -3115,47 +3121,50 @@ function DashboardContent() {
                           <>
                             <Card
                               onClick={() => setActiveTab("departments")}
-                              className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer h-28 sm:h-32"
+                              className="h-28 sm:h-32 cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(15,23,42,0.1)]"
                             >
-                              <CardHeader className="p-3 sm:p-5 pb-1 sm:pb-1 space-y-0 flex flex-row items-center justify-between">
-                                <CardTitle className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                              <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-[#2f5aa6] bg-slate-50/70 px-4 py-4 pb-3">
+                                <CardTitle className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-[0.16em] text-slate-400">
                                   {isDFO ? "Forest Ranges" : "Main Departments"}
                                 </CardTitle>
-                                <div className="p-1 sm:p-1.5 bg-blue-50 rounded-lg">
-                                  <Building className="w-3.5 h-3.5 text-blue-500" />
+                                <div className="rounded-md bg-blue-50 p-1.5">
+                                  <Building className="h-3.5 w-3.5 text-blue-500" />
                                 </div>
                               </CardHeader>
-                              <CardContent className="px-3 sm:px-6 pb-2 pt-1">
-                                <div className="text-xl sm:text-2xl font-black text-slate-800 tabular-nums leading-none">
+                              <CardContent className="px-4 pb-3 pt-2">
+                                <div className="text-[2rem] font-extrabold leading-none tracking-tight text-slate-800 tabular-nums">
                                   {loadingStats ? (
                                     <LoadingDots />
                                   ) : (
                                     stats?.mainDepartments || 0
                                   )}
                                 </div>
+                                <p className="mt-2 text-[8px] sm:text-[9px] font-bold uppercase text-slate-400">
+                                  Primary Units
+                                </p>
                               </CardContent>
                             </Card>
                             <Card
                               onClick={() => setActiveTab("departments")}
-                              className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer h-28 sm:h-32"
+                              className="h-28 sm:h-32 cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(15,23,42,0.1)]"
                             >
-                              <CardHeader className="p-3 sm:p-5 pb-1 sm:pb-1 space-y-0 flex flex-row items-center justify-between">
-                                <CardTitle className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">
+                              <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-[#2f5aa6] bg-slate-50/70 px-4 py-4 pb-3">
+                                <CardTitle className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-[0.16em] text-indigo-400">
                                   {isDFO ? "Forest Beats" : "Sub Departments"}
                                 </CardTitle>
-                                <div className="p-1.5 bg-indigo-50 rounded-lg">
-                                  <Zap className="w-3.5 h-3.5 text-indigo-500" />
+                                <div className="rounded-md bg-indigo-50 p-1.5">
+                                  <Zap className="h-3.5 w-3.5 text-indigo-500" />
                                 </div>
                               </CardHeader>
-                              <CardContent className="px-3 sm:px-6 pb-2 pt-1">
-                                <div className="text-2xl font-black text-indigo-600 tabular-nums">
+                              <CardContent className="px-4 pb-3 pt-2">
+                                <div className="text-[2rem] font-extrabold leading-none tracking-tight text-indigo-600 tabular-nums">
                                   {loadingStats ? (
                                     <LoadingDots />
                                   ) : (
                                     stats?.subDepartments || 0
                                   )}
                                 </div>
-                                <p className="text-[9px] text-slate-400 font-bold uppercase mt-1.5">
+                                <p className="mt-2 text-[8px] sm:text-[9px] font-bold uppercase text-slate-400">
                                   Specialized Units
                                 </p>
                               </CardContent>
@@ -3202,25 +3211,25 @@ function DashboardContent() {
                               status: "REVERTED",
                             }));
                           }}
-                          className="bg-white/50 backdrop-blur-sm border-rose-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer h-28 sm:h-32"
+                          className="h-28 sm:h-32 cursor-pointer overflow-hidden rounded-xl border border-rose-200/70 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(244,63,94,0.12)]"
                         >
-                          <CardHeader className="p-3 sm:p-5 pb-1 sm:pb-1 space-y-0 flex flex-row items-center justify-between">
-                            <CardTitle className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-[#2f5aa6] bg-slate-50/70 px-4 py-4 pb-3">
+                            <CardTitle className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-[0.16em] text-slate-400">
                               Reverted
                             </CardTitle>
-                            <div className="p-1 sm:p-1.5 bg-rose-50 rounded-lg">
-                              <ArrowLeft className="w-3 h-3 text-rose-500" />
+                            <div className="rounded-md bg-rose-50 p-1.5">
+                              <ArrowLeft className="h-3.5 w-3.5 text-rose-500" />
                             </div>
                           </CardHeader>
-                          <CardContent className="px-3 sm:px-6 pb-2 pt-1">
-                            <div className="text-xl sm:text-2xl font-black text-rose-600 tabular-nums leading-none">
+                          <CardContent className="px-4 pb-3 pt-2">
+                            <div className="text-[2rem] font-extrabold leading-none tracking-tight text-rose-600 tabular-nums">
                               {loadingStats ? (
                                 <LoadingDots />
                               ) : (
                                 stats?.grievances.reverted || 0
                               )}
                             </div>
-                            <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">
+                            <p className="mt-2 text-[8px] sm:text-[9px] font-bold uppercase text-slate-400">
                               Reassigned
                             </p>
                           </CardContent>
@@ -3703,6 +3712,7 @@ function DashboardContent() {
                             setGrievanceFilters((prev) => ({
                               ...prev,
                               status: "PENDING",
+                              overdueStatus: "overdue",
                             }));
                           }}
                           className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-amber-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden h-28 sm:h-32"
@@ -3721,7 +3731,7 @@ function DashboardContent() {
                               Overdue Grievances
                             </h4>
                             <p className="text-xl sm:text-2xl font-black text-amber-600 tracking-tighter leading-none">
-                              {stats?.grievances.pending || 0}
+                              {overdueGrievancesCount}
                             </p>
                           </div>
                         </div>

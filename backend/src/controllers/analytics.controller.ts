@@ -6,7 +6,7 @@ import Department from '../models/Department';
 import User from '../models/User';
 import { getDepartmentHierarchyIds } from '../utils/departmentUtils';
 
-import { Permission, UserRole, GrievanceStatus, AppointmentStatus, Module } from '../config/constants';
+import { Permission, UserRole, GrievanceStatus, AppointmentStatus, Module, SLA_CONFIG } from '../config/constants';
 
 const getAnalyticsBaseQuery = async (req: any, companyId?: any, departmentId?: any) => {
   const query: any = {};
@@ -140,6 +140,9 @@ export const dashboard = async (req: Request, res: Response) => {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
+    const pendingSlaCutoff = new Date(Date.now() - SLA_CONFIG[GrievanceStatus.PENDING] * 60 * 60 * 1000);
+    const assignedSlaCutoff = new Date(Date.now() - SLA_CONFIG[GrievanceStatus.ASSIGNED] * 60 * 60 * 1000);
+
     // 🚀 Performance Optimization: Parallelize all database queries
     const [
       totalGrievances,
@@ -211,7 +214,28 @@ export const dashboard = async (req: Request, res: Response) => {
         { $sort: { _id: 1 } }
       ]),
       
-      Grievance.countDocuments({ ...baseQuery, slaBreached: true }),
+      Promise.all([
+        Grievance.countDocuments({
+          ...baseQuery,
+          status: GrievanceStatus.PENDING,
+          createdAt: { $lt: pendingSlaCutoff }
+        }),
+        Grievance.countDocuments({
+          ...baseQuery,
+          status: GrievanceStatus.ASSIGNED,
+          $or: [
+            { assignedAt: { $exists: true, $lt: assignedSlaCutoff } },
+            {
+              assignedAt: { $exists: false },
+              createdAt: { $lt: assignedSlaCutoff }
+            }
+          ]
+        })
+      ]).then(([pendingOverdueCount, assignedOverdueCount]) => ({
+        pendingOverdueCount,
+        assignedOverdueCount,
+        totalOverdueCount: pendingOverdueCount + assignedOverdueCount
+      })),
       Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.ASSIGNED }),
       
       // Counts (Scoped to authorized departments for restricted admins)
@@ -268,7 +292,7 @@ export const dashboard = async (req: Request, res: Response) => {
 
     // SLA compliance rate
     const slaComplianceRate = totalGrievances > 0
-      ? (((totalGrievances - slaBreachedGrievances) / totalGrievances) * 100).toFixed(1)
+      ? (((totalGrievances - slaBreachedGrievances.totalOverdueCount) / totalGrievances) * 100).toFixed(1)
       : '100';
 
     // Monthly trends (last 6 months)
@@ -468,7 +492,8 @@ export const dashboard = async (req: Request, res: Response) => {
           last7Days: grievancesLast7Days,
           last30Days: grievancesLast30Days,
           resolutionRate: parseFloat(resolutionRate),
-          slaBreached: slaBreachedGrievances,
+          slaBreached: slaBreachedGrievances.totalOverdueCount,
+          pendingOverdue: slaBreachedGrievances.pendingOverdueCount,
           slaComplianceRate: parseFloat(slaComplianceRate),
           avgResolutionDays: avgResolutionTime.length > 0 ? parseFloat(avgResolutionTime[0].avgDays.toFixed(1)) : 0,
           byPriority: grievancesByPriority.map(g => ({ priority: g._id || 'MEDIUM', count: g.count })),
