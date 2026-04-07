@@ -10,7 +10,7 @@
     --card-foreground: 215 32% 24%;
     --popover: 0 0% 100%;
     --popover-foreground: 215 32% 24%;
-    --primary: 215 63% 35%;
+    --primary: 197 98% 48%;
     --primary-foreground: 0 0% 100%;
     --secondary: 31 91% 54%;
     --secondary-foreground: 0 0% 100%;
@@ -22,7 +22,7 @@
     --destructive-foreground: 210 40% 98%;
     --border: 211 35% 86%;
     --input: 211 35% 86%;
-    --ring: 215 63% 35%;
+    --ring: 197 98% 48%;
     --radius: 0.375rem;
   }
 
@@ -66,9 +66,9 @@
       "Segoe UI",
       sans-serif;
     zoom: 0.9;
-    font-size: 14px;
-    line-height: 1.4;
-    letter-spacing: 0.1px;
+    font-size: 13px;
+    line-height: 1.52;
+    letter-spacing: 0.15px;
   }
 }
 
@@ -150,30 +150,30 @@ input[type="password"]::-ms-clear {
 @layer utilities {
   .bg-slate-900,
   .bg-slate-900\/80 {
-    background-color: #1f4d8f !important;
-    background-image: none !important;
+    background-color: #02aff1 !important;
+    background-image: linear-gradient(135deg, #029fe7 0%, #02aff1 55%, #4ac8f8 100%) !important;
   }
 
   .border-slate-800 {
-    border-color: #1b437c !important;
+    border-color: #028fc4 !important;
   }
 
   .from-purple-600,
   .via-indigo-600,
   .to-blue-600 {
-    --tw-gradient-from: #1f4d8f var(--tw-gradient-from-position) !important;
-    --tw-gradient-to: rgb(31 77 143 / 0) var(--tw-gradient-to-position) !important;
-    --tw-gradient-stops: var(--tw-gradient-from), #2e67ab var(--tw-gradient-via-position), var(--tw-gradient-to) !important;
+    --tw-gradient-from: #029fe7 var(--tw-gradient-from-position) !important;
+    --tw-gradient-to: rgb(2 175 241 / 0) var(--tw-gradient-to-position) !important;
+    --tw-gradient-stops: var(--tw-gradient-from), #02aff1 var(--tw-gradient-via-position), var(--tw-gradient-to) !important;
   }
 
   .bg-blue-600,
   .bg-indigo-600 {
-    background-color: #1f4d8f !important;
+    background-color: #02aff1 !important;
   }
 
   .text-blue-600,
   .text-indigo-600 {
-    color: #1f4d8f !important;
+    color: #0299d5 !important;
   }
 }
 
@@ -197,7 +197,7 @@ input[type="password"]::-ms-clear {
 }
 
 h1, h2, h3, h4 {
-  color: #1f4d8f;
+  color: #028fc4;
 }
 
 .lucide-clock,
