@@ -25,6 +25,7 @@ import {
   ArrowRight,
   CheckCircle,
   AlertCircle,
+  MessageCircle,
 } from "lucide-react";
 
 export default function LoginPage() {
@@ -202,11 +203,8 @@ export default function LoginPage() {
         <div className="w-full max-w-[460px] animate-in fade-in slide-in-from-bottom-4 duration-700">
           {/* Mobile Heading */}
           <div className="lg:hidden flex flex-col items-center gap-4 mb-10 text-center">
-            <div className="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center shadow-xl border border-slate-800">
-              <svg className="w-8 h-8 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
+            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-sky-500 to-cyan-500 flex items-center justify-center shadow-[0_14px_30px_-10px_rgba(14,165,233,0.65)] ring-1 ring-sky-300/60">
+              <MessageCircle className="h-8 w-8 text-white" strokeWidth={2.1} />
             </div>
             <div>
               <h1 className="text-3xl font-black text-slate-900 tracking-tighter">
