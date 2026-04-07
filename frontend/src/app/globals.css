@@ -149,7 +149,9 @@ input[type="password"]::-ms-clear {
 /* Odisha SUJOG inspired dashboard theme overrides */
 @layer utilities {
   .bg-slate-900,
-  .bg-slate-900\/80 {
+  .bg-slate-900\/80,
+  .bg-slate-800,
+  .bg-slate-800\/90 {
     background-color: #02aff1 !important;
     background-image: linear-gradient(135deg, #029fe7 0%, #02aff1 55%, #4ac8f8 100%) !important;
   }
@@ -175,6 +177,25 @@ input[type="password"]::-ms-clear {
   .text-indigo-600 {
     color: #0299d5 !important;
   }
+
+  .bg-slate-900 .text-slate-300,
+  .bg-slate-900 .text-slate-400,
+  .bg-slate-900 .text-slate-500,
+  .bg-slate-900\/80 .text-slate-300,
+  .bg-slate-900\/80 .text-slate-400,
+  .bg-slate-900\/80 .text-slate-500,
+  .bg-slate-800 .text-slate-300,
+  .bg-slate-800 .text-slate-400,
+  .bg-slate-800 .text-slate-500 {
+    color: #eaf9ff !important;
+    opacity: 0.96;
+  }
+
+  .bg-slate-900 .border-slate-800,
+  .bg-slate-900\/80 .border-slate-800,
+  .bg-slate-800 .border-slate-800 {
+    border-color: #62d5fb !important;
+  }
 }
 
 @keyframes themeButtonLift {
@@ -194,10 +215,6 @@ input[type="password"]::-ms-clear {
 
 .theme-dialog-motion {
   animation: dialogIn 220ms ease-out;
-}
-
-h1, h2, h3, h4 {
-  color: #028fc4;
 }
 
 .lucide-clock,

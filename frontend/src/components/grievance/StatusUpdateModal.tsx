@@ -490,7 +490,7 @@ export default function StatusUpdateModal({
             </div>
             <div>
               <h2 className="text-base font-bold text-white">Update Status</h2>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+              <p className="text-xs text-cyan-50 font-semibold uppercase tracking-[0.08em] mt-0.5">
                 Change {typeLabel} Status & Notify Citizen
               </p>
             </div>
@@ -507,7 +507,7 @@ export default function StatusUpdateModal({
         <div className="overflow-y-auto flex-1 p-5 space-y-5">
           {/* Current Status */}
           <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Current Status</p>
+            <p className="text-[11px] font-semibold text-slate-600 uppercase tracking-[0.08em] mb-2">Current Status</p>
             {currentStatusInfo && (
               <div className="flex items-center gap-2">
                 <div className={`w-8 h-8 ${currentStatusInfo.iconBg} rounded-lg flex items-center justify-center`}>
@@ -522,7 +522,7 @@ export default function StatusUpdateModal({
 
           {/* Status Selection */}
           <div>
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">
+            <p className="text-[11px] font-semibold text-slate-600 uppercase tracking-[0.08em] mb-3">
               Select New Status <span className="text-rose-500">*</span>
             </p>
             <div className="grid grid-cols-2 gap-2">
@@ -556,7 +556,7 @@ export default function StatusUpdateModal({
           {itemType === 'appointment' && selectedStatus === 'CONFIRMED' && (
             <div className="space-y-4 bg-indigo-50/40 border border-indigo-100 rounded-xl p-4">
               <div>
-                <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Confirmation Date *</label>
+                <label className="block text-[11px] font-semibold text-slate-600 uppercase tracking-[0.08em] mb-2">Confirmation Date *</label>
                 <input
                   type="date"
                   value={appointmentDate}
@@ -565,7 +565,7 @@ export default function StatusUpdateModal({
                 />
               </div>
               <div>
-                <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Select Time (Clock) *</label>
+                <label className="block text-[11px] font-semibold text-slate-600 uppercase tracking-[0.08em] mb-2">Select Time (Clock) *</label>
                 <PremiumClockPicker
                   value={appointmentTime}
                   onChange={(val) => setAppointmentTime(val)}
@@ -578,7 +578,7 @@ export default function StatusUpdateModal({
 
           {/* Remarks */}
           <div>
-            <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">
+            <label className="block text-[11px] font-semibold text-slate-600 uppercase tracking-[0.08em] mb-2">
               Remarks / Notes <span className="text-slate-400 font-normal normal-case">(optional but recommended)</span>
             </label>
             <textarea
@@ -623,7 +623,7 @@ export default function StatusUpdateModal({
           <button
             onClick={handleUpdate}
             disabled={selectedStatus === currentStatus || submitting || (itemType === 'appointment' && selectedStatus === 'CONFIRMED' && (!appointmentDate || !appointmentTime))}
-            className="px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-bold uppercase tracking-wider shadow-lg shadow-slate-900/40 ring-1 ring-blue-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-5 py-2.5 bg-[#029fe7] hover:bg-[#028fcf] text-white rounded-lg text-xs font-bold uppercase tracking-[0.08em] shadow-lg shadow-cyan-700/30 ring-1 ring-cyan-300/60 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {submitting ? (
               <>
