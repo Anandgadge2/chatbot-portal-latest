@@ -748,12 +748,28 @@ router.delete('/:id', requirePermission(Permission.DELETE_DEPARTMENT), async (re
     // 🛡️ ROLE-BASED ACCESS CONTROL (HIERARCHICAL)
     const userLevel = user.level !== undefined ? user.level : 4;
 
-    // Only Company Admin (Level 1) or SuperAdmin (Level 0) can delete departments
+    // Company Admin (Level 1) and SuperAdmin (Level 0) have full delete access
+    // Department Admin (Level 2) can only delete their SUB-DEPARTMENTS
     if (userLevel > 1) {
-      return res.status(403).json({
-        success: false,
-        message: 'Only Company Administrators can delete departments'
-      });
+      const userDepts = [
+        ...(user.departmentId ? [user.departmentId.toString()] : []),
+        ...(user.departmentIds?.map(id => id.toString()) || [])
+      ];
+
+      if (userLevel === 2) {
+        const isChild = userDepts.includes(existingDepartment.parentDepartmentId?.toString() || "");
+        if (!isChild) {
+          return res.status(403).json({
+            success: false,
+            message: 'Department Administrators can only delete their own sub-departments'
+          });
+        }
+      } else {
+        return res.status(403).json({
+          success: false,
+          message: 'Insufficient permissions to delete department'
+        });
+      }
     }
 
     // Check access

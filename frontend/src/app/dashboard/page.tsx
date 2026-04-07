@@ -157,6 +157,7 @@ interface DashboardStats {
     assigned?: number;
     inProgress: number;
     reverted: number;
+    rejected: number;
     resolved: number;
     last7Days: number;
     last30Days: number;
@@ -1859,21 +1860,7 @@ function DashboardContent() {
   const getSortedData = (data: any[], tab: string) => {
     let filteredData = data;
 
-    // Filter users tab for department admins - Strict Scoping
-    if (tab === "users" && user && (isDepartmentAdminRole || isSubDepartmentAdminRole) && !isViewingCompany) {
-      const myDeptIds = new Set([
-        user.departmentId, 
-        ...(user.departmentIds || [])
-      ].filter(Boolean).map(d => String(typeof d === 'object' ? d._id || d : d)));
-      
-      filteredData = data.filter((u: any) => {
-        const uDeptId = String(typeof u.departmentId === 'object' ? u.departmentId?._id || u.departmentId : u.departmentId);
-        const uDeptIds = (u.departmentIds || []).map((d: any) => String(typeof d === 'object' ? d?._id || d : d));
-        const uIdMatch = uDeptId && myDeptIds.has(uDeptId);
-        const uIdsMatch = uDeptIds.some((id: string) => myDeptIds.has(id));
-        return uIdMatch || uIdsMatch;
-      });
-    }
+
 
 
     // For lower level users (Operators, Sub-Department etc.), only show items assigned to them
@@ -2410,9 +2397,9 @@ function DashboardContent() {
         {/* Removed blue pattern backdrop */}
 
         <div className="max-w-[1600px] mx-auto px-4 lg:px-6 relative z-10">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-8">
-              <div className="flex items-center gap-3 group">
+          <div className="flex items-center justify-between h-14">
+            <div className="flex items-center gap-10">
+              <div className="flex items-center gap-5 sm:gap-8 group">
                 <button
                   type="button"
                   onClick={() => setIsMobileTabMenuOpen(true)}
@@ -2424,18 +2411,22 @@ function DashboardContent() {
                 <div className="hidden md:flex w-10 h-10 bg-indigo-600 rounded-xl items-center justify-center shadow-lg shadow-indigo-900/40 border border-indigo-500/30 group-hover:scale-105 transition-transform duration-300">
                   <LayoutDashboard className="w-5 h-5 text-white" />
                 </div>
-                <div className="hidden sm:block">
+                <div className="flex flex-col">
                   <h1 className="text-sm font-black text-white tracking-tight leading-none uppercase">
                     {isSuperAdminUser && companyIdParam ? (
                       `Viewing: ${company?.name || "..."}`
                     ) : (
                       <>
-                        {isCompanyLevel && (company?.name || "...")}
+                        {isCompanyLevel && (
+                          company?.name?.toUpperCase().includes("JHARSUGUDA") 
+                            ? "Sahaj" 
+                            : (company?.name || "...")
+                        )}
                         {isDepartmentLevel && "Department"}
-                        {!hasPermission(user, Permission.VIEW_ANALYTICS) &&
+                        {!hasPermission(user, Permission.READ_GRIEVANCE) &&
                           !isSuperAdminUser &&
                           "Operations Center"}
-                        {hasPermission(user, Permission.VIEW_ANALYTICS) &&
+                        {hasPermission(user, Permission.READ_GRIEVANCE) &&
                           !isCompanyLevel &&
                           !isSuperAdminUser &&
                           " Portal"}
@@ -2444,7 +2435,9 @@ function DashboardContent() {
                   </h1>
                   <div className="flex items-center gap-2 mt-1">
                     <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">
-                      Control Panel
+                      {user?.companyId?.name?.toUpperCase().includes("JHARSUGUDA") 
+                        ? `${(user.role || "ADMIN").replace("_", " ")}` 
+                        : "Control Panel"}
                     </p>
                     <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse"></span>
                   </div>
@@ -2455,14 +2448,20 @@ function DashboardContent() {
             </div>
 
             <div className="flex items-center gap-4">
-              <div className="hidden lg:flex flex-col items-end mr-2">
-                <span className="text-[10px] font-black text-white leading-none uppercase tracking-tight">
+              <div className="hidden sm:flex flex-col items-end mr-3 sm:mr-4 lg:mr-0">
+                <span className="hidden sm:block text-[10px] font-black text-white leading-none uppercase tracking-tight">
                   {user.firstName} {user.lastName}
                 </span>
-                <span className="text-[9px] font-black text-white/90 uppercase  mt-1 bg-white/10 px-1.5 py-0.5 rounded border border-white/20 shadow-sm">
-                  {(user.role || "CUSTOM").replace("_", " ")}
-                  {user?.companyId?.name && ` (${user.companyId.name})`}
-                </span>
+                {user?.companyId?.name?.toUpperCase().includes("JHARSUGUDA") ? (
+                  <span className="text-[12px] font-black text-white uppercase tracking-widest mt-1">
+                    Sahaj
+                  </span>
+                ) : (
+                  <span className="text-[9px] font-black text-white/90 uppercase mt-1 bg-white/10 px-1.5 py-0.5 rounded border border-white/20 shadow-sm">
+                    {(user.role || "CUSTOM").replace("_", " ")}
+                    {user?.companyId?.name && ` (${user.companyId.name})`}
+                  </span>
+                )}
               </div>
 
               <div className="w-px h-6 bg-slate-800 hidden lg:block mr-2"></div>
@@ -2491,7 +2490,8 @@ function DashboardContent() {
                 <Button
                   onClick={logout}
                   variant="ghost"
-                  className="h-10 w-10 p-0 text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all duration-300 border border-transparent hover:border-rose-500/20"
+                  className="h-10 w-10 p-0 text-rose-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all duration-300 border border-transparent hover:border-rose-500/20"
+                  title="Logout Account"
                 >
                   <Power className="w-5 h-5" />
                 </Button>
@@ -2510,11 +2510,11 @@ function DashboardContent() {
       </header>
 
       {/* Content wrapper */}
-      <main className="max-w-[1600px] mx-auto px-4 lg:px-6 py-4">
+      <main className="max-w-[1600px] mx-auto px-4 lg:px-6 py-2 sm:py-4">
         <Tabs
           value={activeTab}
           onValueChange={handleTabChange}
-          className="space-y-4 sm:space-y-6"
+          className="space-y-3 sm:space-y-6"
         >
           <div className="flex gap-4">
             <aside className="hidden md:block sticky top-[84px] self-start z-30">
@@ -2717,8 +2717,8 @@ function DashboardContent() {
                     )}
                   >
                     {/* Sidebar Header with User Profile */}
-                    <div className="bg-slate-900 p-6">
-                      <div className="flex items-center justify-end mb-6">
+                    <div className="bg-slate-900 p-4">
+                      <div className="flex items-center justify-end mb-3">
                         <Button
                           variant="ghost"
                           size="icon"
@@ -2735,7 +2735,7 @@ function DashboardContent() {
                             handleTabChange("profile");
                             setIsMobileTabMenuOpen(false);
                           }}
-                          className="h-14 w-14 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-2xl flex items-center justify-center text-white text-xl font-bold border-2 border-slate-800 shadow-xl hover:scale-105 transition-transform"
+                          className="h-12 w-12 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-2xl flex items-center justify-center text-white text-lg font-bold border-2 border-slate-800 shadow-xl hover:scale-105 transition-transform"
                         >
                           {user.firstName[0]}
                           {user.lastName[0]}
@@ -2744,13 +2744,26 @@ function DashboardContent() {
                           <h4 className="text-sm font-black text-white leading-tight uppercase tracking-tight">
                             {user.firstName} {user.lastName}
                           </h4>
-                          <div className="flex flex-col mt-1">
-                            <span className="text-[10px] font-bold text-blue-400 uppercase tracking-tighter">
-                              {(user.role || "CUSTOM").replace("_", " ")}
-                            </span>
-                            <div className="flex items-center gap-1.5 mt-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                          <div className="flex flex-col mt-0.5">
+                            {user?.companyId?.name?.toUpperCase().includes("JHARSUGUDA") ? (
+                              <span className="text-[12px] font-black text-white uppercase tracking-widest mt-1">
+                                Sahaj
+                              </span>
+                            ) : (
+                              <>
+                                <span className="text-[10px] font-black text-indigo-200 uppercase tracking-wide leading-tight">
+                                  {(user.role || "CUSTOM").replace("_", " ")}
+                                </span>
+                                {user?.companyId?.name && (
+                                  <span className="text-[9px] font-bold text-white/60 uppercase tracking-tighter mt-0.5">
+                                    ({user.companyId.name})
+                                  </span>
+                                )}
+                              </>
+                            )}
+                            <div className="flex items-center gap-1.5 mt-2">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"></span>
+                              <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">
                                 Online
                               </span>
                             </div>
@@ -2990,27 +3003,27 @@ function DashboardContent() {
               )}
 
               {/* Overview Tab */}
-              <TabsContent value="overview" className="space-y-6">
+              <TabsContent value="overview" className="space-y-4 sm:space-y-6">
                 {/* Dashboard Headers & Quick Stats */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-2 sm:gap-3">
                   {/* Statistical KPI Cards */}
                   <>
                     {/* Total Grievances */}
                     {hasPermission(user, Permission.READ_GRIEVANCE) && (
-                      <Card
-                        onClick={() => setActiveTab("grievances")}
-                        className="min-h-[8.5rem] sm:min-h-[9.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(15,23,42,0.1)]"
-                      >
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-[#2f5aa6] bg-slate-50/70 px-4 py-4 pb-3">
-                          <CardTitle className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-[0.16em] text-slate-400">
+                        <Card
+                          onClick={() => setActiveTab("grievances")}
+                          className="min-h-[6.5rem] sm:min-h-[8.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_20px_rgba(15,23,42,0.04)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_25px_rgba(15,23,42,0.08)]"
+                        >
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-[#2f5aa6] bg-slate-50/70 px-3 py-3 pb-2">
+                          <CardTitle className="text-[8px] sm:text-[9px] font-extrabold uppercase tracking-[0.16em] text-slate-400">
                             {isDFO ? "Total Incidents" : "Total Grievances"}
                           </CardTitle>
-                          <div className="rounded-md bg-indigo-50 p-1.5">
-                            <FileText className="h-3.5 w-3.5 text-indigo-500" />
+                          <div className="rounded-md bg-indigo-50 p-1">
+                            <FileText className="h-3 w-3 text-indigo-500" />
                           </div>
                         </CardHeader>
-                        <CardContent className="px-4 pb-3 pt-2">
-                          <div className="text-[2rem] font-extrabold leading-none tracking-tight text-slate-800 tabular-nums">
+                        <CardContent className="px-3 pb-2 pt-1.5">
+                          <div className="text-[1.75rem] font-extrabold leading-none tracking-tight text-slate-800 tabular-nums">
                             {loadingStats ? (
                               <LoadingDots />
                             ) : (
@@ -3041,18 +3054,18 @@ function DashboardContent() {
                             overdueStatus: "overdue",
                           }));
                         }}
-                        className="min-h-[8.5rem] sm:min-h-[9.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(15,23,42,0.1)]"
+                        className="min-h-[6.5rem] sm:min-h-[8.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_20px_rgba(15,23,42,0.04)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_25px_rgba(15,23,42,0.08)]"
                       >
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-[#2f5aa6] bg-slate-50/70 px-4 py-4 pb-3">
-                          <CardTitle className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-[0.16em] text-slate-400">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-[#2f5aa6] bg-slate-50/70 px-3 py-3 pb-2">
+                          <CardTitle className="text-[8px] sm:text-[9px] font-extrabold uppercase tracking-[0.16em] text-slate-400">
                             {isDFO ? "Critical Alerts" : "Overdue Grievances"}
                           </CardTitle>
-                          <div className="rounded-md bg-amber-50 p-1.5">
-                            <Clock className="h-3.5 w-3.5 text-amber-500" />
+                          <div className="rounded-md bg-amber-50 p-1">
+                            <Clock className="h-3 w-3 text-amber-500" />
                           </div>
                         </CardHeader>
-                        <CardContent className="px-4 pb-3 pt-2">
-                          <div className="text-[2rem] font-extrabold leading-none tracking-tight text-amber-600 tabular-nums">
+                        <CardContent className="px-3 pb-2 pt-1.5">
+                          <div className="text-[1.75rem] font-extrabold leading-none tracking-tight text-amber-600 tabular-nums">
                             {loadingStats ? (
                               <LoadingDots />
                             ) : (
@@ -3076,7 +3089,7 @@ function DashboardContent() {
                             status: "RESOLVED",
                           }));
                         }}
-                        className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer min-h-[8.5rem] sm:min-h-[9.5rem]"
+                        className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer min-h-[7rem] sm:min-h-[9.5rem]"
                       >
                         <CardHeader className="p-3 sm:p-5 pb-1 sm:pb-1 space-y-0 flex flex-row items-center justify-between">
                           <CardTitle className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
@@ -3103,13 +3116,50 @@ function DashboardContent() {
                       </Card>
                     )}
 
+                    {/* Total Rejected */}
+                    {hasPermission(user, Permission.READ_GRIEVANCE) && (
+                      <Card
+                        onClick={() => {
+                          setActiveTab("grievances");
+                          setGrievanceFilters((prev) => ({
+                            ...prev,
+                            status: "REJECTED",
+                          }));
+                        }}
+                        className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer min-h-[7rem] sm:min-h-[9.5rem]"
+                      >
+                        <CardHeader className="p-3 sm:p-5 pb-1 sm:pb-1 space-y-0 flex flex-row items-center justify-between">
+                          <CardTitle className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                            Rejected Grievances
+                          </CardTitle>
+                          <div className="p-1 sm:p-1.5 bg-rose-50 rounded-lg">
+                            <XCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-rose-500" />
+                          </div>
+                        </CardHeader>
+                        <CardContent className="px-3 sm:px-6 pb-2 pt-1">
+                          <div className="text-xl sm:text-2xl font-black text-rose-600 tabular-nums leading-none">
+                            {loadingStats ? (
+                              <LoadingDots />
+                            ) : (
+                              stats?.grievances.rejected || 0
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 mt-1.5">
+                            <span className="text-[8px] sm:text-[9px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded-full">
+                              Declined
+                            </span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
                     {/* Total Appointments */}
                     {hasModule(Module.APPOINTMENT) &&
                       isViewingCompany &&
                       hasPermission(user, Permission.READ_APPOINTMENT) && (
                         <Card
                           onClick={() => setActiveTab("appointments")}
-                          className="min-h-[8.5rem] sm:min-h-[9.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(15,23,42,0.1)]"
+                          className="min-h-[7rem] sm:min-h-[9.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(15,23,42,0.1)]"
                         >
                           <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-[#2f5aa6] bg-slate-50/70 px-4 py-4 pb-3">
                             <CardTitle className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-[0.16em] text-slate-400">
@@ -3143,7 +3193,7 @@ function DashboardContent() {
                           <>
                             <Card
                               onClick={() => setActiveTab("departments")}
-                              className="min-h-[8.5rem] sm:min-h-[9.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(15,23,42,0.1)]"
+                              className="min-h-[7rem] sm:min-h-[9.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(15,23,42,0.1)]"
                             >
                               <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-[#2f5aa6] bg-slate-50/70 px-4 py-4 pb-3">
                                 <CardTitle className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-[0.16em] text-slate-400">
@@ -3168,7 +3218,7 @@ function DashboardContent() {
                             </Card>
                             <Card
                               onClick={() => setActiveTab("departments")}
-                              className="min-h-[8.5rem] sm:min-h-[9.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(15,23,42,0.1)]"
+                              className="min-h-[7rem] sm:min-h-[9.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(15,23,42,0.1)]"
                             >
                               <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-[#2f5aa6] bg-slate-50/70 px-4 py-4 pb-3">
                                 <CardTitle className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-[0.16em] text-indigo-400">
@@ -3195,7 +3245,7 @@ function DashboardContent() {
                         ) : (
                           <Card
                             onClick={() => setActiveTab("departments")}
-                            className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer min-h-[8.5rem] sm:min-h-[9.5rem]"
+                            className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer min-h-[7rem] sm:min-h-[9.5rem]"
                           >
                             <CardHeader className="p-3 sm:p-5 pb-1 sm:pb-1 space-y-0 flex flex-row items-center justify-between">
                               <CardTitle className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
@@ -3233,7 +3283,7 @@ function DashboardContent() {
                               status: "REVERTED",
                             }));
                           }}
-                          className="min-h-[8.5rem] sm:min-h-[9.5rem] cursor-pointer overflow-hidden rounded-xl border border-rose-200/70 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(244,63,94,0.12)]"
+                          className="min-h-[7rem] sm:min-h-[9.5rem] cursor-pointer overflow-hidden rounded-xl border border-rose-200/70 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(244,63,94,0.12)]"
                         >
                           <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-[#2f5aa6] bg-slate-50/70 px-4 py-4 pb-3">
                             <CardTitle className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-[0.16em] text-slate-400">
@@ -3279,7 +3329,7 @@ function DashboardContent() {
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <span className="px-4 py-1.5 rounded-lg bg-white/20 border border-white/30 text-white text-xs font-bold uppercase tracking-wide shadow-sm">
+                          <span className="px-1.5 sm:px-3 py-1 rounded-lg bg-white/10 backdrop-blur-md border border-white/20 text-white text-[9px] sm:text-[11px] font-black uppercase tracking-wider shadow-sm truncate max-w-[80px] sm:max-w-none inline-flex items-center">
                             {company?.companyType || <LoadingDots />}
                           </span>
                         </div>
@@ -3701,7 +3751,7 @@ function DashboardContent() {
                         {/* 1. Inbound Grievances */}
                         <div
                           onClick={() => setActiveTab("grievances")}
-                          className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-indigo-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden min-h-[8.5rem] sm:min-h-[9.5rem]"
+                          className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-indigo-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden min-h-[7rem] sm:min-h-[9.5rem]"
                         >
                           <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-indigo-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
                           <div className="relative">
@@ -3737,7 +3787,7 @@ function DashboardContent() {
                               overdueStatus: "overdue",
                             }));
                           }}
-                          className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-amber-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden min-h-[8.5rem] sm:min-h-[9.5rem]"
+                          className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-amber-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden min-h-[7rem] sm:min-h-[9.5rem]"
                         >
                           <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-amber-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
                           <div className="relative">
@@ -3767,7 +3817,7 @@ function DashboardContent() {
                               status: "RESOLVED",
                             }));
                           }}
-                          className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-emerald-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden min-h-[8.5rem] sm:min-h-[9.5rem]"
+                          className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-emerald-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden min-h-[7rem] sm:min-h-[9.5rem]"
                         >
                           <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-emerald-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
                           <div className="relative">
@@ -3787,6 +3837,36 @@ function DashboardContent() {
                             </p>
                           </div>
                         </div>
+
+                        {/* 4. Rejected Grievances */}
+                        <div
+                          onClick={() => {
+                            setActiveTab("grievances");
+                            setGrievanceFilters((prev) => ({
+                              ...prev,
+                              status: "REJECTED",
+                            }));
+                          }}
+                          className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-rose-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden min-h-[7rem] sm:min-h-[9.5rem]"
+                        >
+                          <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-rose-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
+                          <div className="relative">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-rose-50 rounded-lg flex items-center justify-center text-rose-600 border border-rose-100/50 shadow-sm transition-all group-hover:bg-rose-600 group-hover:text-white">
+                                <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                              </div>
+                              <div className="flex items-center gap-1 text-[8px] sm:text-[9px] font-black text-rose-600 bg-rose-50 px-1.5 sm:px-2 py-1 rounded-lg uppercase tracking-tight">
+                                Declined
+                              </div>
+                            </div>
+                            <h4 className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                              Rejected Grievances
+                            </h4>
+                            <p className="text-xl sm:text-2xl font-black text-rose-600 tracking-tighter leading-none">
+                              {stats?.grievances.rejected || 0}
+                            </p>
+                          </div>
+                        </div>
                       </>
                     )}
 
@@ -3795,7 +3875,7 @@ function DashboardContent() {
                         {/* 4. Total Appointments */}
                         <div
                           onClick={() => setActiveTab("appointments")}
-                          className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-purple-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden min-h-[8.5rem] sm:min-h-[9.5rem]"
+                          className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-purple-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden min-h-[7rem] sm:min-h-[9.5rem]"
                         >
                           <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-purple-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
                           <div className="relative">
@@ -3819,7 +3899,7 @@ function DashboardContent() {
                         {/* 5. Pending Appointments */}
                         <div
                           onClick={() => setActiveTab("appointments")}
-                          className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden min-h-[8.5rem] sm:min-h-[9.5rem]"
+                          className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden min-h-[7rem] sm:min-h-[9.5rem]"
                         >
                           <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-blue-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
                           <div className="relative">
@@ -3843,7 +3923,7 @@ function DashboardContent() {
                         {/* 6. Completed Appointments */}
                         <div
                           onClick={() => setActiveTab("appointments")}
-                          className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-emerald-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden min-h-[8.5rem] sm:min-h-[9.5rem]"
+                          className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-emerald-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden min-h-[7rem] sm:min-h-[9.5rem]"
                         >
                           <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-emerald-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
                           <div className="relative">
@@ -3976,7 +4056,7 @@ function DashboardContent() {
                             </div>
                             <div>
                               <h3 className="text-[12px] font-black text-slate-800 uppercase tracking-tight leading-none">
-                                Operational Status
+                                Grievance Operational Status
                               </h3>
                               <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter mt-0.5">
                                 Real-time efficiency
@@ -4309,8 +4389,8 @@ function DashboardContent() {
                     )}
 
                     {/* Staff by Role */}
-                    {/* Staff by Role Distribution - Hidden for Operators */}
-                    {!isOperatorRole && (
+                    {/* Staff by Role Distribution - Visible only to Company Admins & Higher */}
+                    {(isCompanyAdminRole || isSuperAdminUser) && (
                       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
                         <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-3">
                         <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
@@ -5183,20 +5263,22 @@ function DashboardContent() {
                                 Add Department
                               </Button>
                             )}
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                setShowDepartmentFiltersOnMobile(
-                                  (prev) => !prev,
-                                )
-                              }
-                              className="md:hidden border-slate-200 hover:bg-slate-50 rounded-xl whitespace-nowrap"
-                              title="Toggle filters"
-                            >
-                              <Filter className="w-4 h-4 mr-1.5" />
-                              Filters
-                            </Button>
+                            {!(isDepartmentAdminRole || isSubDepartmentAdminRole || isOperatorRole) && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  setShowDepartmentFiltersOnMobile(
+                                    (prev) => !prev,
+                                  )
+                                }
+                                className="md:hidden border-slate-200 hover:bg-slate-50 rounded-xl whitespace-nowrap"
+                                title="Toggle filters"
+                              >
+                                <Filter className="w-4 h-4 mr-1.5" />
+                                Filters
+                              </Button>
+                            )}
                             <Button
                               variant="outline"
                               size="sm"
@@ -5236,90 +5318,94 @@ function DashboardContent() {
                           className={cn(
                             "gap-3 md:items-center",
                             showDepartmentFiltersOnMobile
-                              ? "flex flex-col"
-                              : "hidden md:flex md:flex-row md:flex-nowrap",
+                              ? "flex flex-col space-y-2 p-3 bg-slate-50/50 rounded-2xl border border-slate-200/60 mt-1"
+                              : "hidden md:flex md:flex-row md:items-center md:flex-nowrap",
                           )}
                         >
-                          <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-slate-200">
-                            <Filter className="w-4 h-4 text-indigo-500" />
-                            <span className="text-sm font-semibold text-slate-700">
-                              Filters
-                            </span>
-                          </div>
+                          {!(isDepartmentAdminRole || isSubDepartmentAdminRole || isOperatorRole) && (
+                            <>
+                              <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-slate-200">
+                                <Filter className="w-4 h-4 text-indigo-500" />
+                                <span className="text-sm font-semibold text-slate-700">
+                                  Filters
+                                </span>
+                              </div>
 
-                          <div className="flex w-full flex-col md:flex-row md:items-center gap-2 flex-wrap flex-1 pb-1 md:pb-0">
-                            <select
-                              value={deptFilters.type}
-                              onChange={(e) =>
-                                setDeptFilters((prev) => ({
-                                  ...prev,
-                                  type: e.target.value,
-                                }))
-                              }
-                              className="w-full md:w-auto text-xs px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer min-w-[130px] font-medium"
-                              title="Filter by department type"
-                            >
-                              <option value="">🏢 All Types</option>
-                              <option value="main">Main Dept</option>
-                              <option value="sub">Sub Dept</option>
-                            </select>
+                              <div className="flex w-full flex-col sm:flex-row sm:items-center gap-2 sm:flex-nowrap flex-1 pb-1 sm:pb-0">
+                                <select
+                                  value={deptFilters.type}
+                                  onChange={(e) =>
+                                    setDeptFilters((prev) => ({
+                                      ...prev,
+                                      type: e.target.value,
+                                    }))
+                                  }
+                                  className="w-full md:w-auto text-xs px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer min-w-[130px] font-medium"
+                                  title="Filter by department type"
+                                >
+                                  <option value="">🏢 All Types</option>
+                                  <option value="main">Main Dept</option>
+                                  <option value="sub">Sub Dept</option>
+                                </select>
 
-                            <select
-                              value={deptFilters.status}
-                              onChange={(e) =>
-                                setDeptFilters((prev) => ({
-                                  ...prev,
-                                  status: e.target.value,
-                                }))
-                              }
-                              className="w-full md:w-auto text-xs px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer min-w-[130px] font-medium"
-                              title="Filter by status"
-                            >
-                              <option value="">📊 All Status</option>
-                              <option value="active">Active</option>
-                              <option value="inactive">Inactive</option>
-                            </select>
+                                <select
+                                  value={deptFilters.status}
+                                  onChange={(e) =>
+                                    setDeptFilters((prev) => ({
+                                      ...prev,
+                                      status: e.target.value,
+                                    }))
+                                  }
+                                  className="w-full md:w-auto text-xs px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer min-w-[130px] font-medium"
+                                  title="Filter by status"
+                                >
+                                  <option value="">📊 All Status</option>
+                                  <option value="active">Active</option>
+                                  <option value="inactive">Inactive</option>
+                                </select>
 
-                            <DashboardDepartmentFilters 
-                              allDepartments={allDepartments}
-                              getParentDepartmentId={getParentDepartmentId}
-                              onFiltersChange={(filters) => {
-                                setDeptFilters((prev) => ({
-                                  ...prev,
-                                  mainDeptId: filters.mainDeptId,
-                                  subDeptId: filters.subDeptId,
-                                }));
-                                setDepartmentPage(1);
-                              }}
-                              currentFilters={deptFilters}
-                              className="w-full md:w-auto"
-                            />
+                                <DashboardDepartmentFilters 
+                                  allDepartments={allDepartments}
+                                  getParentDepartmentId={getParentDepartmentId}
+                                  onFiltersChange={(filters) => {
+                                    setDeptFilters((prev) => ({
+                                      ...prev,
+                                      mainDeptId: filters.mainDeptId,
+                                      subDeptId: filters.subDeptId,
+                                    }));
+                                    setDepartmentPage(1);
+                                  }}
+                                  currentFilters={deptFilters}
+                                  className="w-full md:w-auto"
+                                />
 
-                            {(deptFilters.type ||
-                              deptFilters.status ||
-                              deptFilters.mainDeptId ||
-                              deptFilters.subDeptId ||
-                              deptSearch.trim()) && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setDeptSearch("");
-                                  setDeptFilters({
-                                    type: "",
-                                    status: "",
-                                    mainDeptId: "",
-                                    subDeptId: "",
-                                  });
-                                }}
-                                className="h-8 px-3 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl border border-red-200"
-                                title="Clear all filters"
-                              >
-                                <X className="w-3.5 h-3.5 mr-1.5" />
-                                Clear
-                              </Button>
-                            )}
-                          </div>
+                                {(deptFilters.type ||
+                                  deptFilters.status ||
+                                  deptFilters.mainDeptId ||
+                                  deptFilters.subDeptId ||
+                                  deptSearch.trim()) && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      setDeptSearch("");
+                                      setDeptFilters({
+                                        type: "",
+                                        status: "",
+                                        mainDeptId: "",
+                                        subDeptId: "",
+                                      });
+                                    }}
+                                    className="h-8 px-3 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl border border-red-200"
+                                    title="Clear all filters"
+                                  >
+                                    <X className="w-3.5 h-3.5 mr-1.5" />
+                                    Clear
+                                  </Button>
+                                )}
+                              </div>
+                            </>
+                          )}
 
                           {/* Pagination Limit & Count */}
                           <div className="flex items-center gap-3 ml-0 md:ml-auto shrink-0 w-full md:w-auto justify-between md:justify-start">
@@ -5356,12 +5442,16 @@ function DashboardContent() {
                       </div>
                       <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/20">
                         <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                          <span className="px-2 py-1 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-lg">
-                            {filteredDeptCounts.mainCount} Main
-                          </span>
-                          <span className="px-2 py-1 bg-slate-100 text-slate-600 border border-slate-200 rounded-lg">
-                            {filteredDeptCounts.subCount} Sub
-                          </span>
+                          {!isDepartmentAdminRole && (
+                            <>
+                              <span className="px-2 py-1 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-lg">
+                                {filteredDeptCounts.mainCount} Main
+                              </span>
+                              <span className="px-2 py-1 bg-slate-100 text-slate-600 border border-slate-200 rounded-lg">
+                                {filteredDeptCounts.subCount} Sub
+                              </span>
+                            </>
+                          )}
                           {isSuperAdminUser && selectedDepartments.size > 0 && (
                             <Button
                               variant="destructive"
@@ -5529,19 +5619,19 @@ function DashboardContent() {
                                         </td>
 
                                         {/* Department Name */}
-                                        <td className="px-4 py-4">
-                                          <div className="flex items-center gap-3">
+                                        <td className="px-3 py-3 sm:px-4 sm:py-4">
+                                          <div className="flex items-center gap-2.5">
                                             <div
-                                              className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                                              className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
                                                 isMain
                                                   ? "bg-indigo-50 text-indigo-600 border border-indigo-100"
                                                   : "bg-slate-100 text-slate-500 border border-slate-200"
                                               }`}
                                             >
-                                              <Building className="w-3.5 h-3.5" />
+                                              <Building className="w-3 h-3" />
                                             </div>
                                             <div>
-                                              <div className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                                              <div className="text-[13px] sm:text-sm font-bold text-slate-900 flex items-center gap-1.5">
                                                 {dept.name}
                                               </div>
                                               {!isMain && parentName && (
@@ -6081,18 +6171,20 @@ function DashboardContent() {
                                   Add User
                                 </Button>
                               )}
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                  setShowUserFiltersOnMobile((prev) => !prev)
-                                }
-                                className="md:hidden border-slate-200 hover:bg-slate-50 rounded-xl whitespace-nowrap"
-                                title="Toggle filters"
-                              >
-                                <Filter className="w-4 h-4 mr-1.5" />
-                                Filters
-                              </Button>
+                              {!(isDepartmentAdminRole || isSubDepartmentAdminRole || isOperatorRole) && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() =>
+                                    setShowUserFiltersOnMobile((prev) => !prev)
+                                  }
+                                  className="md:hidden border-slate-200 hover:bg-slate-50 rounded-xl whitespace-nowrap"
+                                  title="Toggle filters"
+                                >
+                                  <Filter className="w-4 h-4 mr-1.5" />
+                                  Filters
+                                </Button>
+                              )}
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -6132,9 +6224,9 @@ function DashboardContent() {
                           {/* Filters Row */}
                           <div
                             className={cn(
-                              "gap-3 md:items-center",
+                              "gap-4 md:items-center",
                               showUserFiltersOnMobile
-                                ? "flex flex-col"
+                                ? "flex flex-col space-y-3 p-4 bg-slate-100/50 rounded-2xl border border-slate-200/60 mt-2 shadow-inner"
                                 : "hidden md:flex md:flex-row md:flex-wrap",
                             )}
                           >
@@ -6145,7 +6237,7 @@ function DashboardContent() {
                               </span>
                             </div>
 
-                            <div className="flex w-full flex-col md:flex-row md:items-center gap-2 flex-wrap flex-1 pb-1 md:pb-0">
+                            <div className="flex w-full flex-col md:flex-row md:items-center gap-3 flex-wrap flex-1 pb-1 md:pb-0">
                               <select
                                 value={userFilters.role}
                                 onChange={(e) => {

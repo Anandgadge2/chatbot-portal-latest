@@ -295,12 +295,12 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
           <div className="relative flex items-center justify-between">
             <DialogHeader className="relative">
               <DialogTitle className="text-base font-bold text-white flex items-center gap-3 uppercase tracking-tight">
-                <div className="w-9 h-9 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
-                  <UserIcon className="w-4 h-4 text-indigo-400" />
+                <div className="w-10 h-10 bg-indigo-500/30 rounded-xl flex items-center justify-center border border-indigo-500/50 shadow-inner backdrop-blur-sm">
+                  <UserIcon className="w-5 h-5 text-indigo-50" />
                 </div>
                 Edit User
               </DialogTitle>
-              <DialogDescription className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+              <DialogDescription className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">
                 Update staff information and access settings
               </DialogDescription>
             </DialogHeader>

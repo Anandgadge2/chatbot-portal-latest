@@ -47,28 +47,32 @@ export const DashboardDepartmentFilters: React.FC<DepartmentFiltersProps> = ({
   ];
 
   return (
-    <div className={`flex flex-wrap items-center gap-2 ${className}`}>
-      <SearchableSelect
-        options={mainDeptOptions}
-        value={currentFilters.mainDeptId}
-        onValueChange={(val) =>
-          onFiltersChange({ mainDeptId: val, subDeptId: "" })
-        }
-        placeholder={mainPlaceholder}
-        className="w-full md:w-auto min-w-[150px]"
-        triggerClassName="font-medium"
-      />
-      <SearchableSelect
-        options={subDeptOptions}
-        value={currentFilters.subDeptId}
-        onValueChange={(val) =>
-          onFiltersChange({ ...currentFilters, subDeptId: val })
-        }
-        disabled={!currentFilters.mainDeptId}
-        placeholder={subPlaceholder}
-        className="w-full md:w-auto min-w-[150px]"
-        triggerClassName="font-medium"
-      />
+    <div className={`flex flex-col sm:flex-row items-stretch sm:items-center gap-2 ${className}`}>
+      <div className="flex-1 min-w-0 sm:min-w-[180px] lg:min-w-[220px]">
+        <SearchableSelect
+          options={mainDeptOptions}
+          value={currentFilters.mainDeptId}
+          onValueChange={(val) =>
+            onFiltersChange({ mainDeptId: val, subDeptId: "" })
+          }
+          placeholder={mainPlaceholder}
+          className="w-full"
+          triggerClassName="h-10 px-4 group-hover:border-indigo-300 transition-all"
+        />
+      </div>
+      <div className="flex-1 min-w-0 sm:min-w-[180px] lg:min-w-[220px]">
+        <SearchableSelect
+          options={subDeptOptions}
+          value={currentFilters.subDeptId}
+          onValueChange={(val) =>
+            onFiltersChange({ ...currentFilters, subDeptId: val })
+          }
+          disabled={!currentFilters.mainDeptId}
+          placeholder={subPlaceholder}
+          className="w-full"
+          triggerClassName="h-10 px-4 group-hover:border-indigo-300 transition-all"
+        />
+      </div>
     </div>
   );
 };

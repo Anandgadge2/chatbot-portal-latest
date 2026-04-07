@@ -46,15 +46,35 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
 
       if (uniqueUserDepts.length > 0 && !isSuperAdmin && currentUser.level !== 1) {
         // Hierarchical scoping: include all sub-departments
-        const { getDepartmentHierarchyIds } = await import('../utils/departmentUtils');
-        const deptIds = await getDepartmentHierarchyIds(uniqueUserDepts);
+        const Department = (await import('../models/Department')).default;
+        const subDeptIds = await Department.find({ 
+          parentDepartmentId: { $in: uniqueUserDepts }
+        }).distinct('_id');
         
-        // Multi-tenant Visibility Rule:
-        // Users see: 1. Their department chain, 2. GLOBAL personnel (Admins with no dept)
-        query.$or = [
-          { departmentIds: { $in: [...deptIds, null] } },
-          { departmentIds: { $exists: false } }
-        ];
+        const authorizedDeptIds = [...uniqueUserDepts, ...subDeptIds.map(id => id.toString())];
+        
+        if (departmentId) {
+          // Drill-down within authorized scope
+          const filterDeptIds = typeof departmentId === 'string' && departmentId.includes(',') 
+            ? departmentId.split(',') 
+            : [departmentId];
+          
+          // Intersection: only allow filtering by departments the user is authorized to see
+          const validFilterIds = filterDeptIds.filter(id => authorizedDeptIds.includes(id as string));
+          
+          if (validFilterIds.length > 0) {
+            query.departmentIds = { $in: validFilterIds };
+          } else {
+            // If requested departments are outside scope, restrict to authorized scope
+            query.departmentIds = { $in: authorizedDeptIds };
+          }
+        } else {
+          // General hierarchical visibility: Their department chain + Global personnel
+          query.$or = [
+            { departmentIds: { $in: [...authorizedDeptIds, null] } },
+            { departmentIds: { $exists: false } }
+          ];
+        }
       } else if (departmentId) {
         // Even Company Admins or Super Admins in drilldown can filter by department
         const filterDeptIds = typeof departmentId === 'string' && departmentId.includes(',') 
@@ -101,7 +121,7 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
           { nameHi: { $regex: search as string, $options: 'i' } },
           { nameOr: { $regex: search as string, $options: 'i' } },
           { nameMr: { $regex: search as string, $options: 'i' } },
-          { departmentIds: { $regex: search as string, $options: 'i' } }
+          { departmentId: { $regex: search as string, $options: 'i' } }
         ]
       }).select('_id');
       

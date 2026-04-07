@@ -89,7 +89,7 @@ const RoleSchema: Schema = new Schema(
     createdBy: {
       type: Schema.Types.ObjectId,
       ref: 'User',
-      required: true
+      required: false
     },
     updatedBy: {
       type: Schema.Types.ObjectId,

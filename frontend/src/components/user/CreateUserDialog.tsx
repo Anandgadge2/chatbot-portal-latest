@@ -17,7 +17,7 @@ import { companyAPI, Company } from "@/lib/api/company";
 import { departmentAPI, Department } from "@/lib/api/department";
 import { roleAPI, Role } from "@/lib/api/role";
 import { useAuth } from "@/contexts/AuthContext";
-import { UserRole, UserRoleType, Permission, hasPermission, isSuperAdmin } from "@/lib/permissions";
+import { UserRole, UserRoleType, Permission, hasPermission, isSuperAdmin, isCompanyAdminOrHigher } from "@/lib/permissions";
 import toast from "react-hot-toast";
 import {
   validatePhoneNumber,
@@ -409,14 +409,14 @@ export default function CreateUserDialog({
         <CardHeader className="bg-slate-900 px-6 py-4 border-b border-slate-800">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-md border border-white/20 shadow-inner">
-                <Users className="w-5 h-5 text-gray-400" />
+              <div className="w-10 h-10 bg-indigo-500/30 rounded-xl flex items-center justify-center border border-indigo-500/50 shadow-inner backdrop-blur-sm">
+                <Users className="w-5 h-5 text-indigo-50" />
               </div>
               <div>
                 <CardTitle className="text-base font-bold text-white uppercase tracking-tight">
                   {editingUser ? "Modify Personnel Profile" : "Initialize New Personnel"}
                 </CardTitle>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">
                   Global Authorization Registry
                 </p>
               </div>
@@ -553,7 +553,7 @@ export default function CreateUserDialog({
                 </div>
             )}
 
-            {!hideDepartmentSelection && (
+            {!hideDepartmentSelection && isCompanyAdminOrHigher(user) && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50">
                   <div className="flex items-center gap-3">
@@ -570,7 +570,7 @@ export default function CreateUserDialog({
                   />
                 </div>
 
-                {!isMultiDept ? (
+                {!isMultiDept && isCompanyAdminOrHigher(user) ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
                       <div>
                           <Label>Main Department</Label>

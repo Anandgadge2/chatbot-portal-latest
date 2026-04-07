@@ -69,7 +69,7 @@ app.use(helmet({
 }));
 
 // CORS - Allow localhost in dev, and all Vercel deployments in production
-const DEFAULT_FRONTEND_ORIGIN = 'https://chatbot-portal-frontend.vercel.app';
+const DEFAULT_FRONTEND_ORIGIN = 'https://connect.pugarch.in';
 const DEV_ORIGINS = ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:3001', 'http://127.0.0.1:3001'];
 const frontendUrl = process.env.FRONTEND_URL;
 const isProduction = process.env.NODE_ENV === 'production';

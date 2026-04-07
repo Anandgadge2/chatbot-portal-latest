@@ -150,6 +150,7 @@ export const dashboard = async (req: Request, res: Response) => {
       resolvedGrievances,
       assignedGrievancesCount,
       revertedGrievances,
+      rejectedGrievances,
       totalAppointments,
       requestedAppointments,
       scheduledAppointments,
@@ -178,6 +179,7 @@ export const dashboard = async (req: Request, res: Response) => {
       Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.RESOLVED }),
       Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.ASSIGNED }),
       Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.REVERTED }),
+      Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.REJECTED }),
       
       Appointment.countDocuments({ ...baseQuery }),
       Appointment.countDocuments({ ...baseQuery, status: AppointmentStatus.REQUESTED }),
@@ -487,6 +489,7 @@ export const dashboard = async (req: Request, res: Response) => {
           pending: pendingGrievances,
           assigned: assignedGrievances,
           reverted: revertedGrievances,
+          rejected: rejectedGrievances,
           inProgress: assignedGrievancesCount, // For backward compatibility
           resolved: resolvedGrievances,
           last7Days: grievancesLast7Days,
