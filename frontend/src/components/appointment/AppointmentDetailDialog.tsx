@@ -103,23 +103,23 @@ const AppointmentDetailDialog: React.FC<AppointmentDetailDialogProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-[2px] p-2 sm:p-4">
-      <div className="w-full max-w-2xl max-h-[92vh] sm:max-h-[85vh] overflow-hidden rounded-2xl shadow-2xl bg-white border border-slate-200 animate-in fade-in zoom-in duration-200 flex flex-col">
+      <div className="w-full max-w-3xl max-h-[94vh] sm:max-h-[90vh] overflow-hidden rounded-2xl shadow-2xl bg-white border border-slate-200 animate-in fade-in zoom-in duration-200 flex flex-col">
         {/* Modern Header */}
         <div className="bg-slate-900 px-5 py-4 flex items-center justify-between gap-4 flex-shrink-0 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 opacity-50"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-sky-500/10 to-cyan-500/10 opacity-50"></div>
           
           <div className="flex items-center gap-3 min-w-0 relative z-10">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br ${statusConfig.gradient} shadow-lg shadow-black/20`}>
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br ${statusConfig.gradient} shadow-lg shadow-black/20`}>
               {statusConfig.icon}
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h2 className="text-sm font-black text-white uppercase tracking-tight">#{appointment.appointmentId}</h2>
-                <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border border-current bg-opacity-10 ${statusConfig.text.replace('text-', 'bg-')} ${statusConfig.text}`}>
+                <h2 className="text-base font-black text-white uppercase tracking-tight">#{appointment.appointmentId}</h2>
+                <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-widest border border-current bg-opacity-10 ${statusConfig.text.replace('text-', 'bg-')} ${statusConfig.text}`}>
                   {statusConfig.label}
                 </span>
               </div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+              <p className="text-xs font-bold text-slate-300 uppercase tracking-widest mt-0.5">
                 Booked {timeAgo} • Created {formatDate(createdDate)}
               </p>
             </div>
@@ -144,9 +144,9 @@ const AppointmentDetailDialog: React.FC<AppointmentDetailDialogProps> = ({
              <button
                key={tab.id}
                onClick={() => setActiveTab(tab.id)}
-               className={`flex items-center gap-2 px-4 py-3 text-[10px] font-black uppercase tracking-widest transition-all border-b-2 -mb-[1px] relative whitespace-nowrap ${
+               className={`flex items-center gap-2 px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-all border-b-2 -mb-[1px] relative whitespace-nowrap ${
                  activeTab === tab.id 
-                   ? "border-indigo-600 text-indigo-600 bg-white shadow-[0_-4px_0_inset_rgba(79,70,229,0.05)]" 
+                   ? "border-sky-600 text-sky-700 bg-white shadow-[0_-4px_0_inset_rgba(2,175,241,0.08)]" 
                    : "border-transparent text-slate-400 hover:text-slate-600 hover:bg-slate-100"
                }`}
              >
