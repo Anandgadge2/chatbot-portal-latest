@@ -600,12 +600,12 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_GRIEVANCE, 
     await grievance.save();
 
     if (oldStatus !== status) {
-      // Hierarchy notifications are still useful here if this route is called directly,
-      // but to prevent double messaging when using the unified status update,
-      // we check if it's already handled. However, removing it for citizens is the main goal.
-      // We'll keep hierarchy update for now but remove citizen update.
-      const { notifyHierarchyOnStatusChange } = await import('../services/notificationService');
-      
+      const {
+        notifyHierarchyOnStatusChange,
+        notifyCitizenOnGrievanceStatusChange,
+        notifyCitizenOnResolution
+      } = await import('../services/notificationService');
+
       const payload = {
         type: 'grievance' as const,
         action: 'status_change' as any,
@@ -614,6 +614,7 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_GRIEVANCE, 
         citizenPhone: grievance.citizenPhone,
         citizenWhatsApp: grievance.citizenWhatsApp,
         departmentId: grievance.departmentId,
+        subDepartmentId: grievance.subDepartmentId,
         companyId: grievance.companyId,
         assignedTo: grievance.assignedTo,
         resolvedAt: grievance.resolvedAt,
@@ -624,6 +625,25 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_GRIEVANCE, 
       };
 
       await notifyHierarchyOnStatusChange(payload, oldStatus, status).catch(e => console.error('Admin notification failed:', e));
+
+      if (status === GrievanceStatus.RESOLVED) {
+        await notifyCitizenOnResolution(payload).catch(e => console.error('Citizen resolution notification failed:', e));
+      } else {
+        await notifyCitizenOnGrievanceStatusChange({
+          companyId: grievance.companyId,
+          grievanceId: grievance.grievanceId,
+          citizenName: grievance.citizenName,
+          citizenPhone: grievance.citizenPhone,
+          citizenWhatsApp: grievance.citizenWhatsApp,
+          description: grievance.description,
+          departmentId: grievance.departmentId,
+          subDepartmentId: grievance.subDepartmentId,
+          newStatus: status,
+          remarks: remarks || '',
+          createdAt: grievance.createdAt,
+          timeline: grievance.timeline
+        }).catch(e => console.error('Citizen status notification failed:', e));
+      }
     }
 
     await logUserAction(
@@ -705,26 +725,34 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
     grievance.assignedAt = new Date();
     grievance.status = GrievanceStatus.ASSIGNED;
 
-    // Auto-update department based on assigned user's department
-    if (assignedUser.departmentId && (!oldDepartmentId || oldDepartmentId.toString() !== assignedUser.departmentId.toString())) {
-      grievance.departmentId = assignedUser.departmentId as any;
-      
-      // Fetch department name for the timeline
-      const targetDept = await Department.findById(assignedUser.departmentId);
-      
-      // Add department transfer event to timeline
-      grievance.timeline.push({
-        action: 'DEPARTMENT_TRANSFER',
-        details: {
-          fromDepartmentId: oldDepartmentId,
-          toDepartmentId: assignedUser.departmentId,
-          toDepartmentName: targetDept?.name || 'Department',
-          toUserName: assignedUser.getFullName(),
-          reason: 'Auto-updated during reassignment'
-        },
-        performedBy: req.user!._id,
-        timestamp: new Date()
-      });
+    // Auto-update department/sub-department based on assigned user's mapped department
+    if (assignedUser.departmentId) {
+      const targetDept = await Department.findById(assignedUser.departmentId).select('_id name parentDepartmentId');
+      if (targetDept) {
+        const nextDepartmentId = targetDept.parentDepartmentId ? targetDept.parentDepartmentId : targetDept._id;
+        const nextSubDepartmentId = targetDept.parentDepartmentId ? targetDept._id : undefined;
+
+        const departmentChanged = !oldDepartmentId || oldDepartmentId.toString() !== nextDepartmentId.toString();
+        if (departmentChanged) {
+          grievance.departmentId = nextDepartmentId as any;
+          grievance.subDepartmentId = nextSubDepartmentId as any;
+
+          // Add department transfer event to timeline
+          grievance.timeline.push({
+            action: 'DEPARTMENT_TRANSFER',
+            details: {
+              fromDepartmentId: oldDepartmentId,
+              toDepartmentId: nextDepartmentId,
+              toSubDepartmentId: nextSubDepartmentId || null,
+              toDepartmentName: targetDept?.name || 'Department',
+              toUserName: assignedUser.getFullName(),
+              reason: 'Auto-updated during reassignment'
+            },
+            performedBy: req.user!._id,
+            timestamp: new Date()
+          });
+        }
+      }
     }
 
     // Add to status history

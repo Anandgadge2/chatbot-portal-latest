@@ -125,23 +125,34 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
     grievance.assignedTo = assignedUser._id;
     grievance.assignedAt = new Date();
     
-    // Auto-update department based on assigned user's department
-    // If the assigned user belongs to a different department than the current one
-    if (assignedUser.departmentIds && assignedUser.departmentIds.length > 0 && (!oldDepartmentId || !assignedUser.departmentIds.some(id => id.toString() === oldDepartmentId.toString()))) {
-      const firstDeptId = assignedUser.departmentIds[0];
-      grievance.departmentId = assignedUser.departmentId as any;
-      
-      // Add department transfer event
-      grievance.timeline.push({
-        action: 'DEPARTMENT_TRANSFER',
-        details: {
-          fromDepartmentId: oldDepartmentId,
-          toDepartmentId: firstDeptId,
-          reason: 'Auto-updated during reassignment'
-        },
-        performedBy: currentUser._id,
-        timestamp: new Date()
-      });
+    // Auto-update department/sub-department based on assigned user's mapped department
+    if (assignedUser.departmentId) {
+      const targetDept = await (await import('../models/Department')).default
+        .findById(assignedUser.departmentId)
+        .select('_id name parentDepartmentId');
+
+      if (targetDept) {
+        const nextDepartmentId = targetDept.parentDepartmentId ? targetDept.parentDepartmentId : targetDept._id;
+        const nextSubDepartmentId = targetDept.parentDepartmentId ? targetDept._id : undefined;
+
+        if (!oldDepartmentId || oldDepartmentId.toString() !== nextDepartmentId.toString()) {
+          grievance.departmentId = nextDepartmentId as any;
+          grievance.subDepartmentId = nextSubDepartmentId as any;
+
+          // Add department transfer event
+          grievance.timeline.push({
+            action: 'DEPARTMENT_TRANSFER',
+            details: {
+              fromDepartmentId: oldDepartmentId,
+              toDepartmentId: nextDepartmentId,
+              toSubDepartmentId: nextSubDepartmentId || null,
+              reason: 'Auto-updated during reassignment'
+            },
+            performedBy: currentUser._id,
+            timestamp: new Date()
+          });
+        }
+      }
     } else if (departmentId && (!oldDepartmentId || oldDepartmentId.toString() !== departmentId)) {
         // Manual department update if provided
         grievance.departmentId = departmentId;
@@ -172,7 +183,7 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
     await grievance.save();
 
     // Notify assigned user (fire and forget - don't block response)
-    import('../services/notificationService').then(({ notifyUserOnAssignment }) => {
+    import('../services/notificationService').then(({ notifyUserOnAssignment, notifyCitizenOnGrievanceStatusChange }) => {
       notifyUserOnAssignment({
         type: 'grievance',
         action: 'assigned',
@@ -190,6 +201,21 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
         createdAt: grievance.createdAt,
         timeline: grievance.timeline
       }).catch(err => console.error('Failed to send assignment notification:', err));
+
+      notifyCitizenOnGrievanceStatusChange({
+        companyId: grievance.companyId,
+        grievanceId: grievance.grievanceId,
+        citizenName: grievance.citizenName,
+        citizenPhone: grievance.citizenPhone,
+        citizenWhatsApp: grievance.citizenWhatsApp,
+        description: grievance.description,
+        departmentId: grievance.departmentId,
+        subDepartmentId: grievance.subDepartmentId,
+        newStatus: 'ASSIGNED',
+        remarks: `Your grievance has been assigned to ${assignedUser.getFullName()} for resolution.`,
+        createdAt: grievance.createdAt,
+        timeline: grievance.timeline
+      }).catch(err => console.error('Failed to send citizen assignment status notification:', err));
     });
 
     // Log action (fire and forget - don't block response)
