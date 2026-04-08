@@ -1197,12 +1197,12 @@
         "buttons": [
           {
             "id": "main_dept_yes_en",
-            "text": "✅ Yes (Main Department)",
+            "text": "✅ Yes (Main Dept)",
             "type": "quick_reply"
           },
           {
             "id": "main_dept_no_en",
-            "text": "❌ No (Choose Sub-Department)",
+            "text": "❌ No (Sub-Dept)",
             "type": "quick_reply"
           }
         ]
@@ -1236,12 +1236,12 @@
         "buttons": [
           {
             "id": "main_dept_yes_hi",
-            "text": "✅ हाँ (मुख्य विभाग)",
+            "text": "✅ हाँ (मुख्य)",
             "type": "quick_reply"
           },
           {
             "id": "main_dept_no_hi",
-            "text": "❌ नहीं (उप-विभाग चुनें)",
+            "text": "❌ नहीं (उप-विभाग)",
             "type": "quick_reply"
           }
         ]
@@ -1275,12 +1275,12 @@
         "buttons": [
           {
             "id": "main_dept_yes_or",
-            "text": "✅ ହଁ (ମୁଖ୍ୟ ବିଭାଗ)",
+            "text": "✅ ହଁ (ମୁଖ୍ୟ)",
             "type": "quick_reply"
           },
           {
             "id": "main_dept_no_or",
-            "text": "❌ ନା (ଉପ-ବିଭାଗ ବାଛନ୍ତୁ)",
+            "text": "❌ ନା (ଉପ-ବିଭାଗ)",
             "type": "quick_reply"
           }
         ]

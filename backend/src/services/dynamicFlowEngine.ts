@@ -1339,7 +1339,7 @@ export class DynamicFlowEngine {
         step.apiConfig;
 
       // Build URL with query parameters for GET requests (replace placeholders in body values e.g. {appointmentDate})
-      url = this.replacePlaceholders(endpoint);
+      url = this.replacePlaceholders(endpoint, false);
       console.log(`🔗 Resolved API URL: ${url}`);
       if (method === "GET" && body) {
         const queryParams = new URLSearchParams();
@@ -1347,7 +1347,7 @@ export class DynamicFlowEngine {
           if (body[key] !== null && body[key] !== undefined) {
             const value =
               typeof body[key] === "string"
-                ? this.replacePlaceholders(body[key])
+                ? this.replacePlaceholders(body[key], false)
                 : body[key].toString();
             queryParams.append(key, value);
           }
@@ -1407,11 +1407,11 @@ export class DynamicFlowEngine {
 
       if (body && method !== "GET") {
         const bodyStr = JSON.stringify(body);
-        options.body = this.replacePlaceholders(bodyStr);
+        options.body = this.replacePlaceholders(bodyStr, false);
       }
 
       // Replace placeholders in URL (e.g., {companyId})
-      url = this.replacePlaceholders(url);
+      url = this.replacePlaceholders(url, false);
 
       // Node fetch needs absolute URL for same-server API calls
       if (url.startsWith("/")) {
@@ -1905,72 +1905,62 @@ export class DynamicFlowEngine {
    * Example: "Hello {citizenName}, your ticket is {ticketId}"
    * Dynamic values come from session.data (set by backend when creating grievance/appointment or from API step for track).
    */
-  private replacePlaceholders(template: string): string {
-    let message = template;
-
-    // Build comprehensive replacement map from session data
+  private replacePlaceholders(template: string, isMessage: boolean = true): string {
     const sessionData = this.session.data;
-
-    // Handle confirmation message department/sub-dept formatting
-    const deptDisplay =
-      sessionData.departmentName || sessionData.category || "";
+    const cidFromObj = this.company.companyId || (this.company._id ? this.company._id.toString() : "");
+    const deptDisplay = sessionData.departmentName || sessionData.category || "";
     const subDeptDisplay = sessionData.subDepartmentName || "";
 
-    // Replace session data placeholders (flat keys from session)
-    const placeholderRegex = /\{([^}]+)\}/g;
-    message = message.replace(placeholderRegex, (match, key) => {
+    const getReplacement = (key: string): string | null => {
+      if (key === 'companyId') return cidFromObj;
+      if (key === 'department') return deptDisplay;
+      if (key === 'subDepartment' || key === 'subDepartmentName') return subDeptDisplay;
+      if (key === 'companyName') return this.company.name || "";
+      if (key === 'websiteUrl') return this.company.website || "Digital Portal";
+      if (key === 'companyAddress') return this.company.address || "Office Headquarters";
+      if (key === 'helplineNumber') return this.company.helplineNumber || "For support, reply Help";
+
+      if (key === 'id') {
+        const id = sessionData.id || sessionData.grievanceId || sessionData.appointmentId || sessionData.leadId;
+        return id ? String(id) : null;
+      }
+
+      const now = new Date();
+      if (key === 'date') return sessionData.date ?? now.toLocaleDateString("en-IN", { timeZone: 'Asia/Kolkata' });
+      if (key === 'time') return sessionData.time ?? now.toLocaleTimeString("en-IN", { timeZone: 'Asia/Kolkata' });
+
       const val = sessionData[key];
-      return val != null && val !== "" ? String(val) : match;
+      return val != null && val !== "" ? String(val) : null;
+    };
+
+    let processedTemplate = template;
+
+    if (isMessage) {
+      // If a line contains a placeholder that evaluates to empty/null, remove the line entirely
+      const lines = template.split('\n');
+      const processedLines = lines.filter(line => {
+        const placeholderRegex = /\{([a-zA-Z_0-9]+)\}/g;
+        let match;
+        while ((match = placeholderRegex.exec(line)) !== null) {
+          const key = match[1];
+          const val = getReplacement(key);
+          if (!val) { // null, undefined, or ""
+            return false;
+          }
+        }
+        return true;
+      });
+      processedTemplate = processedLines.join('\n');
+    }
+
+    let message = processedTemplate.replace(/\{([a-zA-Z_0-9]+)\}/g, (match, key) => {
+      const val = getReplacement(key);
+      if (val != null) return val;
+      return isMessage ? "" : match;
     });
 
-    // Replace special placeholders that may not be in session.data directly
-    const cidFromObj =
-      this.company.companyId ||
-      (this.company._id ? this.company._id.toString() : "");
-    message = message.replace(/\{companyId\}/g, cidFromObj || "{companyId}");
-    message = message.replace(
-      /\{id\}/g,
-      sessionData.id ||
-        sessionData.grievanceId ||
-        sessionData.appointmentId ||
-        sessionData.leadId ||
-        "{id}",
-    );
-    message = message.replace(
-      /\{date\}/g,
-      sessionData.date ?? new Date().toLocaleDateString("en-IN", { timeZone: 'Asia/Kolkata' }),
-    );
-    message = message.replace(
-      /\{time\}/g,
-      sessionData.time ?? new Date().toLocaleTimeString("en-IN", { timeZone: 'Asia/Kolkata' }),
-    );
-    message = message.replace(/\{companyName\}/g, this.company.name);
-    // Extra aliases used in confirmation steps
-    message = message.replace(/\{department\}/g, deptDisplay);
-    message = message.replace(/\{subDepartment\}/g, subDeptDisplay);
-    message = message.replace(/\{subDepartmentName\}/g, subDeptDisplay);
-    message = message.replace(
-      /\{description\}/g,
-      sessionData.description || "",
-    );
-    message = message.replace(
-      /\{citizenName\}/g,
-      sessionData.citizenName || "",
-    );
-    message = message.replace(
-      /\{websiteUrl\}/g,
-      this.company.website || "Digital Portal",
-    );
-    message = message.replace(
-      /\{companyAddress\}/g,
-      this.company.address || "Office Headquarters",
-    );
-    message = message.replace(
-      /\{helplineNumber\}/g,
-      this.company.helplineNumber || "For support, reply Help",
-    );
-    // Remove any remaining unresolved placeholders that would look ugly to the user
-    message = message.replace(/\{[a-zA-Z_]+\}/g, "");
+    // Remove any remaining unresolved placeholders (legacy behavior)
+    message = message.replace(/\{[a-zA-Z_0-9]+\}/g, "");
 
     return message;
   }
