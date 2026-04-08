@@ -13,7 +13,10 @@
     "commands": {
       "stop": {
         "keywords": [
-          "stop","Stop","End","Exit",
+          "stop",
+          "Stop",
+          "End",
+          "Exit",
           "exit",
           "quit",
           "end",
@@ -32,7 +35,8 @@
       },
       "restart": {
         "keywords": [
-          "restart","Restart",
+          "restart",
+          "Restart",
           "reset",
           "start again",
           "begin again",
@@ -69,7 +73,9 @@
       },
       "back": {
         "keywords": [
-          "back","Back","Previous",
+          "back",
+          "Back",
+          "Previous",
           "go back",
           "previous",
           "undo",
@@ -1177,6 +1183,123 @@
         "label": "Appointment Success (OR)",
         "messageText": ""
       }
+    },
+    {
+      "id": "grv_main_or_sub_en",
+      "type": "buttonMessage",
+      "position": {
+        "x": 1650,
+        "y": 0
+      },
+      "data": {
+        "label": "Main or Sub Dept (EN)",
+        "messageText": "🏢 *Department Routing*\n\nDo you want to raise this grievance to the *main department* only?\n\n👉 Select *Yes* to continue with main department only.\n👉 Select *No* to choose a sub-department.",
+        "buttons": [
+          {
+            "id": "main_dept_yes_en",
+            "text": "✅ Yes (Main Department)",
+            "type": "quick_reply"
+          },
+          {
+            "id": "main_dept_no_en",
+            "text": "❌ No (Choose Sub-Department)",
+            "type": "quick_reply"
+          }
+        ]
+      }
+    },
+    {
+      "id": "grv_subdept_en",
+      "type": "listMessage",
+      "position": {
+        "x": 1900,
+        "y": 100
+      },
+      "data": {
+        "label": "Sub Dept Selection (EN)",
+        "messageText": "🏢 *Sub-Department Selection*\n\nPlease select the relevant sub-department:",
+        "buttonText": "Select Sub-Department",
+        "isDynamic": true,
+        "dynamicSource": "sub-departments"
+      }
+    },
+    {
+      "id": "grv_main_or_sub_hi",
+      "type": "buttonMessage",
+      "position": {
+        "x": 1650,
+        "y": 400
+      },
+      "data": {
+        "label": "Main or Sub Dept (HI)",
+        "messageText": "🏢 *विभाग रूटिंग*\n\nक्या आप इस शिकायत को केवल *मुख्य विभाग* को भेजना चाहते हैं?\n\n👉 केवल मुख्य विभाग के लिए *हाँ* चुनें।\n👉 उप-विभाग चुनने के लिए *नहीं* चुनें।",
+        "buttons": [
+          {
+            "id": "main_dept_yes_hi",
+            "text": "✅ हाँ (मुख्य विभाग)",
+            "type": "quick_reply"
+          },
+          {
+            "id": "main_dept_no_hi",
+            "text": "❌ नहीं (उप-विभाग चुनें)",
+            "type": "quick_reply"
+          }
+        ]
+      }
+    },
+    {
+      "id": "grv_subdept_hi",
+      "type": "listMessage",
+      "position": {
+        "x": 1900,
+        "y": 500
+      },
+      "data": {
+        "label": "Sub Dept Selection (HI)",
+        "messageText": "🏢 *उप-विभाग चयन*\n\nकृपया संबंधित उप-विभाग चुनें:",
+        "buttonText": "उप-विभाग चुनें",
+        "isDynamic": true,
+        "dynamicSource": "sub-departments"
+      }
+    },
+    {
+      "id": "grv_main_or_sub_or",
+      "type": "buttonMessage",
+      "position": {
+        "x": 1650,
+        "y": 800
+      },
+      "data": {
+        "label": "Main or Sub Dept (OR)",
+        "messageText": "🏢 *ବିଭାଗ ରାଉଟିଂ*\n\nଆପଣ ଏହି ଅଭିଯୋଗକୁ କେବଳ *ମୁଖ୍ୟ ବିଭାଗ* କୁ ପଠାଇବାକୁ ଚାହୁଁଛନ୍ତି କି?\n\n👉 କେବଳ ମୁଖ୍ୟ ବିଭାଗ ପାଇଁ *ହଁ* ବାଛନ୍ତୁ।\n👉 ଉପ-ବିଭାଗ ବାଛିବାକୁ *ନା* ବାଛନ୍ତୁ।",
+        "buttons": [
+          {
+            "id": "main_dept_yes_or",
+            "text": "✅ ହଁ (ମୁଖ୍ୟ ବିଭାଗ)",
+            "type": "quick_reply"
+          },
+          {
+            "id": "main_dept_no_or",
+            "text": "❌ ନା (ଉପ-ବିଭାଗ ବାଛନ୍ତୁ)",
+            "type": "quick_reply"
+          }
+        ]
+      }
+    },
+    {
+      "id": "grv_subdept_or",
+      "type": "listMessage",
+      "position": {
+        "x": 1900,
+        "y": 900
+      },
+      "data": {
+        "label": "Sub Dept Selection (OR)",
+        "messageText": "🏢 *ଉପ-ବିଭାଗ ବାଛନ୍ତୁ*\n\nଦୟାକରି ସମ୍ପର୍କିତ ଉପ-ବିଭାଗ ବାଛନ୍ତୁ:",
+        "buttonText": "ଉପ-ବିଭାଗ ବାଛନ୍ତୁ",
+        "isDynamic": true,
+        "dynamicSource": "sub-departments"
+      }
     }
   ],
   "edges": [
@@ -1225,12 +1348,6 @@
       "id": "e_en_grv3",
       "source": "grv_name_en",
       "target": "grv_dept_en",
-      "type": "smoothstep"
-    },
-    {
-      "id": "e_en_grv4",
-      "source": "grv_dept_en",
-      "target": "grv_desc_en",
       "type": "smoothstep"
     },
     {
@@ -1286,12 +1403,6 @@
       "type": "smoothstep"
     },
     {
-      "id": "e_hi_grv4",
-      "source": "grv_dept_hi",
-      "target": "grv_desc_hi",
-      "type": "smoothstep"
-    },
-    {
       "id": "e_hi_grv6",
       "source": "grv_desc_hi",
       "target": "grv_evidence_hi",
@@ -1341,12 +1452,6 @@
       "id": "e_or_grv3",
       "source": "grv_name_or",
       "target": "grv_dept_or",
-      "type": "smoothstep"
-    },
-    {
-      "id": "e_or_grv4",
-      "source": "grv_dept_or",
-      "target": "grv_desc_or",
       "type": "smoothstep"
     },
     {
@@ -1599,6 +1704,84 @@
       "source": "apt_confirm_or",
       "target": "apt_success_or",
       "sourceHandle": "confirm_apt_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_en_grv_main_or_sub",
+      "source": "grv_dept_en",
+      "target": "grv_main_or_sub_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_en_grv_main_yes",
+      "source": "grv_main_or_sub_en",
+      "target": "grv_desc_en",
+      "sourceHandle": "main_dept_yes_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_en_grv_main_no",
+      "source": "grv_main_or_sub_en",
+      "target": "grv_subdept_en",
+      "sourceHandle": "main_dept_no_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_en_grv_sub_to_desc",
+      "source": "grv_subdept_en",
+      "target": "grv_desc_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_hi_grv_main_or_sub",
+      "source": "grv_dept_hi",
+      "target": "grv_main_or_sub_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_hi_grv_main_yes",
+      "source": "grv_main_or_sub_hi",
+      "target": "grv_desc_hi",
+      "sourceHandle": "main_dept_yes_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_hi_grv_main_no",
+      "source": "grv_main_or_sub_hi",
+      "target": "grv_subdept_hi",
+      "sourceHandle": "main_dept_no_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_hi_grv_sub_to_desc",
+      "source": "grv_subdept_hi",
+      "target": "grv_desc_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_or_grv_main_or_sub",
+      "source": "grv_dept_or",
+      "target": "grv_main_or_sub_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_or_grv_main_yes",
+      "source": "grv_main_or_sub_or",
+      "target": "grv_desc_or",
+      "sourceHandle": "main_dept_yes_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_or_grv_main_no",
+      "source": "grv_main_or_sub_or",
+      "target": "grv_subdept_or",
+      "sourceHandle": "main_dept_no_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_or_grv_sub_to_desc",
+      "source": "grv_subdept_or",
+      "target": "grv_desc_or",
       "type": "smoothstep"
     }
   ]
