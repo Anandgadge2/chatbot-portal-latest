@@ -21,7 +21,10 @@ export default function CreateFlowPage() {
   const router = useRouter();
   const { user } = useAuth();
 
-  const companyId = (params.companyId || params.id) as string;
+  const getParamValue = (value: string | string[] | undefined) =>
+    Array.isArray(value) ? value[0] : value ?? "";
+
+  const companyId = getParamValue((params.companyId || params.id) as string | string[] | undefined);
   const editFlowId = searchParams.get("edit");
   const isEditing = !!editFlowId;
 
@@ -77,10 +80,16 @@ export default function CreateFlowPage() {
   }, [editFlowId, companyId, router, searchParams]);
 
   useEffect(() => {
+    if (!companyId) {
+      toast.error("Invalid company context");
+      router.push("/dashboard");
+      return;
+    }
+
     if (isEditing) {
       loadFlowData();
     }
-  }, [isEditing, loadFlowData]);
+  }, [companyId, isEditing, loadFlowData, router]);
 
   const handleSave = useCallback(
     async (nodes: FlowNode[], edges: FlowEdge[]) => {
@@ -208,7 +217,7 @@ export default function CreateFlowPage() {
               <div className="hidden lg:flex flex-col items-end mr-3 border-r border-white/10 pr-4 text-[10px] font-black uppercase tracking-widest">
                 <span className="text-white/60">Architect Access</span>
                 <span className="text-indigo-400">
-                  Node: {companyId.substring(0, 8)}
+                  Node: {companyId ? companyId.substring(0, 8) : "Unknown"}
                 </span>
               </div>
               <Button
