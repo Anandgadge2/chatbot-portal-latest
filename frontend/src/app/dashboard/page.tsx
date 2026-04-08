@@ -439,17 +439,35 @@ function DashboardContent() {
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+    const trimmedNewPassword = passwordForm.newPassword.trim();
+    const trimmedConfirmPassword = passwordForm.confirmPassword.trim();
+
+    if (!trimmedNewPassword || !trimmedConfirmPassword) {
+      toast.error("Please enter and confirm your new password");
+      return;
+    }
+
+    if (trimmedNewPassword.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+
+    if (trimmedNewPassword !== trimmedConfirmPassword) {
       toast.error("Passwords do not match");
       return;
     }
     setUpdatingPassword(true);
     try {
       const response = await apiClient.put("/auth/profile", {
-        password: passwordForm.newPassword,
+        password: trimmedNewPassword,
       });
       if (response.data.success) {
-        toast.success("Password updated successfully");
+        const serverMessage = response.data?.message;
+        const successMessage =
+          typeof serverMessage === "string" && serverMessage.trim().toLowerCase() !== "profile updated successfully"
+            ? serverMessage
+            : "Password updated successfully";
+        toast.success(successMessage);
         setPasswordForm({ newPassword: "", confirmPassword: "" });
       }
     } catch (error: any) {
