@@ -2661,10 +2661,17 @@ export class DynamicFlowEngine {
               "sub-departments" ||
               (nextStep.listConfig as any)?.isDynamic === true ||
               nextStep.stepId?.includes("subdept"));
+          const isNextStepMainVsSubPrompt =
+            nextStep &&
+            nextStep.stepType === "buttons" &&
+            Array.isArray(nextStep.buttons) &&
+            nextStep.buttons.some((btn: any) =>
+              String(btn.id || "").startsWith("main_dept_"),
+            );
 
-          if (isNextStepDynamicSubDept) {
+          if (isNextStepDynamicSubDept || isNextStepMainVsSubPrompt) {
             console.log(
-              `⏩ Flow already has explicit sub-dept step (${nextFlowStepId}). Skipping auto-injection.`,
+              `⏩ Flow already has explicit department routing step (${nextFlowStepId}). Skipping auto-injection.`,
             );
             // Just advance normally to the next step which will handle the sub-depts
             const targetId = listMapping[rowId] || nextFlowStepId;
