@@ -465,7 +465,20 @@ function DashboardContent() {
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+    const trimmedNewPassword = passwordForm.newPassword.trim();
+    const trimmedConfirmPassword = passwordForm.confirmPassword.trim();
+
+    if (!trimmedNewPassword || !trimmedConfirmPassword) {
+      toast.error("Please enter and confirm your new password");
+      return;
+    }
+
+    if (trimmedNewPassword.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+
+    if (trimmedNewPassword !== trimmedConfirmPassword) {
       toast.error("Passwords do not match");
       return;
     }
@@ -475,23 +488,12 @@ function DashboardContent() {
     
     try {
       const response = await apiClient.put("/auth/profile", {
-        password: passwordForm.newPassword,
+        password: trimmedNewPassword,
       });
-      
-      // If we reach here, it's a 2xx success
-      toast.success("Password Reset Successful!", {
-        duration: 2000,
-        position: "top-right",
-        style: {
-          background: "#0f172a",
-          color: "#fff",
-          fontWeight: "bold",
-          borderRadius: "12px",
-          border: "1px solid #334155",
-          zIndex: 9999,
-        },
-      });
-      setPasswordForm({ newPassword: "", confirmPassword: "" });
+      if (response.data.success) {
+        toast.success("Password updated successfully");
+        setPasswordForm({ newPassword: "", confirmPassword: "" });
+      }
     } catch (error: any) {
       console.error("Password update error:", error);
       toast.error(error.response?.data?.message || "Failed to update security", {
