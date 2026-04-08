@@ -1218,7 +1218,7 @@
       "data": {
         "label": "Sub Dept Selection (EN)",
         "messageText": "🏢 *Sub-Department Selection*\n\nPlease select the relevant sub-department:",
-        "buttonText": "Select Sub-Department",
+        "buttonText": "Select Sub-Dept",
         "isDynamic": true,
         "dynamicSource": "sub-departments"
       }

@@ -437,7 +437,9 @@ export class DynamicFlowEngine {
               (step.listConfig as any)?.isDynamic === true);
 
           if (isDynamicSubDepts) {
-            const parentId = this.session.data.departmentId;
+            const parentId =
+              this.session.data.departmentId ||
+              this.session.data.lastParentDeptId;
             const prefix =
               step.stepId &&
               (step.stepId.startsWith("apt") ||
@@ -1584,6 +1586,7 @@ export class DynamicFlowEngine {
           else if (lang === "mr" && dept.nameMr) localizedName = dept.nameMr;
 
           this.session.data.departmentId = departmentId;
+          this.session.data.lastParentDeptId = departmentId;
           this.session.data.departmentName = localizedName;
           this.session.data.category = dept.name; // Use original name for category mapping if needed
           await updateSession(this.session);
@@ -2627,6 +2630,7 @@ export class DynamicFlowEngine {
             localizedName = department.nameMr;
 
           this.session.data.departmentId = departmentId;
+          this.session.data.lastParentDeptId = departmentId;
           this.session.data.departmentName = localizedName;
           this.session.data.category = department.name;
           delete this.session.data.subDepartmentId;
