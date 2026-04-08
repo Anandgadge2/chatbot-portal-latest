@@ -772,9 +772,11 @@ export class DynamicFlowEngine {
       ];
 
       // Update list mapping for sub-departments — reuse stepForSubDeptCheck
-      const subDeptMappingStepId = this.session.data.currentStepId;
+      const subDeptMappingStepId = step.stepId;
       const nextStepFromFlow = this.resolveNextStepId(subDeptMappingStepId);
 
+      this.session.data.currentStepId = step.stepId;
+      this.session.data.buttonMapping = {};
       this.session.data.listMapping = {};
       rows.forEach((row: any) => {
         this.session.data.listMapping[row.id] =
