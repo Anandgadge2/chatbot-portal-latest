@@ -785,7 +785,7 @@ export async function notifyDepartmentAdminOnCreation(
         };
 
         const notificationTasks: Promise<any>[] = [];
-        const dashboardUrl = `${process.env.FRONTEND_URL}/dashboard`;
+        const dashboardUrl = 'https://connect.pugarch.in/';
         const adminCta = { title: "Access Dashboard", url: dashboardUrl };
 
         // 📧 Email
@@ -901,7 +901,7 @@ export async function notifyCompanyAdminsOnRevert(
 
     if (!companyAdmins.length) return;
 
-    const dashboardUrl = `${process.env.FRONTEND_URL}/dashboard`;
+    const dashboardUrl = 'https://connect.pugarch.in/';
     const adminCta = { title: 'Access Dashboard', url: dashboardUrl };
 
     await Promise.allSettled(companyAdmins.map(async (user) => {
@@ -964,7 +964,7 @@ export async function notifyUserOnAssignment(
     }
 
     const actionKey = wasReverted ? 'reassigned_admin' : 'assigned_admin';
-    const dashboardUrl = `${process.env.FRONTEND_URL}/dashboard`;
+    const dashboardUrl = 'https://connect.pugarch.in/';
     const adminCta = { title: "Access Dashboard", url: dashboardUrl };
     const citizenPhones = [
       data.citizenWhatsApp?.replace(/\D/g, ''),
@@ -1259,7 +1259,7 @@ export async function notifyHierarchyOnStatusChange(
         : (data.type === 'appointment' ? 'appointment_scheduled' : `${data.type}_assigned`);
     
     // Determine if we should use CTA button
-    const dashboardUrl = `${process.env.FRONTEND_URL}/dashboard`;
+    const dashboardUrl = 'https://connect.pugarch.in/';
     const adminCta = { title: "Access Dashboard", url: dashboardUrl };
 
     // ✅ CONCURRENT NOTIFICATIONS

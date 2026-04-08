@@ -750,7 +750,7 @@ export function generateNotificationEmail(
     }
   `;
 
-  const dashboardLink = `${process.env.FRONTEND_URL}/dashboard`;
+  const dashboardLink = 'https://connect.pugarch.in/';
   const adminLinkHtml = isAdmin ? `
     <div class="admin-link-section">
       <p style="margin: 0 0 15px 0; font-size: 14px; color: #475569; font-weight: 600;">🔐 ADMIN ACCESS ONLY</p>
