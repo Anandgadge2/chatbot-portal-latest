@@ -156,45 +156,66 @@ export async function sendWhatsAppMessage(
  * ============================================================
  * SEND TEMPLATE MESSAGE (24-HOUR SAFE)
  * ============================================================
+ * Supports multi-component templates with variables in Header, Body, or Buttons.
  */
 export async function sendWhatsAppTemplate(
   company: any,
   to: string,
   templateName: string,
   parameters: string[] = [],
-  language: 'en' | 'hi' | 'mr' | 'or' = 'en'
+  language: 'en' | 'hi' | 'mr' | 'or' = 'en',
+  headerParam?: string,
+  buttonParam?: string
 ): Promise<any> {
   try {
     const { url, headers } = getWhatsAppConfig(company);
-
     const normalizedTo = normalizePhoneNumber(to);
+    
+    const components: any[] = [];
+
+    // 1. Handle Header Parameter (if any)
+    if (headerParam) {
+      components.push({
+        type: 'header',
+        parameters: [{ type: 'text', text: safeText(headerParam, 60) }]
+      });
+    }
+
+    // 2. Handle Body Parameters (standard)
+    if (parameters.length > 0) {
+      components.push({
+        type: 'body',
+        parameters: parameters.map(p => ({
+          type: 'text',
+          text: safeText(p, 1000)
+        }))
+      });
+    }
+
+    // 3. Handle Button Parameter (Dynamic URL or Quick Reply)
+    if (buttonParam) {
+      components.push({
+        type: 'button',
+        sub_type: 'url', // Most common for our app
+        index: '0',
+        parameters: [{ type: 'text', text: safeText(buttonParam, 255) }]
+      });
+    }
+
     const payload: any = {
       messaging_product: 'whatsapp',
       to: normalizedTo,
       type: 'template',
       template: {
         name: templateName,
-        language: { code: language }
+        language: { code: language },
+        components: components.length > 0 ? components : undefined
       }
     };
-
-    if (parameters.length > 0) {
-      payload.template.components = [
-        {
-          type: 'body',
-          parameters: parameters.map(p => ({
-            type: 'text',
-            text: safeText(p, 1000)
-          }))
-        }
-      ];
-    }
 
     const response = await axios.post(url, payload, { headers });
 
     console.log(`✅ [WhatsApp API] Template '${templateName}' sent to ${to} (${company.name})`);
-    
-    // Log to audit for SuperAdmin terminal
     await logOutgoingMessage(company, to, `Template: ${templateName}`, 'template');
 
     return {
@@ -207,8 +228,14 @@ export async function sendWhatsAppTemplate(
       action: 'send_template',
       templateName,
       to,
-      company: company?.name
+      company: company?.name,
+      payload: JSON.stringify(error.config?.data, null, 2)
     });
+
+    // CRITICAL: If parameters are missing, log the template structure hint
+    if (error?.response?.data?.error?.code === 131008) {
+      console.error(`   ⚠️ Mismatch detected for template '${templateName}'. Check variables in Header/Buttons in Meta Manager.`);
+    }
 
     return {
       success: false,

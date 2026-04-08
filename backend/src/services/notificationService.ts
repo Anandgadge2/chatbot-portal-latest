@@ -817,14 +817,17 @@ export async function notifyDepartmentAdminOnCreation(
             // Fallback to legacy text/CTA flow for other cases or if template send fails.
             let sentViaTemplate = false;
             if (data.type === 'grievance' && user.phone) {
-              const templateParams = [
-                fullData.companyName || company?.name || '',
-                fullData.recipientName || user.getFullName() || '',
+              // 🏗️ MAPPED STRUCTURE FOR META TEMPLATE:
+              // Header: {{1}} (Company Name)
+              // Body: {{1}}..{{7}} (Recipient, ID, Citizen, Dept, SubDept, Desc, Date)
+              const headerValue = fullData.companyName || company?.name || '';
+              const bodyParams = [
+                fullData.recipientName || user.getFullName() || 'Admin',
                 fullData.grievanceId || '',
                 fullData.citizenName || '',
                 fullData.departmentName || '',
-                fullData.subDepartmentName || '',
-                fullData.description || '',
+                fullData.subDepartmentName || 'N/A',
+                fullData.description || 'No description provided',
                 fullData.formattedDate || ''
               ];
 
@@ -832,8 +835,9 @@ export async function notifyDepartmentAdminOnCreation(
                 company,
                 user.phone,
                 'grievance_created_admin_v1',
-                templateParams,
-                'en'
+                bodyParams,
+                'en',
+                headerValue // Sent as header component param
               );
 
               if (templateResult?.success) {

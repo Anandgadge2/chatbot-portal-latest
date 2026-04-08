@@ -7,22 +7,24 @@ import Department from '../models/Department';
  */
 export async function getDepartmentHierarchyIds(departmentId: string | string[]): Promise<string[]> {
   const rootIds = Array.isArray(departmentId) ? departmentId : [departmentId];
-  const ids: string[] = [...rootIds];
-  
-  const findChildren = async (parentId: string) => {
-    const children = await Department.find({ parentDepartmentId: parentId }).select('_id');
+  const allIds = new Set<string>(rootIds.filter(Boolean));
+  let currentLevelIds = [...allIds];
+
+  while (currentLevelIds.length > 0) {
+    const children = await Department.find({ 
+      parentDepartmentId: { $in: currentLevelIds } 
+    }).select('_id');
+    
+    currentLevelIds = [];
     for (const child of children) {
       const childId = child._id.toString();
-      if (!ids.includes(childId)) {
-        ids.push(childId);
-        await findChildren(childId);
+      if (!allIds.has(childId)) {
+        allIds.add(childId);
+        currentLevelIds.push(childId);
       }
     }
-  };
-
-  for (const rootId of rootIds) {
-    if (rootId) await findChildren(rootId);
   }
-  return ids;
+
+  return Array.from(allIds);
 }
 

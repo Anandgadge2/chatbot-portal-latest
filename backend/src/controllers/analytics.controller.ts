@@ -143,7 +143,12 @@ export const dashboard = async (req: Request, res: Response) => {
     const pendingSlaCutoff = new Date(Date.now() - SLA_CONFIG[GrievanceStatus.PENDING] * 60 * 60 * 1000);
     const assignedSlaCutoff = new Date(Date.now() - SLA_CONFIG[GrievanceStatus.ASSIGNED] * 60 * 60 * 1000);
 
-    // 🚀 Performance Optimization: Parallelize all database queries
+    // Monthly trends (last 6 months) logic moved up for baseQuery reuse
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const normalizedCompanyId = targetCompanyId ? new mongoose.Types.ObjectId(targetCompanyId.toString()) : null;
+
+    // 🚀 Performance Optimization: Single Parallel Block for ALL queries (approx 35+ metrics)
     const [
       totalGrievances,
       pendingGrievances,
@@ -172,7 +177,16 @@ export const dashboard = async (req: Request, res: Response) => {
       resolvedToday,
       highPriorityPending,
       urgentPriorityPending,
-      deptCounts
+      deptCounts,
+      // Integrated analytics queries
+      avgResolutionTime,
+      grievancesByPriority,
+      appointmentsByDepartment,
+      monthlyGrievances,
+      monthlyAppointments,
+      usersByRole,
+      grievancesByDept,
+      activeUsers,
     ] = await Promise.all([
       Grievance.countDocuments({ ...baseQuery }),
       Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.PENDING }),
@@ -196,287 +210,46 @@ export const dashboard = async (req: Request, res: Response) => {
       
       Grievance.aggregate([
         { $match: { ...baseQuery, createdAt: { $gte: sevenDaysAgo } } },
-        {
-          $group: {
-            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-            count: { $sum: 1 }
-          }
-        },
+        { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, count: { $sum: 1 } } },
         { $sort: { _id: 1 } }
       ]),
       
       Appointment.aggregate([
         { $match: { ...baseQuery, createdAt: { $gte: sevenDaysAgo } } },
-        {
-          $group: {
-            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-            count: { $sum: 1 }
-          }
-        },
+        { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, count: { $sum: 1 } } },
         { $sort: { _id: 1 } }
       ]),
       
       Promise.all([
-        Grievance.countDocuments({
-          ...baseQuery,
-          status: GrievanceStatus.PENDING,
-          createdAt: { $lt: pendingSlaCutoff }
-        }),
-        Grievance.countDocuments({
-          ...baseQuery,
-          status: GrievanceStatus.ASSIGNED,
-          $or: [
-            { assignedAt: { $exists: true, $lt: assignedSlaCutoff } },
-            {
-              assignedAt: { $exists: false },
-              createdAt: { $lt: assignedSlaCutoff }
-            }
-          ]
-        })
-      ]).then(([pendingOverdueCount, assignedOverdueCount]) => ({
-        pendingOverdueCount,
-        assignedOverdueCount,
-        totalOverdueCount: pendingOverdueCount + assignedOverdueCount
-      })),
+        Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.PENDING, createdAt: { $lt: pendingSlaCutoff } }),
+        Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.ASSIGNED, $or: [{ assignedAt: { $exists: true, $lt: assignedSlaCutoff } }, { assignedAt: { $exists: false }, createdAt: { $lt: assignedSlaCutoff } }] })
+      ]).then(([p, a]) => ({ totalOverdueCount: p + a, pendingOverdueCount: p, assignedOverdueCount: a })),
+
       Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.ASSIGNED }),
-      
-      // Counts (Scoped to authorized departments for restricted admins)
-      Department.countDocuments({ 
-        companyId: targetCompanyId,
-        ...scopeFilter
-      }),
-        
-      User.countDocuments({ 
-        companyId: targetCompanyId,
-        ...userScopeFilter
-      }),
-
-      // Hierarchical Dept Counts (Scoped)
-      isHierarchicalEnabled ? Department.countDocuments({ 
-        companyId: targetCompanyId, 
-        ...scopeFilter,
-        $or: [{ parentDepartmentId: null }, { parentDepartmentId: { $exists: false } }] 
-      }) : Promise.resolve(0),
-      
-      isHierarchicalEnabled ? Department.countDocuments({ 
-        companyId: targetCompanyId, 
-        ...scopeFilter,
-        parentDepartmentId: { $ne: null } 
-      }) : Promise.resolve(0),
-
-      // More informative stats
+      Department.countDocuments({ companyId: targetCompanyId, ...scopeFilter }),
+      User.countDocuments({ companyId: targetCompanyId, ...userScopeFilter }),
+      isHierarchicalEnabled ? Department.countDocuments({ companyId: targetCompanyId, ...scopeFilter, $or: [{ parentDepartmentId: null }, { parentDepartmentId: { $exists: false } }] }) : Promise.resolve(0),
+      isHierarchicalEnabled ? Department.countDocuments({ companyId: targetCompanyId, ...scopeFilter, parentDepartmentId: { $ne: null } }) : Promise.resolve(0),
       Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.RESOLVED, resolvedAt: { $gte: new Date().setHours(0,0,0,0) } }),
       Grievance.countDocuments({ ...baseQuery, priority: 'HIGH', status: { $ne: GrievanceStatus.RESOLVED } }),
       Grievance.countDocuments({ ...baseQuery, priority: 'URGENT', status: { $ne: GrievanceStatus.RESOLVED } }),
-      targetCompanyId
-        ? User.aggregate([
-            { 
-              $match: { 
-                companyId: new mongoose.Types.ObjectId(targetCompanyId.toString()),
-                ...userScopeFilter
-              } 
-            },
-            { $unwind: { path: "$departmentIds", preserveNullAndEmptyArrays: true } },
-            { $group: { _id: { $ifNull: ["$departmentIds", "$departmentId"] }, count: { $sum: 1 } } }
-          ])
-        : Promise.resolve([])
+      targetCompanyId ? User.aggregate([{ $match: { companyId: new mongoose.Types.ObjectId(targetCompanyId.toString()), ...userScopeFilter } }, { $unwind: { path: "$departmentIds", preserveNullAndEmptyArrays: true } }, { $group: { _id: { $ifNull: ["$departmentIds", "$departmentId"] }, count: { $sum: 1 } } }]) : Promise.resolve([]),
+
+      // Integrated Aggregates
+      Grievance.aggregate([{ $match: { ...baseQuery, status: GrievanceStatus.RESOLVED, resolvedAt: { $exists: true } } }, { $project: { resolutionTime: { $divide: [{ $subtract: ['$resolvedAt', '$createdAt'] }, 86400000] } } }, { $group: { _id: null, avgDays: { $avg: '$resolutionTime' } } }]),
+      Grievance.aggregate([{ $match: { ...baseQuery } }, { $group: { _id: '$priority', count: { $sum: 1 } } }, { $sort: { count: -1 } }]),
+      Appointment.aggregate([{ $match: { ...baseQuery } }, { $group: { _id: { $ifNull: ['$subDepartmentId', '$departmentId'] }, count: { $sum: 1 }, completed: { $sum: { $cond: [{ $eq: ['$status', AppointmentStatus.COMPLETED] }, 1, 0] } } } }, { $lookup: { from: 'departments', localField: '_id', foreignField: '_id', as: 'department' } }, { $unwind: { path: '$department', preserveNullAndEmptyArrays: true } }, { $project: { departmentId: '$_id', departmentName: '$department.name', count: 1, completed: 1 } }, { $sort: { count: -1 } }]),
+      Grievance.aggregate([{ $match: { ...baseQuery, createdAt: { $gte: sixMonthsAgo } } }, { $group: { _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } }, count: { $sum: 1 }, resolved: { $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.RESOLVED] }, 1, 0] } } } }, { $sort: { _id: 1 } }]),
+      Appointment.aggregate([{ $match: { ...baseQuery, createdAt: { $gte: sixMonthsAgo } } }, { $group: { _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } }, count: { $sum: 1 }, completed: { $sum: { $cond: [{ $eq: ['$status', AppointmentStatus.COMPLETED] }, 1, 0] } } } }, { $sort: { _id: 1 } }]),
+      normalizedCompanyId ? User.aggregate([{ $match: { companyId: normalizedCompanyId, ...userScopeFilter } }, { $lookup: { from: 'roles', localField: 'customRoleId', foreignField: '_id', as: 'customRole' } }, { $unwind: { path: '$customRole', preserveNullAndEmptyArrays: true } }, { $group: { _id: { $ifNull: ['$customRole.name', 'Staff'] }, count: { $sum: 1 } } }, { $sort: { count: -1 } }]) : Promise.resolve([]),
+      Grievance.aggregate([{ $match: { ...baseQuery } }, { $group: { _id: { $ifNull: ['$subDepartmentId', '$departmentId'] }, total: { $sum: 1 }, pending: { $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.PENDING] }, 1, 0] } } } }, { $match: { _id: { $ne: null } } }, { $lookup: { from: 'departments', localField: '_id', foreignField: '_id', as: 'department' } }, { $unwind: { path: '$department', preserveNullAndEmptyArrays: true } }, { $project: { departmentId: '$_id', departmentName: { $ifNull: ['$department.name', 'Unknown Department'] }, total: 1, pending: 1 } }]),
+      normalizedCompanyId ? User.countDocuments({ companyId: normalizedCompanyId, ...userScopeFilter, isActive: true }) : Promise.resolve(0)
     ]);
 
-    // Calculate resolution rate
-    const resolutionRate = totalGrievances > 0 
-      ? ((resolvedGrievances / totalGrievances) * 100).toFixed(1)
-      : '0';
-
-    // Calculate completion rate
-    const completionRate = totalAppointments > 0
-      ? ((completedAppointments / totalAppointments) * 100).toFixed(1)
-      : '0';
-
-    // SLA compliance rate
-    const slaComplianceRate = totalGrievances > 0
-      ? (((totalGrievances - slaBreachedGrievances.totalOverdueCount) / totalGrievances) * 100).toFixed(1)
-      : '100';
-
-    // Monthly trends (last 6 months)
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-
-    const normalizedCompanyId = targetCompanyId
-      ? new mongoose.Types.ObjectId(targetCompanyId.toString())
-      : null;
-
-    const [
-      avgResolutionTime,
-      grievancesByPriority,
-      appointmentsByDepartment,
-      monthlyGrievances,
-      monthlyAppointments,
-      usersByRole,
-      grievancesByDept,
-      activeUsers,
-    ] = await Promise.all([
-      // Average resolution time (for resolved grievances)
-      Grievance.aggregate([
-        { $match: { ...baseQuery, status: GrievanceStatus.RESOLVED, resolvedAt: { $exists: true } } },
-        {
-          $project: {
-            resolutionTime: {
-              $divide: [
-                { $subtract: ['$resolvedAt', '$createdAt'] },
-                1000 * 60 * 60 * 24 // Convert to days
-              ]
-            }
-          }
-        },
-        {
-          $group: {
-            _id: null,
-            avgDays: { $avg: '$resolutionTime' }
-          }
-        }
-      ]),
-
-      // Grievances by priority (exclude deleted)
-      Grievance.aggregate([
-        { $match: { ...baseQuery } },
-        {
-          $group: {
-            _id: '$priority',
-            count: { $sum: 1 }
-          }
-        },
-        { $sort: { count: -1 } }
-      ]),
-
-      // Appointments by department (exclude deleted)
-      Appointment.aggregate([
-        { $match: { ...baseQuery } },
-        {
-          $group: {
-            _id: { $ifNull: ['$subDepartmentId', '$departmentId'] },
-            count: { $sum: 1 },
-            completed: {
-              $sum: { $cond: [{ $eq: ['$status', AppointmentStatus.COMPLETED] }, 1, 0] }
-            }
-          }
-        },
-        {
-          $lookup: {
-            from: 'departments',
-            localField: '_id',
-            foreignField: '_id',
-            as: 'department'
-          }
-        },
-        { $unwind: { path: '$department', preserveNullAndEmptyArrays: true } },
-        {
-          $project: {
-            departmentId: '$_id',
-            departmentName: '$department.name',
-            count: 1,
-            completed: 1
-          }
-        },
-        { $sort: { count: -1 } }
-      ]),
-
-      Grievance.aggregate([
-        { $match: { ...baseQuery, createdAt: { $gte: sixMonthsAgo } } },
-        {
-          $group: {
-            _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } },
-            count: { $sum: 1 },
-            resolved: {
-              $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.RESOLVED] }, 1, 0] }
-            }
-          }
-        },
-        { $sort: { _id: 1 } }
-      ]),
-
-      Appointment.aggregate([
-        { $match: { ...baseQuery, createdAt: { $gte: sixMonthsAgo } } },
-        {
-          $group: {
-            _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } },
-            count: { $sum: 1 },
-            completed: {
-              $sum: { $cond: [{ $eq: ['$status', AppointmentStatus.COMPLETED] }, 1, 0] }
-            }
-          }
-        },
-        { $sort: { _id: 1 } }
-      ]),
-
-      // 👤 User distribution by role (Across whole company/scope)
-      // This is more accurate than client-side grouping of paginated data
-      normalizedCompanyId
-        ? User.aggregate([
-            {
-              $match: {
-                companyId: normalizedCompanyId,
-                ...userScopeFilter
-              }
-            },
-            {
-              $lookup: {
-                from: 'roles',
-                localField: 'customRoleId',
-                foreignField: '_id',
-                as: 'customRole'
-              }
-            },
-            { $unwind: { path: '$customRole', preserveNullAndEmptyArrays: true } },
-            {
-              $group: {
-                _id: { $ifNull: ['$customRole.name', 'Staff'] }, // Default to 'Staff' for legacy or unassigned
-                count: { $sum: 1 }
-              }
-            },
-            { $sort: { count: -1 } }
-          ])
-        : Promise.resolve([]),
-
-      // Grievances by department (for per-card stats in multi-tenant view)
-      Grievance.aggregate([
-        { $match: { ...baseQuery } },
-        {
-          $group: {
-            _id: { $ifNull: ['$subDepartmentId', '$departmentId'] },
-            total: { $sum: 1 },
-            pending: {
-              $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.PENDING] }, 1, 0] }
-            }
-          }
-        },
-        { $match: { _id: { $ne: null } } }, // Filter out null departments to avoid blank bars
-        {
-          $lookup: {
-            from: 'departments',
-            localField: '_id',
-            foreignField: '_id',
-            as: 'department'
-          }
-        },
-        { $unwind: { path: '$department', preserveNullAndEmptyArrays: true } },
-        {
-          $project: {
-            departmentId: '$_id',
-            departmentName: { $ifNull: ['$department.name', 'Unknown Department'] },
-            total: 1,
-            pending: 1
-          }
-        }
-      ]),
-
-      userCount > 0 && normalizedCompanyId
-        ? User.countDocuments({
-            companyId: normalizedCompanyId,
-            ...userScopeFilter,
-            isActive: true
-          })
-        : Promise.resolve(0),
-    ]);
+    // Calculate rates
+    const resolutionRate = totalGrievances > 0 ? ((resolvedGrievances / totalGrievances) * 100).toFixed(1) : '0';
+    const completionRate = totalAppointments > 0 ? ((completedAppointments / totalAppointments) * 100).toFixed(1) : '0';
+    const slaComplianceRate = totalGrievances > 0 ? (((totalGrievances - slaBreachedGrievances.totalOverdueCount) / totalGrievances) * 100).toFixed(1) : '100';
 
     // 🔒 SECURITY: Restrict appointments to Company Admin+
     const canSeeAppointments = currentUser.isSuperAdmin || currentUser.level === 1;
@@ -490,7 +263,7 @@ export const dashboard = async (req: Request, res: Response) => {
           assigned: assignedGrievances,
           reverted: revertedGrievances,
           rejected: rejectedGrievances,
-          inProgress: assignedGrievancesCount, // For backward compatibility
+          inProgress: assignedGrievancesCount,
           resolved: resolvedGrievances,
           last7Days: grievancesLast7Days,
           last30Days: grievancesLast30Days,
@@ -511,7 +284,7 @@ export const dashboard = async (req: Request, res: Response) => {
         },
         appointments: canSeeAppointments ? {
           total: totalAppointments,
-          pending: requestedAppointments + scheduledAppointments, // REQUESTED + SCHEDULED
+          pending: requestedAppointments + scheduledAppointments,
           requested: requestedAppointments,
           scheduled: scheduledAppointments,
           confirmed: confirmedAppointments,
@@ -543,7 +316,7 @@ export const dashboard = async (req: Request, res: Response) => {
         subDepartments: subDepartmentCount,
         users: userCount,
         activeUsers,
-        resolvedToday: resolvedToday,
+        resolvedToday,
         highPriorityPending: highPriorityPending + urgentPriorityPending,
         isHierarchicalEnabled: !!isHierarchicalEnabled,
         deptCounts,
@@ -551,84 +324,158 @@ export const dashboard = async (req: Request, res: Response) => {
           const rawName = current._id || 'Unknown';
           const name = rawName.toString().replace(/_/g, ' ').toUpperCase();
           const existing = acc.find(a => a.name === name);
-          if (existing) {
-            existing.count += current.count;
-          } else {
-            acc.push({ name, count: current.count });
-          }
+          if (existing) { existing.count += current.count; } else { acc.push({ name, count: current.count }); }
           return acc;
         }, []).sort((a: any, b: any) => b.count - a.count)
       }
     });
   } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch dashboard statistics',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Failed to fetch dashboard statistics', error: error.message });
   }
-
 };
 
 export const grievancesByDepartment = async (req: Request, res: Response) => {
   try {
-    const currentUser = req.user!;
     const { companyId } = req.query;
-
     const matchQuery = await getAnalyticsBaseQuery(req, companyId);
-
     const distribution = await Grievance.aggregate([
       { $match: matchQuery },
-      {
-        $group: {
-          _id: { $ifNull: ['$subDepartmentId', '$departmentId'] },
-          count: { $sum: 1 },
-          pending: {
-            $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.PENDING] }, 1, 0] }
-          },
-          resolved: {
-            $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.RESOLVED] }, 1, 0] }
-          }
-        }
-      },
-      {
-        $lookup: {
-          from: 'departments',
-          localField: '_id',
-          foreignField: '_id',
-          as: 'department'
-        }
-      },
+      { $group: { _id: { $ifNull: ['$subDepartmentId', '$departmentId'] }, count: { $sum: 1 }, pending: { $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.PENDING] }, 1, 0] } }, resolved: { $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.RESOLVED] }, 1, 0] } } } },
+      { $lookup: { from: 'departments', localField: '_id', foreignField: '_id', as: 'department' } },
       { $unwind: { path: '$department', preserveNullAndEmptyArrays: true } },
-      {
-        $project: {
-          departmentId: '$_id',
-          departmentName: '$department.name',
-          count: 1,
-          pending: 1,
-          resolved: 1
-        }
-      },
+      { $project: { departmentId: '$_id', departmentName: '$department.name', count: 1, pending: 1, resolved: 1 } },
       { $sort: { count: -1 } }
     ]);
-
-    res.json({
-      success: true,
-      data: distribution
-    });
+    res.json({ success: true, data: distribution });
   } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch department distribution',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Failed to fetch department distribution', error: error.message });
   }
-
 };
 
 export const grievancesByStatus = async (req: Request, res: Response) => {
   try {
-    const currentUser = req.user!;
+    const { companyId, departmentId } = req.query;
+    const matchQuery = await getAnalyticsBaseQuery(req, companyId, departmentId);
+    const distribution = await Grievance.aggregate([
+      { $match: matchQuery },
+      { $group: { _id: '$status', count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]);
+    res.json({ success: true, data: distribution });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to fetch status distribution', error: error.message });
+  }
+};
+
+export const grievancesTrends = async (req: Request, res: Response) => {
+  try {
+    const { companyId, departmentId, days = 30 } = req.query;
+    const matchQuery = await getAnalyticsBaseQuery(req, companyId, departmentId);
+    matchQuery.createdAt = { $gte: new Date(Date.now() - Number(days) * 24 * 60 * 60 * 1000) };
+    const trends = await Grievance.aggregate([
+      { $match: matchQuery },
+      { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, count: { $sum: 1 } } },
+      { $sort: { _id: 1 } }
+    ]);
+    res.json({ success: true, data: trends });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to fetch grievance trends', error: error.message });
+  }
+};
+
+export const appointmentsByDate = async (req: Request, res: Response) => {
+  try {
+    const { companyId, departmentId, days = 30 } = req.query;
+    const baseQuery = await getAnalyticsBaseQuery(req, companyId, departmentId);
+    const matchQuery: any = { ...baseQuery, appointmentDate: { $gte: new Date(Date.now() - Number(days) * 24 * 60 * 60 * 1000) } };
+    const distribution = await Appointment.aggregate([
+      { $match: matchQuery },
+      { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$appointmentDate' } }, count: { $sum: 1 }, scheduled: { $sum: { $cond: [{ $eq: ['$status', AppointmentStatus.SCHEDULED] }, 1, 0] } }, completed: { $sum: { $cond: [{ $eq: ['$status', AppointmentStatus.COMPLETED] }, 1, 0] } } } },
+      { $sort: { _id: 1 } }
+    ]);
+    res.json({ success: true, data: distribution });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to fetch appointment distribution', error: error.message });
+  }
+};
+
+export const performance = async (req: Request, res: Response) => {
+  try {
+    const { companyId, departmentId } = req.query;
+    const baseQuery = await getAnalyticsBaseQuery(req, companyId, departmentId);
+    const [topDepartments, topOperators] = await Promise.all([
+      Grievance.aggregate([
+        { $match: { ...baseQuery, departmentId: { $exists: true } } },
+        { $group: { _id: '$departmentId', total: { $sum: 1 }, resolved: { $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.RESOLVED] }, 1, 0] } } } },
+        { $lookup: { from: 'departments', localField: '_id', foreignField: '_id', as: 'department' } },
+        { $unwind: { path: '$department', preserveNullAndEmptyArrays: true } },
+        { $project: { departmentId: '$_id', departmentName: '$department.name', total: 1, resolved: 1, resolutionRate: { $cond: [{ $gt: ['$total', 0] }, { $multiply: [{ $divide: ['$resolved', '$total'] }, 100] }, 0] } } },
+        { $sort: { resolutionRate: -1 } },
+        { $limit: 10 }
+      ]),
+      Grievance.aggregate([
+        { $match: { ...baseQuery, assignedTo: { $exists: true }, status: GrievanceStatus.RESOLVED } },
+        { $group: { _id: '$assignedTo', resolved: { $sum: 1 }, avgResolutionDays: { $avg: { $divide: [{ $subtract: ['$resolvedAt', '$createdAt'] }, 86400000] } } } },
+        { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'user' } },
+        { $unwind: '$user' },
+        { $project: { operatorName: '$user.name', resolved: 1, avgResolutionDays: { $round: ['$avgResolutionDays', 1] } } },
+        { $sort: { resolved: -1 } },
+        { $limit: 10 }
+      ])
+    ]);
+    res.json({ success: true, data: { topDepartments, topOperators } });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to fetch performance statistics', error: error.message });
+  }
+};
+
+export const hourly = async (req: Request, res: Response) => {
+  try {
+    const { companyId, departmentId, days = 1 } = req.query;
+    const matchQuery = await getAnalyticsBaseQuery(req, companyId, departmentId);
+    const lookbackDays = Math.max(Number(days) || 1, 1);
+
+    matchQuery.createdAt = {
+      $gte: new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000)
+    };
+
+    const distribution = await Grievance.aggregate([
+      { $match: matchQuery },
+      {
+        $group: {
+          _id: { $hour: '$createdAt' },
+          count: { $sum: 1 },
+          pending: {
+            $sum: {
+              $cond: [{ $eq: ['$status', GrievanceStatus.PENDING] }, 1, 0]
+            }
+          },
+          resolved: {
+            $sum: {
+              $cond: [{ $eq: ['$status', GrievanceStatus.RESOLVED] }, 1, 0]
+            }
+          }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    res.json({
+      success: true,
+      data: distribution.map((entry) => ({
+        hour: entry._id,
+        count: entry.count,
+        pending: entry.pending,
+        resolved: entry.resolved
+      }))
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to fetch hourly analytics', error: error.message });
+  }
+};
+
+export const category = async (req: Request, res: Response) => {
+  try {
     const { companyId, departmentId } = req.query;
     const matchQuery = await getAnalyticsBaseQuery(req, companyId, departmentId);
 
@@ -636,323 +483,33 @@ export const grievancesByStatus = async (req: Request, res: Response) => {
       { $match: matchQuery },
       {
         $group: {
-          _id: '$status',
-          count: { $sum: 1 }
-        }
-      },
-      { $sort: { count: -1 } }
-    ]);
-
-    res.json({
-      success: true,
-      data: distribution
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch status distribution',
-      error: error.message
-    });
-  }
-
-};
-
-export const grievancesTrends = async (req: Request, res: Response) => {
-  try {
-    const currentUser = req.user!;
-    const { companyId, departmentId, days = 30 } = req.query;
-    const matchQuery = await getAnalyticsBaseQuery(req, companyId, departmentId);
-    matchQuery.createdAt = {
-      $gte: new Date(Date.now() - Number(days) * 24 * 60 * 60 * 1000)
-    };
-
-    const trends = await Grievance.aggregate([
-      { $match: matchQuery },
-      {
-        $group: {
-          _id: {
-            $dateToString: { format: '%Y-%m-%d', date: '$createdAt' }
-          },
-          count: { $sum: 1 }
-        }
-      },
-      { $sort: { _id: 1 } }
-    ]);
-
-    res.json({
-      success: true,
-      data: trends
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch grievance trends',
-      error: error.message
-    });
-  }
-
-};
-
-export const appointmentsByDate = async (req: Request, res: Response) => {
-  try {
-    const currentUser = req.user!;
-    const { companyId, departmentId, days = 30 } = req.query;
-
-    const baseQuery = await getAnalyticsBaseQuery(req, companyId, departmentId);
-    const matchQuery: any = {
-      ...baseQuery,
-      appointmentDate: {
-        $gte: new Date(Date.now() - Number(days) * 24 * 60 * 60 * 1000)
-      }
-    };
-
-    const distribution = await Appointment.aggregate([
-      { $match: matchQuery },
-      {
-        $group: {
-          _id: {
-            $dateToString: { format: '%Y-%m-%d', date: '$appointmentDate' }
-          },
+          _id: { $ifNull: ['$category', 'Uncategorized'] },
           count: { $sum: 1 },
-          scheduled: {
-            $sum: { $cond: [{ $eq: ['$status', AppointmentStatus.SCHEDULED] }, 1, 0] }
+          pending: {
+            $sum: {
+              $cond: [{ $eq: ['$status', GrievanceStatus.PENDING] }, 1, 0]
+            }
           },
-          completed: {
-            $sum: { $cond: [{ $eq: ['$status', AppointmentStatus.COMPLETED] }, 1, 0] }
-          }
-        }
-      },
-      { $sort: { _id: 1 } }
-    ]);
-
-    res.json({
-      success: true,
-      data: distribution
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch appointment distribution',
-      error: error.message
-    });
-  }
-
-};
-
-export const performance = async (req: Request, res: Response) => {
-  try {
-    const currentUser = req.user!;
-    const { companyId, departmentId } = req.query;
-
-    const baseQuery = await getAnalyticsBaseQuery(req, companyId, departmentId);
-
-    // Top performing departments (by resolution rate)
-    const topDepartments = await Grievance.aggregate([
-      { $match: { ...baseQuery, departmentId: { $exists: true } } },
-      {
-        $group: {
-          _id: '$departmentId',
-          total: { $sum: 1 },
           resolved: {
-            $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.RESOLVED] }, 1, 0] }
-          }
-        }
-      },
-      {
-        $lookup: {
-          from: 'departments',
-          localField: '_id',
-          foreignField: '_id',
-          as: 'department'
-        }
-      },
-      { $unwind: { path: '$department', preserveNullAndEmptyArrays: true } },
-      {
-        $project: {
-          departmentId: '$_id',
-          departmentName: '$department.name',
-          total: 1,
-          resolved: 1,
-          resolutionRate: {
-            $cond: [
-              { $gt: ['$total', 0] },
-              { $multiply: [{ $divide: ['$resolved', '$total'] }, 100] },
-              0
-            ]
-          }
-        }
-      },
-      { $sort: { resolutionRate: -1 } },
-      { $limit: 10 }
-    ]);
-
-    // Top performing operators (by resolution count)
-    const topOperators = await Grievance.aggregate([
-      { $match: { ...baseQuery, assignedTo: { $exists: true }, status: GrievanceStatus.RESOLVED } },
-      {
-        $group: {
-          _id: '$assignedTo',
-          resolved: { $sum: 1 },
-          avgResolutionDays: {
-            $avg: {
-              $divide: [
-                { $subtract: ['$resolvedAt', '$createdAt'] },
-                1000 * 60 * 60 * 24
-              ]
+            $sum: {
+              $cond: [{ $eq: ['$status', GrievanceStatus.RESOLVED] }, 1, 0]
             }
           }
         }
       },
-      {
-        $lookup: {
-          from: 'users',
-          localField: '_id',
-          foreignField: '_id',
-          as: 'user'
-        }
-      },
-      { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } },
-      {
-        $project: {
-          userId: '$_id',
-          userName: { $concat: ['$user.firstName', ' ', '$user.lastName'] },
-          resolved: 1,
-          avgResolutionDays: { $round: ['$avgResolutionDays', 1] }
-        }
-      },
-      { $sort: { resolved: -1 } },
-      { $limit: 10 }
-    ]);
-
-    // Response time analysis (time to first assignment)
-    const responseTimeAnalysis = await Grievance.aggregate([
-      { $match: { ...baseQuery, assignedAt: { $exists: true } } },
-      {
-        $project: {
-          responseTimeHours: {
-            $divide: [
-              { $subtract: ['$assignedAt', '$createdAt'] },
-              1000 * 60 * 60
-            ]
-          }
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          avgResponseTime: { $avg: '$responseTimeHours' },
-          minResponseTime: { $min: '$responseTimeHours' },
-          maxResponseTime: { $max: '$responseTimeHours' }
-        }
-      }
+      { $sort: { count: -1, _id: 1 } }
     ]);
 
     res.json({
       success: true,
-      data: {
-        topDepartments,
-        topOperators,
-        responseTime: responseTimeAnalysis.length > 0 ? {
-          avgHours: parseFloat(responseTimeAnalysis[0].avgResponseTime.toFixed(2)),
-          minHours: parseFloat(responseTimeAnalysis[0].minResponseTime.toFixed(2)),
-          maxHours: parseFloat(responseTimeAnalysis[0].maxResponseTime.toFixed(2))
-        } : null
-      }
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch performance metrics',
-      error: error.message
-    });
-  }
-
-};
-
-export const hourly = async (req: Request, res: Response) => {
-  try {
-    const currentUser = req.user!;
-    const { companyId, departmentId, days = 7 } = req.query;
-
-    const baseQuery = await getAnalyticsBaseQuery(req, companyId, departmentId);
-    baseQuery.createdAt = {
-      $gte: new Date(Date.now() - Number(days) * 24 * 60 * 60 * 1000)
-    };
-
-    const hourlyGrievances = await Grievance.aggregate([
-      { $match: baseQuery },
-      {
-        $group: {
-          _id: { $hour: '$createdAt' },
-          count: { $sum: 1 }
-        }
-      },
-      { $sort: { _id: 1 } }
-    ]);
-
-    const hourlyAppointments = await Appointment.aggregate([
-      { $match: baseQuery },
-      {
-        $group: {
-          _id: { $hour: '$createdAt' },
-          count: { $sum: 1 }
-        }
-      },
-      { $sort: { _id: 1 } }
-    ]);
-
-    res.json({
-      success: true,
-      data: {
-        grievances: hourlyGrievances.map(h => ({ hour: h._id, count: h.count })),
-        appointments: hourlyAppointments.map(h => ({ hour: h._id, count: h.count }))
-      }
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch hourly distribution',
-      error: error.message
-    });
-  }
-
-};
-
-export const category = async (req: Request, res: Response) => {
-  try {
-    const currentUser = req.user!;
-    const { companyId, departmentId } = req.query;
-
-    const baseQuery = await getAnalyticsBaseQuery(req, companyId, departmentId);
-
-    const categoryDistribution = await Grievance.aggregate([
-      { $match: { ...baseQuery, category: { $exists: true, $ne: null } } },
-      {
-        $group: {
-          _id: '$category',
-          count: { $sum: 1 },
-          resolved: {
-            $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.RESOLVED] }, 1, 0] }
-          }
-        }
-      },
-      { $sort: { count: -1 } }
-    ]);
-
-    res.json({
-      success: true,
-      data: categoryDistribution.map(c => ({
-        category: c._id,
-        count: c.count,
-        resolved: c.resolved
+      data: distribution.map((entry) => ({
+        category: entry._id,
+        count: entry.count,
+        pending: entry.pending,
+        resolved: entry.resolved
       }))
     });
   } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch category distribution',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Failed to fetch category analytics', error: error.message });
   }
-
 };

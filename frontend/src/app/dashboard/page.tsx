@@ -1507,29 +1507,42 @@ function DashboardContent() {
     fetchLeads,
   ]);
 
-  // 1. Core Profile & Config - Fetch only once when user/company context changes
+  // 🚀 Performance Optimization: Unified Initial Data Fetch
   useEffect(() => {
+    if (!mounted || !user) return;
     if (isSuperAdminUser && !companyIdParam) return;
-    if (mounted && user) {
-      if (user.companyId || (isSuperAdminUser && companyIdParam)) {
-        fetchCompany();
-        fetchRoles();
-        fetchAllDepartments();
-      }
-    }
-  }, [mounted, user, companyIdParam, fetchCompany, fetchRoles, fetchAllDepartments, isSuperAdminUser]);
 
-  // 2. Dashboard Stats - Fetch on mount and when active tab changes to overview/analytics
-  useEffect(() => {
-    if (isSuperAdminUser && !companyIdParam) return;
-    if (mounted && user) {
+    const fetchInitialData = async () => {
+      const initialPromises: Promise<any>[] = [
+        fetchCompany(),
+        fetchRoles(),
+        fetchAllDepartments(),
+      ];
+
+      // Parallelize dashboard stats if on relevant tabs
       if (activeTab === "overview" || activeTab === "analytics") {
         if (isSuperAdminUser || hasPermission(user, Permission.VIEW_ANALYTICS)) {
-          fetchDashboardData();
+          initialPromises.push(fetchDashboardData());
         }
       }
-    }
-  }, [mounted, user, activeTab, fetchDashboardData, isSuperAdminUser, companyIdParam, overviewFilters, analyticsFilters]);
+
+      await Promise.all(initialPromises);
+    };
+
+    fetchInitialData();
+  }, [
+    mounted, 
+    user, 
+    companyIdParam, 
+    activeTab, 
+    fetchCompany, 
+    fetchRoles, 
+    fetchAllDepartments, 
+    fetchDashboardData, 
+    isSuperAdminUser,
+    overviewFilters,
+    analyticsFilters
+  ]);
 
   // 3. Global Synchronization Listener
   useEffect(() => {
