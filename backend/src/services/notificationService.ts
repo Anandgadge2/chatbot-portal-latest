@@ -4,7 +4,7 @@ import CompanyWhatsAppConfig from '../models/CompanyWhatsAppConfig';
 import Department from '../models/Department';
 import User from '../models/User';
 import { sendEmail, getNotificationEmailContent, getNotificationWhatsAppMessage } from './emailService';
-import { sendWhatsAppMessage, sendWhatsAppMedia } from './whatsappService';
+import { sendWhatsAppMessage, sendWhatsAppMedia, sendWhatsAppTemplate } from './whatsappService';
 import { normalizePhoneNumber } from '../utils/phoneUtils';
 import { logger } from '../config/logger';
 import { UserRole } from '../config/constants';
@@ -811,17 +811,52 @@ export async function notifyDepartmentAdminOnCreation(
         if (canNotify(company, user, 'whatsapp', `${data.type}_created`)) {
           const whatsappTask = (async () => {
             const fullData = await populateNotificationData(notificationData);
-            // 🏷️ ALIGNMENT FIX: Use 'created_admin' to match DEFAULT_WA_MESSAGES
-            let message = await getNotificationWhatsAppMessage(companyId, data.type, 'created_admin', fullData);
-            
-            if (!message) {
-              logger.warn(`⚠️ No WhatsApp content found for ${user.email} (Action: created_admin)`);
-              return;
-            }
             logger.info(`📢 Dispatching WhatsApp to admin: ${user.phone} (${user.getFullName()})`);
-            const res = await safeSendWhatsApp(company, user.phone, message, adminCta);
-            if (res.success) {
-              logger.info(`✅ WhatsApp sent to admin: ${user.phone}`);
+
+            // ✅ Prefer approved utility template for grievance-created admin notifications.
+            // Fallback to legacy text/CTA flow for other cases or if template send fails.
+            let sentViaTemplate = false;
+            if (data.type === 'grievance' && user.phone) {
+              const templateParams = [
+                fullData.companyName || company?.name || '',
+                fullData.recipientName || user.getFullName() || '',
+                fullData.grievanceId || '',
+                fullData.citizenName || '',
+                fullData.departmentName || '',
+                fullData.subDepartmentName || '',
+                fullData.description || '',
+                fullData.formattedDate || ''
+              ];
+
+              const templateResult = await sendWhatsAppTemplate(
+                company,
+                user.phone,
+                'grievance_created_admin_v1',
+                templateParams,
+                'en'
+              );
+
+              if (templateResult?.success) {
+                sentViaTemplate = true;
+                logger.info(`✅ WhatsApp template sent to admin: ${user.phone}`);
+              } else {
+                logger.warn(`⚠️ Template send failed for ${user.email}; falling back to text flow`, {
+                  error: templateResult?.error
+                });
+              }
+            }
+
+            if (!sentViaTemplate) {
+              // 🏷️ ALIGNMENT FIX: Use 'created_admin' to match DEFAULT_WA_MESSAGES
+              let message = await getNotificationWhatsAppMessage(companyId, data.type, 'created_admin', fullData);
+              if (!message) {
+                logger.warn(`⚠️ No WhatsApp content found for ${user.email} (Action: created_admin)`);
+                return;
+              }
+              const res = await safeSendWhatsApp(company, user.phone, message, adminCta);
+              if (res.success) {
+                logger.info(`✅ WhatsApp sent to admin: ${user.phone}`);
+              }
             }
             // Send attachments if any
             if (data.evidenceUrls && data.evidenceUrls.length > 0) {
