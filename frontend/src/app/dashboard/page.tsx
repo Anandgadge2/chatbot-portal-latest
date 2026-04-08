@@ -79,7 +79,7 @@ import { CompanyProvider } from "@/contexts/CompanyContext";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
 import { DashboardDepartmentFilters } from "@/components/dashboard/DashboardDepartmentFilters";
-import { formatTo10Digits } from "@/lib/utils/phoneUtils";
+import { formatTo10Digits, normalizePhoneNumber } from "@/lib/utils/phoneUtils";
 
 import {
   ArrowUpDown,
@@ -368,7 +368,9 @@ function DashboardContent() {
     // Keep `departmentId` only as a backward-compatible primary marker/fallback.
     const allMappedDepartmentIds = Array.from(
       new Set(
-        [primaryDepartmentId, ...mappedDepartmentIds].filter(Boolean) as string[],
+        [primaryDepartmentId, ...mappedDepartmentIds].filter(
+          Boolean,
+        ) as string[],
       ),
     );
 
@@ -397,7 +399,7 @@ function DashboardContent() {
     firstName: user?.firstName || "",
     lastName: user?.lastName || "",
     email: user?.email || "",
-    phone: user?.phone || "",
+    phone: formatTo10Digits(user?.phone) || "",
     designations: normalizedDesignations.join(", "),
   });
   const [passwordForm, setPasswordForm] = useState({
@@ -413,7 +415,7 @@ function DashboardContent() {
         firstName: user.firstName || "",
         lastName: user.lastName || "",
         email: user.email || "",
-        phone: user.phone || "",
+        phone: formatTo10Digits(user.phone) || "",
         designations: normalizedDesignations.join(", "),
       });
     }
@@ -424,14 +426,38 @@ function DashboardContent() {
     try {
       const payload = {
         ...profileForm,
-        designations: profileForm.designations.split(",").map(d => d.trim()).filter(Boolean)
+        phone: normalizePhoneNumber(profileForm.phone),
+        designations: profileForm.designations
+          .split(",")
+          .map((d) => d.trim())
+          .filter(Boolean),
       };
       const response = await apiClient.put("/auth/profile", payload);
-      if (response.data.success) {
-        toast.success("Profile updated successfully");
-      }
+      
+      // If the request succeeded (2xx), show the toast
+      toast.success("Profile Updated Successfully!", {
+        duration: 2000,
+        position: "top-right",
+        style: {
+          background: "#0f172a",
+          color: "#fff",
+          fontWeight: "bold",
+          borderRadius: "12px",
+          border: "1px solid #334155",
+          zIndex: 9999,
+        },
+      });
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to update profile");
+      console.error("Profile update error:", error);
+      toast.error(error.response?.data?.message || "Failed to update profile", {
+        position: "top-right",
+        style: {
+          borderRadius: "12px",
+          background: "#450a0a",
+          color: "#fff",
+          fontWeight: "bold",
+        }
+      });
     } finally {
       setUpdatingProfile(false);
     }
@@ -443,18 +469,42 @@ function DashboardContent() {
       toast.error("Passwords do not match");
       return;
     }
+    
+    // Instant feedback: start loading
     setUpdatingPassword(true);
+    
     try {
       const response = await apiClient.put("/auth/profile", {
         password: passwordForm.newPassword,
       });
-      if (response.data.success) {
-        toast.success("Password updated successfully");
-        setPasswordForm({ newPassword: "", confirmPassword: "" });
-      }
+      
+      // If we reach here, it's a 2xx success
+      toast.success("Password Reset Successful!", {
+        duration: 2000,
+        position: "top-right",
+        style: {
+          background: "#0f172a",
+          color: "#fff",
+          fontWeight: "bold",
+          borderRadius: "12px",
+          border: "1px solid #334155",
+          zIndex: 9999,
+        },
+      });
+      setPasswordForm({ newPassword: "", confirmPassword: "" });
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to update password");
+      console.error("Password update error:", error);
+      toast.error(error.response?.data?.message || "Failed to update security", {
+        position: "top-right",
+        style: {
+          borderRadius: "12px",
+          background: "#450a0a",
+          color: "#fff",
+          fontWeight: "bold",
+        }
+      });
     } finally {
+      // Ensure loading state is cleared instantly
       setUpdatingPassword(false);
     }
   };
@@ -642,8 +692,14 @@ function DashboardContent() {
   const [showAppointmentFiltersOnMobile, setShowAppointmentFiltersOnMobile] =
     useState(false);
 
-  const [overviewFilters, setOverviewFilters] = useState({ mainDeptId: "", subDeptId: "" });
-  const [analyticsFilters, setAnalyticsFilters] = useState({ mainDeptId: "", subDeptId: "" });
+  const [overviewFilters, setOverviewFilters] = useState({
+    mainDeptId: "",
+    subDeptId: "",
+  });
+  const [analyticsFilters, setAnalyticsFilters] = useState({
+    mainDeptId: "",
+    subDeptId: "",
+  });
   const [grievanceFilters, setGrievanceFilters] = useState({
     status: "",
     department: "",
@@ -1076,11 +1132,12 @@ function DashboardContent() {
   const fetchDepartmentData = useCallback(async () => {
     if (isSuperAdminUser && !companyIdParam) return;
     try {
-      const deptId = analyticsFilters.subDeptId || analyticsFilters.mainDeptId || "";
+      const deptId =
+        analyticsFilters.subDeptId || analyticsFilters.mainDeptId || "";
       const params = new URLSearchParams();
       if (companyIdParam) params.append("companyId", companyIdParam);
       if (deptId) params.append("departmentId", deptId);
-      
+
       const response = await apiClient.get(
         `/analytics/grievances/by-department?${params.toString()}`,
       );
@@ -1118,13 +1175,19 @@ function DashboardContent() {
   }, [targetCompanyId]);
 
   const fetchDashboardData = useCallback(
-    async (refresh = false, overrideFilters?: { mainDeptId?: string; subDeptId?: string }) => {
+    async (
+      refresh = false,
+      overrideFilters?: { mainDeptId?: string; subDeptId?: string },
+    ) => {
       if (isSuperAdminUser && !companyIdParam) return;
       if (!refresh) setLoadingStats(true);
       try {
-        const currentFilters = overrideFilters || (activeTab === "analytics" ? analyticsFilters : overviewFilters);
-        const deptId = currentFilters?.subDeptId || currentFilters?.mainDeptId || "";
-        
+        const currentFilters =
+          overrideFilters ||
+          (activeTab === "analytics" ? analyticsFilters : overviewFilters);
+        const deptId =
+          currentFilters?.subDeptId || currentFilters?.mainDeptId || "";
+
         const params = new URLSearchParams();
         if (companyIdParam) params.append("companyId", companyIdParam);
         if (deptId) params.append("departmentId", deptId);
@@ -1133,7 +1196,7 @@ function DashboardContent() {
           success: boolean;
           data: DashboardStats;
         }>(`/analytics/dashboard?${params.toString()}`);
-        
+
         if (response.success) {
           setStats(response.data);
         }
@@ -1146,7 +1209,13 @@ function DashboardContent() {
         if (!refresh) setLoadingStats(false);
       }
     },
-    [companyIdParam, isSuperAdminUser, activeTab, analyticsFilters, overviewFilters],
+    [
+      companyIdParam,
+      isSuperAdminUser,
+      activeTab,
+      analyticsFilters,
+      overviewFilters,
+    ],
   );
 
   const fetchCompany = useCallback(async () => {
@@ -1521,7 +1590,10 @@ function DashboardContent() {
 
       // Parallelize dashboard stats if on relevant tabs
       if (activeTab === "overview" || activeTab === "analytics") {
-        if (isSuperAdminUser || hasPermission(user, Permission.VIEW_ANALYTICS)) {
+        if (
+          isSuperAdminUser ||
+          hasPermission(user, Permission.VIEW_ANALYTICS)
+        ) {
           initialPromises.push(fetchDashboardData());
         }
       }
@@ -1531,17 +1603,17 @@ function DashboardContent() {
 
     fetchInitialData();
   }, [
-    mounted, 
-    user, 
-    companyIdParam, 
-    activeTab, 
-    fetchCompany, 
-    fetchRoles, 
-    fetchAllDepartments, 
-    fetchDashboardData, 
+    mounted,
+    user,
+    companyIdParam,
+    activeTab,
+    fetchCompany,
+    fetchRoles,
+    fetchAllDepartments,
+    fetchDashboardData,
     isSuperAdminUser,
     overviewFilters,
-    analyticsFilters
+    analyticsFilters,
   ]);
 
   // 3. Global Synchronization Listener
@@ -1552,8 +1624,10 @@ function DashboardContent() {
       const scopes = Array.isArray(scope) ? scope : [scope];
 
       if (isAll || scopes.includes("DASHBOARD")) fetchDashboardData(true);
-      if (isAll || scopes.includes("GRIEVANCES")) fetchGrievances(grievancePage, true);
-      if (isAll || scopes.includes("APPOINTMENTS")) fetchAppointments(appointmentPage, true);
+      if (isAll || scopes.includes("GRIEVANCES"))
+        fetchGrievances(grievancePage, true);
+      if (isAll || scopes.includes("APPOINTMENTS"))
+        fetchAppointments(appointmentPage, true);
       if (isAll || scopes.includes("DEPARTMENTS")) {
         fetchDepartments(departmentPage, true);
         fetchAllDepartments(); // Update hierarchy data
@@ -1567,7 +1641,8 @@ function DashboardContent() {
     };
 
     window.addEventListener("REFRESH_PORTAL_DATA", handleGlobalRefresh);
-    return () => window.removeEventListener("REFRESH_PORTAL_DATA", handleGlobalRefresh);
+    return () =>
+      window.removeEventListener("REFRESH_PORTAL_DATA", handleGlobalRefresh);
   }, [
     fetchDashboardData,
     fetchGrievances,
@@ -1581,7 +1656,7 @@ function DashboardContent() {
     userPage,
     fetchLeads,
     isSuperAdminUser,
-    hasModule
+    hasModule,
   ]);
 
   // 2. Specialized effects for each paginated module (Gated by activeTab for SPA performance)
@@ -1598,7 +1673,7 @@ function DashboardContent() {
     fetchDepartmentData,
     isSuperAdminUser,
     companyIdParam,
-    analyticsFilters
+    analyticsFilters,
   ]);
 
   useEffect(() => {
@@ -1628,7 +1703,7 @@ function DashboardContent() {
     isDepartmentLevel,
     companyIdParam,
     deptFilters,
-    deptSearch
+    deptSearch,
   ]);
 
   useEffect(() => {
@@ -1651,7 +1726,7 @@ function DashboardContent() {
     isSuperAdminUser,
     companyIdParam,
     userFilters,
-    userSearch
+    userSearch,
   ]);
 
   useEffect(() => {
@@ -1677,7 +1752,7 @@ function DashboardContent() {
     isSuperAdminUser,
     companyIdParam,
     grievanceFilters,
-    grievanceSearch
+    grievanceSearch,
   ]);
 
   useEffect(() => {
@@ -1873,9 +1948,6 @@ function DashboardContent() {
   const getSortedData = (data: any[], tab: string) => {
     let filteredData = data;
 
-
-
-
     // For lower level users (Operators, Sub-Department etc.), only show items assigned to them
     if (user && !isDepartmentAdminOrHigher(user) && user.id) {
       if (tab === "grievances" || tab === "appointments") {
@@ -2003,7 +2075,11 @@ function DashboardContent() {
       }
       // Search filter - Instant, case-insensitive, whitespace-resilient
       if (grievanceSearch.trim()) {
-        const searchTerms = grievanceSearch.toLowerCase().trim().split(/\s+/).filter(Boolean);
+        const searchTerms = grievanceSearch
+          .toLowerCase()
+          .trim()
+          .split(/\s+/)
+          .filter(Boolean);
         filteredData = filteredData.filter((g: Grievance) => {
           const searchContent = [
             g.grievanceId,
@@ -2011,11 +2087,15 @@ function DashboardContent() {
             g.citizenPhone,
             g.category,
             g.description,
-            typeof g.assignedTo === 'object' ? `${(g.assignedTo as any).firstName} ${(g.assignedTo as any).lastName}` : g.assignedTo,
-            typeof g.assignedTo === 'object' ? (g.assignedTo as any).email : ''
-          ].join(' ').toLowerCase();
+            typeof g.assignedTo === "object"
+              ? `${(g.assignedTo as any).firstName} ${(g.assignedTo as any).lastName}`
+              : g.assignedTo,
+            typeof g.assignedTo === "object" ? (g.assignedTo as any).email : "",
+          ]
+            .join(" ")
+            .toLowerCase();
 
-          return searchTerms.every(term => searchContent.includes(term));
+          return searchTerms.every((term) => searchContent.includes(term));
         });
       }
     }
@@ -2079,18 +2159,26 @@ function DashboardContent() {
       }
       // Search filter - Instant, case-insensitive, whitespace-resilient
       if (appointmentSearch.trim()) {
-        const searchTerms = appointmentSearch.toLowerCase().trim().split(/\s+/).filter(Boolean);
+        const searchTerms = appointmentSearch
+          .toLowerCase()
+          .trim()
+          .split(/\s+/)
+          .filter(Boolean);
         filteredData = filteredData.filter((a: Appointment) => {
           const searchContent = [
             a.appointmentId,
             a.citizenName,
             a.citizenPhone,
             a.purpose,
-            typeof a.assignedTo === 'object' ? `${(a.assignedTo as any).firstName} ${(a.assignedTo as any).lastName}` : a.assignedTo,
-            typeof a.assignedTo === 'object' ? (a.assignedTo as any).email : ''
-          ].join(' ').toLowerCase();
+            typeof a.assignedTo === "object"
+              ? `${(a.assignedTo as any).firstName} ${(a.assignedTo as any).lastName}`
+              : a.assignedTo,
+            typeof a.assignedTo === "object" ? (a.assignedTo as any).email : "",
+          ]
+            .join(" ")
+            .toLowerCase();
 
-          return searchTerms.every(term => searchContent.includes(term));
+          return searchTerms.every((term) => searchContent.includes(term));
         });
       }
     }
@@ -2113,17 +2201,23 @@ function DashboardContent() {
       }
       // Search filter - Instant, case-insensitive, whitespace-resilient
       if (deptSearch.trim()) {
-        const searchTerms = deptSearch.toLowerCase().trim().split(/\s+/).filter(Boolean);
+        const searchTerms = deptSearch
+          .toLowerCase()
+          .trim()
+          .split(/\s+/)
+          .filter(Boolean);
         filteredData = filteredData.filter((d: Department) => {
           const searchContent = [
             d.name,
             d.departmentId,
             d.head,
             d.contactPerson,
-            (d as any).headName
-          ].join(' ').toLowerCase();
+            (d as any).headName,
+          ]
+            .join(" ")
+            .toLowerCase();
 
-          return searchTerms.every(term => searchContent.includes(term));
+          return searchTerms.every((term) => searchContent.includes(term));
         });
       }
       // Main Department filter (show main + its subs)
@@ -2168,15 +2262,24 @@ function DashboardContent() {
       if (userFilters.mainDeptId) {
         filteredData = filteredData.filter((u: User) => {
           const userDepts = [
-            typeof u.departmentId === "object" && u.departmentId ? (u.departmentId as any)._id : u.departmentId,
-            ...(u.departmentIds || []).map(d => typeof d === "object" && d ? (d as any)._id : d)
-          ].filter(Boolean).map(id => String(id));
+            typeof u.departmentId === "object" && u.departmentId
+              ? (u.departmentId as any)._id
+              : u.departmentId,
+            ...(u.departmentIds || []).map((d) =>
+              typeof d === "object" && d ? (d as any)._id : d,
+            ),
+          ]
+            .filter(Boolean)
+            .map((id) => String(id));
 
-          return userDepts.some(deptId => {
-            const dept = allDepartments.find((d) => String(d._id) === String(deptId));
+          return userDepts.some((deptId) => {
+            const dept = allDepartments.find(
+              (d) => String(d._id) === String(deptId),
+            );
             return (
               String(deptId) === String(userFilters.mainDeptId) ||
-              String(getParentDepartmentId(dept)) === String(userFilters.mainDeptId)
+              String(getParentDepartmentId(dept)) ===
+                String(userFilters.mainDeptId)
             );
           });
         });
@@ -2185,16 +2288,26 @@ function DashboardContent() {
       if (userFilters.subDeptId) {
         filteredData = filteredData.filter((u: User) => {
           const userDepts = [
-            typeof u.departmentId === "object" && u.departmentId ? (u.departmentId as any)._id : u.departmentId,
-            ...(u.departmentIds || []).map(d => typeof d === "object" && d ? (d as any)._id : d)
-          ].filter(Boolean).map(id => String(id));
-          
+            typeof u.departmentId === "object" && u.departmentId
+              ? (u.departmentId as any)._id
+              : u.departmentId,
+            ...(u.departmentIds || []).map((d) =>
+              typeof d === "object" && d ? (d as any)._id : d,
+            ),
+          ]
+            .filter(Boolean)
+            .map((id) => String(id));
+
           return userDepts.includes(String(userFilters.subDeptId));
         });
       }
       // Search filter - Instant, case-insensitive, whitespace-resilient
       if (userSearch.trim()) {
-        const searchTerms = userSearch.toLowerCase().trim().split(/\s+/).filter(Boolean);
+        const searchTerms = userSearch
+          .toLowerCase()
+          .trim()
+          .split(/\s+/)
+          .filter(Boolean);
         filteredData = filteredData.filter((u: User) => {
           const searchContent = [
             u.firstName,
@@ -2202,10 +2315,12 @@ function DashboardContent() {
             u.email,
             u.phone,
             u.designation,
-            ...((u as any).designations || [])
-          ].join(' ').toLowerCase();
+            ...((u as any).designations || []),
+          ]
+            .join(" ")
+            .toLowerCase();
 
-          return searchTerms.every(term => searchContent.includes(term));
+          return searchTerms.every((term) => searchContent.includes(term));
         });
       }
     }
@@ -2331,7 +2446,14 @@ function DashboardContent() {
     if (isSubDepartmentAdminRole) {
       return new Set(
         hasMultiDepartmentMapping
-          ? ["overview", "analytics", "grievances", "departments", "users", "profile"]
+          ? [
+              "overview",
+              "analytics",
+              "grievances",
+              "departments",
+              "users",
+              "profile",
+            ]
           : ["overview", "analytics", "grievances", "users", "profile"],
       );
     }
@@ -2430,11 +2552,10 @@ function DashboardContent() {
                       `Viewing: ${company?.name || "..."}`
                     ) : (
                       <>
-                        {isCompanyLevel && (
-                          company?.name?.toUpperCase().includes("JHARSUGUDA") 
-                            ? "Sahaj" 
-                            : (company?.name || "...")
-                        )}
+                        {isCompanyLevel &&
+                          (company?.name?.toUpperCase().includes("JHARSUGUDA")
+                            ? "Sahaj"
+                            : company?.name || "...")}
                         {isDepartmentLevel && "Department"}
                         {!hasPermission(user, Permission.READ_GRIEVANCE) &&
                           !isSuperAdminUser &&
@@ -2448,8 +2569,10 @@ function DashboardContent() {
                   </h1>
                   <div className="flex items-center gap-2 mt-1">
                     <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">
-                      {user?.companyId?.name?.toUpperCase().includes("JHARSUGUDA") 
-                        ? `${(user.role || "ADMIN").replace("_", " ")}` 
+                      {user?.companyId?.name
+                        ?.toUpperCase()
+                        .includes("JHARSUGUDA")
+                        ? `${(user.role || "ADMIN").replace("_", " ")}`
                         : "Control Panel"}
                     </p>
                     <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -2758,7 +2881,9 @@ function DashboardContent() {
                             {user.firstName} {user.lastName}
                           </h4>
                           <div className="flex flex-col mt-0.5">
-                            {user?.companyId?.name?.toUpperCase().includes("JHARSUGUDA") ? (
+                            {user?.companyId?.name
+                              ?.toUpperCase()
+                              .includes("JHARSUGUDA") ? (
                               <span className="text-[12px] font-black text-white uppercase tracking-widest mt-1">
                                 Sahaj
                               </span>
@@ -3023,10 +3148,10 @@ function DashboardContent() {
                   <>
                     {/* Total Grievances */}
                     {hasPermission(user, Permission.READ_GRIEVANCE) && (
-                        <Card
-                          onClick={() => setActiveTab("grievances")}
-                          className="min-h-[6.5rem] sm:min-h-[8.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_20px_rgba(15,23,42,0.04)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_25px_rgba(15,23,42,0.08)]"
-                        >
+                      <Card
+                        onClick={() => setActiveTab("grievances")}
+                        className="min-h-[6.5rem] sm:min-h-[8.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_20px_rgba(15,23,42,0.04)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_25px_rgba(15,23,42,0.08)]"
+                      >
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-[#2f5aa6] bg-slate-50/70 px-3 py-3 pb-2">
                           <CardTitle className="text-[8px] sm:text-[9px] font-extrabold uppercase tracking-[0.16em] text-slate-400">
                             {isDFO ? "Total Incidents" : "Total Grievances"}
@@ -3053,81 +3178,82 @@ function DashboardContent() {
                     )}
 
                     {/* Overdue Grievances */}
-                    {hasPermission(user, Permission.READ_GRIEVANCE) && 
+                    {hasPermission(user, Permission.READ_GRIEVANCE) &&
                       (isViewingCompany ||
                         isDepartmentAdminRole ||
                         isSubDepartmentAdminRole ||
                         isOperatorRole) && (
-                      <Card
-                        onClick={() => {
-                          setActiveTab("grievances");
-                          setGrievanceFilters((prev) => ({
-                            ...prev,
-                            status: "PENDING",
-                            overdueStatus: "overdue",
-                          }));
-                        }}
-                        className="min-h-[6.5rem] sm:min-h-[8.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_20px_rgba(15,23,42,0.04)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_25px_rgba(15,23,42,0.08)]"
-                      >
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-[#2f5aa6] bg-slate-50/70 px-3 py-3 pb-2">
-                          <CardTitle className="text-[8px] sm:text-[9px] font-extrabold uppercase tracking-[0.16em] text-slate-400">
-                            {isDFO ? "Critical Alerts" : "Overdue Grievances"}
-                          </CardTitle>
-                          <div className="rounded-md bg-amber-50 p-1">
-                            <Clock className="h-3 w-3 text-amber-500" />
-                          </div>
-                        </CardHeader>
-                        <CardContent className="px-3 pb-2 pt-1.5">
-                          <div className="text-[1.75rem] font-extrabold leading-none tracking-tight text-amber-600 tabular-nums">
-                            {loadingStats ? (
-                              <LoadingDots />
-                            ) : (
-                              overdueGrievancesCount
-                            )}
-                          </div>
-                          <p className="mt-2 text-[8px] sm:text-[9px] font-bold uppercase text-slate-400">
-                            Pending
-                          </p>
-                        </CardContent>
-                      </Card>
-                    )}
+                        <Card
+                          onClick={() => {
+                            setActiveTab("grievances");
+                            setGrievanceFilters((prev) => ({
+                              ...prev,
+                              status: "PENDING",
+                              overdueStatus: "overdue",
+                            }));
+                          }}
+                          className="min-h-[6.5rem] sm:min-h-[8.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_20px_rgba(15,23,42,0.04)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_25px_rgba(15,23,42,0.08)]"
+                        >
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-[#2f5aa6] bg-slate-50/70 px-3 py-3 pb-2">
+                            <CardTitle className="text-[8px] sm:text-[9px] font-extrabold uppercase tracking-[0.16em] text-slate-400">
+                              {isDFO ? "Critical Alerts" : "Overdue Grievances"}
+                            </CardTitle>
+                            <div className="rounded-md bg-amber-50 p-1">
+                              <Clock className="h-3 w-3 text-amber-500" />
+                            </div>
+                          </CardHeader>
+                          <CardContent className="px-3 pb-2 pt-1.5">
+                            <div className="text-[1.75rem] font-extrabold leading-none tracking-tight text-amber-600 tabular-nums">
+                              {loadingStats ? (
+                                <LoadingDots />
+                              ) : (
+                                overdueGrievancesCount
+                              )}
+                            </div>
+                            <p className="mt-2 text-[8px] sm:text-[9px] font-bold uppercase text-slate-400">
+                              Pending
+                            </p>
+                          </CardContent>
+                        </Card>
+                      )}
 
                     {/* Total Resolved */}
-                    {hasPermission(user, Permission.READ_GRIEVANCE) && !isCompanyAdminRole && (
-                      <Card
-                        onClick={() => {
-                          setActiveTab("grievances");
-                          setGrievanceFilters((prev) => ({
-                            ...prev,
-                            status: "RESOLVED",
-                          }));
-                        }}
-                        className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer min-h-[7rem] sm:min-h-[9.5rem]"
-                      >
-                        <CardHeader className="p-3 sm:p-5 pb-1 sm:pb-1 space-y-0 flex flex-row items-center justify-between">
-                          <CardTitle className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                            Resolved Grievances
-                          </CardTitle>
-                          <div className="p-1 sm:p-1.5 bg-emerald-50 rounded-lg">
-                            <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-500" />
-                          </div>
-                        </CardHeader>
-                        <CardContent className="px-3 sm:px-6 pb-2 pt-1">
-                          <div className="text-xl sm:text-2xl font-black text-emerald-600 tabular-nums leading-none">
-                            {loadingStats ? (
-                              <LoadingDots />
-                            ) : (
-                              stats?.grievances.resolved || 0
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1 mt-1.5">
-                            <span className="text-[8px] sm:text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
-                              Completed
-                            </span>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
+                    {hasPermission(user, Permission.READ_GRIEVANCE) &&
+                      !isCompanyAdminRole && (
+                        <Card
+                          onClick={() => {
+                            setActiveTab("grievances");
+                            setGrievanceFilters((prev) => ({
+                              ...prev,
+                              status: "RESOLVED",
+                            }));
+                          }}
+                          className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer min-h-[7rem] sm:min-h-[9.5rem]"
+                        >
+                          <CardHeader className="p-3 sm:p-5 pb-1 sm:pb-1 space-y-0 flex flex-row items-center justify-between">
+                            <CardTitle className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                              Resolved Grievances
+                            </CardTitle>
+                            <div className="p-1 sm:p-1.5 bg-emerald-50 rounded-lg">
+                              <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-500" />
+                            </div>
+                          </CardHeader>
+                          <CardContent className="px-3 sm:px-6 pb-2 pt-1">
+                            <div className="text-xl sm:text-2xl font-black text-emerald-600 tabular-nums leading-none">
+                              {loadingStats ? (
+                                <LoadingDots />
+                              ) : (
+                                stats?.grievances.resolved || 0
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1 mt-1.5">
+                              <span className="text-[8px] sm:text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
+                                Completed
+                              </span>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
 
                     {/* Total Rejected */}
                     {hasPermission(user, Permission.READ_GRIEVANCE) && (
@@ -3468,14 +3594,16 @@ function DashboardContent() {
                             <span className="px-1.5 py-0.5 bg-indigo-600 text-white text-[8px] font-black rounded uppercase leading-none">
                               {user.role?.replace(/_/g, " ")}
                             </span>
-                            {normalizedDesignations.map((designation, index) => (
-                              <span
-                                key={index}
-                                className="px-1.5 py-0.5 bg-slate-100 text-slate-600 text-[8px] font-black rounded uppercase border border-slate-200 leading-none"
-                              >
-                                {designation}
-                              </span>
-                            ))}
+                            {normalizedDesignations.map(
+                              (designation, index) => (
+                                <span
+                                  key={index}
+                                  className="px-1.5 py-0.5 bg-slate-100 text-slate-600 text-[8px] font-black rounded uppercase border border-slate-200 leading-none"
+                                >
+                                  {designation}
+                                </span>
+                              ),
+                            )}
                           </div>
                         </div>
                       </div>
@@ -3497,9 +3625,11 @@ function DashboardContent() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {assignedDepartmentSummaries.length > 0 ? (
                           assignedDepartmentSummaries.map((dept, idx) => {
-                            const statsForDept = stats?.grievances?.byDepartment?.find(
-                              (departmentStat) => departmentStat.departmentId === dept.id,
-                            );
+                            const statsForDept =
+                              stats?.grievances?.byDepartment?.find(
+                                (departmentStat) =>
+                                  departmentStat.departmentId === dept.id,
+                              );
 
                             return (
                               <div
@@ -4406,137 +4536,170 @@ function DashboardContent() {
                     {(isCompanyAdminRole || isSuperAdminUser) && (
                       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
                         <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-3">
-                        <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
-                          <Users className="w-4 h-4 text-emerald-600" />
+                          <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
+                            <Users className="w-4 h-4 text-emerald-600" />
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-bold text-slate-800">
+                              Staff by Role
+                            </h3>
+                            <p className="text-[10px] text-slate-400">
+                              {isViewingCompany
+                                ? "Across all departments"
+                                : "In your department"}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="text-sm font-bold text-slate-800">
-                            Staff by Role
-                          </h3>
-                          <p className="text-[10px] text-slate-400">
-                            {isViewingCompany
-                              ? "Across all departments"
-                              : "In your department"}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="p-4 flex-1 flex flex-col justify-between">
-                        {(() => {
-                          const roleDataRaw = stats?.usersByRole || [];
-                          const localRoleMap: Record<string, number> = {};
+                        <div className="p-4 flex-1 flex flex-col justify-between">
+                          {(() => {
+                            const roleDataRaw = stats?.usersByRole || [];
+                            const localRoleMap: Record<string, number> = {};
 
-                          if (roleDataRaw.length === 0 || isDepartmentLevel) {
-                            // Extract all department IDs the current user is mapped to
-                            const myDeptIds = new Set([
-                              user?.departmentId, 
-                              ...(user?.departmentIds || [])
-                            ].filter(Boolean).map(d => String(typeof d === 'object' ? d._id || d : d)));
+                            if (roleDataRaw.length === 0 || isDepartmentLevel) {
+                              // Extract all department IDs the current user is mapped to
+                              const myDeptIds = new Set(
+                                [
+                                  user?.departmentId,
+                                  ...(user?.departmentIds || []),
+                                ]
+                                  .filter(Boolean)
+                                  .map((d) =>
+                                    String(
+                                      typeof d === "object" ? d._id || d : d,
+                                    ),
+                                  ),
+                              );
 
-                            const filteredForStats = isViewingCompany ? users : users.filter(u => {
-                              const uDeptId = String(typeof u.departmentId === 'object' ? u.departmentId?._id || u.departmentId : u.departmentId);
-                              const uDeptIds = (u.departmentIds || []).map((d: any) => String(typeof d === 'object' ? d?._id || d : d));
-                              const uIdMatch = uDeptId && myDeptIds.has(uDeptId);
-                              const uIdsMatch = uDeptIds.some((id: string) => myDeptIds.has(id));
-                              return uIdMatch || uIdsMatch;
-                            });
+                              const filteredForStats = isViewingCompany
+                                ? users
+                                : users.filter((u) => {
+                                    const uDeptId = String(
+                                      typeof u.departmentId === "object"
+                                        ? u.departmentId?._id || u.departmentId
+                                        : u.departmentId,
+                                    );
+                                    const uDeptIds = (
+                                      u.departmentIds || []
+                                    ).map((d: any) =>
+                                      String(
+                                        typeof d === "object" ? d?._id || d : d,
+                                      ),
+                                    );
+                                    const uIdMatch =
+                                      uDeptId && myDeptIds.has(uDeptId);
+                                    const uIdsMatch = uDeptIds.some(
+                                      (id: string) => myDeptIds.has(id),
+                                    );
+                                    return uIdMatch || uIdsMatch;
+                                  });
 
-                            filteredForStats.forEach((u) => {
-                              let roleName = "";
-                              if (
-                                typeof u.customRoleId === "object" &&
-                                u.customRoleId?.name
-                              ) {
-                                roleName = u.customRoleId.name;
-                              } else {
-                                roleName =
-                                  u.role?.replace(/_/g, " ") || "Unknown";
-                              }
-                              const normalizedRole = roleName.toUpperCase();
-                              localRoleMap[normalizedRole] =
-                                (localRoleMap[normalizedRole] || 0) + 1;
-                            });
-                          }
+                              filteredForStats.forEach((u) => {
+                                let roleName = "";
+                                if (
+                                  typeof u.customRoleId === "object" &&
+                                  u.customRoleId?.name
+                                ) {
+                                  roleName = u.customRoleId.name;
+                                } else {
+                                  roleName =
+                                    u.role?.replace(/_/g, " ") || "Unknown";
+                                }
+                                const normalizedRole = roleName.toUpperCase();
+                                localRoleMap[normalizedRole] =
+                                  (localRoleMap[normalizedRole] || 0) + 1;
+                              });
+                            }
 
-                          const roleColors = [
-                            "#6366f1",
-                            "#10b981",
-                            "#f59e0b",
-                            "#f43f5e",
-                            "#8b5cf6",
-                          ];
+                            const roleColors = [
+                              "#6366f1",
+                              "#10b981",
+                              "#f59e0b",
+                              "#f43f5e",
+                              "#8b5cf6",
+                            ];
 
-                          const roleData = (
-                            roleDataRaw.length > 0
-                              ? roleDataRaw.map((r, i) => ({
-                                  name: r.name.toUpperCase(),
-                                  value: r.count,
-                                  color: roleColors[i % roleColors.length],
-                                }))
-                              : Object.entries(localRoleMap).map(
-                                  ([name, value], i) => ({
-                                    name,
-                                    value,
+                            const roleData = (
+                              roleDataRaw.length > 0
+                                ? roleDataRaw.map((r, i) => ({
+                                    name: r.name.toUpperCase(),
+                                    value: r.count,
                                     color: roleColors[i % roleColors.length],
-                                  }),
-                                )
-                          ).filter((r) => {
-                            const uLevel = user?.level ?? 4;
-                            if (uLevel <= 1) return true; // Company Admin+: Full access
-                            if (uLevel === 2) {
-                              // Dept Admin: Dept Admin + Sub-Dept Admin + Operator
-                              return !r.name.includes("COMPANY") && !r.name.includes("SUPER");
-                            }
-                            if (uLevel === 3) {
-                              // Sub-Dept Admin: Sub-Dept Admin + Operator
-                              return (r.name.includes("SUB") || r.name.includes("OPERATOR")) && !r.name.includes("COMPANY");
-                            }
-                            return false;
-                          });
+                                  }))
+                                : Object.entries(localRoleMap).map(
+                                    ([name, value], i) => ({
+                                      name,
+                                      value,
+                                      color: roleColors[i % roleColors.length],
+                                    }),
+                                  )
+                            ).filter((r) => {
+                              const uLevel = user?.level ?? 4;
+                              if (uLevel <= 1) return true; // Company Admin+: Full access
+                              if (uLevel === 2) {
+                                // Dept Admin: Dept Admin + Sub-Dept Admin + Operator
+                                return (
+                                  !r.name.includes("COMPANY") &&
+                                  !r.name.includes("SUPER")
+                                );
+                              }
+                              if (uLevel === 3) {
+                                // Sub-Dept Admin: Sub-Dept Admin + Operator
+                                return (
+                                  (r.name.includes("SUB") ||
+                                    r.name.includes("OPERATOR")) &&
+                                  !r.name.includes("COMPANY")
+                                );
+                              }
+                              return false;
+                            });
 
-                          const totalStaffCount = roleData.reduce((acc, curr) => acc + curr.value, 0);
+                            const totalStaffCount = roleData.reduce(
+                              (acc, curr) => acc + curr.value,
+                              0,
+                            );
 
-                          if (roleData.length === 0) {
+                            if (roleData.length === 0) {
+                              return (
+                                <div className="h-[120px] flex items-center justify-center text-slate-400 text-sm border border-dashed rounded-lg border-slate-200">
+                                  No staff data available
+                                </div>
+                              );
+                            }
+
                             return (
-                              <div className="h-[120px] flex items-center justify-center text-slate-400 text-sm border border-dashed rounded-lg border-slate-200">
-                                No staff data available
+                              <div className="space-y-2 mt-1">
+                                {roleData.map((r, i) => (
+                                  <div key={i}>
+                                    <div className="flex items-center justify-between mb-0.5">
+                                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-tighter">
+                                        {r.name}
+                                      </span>
+                                      <span className="text-[11px] font-black text-slate-900 leading-none">
+                                        {r.value}
+                                      </span>
+                                    </div>
+                                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                      <div
+                                        className="h-full rounded-full transition-all duration-700"
+                                        style={{
+                                          width: `${totalStaffCount > 0 ? (r.value / totalStaffCount) * 100 : 0}%`,
+                                          backgroundColor: r.color,
+                                        }}
+                                      ></div>
+                                    </div>
+                                  </div>
+                                ))}
+                                <div className="pt-2 mt-3 border-t border-slate-100 flex items-center justify-between">
+                                  <span className="text-[9px] font-bold text-slate-400 uppercase">
+                                    Total Staff
+                                  </span>
+                                  <span className="text-[12px] font-black text-slate-900 tabular-nums leading-none">
+                                    {totalStaffCount}
+                                  </span>
+                                </div>
                               </div>
                             );
-                          }
-
-                          return (
-                            <div className="space-y-2 mt-1">
-                              {roleData.map((r, i) => (
-                                <div key={i}>
-                                  <div className="flex items-center justify-between mb-0.5">
-                                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-tighter">
-                                      {r.name}
-                                    </span>
-                                    <span className="text-[11px] font-black text-slate-900 leading-none">
-                                      {r.value}
-                                    </span>
-                                  </div>
-                                  <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                    <div
-                                      className="h-full rounded-full transition-all duration-700"
-                                      style={{
-                                        width: `${totalStaffCount > 0 ? (r.value / totalStaffCount) * 100 : 0}%`,
-                                        backgroundColor: r.color,
-                                      }}
-                                    ></div>
-                                  </div>
-                                </div>
-                              ))}
-                              <div className="pt-2 mt-3 border-t border-slate-100 flex items-center justify-between">
-                                <span className="text-[9px] font-bold text-slate-400 uppercase">
-                                  Total Staff
-                                </span>
-                                <span className="text-[12px] font-black text-slate-900 tabular-nums leading-none">
-                                  {totalStaffCount}
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })()}
+                          })()}
                         </div>
                       </div>
                     )}
@@ -5276,7 +5439,11 @@ function DashboardContent() {
                                 Add Department
                               </Button>
                             )}
-                            {!(isDepartmentAdminRole || isSubDepartmentAdminRole || isOperatorRole) && (
+                            {!(
+                              isDepartmentAdminRole ||
+                              isSubDepartmentAdminRole ||
+                              isOperatorRole
+                            ) && (
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -5335,7 +5502,11 @@ function DashboardContent() {
                               : "hidden md:flex md:flex-row md:items-center md:flex-nowrap",
                           )}
                         >
-                          {!(isDepartmentAdminRole || isSubDepartmentAdminRole || isOperatorRole) && (
+                          {!(
+                            isDepartmentAdminRole ||
+                            isSubDepartmentAdminRole ||
+                            isOperatorRole
+                          ) && (
                             <>
                               <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-slate-200">
                                 <Filter className="w-4 h-4 text-indigo-500" />
@@ -5377,7 +5548,7 @@ function DashboardContent() {
                                   <option value="inactive">Inactive</option>
                                 </select>
 
-                                <DashboardDepartmentFilters 
+                                <DashboardDepartmentFilters
                                   allDepartments={allDepartments}
                                   getParentDepartmentId={getParentDepartmentId}
                                   onFiltersChange={(filters) => {
@@ -5711,14 +5882,18 @@ function DashboardContent() {
                                                     id: dept._id,
                                                     name: dept.name,
                                                   });
-                                                  setShowDeptUsersDialog(
-                                                    true,
-                                                  );
+                                                  setShowDeptUsersDialog(true);
                                                 }
                                               }}
-                                              title={userCount > 0 ? "Click to view personnel" : "No users assigned"}
+                                              title={
+                                                userCount > 0
+                                                  ? "Click to view personnel"
+                                                  : "No users assigned"
+                                              }
                                             >
-                                              <Users className={`w-3 h-3 mr-1.5 ${userCount > 0 ? "text-emerald-500" : "text-slate-400"}`} />
+                                              <Users
+                                                className={`w-3 h-3 mr-1.5 ${userCount > 0 ? "text-emerald-500" : "text-slate-400"}`}
+                                              />
                                               {userCount}
                                             </button>
                                           </div>
@@ -6184,7 +6359,11 @@ function DashboardContent() {
                                   Add User
                                 </Button>
                               )}
-                              {!(isDepartmentAdminRole || isSubDepartmentAdminRole || isOperatorRole) && (
+                              {!(
+                                isDepartmentAdminRole ||
+                                isSubDepartmentAdminRole ||
+                                isOperatorRole
+                              ) && (
                                 <Button
                                   variant="outline"
                                   size="sm"
@@ -6211,26 +6390,26 @@ function DashboardContent() {
                                 />
                                 Refresh
                               </Button>
-                            {isViewingCompany && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                  exportToCSV(users, "users", [
-                                    { key: "firstName", label: "First Name" },
-                                    { key: "lastName", label: "Last Name" },
-                                    { key: "email", label: "Email" },
-                                    { key: "phone", label: "Phone" },
-                                    { key: "role", label: "Role" },
-                                  ])
-                                }
-                                className="border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl font-bold text-[11px] uppercase tracking-wider whitespace-nowrap"
-                                title="Export to CSV"
-                              >
-                                <Download className="w-3.5 h-3.5 mr-1.5" />
-                                Export
-                              </Button>
-                            )}
+                              {isViewingCompany && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() =>
+                                    exportToCSV(users, "users", [
+                                      { key: "firstName", label: "First Name" },
+                                      { key: "lastName", label: "Last Name" },
+                                      { key: "email", label: "Email" },
+                                      { key: "phone", label: "Phone" },
+                                      { key: "role", label: "Role" },
+                                    ])
+                                  }
+                                  className="border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl font-bold text-[11px] uppercase tracking-wider whitespace-nowrap"
+                                  title="Export to CSV"
+                                >
+                                  <Download className="w-3.5 h-3.5 mr-1.5" />
+                                  Export
+                                </Button>
+                              )}
                             </div>
                           </div>
 
@@ -6296,7 +6475,7 @@ function DashboardContent() {
                                 <option value="inactive">Inactive</option>
                               </select>
 
-                              <DashboardDepartmentFilters 
+                              <DashboardDepartmentFilters
                                 allDepartments={allDepartments}
                                 getParentDepartmentId={getParentDepartmentId}
                                 onFiltersChange={(filters) => {
@@ -7127,21 +7306,21 @@ function DashboardContent() {
                             )}
                           </select>
 
-                               <DashboardDepartmentFilters 
-                                allDepartments={allDepartments}
-                                getParentDepartmentId={getParentDepartmentId}
-                                onFiltersChange={(filters) => {
-                                  setGrievanceFilters((prev) => ({
-                                    ...prev,
-                                    mainDeptId: filters.mainDeptId,
-                                    subDeptId: filters.subDeptId,
-                                    department: "", // reset old filter
-                                  }));
-                                  setGrievancePage(1);
-                                }}
-                                currentFilters={grievanceFilters}
-                                className="w-full md:w-auto"
-                              />
+                          <DashboardDepartmentFilters
+                            allDepartments={allDepartments}
+                            getParentDepartmentId={getParentDepartmentId}
+                            onFiltersChange={(filters) => {
+                              setGrievanceFilters((prev) => ({
+                                ...prev,
+                                mainDeptId: filters.mainDeptId,
+                                subDeptId: filters.subDeptId,
+                                department: "", // reset old filter
+                              }));
+                              setGrievancePage(1);
+                            }}
+                            currentFilters={grievanceFilters}
+                            className="w-full md:w-auto"
+                          />
 
                           {/* Assignment Status Filter */}
                           <select
@@ -9053,66 +9232,109 @@ function DashboardContent() {
                               Personal Information
                             </CardTitle>
                             <CardDescription className="text-[10px] font-bold uppercase tracking-tighter text-slate-500">
-                              Update your account details and contact information
+                              Update your account details and contact
+                              information
                             </CardDescription>
                           </div>
                         </div>
                       </CardHeader>
                       <CardContent className="pt-6">
-                        <form onSubmit={handleUpdateProfile} className="space-y-4">
+                        <form
+                          onSubmit={handleUpdateProfile}
+                          className="space-y-4"
+                        >
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-1.5">
-                              <label className="text-xs font-bold uppercase tracking-wide text-slate-500 ml-1">First Name</label>
+                              <label className="text-xs font-bold uppercase tracking-wide text-slate-500 ml-1">
+                                First Name
+                              </label>
                               <input
                                 type="text"
                                 value={profileForm.firstName}
-                                onChange={(e) => setProfileForm({ ...profileForm, firstName: e.target.value })}
+                                onChange={(e) =>
+                                  setProfileForm({
+                                    ...profileForm,
+                                    firstName: e.target.value,
+                                  })
+                                }
                                 className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none"
                                 required
                               />
                             </div>
                             <div className="space-y-1.5">
-                              <label className="text-xs font-bold uppercase tracking-wide text-slate-500 ml-1">Last Name</label>
+                              <label className="text-xs font-bold uppercase tracking-wide text-slate-500 ml-1">
+                                Last Name
+                              </label>
                               <input
                                 type="text"
                                 value={profileForm.lastName}
-                                onChange={(e) => setProfileForm({ ...profileForm, lastName: e.target.value })}
+                                onChange={(e) =>
+                                  setProfileForm({
+                                    ...profileForm,
+                                    lastName: e.target.value,
+                                  })
+                                }
                                 className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none"
                                 required
                               />
                             </div>
                             <div className="space-y-1.5">
-                              <label className="text-xs font-bold uppercase tracking-wide text-slate-500 ml-1">Designations (Comma separated)</label>
+                              <label className="text-xs font-bold uppercase tracking-wide text-slate-500 ml-1">
+                                Designations (Comma separated)
+                              </label>
                               <input
                                 type="text"
                                 value={profileForm.designations}
-                                onChange={(e) => setProfileForm({ ...profileForm, designations: e.target.value })}
+                                onChange={(e) =>
+                                  setProfileForm({
+                                    ...profileForm,
+                                    designations: e.target.value,
+                                  })
+                                }
                                 className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none"
                                 placeholder="e.g. Senior Manager"
                               />
                             </div>
                             <div className="space-y-1.5">
-                              <label className="text-xs font-bold uppercase tracking-wide text-slate-500 ml-1">Email Address</label>
+                              <label className="text-xs font-bold uppercase tracking-wide text-slate-500 ml-1">
+                                Email Address
+                              </label>
                               <input
                                 type="email"
                                 value={profileForm.email}
-                                onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+                                onChange={(e) =>
+                                  setProfileForm({
+                                    ...profileForm,
+                                    email: e.target.value,
+                                  })
+                                }
                                 className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none"
                               />
                             </div>
                             <div className="space-y-1.5 md:col-span-2">
-                              <label className="text-xs font-bold uppercase tracking-wide text-slate-500 ml-1">Phone Number</label>
+                              <label className="text-xs font-bold uppercase tracking-wide text-slate-500 ml-1">
+                                Phone Number
+                              </label>
                               <input
                                 type="tel"
                                 value={profileForm.phone}
-                                onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+                                onChange={(e) =>
+                                  setProfileForm({
+                                    ...profileForm,
+                                    phone: e.target.value.replace(/\D/g, "").slice(0, 10),
+                                  })
+                                }
                                 className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none"
                                 required
                               />
                             </div>
                           </div>
                           <div className="pt-4 flex justify-end">
-                            <Button type="submit" disabled={updatingProfile} className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest shadow-lg shadow-indigo-200 transition-all active:scale-95 disabled:opacity-70">
+                            <Button
+                              type="submit"
+                              disabled={updatingProfile}
+                              className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest shadow-lg shadow-indigo-200 transition-all active:scale-95 disabled:opacity-70"
+                            >
                               {updatingProfile ? (
                                 <>
                                   <RefreshCw className="w-3 h-3 mr-2 animate-spin" />
@@ -9136,7 +9358,9 @@ function DashboardContent() {
                             <Lock className="w-5 h-5" />
                           </div>
                           <div>
-                            <CardTitle className="text-md font-black uppercase tracking-tight text-slate-900">Security</CardTitle>
+                            <CardTitle className="text-md font-black uppercase tracking-tight text-slate-900">
+                              Security
+                            </CardTitle>
                             <CardDescription className="text-[9px] font-bold uppercase tracking-tighter text-slate-500">
                               Update your account password
                             </CardDescription>
@@ -9144,13 +9368,23 @@ function DashboardContent() {
                         </div>
                       </CardHeader>
                       <CardContent className="pt-6 space-y-4">
-                        <form onSubmit={handleUpdatePassword} className="space-y-4">
+                        <form
+                          onSubmit={handleUpdatePassword}
+                          className="space-y-4"
+                        >
                           <div className="space-y-1.5">
-                            <label className="text-xs font-bold uppercase tracking-wide text-slate-500 ml-1">New Password</label>
+                            <label className="text-xs font-bold uppercase tracking-wide text-slate-500 ml-1">
+                              New Password
+                            </label>
                             <input
                               type="password"
                               value={passwordForm.newPassword}
-                              onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                              onChange={(e) =>
+                                setPasswordForm({
+                                  ...passwordForm,
+                                  newPassword: e.target.value,
+                                })
+                              }
                               className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all outline-none"
                               placeholder="********"
                               required
@@ -9158,25 +9392,36 @@ function DashboardContent() {
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <label className="text-xs font-bold uppercase tracking-wide text-slate-500 ml-1">Confirm New Password</label>
+                            <label className="text-xs font-bold uppercase tracking-wide text-slate-500 ml-1">
+                              Confirm New Password
+                            </label>
                             <input
                               type="password"
                               value={passwordForm.confirmPassword}
-                              onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                              onChange={(e) =>
+                                setPasswordForm({
+                                  ...passwordForm,
+                                  confirmPassword: e.target.value,
+                                })
+                              }
                               className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all outline-none"
                               placeholder="********"
                               required
                               minLength={6}
                             />
                           </div>
-                          <Button type="submit" disabled={updatingPassword} className="w-full bg-rose-600 hover:bg-rose-700 text-white py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest shadow-lg shadow-rose-100 transition-all active:scale-95 disabled:opacity-70">
+                          <Button
+                            type="submit"
+                            disabled={updatingPassword}
+                            className="w-full bg-rose-600 hover:bg-rose-700 text-white py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest shadow-lg shadow-rose-100 transition-all active:scale-95 disabled:opacity-70"
+                          >
                             {updatingPassword ? (
                               <>
                                 <RefreshCw className="w-3 h-3 mr-2 animate-spin" />
                                 Security Patching...
                               </>
                             ) : (
-                              "Update Security"
+                              "Update Password"
                             )}
                           </Button>
                         </form>
@@ -9184,20 +9429,19 @@ function DashboardContent() {
                           <div className="flex gap-3">
                             <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0" />
                             <p className="text-[10px] text-amber-700 font-bold leading-relaxed">
-                              Changing your password will require you to log in again on all other devices.
+                              Changing your password will require you to log in
+                              again on all other devices.
                             </p>
                           </div>
                         </div>
                       </CardContent>
                     </Card>
-
-                 
                   </div>
                 </div>
               </TabsContent>
-                </div>
-              </div>
-            </Tabs>
+            </div>
+          </div>
+        </Tabs>
 
         {/* Dialogs */}
         {(isViewingCompany || isDepartmentLevel) && (
@@ -9368,7 +9612,9 @@ function DashboardContent() {
               }
 
               const dept = selectedGrievanceForAssignment.departmentId;
-              return dept && typeof dept === "object" ? (dept as any)._id : dept;
+              return dept && typeof dept === "object"
+                ? (dept as any)._id
+                : dept;
             })()}
             currentSubDepartmentId={(() => {
               if (!selectedGrievanceForAssignment) return null;
@@ -9546,8 +9792,6 @@ function DashboardContent() {
           department={selectedDeptForHierarchy}
           allDepartments={allDepartments}
         />
-
-
       </main>
     </div>
   );
