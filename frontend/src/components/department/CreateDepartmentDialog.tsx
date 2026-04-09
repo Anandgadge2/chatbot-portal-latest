@@ -50,6 +50,10 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
   onEditUser,
 }) => {
   const { user } = useAuth();
+  const isCompanyAdminUser =
+    !isSuperAdmin(user) &&
+    (user?.level === 1 ||
+      (user?.role || "").toString().toLowerCase().includes("company"));
   const [loading, setLoading] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [allDepartments, setAllDepartments] = useState<Department[]>([]);
@@ -290,7 +294,6 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
       }
 
       dataToSubmit.displayOrder = Math.floor(dataToSubmit.displayOrder);
-
       // Ensure we don't send empty strings for optional fields that should be omitted
       Object.keys(dataToSubmit).forEach(key => {
         if (dataToSubmit[key] === "") {
@@ -538,6 +541,30 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                 Example: 1 appears before 2. Default is 999 for normal order.
               </p>
             </div>
+            {isCompanyAdminUser && (
+              <div className="bg-amber-50/70 p-3 rounded-xl border border-amber-200/80">
+                <Label
+                  htmlFor="displayOrder"
+                  className="text-[10px] font-black uppercase tracking-widest text-amber-700 mb-1.5 block"
+                >
+                  Department Priority (Lower = Higher)
+                </Label>
+                <Input
+                  id="displayOrder"
+                  name="displayOrder"
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={formData.displayOrder}
+                  onChange={handleChange}
+                  placeholder="e.g. 1"
+                  className="border-amber-200 focus:border-amber-500 bg-white"
+                />
+                <p className="mt-1.5 text-[10px] text-amber-800 font-semibold">
+                  Example: 1 appears before 2. Default is 999 for normal order.
+                </p>
+              </div>
+            )}
 
             
 

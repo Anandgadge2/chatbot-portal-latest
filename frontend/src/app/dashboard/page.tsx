@@ -282,6 +282,7 @@ function DashboardContent() {
     isSubDepartmentAdminRole,
     hasMultiDepartmentMapping,
   ]);
+  const canManageDepartmentPriority = isCompanyAdminRole;
   const canSeeUsersTab = useMemo(() => {
     if (isSuperAdminUser && companyIdParam) return true;
     return (
@@ -1383,6 +1384,10 @@ function DashboardContent() {
 
   const handleSaveDepartmentPriority = useCallback(
     async (dept: Department) => {
+      if (!canManageDepartmentPriority) {
+        toast.error("Only Company Admin can update department priority");
+        return;
+      }
       const rawValue = priorityDrafts[dept._id] ?? String(dept.displayOrder ?? 999);
       const parsed = Number(rawValue);
 
@@ -1426,7 +1431,13 @@ function DashboardContent() {
         });
       }
     },
-    [priorityDrafts, fetchDepartments, departmentPage, fetchAllDepartments],
+    [
+      canManageDepartmentPriority,
+      priorityDrafts,
+      fetchDepartments,
+      departmentPage,
+      fetchAllDepartments,
+    ],
   );
 
   const fetchUsers = useCallback(
@@ -5805,9 +5816,11 @@ function DashboardContent() {
                                   <th className="px-4 py-3 text-center border-b border-slate-100 text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                     Users
                                   </th>
-                                  <th className="px-4 py-3 text-center border-b border-slate-100 text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                    Priority
-                                  </th>
+                                  {canManageDepartmentPriority && (
+                                    <th className="px-4 py-3 text-center border-b border-slate-100 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                      Priority
+                                    </th>
+                                  )}
                                   <th className="px-4 py-3 text-left border-b border-slate-100 text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                     Head / Contact
                                   </th>
@@ -5982,43 +5995,45 @@ function DashboardContent() {
                                         </td>
 
                                         {/* Priority */}
-                                        <td className="px-4 py-4 text-center">
-                                          <div className="flex items-center justify-center gap-1.5">
-                                            <input
-                                              type="number"
-                                              min={0}
-                                              step={1}
-                                              value={
-                                                priorityDrafts[dept._id] ??
-                                                String(dept.displayOrder ?? 999)
-                                              }
-                                              onChange={(e) =>
-                                                setPriorityDrafts((prev) => ({
-                                                  ...prev,
-                                                  [dept._id]: e.target.value,
-                                                }))
-                                              }
-                                              className="w-16 h-8 rounded-lg border border-slate-300 px-2 text-center text-xs font-bold focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500"
-                                              title="Lower number appears first in chatbot list"
-                                            />
-                                            <Button
-                                              variant="ghost"
-                                              size="sm"
-                                              className="h-8 px-2 text-[10px] font-black text-indigo-600 hover:bg-indigo-50 disabled:opacity-60"
-                                              onClick={() =>
-                                                handleSaveDepartmentPriority(dept)
-                                              }
-                                              disabled={savingPriorityIds.has(
-                                                dept._id,
-                                              )}
-                                              title="Save priority"
-                                            >
-                                              {savingPriorityIds.has(dept._id)
-                                                ? "Saving..."
-                                                : "Save"}
-                                            </Button>
-                                          </div>
-                                        </td>
+                                        {canManageDepartmentPriority && (
+                                          <td className="px-4 py-4 text-center">
+                                            <div className="flex items-center justify-center gap-1.5">
+                                              <input
+                                                type="number"
+                                                min={0}
+                                                step={1}
+                                                value={
+                                                  priorityDrafts[dept._id] ??
+                                                  String(dept.displayOrder ?? 999)
+                                                }
+                                                onChange={(e) =>
+                                                  setPriorityDrafts((prev) => ({
+                                                    ...prev,
+                                                    [dept._id]: e.target.value,
+                                                  }))
+                                                }
+                                                className="w-16 h-8 rounded-lg border border-slate-300 px-2 text-center text-xs font-bold focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500"
+                                                title="Lower number appears first in chatbot list"
+                                              />
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-8 px-2 text-[10px] font-black text-indigo-600 hover:bg-indigo-50 disabled:opacity-60"
+                                                onClick={() =>
+                                                  handleSaveDepartmentPriority(dept)
+                                                }
+                                                disabled={savingPriorityIds.has(
+                                                  dept._id,
+                                                )}
+                                                title="Save priority"
+                                              >
+                                                {savingPriorityIds.has(dept._id)
+                                                  ? "Saving..."
+                                                  : "Save"}
+                                              </Button>
+                                            </div>
+                                          </td>
+                                        )}
 
                                         {/* Head / Contact */}
                                         <td className="px-4 py-4 whitespace-normal break-words">
