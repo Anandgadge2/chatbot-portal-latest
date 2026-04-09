@@ -38,6 +38,20 @@ const BUILTIN_TEMPLATE_KEYS = [
   { key: 'cmd_back',                 label: 'Go Back' },
 ];
 
+const SUPPORTED_TEMPLATE_LANGS = ['en', 'hi', 'or'] as const;
+
+const splitTemplateKey = (templateKey: string): { baseKey: string; lang: string | null } => {
+  const match = String(templateKey || '').match(/^(.*)_(en|hi|or)$/i);
+  if (!match) {
+    return { baseKey: templateKey, lang: null };
+  }
+
+  return {
+    baseKey: match[1],
+    lang: match[2].toLowerCase(),
+  };
+};
+
 const router = express.Router();
 
 /**
@@ -567,14 +581,48 @@ router.get('/company/:companyId/templates', authenticate, async (req: Request, r
 
     // Fetch all saved templates for this company
     const saved = await CompanyWhatsAppTemplate.find({ companyId: cid });
-    const byKey: Record<string, { message: string; label?: string; isActive: boolean; keywords: string[] }> = {};
-    saved.forEach(t => { 
-      byKey[t.templateKey] = { 
-        message: t.message, 
-        label: t.label, 
-        isActive: t.isActive,
-        keywords: t.keywords || [] 
-      }; 
+    const byKey: Record<
+      string,
+      {
+        message: string;
+        messageTranslations: Record<string, string>;
+        label?: string;
+        isActive: boolean;
+        keywords: string[];
+      }
+    > = {};
+
+    saved.forEach((t) => {
+      const { baseKey, lang } = splitTemplateKey(t.templateKey);
+      const existing = byKey[baseKey] || {
+        message: '',
+        messageTranslations: { en: '', hi: '', or: '' },
+        label: undefined,
+        isActive: true,
+        keywords: [],
+      };
+
+      if (lang) {
+        existing.messageTranslations[lang] = t.message || '';
+      } else {
+        existing.message = t.message || '';
+        existing.messageTranslations.en = t.message || '';
+        existing.label = t.label || existing.label;
+        existing.isActive = t.isActive;
+        existing.keywords = t.keywords || [];
+      }
+
+      if (!lang && t.label) existing.label = t.label;
+      if (!lang && Array.isArray(t.keywords)) existing.keywords = t.keywords;
+      if (lang && t.isActive === false) existing.isActive = false;
+
+      byKey[baseKey] = existing;
+    });
+
+    Object.values(byKey).forEach((entry) => {
+      if (!entry.message && entry.messageTranslations.en) {
+        entry.message = entry.messageTranslations.en;
+      }
     });
 
     // Start with the 6 built-in slots (always shown), then append any custom ones on top
@@ -587,13 +635,29 @@ router.get('/company/:companyId/templates', authenticate, async (req: Request, r
     // Any saved template not in the built-in list is a custom template
     const customKeys = saved
       .filter(t => !BUILTIN_TEMPLATE_KEYS.find(b => b.key === t.templateKey))
-      .map(t => ({ 
-        templateKey: t.templateKey, 
-        label: t.label || t.templateKey, 
-        message: t.message, 
-        keywords: t.keywords || [],
-        isActive: t.isActive 
-      }));
+      .filter(t => !splitTemplateKey(t.templateKey).lang)
+      .map(t => {
+        const merged = byKey[t.templateKey] || {
+          message: t.message,
+          messageTranslations: {
+            en: t.message || '',
+            hi: '',
+            or: '',
+          },
+          keywords: t.keywords || [],
+          isActive: t.isActive,
+          label: t.label || t.templateKey,
+        };
+
+        return {
+          templateKey: t.templateKey,
+          label: merged.label || t.templateKey,
+          message: merged.message,
+          messageTranslations: merged.messageTranslations,
+          keywords: merged.keywords || [],
+          isActive: merged.isActive,
+        };
+      });
 
     res.json({ success: true, data: [...builtinKeys, ...customKeys] });
   } catch (error: any) {
@@ -619,6 +683,7 @@ router.put('/company/:companyId/templates', authenticate, requireSuperAdmin, asy
         templateKey: string; 
         label?: string; 
         message: string;
+        messageTranslations?: Record<string, string>;
         keywords?: string[];
         isActive?: boolean;
       }> 
@@ -639,16 +704,35 @@ router.put('/company/:companyId/templates', authenticate, requireSuperAdmin, asy
       if (!t.templateKey || typeof t.templateKey !== 'string' || !t.templateKey.trim()) continue;
       const key = t.templateKey.trim().toLowerCase().replace(/\s+/g, '_');
       const builtinEntry = BUILTIN_TEMPLATE_KEYS.find(b => b.key === key);
+      const translations = {
+        en: t.messageTranslations?.en ?? t.message ?? '',
+        hi: t.messageTranslations?.hi ?? '',
+        or: t.messageTranslations?.or ?? '',
+      };
+
       await CompanyWhatsAppTemplate.findOneAndUpdate(
         { companyId: cid, templateKey: key },
         { 
-          message: t.message ?? '', 
+          message: translations.en, 
           label: t.label ?? builtinEntry?.label ?? key, 
           keywords: Array.isArray(t.keywords) ? t.keywords : [],
           isActive: t.isActive !== false // Default to true if not provided
         },
         { upsert: true, new: true }
       );
+
+      for (const lang of SUPPORTED_TEMPLATE_LANGS.filter((code) => code !== 'en')) {
+        await CompanyWhatsAppTemplate.findOneAndUpdate(
+          { companyId: cid, templateKey: `${key}_${lang}` },
+          {
+            message: translations[lang] ?? '',
+            label: `${t.label ?? builtinEntry?.label ?? key} (${lang.toUpperCase()})`,
+            keywords: [],
+            isActive: t.isActive !== false,
+          },
+          { upsert: true, new: true }
+        );
+      }
     }
     const updated = await CompanyWhatsAppTemplate.find({ companyId: cid });
     res.json({ success: true, data: updated });

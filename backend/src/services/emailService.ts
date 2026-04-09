@@ -33,6 +33,20 @@ const getLocalizedWhatsAppBrandName = (companyName: string, lang: string): strin
   }
 };
 
+const shouldPreferLocalizedGrievanceConfirmation = (
+  companyName: string,
+  type: 'grievance' | 'appointment',
+  normalizedAction: string,
+  lang: string,
+): boolean => {
+  return (
+    type === 'grievance' &&
+    normalizedAction === 'confirmation' &&
+    ['hi', 'or'].includes(String(lang || 'en').toLowerCase()) &&
+    isCollectorateJharsugudaCompany(companyName)
+  );
+};
+
 const createEnvTransporter = (): Transporter<SMTPTransport.SentMessageInfo> | null => {
   if (envTransporter) return envTransporter;
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) return null;
@@ -499,10 +513,11 @@ export async function getNotificationWhatsAppMessage(
   action: string,
   data: Record<string, any>
 ): Promise<string | null> {
-  const cid = typeof companyId === 'string' && mongoose.Types.ObjectId.isValid(companyId)
-    ? new mongoose.Types.ObjectId(companyId)
-    : companyId;
-    
+  const cid =
+    typeof companyId === 'string' && mongoose.Types.ObjectId.isValid(companyId)
+      ? new mongoose.Types.ObjectId(companyId)
+      : companyId;
+
   const lang = data.language || data.lang || 'en';
   let resolvedCompanyName = String(data.companyName || '').trim();
 
@@ -511,73 +526,125 @@ export async function getNotificationWhatsAppMessage(
     resolvedCompanyName = String(company?.name || '').trim();
   }
 
+  const localizedBrand = getLocalizedWhatsAppBrandName(
+    resolvedCompanyName,
+    lang,
+  );
   const localizedData = {
     ...data,
-    companyName: getLocalizedWhatsAppBrandName(resolvedCompanyName, lang),
-    localizedCompanyBrand: getLocalizedWhatsAppBrandName(
-      resolvedCompanyName,
-      lang,
-    ),
+    companyName: localizedBrand,
+    localizedCompanyBrand: localizedBrand,
   };
-  
+
   const typePrefix = `${type}_`;
-  const normalizedAction = action.startsWith(typePrefix) 
-    ? action.slice(typePrefix.length) 
+  const normalizedAction = action.startsWith(typePrefix)
+    ? action.slice(typePrefix.length)
     : action;
 
   const attemptKeys = [
     `${type}_${normalizedAction}_${lang}`,
-    `${type}_${normalizedAction}`, 
+    `${type}_${normalizedAction}`,
     normalizedAction === 'confirmation' ? `${type}_created_${lang}` : '',
     normalizedAction === 'confirmation' ? `${type}_created` : '',
     normalizedAction === 'created' ? `${type}_confirmation_${lang}` : '',
-    normalizedAction === 'created' ? `${type}_confirmation` : ''
+    normalizedAction === 'created' ? `${type}_confirmation` : '',
   ].filter(Boolean);
+
+  const preferLocalizedConfirmation = shouldPreferLocalizedGrievanceConfirmation(
+    resolvedCompanyName,
+    type,
+    normalizedAction,
+    lang,
+  );
+  const primaryAttemptKeys = preferLocalizedConfirmation
+    ? attemptKeys.filter((key) => key.endsWith(`_${lang}`))
+    : attemptKeys;
+  const fallbackAttemptKeys = preferLocalizedConfirmation
+    ? attemptKeys.filter((key) => !key.endsWith(`_${lang}`))
+    : [];
 
   const canonicalKeys = new Set([
     `${type}_${action}_${lang}`,
-    `${type}_${action}`
+    `${type}_${action}`,
   ]);
   let hasExplicitDisableForCanonicalKey = false;
 
-  logger.info(`🔍 [WhatsApp Template] Resolving message for Type: ${type}, Action: ${action}, Lang: ${lang}`);
+  logger.info(
+    `[WhatsApp Template] Resolving message for Type: ${type}, Action: ${action}, Lang: ${lang}`,
+  );
   logger.info(`   Attempting keys: ${attemptKeys.join(', ')}`);
 
-  for (const key of attemptKeys) {
-    const template = await CompanyWhatsAppTemplate.findOne({ 
-      companyId: cid, 
-      templateKey: key as any
-    });
-    
-    if (template) {
+  const resolveFromDb = async (keys: string[], label: string) => {
+    for (const key of keys) {
+      const template = await CompanyWhatsAppTemplate.findOne({
+        companyId: cid,
+        templateKey: key as any,
+      });
+
+      if (!template) continue;
+
       if (template.isActive === false) {
-        logger.info(`🚫 WhatsApp template found but INACTIVE for key: ${key}`);
+        logger.info(
+          `[WhatsApp Template] ${label} template inactive for key: ${key}`,
+        );
         if (canonicalKeys.has(key)) {
           hasExplicitDisableForCanonicalKey = true;
         }
         continue;
       }
+
       if (template.message && template.message.trim()) {
-        logger.info(`✅ [WhatsApp Template] Found CUSTOM template in DB for key: ${key}`);
+        logger.info(
+          `[WhatsApp Template] Using ${label} custom template for key: ${key}`,
+        );
         return replacePlaceholders(template.message.trim(), localizedData);
       }
     }
-  }
+
+    return null;
+  };
+
+  const resolveFromDefaults = (keys: string[], label: string) => {
+    for (const key of keys) {
+      if (DEFAULT_WA_MESSAGES[key]) {
+        logger.info(
+          `[WhatsApp Template] Using ${label} system default for key: ${key}`,
+        );
+        return replacePlaceholders(DEFAULT_WA_MESSAGES[key], localizedData);
+      }
+    }
+
+    return null;
+  };
+
+  const primaryDbMessage = await resolveFromDb(primaryAttemptKeys, 'primary');
+  if (primaryDbMessage) return primaryDbMessage;
 
   if (hasExplicitDisableForCanonicalKey) {
-    logger.info(`🚫 WhatsApp notification suppressed due to inactive canonical template for ${type}_${action}`);
+    logger.info(
+      `[WhatsApp Template] Notification suppressed due to inactive canonical template for ${type}_${action}`,
+    );
     return null;
   }
 
-  // Fallback to system defaults if no custom template was found
-  for (const key of attemptKeys) {
-    if (DEFAULT_WA_MESSAGES[key]) {
-      logger.info(`✅ [WhatsApp Template] Using SYSTEM DEFAULT for key: ${key}`);
-      return replacePlaceholders(DEFAULT_WA_MESSAGES[key], localizedData);
-    }
-  }
+  const primaryDefaultMessage = resolveFromDefaults(
+    primaryAttemptKeys,
+    'primary',
+  );
+  if (primaryDefaultMessage) return primaryDefaultMessage;
 
-  logger.warn(`⚠️ No WhatsApp template found (Database or Default) for keys: ${attemptKeys.join(', ')}`);
+  const fallbackDbMessage = await resolveFromDb(fallbackAttemptKeys, 'fallback');
+  if (fallbackDbMessage) return fallbackDbMessage;
+
+  const fallbackDefaultMessage = resolveFromDefaults(
+    fallbackAttemptKeys,
+    'fallback',
+  );
+  if (fallbackDefaultMessage) return fallbackDefaultMessage;
+
+  logger.warn(
+    `[WhatsApp Template] No template found (Database or Default) for keys: ${attemptKeys.join(', ')}`,
+  );
   return null;
 }
 
@@ -1432,3 +1499,4 @@ export function generateNotificationEmail(
     text: `Notification from ${companyName}\n\nDear ${recipientName},\n\nYou have received a notification.\n\n${JSON.stringify(data, null, 2)}\n\n${companyName} - Digital Portal`
   };
 }
+

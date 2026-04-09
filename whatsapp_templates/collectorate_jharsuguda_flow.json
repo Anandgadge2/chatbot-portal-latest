@@ -195,7 +195,7 @@
       },
       "data": {
         "label": "Language Selection",
-        "messageText": "🇮🇳 Welcome to Sahaj - Swift Access & Help by Administration, Jharsuguda\nଝାରସୁଗୁଡା ପ୍ରଶାସନ ଦ୍ୱାରା ସହଜ - ସ୍ୱିଫ୍ଟ ଆକ୍ସେସ ଏବଂ ସହାୟତାକୁ ସ୍ୱାଗତ।\n\nYou can now register and track your grievances easily through this platform.\nଆପଣ ଏବେ ଏହି ପ୍ଲାଟଫର୍ମ ମାଧ୍ୟମରେ ସହଜରେ ପଞ୍ଜୀକରଣ କରିପାରିବେ ଏବଂ ଆପଣଙ୍କର ଅଭିଯୋଗଗୁଡ଼ିକୁ ଟ୍ରାକ୍ କରିପାରିବେ।\n\n👇 Please select your preferred language:",
+        "messageText": "🇮🇳 Welcome to SAHAJ (Swift Access & Help by Administration, Jharsuguda)\nସହଜକୁ ସ୍ୱାଗତ (ସ୍ୱିଫ୍ଟ ଆକ୍ସେସ ଏବଂ ପ୍ରଶାସନ ଦ୍ୱାରା ସହାୟତା, ଝାରସୁଗୁଡା)\n\nYou can now register and track your grievances easily through this platform.\nଆପଣ ଏବେ ଏହି ପ୍ଲାଟଫର୍ମ ମାଧ୍ୟମରେ ସହଜରେ ପଞ୍ଜୀକରଣ କରିପାରିବେ ଏବଂ ଆପଣଙ୍କର ଅଭିଯୋଗଗୁଡ଼ିକୁ ଟ୍ରାକ୍ କରିପାରିବେ।\n\n👇 Please select your preferred language:",
         "buttons": [
           {
             "id": "lang_or",
@@ -361,7 +361,7 @@
       },
       "data": {
         "label": "Grievance Details (EN)",
-        "messageText": "✍️ *Grievance Details*\n\nPlease type a detailed description of your issue.\n\n*Tip:* Include dates, location, and specific details for faster resolution.",
+        "messageText": "✍️ *Grievance Details*\n\nPlease type a detailed description of your issue.\n\n*Suggestion:* Include dates, location and specific details for faster resolution.",
         "inputType": "text",
         "saveToField": "description",
         "validation": {
@@ -485,7 +485,7 @@
       },
       "data": {
         "label": "Grievance Details (HI)",
-        "messageText": "✍️ *शिकायत विवरण*\n\nकृपया अपनी समस्या का विस्तृत विवरण लिखें।\n\n*टिप:* तेजी से समाधान के लिए तारीखें, स्थान और विशिष्ट विवरण शामिल करें।",
+        "messageText": "✍️ *शिकायत विवरण*\n\nकृपया अपनी समस्या का विस्तृत विवरण लिखें।\n\n*सुझाव:* तेजी से समाधान के लिए तारीखें, स्थान और विशिष्ट विवरण शामिल करें।",
         "inputType": "text",
         "saveToField": "description",
         "validation": {

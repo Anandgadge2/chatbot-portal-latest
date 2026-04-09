@@ -213,7 +213,6 @@ const WA_PLACEHOLDERS: Array<{
   desc: string;
   relevance: string[];
 }> = [
-  { ph: "{companyName}", desc: "Organisation name", relevance: ["all"] },
   { ph: "{localizedCompanyBrand}", desc: "Localized brand header for citizen templates", relevance: ["grievance"] },
   { ph: "{recipientName}", desc: "Recipient name", relevance: ["all"] },
   { ph: "{citizenName}", desc: "Citizen name", relevance: ["all"] },
@@ -244,16 +243,206 @@ const WA_PLACEHOLDERS: Array<{
 ];
 
 const DEFAULT_WA_MESSAGES: Record<string, string> = {
-  grievance_created_admin: `*{companyName}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📋 *NEW GRIEVANCE RECEIVED*\n\nRespected {recipientName},\nA new grievance has been submitted.\n\n🎫 *ID:* {grievanceId}\n👤 *Citizen:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}\n📅 *On:* {formattedDate}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-  grievance_assigned_admin: `*{companyName}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n👤 *GRIEVANCE ASSIGNED*\n\nRespected {recipientName},\n\n🎫 *ID:* {grievanceId}\n👤 *Citizen:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}\n👨💼 *Assigned By:* {assignedByName}\n📅 *On:* {formattedDate}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-  grievance_reassigned_admin: `*{companyName}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n👤 *GRIEVANCE REASSIGNED*\n\nRespected {recipientName},\n\n🎫 *ID:* {grievanceId}\n👤 *Citizen:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}\n📊 *Status:* REASSIGNED\n👨💼 *Reassigned By:* {assignedByName}\n📅 *On:* {formattedDate}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+  grievance_created_admin: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📋 *NEW GRIEVANCE RECEIVED*\n\nRespected {recipientName},\nA new grievance has been submitted.\n\n🎫 *ID:* {grievanceId}\n👤 *Citizen:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}\n📅 *On:* {formattedDate}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+  grievance_assigned_admin: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n👤 *GRIEVANCE ASSIGNED*\n\nRespected {recipientName},\n\n🎫 *ID:* {grievanceId}\n👤 *Citizen:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}\n👨💼 *Assigned By:* {assignedByName}\n📅 *On:* {formattedDate}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+  grievance_reassigned_admin: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n👤 *GRIEVANCE REASSIGNED*\n\nRespected {recipientName},\n\n🎫 *ID:* {grievanceId}\n👤 *Citizen:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}\n📊 *Status:* REASSIGNED\n👨💼 *Reassigned By:* {assignedByName}\n📅 *On:* {formattedDate}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
   grievance_confirmation: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n✅ *GRIEVANCE SUBMITTED*\n\nRespected {citizenName},\nYour grievance is registered.\n\n🎫 *Ref ID:* {grievanceId}{deptLabel}{subDeptLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-  appointment_created_admin: `*{companyName}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📋 *NEW APPOINTMENT*\n\nRespected {recipientName},\n\n🎫 *ID:* {appointmentId}\n👤 *Citizen:* {citizenName}{purposeLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-  appointment_confirmation: `*{companyName}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n✅ *APPOINTMENT REQUESTED*\n\nRespected {citizenName},\nYour request is received.\n\n🎫 *Ref ID:* {appointmentId}{purposeLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+  appointment_created_admin: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📋 *NEW APPOINTMENT*\n\nRespected {recipientName},\n\n🎫 *ID:* {appointmentId}\n👤 *Citizen:* {citizenName}{purposeLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+  appointment_confirmation: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n✅ *APPOINTMENT REQUESTED*\n\nRespected {citizenName},\nYour request is received.\n\n🎫 *Ref ID:* {appointmentId}{purposeLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
   cmd_stop: "🛑 Conversation ended. Type 'hi' to restart.",
   cmd_restart: "🔄 Restarting...",
   cmd_menu: "🏠 Returning to menu.",
   cmd_back: "🔙 Going back.",
+};
+
+const TEMPLATE_LANGS = [
+  { code: "en", label: "English" },
+  { code: "hi", label: "Hindi" },
+  { code: "or", label: "Odia" },
+] as const;
+
+const DEFAULT_WA_TRANSLATIONS: Record<string, Record<string, string>> = {
+  grievance_created_admin: {
+    en: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📋 *NEW GRIEVANCE RECEIVED*\n\nRespected {recipientName},\nA new grievance has been submitted by a citizen.\n\n🎫 *Reference ID:* {grievanceId}\n👤 *Citizen:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}\n📅 *Received On:* {formattedDate}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    hi: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📋 *नई शिकायत प्राप्त हुई*\n\nआदरणीय {recipientName},\nएक नई शिकायत नागरिक द्वारा दर्ज की गई है।\n\n🎫 *संदर्भ संख्या:* {grievanceId}\n👤 *नागरिक:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}\n📅 *प्राप्ति दिनांक:* {formattedDate}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    or: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📋 *ନୂତନ ଅଭିଯୋଗ ପ୍ରାପ୍ତ ହେଲା*\n\nଆଦରଣୀୟ {recipientName},\nଜଣେ ନାଗରିକଙ୍କ ଠାରୁ ଏକ ନୂତନ ଅଭିଯୋଗ ଦାଖଲ ହୋଇଛି।\n\n🎫 *ରେଫରେନ୍ସ ନମ୍ବର:* {grievanceId}\n👤 *ନାଗରିକ:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}\n📅 *ପ୍ରାପ୍ତି ତାରିଖ:* {formattedDate}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+  },
+  grievance_assigned_admin: {
+    en: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n👤 *GRIEVANCE ASSIGNED TO YOU*\n\nRespected {recipientName},\n\n🎫 *Reference ID:* {grievanceId}\n👤 *Citizen:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}\n👨‍💼 *Assigned By:* {assignedByName}\n📅 *Assigned On:* {formattedDate}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    hi: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n👤 *शिकायत आपको सौंपी गई है*\n\nआदरणीय {recipientName},\n\n🎫 *संदर्भ संख्या:* {grievanceId}\n👤 *नागरिक:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}\n👨‍💼 *सौंपने वाले अधिकारी:* {assignedByName}\n📅 *सौंपने की तिथि:* {formattedDate}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    or: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n👤 *ଅଭିଯୋଗ ଆପଣଙ୍କୁ ଅବଣ୍ଟନ ହେଲା*\n\nଆଦରଣୀୟ {recipientName},\n\n🎫 *ରେଫରେନ୍ସ ନମ୍ବର:* {grievanceId}\n👤 *ନାଗରିକ:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}\n👨‍💼 *ଅବଣ୍ଟନ କରିଥିବା ଅଧିକାରୀ:* {assignedByName}\n📅 *ଅବଣ୍ଟନ ତାରିଖ:* {formattedDate}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+  },
+  grievance_reassigned_admin: {
+    en: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n🔁 *GRIEVANCE REASSIGNED*\n\nRespected {recipientName},\n\n🎫 *Reference ID:* {grievanceId}\n👤 *Citizen:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}\n👨‍💼 *Reassigned By:* {assignedByName}\n📅 *Reassigned On:* {formattedDate}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    hi: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n🔁 *शिकायत पुनः आवंटित की गई है*\n\nआदरणीय {recipientName},\n\n🎫 *संदर्भ संख्या:* {grievanceId}\n👤 *नागरिक:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}\n👨‍💼 *पुनः आवंटित करने वाले अधिकारी:* {assignedByName}\n📅 *पुनः आवंटन तिथि:* {formattedDate}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    or: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n🔁 *ଅଭିଯୋଗ ପୁଣିଥରେ ଅବଣ୍ଟନ ହେଲା*\n\nଆଦରଣୀୟ {recipientName},\n\n🎫 *ରେଫରେନ୍ସ ନମ୍ବର:* {grievanceId}\n👤 *ନାଗରିକ:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}\n👨‍💼 *ପୁନଃ ଅବଣ୍ଟନ କରିଥିବା ଅଧିକାରୀ:* {assignedByName}\n📅 *ପୁନଃ ଅବଣ୍ଟନ ତାରିଖ:* {formattedDate}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+  },
+  grievance_confirmation: {
+    en: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n✅ *GRIEVANCE SUBMITTED SUCCESSFULLY*\n\nRespected {citizenName},\nYour grievance has been registered successfully.\n\n🎫 *Reference ID:* {grievanceId}\n🏢 *Department:* {departmentName}\n{subDeptLabel}\n📝 *Description:* {description}\n📅 *Submitted On:* {formattedDate}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    hi: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n✅ *शिकायत सफलतापूर्वक दर्ज हो गई है*\n\nआदरणीय {citizenName},\nआपकी शिकायत सफलतापूर्वक दर्ज कर ली गई है।\n\n🎫 *संदर्भ संख्या:* {grievanceId}\n🏢 *विभाग:* {departmentName}\n{subDeptLabel}\n📝 *विवरण:* {description}\n📅 *दर्ज करने की तिथि:* {formattedDate}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    or: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n✅ *ଅଭିଯୋଗ ସଫଳଭାବେ ଦାଖଲ ହେଲା*\n\nଆଦରଣୀୟ {citizenName},\nଆପଣଙ୍କ ଅଭିଯୋଗ ସଫଳଭାବେ ଦାଖଲ ହୋଇଛି।\n\n🎫 *ରେଫରେନ୍ସ ନମ୍ବର:* {grievanceId}\n🏢 *ବିଭାଗ:* {departmentName}\n{subDeptLabel}\n📝 *ବିବରଣୀ:* {description}\n📅 *ଦାଖଲ ତାରିଖ:* {formattedDate}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+  },
+  grievance_status_update: {
+    en: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📋 *GRIEVANCE STATUS UPDATE*\n\nRespected {citizenName},\nYour grievance status has been updated.\n\n🎫 *Reference ID:* {grievanceId}\n🏢 *Department:* {departmentName}\n🏢 *Office:* {subDepartmentName}\n📊 *New Status:* {newStatus}{remarksLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    hi: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📋 *शिकायत स्थिति अपडेट*\n\nआदरणीय {citizenName},\nआपकी शिकायत की स्थिति अपडेट कर दी गई है।\n\n🎫 *संदर्भ संख्या:* {grievanceId}\n🏢 *विभाग:* {departmentName}\n🏢 *कार्यालय:* {subDepartmentName}\n📊 *नई स्थिति:* {newStatus}{remarksLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    or: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📋 *ଅଭିଯୋଗ ସ୍ଥିତି ଅଦ୍ୟତନ*\n\nଆଦରଣୀୟ {citizenName},\nଆପଣଙ୍କ ଅଭିଯୋଗର ସ୍ଥିତି ଅଦ୍ୟତନ କରାଯାଇଛି।\n\n🎫 *ରେଫରେନ୍ସ ନମ୍ବର:* {grievanceId}\n🏢 *ବିଭାଗ:* {departmentName}\n🏢 *କାର୍ଯ୍ୟାଳୟ:* {subDepartmentName}\n📊 *ନୂତନ ସ୍ଥିତି:* {newStatus}{remarksLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+  },
+  grievance_resolved_admin: {
+    en: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n✅ *GRIEVANCE RESOLVED*\n\nRespected {recipientName},\n\n🎫 *Reference ID:* {grievanceId}\n👤 *Citizen:* {citizenName}{deptLabel}{subDeptLabel}\n👨‍💼 *Resolved By:* {resolvedByName}\n📅 *Resolved On:* {formattedResolvedDate}\n⏱️ *Time Taken:* {resolutionTimeText}\n📝 *Remarks:*\n{remarks}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    hi: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n✅ *शिकायत का समाधान हो गया है*\n\nआदरणीय {recipientName},\n\n🎫 *संदर्भ संख्या:* {grievanceId}\n👤 *नागरिक:* {citizenName}{deptLabel}{subDeptLabel}\n👨‍💼 *समाधान करने वाले अधिकारी:* {resolvedByName}\n📅 *समाधान तिथि:* {formattedResolvedDate}\n⏱️ *लगा समय:* {resolutionTimeText}\n📝 *टिप्पणी:*\n{remarks}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    or: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n✅ *ଅଭିଯୋଗର ସମାଧାନ ହୋଇଛି*\n\nଆଦରଣୀୟ {recipientName},\n\n🎫 *ରେଫରେନ୍ସ ନମ୍ବର:* {grievanceId}\n👤 *ନାଗରିକ:* {citizenName}{deptLabel}{subDeptLabel}\n👨‍💼 *ସମାଧାନ କରିଥିବା ଅଧିକାରୀ:* {resolvedByName}\n📅 *ସମାଧାନ ତାରିଖ:* {formattedResolvedDate}\n⏱️ *ଲାଗିଥିବା ସମୟ:* {resolutionTimeText}\n📝 *ଟିପ୍ପଣୀ:*\n{remarks}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+  },
+  grievance_rejected_admin: {
+    en: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n❌ *GRIEVANCE REJECTED*\n\nRespected {recipientName},\n\n🎫 *Reference ID:* {grievanceId}\n👤 *Citizen:* {citizenName}{deptLabel}\n👨‍💼 *Action By:* {resolvedByName}{reasonLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    hi: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n❌ *शिकायत अस्वीकृत की गई है*\n\nआदरणीय {recipientName},\n\n🎫 *संदर्भ संख्या:* {grievanceId}\n👤 *नागरिक:* {citizenName}{deptLabel}\n👨‍💼 *कार्रवाई करने वाले अधिकारी:* {resolvedByName}{reasonLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    or: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n❌ *ଅଭିଯୋଗ ଖାରଜ ହୋଇଛି*\n\nଆଦରଣୀୟ {recipientName},\n\n🎫 *ରେଫରେନ୍ସ ନମ୍ବର:* {grievanceId}\n👤 *ନାଗରିକ:* {citizenName}{deptLabel}\n👨‍💼 *କାର୍ଯ୍ୟକରିଥିବା ଅଧିକାରୀ:* {resolvedByName}{reasonLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+  },
+  grievance_resolved: {
+    en: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n✅ *GRIEVANCE RESOLVED*\n\nRespected {citizenName},\nYour grievance has been resolved.\n\n🎫 *Reference ID:* {grievanceId}\n🏢 *Department:* {departmentName}\n🏢 *Office:* {subDepartmentName}\n👨‍💼 *Resolved By:* {resolvedByName}\n📅 *Resolved On:* {formattedResolvedDate}{remarksLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    hi: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n✅ *शिकायत का समाधान हो गया है*\n\nआदरणीय {citizenName},\nआपकी शिकायत का समाधान कर दिया गया है।\n\n🎫 *संदर्भ संख्या:* {grievanceId}\n🏢 *विभाग:* {departmentName}\n🏢 *कार्यालय:* {subDepartmentName}\n👨‍💼 *समाधान करने वाले अधिकारी:* {resolvedByName}\n📅 *समाधान तिथि:* {formattedResolvedDate}{remarksLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    or: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n✅ *ଅଭିଯୋଗର ସମାଧାନ ହୋଇଛି*\n\nଆଦରଣୀୟ {citizenName},\nଆପଣଙ୍କ ଅଭିଯୋଗର ସମାଧାନ କରାଯାଇଛି।\n\n🎫 *ରେଫରେନ୍ସ ନମ୍ବର:* {grievanceId}\n🏢 *ବିଭାଗ:* {departmentName}\n🏢 *କାର୍ଯ୍ୟାଳୟ:* {subDepartmentName}\n👨‍💼 *ସମାଧାନ କରିଥିବା ଅଧିକାରୀ:* {resolvedByName}\n📅 *ସମାଧାନ ତାରିଖ:* {formattedResolvedDate}{remarksLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+  },
+  grievance_rejected: {
+    en: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n❌ *GRIEVANCE REJECTED*\n\nRespected {citizenName},\nWe regret to inform you that your grievance has been rejected.\n\n🎫 *Reference ID:* {grievanceId}{deptLabel}\n📊 *Status:* REJECTED{reasonLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    hi: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n❌ *शिकायत अस्वीकृत कर दी गई है*\n\nआदरणीय {citizenName},\nहमें खेद है कि आपकी शिकायत अस्वीकृत कर दी गई है।\n\n🎫 *संदर्भ संख्या:* {grievanceId}{deptLabel}\n📊 *स्थिति:* अस्वीकृत{reasonLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    or: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n❌ *ଅଭିଯୋଗ ଖାରଜ ହୋଇଛି*\n\nଆଦରଣୀୟ {citizenName},\nଦୁଃଖ ସହିତ ଜଣାଉଛୁ ଯେ ଆପଣଙ୍କ ଅଭିଯୋଗ ଖାରଜ ହୋଇଛି।\n\n🎫 *ରେଫରେନ୍ସ ନମ୍ବର:* {grievanceId}{deptLabel}\n📊 *ସ୍ଥିତି:* ଖାରଜ{reasonLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+  },
+  appointment_created_admin: {
+    en: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📅 *NEW APPOINTMENT RECEIVED*\n\nRespected {recipientName},\n\n🎫 *Reference ID:* {appointmentId}\n👤 *Citizen:* {citizenName}{purposeLabel}\n📅 *Received On:* {formattedDate}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    hi: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📅 *नई नियुक्ति अनुरोध प्राप्त हुआ*\n\nआदरणीय {recipientName},\n\n🎫 *संदर्भ संख्या:* {appointmentId}\n👤 *नागरिक:* {citizenName}{purposeLabel}\n📅 *प्राप्ति तिथि:* {formattedDate}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    or: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📅 *ନୂତନ ନିଯୁକ୍ତି ଅନୁରୋଧ ପ୍ରାପ୍ତ ହେଲା*\n\nଆଦରଣୀୟ {recipientName},\n\n🎫 *ରେଫରେନ୍ସ ନମ୍ବର:* {appointmentId}\n👤 *ନାଗରିକ:* {citizenName}{purposeLabel}\n📅 *ପ୍ରାପ୍ତି ତାରିଖ:* {formattedDate}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+  },
+  appointment_confirmed_admin: {
+    en: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n✅ *APPOINTMENT CONFIRMED*\n\nRespected {recipientName},\n\n🎫 *Reference ID:* {appointmentId}\n👤 *Citizen:* {citizenName}{purposeLabel}\n📅 *Date:* {appointmentDate}\n⏰ *Time:* {appointmentTime}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    hi: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n✅ *नियुक्ति पुष्टि की गई है*\n\nआदरणीय {recipientName},\n\n🎫 *संदर्भ संख्या:* {appointmentId}\n👤 *नागरिक:* {citizenName}{purposeLabel}\n📅 *तिथि:* {appointmentDate}\n⏰ *समय:* {appointmentTime}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    or: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n✅ *ନିଯୁକ୍ତି ନିଶ୍ଚିତ ହୋଇଛି*\n\nଆଦରଣୀୟ {recipientName},\n\n🎫 *ରେଫରେନ୍ସ ନମ୍ବର:* {appointmentId}\n👤 *ନାଗରିକ:* {citizenName}{purposeLabel}\n📅 *ତାରିଖ:* {appointmentDate}\n⏰ *ସମୟ:* {appointmentTime}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+  },
+  appointment_cancelled_admin: {
+    en: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n❌ *APPOINTMENT CANCELLED*\n\nRespected {recipientName},\n\n🎫 *Reference ID:* {appointmentId}\n👤 *Citizen:* {citizenName}{purposeLabel}\n👨‍💼 *Updated By:* {resolvedByName}\n📅 *Updated On:* {formattedResolvedDate}{reasonLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    hi: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n❌ *नियुक्ति रद्द की गई है*\n\nआदरणीय {recipientName},\n\n🎫 *संदर्भ संख्या:* {appointmentId}\n👤 *नागरिक:* {citizenName}{purposeLabel}\n👨‍💼 *अपडेट करने वाले अधिकारी:* {resolvedByName}\n📅 *अपडेट तिथि:* {formattedResolvedDate}{reasonLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    or: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n❌ *ନିଯୁକ୍ତି ବାତିଲ୍ ହୋଇଛି*\n\nଆଦରଣୀୟ {recipientName},\n\n🎫 *ରେଫରେନ୍ସ ନମ୍ବର:* {appointmentId}\n👤 *ନାଗରିକ:* {citizenName}{purposeLabel}\n👨‍💼 *ଅଦ୍ୟତନ କରିଥିବା ଅଧିକାରୀ:* {resolvedByName}\n📅 *ଅଦ୍ୟତନ ତାରିଖ:* {formattedResolvedDate}{reasonLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+  },
+  appointment_completed_admin: {
+    en: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n✅ *APPOINTMENT COMPLETED*\n\nRespected {recipientName},\n\n🎫 *Reference ID:* {appointmentId}\n👤 *Citizen:* {citizenName}{purposeLabel}\n👨‍💼 *Completed By:* {resolvedByName}\n📅 *Completed On:* {formattedResolvedDate}{resolutionLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    hi: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n✅ *नियुक्ति पूर्ण हो गई है*\n\nआदरणीय {recipientName},\n\n🎫 *संदर्भ संख्या:* {appointmentId}\n👤 *नागरिक:* {citizenName}{purposeLabel}\n👨‍💼 *पूर्ण करने वाले अधिकारी:* {resolvedByName}\n📅 *पूर्णता तिथि:* {formattedResolvedDate}{resolutionLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    or: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n✅ *ନିଯୁକ୍ତି ସମାପ୍ତ ହୋଇଛି*\n\nଆଦରଣୀୟ {recipientName},\n\n🎫 *ରେଫରେନ୍ସ ନମ୍ବର:* {appointmentId}\n👤 *ନାଗରିକ:* {citizenName}{purposeLabel}\n👨‍💼 *ସମାପ୍ତ କରିଥିବା ଅଧିକାରୀ:* {resolvedByName}\n📅 *ସମାପ୍ତି ତାରିଖ:* {formattedResolvedDate}{resolutionLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+  },
+  appointment_confirmation: {
+    en: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n✅ *APPOINTMENT REQUESTED SUCCESSFULLY*\n\nRespected {citizenName},\nYour appointment request has been received.\n\n🎫 *Reference ID:* {appointmentId}{purposeLabel}\n📅 *Booked On:* {formattedDate}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    hi: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n✅ *नियुक्ति अनुरोध सफलतापूर्वक प्राप्त हुआ*\n\nआदरणीय {citizenName},\nआपका नियुक्ति अनुरोध प्राप्त हो गया है।\n\n🎫 *संदर्भ संख्या:* {appointmentId}{purposeLabel}\n📅 *बुकिंग तिथि:* {formattedDate}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    or: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n✅ *ନିଯୁକ୍ତି ଅନୁରୋଧ ସଫଳଭାବେ ପ୍ରାପ୍ତ ହେଲା*\n\nଆଦରଣୀୟ {citizenName},\nଆପଣଙ୍କ ନିଯୁକ୍ତି ଅନୁରୋଧ ପ୍ରାପ୍ତ ହୋଇଛି।\n\n🎫 *ରେଫରେନ୍ସ ନମ୍ବର:* {appointmentId}{purposeLabel}\n📅 *ବୁକିଂ ତାରିଖ:* {formattedDate}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+  },
+  appointment_scheduled_update: {
+    en: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📅 *APPOINTMENT SCHEDULED*\n\nRespected {citizenName},\nYour appointment has been scheduled.\n\n🎫 *Reference ID:* {appointmentId}\n📅 *Date:* {appointmentDate}\n⏰ *Time:* {appointmentTime}{purposeLabel}{remarksLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    hi: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📅 *नियुक्ति निर्धारित की गई है*\n\nआदरणीय {citizenName},\nआपकी नियुक्ति निर्धारित कर दी गई है।\n\n🎫 *संदर्भ संख्या:* {appointmentId}\n📅 *तिथि:* {appointmentDate}\n⏰ *समय:* {appointmentTime}{purposeLabel}{remarksLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    or: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📅 *ନିଯୁକ୍ତି ସୂଚିଭୁକ୍ତ ହୋଇଛି*\n\nଆଦରଣୀୟ {citizenName},\nଆପଣଙ୍କ ନିଯୁକ୍ତି ସୂଚିଭୁକ୍ତ କରାଯାଇଛି।\n\n🎫 *ରେଫରେନ୍ସ ନମ୍ବର:* {appointmentId}\n📅 *ତାରିଖ:* {appointmentDate}\n⏰ *ସମୟ:* {appointmentTime}{purposeLabel}{remarksLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+  },
+  appointment_cancelled_update: {
+    en: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n❌ *APPOINTMENT CANCELLED*\n\nRespected {citizenName},\nYour appointment has been cancelled.\n\n🎫 *Reference ID:* {appointmentId}\n📅 *Date:* {appointmentDate}\n⏰ *Time:* {appointmentTime}{purposeLabel}{reasonLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    hi: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n❌ *नियुक्ति रद्द कर दी गई है*\n\nआदरणीय {citizenName},\nआपकी नियुक्ति रद्द कर दी गई है।\n\n🎫 *संदर्भ संख्या:* {appointmentId}\n📅 *तिथि:* {appointmentDate}\n⏰ *समय:* {appointmentTime}{purposeLabel}{reasonLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    or: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n❌ *ନିଯୁକ୍ତି ବାତିଲ୍ ହୋଇଛି*\n\nଆଦରଣୀୟ {citizenName},\nଆପଣଙ୍କ ନିଯୁକ୍ତି ବାତିଲ୍ କରାଯାଇଛି।\n\n🎫 *ରେଫରେନ୍ସ ନମ୍ବର:* {appointmentId}\n📅 *ତାରିଖ:* {appointmentDate}\n⏰ *ସମୟ:* {appointmentTime}{purposeLabel}{reasonLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+  },
+  appointment_completed_update: {
+    en: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n✅ *APPOINTMENT COMPLETED*\n\nRespected {citizenName},\nYour appointment has been completed.\n\n🎫 *Reference ID:* {appointmentId}\n📅 *Date:* {appointmentDate}\n⏰ *Time:* {appointmentTime}{resolutionLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    hi: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n✅ *नियुक्ति पूर्ण हो गई है*\n\nआदरणीय {citizenName},\nआपकी नियुक्ति पूर्ण हो गई है।\n\n🎫 *संदर्भ संख्या:* {appointmentId}\n📅 *तिथि:* {appointmentDate}\n⏰ *समय:* {appointmentTime}{resolutionLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    or: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n✅ *ନିଯୁକ୍ତି ସମାପ୍ତ ହୋଇଛି*\n\nଆଦରଣୀୟ {citizenName},\nଆପଣଙ୍କ ନିଯୁକ୍ତି ସମାପ୍ତ ହୋଇଛି।\n\n🎫 *ରେଫରେନ୍ସ ନମ୍ବର:* {appointmentId}\n📅 *ତାରିଖ:* {appointmentDate}\n⏰ *ସମୟ:* {appointmentTime}{resolutionLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+  },
+  cmd_stop: {
+    en: "🛑 Conversation ended. Type 'hi' anytime to start again.",
+    hi: "🛑 बातचीत समाप्त हो गई है। दोबारा शुरू करने के लिए कभी भी 'hi' टाइप करें।",
+    or: "🛑 ଆଲୋଚନା ସମାପ୍ତ ହୋଇଛି। ପୁଣି ଆରମ୍ଭ କରିବାକୁ ଯେକେହିବେଳେ 'hi' ଟାଇପ୍ କରନ୍ତୁ।",
+  },
+  cmd_restart: {
+    en: "🔄 Restarting the conversation. Please wait.",
+    hi: "🔄 बातचीत पुनः शुरू की जा रही है। कृपया प्रतीक्षा करें।",
+    or: "🔄 ଆଲୋଚନା ପୁଣି ଆରମ୍ଭ କରାଯାଉଛି। ଦୟାକରି ଅପେକ୍ଷା କରନ୍ତୁ।",
+  },
+  cmd_menu: {
+    en: "🏠 Returning to the main menu.",
+    hi: "🏠 मुख्य मेनू पर वापस जा रहे हैं।",
+    or: "🏠 ମୁଖ୍ୟ ମେନୁକୁ ଫେରାଯାଉଛି।",
+  },
+  cmd_back: {
+    en: "🔙 Going back to the previous step.",
+    hi: "🔙 पिछले चरण पर वापस जा रहे हैं।",
+    or: "🔙 ପୂର୍ବ ପଦକ୍ଷେପକୁ ଫେରାଯାଉଛି।",
+  },
+};
+
+const getDefaultTranslations = (templateKey: string) => {
+  const englishDefault =
+    DEFAULT_WA_TRANSLATIONS[templateKey]?.en || DEFAULT_WA_MESSAGES[templateKey] || "";
+
+  return {
+    en: englishDefault,
+    hi: DEFAULT_WA_TRANSLATIONS[templateKey]?.hi || englishDefault,
+    or: DEFAULT_WA_TRANSLATIONS[templateKey]?.or || englishDefault,
+  };
+};
+
+const pickNonEmptyText = (...values: Array<unknown>) => {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) {
+      return value;
+    }
+  }
+  return "";
+};
+
+const buildTemplateTranslations = (templateKey: string, template?: any) => {
+  const defaults = getDefaultTranslations(templateKey);
+  const english = pickNonEmptyText(
+    template?.messageTranslations?.en,
+    template?.message,
+    defaults.en,
+  );
+
+  return {
+    en: english,
+    hi: pickNonEmptyText(template?.messageTranslations?.hi, defaults.hi, english),
+    or: pickNonEmptyText(template?.messageTranslations?.or, defaults.or, english),
+  };
+};
+
+const JHARSUGUDA_BRAND_BY_LANG = {
+  en: "SAHAJ-Swift Access & Help by Administration, Jharsuguda",
+  hi: "सहज-प्रशासन द्वारा त्वरित पहुँच एवं सहायता, झारसुगुड़ा",
+  or: "ସହଜ-ପ୍ରଶାସନ ଦ୍ୱାରା ତ୍ୱରିତ ପହଞ୍ଚ ଏବଂ ସହାୟତା, ଝାରସୁଗୁଡା",
+} as const;
+
+const isJharsugudaCompanyName = (name?: string) => {
+  const normalized = String(name || "").trim().toLowerCase();
+  return normalized.includes("collectorate") && normalized.includes("jharsuguda");
+};
+
+const injectJharsugudaBrand = (
+  template: string,
+  lang: "en" | "hi" | "or",
+  enabled: boolean,
+) => {
+  if (!enabled) return template;
+
+  const brand = JHARSUGUDA_BRAND_BY_LANG[lang];
+  return String(template || "")
+    .replaceAll("{localizedCompanyBrand}", brand)
+    .replaceAll("{companyName}", brand);
+};
+
+const normalizeJharsugudaTemplate = (
+  template: any,
+  isJharsugudaCompany: boolean,
+) => {
+  const translations = {
+    en: injectJharsugudaBrand(template.messageTranslations?.en ?? template.message ?? "", "en", isJharsugudaCompany),
+    hi: injectJharsugudaBrand(template.messageTranslations?.hi ?? template.message ?? "", "hi", isJharsugudaCompany),
+    or: injectJharsugudaBrand(template.messageTranslations?.or ?? template.message ?? "", "or", isJharsugudaCompany),
+  };
+
+  return {
+    ...template,
+    message: translations.en,
+    messageTranslations: translations,
+  };
 };
 
 export interface WhatsAppConfigTabProps {
@@ -264,6 +453,7 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
   const { user } = useAuth();
   const { company } = useCompanyContext();
   const { data: cachedConfig } = useWhatsappConfig(companyId);
+  const isJharsugudaCompany = isJharsugudaCompanyName(company?.name);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -273,13 +463,12 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
 
   const [waTemplates, setWaTemplates] = useState<any[]>([]);
   const [selectedWaTemplate, setSelectedWaTemplate] = useState<string>("grievance_created_admin");
+  const [activeTemplateLanguage, setActiveTemplateLanguage] = useState<"en" | "hi" | "or">("en");
   const [savingTemplates, setSavingTemplates] = useState(false);
 
   const [newTemplateKey, setNewTemplateKey] = useState("");
   const [newTemplateLabel, setNewTemplateLabel] = useState("");
   const [isAddingTemplate, setIsAddingTemplate] = useState(false);
-  const [keywordsInput, setKeywordsInput] = useState("");
-
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>(
     TEMPLATE_GROUPS.reduce((acc, g) => ({ ...acc, [g.label]: true }), {}),
   );
@@ -293,18 +482,36 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
 
       const mergedTemplates = BUILTIN_KEYS.map(key => {
         const existing = Array.isArray(list) ? list.find((t: any) => t.templateKey === key) : null;
-        return existing || {
+        if (existing) {
+          const messageTranslations = buildTemplateTranslations(key, existing);
+          return normalizeJharsugudaTemplate({
+            ...existing,
+            message: messageTranslations.en,
+            messageTranslations,
+          }, isJharsugudaCompany);
+        }
+
+        const defaults = buildTemplateTranslations(key);
+        return normalizeJharsugudaTemplate({
           templateKey: key,
           label: KEY_META[key]?.label ?? key,
-          message: DEFAULT_WA_MESSAGES[key] || "",
+          message: defaults.en,
+          messageTranslations: defaults,
           keywords: [],
           isActive: true
-        };
+        }, isJharsugudaCompany);
       });
 
       if (Array.isArray(list)) {
         list.forEach((t: any) => {
-          if (!BUILTIN_KEYS.includes(t.templateKey)) mergedTemplates.push(t);
+          if (!BUILTIN_KEYS.includes(t.templateKey)) {
+            const messageTranslations = buildTemplateTranslations(t.templateKey, t);
+            mergedTemplates.push(normalizeJharsugudaTemplate({
+              ...t,
+              message: messageTranslations.en,
+              messageTranslations,
+            }, isJharsugudaCompany));
+          }
         });
       }
       setWaTemplates(mergedTemplates);
@@ -314,7 +521,7 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
     } finally {
       setLoading(false);
     }
-  }, [companyId]);
+  }, [companyId, isJharsugudaCompany]);
 
   useEffect(() => {
     fetchData();
@@ -346,10 +553,15 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
     try {
       setSavingTemplates(true);
       await apiClient.put(`/whatsapp-config/company/${companyId}/templates`, {
-        templates: waTemplates.map(t => ({
-          ...t,
-          isActive: t.isActive !== false
-        }))
+        templates: waTemplates.map(t => {
+          const normalized = normalizeJharsugudaTemplate(t, isJharsugudaCompany);
+          return {
+            ...normalized,
+            message: normalized.messageTranslations?.en ?? normalized.message ?? "",
+            messageTranslations: normalized.messageTranslations,
+            isActive: normalized.isActive !== false
+          };
+        })
       });
       toast.success("Logic updated successfully");
       fetchData();
@@ -362,10 +574,19 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
 
   const currentWaTemplate = waTemplates.find(t => t.templateKey === selectedWaTemplate) || {
     templateKey: selectedWaTemplate,
-    message: DEFAULT_WA_MESSAGES[selectedWaTemplate] || "",
+    message: getDefaultTranslations(selectedWaTemplate).en,
+    messageTranslations: getDefaultTranslations(selectedWaTemplate),
     keywords: [],
     isActive: true
   };
+
+  const normalizedCurrentTemplate = normalizeJharsugudaTemplate(
+    {
+      ...currentWaTemplate,
+      messageTranslations: buildTemplateTranslations(selectedWaTemplate, currentWaTemplate),
+    },
+    isJharsugudaCompany,
+  );
 
   const updateSelectedField = (field: string, value: any) => {
     setWaTemplates(prev => {
@@ -373,20 +594,39 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
       if (idx > -1) {
         const next = [...prev];
         next[idx] = { ...next[idx], [field]: value };
+        if (field === "messageTranslations") {
+          next[idx].message = value?.en || "";
+        }
         return next;
       }
-      return [...prev, { templateKey: selectedWaTemplate, [field]: value, isActive: true }];
+      return [...prev, {
+        templateKey: selectedWaTemplate,
+        [field]: value,
+        message: field === "messageTranslations" ? value?.en || "" : "",
+        isActive: true
+      }];
     });
   };
 
   const addPlaceholder = (ph: string) => {
-    updateSelectedField("message", (currentWaTemplate.message || "") + ph);
+    updateSelectedField("messageTranslations", {
+      ...(normalizedCurrentTemplate.messageTranslations || {}),
+      [activeTemplateLanguage]:
+        ((normalizedCurrentTemplate.messageTranslations || {})[activeTemplateLanguage] || "") + ph,
+    });
   };
 
   const handleAddTemplate = () => {
     if (!newTemplateKey || !newTemplateLabel) return toast.error("Required fields missing");
     const slug = newTemplateKey.toLowerCase().replace(/\s+/g, "_");
-    setWaTemplates(prev => [...prev, { templateKey: slug, label: newTemplateLabel, keywords: [] }]);
+    setWaTemplates(prev => [...prev, {
+      templateKey: slug,
+      label: newTemplateLabel,
+      keywords: [],
+      message: "",
+      messageTranslations: { en: "", hi: "", or: "" },
+      isActive: true,
+    }]);
     setSelectedWaTemplate(slug);
     setIsAddingTemplate(false);
   };
@@ -510,17 +750,34 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
               <div className="flex-1 p-6 space-y-4 bg-white relative">
                  <div className="flex items-center justify-between border-b pb-4">
                     <div className="flex items-center gap-4">
-                        <div>
-                          <h3 className="text-xs font-black uppercase text-slate-800">{currentWaTemplate.label || selectedWaTemplate}</h3>
+                       <div>
+                          <h3 className="text-xs font-black uppercase text-slate-800">{normalizedCurrentTemplate.label || selectedWaTemplate}</h3>
                           <p className="text-[10px] text-slate-500 mt-1 italic">{KEY_META[selectedWaTemplate]?.when || "Manual Trigger"}</p>
+                          <div className="flex items-center gap-2 mt-3">
+                            {TEMPLATE_LANGS.map((lang) => (
+                              <button
+                                key={lang.code}
+                                type="button"
+                                onClick={() => setActiveTemplateLanguage(lang.code)}
+                                className={cn(
+                                  "px-2.5 py-1 rounded-md border text-[10px] font-black uppercase tracking-wide",
+                                  activeTemplateLanguage === lang.code
+                                    ? "border-indigo-600 bg-indigo-50 text-indigo-700"
+                                    : "border-slate-200 text-slate-500 hover:border-slate-300"
+                                )}
+                              >
+                                {lang.label}
+                              </button>
+                            ))}
+                          </div>
                         </div>
                         <div className="flex items-center gap-2 px-3 py-1 bg-emerald-50 border border-emerald-200 rounded-full">
                            <Label htmlFor="template-active-switch" className="text-[9px] font-black uppercase text-emerald-700 cursor-pointer select-none">
-                              {currentWaTemplate.isActive !== false ? "Active" : "Inactive"}
+                              {normalizedCurrentTemplate.isActive !== false ? "Active" : "Inactive"}
                            </Label>
                            <Switch 
                               id="template-active-switch"
-                              checked={currentWaTemplate.isActive !== false}
+                              checked={normalizedCurrentTemplate.isActive !== false}
                               onCheckedChange={async (checked) => {
                                 // 🔄 UPDATE: Instant save on toggle to ensure it's "automatically used in the flow"
                                 updateSelectedField("isActive", checked);
@@ -534,10 +791,15 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
                                 try {
                                   setSavingTemplates(true);
                                   await apiClient.put(`/whatsapp-config/company/${companyId}/templates`, {
-                                    templates: updatedTemplates.map(t => ({
-                                      ...t,
-                                      isActive: t.isActive !== false
-                                    }))
+                                    templates: updatedTemplates.map(t => {
+                                      const normalized = normalizeJharsugudaTemplate(t, isJharsugudaCompany);
+                                      return {
+                                        ...normalized,
+                                        message: normalized.messageTranslations?.en ?? normalized.message ?? "",
+                                        messageTranslations: normalized.messageTranslations,
+                                        isActive: normalized.isActive !== false
+                                      };
+                                    })
                                   });
                                   toast.success(`Template ${checked ? 'activated' : 'deactivated'}`);
                                 } catch (error) {
@@ -569,8 +831,11 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
                  </div>
 
                  <textarea 
-                    value={currentWaTemplate.message || ""} 
-                    onChange={e => updateSelectedField("message", e.target.value)}
+                    value={normalizedCurrentTemplate.messageTranslations?.[activeTemplateLanguage] || ""} 
+                    onChange={e => updateSelectedField("messageTranslations", {
+                      ...(normalizedCurrentTemplate.messageTranslations || {}),
+                      [activeTemplateLanguage]: e.target.value,
+                    })}
                     className="w-full min-h-[400px] p-4 text-xs font-bold font-mono bg-slate-50 border rounded-xl outline-none resize-none"
                  />
 
@@ -615,7 +880,8 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
                <div className="flex flex-col gap-2">
                   <div className="self-start max-w-[85%] bg-white p-3 rounded-2xl rounded-tl-none shadow-sm relative group animate-in slide-in-from-left-2">
                      <div className="text-[12px] font-medium leading-relaxed whitespace-pre-wrap text-slate-800">
-                        {currentWaTemplate.message?.replace(/{(\w+)}/g, (_: string, k: string) => `*${k}*`) || "No content configured."}
+                        {(normalizedCurrentTemplate.messageTranslations?.[activeTemplateLanguage] || "")
+                          .replace(/{(\w+)}/g, (_: string, k: string) => `*${k}*`) || "No content configured."}
                      </div>
                      <div className="flex items-center justify-end gap-1 mt-1 opacity-60">
                         <span className="text-[9px] font-bold">12:00 PM</span>

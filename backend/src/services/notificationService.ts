@@ -76,12 +76,163 @@ function computeResolutionTime(createdAt: Date | string | undefined, resolvedAt:
   return `${Math.max(1, diffMinutes)} minute${diffMinutes !== 1 ? 's' : ''}`;
 }
 
+const getNotificationLanguage = (data: Record<string, any>): 'en' | 'hi' | 'or' | 'mr' => {
+  const lang = String(data.language || data.lang || 'en').toLowerCase();
+  if (lang === 'hi' || lang === 'or' || lang === 'mr') return lang;
+  return 'en';
+};
+
+const getLocaleForLanguage = (lang: 'en' | 'hi' | 'or' | 'mr'): string => {
+  if (lang === 'hi') return 'hi-IN';
+  if (lang === 'or') return 'or-IN';
+  if (lang === 'mr') return 'mr-IN';
+  return 'en-IN';
+};
+
+const getLocalizedDepartmentName = (department: any, lang: 'en' | 'hi' | 'or' | 'mr'): string => {
+  if (!department) return '';
+  if (lang === 'hi' && department.nameHi) return String(department.nameHi).trim();
+  if (lang === 'or' && department.nameOr) return String(department.nameOr).trim();
+  if (lang === 'mr' && department.nameMr) return String(department.nameMr).trim();
+  return String(department.name || '').trim();
+};
+
+const UI_TEXT: Record<'en' | 'hi' | 'or' | 'mr', Record<string, string>> = {
+  en: {
+    collectorOffice: 'Collector Office',
+    general: 'General',
+    department: 'Department',
+    subDepartment: 'Sub-Dept',
+    description: 'Description',
+    remarks: 'Remarks',
+    reason: 'Reason',
+    resolutionRemarks: 'Resolution Remarks',
+    purpose: 'Purpose',
+    category: 'Category',
+    location: 'Location',
+    originalDepartment: 'Original Dept',
+    originalSubDepartment: 'Original Sub-Dept',
+    noteFromPreviousAdmin: 'Note from the previous department admin',
+    noteFromPreviousUserPrefix: 'Note from',
+    originalCitizenDescription: 'Original Citizen Description',
+    reassignmentLead: 'This grievance is being reassigned to your department by {assignedBy}. Please investigate and take required action.',
+  },
+  hi: {
+    collectorOffice: 'कलेक्टर कार्यालय',
+    general: 'सामान्य',
+    department: 'विभाग',
+    subDepartment: 'उप-विभाग',
+    description: 'विवरण',
+    remarks: 'टिप्पणी',
+    reason: 'कारण',
+    resolutionRemarks: 'समाधान टिप्पणी',
+    purpose: 'उद्देश्य',
+    category: 'श्रेणी',
+    location: 'स्थान',
+    originalDepartment: 'मूल विभाग',
+    originalSubDepartment: 'मूल उप-विभाग',
+    noteFromPreviousAdmin: 'पिछले विभाग प्रशासक की टिप्पणी',
+    noteFromPreviousUserPrefix: 'टिप्पणी',
+    originalCitizenDescription: 'नागरिक द्वारा दिया गया मूल विवरण',
+    reassignmentLead: 'यह शिकायत {assignedBy} द्वारा आपके विभाग को पुनः आवंटित की गई है। कृपया जांच कर आवश्यक कार्रवाई करें।',
+  },
+  or: {
+    collectorOffice: 'କଲେକ୍ଟର କାର୍ଯ୍ୟାଳୟ',
+    general: 'ସାଧାରଣ',
+    department: 'ବିଭାଗ',
+    subDepartment: 'ଉପ-ବିଭାଗ',
+    description: 'ବିବରଣୀ',
+    remarks: 'ଟୀକା',
+    reason: 'କାରଣ',
+    resolutionRemarks: 'ସମାଧାନ ଟୀକା',
+    purpose: 'ଉଦ୍ଦେଶ୍ୟ',
+    category: 'ଶ୍ରେଣୀ',
+    location: 'ସ୍ଥାନ',
+    originalDepartment: 'ମୂଳ ବିଭାଗ',
+    originalSubDepartment: 'ମୂଳ ଉପ-ବିଭାଗ',
+    noteFromPreviousAdmin: 'ପୂର୍ବତନ ବିଭାଗ ପ୍ରଶାସକଙ୍କ ଟୀକା',
+    noteFromPreviousUserPrefix: 'ଙ୍କ ଟୀକା',
+    originalCitizenDescription: 'ନାଗରିକଙ୍କ ମୂଳ ବିବରଣୀ',
+    reassignmentLead: 'ଏହି ଅଭିଯୋଗ {assignedBy} ଦ୍ୱାରା ଆପଣଙ୍କ ବିଭାଗକୁ ପୁନଃ ଅବଣ୍ଟନ କରାଯାଇଛି। ଦୟାକରି ଯାଞ୍ଚ କରି ଆବଶ୍ୟକ ପଦକ୍ଷେପ ନିଅନ୍ତୁ।',
+  },
+  mr: {
+    collectorOffice: 'कलेक्टर कार्यालय',
+    general: 'सामान्य',
+    department: 'विभाग',
+    subDepartment: 'उप-विभाग',
+    description: 'वर्णन',
+    remarks: 'शेरा',
+    reason: 'कारण',
+    resolutionRemarks: 'निकाल शेरा',
+    purpose: 'उद्देश',
+    category: 'श्रेणी',
+    location: 'स्थान',
+    originalDepartment: 'मूळ विभाग',
+    originalSubDepartment: 'मूळ उप-विभाग',
+    noteFromPreviousAdmin: 'मागील विभाग प्रशासकाची नोंद',
+    noteFromPreviousUserPrefix: 'यांच्याकडून नोंद',
+    originalCitizenDescription: 'नागरिकाचे मूळ वर्णन',
+    reassignmentLead: 'ही तक्रार {assignedBy} यांनी तुमच्या विभागाकडे पुन्हा वर्ग केली आहे. कृपया तपास करून आवश्यक कारवाई करा.',
+  },
+};
+
+const STATUS_TEXT: Record<'en' | 'hi' | 'or' | 'mr', Record<string, string>> = {
+  en: { ASSIGNED: 'Assigned', REASSIGNED: 'Reassigned', PENDING: 'Pending', RESOLVED: 'Resolved', REJECTED: 'Rejected', COMPLETED: 'Completed', CANCELLED: 'Cancelled', CONFIRMED: 'Confirmed', SCHEDULED: 'Scheduled', CREATED: 'Created' },
+  hi: { ASSIGNED: 'आवंटित', REASSIGNED: 'पुनः आवंटित', PENDING: 'लंबित', RESOLVED: 'समाधान किया गया', REJECTED: 'अस्वीकृत', COMPLETED: 'पूर्ण', CANCELLED: 'रद्द', CONFIRMED: 'पुष्ट', SCHEDULED: 'निर्धारित', CREATED: 'दर्ज' },
+  or: { ASSIGNED: 'ଅବଣ୍ଟନ ହୋଇଛି', REASSIGNED: 'ପୁନଃ ଅବଣ୍ଟନ ହୋଇଛି', PENDING: 'ବିଚାରାଧୀନ', RESOLVED: 'ସମାଧାନ ହୋଇଛି', REJECTED: 'ଖାରଜ ହୋଇଛି', COMPLETED: 'ସମାପ୍ତ', CANCELLED: 'ବାତିଲ୍', CONFIRMED: 'ନିଶ୍ଚିତ', SCHEDULED: 'ନିର୍ଦ୍ଧାରିତ', CREATED: 'ଦାଖଲ ହୋଇଛି' },
+  mr: { ASSIGNED: 'नियुक्त', REASSIGNED: 'पुन्हा नियुक्त', PENDING: 'प्रलंबित', RESOLVED: 'निकाली काढले', REJECTED: 'नाकारले', COMPLETED: 'पूर्ण', CANCELLED: 'रद्द', CONFIRMED: 'निश्चित', SCHEDULED: 'नियोजित', CREATED: 'नोंदवले' },
+};
+
+const localizeStatusValue = (value: unknown, lang: 'en' | 'hi' | 'or' | 'mr'): string => {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const normalized = raw.replace(/\s+/g, '_').toUpperCase();
+  return STATUS_TEXT[lang][normalized] || raw;
+};
+
+const computeLocalizedResolutionTime = (
+  createdAt: Date | string | undefined,
+  resolvedAt: Date | string | undefined,
+  lang: 'en' | 'hi' | 'or' | 'mr',
+): string => {
+  if (!createdAt || !resolvedAt) return '';
+  const start = new Date(createdAt);
+  const end = new Date(resolvedAt);
+  const diffMs = end.getTime() - start.getTime();
+  if (diffMs <= 0) return '';
+
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+
+  if (lang === 'hi') {
+    if (diffDays > 0) return `${diffDays} दिन ${diffHours} घंटे`;
+    if (diffHours > 0) return `${diffHours} घंटे`;
+    return `${Math.max(1, diffMinutes)} मिनट`;
+  }
+  if (lang === 'or') {
+    if (diffDays > 0) return `${diffDays} ଦିନ ${diffHours} ଘଣ୍ଟା`;
+    if (diffHours > 0) return `${diffHours} ଘଣ୍ଟା`;
+    return `${Math.max(1, diffMinutes)} ମିନିଟ`;
+  }
+  if (lang === 'mr') {
+    if (diffDays > 0) return `${diffDays} दिवस ${diffHours} तास`;
+    if (diffHours > 0) return `${diffHours} तास`;
+    return `${Math.max(1, diffMinutes)} मिनिटे`;
+  }
+
+  return computeResolutionTime(createdAt, resolvedAt);
+};
+
 /**
  * Fetches all necessary names (company, department, etc.) to populate placeholder data.
  * Ensures resolutionTimeText is computed if not provided.
  */
 async function populateNotificationData(data: NotificationData): Promise<Record<string, any>> {
   const company = await findCompanyByIdOrCustomId(data.companyId);
+  const lang = getNotificationLanguage(data as any);
+  const locale = getLocaleForLanguage(lang);
+  const copy = UI_TEXT[lang];
 
   // Handle populated Mongoose objects — extract _id before calling findById
   const deptId = data.departmentId
@@ -127,7 +278,7 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
 
   const formatFn = (d: Date) => {
     try {
-      const formatter = new Intl.DateTimeFormat('en-IN', {
+      const formatter = new Intl.DateTimeFormat(locale, {
         day: '2-digit', month: 'long', year: 'numeric',
         hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true,
         timeZone: 'Asia/Kolkata'
@@ -137,7 +288,7 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
       parts.forEach(part => { p[part.type] = part.value; });
       return `${p.day} ${p.month} ${p.year}, ${p.hour}:${p.minute}:${p.second} ${p.dayPeriod || p.ampm || ''}`.trim().replace(/\s+/g, ' ');
     } catch (e) {
-      return d.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+      return d.toLocaleString(locale, { timeZone: 'Asia/Kolkata' });
     }
   };
 
@@ -151,7 +302,7 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
   if (resolvedAt) {
     formattedResolvedDate = formatFn(new Date(resolvedAt));
     if (!resolutionTimeText) {
-      resolutionTimeText = computeResolutionTime(data.createdAt, resolvedAt);
+      resolutionTimeText = computeLocalizedResolutionTime(data.createdAt, resolvedAt, lang);
     }
   }
 
@@ -161,7 +312,7 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
     try {
       const d = data.appointmentDate instanceof Date ? data.appointmentDate : new Date(data.appointmentDate);
       if (!isNaN(d.getTime())) {
-        formattedAppointmentDate = d.toLocaleDateString('en-IN', {
+        formattedAppointmentDate = d.toLocaleDateString(locale, {
           day: '2-digit', month: 'long', year: 'numeric',
           timeZone: 'Asia/Kolkata'
         });
@@ -175,15 +326,15 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
   let formattedAppointmentTime = '';
   if (data.appointmentTime) {
     try {
-      // Expecting HH:mm format
       const parts = String(data.appointmentTime).split(':');
       if (parts.length >= 2) {
-        let hour = parseInt(parts[0], 10);
-        const minute = parts[1].substring(0, 2); // Get first 2 digits for minutes
-        const ampm = hour >= 12 ? 'PM' : 'AM';
-        hour = hour % 12;
-        hour = hour ? hour : 12; // the hour '0' should be '12'
-        formattedAppointmentTime = `${hour.toString().padStart(2, '0')}:${minute} ${ampm}`;
+        const sampleDate = new Date(`2000-01-01T${parts[0].padStart(2, '0')}:${parts[1].substring(0, 2)}:00`);
+        formattedAppointmentTime = sampleDate.toLocaleTimeString(locale, {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true,
+          timeZone: 'Asia/Kolkata'
+        });
       } else {
         formattedAppointmentTime = String(data.appointmentTime);
       }
@@ -193,15 +344,17 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
   }
 
   let departmentName = (finalDept
-    ? finalDept.name
-    : (data.departmentName || (data.type === 'appointment' ? 'Collector Office' : 'General'))).trim();
+    ? getLocalizedDepartmentName(finalDept, lang)
+    : (data.departmentName || (data.type === 'appointment' ? copy.collectorOffice : copy.general))).trim();
   
   // Clean departmentName if it contains location suffix (e.g. "Tahasil Office, Jharsuguda")
   if (departmentName.includes(',') && !departmentName.includes('Department')) {
     departmentName = departmentName.split(',')[0].trim();
   }
 
-  let subDepartmentName = finalSubDept ? finalSubDept.name : (data.subDepartmentName || '');
+  let subDepartmentName = finalSubDept
+    ? getLocalizedDepartmentName(finalSubDept, lang)
+    : (data.subDepartmentName || '');
   if (subDepartmentName.toLowerCase() === 'not provided' || subDepartmentName === departmentName) {
     subDepartmentName = '';
   }
@@ -241,49 +394,53 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
 
       if (prevDeptId) {
         const pDept = await findDepartmentByIdOrCustomId(prevDeptId);
-        if (pDept) originalDeptName = pDept.name;
+        if (pDept) originalDeptName = getLocalizedDepartmentName(pDept, lang);
       }
       if (prevSubDeptId) {
         const pSubDept = await findDepartmentByIdOrCustomId(prevSubDeptId);
-        if (pSubDept) originalSubDeptName = pSubDept.name;
+        if (pSubDept) originalSubDeptName = getLocalizedDepartmentName(pSubDept, lang);
       }
     }
   }
 
-  const originalDeptLabel = originalDeptName ? `\n🏢 *Original Dept:* ${originalDeptName}` : '';
-  const originalSubDeptLabel = (originalSubDeptName && originalSubDeptName !== originalDeptName) ? `\n🏢 *Original Sub-Dept:* ${originalSubDeptName}` : '';
+  const originalDeptLabel = originalDeptName ? `\n🏢 *${copy.originalDepartment}:* ${originalDeptName}` : '';
+  const originalSubDeptLabel = (originalSubDeptName && originalSubDeptName !== originalDeptName) ? `\n🏢 *${copy.originalSubDepartment}:* ${originalSubDeptName}` : '';
   
-  const fromAdminSuffix = revertedByName ? ` the previous ${revertedByName}` : ' the previous department admin';
-  const reassignmentRemarksLabel = reassignmentRemarks ? `\n📝 *Note from${fromAdminSuffix}:* ${reassignmentRemarks}` : '';
+  const noteFromLabel = revertedByName
+    ? (lang === 'or'
+      ? `${revertedByName}${copy.noteFromPreviousUserPrefix}`
+      : `${copy.noteFromPreviousUserPrefix} ${revertedByName}`)
+    : copy.noteFromPreviousAdmin;
+  const reassignmentRemarksLabel = reassignmentRemarks ? `\n📝 *${noteFromLabel}:* ${reassignmentRemarks}` : '';
 
   if ((data.action === 'assigned' || data.action === 'assigned_admin') && data.timeline) {
     const wasReverted = data.timeline.some((t: any) => t.action === 'REVERTED_TO_COMPANY_ADMIN');
     if (wasReverted) {
-      const reassignmentNote = `This grievance is being reassigned to your department by ${assignedByName || 'the company admin'}. Please investigate and take required action.`;
-      description = `${reassignmentNote}\n${reassignmentRemarksLabel}\n${originalDeptLabel}${originalSubDeptLabel}\n\n*Original Citizen Description:*\n${description}`;
+      const reassignmentNote = copy.reassignmentLead.replace('{assignedBy}', assignedByName || 'Admin');
+      description = `${reassignmentNote}\n${reassignmentRemarksLabel}\n${originalDeptLabel}${originalSubDeptLabel}\n\n*${copy.originalCitizenDescription}:*\n${description}`;
     }
   }
 
   // Multi-line values (conditional blocks)
   // Multi-line values (conditional blocks)
-  const deptLabel = departmentName ? `\n🏢 *Department:* ${departmentName}` : '';
-  const subDeptLabel = subDepartmentName ? `\n🏢 *Sub-Dept:* ${subDepartmentName}` : '';
-  const descriptionLabel = description ? `\n📝 *Description:*\n${description}` : '';
+  const deptLabel = departmentName ? `\n🏢 *${copy.department}:* ${departmentName}` : '';
+  const subDeptLabel = subDepartmentName ? `\n🏢 *${copy.subDepartment}:* ${subDepartmentName}` : '';
+  const descriptionLabel = description ? `\n📝 *${copy.description}:*\n${description}` : '';
   
   const rawRemarks = String(data.remarks || '').trim();
-  const remarksLabel = rawRemarks ? `\n📝 *Remarks:*\n${rawRemarks}` : '';
-  const reasonLabel = rawRemarks ? `\n❌ *Reason:* ${rawRemarks}` : '';
-  const resolutionLabel = rawRemarks ? `\n✅ *Resolution Remarks:*\n${rawRemarks}` : '';
+  const remarksLabel = rawRemarks ? `\n📝 *${copy.remarks}:*\n${rawRemarks}` : '';
+  const reasonLabel = rawRemarks ? `\n❌ *${copy.reason}:* ${rawRemarks}` : '';
+  const resolutionLabel = rawRemarks ? `\n✅ *${copy.resolutionRemarks}:*\n${rawRemarks}` : '';
   
   const rawPurpose = String(data.purpose || '').trim();
-  const purposeLabel = rawPurpose ? `\n🎯 *Purpose:* ${rawPurpose}` : '';
+  const purposeLabel = rawPurpose ? `\n🎯 *${copy.purpose}:* ${rawPurpose}` : '';
   
   const rawCategory = String(data.category || '').trim();
-  const categoryLabel = rawCategory ? `\n📁 *Category:* ${rawCategory}` : '';
+  const categoryLabel = rawCategory ? `\n📁 *${copy.category}:* ${rawCategory}` : '';
   
   const loc = data.location as any;
   const locAddress = (loc && typeof loc === 'object') ? (loc.address || loc.name || '') : (loc || '');
-  const locationLabel = String(locAddress).trim() ? `\n📍 *Location:* ${String(locAddress).trim()}` : '';
+  const locationLabel = String(locAddress).trim() ? `\n📍 *${copy.location}:* ${String(locAddress).trim()}` : '';
 
   return {
     ...data,
@@ -314,6 +471,8 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
     appointmentDate: formattedAppointmentDate || data.appointmentDate || '',
     appointmentTime: formattedAppointmentTime || data.appointmentTime || '',
     resolutionTimeText,
+    newStatus: localizeStatusValue((data as any).newStatus, lang),
+    oldStatus: localizeStatusValue((data as any).oldStatus, lang),
     'Submitted On': formattedDate,
     submittedOn: formattedDate,
     forest_range: (data as any).forest_range || '',

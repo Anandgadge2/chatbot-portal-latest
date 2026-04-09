@@ -4,7 +4,7 @@
  * Any company can override these in the database (CompanyWhatsAppTemplate model).
  */
 export const DEFAULT_WA_MESSAGES: Record<string, string> = {
-  grievance_created_admin: `*{companyName}*
+  grievance_created_admin: `*{localizedCompanyBrand}*
 ━━━━━━━━━━━━━━━━━━━
 📋 *NEW GRIEVANCE RECEIVED*
 
@@ -22,7 +22,7 @@ Please review this grievance promptly. Resolution should be provided as per SLA.
 Digital Grievance Redressal System
 This is an automated notification.`,
 
-  grievance_assigned_admin: `*{companyName}*
+  grievance_assigned_admin: `*{localizedCompanyBrand}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 👤 *GRIEVANCE ASSIGNED TO YOU*
 
@@ -39,7 +39,7 @@ Please investigate and take required action.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Digital Grievance Redressal System`,
 
-  grievance_reassigned_admin: `*{companyName}*
+  grievance_reassigned_admin: `*{localizedCompanyBrand}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 👤 *GRIEVANCE REASSIGNED TO YOU*
 
@@ -55,7 +55,7 @@ Please investigate and take required action.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Digital Grievance Redressal System`,
 
-  grievance_reverted_admin: `*{companyName}*
+  grievance_reverted_admin: `*{localizedCompanyBrand}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🔄 *GRIEVANCE REVERTED*
 
@@ -76,7 +76,7 @@ Please review the updates and take necessary corrective action to ensure timely 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Digital Grievance Redressal System`,
 
-  grievance_resolved_admin: `*{companyName}*
+  grievance_resolved_admin: `*{localizedCompanyBrand}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ✅ *GRIEVANCE RESOLVED*
 
@@ -96,7 +96,7 @@ The following grievance has been marked as *RESOLVED*.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Digital Grievance System`,
 
-  grievance_rejected_admin: `*{companyName}*
+  grievance_rejected_admin: `*{localizedCompanyBrand}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ❌ *GRIEVANCE REJECTED*
 
@@ -111,7 +111,7 @@ The following grievance has been *REJECTED*.
 👨‍💼 *Action By:* {resolvedByName}{reasonLabel}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-*{companyName}*`,
+*{localizedCompanyBrand}*`,
 
   grievance_confirmation: `*{localizedCompanyBrand}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -131,7 +131,7 @@ You can track your status using the Reference ID: *{grievanceId}*
 Your grievance, our priority.
 – District Administration, Jharsuguda,`,
 
-  grievance_confirmation_hi: `*{localizedCompanyBrand}*
+  grievance_confirmation_hi_localized: `*{localizedCompanyBrand}*
 â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
 âœ… *शिकायत सफलतापूर्वक दर्ज हो गई*
 
@@ -149,7 +149,7 @@ Your grievance, our priority.
 आपकी शिकायत, हमारी प्राथमिकता।
 â€“ जिला प्रशासन, झारसुगुडा`,
 
-  grievance_confirmation_or: `*{localizedCompanyBrand}*
+  grievance_confirmation_or_localized: `*{localizedCompanyBrand}*
 â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
 âœ… *ଅଭିଯୋଗ ସଫଳଭାବେ ଦାଖଲ ହେଲା*
 
@@ -167,7 +167,7 @@ Your grievance, our priority.
 ଆପଣଙ୍କର ଅଭିଯୋଗ, ଆମର ଅଗ୍ରାଧିକାର।
 â€“ ଜିଲ୍ଲା ପ୍ରଶାସନ, ଝାରସୁଗୁଡା`,
 
-  grievance_status_update: `*{companyName}*
+  grievance_status_update: `*{localizedCompanyBrand}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📋 *GRIEVANCE STATUS UPDATE*
 
@@ -183,10 +183,10 @@ Your grievance status has been updated.
 
 You will receive further updates via WhatsApp.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-*{companyName}*
+*{localizedCompanyBrand}*
 Digital Grievance Redressal System`,
 
-  grievance_resolved: `*{companyName}*
+  grievance_resolved: `*{localizedCompanyBrand}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ✅ *GRIEVANCE RESOLVED*
 
@@ -201,10 +201,10 @@ Respected {citizenName},
 
 Thank you for your patience.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-*{companyName}*
+*{localizedCompanyBrand}*
 Digital Grievance Redressal System`,
 
-  grievance_rejected: `*{companyName}*
+  grievance_rejected: `*{localizedCompanyBrand}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ❌ *GRIEVANCE REJECTED*
 
@@ -217,9 +217,9 @@ We regret to inform you that your grievance has been rejected.
 📊 *Status:* REJECTED{reasonLabel}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-*{companyName}*`,
+*{localizedCompanyBrand}*`,
 
-  appointment_created_admin: `*{companyName}*
+  appointment_created_admin: `*{localizedCompanyBrand}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📋 *NEW APPOINTMENT RECEIVED*
 
@@ -236,7 +236,7 @@ Please review this appointment promptly.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Digital Appointment System`,
 
-  appointment_confirmed_admin: `*{companyName}*
+  appointment_confirmed_admin: `*{localizedCompanyBrand}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ✅ *APPOINTMENT CONFIRMED*
 
@@ -249,9 +249,9 @@ Details:
 ⏰ *Time:* {appointmentTime}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-*{companyName}*`,
+*{localizedCompanyBrand}*`,
 
-  appointment_cancelled_admin: `*{companyName}*
+  appointment_cancelled_admin: `*{localizedCompanyBrand}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ❌ *APPOINTMENT CANCELLED*
 
@@ -268,7 +268,7 @@ The following appointment has been *CANCELLED*.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Digital Appointment System`,
 
-  appointment_completed_admin: `*{companyName}*
+  appointment_completed_admin: `*{localizedCompanyBrand}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ✅ *APPOINTMENT COMPLETED*
 
@@ -285,7 +285,7 @@ The following appointment has been marked as *COMPLETED*.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Digital Appointment System`,
 
-  appointment_confirmation: `*{companyName}*
+  appointment_confirmation: `*{localizedCompanyBrand}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ✅ *APPOINTMENT REQUESTED SUCCESSFULLY*
 
@@ -302,7 +302,7 @@ We will notify you once it's scheduled/confirmed.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Digital Appointment System`,
 
-  appointment_scheduled_update: `*{companyName}*
+  appointment_scheduled_update: `*{localizedCompanyBrand}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📅 *APPOINTMENT SCHEDULED*
 
@@ -320,7 +320,7 @@ Please wait for final confirmation.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Digital Appointment System`,
 
-  appointment_confirmed_update: `*{companyName}*
+  appointment_confirmed_update: `*{localizedCompanyBrand}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ✅ *APPOINTMENT CONFIRMED*
 
@@ -338,7 +338,7 @@ Please arrive 15 minutes early with valid ID.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Digital Appointment System`,
 
-  appointment_cancelled_update: `*{companyName}*
+  appointment_cancelled_update: `*{localizedCompanyBrand}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ❌ *APPOINTMENT CANCELLED*
 
@@ -355,7 +355,7 @@ We apologize for any inconvenience caused.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Digital Appointment System`,
 
-  appointment_completed_update: `*{companyName}*
+  appointment_completed_update: `*{localizedCompanyBrand}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ✅ *APPOINTMENT COMPLETED*
 
@@ -372,7 +372,7 @@ Thank you for visiting us.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Digital Appointment System`,
 
-  appointment_status_update: `*{companyName}*
+  appointment_status_update: `*{localizedCompanyBrand}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📋 *APPOINTMENT STATUS UPDATE*
 
@@ -386,6 +386,106 @@ Your appointment status has been updated.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Digital Appointment System`,
+
+  grievance_created_admin_hi: `*{localizedCompanyBrand}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 *नई शिकायत प्राप्त हुई*
+
+आदरणीय {recipientName},
+एक नई शिकायत नागरिक द्वारा दर्ज की गई है।
+
+🎫 *संदर्भ संख्या:* {grievanceId}
+👤 *नागरिक:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}
+📅 *प्राप्ति दिनांक:* {formattedDate}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+
+  grievance_created_admin_or: `*{localizedCompanyBrand}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 *ନୂତନ ଅଭିଯୋଗ ପ୍ରାପ୍ତ ହେଲା*
+
+ଆଦରଣୀୟ {recipientName},
+ଜଣେ ନାଗରିକଙ୍କ ଠାରୁ ଏକ ନୂତନ ଅଭିଯୋଗ ଦାଖଲ ହୋଇଛି।
+
+🎫 *ରେଫରେନ୍ସ ନମ୍ବର:* {grievanceId}
+👤 *ନାଗରିକ:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}
+📅 *ପ୍ରାପ୍ତି ତାରିଖ:* {formattedDate}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+
+  grievance_assigned_admin_hi: `*{localizedCompanyBrand}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+👤 *शिकायत आपको सौंपी गई है*
+
+आदरणीय {recipientName},
+
+🎫 *संदर्भ संख्या:* {grievanceId}
+👤 *नागरिक:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}
+👨‍💼 *सौंपने वाले अधिकारी:* {assignedByName}
+📅 *सौंपने की तिथि:* {formattedDate}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+
+  grievance_assigned_admin_or: `*{localizedCompanyBrand}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+👤 *ଅଭିଯୋଗ ଆପଣଙ୍କୁ ଅବଣ୍ଟନ ହେଲା*
+
+ଆଦରଣୀୟ {recipientName},
+
+🎫 *ରେଫରେନ୍ସ ନମ୍ବର:* {grievanceId}
+👤 *ନାଗରିକ:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}
+👨‍💼 *ଅବଣ୍ଟନ କରିଥିବା ଅଧିକାରୀ:* {assignedByName}
+📅 *ଅବଣ୍ଟନ ତାରିଖ:* {formattedDate}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+
+  grievance_reassigned_admin_hi: `*{localizedCompanyBrand}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔁 *शिकायत पुनः आवंटित की गई है*
+
+आदरणीय {recipientName},
+
+🎫 *संदर्भ संख्या:* {grievanceId}
+👤 *नागरिक:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}
+👨‍💼 *पुनः आवंटित करने वाले अधिकारी:* {assignedByName}
+📅 *पुनः आवंटन तिथि:* {formattedDate}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+
+  grievance_reassigned_admin_or: `*{localizedCompanyBrand}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔁 *ଅଭିଯୋଗ ପୁଣିଥରେ ଅବଣ୍ଟନ ହେଲା*
+
+ଆଦରଣୀୟ {recipientName},
+
+🎫 *ରେଫରେନ୍ସ ନମ୍ବର:* {grievanceId}
+👤 *ନାଗରିକ:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}
+👨‍💼 *ପୁନଃ ଅବଣ୍ଟନ କରିଥିବା ଅଧିକାରୀ:* {assignedByName}
+📅 *ପୁନଃ ଅବଣ୍ଟନ ତାରିଖ:* {formattedDate}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+
+  grievance_confirmation_hi: `*{localizedCompanyBrand}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ *शिकायत सफलतापूर्वक दर्ज हो गई है*
+
+आदरणीय {citizenName},
+आपकी शिकायत सफलतापूर्वक दर्ज कर ली गई है।
+
+🎫 *संदर्भ संख्या:* {grievanceId}
+🏢 *विभाग:* {departmentName}
+{subDeptLabel}
+📝 *विवरण:* {description}
+📅 *दर्ज करने की तिथि:* {formattedDate}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+
+  grievance_confirmation_or: `*{localizedCompanyBrand}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ *ଅଭିଯୋଗ ସଫଳଭାବେ ଦାଖଲ ହେଲା*
+
+ଆଦରଣୀୟ {citizenName},
+ଆପଣଙ୍କ ଅଭିଯୋଗ ସଫଳଭାବେ ଦାଖଲ ହୋଇଛି।
+
+🎫 *ରେଫରେନ୍ସ ନମ୍ବର:* {grievanceId}
+🏢 *ବିଭାଗ:* {departmentName}
+{subDeptLabel}
+📝 *ବିବରଣୀ:* {description}
+📅 *ଦାଖଲ ତାରିଖ:* {formattedDate}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
 
   cmd_stop:
     "🛑 Conversation ended. Thank you for using our service. You can type 'hi' at any time to start again.",
