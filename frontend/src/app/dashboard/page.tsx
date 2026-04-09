@@ -282,6 +282,7 @@ function DashboardContent() {
     isSubDepartmentAdminRole,
     hasMultiDepartmentMapping,
   ]);
+  const canManageDepartmentPriority = isCompanyAdminRole;
   const canSeeUsersTab = useMemo(() => {
     if (isSuperAdminUser && companyIdParam) return true;
     return (
@@ -613,6 +614,12 @@ function DashboardContent() {
   const [selectedDepartments, setSelectedDepartments] = useState<Set<string>>(
     new Set(),
   );
+  const [priorityDrafts, setPriorityDrafts] = useState<Record<string, string>>(
+    {},
+  );
+  const [savingPriorityIds, setSavingPriorityIds] = useState<Set<string>>(
+    new Set(),
+  );
   const [showHierarchyDialog, setShowHierarchyDialog] = useState(false);
   const [selectedDeptForHierarchy, setSelectedDeptForHierarchy] =
     useState<Department | null>(null);
@@ -725,6 +732,7 @@ function DashboardContent() {
   const [grievanceSearch, setGrievanceSearch] = useState("");
   const [appointmentSearch, setAppointmentSearch] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
+
 
   // Helper to check module access - strictly respects company config if viewing a specific company
   const hasModule = useCallback(
@@ -1373,6 +1381,65 @@ function DashboardContent() {
       console.error("Failed to fetch all departments:", error);
     }
   }, [isSuperAdminUser, companyIdParam]);
+
+  const handleSaveDepartmentPriority = useCallback(
+    async (dept: Department) => {
+      if (!canManageDepartmentPriority) {
+        toast.error("Only Company Admin can update department priority");
+        return;
+      }
+
+      const rawValue = priorityDrafts[dept._id] ?? String(dept.displayOrder ?? 999);
+      const parsed = Number(rawValue);
+
+      if (!Number.isFinite(parsed) || parsed < 0) {
+        toast.error("Priority must be a non-negative number");
+        return;
+      }
+
+      const nextValue = Math.floor(parsed);
+      const currentValue =
+        typeof dept.displayOrder === "number" ? dept.displayOrder : 999;
+
+      if (nextValue === currentValue) {
+        toast("Priority already set");
+        return;
+      }
+
+      setSavingPriorityIds((prev) => new Set(prev).add(dept._id));
+      try {
+        const response = await departmentAPI.update(dept._id, {
+          displayOrder: nextValue,
+        });
+        if (response.success) {
+          toast.success(`Priority updated for ${dept.name}`);
+          setPriorityDrafts((prev) => ({
+            ...prev,
+            [dept._id]: String(nextValue),
+          }));
+          fetchDepartments(departmentPage, true);
+          fetchAllDepartments();
+        } else {
+          toast.error("Failed to update priority");
+        }
+      } catch (error: any) {
+        toast.error(error?.message || "Failed to update priority");
+      } finally {
+        setSavingPriorityIds((prev) => {
+          const next = new Set(prev);
+          next.delete(dept._id);
+          return next;
+        });
+      }
+    },
+    [
+      canManageDepartmentPriority,
+      priorityDrafts,
+      fetchDepartments,
+      departmentPage,
+      fetchAllDepartments,
+    ],
+  );
 
   const fetchUsers = useCallback(
     async (page = userPage, isSilent = false) => {
@@ -5750,6 +5817,11 @@ function DashboardContent() {
                                   <th className="px-4 py-3 text-center border-b border-slate-100 text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                     Users
                                   </th>
+                                  {canManageDepartmentPriority && (
+                                    <th className="px-4 py-3 text-center border-b border-slate-100 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                      Priority
+                                    </th>
+                                  )}
                                   <th className="px-4 py-3 text-left border-b border-slate-100 text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                     Head / Contact
                                   </th>
@@ -5922,6 +5994,47 @@ function DashboardContent() {
                                             </button>
                                           </div>
                                         </td>
+
+                                        {/* Priority */}
+                                        {canManageDepartmentPriority && (
+                                          <td className="px-4 py-4 text-center">
+                                            <div className="flex items-center justify-center gap-1.5">
+                                              <input
+                                                type="number"
+                                                min={0}
+                                                step={1}
+                                                value={
+                                                  priorityDrafts[dept._id] ??
+                                                  String(dept.displayOrder ?? 999)
+                                                }
+                                                onChange={(e) =>
+                                                  setPriorityDrafts((prev) => ({
+                                                    ...prev,
+                                                    [dept._id]: e.target.value,
+                                                  }))
+                                                }
+                                                className="w-16 h-8 rounded-lg border border-slate-300 px-2 text-center text-xs font-bold focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500"
+                                                title="Lower number appears first in chatbot list"
+                                              />
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-8 px-2 text-[10px] font-black text-indigo-600 hover:bg-indigo-50 disabled:opacity-60"
+                                                onClick={() =>
+                                                  handleSaveDepartmentPriority(dept)
+                                                }
+                                                disabled={savingPriorityIds.has(
+                                                  dept._id,
+                                                )}
+                                                title="Save priority"
+                                              >
+                                                {savingPriorityIds.has(dept._id)
+                                                  ? "Saving..."
+                                                  : "Save"}
+                                              </Button>
+                                            </div>
+                                          </td>
+                                        )}
 
                                         {/* Head / Contact */}
                                         <td className="px-4 py-4 whitespace-normal break-words">

@@ -21,6 +21,7 @@ export interface Department {
   parentDepartmentId?: string | { _id: string; name: string }; // 🏢 Added for hierarchical departments
   contactUserId?: string | { _id: string; firstName: string; lastName: string; email: string; phone: string }; // 🏢 Link to User record for 'Edit User' functionality
   isActive: boolean;
+  displayOrder?: number;
   userCount?: number; // 🏢 Dynamic user count from backend
   head?: string; // 🏢 Department head name from backend
   createdAt: string;
@@ -42,6 +43,7 @@ export interface CreateDepartmentData {
   contactPhone?: string;
   companyId: string;
   parentDepartmentId?: string; // 🏢 Added for hierarchical departments
+  displayOrder?: number;
 }
 
 export interface UpdateDepartmentData {
@@ -59,6 +61,7 @@ export interface UpdateDepartmentData {
   contactPhone?: string;
   parentDepartmentId?: string; // 🏢 Added for hierarchical departments
   isActive?: boolean;
+  displayOrder?: number;
 }
 
 export interface DepartmentsResponse {

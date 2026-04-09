@@ -902,7 +902,7 @@ export class DynamicFlowEngine {
       let allDepts = await Department.find({
         companyId: this.company._id,
         isActive: true,
-      });
+      }).sort({ displayOrder: 1, name: 1, createdAt: 1 });
 
       if (allDepts.length === 0) {
         console.warn(
@@ -911,7 +911,7 @@ export class DynamicFlowEngine {
         allDepts = await Department.find({
           companyId: this.company._id.toString(),
           isActive: true,
-        });
+        }).sort({ displayOrder: 1, name: 1, createdAt: 1 });
       }
 
       // Check if hierarchical departments module is enabled
@@ -933,6 +933,13 @@ export class DynamicFlowEngine {
           departments = allDepts;
         }
       }
+
+      departments = departments.sort((a: any, b: any) => {
+        const rankA = typeof a.displayOrder === "number" ? a.displayOrder : 999;
+        const rankB = typeof b.displayOrder === "number" ? b.displayOrder : 999;
+        if (rankA !== rankB) return rankA - rankB;
+        return (a.name || "").localeCompare(b.name || "");
+      });
 
       if (departments.length === 0) {
         await sendWhatsAppMessage(
