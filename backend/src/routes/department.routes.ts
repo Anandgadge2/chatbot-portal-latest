@@ -12,6 +12,19 @@ import { AuditAction, Permission, UserRole } from '../config/constants';
 
 const router = express.Router();
 
+const normalizeDisplayOrder = (value: unknown): number | undefined => {
+  if (value === undefined || value === null || value === '') {
+    return undefined;
+  }
+
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return NaN;
+  }
+
+  return Math.floor(parsed);
+};
+
 // All routes require database connection and authentication
 router.use(requireDatabaseConnection);
 router.use(authenticate);
@@ -143,7 +156,7 @@ router.get('/', requirePermission(Permission.READ_DEPARTMENT), async (req: Reque
         .skip((Number(page) - 1) * Number(limit));
     }
 
-    const departments = await departmentQuery.sort({ createdAt: -1 });
+    const departments = await departmentQuery.sort({ displayOrder: 1, createdAt: -1 });
 
     // Dynamically identify department heads/admins based on their permissions
     // We look for users who have management permissions for these departments
@@ -304,7 +317,8 @@ router.post('/', requirePermission(Permission.CREATE_DEPARTMENT), async (req: Re
       contactEmail, 
       contactPhone,
       parentDepartmentId,
-      contactUserId 
+      contactUserId,
+      displayOrder
     } = req.body;
 
     // Validation
@@ -314,6 +328,14 @@ router.post('/', requirePermission(Permission.CREATE_DEPARTMENT), async (req: Re
         message: 'Company ID and name are required'
       });
       return;
+    }
+
+    const normalizedDisplayOrder = normalizeDisplayOrder(displayOrder);
+    if (Number.isNaN(normalizedDisplayOrder)) {
+      return res.status(400).json({
+        success: false,
+        message: 'displayOrder must be a non-negative number'
+      });
     }
 
     // Validate and normalize contact phone if provided (telephone: landline or mobile)
@@ -370,7 +392,8 @@ router.post('/', requirePermission(Permission.CREATE_DEPARTMENT), async (req: Re
       contactEmail,
       contactPhone: normalizedContactPhone,
       parentDepartmentId: parentDepartmentId || null,
-      contactUserId: contactUserId || null
+      contactUserId: contactUserId || null,
+      ...(normalizedDisplayOrder !== undefined ? { displayOrder: normalizedDisplayOrder } : {})
     });
 
     await logUserAction(
@@ -635,6 +658,21 @@ router.put('/:id', requirePermission(Permission.UPDATE_DEPARTMENT), async (req: 
     }
     if (updateData.companyId === "") {
       delete updateData.companyId; // Don't allow clearing companyId
+    }
+
+    if (Object.prototype.hasOwnProperty.call(updateData, 'displayOrder')) {
+      const normalizedDisplayOrder = normalizeDisplayOrder(updateData.displayOrder);
+      if (Number.isNaN(normalizedDisplayOrder)) {
+        return res.status(400).json({
+          success: false,
+          message: 'displayOrder must be a non-negative number'
+        });
+      }
+      if (normalizedDisplayOrder === undefined) {
+        delete updateData.displayOrder;
+      } else {
+        updateData.displayOrder = normalizedDisplayOrder;
+      }
     }
     
     if (updateData.contactPhone) {
