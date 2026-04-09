@@ -389,18 +389,102 @@ const pickNonEmptyText = (...values: Array<unknown>) => {
   return "";
 };
 
+const TEMPLATE_FOOTER_BY_LANG = {
+  grievance: {
+    en: "Digital Grievance Redressal System",
+    hi: "डिजिटल शिकायत निवारण प्रणाली",
+    or: "ଡିଜିଟାଲ ଅଭିଯୋଗ ନିବାରଣ ପ୍ରଣାଳୀ",
+  },
+  appointment: {
+    en: "Digital Appointment System",
+    hi: "डिजिटल नियुक्ति प्रबंधन प्रणाली",
+    or: "ଡିଜିଟାଲ ନିଯୁକ୍ତି ପରିଚାଳନା ପ୍ରଣାଳୀ",
+  },
+  generic: {
+    en: "Digital Notification System",
+    hi: "डिजिटल सूचना प्रणाली",
+    or: "ଡିଜିଟାଲ ସୂଚନା ପ୍ରଣାଳୀ",
+  },
+} as const;
+
+const STATUS_UPDATE_NOTICE_BY_LANG = {
+  en: "You will receive further updates via WhatsApp.",
+  hi: "आपको आगे की जानकारी व्हाट्सएप के माध्यम से प्राप्त होगी।",
+  or: "ଆପଣ ହ୍ୱାଟସଅ୍ୟାପ୍ ମାଧ୍ୟମରେ ପରବର୍ତ୍ତୀ ଅଦ୍ୟତନ ପାଇବେ।",
+} as const;
+
+const getTemplateFooterType = (templateKey: string) => {
+  if (templateKey.startsWith("appointment")) {
+    return "appointment";
+  }
+  if (templateKey.startsWith("grievance")) {
+    return "grievance";
+  }
+  return "generic";
+};
+
+const ensureTemplateFooter = (
+  templateKey: string,
+  lang: "en" | "hi" | "or",
+  text: string,
+) => {
+  if (templateKey.startsWith("cmd_")) {
+    return text;
+  }
+
+  const normalized = String(text || "").trim();
+  if (!normalized) {
+    return normalized;
+  }
+
+  const footerType = getTemplateFooterType(templateKey);
+  const systemLine = TEMPLATE_FOOTER_BY_LANG[footerType][lang];
+  const statusNotice =
+    templateKey === "grievance_status_update"
+      ? STATUS_UPDATE_NOTICE_BY_LANG[lang]
+      : "";
+  const hasNotice = !statusNotice || normalized.includes(statusNotice);
+  const hasSystem = normalized.includes(systemLine);
+
+  if (hasNotice && hasSystem) {
+    return normalized;
+  }
+
+  const divider = "━━━━━━━━━━━━━━━━━━━━━━━━━━━━";
+  const appendedParts = [
+    !hasNotice ? statusNotice : "",
+    divider,
+    "*{localizedCompanyBrand}*",
+    !hasSystem ? systemLine : "",
+  ].filter(Boolean);
+
+  return `${normalized}\n\n${appendedParts.join("\n")}`.trim();
+};
+
 const buildTemplateTranslations = (templateKey: string, template?: any) => {
   const defaults = getDefaultTranslations(templateKey);
-  const english = pickNonEmptyText(
-    template?.messageTranslations?.en,
-    template?.message,
-    defaults.en,
+  const english = ensureTemplateFooter(
+    templateKey,
+    "en",
+    pickNonEmptyText(
+      template?.messageTranslations?.en,
+      template?.message,
+      defaults.en,
+    ),
   );
 
   return {
     en: english,
-    hi: pickNonEmptyText(template?.messageTranslations?.hi, defaults.hi, english),
-    or: pickNonEmptyText(template?.messageTranslations?.or, defaults.or, english),
+    hi: ensureTemplateFooter(
+      templateKey,
+      "hi",
+      pickNonEmptyText(template?.messageTranslations?.hi, defaults.hi, english),
+    ),
+    or: ensureTemplateFooter(
+      templateKey,
+      "or",
+      pickNonEmptyText(template?.messageTranslations?.or, defaults.or, english),
+    ),
   };
 };
 

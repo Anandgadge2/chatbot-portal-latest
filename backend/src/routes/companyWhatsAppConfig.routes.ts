@@ -52,6 +52,73 @@ const splitTemplateKey = (templateKey: string): { baseKey: string; lang: string 
   };
 };
 
+const TEMPLATE_FOOTER_BY_LANG = {
+  grievance: {
+    en: 'Digital Grievance Redressal System',
+    hi: 'डिजिटल शिकायत निवारण प्रणाली',
+    or: 'ଡିଜିଟାଲ ଅଭିଯୋଗ ନିବାରଣ ପ୍ରଣାଳୀ',
+  },
+  appointment: {
+    en: 'Digital Appointment System',
+    hi: 'डिजिटल नियुक्ति प्रबंधन प्रणाली',
+    or: 'ଡିଜିଟାଲ ନିଯୁକ୍ତି ପରିଚାଳନା ପ୍ରଣାଳୀ',
+  },
+  generic: {
+    en: 'Digital Notification System',
+    hi: 'डिजिटल सूचना प्रणाली',
+    or: 'ଡିଜିଟାଲ ସୂଚନା ପ୍ରଣାଳୀ',
+  },
+} as const;
+
+const STATUS_UPDATE_NOTICE_BY_LANG = {
+  en: 'You will receive further updates via WhatsApp.',
+  hi: 'आपको आगे की जानकारी व्हाट्सएप के माध्यम से प्राप्त होगी।',
+  or: 'ଆପଣ ହ୍ୱାଟସଅ୍ୟାପ୍ ମାଧ୍ୟମରେ ପରବର୍ତ୍ତୀ ଅଦ୍ୟତନ ପାଇବେ।',
+} as const;
+
+const getTemplateFooterType = (templateKey: string) => {
+  if (templateKey.startsWith('appointment')) return 'appointment';
+  if (templateKey.startsWith('grievance')) return 'grievance';
+  return 'generic';
+};
+
+const normalizeTemplateMessage = (
+  templateKey: string,
+  lang: 'en' | 'hi' | 'or',
+  message: string,
+) => {
+  if (templateKey.startsWith('cmd_')) {
+    return String(message || '').trim();
+  }
+
+  const normalized = String(message || '').trim();
+  if (!normalized) {
+    return normalized;
+  }
+
+  const footerType = getTemplateFooterType(templateKey);
+  const systemLine = TEMPLATE_FOOTER_BY_LANG[footerType][lang];
+  const statusNotice =
+    templateKey === 'grievance_status_update' ? STATUS_UPDATE_NOTICE_BY_LANG[lang] : '';
+
+  const hasNotice = !statusNotice || normalized.includes(statusNotice);
+  const hasSystem = normalized.includes(systemLine);
+
+  if (hasNotice && hasSystem) {
+    return normalized;
+  }
+
+  const divider = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
+  const appendedParts = [
+    !hasNotice ? statusNotice : '',
+    divider,
+    '*{localizedCompanyBrand}*',
+    !hasSystem ? systemLine : '',
+  ].filter(Boolean);
+
+  return `${normalized}\n\n${appendedParts.join('\n')}`.trim();
+};
+
 const router = express.Router();
 
 /**
@@ -603,10 +670,14 @@ router.get('/company/:companyId/templates', authenticate, async (req: Request, r
       };
 
       if (lang) {
-        existing.messageTranslations[lang] = t.message || '';
+        existing.messageTranslations[lang] = normalizeTemplateMessage(
+          baseKey,
+          lang as 'en' | 'hi' | 'or',
+          t.message || '',
+        );
       } else {
-        existing.message = t.message || '';
-        existing.messageTranslations.en = t.message || '';
+        existing.message = normalizeTemplateMessage(baseKey, 'en', t.message || '');
+        existing.messageTranslations.en = normalizeTemplateMessage(baseKey, 'en', t.message || '');
         existing.label = t.label || existing.label;
         existing.isActive = t.isActive;
         existing.keywords = t.keywords || [];
@@ -705,9 +776,9 @@ router.put('/company/:companyId/templates', authenticate, requireSuperAdmin, asy
       const key = t.templateKey.trim().toLowerCase().replace(/\s+/g, '_');
       const builtinEntry = BUILTIN_TEMPLATE_KEYS.find(b => b.key === key);
       const translations = {
-        en: t.messageTranslations?.en ?? t.message ?? '',
-        hi: t.messageTranslations?.hi ?? '',
-        or: t.messageTranslations?.or ?? '',
+        en: normalizeTemplateMessage(key, 'en', t.messageTranslations?.en ?? t.message ?? ''),
+        hi: normalizeTemplateMessage(key, 'hi', t.messageTranslations?.hi ?? ''),
+        or: normalizeTemplateMessage(key, 'or', t.messageTranslations?.or ?? ''),
       };
 
       await CompanyWhatsAppTemplate.findOneAndUpdate(
