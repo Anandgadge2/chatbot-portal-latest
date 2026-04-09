@@ -19,8 +19,7 @@ A new grievance has been submitted by a citizen.
 *Action Required:*
 Please review this grievance promptly. Resolution should be provided as per SLA.
 ━━━━━━━━━━━━━━━━━━━━━
-Digital Grievance Redressal System
-This is an automated notification.`,
+Digital Grievance Redressal System`,
 
   grievance_assigned_admin: `*{localizedCompanyBrand}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━

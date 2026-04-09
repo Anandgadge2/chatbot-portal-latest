@@ -314,8 +314,7 @@ A new grievance has been submitted by a citizen.
 Please review this grievance promptly. Resolution should be provided as per SLA.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 *{companyName}*
-Digital Grievance Redressal System
-This is an automated notification.`,
+Digital Grievance Redressal System`,
 
   grievance_assigned_admin: `*{companyName}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -469,8 +468,7 @@ Details:
 Please review this appointment promptly.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 *{companyName}*
-Digital Appointment System
-This is an automated notification.`,
+Digital Appointment System`,
 
   appointment_confirmed_admin: `*{companyName}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
