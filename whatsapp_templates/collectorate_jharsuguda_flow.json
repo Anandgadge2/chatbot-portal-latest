@@ -730,8 +730,7 @@
       },
       "data": {
         "label": "Helpdesk (EN)",
-        "messageText": "ℹ️ *Helpdesk & Support*\n\nFor further assistance:\n\n📞 *Helpline:* 06645 270 070\n📧 *Email:* dm-jharsuguda@nic.in\n🌐 *Website:* jharsuguda.odisha.gov.in\n📍 *Office:*Collectorate, Jharsuguda, PO- OMP Line,\nDist- Jharsuguda, Odisha 768204\n\n*Office Hours:*\n10:00 AM – 5:30 PM (Mon–Sat)",
-        "buttons": [
+"messageText": "ℹ️ *Helpdesk & Support*\n\nFor further assistance:\n\n📞 *Helpline:* 06645 270 070\n📧 *Email:* dm-jharsuguda@nic.in\n🌐 *Website:* jharsuguda.odisha.gov.in\n📍 *Office:* Collectorate, Jharsuguda, PO- OMP Line, Dist-Jharsuguda, Odisha 768204\n\n*Office Hours:*\n10:00 AM – 5:30 PM (Mon–Sat)- Day Office,\n07:00 AM – 1:00 PM (Mon–Sat)-Morning Office\n(Except Holidays)",        "buttons": [
           {
             "id": "back_to_menu_en",
             "text": "🔙 Back to Menu",
@@ -778,7 +777,7 @@
       },
       "data": {
         "label": "Helpdesk (HI)",
-        "messageText": "ℹ️ *हेल्पडेस्क और सहायता*\n\nआगे की सहायता के लिए:\n\n📞 *हेल्पलाइन:* 06645 270 070\n📧 *ईमेल:* dm-jharsuguda@nic.in\n🌐 *वेबसाइट:* jharsuguda.odisha.gov.in\n📍 *कार्यालय:*\nकलेक्टरेट झारसुगुडा , एनएच 10, झारसुगुडा रोड,\nबीजू नगर, झारसुगुडा, ओडिशा 768204\n\n*कार्यालय का समय:*\n10:00 AM – 5:30 PM (सोम–शनि)",
+        "messageText": "ℹ️ *हेल्पडेस्क और सहायता*\n\nअधिक सहायता के लिए:\n\n📞 *हेल्पलाइन:* 06645 270 070\n📧 *ईमेल:* dm-jharsuguda@nic.in\n🌐 *वेबसाइट:* jharsuguda.odisha.gov.in\n📍 *कार्यालय:* कलेक्ट्रेट, झारसुगुड़ा, पोस्ट- ओएमपी लाइन, जिला-झारसुगुड़ा, ओडिशा 768204\n\n*कार्यालय समय:*\n10:00 AM – 5:30 PM (सोमवार-शनिवार)- दिन का कार्यालय,\n07:00 AM – 1:00 PM (सोमवार-शनिवार)-सुबह का कार्यालय\n(छुट्टियों को छोड़कर)",
         "buttons": [
           {
             "id": "back_to_menu_hi",
@@ -826,7 +825,7 @@
       },
       "data": {
         "label": "Helpdesk (OR)",
-        "messageText": "ℹ️ *ହେଲ୍ପଡେସ୍କ ଏବଂ ସହାୟତା*\n\nଅଧିକ ସହାୟତା ପାଇଁ:\n\n📞 *ହେଲ୍ପଲାଇନ:* 06645 270 070\n📧 *ଇମେଲ:* dm-jharsuguda@nic.in\n🌐 *ୱେବସାଇଟ:* jharsuguda.odisha.gov.in\n📍 *କାର୍ଯ୍ୟାଳୟ:*\nକଲେକ୍ଟରେଟ୍ ଝାରସୁଗୁଡା , NH 10, ଝାରସୁଗୁଡା ରୋଡ୍,\nବିଜୁ ନଗର, ଝାରସୁଗୁଡା, ଓଡିଶା 768204\n\n*କାର୍ଯ୍ୟାଳୟ ସମୟ:*\n10:00 AM – 5:30 PM (ସୋମ–ଶନି)",
+        "messageText": "ℹ️ *ହେଲ୍ପଡେସ୍କ ଏବଂ ସମର୍ଥନ*\n\nଅଧିକ ସହାୟତା ପାଇଁ:\n\n📞 *ହେଲ୍ପଲାଇନ୍:* 06645 270 070\n📧 *ଇମେଲ୍:* dm-jharsuguda@nic.in\n🌐 *ୱେବସାଇଟ୍:* jharsuguda.odisha.gov.in\n📍 *କାର୍ଯ୍ୟାଳୟ:* କଲେକ୍ଟରେଟ୍, ଝାରସୁଗୁଡା, ପୋଷ୍ଟ- ଓଏମ୍ପି ଲାଇନ, ଜିଲ୍ଲା-ଝାରସୁଗୁଡା, ଓଡ଼ିଶା 768204\n\n*କାର୍ଯ୍ୟାଳୟ ସମୟ:*\n10:00 AM – 5:30 PM (ସୋମ-ଶନି)- ଦିବା କାର୍ଯ୍ୟାଳୟ,\n07:00 AM – 1:00 PM (ସୋମ-ଶନି)-ସକାଳ କାର୍ଯ୍ୟାଳୟ\n(ଛୁଟିଦିନ ବ୍ୟତୀତ)",
         "buttons": [
           {
             "id": "back_to_menu_or",
