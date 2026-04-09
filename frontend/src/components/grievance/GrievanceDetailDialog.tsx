@@ -36,7 +36,7 @@ import {
   Settings,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { isDepartmentAdminOrHigher, hasPermission, Permission } from "@/lib/permissions";
+import { canChangeGrievanceStatus, isDepartmentAdminOrHigher } from "@/lib/permissions";
 import StatusUpdateForm from "./StatusUpdateForm";
 
 // Helper: treat as image if type is image or URL looks like an image
@@ -88,7 +88,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
   onSuccess,
 }) => {
   const { user } = useAuth();
-  const canUpdateStatus = hasPermission(user, Permission.UPDATE_GRIEVANCE);
+  const canUpdateStatus = canChangeGrievanceStatus(user);
   const [fullScreenMedia, setFullScreenMedia] = useState<{
     url: string;
     alt?: string;

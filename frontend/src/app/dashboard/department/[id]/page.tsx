@@ -57,7 +57,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { Permission, hasPermission, Module, isSuperAdmin, isCompanyAdminOrHigher } from "@/lib/permissions";
+import { Permission, canChangeGrievanceStatus, hasPermission, Module, isSuperAdmin, isCompanyAdminOrHigher } from "@/lib/permissions";
 import { formatTo10Digits } from "@/lib/utils/phoneUtils";
 import { Pagination } from "@/components/ui/Pagination";
 import { TableSkeleton } from "@/components/ui/GeneralSkeleton";
@@ -66,6 +66,7 @@ const COLORS = ["#6366f1", "#10b981", "#f59e0b", "#f43f5e"];
 
 export default function DepartmentDetail() {
   const { user } = useAuth();
+  const canUpdateGrievanceStatus = canChangeGrievanceStatus(user);
   const router = useRouter();
   const params = useParams();
   const departmentId = Array.isArray(params.id) ? params.id[0] : (params.id as string);
@@ -1156,11 +1157,24 @@ export default function DepartmentDetail() {
                                   <td className="px-4 py-3">
                                     <button
                                       onClick={() => {
+                                        if (!canUpdateGrievanceStatus) return;
                                         setSelectedGrievanceForStatus(g);
                                         setShowGrievanceStatusModal(true);
                                       }}
-                                      disabled={updatingGrievanceStatus.has(g._id)}
-                                      className="px-2.5 py-1 text-[9px] font-bold border border-slate-200 rounded bg-white hover:border-indigo-400 hover:bg-indigo-50 focus:outline-none focus:ring-1 focus:ring-indigo-500 uppercase tracking-tight transition-all"
+                                      disabled={
+                                        updatingGrievanceStatus.has(g._id) ||
+                                        !canUpdateGrievanceStatus
+                                      }
+                                      className={`px-2.5 py-1 text-[9px] font-bold border rounded uppercase tracking-tight transition-all focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
+                                        canUpdateGrievanceStatus
+                                          ? "border-slate-200 bg-white hover:border-indigo-400 hover:bg-indigo-50"
+                                          : "border-slate-100 bg-slate-50 text-slate-400 cursor-not-allowed"
+                                      }`}
+                                      title={
+                                        canUpdateGrievanceStatus
+                                          ? "Update grievance status"
+                                          : "You do not have permission to change grievance status"
+                                      }
                                     >
                                       {g.status}
                                     </button>

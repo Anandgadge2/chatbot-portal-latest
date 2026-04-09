@@ -33,9 +33,11 @@ import {
 import StatusUpdateModal from "@/components/grievance/StatusUpdateModal";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import toast from "react-hot-toast";
+import { canChangeGrievanceStatus } from "@/lib/permissions";
 
 export default function GrievanceManagement() {
   const { user } = useAuth();
+  const canUpdateGrievanceStatus = canChangeGrievanceStatus(user);
   const [grievances, setGrievances] = useState<Grievance[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -84,6 +86,7 @@ export default function GrievanceManagement() {
   };
 
   const handleStatusUpdate = (grievance: Grievance) => {
+    if (!canUpdateGrievanceStatus) return;
     setSelectedGrievance(grievance);
     setShowStatusModal(true);
   };
@@ -195,14 +198,16 @@ export default function GrievanceManagement() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
-                        <Button
-                          onClick={() => handleStatusUpdate(g)}
-                          size="sm"
-                          className="h-8 rounded-lg bg-white border border-slate-200 text-indigo-600 font-bold text-[10px] items-center px-4 hover:shadow-lg transition-all"
-                        >
-                          <Clock className="w-3 h-3 mr-2" />
-                          UPDATE STATUS
-                        </Button>
+                        {canUpdateGrievanceStatus && (
+                          <Button
+                            onClick={() => handleStatusUpdate(g)}
+                            size="sm"
+                            className="h-8 rounded-lg bg-white border border-slate-200 text-indigo-600 font-bold text-[10px] items-center px-4 hover:shadow-lg transition-all"
+                          >
+                            <Clock className="w-3 h-3 mr-2" />
+                            UPDATE STATUS
+                          </Button>
+                        )}
                         <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg hover:bg-indigo-100">
                           <ChevronRight className="w-4 h-4 text-indigo-500" />
                         </Button>

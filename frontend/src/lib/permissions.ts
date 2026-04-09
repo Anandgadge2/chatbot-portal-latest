@@ -26,12 +26,14 @@ export enum Permission {
   UPDATE_GRIEVANCE = 'UPDATE_GRIEVANCE',
   DELETE_GRIEVANCE = 'DELETE_GRIEVANCE',
   ASSIGN_GRIEVANCE = 'ASSIGN_GRIEVANCE',
+  STATUS_CHANGE_GRIEVANCE = 'STATUS_CHANGE_GRIEVANCE',
   
   // Appointment Management
   CREATE_APPOINTMENT = 'CREATE_APPOINTMENT',
   READ_APPOINTMENT = 'READ_APPOINTMENT',
   UPDATE_APPOINTMENT = 'UPDATE_APPOINTMENT',
   DELETE_APPOINTMENT = 'DELETE_APPOINTMENT',
+  STATUS_CHANGE_APPOINTMENT = 'STATUS_CHANGE_APPOINTMENT',
   
   // Analytics
   VIEW_ANALYTICS = 'VIEW_ANALYTICS',
@@ -161,6 +163,51 @@ export function hasPermission(user: any, permission: Permission): boolean {
   }
   
   return false;
+}
+
+export function hasDynamicPermission(
+  user: any,
+  module: string,
+  actions: string | string[],
+): boolean {
+  if (!user) return false;
+  if (user.isSuperAdmin) {
+    return true;
+  }
+
+  const requestedActions = Array.isArray(actions) ? actions : [actions];
+  const effectivePermissions = Array.isArray(user.filteredPermissions)
+    ? user.filteredPermissions
+    : user.permissions;
+
+  if (!Array.isArray(effectivePermissions)) {
+    return false;
+  }
+
+  return effectivePermissions.some((permission: any) => {
+    if (permission?.module !== "*" && permission?.module !== module) {
+      return false;
+    }
+
+    const availableActions = Array.isArray(permission?.actions)
+      ? permission.actions
+      : [];
+
+    return (
+      availableActions.includes("*") ||
+      availableActions.includes("manage") ||
+      availableActions.includes("all") ||
+      requestedActions.some((action) => availableActions.includes(action))
+    );
+  });
+}
+
+export function canChangeGrievanceStatus(user: any): boolean {
+  return (
+    hasPermission(user, Permission.UPDATE_GRIEVANCE) ||
+    hasPermission(user, Permission.STATUS_CHANGE_GRIEVANCE) ||
+    hasDynamicPermission(user, "GRIEVANCE", ["update", "status_change"])
+  );
 }
 
 /**
