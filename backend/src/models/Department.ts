@@ -23,6 +23,8 @@ export interface IDepartment extends Document {
   contactEmail?: string;
   contactPhone?: string;
   isActive: boolean;
+  /** Lower number = higher priority in chatbot/selection lists */
+  displayOrder?: number;
   userCount?: number; // 🏢 Added for display in department list
   createdAt: Date;
   updatedAt: Date;
@@ -84,6 +86,11 @@ const DepartmentSchema: Schema = new Schema(
     isActive: {
       type: Boolean,
       default: true
+    },
+    displayOrder: {
+      type: Number,
+      default: 999,
+      min: 0
     }
   },
   {
@@ -95,6 +102,7 @@ const DepartmentSchema: Schema = new Schema(
 DepartmentSchema.index({ companyId: 1, name: 1 }, { unique: true });
 DepartmentSchema.index({ companyId: 1, isActive: 1 });
 DepartmentSchema.index({ companyId: 1, createdAt: -1 });
+DepartmentSchema.index({ companyId: 1, displayOrder: 1, name: 1 });
 
 // Pre-save hook to generate departmentId
 DepartmentSchema.pre('save', async function (next) {
