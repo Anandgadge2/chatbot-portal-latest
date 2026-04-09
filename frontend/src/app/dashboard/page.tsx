@@ -7961,10 +7961,11 @@ function DashboardContent() {
                                         <td className="px-4 py-4">
                                           <button
                                             onClick={() => {
-                                              setSelectedGrievanceForStatus(
-                                                grievance,
-                                              );
-                                              setShowGrievanceStatusModal(true);
+                                              // Status updates now open from the Actions column.
+                                              // setSelectedGrievanceForStatus(
+                                              //   grievance,
+                                              // );
+                                              // setShowGrievanceStatusModal(true);
                                             }}
                                             disabled={
                                               grievance.status === "RESOLVED" ||
@@ -9142,12 +9143,13 @@ function DashboardContent() {
                                         <div className="relative flex items-center gap-2">
                                           <button
                                             onClick={() => {
-                                              setSelectedAppointmentForStatus(
-                                                appointment,
-                                              );
-                                              setShowAppointmentStatusModal(
-                                                true,
-                                              );
+                                              // Status updates now open from the Actions column.
+                                              // setSelectedAppointmentForStatus(
+                                              //   appointment,
+                                              // );
+                                              // setShowAppointmentStatusModal(
+                                              //   true,
+                                              // );
                                             }}
                                             className={`px-3 py-1.5 text-[10px] font-bold border border-gray-200 rounded bg-white hover:border-purple-400 hover:bg-purple-50 focus:outline-none focus:ring-1 focus:ring-purple-500 uppercase tracking-tight transition-all ${
                                               updatingAppointmentStatus.has(

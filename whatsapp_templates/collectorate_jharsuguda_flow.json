@@ -427,7 +427,7 @@
       },
       "data": {
         "label": "Confirm Submission (EN)",
-        "messageText": "📋 *Confirm Submission*\n\nPlease verify your details:\n\n👤 *Name:* {citizenName}\n🏢 *Dept:* {departmentName}\n{subDepartmentLineEn}📝 *Issue:* {description}\n\n👇 Is this correct?",
+        "messageText": "📋 *Confirm Submission*\n\nPlease verify your details:\n\n👤 *Name:* {citizenName}\n🏢 *Dept:* {departmentName}\n{subDepartmentLineEn}\n📝 *Issue:* {description}\n\n👇 Is this correct?",
         "buttons": [
           {
             "id": "submit_grv_en",
@@ -551,7 +551,7 @@
       },
       "data": {
         "label": "Confirm Submission (HI)",
-        "messageText": "📋 *सबमिशन की पुष्टि करें*\n\nकृपया अपने विवरणों को सत्यापित करें:\n\n👤 *नाम:* {citizenName}\n🏢 *विभाग:* {departmentName}\n{subDepartmentLineHi}📝 *समस्या:* {description}\n\n👇 क्या यह सही है?",
+        "messageText": "📋 *सबमिशन की पुष्टि करें*\n\nकृपया अपने विवरणों को सत्यापित करें:\n\n👤 *नाम:* {citizenName}\n🏢 *विभाग:* {departmentName}\n{subDepartmentLineHi}\n📝 *समस्या:* {description}\n\n👇 क्या यह सही है?",
         "buttons": [
           {
             "id": "submit_grv_hi",
@@ -675,7 +675,7 @@
       },
       "data": {
         "label": "Confirm Submission (OR)",
-        "messageText": "📋 *ଦାଖଲ ନିଶ୍ଚିତ କରନ୍ତୁ*\n\nଦୟାକରି ଆପଣଙ୍କର ବିବରଣୀ ଯାଞ୍ଚ କରନ୍ତୁ:\n\n👤 *ନାମ:* {citizenName}\n🏢 *ବିଭାଗ:* {departmentName}\n{subDepartmentLineOr}📝 *ସମସ୍ୟା:* {description}\n\n👇 ଏହା ସଠିକ୍ କି?",
+        "messageText": "📋 *ଦାଖଲ ନିଶ୍ଚିତ କରନ୍ତୁ*\n\nଦୟାକରି ଆପଣଙ୍କର ବିବରଣୀ ଯାଞ୍ଚ କରନ୍ତୁ:\n\n👤 *ନାମ:* {citizenName}\n🏢 *ବିଭାଗ:* {departmentName}\n{subDepartmentLineOr}\n📝 *ସମସ୍ୟା:* {description}\n\n👇 ଏହା ସଠିକ୍ କି?",
         "buttons": [
           {
             "id": "submit_grv_or",
