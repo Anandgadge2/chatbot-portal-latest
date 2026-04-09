@@ -40,6 +40,68 @@ interface FlowToolbarProps {
 let history: { nodes: FlowNode[]; edges: FlowEdge[] }[] = [];
 let historyIndex = -1;
 
+function sanitizeImportedFlow(
+  rawNodes: any[],
+  rawEdges: any[],
+): {
+  nodes: FlowNode[];
+  edges: FlowEdge[];
+  skippedNodes: number;
+  skippedEdges: number;
+} {
+  const nodes: FlowNode[] = [];
+  let skippedNodes = 0;
+
+  for (const rawNode of Array.isArray(rawNodes) ? rawNodes : []) {
+    if (
+      !rawNode ||
+      typeof rawNode !== "object" ||
+      typeof rawNode.id !== "string" ||
+      !rawNode.id.trim() ||
+      typeof rawNode.type !== "string" ||
+      !rawNode.type.trim() ||
+      !rawNode.data ||
+      typeof rawNode.data !== "object" ||
+      !rawNode.position ||
+      typeof rawNode.position.x !== "number" ||
+      typeof rawNode.position.y !== "number"
+    ) {
+      skippedNodes++;
+      continue;
+    }
+
+    nodes.push({
+      ...rawNode,
+      id: rawNode.id.trim(),
+      data: { ...rawNode.data },
+      position: {
+        x: rawNode.position.x,
+        y: rawNode.position.y,
+      },
+    } as FlowNode);
+  }
+
+  const validNodeIds = new Set(nodes.map((node) => node.id));
+  const edges = (Array.isArray(rawEdges) ? rawEdges : []).filter((rawEdge) => {
+    return (
+      rawEdge &&
+      typeof rawEdge === "object" &&
+      typeof rawEdge.id === "string" &&
+      typeof rawEdge.source === "string" &&
+      typeof rawEdge.target === "string" &&
+      validNodeIds.has(rawEdge.source) &&
+      validNodeIds.has(rawEdge.target)
+    );
+  }) as FlowEdge[];
+
+  return {
+    nodes,
+    edges,
+    skippedNodes,
+    skippedEdges: (Array.isArray(rawEdges) ? rawEdges : []).length - edges.length,
+  };
+}
+
 export default function FlowToolbar({
   nodes,
   edges,
@@ -323,11 +385,13 @@ export default function FlowToolbar({
           let importedNodes: FlowNode[] = [];
           let importedEdges: FlowEdge[] = [];
           let name = "Imported Flow";
+          let skippedNodes = 0;
+          let skippedEdges = 0;
 
           // Case 1: Standard frontend format ({ nodes: [], edges: [], metadata? })
           if (rawData.nodes && Array.isArray(rawData.nodes)) {
             console.log("✅ Found standard frontend format");
-            importedNodes = rawData.nodes.map((node: any) => {
+            const mappedNodes = rawData.nodes.map((node: any) => {
               const data = { ...node.data };
 
               // Map legacy/external fields
@@ -346,7 +410,14 @@ export default function FlowToolbar({
 
               return { ...node, data };
             });
-            importedEdges = rawData.edges || [];
+            const sanitizedFlow = sanitizeImportedFlow(
+              mappedNodes,
+              rawData.edges || [],
+            );
+            importedNodes = sanitizedFlow.nodes;
+            importedEdges = sanitizedFlow.edges;
+            skippedNodes = sanitizedFlow.skippedNodes;
+            skippedEdges = sanitizedFlow.skippedEdges;
             name = (
               rawData.metadata?.name ||
               rawData.name ||
@@ -371,8 +442,14 @@ export default function FlowToolbar({
             const transformed = transformFromBackendFormat(
               sanitizedData as BackendFlow,
             );
-            importedNodes = transformed.nodes;
-            importedEdges = transformed.edges;
+            const sanitizedFlow = sanitizeImportedFlow(
+              transformed.nodes,
+              transformed.edges,
+            );
+            importedNodes = sanitizedFlow.nodes;
+            importedEdges = sanitizedFlow.edges;
+            skippedNodes = sanitizedFlow.skippedNodes;
+            skippedEdges = sanitizedFlow.skippedEdges;
             name = (
               transformed.metadata?.name || "Imported Backend Flow"
             ).toString();
@@ -394,8 +471,20 @@ export default function FlowToolbar({
           );
 
           if (importedNodes.length === 0) {
-            toast.error("Imported flow has 0 nodes after transformation.");
+            toast.error(
+              "Import failed: no valid nodes were found in this flow file.",
+            );
             return;
+          }
+
+          if (skippedNodes > 0 || skippedEdges > 0) {
+            console.warn("Skipped invalid import content", {
+              skippedNodes,
+              skippedEdges,
+            });
+            toast.error(
+              `Import warning: skipped ${skippedNodes} invalid node(s) and ${skippedEdges} broken connection(s).`,
+            );
           }
 
           // Clear history and update state
