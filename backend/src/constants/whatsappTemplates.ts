@@ -122,7 +122,7 @@ Thank you for reaching out. Your grievance has been registered.
 *Details:*
 🎫 *Reference ID:* {grievanceId}
 🏢 *Department:* {departmentName}
-🏢 *Sub-Dept:* {subDepartmentName}
+{subDeptLabel}
 📝 *Description:* {description}
 📅 *Submitted On:* {formattedDate}
 

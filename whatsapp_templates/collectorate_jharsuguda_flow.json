@@ -135,8 +135,8 @@
     "en": {
       "welcome": "🏛️ Welcome to Collectorate Jharsuguda Helpdesk. Type 'menu' to see services.",
       "select_dept": "Select Department",
-      "sub_dept_title": "🏢 *Select Sub-Department*\n\nPlease choose the specific office/section:",
-      "sub_dept_btn": "Select Section",
+      "sub_dept_title": "🏢 *Office Selection*\n\nSelect the relevant office:",
+      "sub_dept_btn": "Select Office",
       "upload_photo": "📷 *Please upload the image/document now:*\n\n_Or type *skip* to continue without uploading._",
       "button_fallback": "⚠️ *Invalid selection.*\n\nPlease tap one of the buttons above to continue.",
       "menu_fallback": "⚠️ *Invalid selection.*\n\nPlease select an option from the menu list.",
@@ -148,8 +148,8 @@
     "hi": {
       "welcome": "🏛️ कलेक्टरेट झारसुगुडा हेल्पडेस्क में आपका स्वागत है। सेवाएं देखने के लिए 'menu' टाइप करें।",
       "select_dept": "विभाग चुनें",
-      "sub_dept_title": "🏢 *उप-विभाग चुनें*\n\nकृपया संबंधित कार्यालय/अनुभाग चुनें:",
-      "sub_dept_btn": "अनुभाग चुनें",
+      "sub_dept_title": "🏢 *कार्यालय चयन*\n\nसंबंधित कार्यालय चुनें:",
+      "sub_dept_btn": "कार्यालय चुनें",
       "upload_photo": "📷 *कृपया अभी फोटो/दस्तावेज़ अपलोड करें:*\n\n_अपलोड किए बिना जारी रखने के लिए *skip* टाइप करें।_",
       "button_fallback": "⚠️ *अमान्य चयन।*\n\nजारी रखने के लिए ऊपर दिए गए बटनों में से किसी एक पर टैप करें।",
       "menu_fallback": "⚠️ *अमान्य चयन।*\n\nकृपया मेनू सूची से एक विकल्प चुनें।",
@@ -161,8 +161,8 @@
     "or": {
       "welcome": "🏛️ ଝାରସୁଗୁଡା କଲେକ୍ଟରେଟ୍ ସହାୟତା କେନ୍ଦ୍ରକୁ ସ୍ୱାଗତ। ସେବାଗୁଡିକ ଦେଖିବା ପାଇଁ 'menu' ଟାଇପ୍ କରନ୍ତୁ।",
       "select_dept": "ବିଭାଗ ବାଛନ୍ତୁ",
-      "sub_dept_title": "🏢 *ଉପ-ବିଭାଗ ଚୟନ କରନ୍ତୁ*\n\nଦୟାକରି ନିର୍ଦ୍ଦିଷ୍ଟ କାର୍ଯ୍ୟାଳୟ/ଶାଖା ବାଛନ୍ତୁ:",
-      "sub_dept_btn": "ଶାଖା ବାଛନ୍ତୁ",
+      "sub_dept_title": "🏢 *କାର୍ଯ୍ୟାଳୟ ଚୟନ*\n\nସମ୍ପୃକ୍ତ କାର୍ଯ୍ୟାଳୟ ଚୟନ କରନ୍ତୁ:",
+      "sub_dept_btn": "କାର୍ଯ୍ୟାଳୟ ଚୟନ କରନ୍ତୁ",
       "upload_photo": "📷 *ଦୟାକରି ଏବେ ଫୋଟୋ/ଡକ୍ୟୁମେଣ୍ଟ ଅପଲୋଡ କରନ୍ତୁ:*\n\n_ଅପଲୋଡ ନ କରି ଜାରି ରଖିବାକୁ *skip* ଟାଇପ୍ କରନ୍ତୁ।_",
       "button_fallback": "⚠️ *ଅବୈଧ ଚୟନ।*\n\nଜାରି ରଖିବା ପାଇଁ ଉପରୋକ୍ତ ବଟନ୍ ଗୁଡ଼ିକ ମଧ୍ୟରୁ ଗୋଟିଏ ଟ୍ୟାପ୍ କରନ୍ତୁ।",
       "menu_fallback": "⚠️ *ଅବୈଧ ଚୟନ।*\n\nଦୟାକରି ମେନୁ ତାଲିକାରୁ ଏକ ବିକଳ୍ପ ଚୟନ କରନ୍ତୁ।",
@@ -182,7 +182,7 @@
       },
       "data": {
         "label": "Start Trigger",
-        "trigger": "start",
+        "trigger": "hi, hello, hie, start",
         "triggerType": "keyword"
       }
     },
@@ -195,7 +195,7 @@
       },
       "data": {
         "label": "Language Selection",
-        "messageText": "🇮🇳 *Welcome to Sahaj - Swift Access & Help by Administration, Jharsuguda*\n*ଝାରସୁଗୁଡା ପ୍ରଶାସନ ଦ୍ୱାରା ସହଜ - ସ୍ୱିଫ୍ଟ ଆକ୍ସେସ ଏବଂ ସହାୟତାକୁ ସ୍ୱାଗତ।*\n\nYou can now register and track your grievances easily through this platform.\nଆପଣ ଏବେ ଏହି ପ୍ଲାଟଫର୍ମ ମାଧ୍ୟମରେ ସହଜରେ ପଞ୍ଜୀକରଣ କରିପାରିବେ ଏବଂ ଆପଣଙ୍କର ଅଭିଯୋଗଗୁଡ଼ିକୁ ଟ୍ରାକ୍ କରିପାରିବେ।\n\n👇 Please select your preferred language:",
+        "messageText": "🇮🇳 Welcome to Sahaj - Swift Access & Help by Administration, Jharsuguda\nଝାରସୁଗୁଡା ପ୍ରଶାସନ ଦ୍ୱାରା ସହଜ - ସ୍ୱିଫ୍ଟ ଆକ୍ସେସ ଏବଂ ସହାୟତାକୁ ସ୍ୱାଗତ।\n\nYou can now register and track your grievances easily through this platform.\nଆପଣ ଏବେ ଏହି ପ୍ଲାଟଫର୍ମ ମାଧ୍ୟମରେ ସହଜରେ ପଞ୍ଜୀକରଣ କରିପାରିବେ ଏବଂ ଆପଣଙ୍କର ଅଭିଯୋଗଗୁଡ଼ିକୁ ଟ୍ରାକ୍ କରିପାରିବେ।\n\n👇 Please select your preferred language:",
         "buttons": [
           {
             "id": "lang_or",
@@ -236,11 +236,6 @@
                 "description": "Lodge a formal complaint"
               },
               {
-                "id": "apt_en",
-                "title": "📅 Book Appointment",
-                "description": "Schedule meeting with Collector"
-              },
-              {
                 "id": "trk_en",
                 "title": "🔍 Track Status",
                 "description": "Check application status"
@@ -274,11 +269,6 @@
                 "id": "grv_hi",
                 "title": "📝 शिकायत भेजें",
                 "description": "औपचारिक शिकायत दर्ज करें"
-              },
-              {
-                "id": "apt_hi",
-                "title": "📅 बुकिंग करें",
-                "description": "कलेक्टर के साथ बैठक शेड्यूल करें"
               },
               {
                 "id": "trk_hi",
@@ -316,11 +306,6 @@
                 "description": "ଆନୁଷ୍ଠାନିକ ଅଭିଯୋଗ ଦାଖଲ କରନ୍ତୁ"
               },
               {
-                "id": "apt_or",
-                "title": "📅 ବୁକିଂ କରିବେ",
-                "description": "କଲେକ୍ଟରଙ୍କ ସହିତ ସାକ୍ଷାତ ପାଇଁ ସମୟ"
-              },
-              {
                 "id": "trk_or",
                 "title": "🔍 ସ୍ଥିତି ଯାଞ୍ଚ",
                 "description": "ଆପଣଙ୍କର ଅଭିଯୋଗ/ବୁକିଂ ଟ୍ରାକ୍ କରନ୍ତୁ"
@@ -336,18 +321,6 @@
       }
     },
     {
-      "id": "grv_intro_en",
-      "type": "textMessage",
-      "position": {
-        "x": 900,
-        "y": 0
-      },
-      "data": {
-        "label": "Grievance Intro (EN)",
-        "messageText": "📝 *Register a Grievance*\n\nYou can mention your grievance regarding any government department in Jharsuguda.\n\nPlease provide the details."
-      }
-    },
-    {
       "id": "grv_name_en",
       "type": "userInput",
       "position": {
@@ -356,7 +329,7 @@
       },
       "data": {
         "label": "Citizen ID (EN)",
-        "messageText": "Please enter your full name:",
+        "messageText": "*Please enter your full name:*",
         "inputType": "text",
         "saveToField": "citizenName",
         "validation": {
@@ -454,7 +427,7 @@
       },
       "data": {
         "label": "Confirm Submission (EN)",
-        "messageText": "📋 *Confirm Submission*\n\nPlease verify your details:\n\n👤 *Name:* {citizenName}\n🏢 *Dept:* {departmentName}\n🏢 *Sub-Department:* {subDepartmentName}\n📝 *Issue:* {description}\n\n👇 Is this correct?",
+        "messageText": "📋 *Confirm Submission*\n\nPlease verify your details:\n\n👤 *Name:* {citizenName}\n🏢 *Dept:* {departmentName}\n{subDepartmentLineEn}📝 *Issue:* {description}\n\n👇 Is this correct?",
         "buttons": [
           {
             "id": "submit_grv_en",
@@ -469,18 +442,6 @@
             "nextStepId": "main_menu_en"
           }
         ]
-      }
-    },
-    {
-      "id": "grv_intro_hi",
-      "type": "textMessage",
-      "position": {
-        "x": 900,
-        "y": 400
-      },
-      "data": {
-        "label": "Grievance Intro (HI)",
-        "messageText": "📝 *शिकायत दर्ज करें*\n\nआप झारसुगुड़ा में किसी भी सरकारी विभाग से संबंधित अपनी शिकायत बता सकते हैं।\n\nकृपया विवरण प्रदान करें।"
       }
     },
     {
@@ -590,7 +551,7 @@
       },
       "data": {
         "label": "Confirm Submission (HI)",
-        "messageText": "📋 *सबमिशन की पुष्टि करें*\n\nकृपया अपने विवरणों को सत्यापित करें:\n\n👤 *नाम:* {citizenName}\n🏢 *विभाग:* {departmentName}\n🏢 *उप-विभाग:* {subDepartmentName}\n📝 *समस्या:* {description}\n\n👇 क्या यह सही है?",
+        "messageText": "📋 *सबमिशन की पुष्टि करें*\n\nकृपया अपने विवरणों को सत्यापित करें:\n\n👤 *नाम:* {citizenName}\n🏢 *विभाग:* {departmentName}\n{subDepartmentLineHi}📝 *समस्या:* {description}\n\n👇 क्या यह सही है?",
         "buttons": [
           {
             "id": "submit_grv_hi",
@@ -605,18 +566,6 @@
             "nextStepId": "main_menu_hi"
           }
         ]
-      }
-    },
-    {
-      "id": "grv_intro_or",
-      "type": "textMessage",
-      "position": {
-        "x": 900,
-        "y": 800
-      },
-      "data": {
-        "label": "Grievance Intro (OR)",
-        "messageText": "📝 *ଅଭିଯୋଗ ପଞ୍ଜିକରଣ*\n\nଝାରସୁଗୁଡାର ଯେକୌଣସି ସରକାରୀ ବିଭାଗ ସମ୍ପର୍କରେ ଆପଣ ଆପଣଙ୍କର ଅଭିଯୋଗ ଉଲ୍ଲେଖ କରିପାରିବେ।\n\nଦୟାକରି ବିବରଣୀ ପ୍ରଦାନ କରନ୍ତୁ।"
       }
     },
     {
@@ -726,7 +675,7 @@
       },
       "data": {
         "label": "Confirm Submission (OR)",
-        "messageText": "📋 *ଦାଖଲ ନିଶ୍ଚିତ କରନ୍ତୁ*\n\nଦୟାକରି ଆପଣଙ୍କର ବିବରଣୀ ଯାଞ୍ଚ କରନ୍ତୁ:\n\n👤 *ନାମ:* {citizenName}\n🏢 *ବିଭାଗ:* {departmentName}\n🏢 *ଉପ-ବିଭାଗ:* {subDepartmentName}\n📝 *ସମସ୍ୟା:* {description}\n\n👇 ଏହା ସଠିକ୍ କି?",
+        "messageText": "📋 *ଦାଖଲ ନିଶ୍ଚିତ କରନ୍ତୁ*\n\nଦୟାକରି ଆପଣଙ୍କର ବିବରଣୀ ଯାଞ୍ଚ କରନ୍ତୁ:\n\n👤 *ନାମ:* {citizenName}\n🏢 *ବିଭାଗ:* {departmentName}\n{subDepartmentLineOr}📝 *ସମସ୍ୟା:* {description}\n\n👇 ଏହା ସଠିକ୍ କି?",
         "buttons": [
           {
             "id": "submit_grv_or",
@@ -1185,30 +1134,6 @@
       }
     },
     {
-      "id": "grv_main_or_sub_en",
-      "type": "buttonMessage",
-      "position": {
-        "x": 1650,
-        "y": 0
-      },
-      "data": {
-        "label": "Main or Sub Dept (EN)",
-        "messageText": "🏢 *Department Routing*\n\nDo you want to raise this grievance to the *main department* only?\n\n👉 Select *Yes* to continue with main department only.\n👉 Select *No* to choose a sub-department.",
-        "buttons": [
-          {
-            "id": "main_dept_yes_en",
-            "text": "✅ Yes (Main Dept)",
-            "type": "quick_reply"
-          },
-          {
-            "id": "main_dept_no_en",
-            "text": "❌ No (Sub-Dept)",
-            "type": "quick_reply"
-          }
-        ]
-      }
-    },
-    {
       "id": "grv_subdept_en",
       "type": "listMessage",
       "position": {
@@ -1217,34 +1142,10 @@
       },
       "data": {
         "label": "Sub Dept Selection (EN)",
-        "messageText": "🏢 *Sub-Department Selection*\n\nPlease select the relevant sub-department:",
-        "buttonText": "Select Sub-Dept",
+        "messageText": "🏢 *Office Selection*\n\nSelect the relevant office:",
+        "buttonText": "Select Office",
         "isDynamic": true,
         "dynamicSource": "sub-departments"
-      }
-    },
-    {
-      "id": "grv_main_or_sub_hi",
-      "type": "buttonMessage",
-      "position": {
-        "x": 1650,
-        "y": 400
-      },
-      "data": {
-        "label": "Main or Sub Dept (HI)",
-        "messageText": "🏢 *विभाग रूटिंग*\n\nक्या आप इस शिकायत को केवल *मुख्य विभाग* को भेजना चाहते हैं?\n\n👉 केवल मुख्य विभाग के लिए *हाँ* चुनें।\n👉 उप-विभाग चुनने के लिए *नहीं* चुनें।",
-        "buttons": [
-          {
-            "id": "main_dept_yes_hi",
-            "text": "✅ हाँ (मुख्य)",
-            "type": "quick_reply"
-          },
-          {
-            "id": "main_dept_no_hi",
-            "text": "❌ नहीं (उप-विभाग)",
-            "type": "quick_reply"
-          }
-        ]
       }
     },
     {
@@ -1256,34 +1157,10 @@
       },
       "data": {
         "label": "Sub Dept Selection (HI)",
-        "messageText": "🏢 *उप-विभाग चयन*\n\nकृपया संबंधित उप-विभाग चुनें:",
-        "buttonText": "उप-विभाग चुनें",
+        "messageText": "🏢 *कार्यालय चयन*\n\nसंबंधित कार्यालय चुनें:",
+        "buttonText": "कार्यालय चुनें",
         "isDynamic": true,
         "dynamicSource": "sub-departments"
-      }
-    },
-    {
-      "id": "grv_main_or_sub_or",
-      "type": "buttonMessage",
-      "position": {
-        "x": 1650,
-        "y": 800
-      },
-      "data": {
-        "label": "Main or Sub Dept (OR)",
-        "messageText": "🏢 *ବିଭାଗ ରାଉଟିଂ*\n\nଆପଣ ଏହି ଅଭିଯୋଗକୁ କେବଳ *ମୁଖ୍ୟ ବିଭାଗ* କୁ ପଠାଇବାକୁ ଚାହୁଁଛନ୍ତି କି?\n\n👉 କେବଳ ମୁଖ୍ୟ ବିଭାଗ ପାଇଁ *ହଁ* ବାଛନ୍ତୁ।\n👉 ଉପ-ବିଭାଗ ବାଛିବାକୁ *ନା* ବାଛନ୍ତୁ।",
-        "buttons": [
-          {
-            "id": "main_dept_yes_or",
-            "text": "✅ ହଁ (ମୁଖ୍ୟ)",
-            "type": "quick_reply"
-          },
-          {
-            "id": "main_dept_no_or",
-            "text": "❌ ନା (ଉପ-ବିଭାଗ)",
-            "type": "quick_reply"
-          }
-        ]
       }
     },
     {
@@ -1295,8 +1172,8 @@
       },
       "data": {
         "label": "Sub Dept Selection (OR)",
-        "messageText": "🏢 *ଉପ-ବିଭାଗ ବାଛନ୍ତୁ*\n\nଦୟାକରି ସମ୍ପର୍କିତ ଉପ-ବିଭାଗ ବାଛନ୍ତୁ:",
-        "buttonText": "ଉପ-ବିଭାଗ ବାଛନ୍ତୁ",
+        "messageText": "🏢 *କାର୍ଯ୍ୟାଳୟ ଚୟନ*\n\nସମ୍ପୃକ୍ତ କାର୍ଯ୍ୟାଳୟ ଚୟନ କରନ୍ତୁ:",
+        "buttonText": "କାର୍ଯ୍ୟାଳୟ ଚୟନ କରନ୍ତୁ",
         "isDynamic": true,
         "dynamicSource": "sub-departments"
       }
@@ -1334,14 +1211,8 @@
     {
       "id": "e_en_grv",
       "source": "main_menu_en",
-      "target": "grv_intro_en",
-      "sourceHandle": "grv_en",
-      "type": "smoothstep"
-    },
-    {
-      "id": "e_en_grv2",
-      "source": "grv_intro_en",
       "target": "grv_name_en",
+      "sourceHandle": "grv_en",
       "type": "smoothstep"
     },
     {
@@ -1386,14 +1257,8 @@
     {
       "id": "e_hi_grv",
       "source": "main_menu_hi",
-      "target": "grv_intro_hi",
-      "sourceHandle": "grv_hi",
-      "type": "smoothstep"
-    },
-    {
-      "id": "e_hi_grv2",
-      "source": "grv_intro_hi",
       "target": "grv_name_hi",
+      "sourceHandle": "grv_hi",
       "type": "smoothstep"
     },
     {
@@ -1438,14 +1303,8 @@
     {
       "id": "e_or_grv",
       "source": "main_menu_or",
-      "target": "grv_intro_or",
-      "sourceHandle": "grv_or",
-      "type": "smoothstep"
-    },
-    {
-      "id": "e_or_grv2",
-      "source": "grv_intro_or",
       "target": "grv_name_or",
+      "sourceHandle": "grv_or",
       "type": "smoothstep"
     },
     {
@@ -1707,75 +1566,15 @@
       "type": "smoothstep"
     },
     {
-      "id": "e_en_grv_main_or_sub",
-      "source": "grv_dept_en",
-      "target": "grv_main_or_sub_en",
-      "type": "smoothstep"
-    },
-    {
-      "id": "e_en_grv_main_yes",
-      "source": "grv_main_or_sub_en",
-      "target": "grv_desc_en",
-      "sourceHandle": "main_dept_yes_en",
-      "type": "smoothstep"
-    },
-    {
-      "id": "e_en_grv_main_no",
-      "source": "grv_main_or_sub_en",
-      "target": "grv_subdept_en",
-      "sourceHandle": "main_dept_no_en",
-      "type": "smoothstep"
-    },
-    {
       "id": "e_en_grv_sub_to_desc",
       "source": "grv_subdept_en",
       "target": "grv_desc_en",
       "type": "smoothstep"
     },
     {
-      "id": "e_hi_grv_main_or_sub",
-      "source": "grv_dept_hi",
-      "target": "grv_main_or_sub_hi",
-      "type": "smoothstep"
-    },
-    {
-      "id": "e_hi_grv_main_yes",
-      "source": "grv_main_or_sub_hi",
-      "target": "grv_desc_hi",
-      "sourceHandle": "main_dept_yes_hi",
-      "type": "smoothstep"
-    },
-    {
-      "id": "e_hi_grv_main_no",
-      "source": "grv_main_or_sub_hi",
-      "target": "grv_subdept_hi",
-      "sourceHandle": "main_dept_no_hi",
-      "type": "smoothstep"
-    },
-    {
       "id": "e_hi_grv_sub_to_desc",
       "source": "grv_subdept_hi",
       "target": "grv_desc_hi",
-      "type": "smoothstep"
-    },
-    {
-      "id": "e_or_grv_main_or_sub",
-      "source": "grv_dept_or",
-      "target": "grv_main_or_sub_or",
-      "type": "smoothstep"
-    },
-    {
-      "id": "e_or_grv_main_yes",
-      "source": "grv_main_or_sub_or",
-      "target": "grv_desc_or",
-      "sourceHandle": "main_dept_yes_or",
-      "type": "smoothstep"
-    },
-    {
-      "id": "e_or_grv_main_no",
-      "source": "grv_main_or_sub_or",
-      "target": "grv_subdept_or",
-      "sourceHandle": "main_dept_no_or",
       "type": "smoothstep"
     },
     {
