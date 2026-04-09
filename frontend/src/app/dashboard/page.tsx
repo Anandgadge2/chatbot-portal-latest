@@ -1006,10 +1006,28 @@ function DashboardContent() {
     ) {
       const nextTab = hasPermission(user, Permission.READ_GRIEVANCE)
         ? "grievances"
-        : "appointments";
+        : hasPermission(user, Permission.READ_APPOINTMENT)
+          ? "appointments"
+          : "profile";
       setActiveTab(nextTab);
     }
   }, [user, activeTab, isSuperAdminUser]);
+
+  useEffect(() => {
+    if (!user || activeTab !== "appointments") return;
+
+    const canAccessAppointments =
+      hasModule(Module.APPOINTMENT) && hasPermission(user, Permission.READ_APPOINTMENT);
+
+    if (!canAccessAppointments) {
+      const fallbackTab = hasPermission(user, Permission.READ_GRIEVANCE)
+        ? "grievances"
+        : hasPermission(user, Permission.VIEW_ANALYTICS) || isSuperAdminUser
+          ? "overview"
+          : "profile";
+      setActiveTab(fallbackTab);
+    }
+  }, [activeTab, hasModule, isSuperAdminUser, user]);
 
   // Handle browser back/forward navigation persistence
   useEffect(() => {
@@ -4015,7 +4033,9 @@ function DashboardContent() {
                       </>
                     )}
 
-                    {hasModule(Module.APPOINTMENT) && isViewingCompany && (
+                    {hasModule(Module.APPOINTMENT) &&
+                      isViewingCompany &&
+                      hasPermission(user, Permission.READ_APPOINTMENT) && (
                       <>
                         {/* 4. Total Appointments */}
                         <div
@@ -4414,7 +4434,9 @@ function DashboardContent() {
                     )}
 
                     {/* Appointments by Status - Company Admin only */}
-                    {hasModule(Module.APPOINTMENT) && isViewingCompany && (
+                    {hasModule(Module.APPOINTMENT) &&
+                      isViewingCompany &&
+                      hasPermission(user, Permission.READ_APPOINTMENT) && (
                       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
                         <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-3">
                           <div className="w-8 h-8 bg-violet-50 rounded-lg flex items-center justify-center">
@@ -8407,6 +8429,7 @@ function DashboardContent() {
 
               {/* Appointments Tab - Modern Specialized Calendar Integration */}
               {hasModule(Module.APPOINTMENT) &&
+                hasPermission(user, Permission.READ_APPOINTMENT) &&
                 (isViewingCompany || isDepartmentLevel) && (
                   <TabsContent value="appointments" className="space-y-4">
                     <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
