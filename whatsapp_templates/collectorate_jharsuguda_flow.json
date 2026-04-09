@@ -1,7 +1,7 @@
 {
   "metadata": {
     "name": "Collectorate Jharsuguda Official Flow",
-    "description": "Standardized trilingual flow for Grievance, Appointment, and tracking with dynamic department selection.",
+    "description": "Trilingual grievance and status tracking flow with dynamic department and office selection.",
     "companyId": "6989db83453881ef7ba5c778",
     "version": 2,
     "isActive": true
@@ -693,81 +693,6 @@
       }
     },
     {
-      "id": "apt_intro_en",
-      "type": "userInput",
-      "position": {
-        "x": 900,
-        "y": 200
-      },
-      "data": {
-        "label": "Appointment Intro (EN)",
-        "messageText": "📅 *New Appointment Request*\n\nPlease enter your Full Name (as per official records):",
-        "inputType": "text",
-        "saveToField": "citizenName",
-        "validation": {
-          "required": true
-        }
-      }
-    },
-    {
-      "id": "apt_purpose_en",
-      "type": "userInput",
-      "position": {
-        "x": 1150,
-        "y": 200
-      },
-      "data": {
-        "label": "Meeting Purpose (EN)",
-        "messageText": "🎯 *Meeting Purpose*\n\nPlease briefly describe the purpose of your meeting with the Collector:",
-        "inputType": "text",
-        "saveToField": "purpose",
-        "validation": {
-          "required": true
-        }
-      }
-    },
-    {
-      "id": "apt_date_en",
-      "type": "apiCall",
-      "position": {
-        "x": 1650,
-        "y": 200
-      },
-      "data": {
-        "label": "Select Date (EN)",
-        "messageText": "🗓️ *Select Date*\n\nPlease choose your preferred appointment date from the list below.\n\nYou can view more dates by selecting *Load More Dates*.",
-        "method": "GET",
-        "endpoint": "/api/availability/chatbot/{companyId}?departmentId={departmentId}",
-        "saveResponseTo": "availableDates"
-      }
-    },
-    {
-      "id": "apt_confirm_en",
-      "type": "buttonMessage",
-      "position": {
-        "x": 1900,
-        "y": 200
-      },
-      "data": {
-        "label": "Verify Appointment (EN)",
-        "messageText": "📋 *Confirm Appointment Request*\n\nPlease confirm your appointment details:\n\n👤 *Name:* {citizenName}\n🎯 *Purpose:* {purpose}\n📅 *Date:* {appointmentDate}\n\n👇 Do you want to submit this appointment request?",
-        "buttons": [
-          {
-            "id": "confirm_apt_en",
-            "text": "✅ Confirm Request",
-            "type": "quick_reply",
-            "nextStepId": "apt_success_en"
-          },
-          {
-            "id": "cancel_apt_en",
-            "text": "❌ Cancel",
-            "type": "quick_reply",
-            "nextStepId": "main_menu_en"
-          }
-        ]
-      }
-    },
-    {
       "id": "trk_start_en",
       "type": "userInput",
       "position": {
@@ -816,81 +741,6 @@
       }
     },
     {
-      "id": "apt_intro_hi",
-      "type": "userInput",
-      "position": {
-        "x": 900,
-        "y": 600
-      },
-      "data": {
-        "label": "Appointment Intro (HI)",
-        "messageText": "📅 *नया अपॉइंटमेंट अनुरोध*\n\nकृपया अपना पूरा नाम दर्ज करें (आधिकारिक रिकॉर्ड के अनुसार):",
-        "inputType": "text",
-        "saveToField": "citizenName",
-        "validation": {
-          "required": true
-        }
-      }
-    },
-    {
-      "id": "apt_purpose_hi",
-      "type": "userInput",
-      "position": {
-        "x": 1150,
-        "y": 600
-      },
-      "data": {
-        "label": "Meeting Purpose (HI)",
-        "messageText": "🎯 *बैठक का उद्देश्य*\n\nकृपया कलेक्टर के साथ अपनी बैठक के उद्देश्य का संक्षेप में वर्णन करें:",
-        "inputType": "text",
-        "saveToField": "purpose",
-        "validation": {
-          "required": true
-        }
-      }
-    },
-    {
-      "id": "apt_date_hi",
-      "type": "apiCall",
-      "position": {
-        "x": 1650,
-        "y": 600
-      },
-      "data": {
-        "label": "Select Date (HI)",
-        "messageText": "🗓️ *तारीख चुनें*\n\nकृपया नीचे दी गई सूची से अपनी पसंदीदा अपॉइंटमेंट तारीख चुनें।\n\nअधिक तारीख देखने के लिए *और तारीख लोड करें* चुनें।",
-        "method": "GET",
-        "endpoint": "/api/availability/chatbot/{companyId}?departmentId={departmentId}",
-        "saveResponseTo": "availableDates"
-      }
-    },
-    {
-      "id": "apt_confirm_hi",
-      "type": "buttonMessage",
-      "position": {
-        "x": 2150,
-        "y": 600
-      },
-      "data": {
-        "label": "Verify Appointment (HI)",
-        "messageText": "📋 *अपॉइंटमेंट अनुरोध की पुष्टि करें*\n\nकृपया अपनी अपॉइंटमेंट जानकारी की पुष्टि करें:\n\n👤 *नाम:* {citizenName}\n🎯 *उद्देश्य:* {purpose}\n📅 *तारीख:* {appointmentDate}\n\n👇 क्या आप यह अपॉइंटमेंट अनुरोध जमा करना चाहते हैं?",
-        "buttons": [
-          {
-            "id": "confirm_apt_hi",
-            "text": "✅ पुष्टि करें",
-            "type": "quick_reply",
-            "nextStepId": "apt_success_hi"
-          },
-          {
-            "id": "cancel_apt_hi",
-            "text": "❌ रद्द करें",
-            "type": "quick_reply",
-            "nextStepId": "main_menu_hi"
-          }
-        ]
-      }
-    },
-    {
       "id": "trk_start_hi",
       "type": "userInput",
       "position": {
@@ -934,81 +784,6 @@
             "id": "back_to_menu_hi",
             "text": "🔙 मेनू पर वापस जाएं",
             "type": "quick_reply"
-          }
-        ]
-      }
-    },
-    {
-      "id": "apt_intro_or",
-      "type": "userInput",
-      "position": {
-        "x": 900,
-        "y": 1000
-      },
-      "data": {
-        "label": "Appointment Intro (OR)",
-        "messageText": "📅 *ନୂତନ ଆପଏଣ୍ଟମେଣ୍ଟ ଅନୁରୋଧ*\n\nଦୟାକରି ଆପଣଙ୍କର ସମ୍ପୂର୍ଣ ନାମ, ଠିକଣା ଓ ମୋବାଇଲ ନମ୍ବର ଦାଖଲ କରନ୍ତୁ:",
-        "inputType": "text",
-        "saveToField": "citizenName",
-        "validation": {
-          "required": true
-        }
-      }
-    },
-    {
-      "id": "apt_purpose_or",
-      "type": "userInput",
-      "position": {
-        "x": 1150,
-        "y": 1000
-      },
-      "data": {
-        "label": "Meeting Purpose (OR)",
-        "messageText": "🎯 *ସାକ୍ଷାତର ଉଦ୍ଦେଶ୍ୟ*\n\nଦୟାକରି ଜିଲ୍ଲାପାଳଙ୍କ ସହିତ ଆପଣଙ୍କର ସାକ୍ଷାତର ଉଦ୍ଦେଶ୍ୟ ସଂକ୍ଷେପରେ ବର୍ଣ୍ଣନା କରନ୍ତୁ:",
-        "inputType": "text",
-        "saveToField": "purpose",
-        "validation": {
-          "required": true
-        }
-      }
-    },
-    {
-      "id": "apt_date_or",
-      "type": "apiCall",
-      "position": {
-        "x": 1650,
-        "y": 1000
-      },
-      "data": {
-        "label": "Select Date (OR)",
-        "messageText": "🗓️ *ତାରିଖ ବାଛନ୍ତୁ*\n\nଦୟାକରି ନିମ୍ନତଲିକାରୁ ଆପଣଙ୍କ ପସନ୍ଦର ଆପଏଣ୍ଟମେଣ୍ଟ ତାରିଖ ବାଛନ୍ତୁ।\n\nଅଧିକ ତାରିଖ ଦେଖିବା ପାଇଁ *ଅଧିକ ତାରିଖ ଲୋଡ୍ କରନ୍ତୁ* ଚୟନ କରନ୍ତୁ।",
-        "method": "GET",
-        "endpoint": "/api/availability/chatbot/{companyId}?departmentId={departmentId}",
-        "saveResponseTo": "availableDates"
-      }
-    },
-    {
-      "id": "apt_confirm_or",
-      "type": "buttonMessage",
-      "position": {
-        "x": 2150,
-        "y": 1000
-      },
-      "data": {
-        "label": "Verify Appointment (OR)",
-        "messageText": "📋 *ଆପଏଣ୍ଟମେଣ୍ଟ ଅନୁରୋଧ ନିଶ୍ଚିତ କରନ୍ତୁ*\n\nଦୟାକରି ଆପଣଙ୍କ ଆପଏଣ୍ଟମେଣ୍ଟ ବିବରଣୀ ନିଶ୍ଚିତ କରନ୍ତୁ:\n\n👤 *ନାମ:* {citizenName}\n🎯 *ଉଦ୍ଦେଶ୍ୟ:* {purpose}\n📅 *ତାରିଖ:* {appointmentDate}\n\n👇 ଆପଣ ଏହି ଆପଏଣ୍ଟମେଣ୍ଟ ଅନୁରୋଧ ଦାଖଲ କରିବାକୁ ଚାହୁଁଛନ୍ତି କି?",
-        "buttons": [
-          {
-            "id": "confirm_apt_or",
-            "text": "✅ ନିଶ୍ଚିତ କରନ୍ତୁ",
-            "type": "quick_reply",
-            "nextStepId": "apt_success_or"
-          },
-          {
-            "id": "cancel_apt_or",
-            "text": "❌ ବାତିଲ୍",
-            "type": "quick_reply",
-            "nextStepId": "main_menu_or"
           }
         ]
       }
@@ -1095,87 +870,6 @@
       "data": {
         "label": "Grievance Success (OR)",
         "messageText": ""
-      }
-    },
-    {
-      "id": "apt_success_en",
-      "type": "end",
-      "position": {
-        "x": 2650,
-        "y": 350
-      },
-      "data": {
-        "label": "Appointment Success (EN)",
-        "messageText": ""
-      }
-    },
-    {
-      "id": "apt_success_hi",
-      "type": "end",
-      "position": {
-        "x": 2650,
-        "y": 600
-      },
-      "data": {
-        "label": "Appointment Success (HI)",
-        "messageText": ""
-      }
-    },
-    {
-      "id": "apt_success_or",
-      "type": "end",
-      "position": {
-        "x": 2650,
-        "y": 1000
-      },
-      "data": {
-        "label": "Appointment Success (OR)",
-        "messageText": ""
-      }
-    },
-    {
-      "id": "grv_subdept_en",
-      "type": "listMessage",
-      "position": {
-        "x": 1900,
-        "y": 100
-      },
-      "data": {
-        "label": "Sub Dept Selection (EN)",
-        "messageText": "🏢 *Office Selection*\n\nSelect the relevant office:",
-        "buttonText": "Select Office",
-        "isDynamic": true,
-        "dynamicSource": "sub-departments"
-      }
-    },
-    {
-      "id": "grv_subdept_hi",
-      "type": "listMessage",
-      "position": {
-        "x": 1900,
-        "y": 500
-      },
-      "data": {
-        "label": "Sub Dept Selection (HI)",
-        "messageText": "🏢 *कार्यालय चयन*\n\nसंबंधित कार्यालय चुनें:",
-        "buttonText": "कार्यालय चुनें",
-        "isDynamic": true,
-        "dynamicSource": "sub-departments"
-      }
-    },
-    {
-      "id": "grv_subdept_or",
-      "type": "listMessage",
-      "position": {
-        "x": 1900,
-        "y": 900
-      },
-      "data": {
-        "label": "Sub Dept Selection (OR)",
-        "messageText": "🏢 *କାର୍ଯ୍ୟାଳୟ ଚୟନ*\n\nସମ୍ପୃକ୍ତ କାର୍ଯ୍ୟାଳୟ ଚୟନ କରନ୍ତୁ:",
-        "buttonText": "କାର୍ଯ୍ୟାଳୟ ଚୟନ କରନ୍ତୁ",
-        "isDynamic": true,
-        "dynamicSource": "sub-departments"
       }
     }
   ],
@@ -1347,102 +1041,6 @@
       "type": "smoothstep"
     },
     {
-      "id": "e_en_apt",
-      "source": "main_menu_en",
-      "target": "apt_intro_en",
-      "sourceHandle": "apt_en",
-      "type": "smoothstep"
-    },
-    {
-      "id": "e_en_apt2",
-      "source": "apt_intro_en",
-      "target": "apt_purpose_en",
-      "type": "smoothstep"
-    },
-    {
-      "id": "e_en_apt3",
-      "source": "apt_purpose_en",
-      "target": "apt_date_en",
-      "type": "smoothstep"
-    },
-    {
-      "id": "e_en_apt4",
-      "source": "apt_date_en",
-      "target": "apt_confirm_en",
-      "type": "smoothstep"
-    },
-    {
-      "id": "e_en_apt7",
-      "source": "apt_confirm_en",
-      "target": "main_menu_en",
-      "sourceHandle": "cancel_apt_en",
-      "type": "smoothstep"
-    },
-    {
-      "id": "e_hi_apt",
-      "source": "main_menu_hi",
-      "target": "apt_intro_hi",
-      "sourceHandle": "apt_hi",
-      "type": "smoothstep"
-    },
-    {
-      "id": "e_hi_apt2",
-      "source": "apt_intro_hi",
-      "target": "apt_purpose_hi",
-      "type": "smoothstep"
-    },
-    {
-      "id": "e_hi_apt3",
-      "source": "apt_purpose_hi",
-      "target": "apt_date_hi",
-      "type": "smoothstep"
-    },
-    {
-      "id": "e_hi_apt4",
-      "source": "apt_date_hi",
-      "target": "apt_confirm_hi",
-      "type": "smoothstep"
-    },
-    {
-      "id": "e_hi_apt7",
-      "source": "apt_confirm_hi",
-      "target": "main_menu_hi",
-      "sourceHandle": "cancel_apt_hi",
-      "type": "smoothstep"
-    },
-    {
-      "id": "e_or_apt",
-      "source": "main_menu_or",
-      "target": "apt_intro_or",
-      "sourceHandle": "apt_or",
-      "type": "smoothstep"
-    },
-    {
-      "id": "e_or_apt2",
-      "source": "apt_intro_or",
-      "target": "apt_purpose_or",
-      "type": "smoothstep"
-    },
-    {
-      "id": "e_or_apt3",
-      "source": "apt_purpose_or",
-      "target": "apt_date_or",
-      "type": "smoothstep"
-    },
-    {
-      "id": "e_or_apt4",
-      "source": "apt_date_or",
-      "target": "apt_confirm_or",
-      "type": "smoothstep"
-    },
-    {
-      "id": "e_or_apt7",
-      "source": "apt_confirm_or",
-      "target": "main_menu_or",
-      "sourceHandle": "cancel_apt_or",
-      "type": "smoothstep"
-    },
-    {
       "id": "e_en_trk",
       "source": "main_menu_en",
       "target": "trk_start_en",
@@ -1545,41 +1143,20 @@
       "type": "smoothstep"
     },
     {
-      "id": "e_en_apt_success",
-      "source": "apt_confirm_en",
-      "target": "apt_success_en",
-      "sourceHandle": "confirm_apt_en",
-      "type": "smoothstep"
-    },
-    {
-      "id": "e_hi_apt_success",
-      "source": "apt_confirm_hi",
-      "target": "apt_success_hi",
-      "sourceHandle": "confirm_apt_hi",
-      "type": "smoothstep"
-    },
-    {
-      "id": "e_or_apt_success",
-      "source": "apt_confirm_or",
-      "target": "apt_success_or",
-      "sourceHandle": "confirm_apt_or",
-      "type": "smoothstep"
-    },
-    {
-      "id": "e_en_grv_sub_to_desc",
-      "source": "grv_subdept_en",
+      "id": "e_en_grv4",
+      "source": "grv_dept_en",
       "target": "grv_desc_en",
       "type": "smoothstep"
     },
     {
-      "id": "e_hi_grv_sub_to_desc",
-      "source": "grv_subdept_hi",
+      "id": "e_hi_grv4",
+      "source": "grv_dept_hi",
       "target": "grv_desc_hi",
       "type": "smoothstep"
     },
     {
-      "id": "e_or_grv_sub_to_desc",
-      "source": "grv_subdept_or",
+      "id": "e_or_grv4",
+      "source": "grv_dept_or",
       "target": "grv_desc_or",
       "type": "smoothstep"
     }

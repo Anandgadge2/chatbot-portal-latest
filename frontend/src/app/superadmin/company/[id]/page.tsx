@@ -75,6 +75,7 @@ import EmailConfigTab from "@/components/superadmin/drilldown/tabs/EmailConfigTa
 import ChatbotFlowsTab from "@/components/superadmin/drilldown/tabs/ChatbotFlowsTab";
 import { useFlows } from "@/lib/query/useFlows";
 import FlowSimulator from "@/components/flow-builder/FlowSimulator";
+import { companyAPI } from "@/lib/api/company";
 
 const CompanyAnalytics = dynamic(
   () => import("@/components/superadmin/drilldown/CompanyAnalytics"),
@@ -96,7 +97,7 @@ function CompanyDrillDownContent() {
   const router = useRouter();
   const params = useParams();
   const companyId = (params.id || params.companyId) as string;
-  const { company, isLoading: companyLoading } = useCompanyContext();
+  const { company, isLoading: companyLoading, setCompany } = useCompanyContext();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "overview");
 
@@ -150,6 +151,7 @@ function CompanyDrillDownContent() {
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [priorityToggleSaving, setPriorityToggleSaving] = useState(false);
   const [selectedAppointments, setSelectedAppointments] = useState<Set<string>>(
     new Set(),
   );
@@ -243,6 +245,30 @@ function CompanyDrillDownContent() {
       console.error(error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleTogglePriorityColumn = async (value: boolean) => {
+    if (!companyId || !company) return;
+    setPriorityToggleSaving(true);
+    try {
+      const response = await companyAPI.update(companyId, {
+        showDepartmentPriorityColumn: value,
+      });
+      if (response.success) {
+        setCompany(response.data.company);
+        toast.success(
+          value
+            ? "Department priority column enabled for company admins"
+            : "Department priority column hidden from company admins",
+        );
+      } else {
+        toast.error("Failed to update company setting");
+      }
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to update company setting");
+    } finally {
+      setPriorityToggleSaving(false);
     }
   };
 
@@ -679,6 +705,9 @@ function CompanyDrillDownContent() {
               exportToCSV={exportToCSV}
               onRefresh={fetchData}
               refreshing={loading}
+              showPriorityColumn={company?.showDepartmentPriorityColumn !== false}
+              onTogglePriorityColumn={handleTogglePriorityColumn}
+              priorityToggleSaving={priorityToggleSaving}
             />
           </TabsContent>
 

@@ -9,6 +9,7 @@ export interface Company {
   nameMr?: string;
   companyType: string;
   enabledModules: string[];
+  showDepartmentPriorityColumn?: boolean;
   selectedLanguages?: string[];
   contactEmail?: string;
   contactPhone?: string;
@@ -49,6 +50,7 @@ export interface CreateCompanyData {
   contactPhone?: string;
   address?: string;
   enabledModules?: string[];
+  showDepartmentPriorityColumn?: boolean;
   selectedLanguages?: string[];
   theme?: {
     primaryColor?: string;

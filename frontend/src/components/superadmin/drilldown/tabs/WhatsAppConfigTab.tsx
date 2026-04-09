@@ -214,6 +214,7 @@ const WA_PLACEHOLDERS: Array<{
   relevance: string[];
 }> = [
   { ph: "{companyName}", desc: "Organisation name", relevance: ["all"] },
+  { ph: "{localizedCompanyBrand}", desc: "Localized brand header for citizen templates", relevance: ["grievance"] },
   { ph: "{recipientName}", desc: "Recipient name", relevance: ["all"] },
   { ph: "{citizenName}", desc: "Citizen name", relevance: ["all"] },
   { ph: "{citizenPhone}", desc: "Citizen phone number", relevance: ["all"] },
@@ -246,7 +247,7 @@ const DEFAULT_WA_MESSAGES: Record<string, string> = {
   grievance_created_admin: `*{companyName}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📋 *NEW GRIEVANCE RECEIVED*\n\nRespected {recipientName},\nA new grievance has been submitted.\n\n🎫 *ID:* {grievanceId}\n👤 *Citizen:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}\n📅 *On:* {formattedDate}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
   grievance_assigned_admin: `*{companyName}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n👤 *GRIEVANCE ASSIGNED*\n\nRespected {recipientName},\n\n🎫 *ID:* {grievanceId}\n👤 *Citizen:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}\n👨💼 *Assigned By:* {assignedByName}\n📅 *On:* {formattedDate}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
   grievance_reassigned_admin: `*{companyName}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n👤 *GRIEVANCE REASSIGNED*\n\nRespected {recipientName},\n\n🎫 *ID:* {grievanceId}\n👤 *Citizen:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}\n📊 *Status:* REASSIGNED\n👨💼 *Reassigned By:* {assignedByName}\n📅 *On:* {formattedDate}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-  grievance_confirmation: `*{companyName}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n✅ *GRIEVANCE SUBMITTED*\n\nRespected {citizenName},\nYour grievance is registered.\n\n🎫 *Ref ID:* {grievanceId}{deptLabel}{subDeptLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+  grievance_confirmation: `*{localizedCompanyBrand}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n✅ *GRIEVANCE SUBMITTED*\n\nRespected {citizenName},\nYour grievance is registered.\n\n🎫 *Ref ID:* {grievanceId}{deptLabel}{subDeptLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
   appointment_created_admin: `*{companyName}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📋 *NEW APPOINTMENT*\n\nRespected {recipientName},\n\n🎫 *ID:* {appointmentId}\n👤 *Citizen:* {citizenName}{purposeLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
   appointment_confirmation: `*{companyName}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n✅ *APPOINTMENT REQUESTED*\n\nRespected {citizenName},\nYour request is received.\n\n🎫 *Ref ID:* {appointmentId}{purposeLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
   cmd_stop: "🛑 Conversation ended. Type 'hi' to restart.",

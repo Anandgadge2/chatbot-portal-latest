@@ -680,7 +680,7 @@ export class DynamicFlowEngine {
         parentDepartmentId: parentId,
         _id: { $ne: parentId }, // Ensure we don't return the parent itself if data is inconsistent
         isActive: true,
-      });
+      }).sort({ name: 1, createdAt: 1 });
 
       // Special check: If the next flow node after the dept step explicitly handles sub-departments,
       // skip injecting our own dynamic sub-dept menu to avoid showing it twice.
@@ -2812,7 +2812,7 @@ export class DynamicFlowEngine {
         ? await Department.find({
             parentDepartmentId: departmentId,
             isActive: true,
-          })
+          }).sort({ name: 1, createdAt: 1 })
         : [];
     } else {
       // Save for "Load More" recovery

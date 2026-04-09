@@ -160,6 +160,7 @@ export const create = async (req: Request, res: Response) => {
       contactPhone, 
       address, 
       enabledModules,
+      showDepartmentPriorityColumn,
       selectedLanguages,
       theme,
       admin // Admin user data
@@ -231,6 +232,7 @@ export const create = async (req: Request, res: Response) => {
         'SETTINGS', 
         ...(enabledModules || [])
       ])),
+      showDepartmentPriorityColumn: showDepartmentPriorityColumn !== false,
       selectedLanguages: normalizeSelectedLanguages(selectedLanguages),
       theme: theme || {
         primaryColor: '#0f4c81',

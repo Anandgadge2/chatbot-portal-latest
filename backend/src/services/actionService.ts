@@ -245,6 +245,7 @@ export class ActionService {
         citizenName: session.data.citizenName,
         citizenPhone: userPhone,
         citizenWhatsApp: userPhone,
+        language: session.language || 'en',
         departmentId: departmentId as any,
         subDepartmentId: session.data.subDepartmentId,
         companyId: company._id,

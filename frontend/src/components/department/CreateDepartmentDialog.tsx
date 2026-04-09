@@ -39,6 +39,7 @@ interface CreateDepartmentDialogProps {
   editingDepartment?: Department | null;
   defaultCompanyId?: string;
   onEditUser?: (user: any) => void;
+  showPriorityField?: boolean;
 }
 
 const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
@@ -48,6 +49,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
   editingDepartment,
   defaultCompanyId,
   onEditUser,
+  showPriorityField = true,
 }) => {
   const { user } = useAuth();
   const isCompanyAdminUser =
@@ -284,16 +286,18 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
           ? (formData.parentDepartmentId || undefined) 
           : null,
         contactUserId: formData.contactUserId || undefined,
-        displayOrder: Number(formData.displayOrder || "999"),
       };
 
-      if (!Number.isFinite(dataToSubmit.displayOrder) || dataToSubmit.displayOrder < 0) {
-        toast.error("Priority must be a non-negative number");
-        setLoading(false);
-        return;
-      }
+      if (!isSubDepartment) {
+        dataToSubmit.displayOrder = Number(formData.displayOrder || "999");
+        if (!Number.isFinite(dataToSubmit.displayOrder) || dataToSubmit.displayOrder < 0) {
+          toast.error("Priority must be a non-negative number");
+          setLoading(false);
+          return;
+        }
 
-      dataToSubmit.displayOrder = Math.floor(dataToSubmit.displayOrder);
+        dataToSubmit.displayOrder = Math.floor(dataToSubmit.displayOrder);
+      }
       // Ensure we don't send empty strings for optional fields that should be omitted
       Object.keys(dataToSubmit).forEach(key => {
         if (dataToSubmit[key] === "") {
@@ -519,7 +523,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
               </div>
             )}
 
-            {isCompanyAdminUser && (
+            {isCompanyAdminUser && showPriorityField && !isSubDepartment && (
               <div className="bg-amber-50/70 p-3 rounded-xl border border-amber-200/80">
                 <Label
                   htmlFor="displayOrder"

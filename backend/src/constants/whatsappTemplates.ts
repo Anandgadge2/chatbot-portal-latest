@@ -113,7 +113,7 @@ The following grievance has been *REJECTED*.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 *{companyName}*`,
 
-  grievance_confirmation: `*{companyName}*
+  grievance_confirmation: `*{localizedCompanyBrand}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ✅ *GRIEVANCE SUBMITTED SUCCESSFULLY*
 
@@ -130,6 +130,42 @@ You can track your status using the Reference ID: *{grievanceId}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Your grievance, our priority.
 – District Administration, Jharsuguda,`,
+
+  grievance_confirmation_hi: `*{localizedCompanyBrand}*
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+âœ… *शिकायत सफलतापूर्वक दर्ज हो गई*
+
+आदरणीय {citizenName},
+आपके संपर्क के लिए धन्यवाद। आपकी शिकायत दर्ज कर ली गई है।
+*विवरण:*
+🎫 *संदर्भ संख्या:* {grievanceId}
+🏢 *विभाग:* {departmentName}
+{subDeptLabel}
+📝 *विवरण:* {description}
+📅 *जमा करने की तिथि:* {formattedDate}
+
+आप *{grievanceId}* संदर्भ संख्या के माध्यम से अपनी शिकायत की स्थिति ट्रैक कर सकते हैं।
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+आपकी शिकायत, हमारी प्राथमिकता।
+â€“ जिला प्रशासन, झारसुगुडा`,
+
+  grievance_confirmation_or: `*{localizedCompanyBrand}*
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+âœ… *ଅଭିଯୋଗ ସଫଳଭାବେ ଦାଖଲ ହେଲା*
+
+ଆଦରଣୀୟ {citizenName},
+ଆପଣଙ୍କର ଯୋଗାଯୋଗ ପାଇଁ ଧନ୍ୟବାଦ। ଆପଣଙ୍କର ଅଭିଯୋଗ ଦାଖଲ କରାଯାଇଛି।
+*ବିବରଣୀ:*
+🎫 *ରେଫରେନ୍ସ ନମ୍ବର:* {grievanceId}
+🏢 *ବିଭାଗ:* {departmentName}
+{subDeptLabel}
+📝 *ବିବରଣୀ:* {description}
+📅 *ଦାଖଲ ତାରିଖ:* {formattedDate}
+
+ଆପଣ *{grievanceId}* ରେଫରେନ୍ସ ନମ୍ବର ବ୍ୟବହାର କରି ଆପଣଙ୍କର ଅଭିଯୋଗର ସ୍ଥିତି ଟ୍ରାକ୍ କରିପାରିବେ।
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+ଆପଣଙ୍କର ଅଭିଯୋଗ, ଆମର ଅଗ୍ରାଧିକାର।
+â€“ ଜିଲ୍ଲା ପ୍ରଶାସନ, ଝାରସୁଗୁଡା`,
 
   grievance_status_update: `*{companyName}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━

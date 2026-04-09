@@ -3,6 +3,7 @@
 import React, { useState, useCallback } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
   Building,
   Upload,
@@ -27,6 +28,9 @@ interface DepartmentListProps {
   exportToCSV: (data: any[], filename: string) => void;
   onRefresh?: () => void;
   refreshing?: boolean;
+  showPriorityColumn?: boolean;
+  onTogglePriorityColumn?: (value: boolean) => void;
+  priorityToggleSaving?: boolean;
 }
 
 export default function DepartmentList({
@@ -36,6 +40,9 @@ export default function DepartmentList({
   exportToCSV,
   onRefresh,
   refreshing,
+  showPriorityColumn = true,
+  onTogglePriorityColumn,
+  priorityToggleSaving = false,
 }: DepartmentListProps) {
   const router = useRouter();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -215,6 +222,24 @@ export default function DepartmentList({
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Department Name</th>
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 text-center">Type</th>
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 text-center">Users</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 text-center">
+                  <div className="flex flex-col items-center gap-2">
+                    <span>Priority</span>
+                    {onTogglePriorityColumn && (
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={showPriorityColumn}
+                          onCheckedChange={onTogglePriorityColumn}
+                          disabled={priorityToggleSaving}
+                          aria-label="Toggle company admin priority column visibility"
+                        />
+                        <span className="text-[9px] font-bold normal-case tracking-normal text-slate-400">
+                          {showPriorityColumn ? "Visible to company admin" : "Hidden from company admin"}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </th>
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Hierarchy</th>
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Internal ID</th>
                 <th className="px-6 py-4 text-right text-[10px] font-black uppercase tracking-widest text-slate-500">Actions</th>
@@ -265,6 +290,15 @@ export default function DepartmentList({
                       }`}>
                         {userCount}
                       </div>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      {isMain ? (
+                        <span className="inline-flex items-center justify-center min-w-[42px] h-8 rounded-lg border border-amber-200 bg-amber-50 px-2 text-xs font-black text-amber-700">
+                          {typeof d.displayOrder === "number" ? d.displayOrder : 999}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold text-slate-300">-</span>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       {d.parentDepartmentId ? (

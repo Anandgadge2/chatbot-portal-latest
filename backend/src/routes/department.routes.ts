@@ -330,7 +330,10 @@ router.post('/', requirePermission(Permission.CREATE_DEPARTMENT), async (req: Re
       return;
     }
 
-    const normalizedDisplayOrder = normalizeDisplayOrder(displayOrder);
+    const isSubDepartmentRequest = !!parentDepartmentId;
+    const normalizedDisplayOrder = isSubDepartmentRequest
+      ? undefined
+      : normalizeDisplayOrder(displayOrder);
     if (Number.isNaN(normalizedDisplayOrder)) {
       return res.status(400).json({
         success: false,
@@ -672,6 +675,12 @@ router.put('/:id', requirePermission(Permission.UPDATE_DEPARTMENT), async (req: 
         delete updateData.displayOrder;
       } else {
         updateData.displayOrder = normalizedDisplayOrder;
+      }
+    }
+    if (Object.prototype.hasOwnProperty.call(updateData, 'parentDepartmentId')) {
+      const nextParentDepartmentId = updateData.parentDepartmentId;
+      if (nextParentDepartmentId) {
+        delete updateData.displayOrder;
       }
     }
     

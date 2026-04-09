@@ -12,6 +12,7 @@ export interface ICompany extends Document {
   nameMr?: string;
   companyType: CompanyType;
   enabledModules: string[];
+  showDepartmentPriorityColumn?: boolean;
   selectedLanguages: string[];
   contactEmail?: string;
   contactPhone?: string;
@@ -62,6 +63,10 @@ const CompanySchema: Schema = new Schema(
     enabledModules: [{
       type: String
     }],
+    showDepartmentPriorityColumn: {
+      type: Boolean,
+      default: true
+    },
     selectedLanguages: [{
       type: String,
       enum: ['en', 'hi', 'or', 'mr']

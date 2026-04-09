@@ -200,6 +200,11 @@ const WA_PLACEHOLDERS: Array<{
     relevance: ["all"],
   },
   {
+    ph: "{localizedCompanyBrand}",
+    desc: "Localized brand header for citizen grievance confirmation",
+    relevance: ["grievance"],
+  },
+  {
     ph: "{recipientName}",
     desc: "Name of the person receiving this message",
     relevance: ["all"],
@@ -374,7 +379,7 @@ The following grievance has been *REJECTED*.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 *{companyName}*`,
 
-  grievance_confirmation: `*{companyName}*
+  grievance_confirmation: `*{localizedCompanyBrand}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ✅ *GRIEVANCE SUBMITTED SUCCESSFULLY*
 

@@ -282,7 +282,6 @@ function DashboardContent() {
     isSubDepartmentAdminRole,
     hasMultiDepartmentMapping,
   ]);
-  const canManageDepartmentPriority = isCompanyAdminRole;
   const canSeeUsersTab = useMemo(() => {
     if (isSuperAdminUser && companyIdParam) return true;
     return (
@@ -513,6 +512,8 @@ function DashboardContent() {
   };
 
   const [company, setCompany] = useState<Company | null>(null);
+  const canManageDepartmentPriority =
+    isCompanyAdminRole && company?.showDepartmentPriorityColumn !== false;
   const isHierarchicalCompany = useMemo(() => {
     const fromStats = stats?.isHierarchicalEnabled;
     if (typeof fromStats === "boolean") return fromStats;
@@ -529,6 +530,13 @@ function DashboardContent() {
           : user.companyId) === "69adc81165109318a7cde21c")
     );
   }, [company, user]);
+  const isCollectorateJharsuguda = useMemo(() => {
+    const companyName = company?.name?.toLowerCase() || "";
+    return (
+      companyName.includes("collectorate") &&
+      companyName.includes("jharsuguda")
+    );
+  }, [company]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [showDepartmentDialog, setShowDepartmentDialog] = useState(false);
   const [showDeptUsersDialog, setShowDeptUsersDialog] = useState(false);
@@ -1386,6 +1394,10 @@ function DashboardContent() {
     async (dept: Department) => {
       if (!canManageDepartmentPriority) {
         toast.error("Only Company Admin can update department priority");
+        return;
+      }
+      if (dept.parentDepartmentId) {
+        toast.error("Priority can only be updated for main departments");
         return;
       }
       const rawValue = priorityDrafts[dept._id] ?? String(dept.displayOrder ?? 999);
@@ -3378,6 +3390,45 @@ function DashboardContent() {
                       </Card>
                     )}
 
+                    {hasPermission(user, Permission.READ_GRIEVANCE) &&
+                      isViewingCompany &&
+                      isCompanyAdminRole &&
+                      isCollectorateJharsuguda && (
+                        <Card
+                          onClick={() => {
+                            setActiveTab("grievances");
+                            setGrievanceFilters((prev) => ({
+                              ...prev,
+                              status: "REVERTED",
+                            }));
+                          }}
+                          className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer min-h-[7rem] sm:min-h-[9.5rem]"
+                        >
+                          <CardHeader className="p-3 sm:p-5 pb-1 sm:pb-1 space-y-0 flex flex-row items-center justify-between">
+                            <CardTitle className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                              Reverted Grievances
+                            </CardTitle>
+                            <div className="p-1 sm:p-1.5 bg-sky-50 rounded-lg">
+                              <ArrowLeft className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-sky-500" />
+                            </div>
+                          </CardHeader>
+                          <CardContent className="px-3 sm:px-6 pb-2 pt-1">
+                            <div className="text-xl sm:text-2xl font-black text-sky-600 tabular-nums leading-none">
+                              {loadingStats ? (
+                                <LoadingDots />
+                              ) : (
+                                stats?.grievances.reverted || 0
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1 mt-1.5">
+                              <span className="text-[8px] sm:text-[9px] font-bold text-sky-600 bg-sky-50 px-1.5 py-0.5 rounded-full">
+                                Reassigned
+                              </span>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+
                     {/* Total Appointments */}
                     {hasModule(Module.APPOINTMENT) &&
                       isViewingCompany &&
@@ -3497,41 +3548,6 @@ function DashboardContent() {
                       </>
                     )}
 
-                    {/* Reverted Grievances (Company Level) */}
-                    {isViewingCompany &&
-                      hasPermission(user, Permission.READ_GRIEVANCE) && (
-                        <Card
-                          onClick={() => {
-                            setActiveTab("grievances");
-                            setGrievanceFilters((prev) => ({
-                              ...prev,
-                              status: "REVERTED",
-                            }));
-                          }}
-                          className="min-h-[7rem] sm:min-h-[9.5rem] cursor-pointer overflow-hidden rounded-xl border border-rose-200/70 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(244,63,94,0.12)]"
-                        >
-                          <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-[#2f5aa6] bg-slate-50/70 px-4 py-4 pb-3">
-                            <CardTitle className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-[0.16em] text-slate-400">
-                              Reverted
-                            </CardTitle>
-                            <div className="rounded-md bg-rose-50 p-1.5">
-                              <ArrowLeft className="h-3.5 w-3.5 text-rose-500" />
-                            </div>
-                          </CardHeader>
-                          <CardContent className="px-4 pb-3 pt-2">
-                            <div className="text-[2rem] font-extrabold leading-none tracking-tight text-rose-600 tabular-nums">
-                              {loadingStats ? (
-                                <LoadingDots />
-                              ) : (
-                                stats?.grievances.reverted || 0
-                              )}
-                            </div>
-                            <p className="mt-2 text-[8px] sm:text-[9px] font-bold uppercase text-slate-400">
-                              Reassigned
-                            </p>
-                          </CardContent>
-                        </Card>
-                      )}
                   </>
                 </div>
 
@@ -4096,6 +4112,39 @@ function DashboardContent() {
                             </p>
                           </div>
                         </div>
+
+                        {isViewingCompany &&
+                          isCompanyAdminRole &&
+                          isCollectorateJharsuguda && (
+                            <div
+                              onClick={() => {
+                                setActiveTab("grievances");
+                                setGrievanceFilters((prev) => ({
+                                  ...prev,
+                                  status: "REVERTED",
+                                }));
+                              }}
+                              className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-sky-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden min-h-[7rem] sm:min-h-[9.5rem]"
+                            >
+                              <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-sky-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
+                              <div className="relative">
+                                <div className="flex items-center justify-between mb-2">
+                                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-sky-50 rounded-lg flex items-center justify-center text-sky-600 border border-sky-100/50 shadow-sm transition-all group-hover:bg-sky-600 group-hover:text-white">
+                                    <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+                                  </div>
+                                  <div className="flex items-center gap-1 text-[8px] sm:text-[9px] font-black text-sky-600 bg-sky-50 px-1.5 sm:px-2 py-1 rounded-lg uppercase tracking-tight">
+                                    Reassigned
+                                  </div>
+                                </div>
+                                <h4 className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                                  Reverted Grievances
+                                </h4>
+                                <p className="text-xl sm:text-2xl font-black text-sky-600 tracking-tighter leading-none">
+                                  {stats?.grievances.reverted || 0}
+                                </p>
+                              </div>
+                            </div>
+                          )}
                       </>
                     )}
 
@@ -4328,7 +4377,7 @@ function DashboardContent() {
                               {
                                 name: "Reverted",
                                 value: stats?.grievances.reverted || 0,
-                                color: "#f43f5e",
+                                color: "#0ea5e9",
                                 subText: "Reassigned cases",
                               },
                             ].filter((d) => d.value > 0);
@@ -6003,41 +6052,47 @@ function DashboardContent() {
                                         {/* Priority */}
                                         {canManageDepartmentPriority && (
                                           <td className="px-4 py-4 text-center">
-                                            <div className="flex items-center justify-center gap-1.5">
-                                              <input
-                                                type="number"
-                                                min={0}
-                                                step={1}
-                                                value={
-                                                  priorityDrafts[dept._id] ??
-                                                  String(dept.displayOrder ?? 999)
-                                                }
-                                                onChange={(e) =>
-                                                  setPriorityDrafts((prev) => ({
-                                                    ...prev,
-                                                    [dept._id]: e.target.value,
-                                                  }))
-                                                }
-                                                className="w-16 h-8 rounded-lg border border-slate-300 px-2 text-center text-xs font-bold focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500"
-                                                title="Lower number appears first in chatbot list"
-                                              />
-                                              <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="h-8 px-2 text-[10px] font-black text-indigo-600 hover:bg-indigo-50 disabled:opacity-60"
-                                                onClick={() =>
-                                                  handleSaveDepartmentPriority(dept)
-                                                }
-                                                disabled={savingPriorityIds.has(
-                                                  dept._id,
-                                                )}
-                                                title="Save priority"
-                                              >
-                                                {savingPriorityIds.has(dept._id)
-                                                  ? "Saving..."
-                                                  : "Save"}
-                                              </Button>
-                                            </div>
+                                            {isMain ? (
+                                              <div className="flex items-center justify-center gap-1.5">
+                                                <input
+                                                  type="number"
+                                                  min={0}
+                                                  step={1}
+                                                  value={
+                                                    priorityDrafts[dept._id] ??
+                                                    String(dept.displayOrder ?? 999)
+                                                  }
+                                                  onChange={(e) =>
+                                                    setPriorityDrafts((prev) => ({
+                                                      ...prev,
+                                                      [dept._id]: e.target.value,
+                                                    }))
+                                                  }
+                                                  className="w-16 h-8 rounded-lg border border-slate-300 px-2 text-center text-xs font-bold focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500"
+                                                  title="Lower number appears first in chatbot list"
+                                                />
+                                                <Button
+                                                  variant="ghost"
+                                                  size="sm"
+                                                  className="h-8 px-2 text-[10px] font-black text-indigo-600 hover:bg-indigo-50 disabled:opacity-60"
+                                                  onClick={() =>
+                                                    handleSaveDepartmentPriority(dept)
+                                                  }
+                                                  disabled={savingPriorityIds.has(
+                                                    dept._id,
+                                                  )}
+                                                  title="Save priority"
+                                                >
+                                                  {savingPriorityIds.has(dept._id)
+                                                    ? "Saving..."
+                                                    : "Save"}
+                                                </Button>
+                                              </div>
+                                            ) : (
+                                              <span className="text-[10px] font-bold text-slate-300">
+                                                -
+                                              </span>
+                                            )}
                                           </td>
                                         )}
 
@@ -9610,6 +9665,9 @@ function DashboardContent() {
                   setShowEditUserDialog(true);
                   setShowDepartmentDialog(false);
                 }}
+                showPriorityField={
+                  company?.showDepartmentPriorityColumn !== false
+                }
               />
             )}
             <ConfirmDialog

@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import { logger } from '../config/logger';
 import CompanyEmailConfig from '../models/CompanyEmailConfig';
 import CompanyEmailTemplate from '../models/CompanyEmailTemplate';
+import Company from '../models/Company';
 import CompanyWhatsAppTemplate from '../models/CompanyWhatsAppTemplate';
 import { DEFAULT_WA_MESSAGES } from '../constants/whatsappTemplates';
 
@@ -11,6 +12,26 @@ import { DEFAULT_WA_MESSAGES } from '../constants/whatsappTemplates';
  * Reusable SMTP transporter from env (singleton, fallback)
  */
 let envTransporter: Transporter<SMTPTransport.SentMessageInfo> | null = null;
+
+const isCollectorateJharsugudaCompany = (companyName: string): boolean => {
+  const normalized = companyName.trim().toLowerCase();
+  return normalized.includes('collectorate') && normalized.includes('jharsuguda');
+};
+
+const getLocalizedWhatsAppBrandName = (companyName: string, lang: string): string => {
+  if (!isCollectorateJharsugudaCompany(companyName)) {
+    return companyName || 'Government Digital Portal';
+  }
+
+  switch (String(lang || 'en').toLowerCase()) {
+    case 'hi':
+      return 'सहज - प्रशासन द्वारा त्वरित पहुंच एवं सहायता, झारसुगुड़ा';
+    case 'or':
+      return 'ସହଜ - ପ୍ରଶାସନ ଦ୍ୱାରା ସ୍ୱିଫ୍ଟ ଆକ୍ସେସ ଏବଂ ସହାୟତା, ଝାରସୁଗୁଡା';
+    default:
+      return 'Sahaj - Swift Access & Help by Administration, Jharsuguda';
+  }
+};
 
 const createEnvTransporter = (): Transporter<SMTPTransport.SentMessageInfo> | null => {
   if (envTransporter) return envTransporter;
@@ -483,6 +504,21 @@ export async function getNotificationWhatsAppMessage(
     : companyId;
     
   const lang = data.language || data.lang || 'en';
+  let resolvedCompanyName = String(data.companyName || '').trim();
+
+  if (!resolvedCompanyName) {
+    const company = await Company.findById(cid).select('name').lean();
+    resolvedCompanyName = String(company?.name || '').trim();
+  }
+
+  const localizedData = {
+    ...data,
+    companyName: getLocalizedWhatsAppBrandName(resolvedCompanyName, lang),
+    localizedCompanyBrand: getLocalizedWhatsAppBrandName(
+      resolvedCompanyName,
+      lang,
+    ),
+  };
   
   const typePrefix = `${type}_`;
   const normalizedAction = action.startsWith(typePrefix) 
@@ -523,7 +559,7 @@ export async function getNotificationWhatsAppMessage(
       }
       if (template.message && template.message.trim()) {
         logger.info(`✅ [WhatsApp Template] Found CUSTOM template in DB for key: ${key}`);
-        return replacePlaceholders(template.message.trim(), data);
+        return replacePlaceholders(template.message.trim(), localizedData);
       }
     }
   }
@@ -537,7 +573,7 @@ export async function getNotificationWhatsAppMessage(
   for (const key of attemptKeys) {
     if (DEFAULT_WA_MESSAGES[key]) {
       logger.info(`✅ [WhatsApp Template] Using SYSTEM DEFAULT for key: ${key}`);
-      return replacePlaceholders(DEFAULT_WA_MESSAGES[key], data);
+      return replacePlaceholders(DEFAULT_WA_MESSAGES[key], localizedData);
     }
   }
 
