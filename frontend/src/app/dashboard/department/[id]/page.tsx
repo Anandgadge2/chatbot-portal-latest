@@ -1581,6 +1581,7 @@ export default function DepartmentDetail() {
           setShowGrievanceDetail(false);
           setSelectedGrievance(null);
         }}
+        onSuccess={fetchData}
       />
       <AppointmentDetailDialog
         appointment={selectedAppointment}

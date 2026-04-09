@@ -4320,6 +4320,12 @@ function DashboardContent() {
                                 subText: "Completed cases",
                               },
                               {
+                                name: "Rejected",
+                                value: stats?.grievances.rejected || 0,
+                                color: "#ef4444",
+                                subText: "Closed without resolution",
+                              },
+                              {
                                 name: "Reverted",
                                 value: stats?.grievances.reverted || 0,
                                 color: "#f43f5e",

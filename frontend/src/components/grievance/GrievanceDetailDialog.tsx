@@ -33,7 +33,11 @@ import {
   UserCheck,
   ArrowRight,
   FileType,
+  Settings,
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { isDepartmentAdminOrHigher, hasPermission, Permission } from "@/lib/permissions";
+import StatusUpdateForm from "./StatusUpdateForm";
 
 // Helper: treat as image if type is image or URL looks like an image
 // Cloudinary image URLs contain /image/upload/ in the path
@@ -74,13 +78,17 @@ interface GrievanceDetailDialogProps {
   isOpen: boolean;
   grievance: Grievance | null;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
 const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
   isOpen,
   grievance,
   onClose,
+  onSuccess,
 }) => {
+  const { user } = useAuth();
+  const canUpdateStatus = hasPermission(user, Permission.UPDATE_GRIEVANCE);
   const [fullScreenMedia, setFullScreenMedia] = useState<{
     url: string;
     alt?: string;
@@ -204,7 +212,8 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
           {[
             { id: "overview", label: "Overview", icon: <FileText className="w-3.5 h-3.5" /> },
             { id: "media", label: "Media Assets", icon: <ImageIcon className="w-3.5 h-3.5" />, count: grievance.media?.length },
-            { id: "timeline", label: "History & Resolution", icon: <RefreshCw className="w-3.5 h-3.5" /> }
+            { id: "timeline", label: "History & Resolution", icon: <RefreshCw className="w-3.5 h-3.5" /> },
+            ...(canUpdateStatus ? [{ id: "actions", label: "Actions", icon: <Settings className="w-3.5 h-3.5" /> }] : [])
           ].map((tab) => (
             <button
               key={tab.id}
@@ -506,6 +515,25 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                     );
                  })}
                </div>
+            </div>
+          )}
+
+          {activeTab === "actions" && (
+            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 h-full">
+              <StatusUpdateForm
+                itemId={grievance._id}
+                itemType="grievance"
+                currentStatus={grievance.status}
+                onSuccess={() => {
+                  if (onSuccess) onSuccess();
+                  setActiveTab("timeline");
+                }}
+                onCancel={onClose}
+                grievanceVariant={
+                  !isDepartmentAdminOrHigher(user) ? "operator" : "department-admin"
+                }
+                showCancelButton={false}
+              />
             </div>
           )}
         </div>

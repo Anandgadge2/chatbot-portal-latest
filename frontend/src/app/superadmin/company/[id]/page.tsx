@@ -849,6 +849,7 @@ function CompanyDrillDownContent() {
           setShowGrievanceDetail(false);
           setSelectedGrievance(null);
         }}
+        onSuccess={fetchGrievances}
       />
       <AppointmentDetailDialog
         appointment={selectedAppointment}

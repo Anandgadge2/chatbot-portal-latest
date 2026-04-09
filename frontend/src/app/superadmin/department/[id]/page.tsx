@@ -531,6 +531,7 @@ export default function DepartmentDrillDown() {
           setShowGrievanceDetail(false);
           setSelectedGrievance(null);
         }}
+        onSuccess={fetchData}
       />
       <AppointmentDetailDialog
         appointment={selectedAppointment}
