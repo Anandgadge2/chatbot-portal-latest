@@ -857,7 +857,19 @@ function DashboardContent() {
     }
   };
 
-  const openGrievanceDetail = async (grievanceId: string) => {
+  const openGrievanceDetail = async (grievanceId: string, initialData?: Grievance) => {
+    if (initialData) {
+      setSelectedGrievance(initialData);
+      setShowGrievanceDetail(true);
+      // Background fetch to ensure timeline and other details are fully loaded
+      grievanceAPI.getById(grievanceId).then((response) => {
+        if (response.success) {
+          setSelectedGrievance(response.data.grievance);
+        }
+      });
+      return;
+    }
+
     try {
       const response = await grievanceAPI.getById(grievanceId);
       if (response.success) {
@@ -869,7 +881,19 @@ function DashboardContent() {
     }
   };
 
-  const openAppointmentDetail = async (appointmentId: string) => {
+  const openAppointmentDetail = async (appointmentId: string, initialData?: Appointment) => {
+    if (initialData) {
+      setSelectedAppointment(initialData);
+      setShowAppointmentDetail(true);
+      // Background fetch
+      appointmentAPI.getById(appointmentId).then((response) => {
+        if (response.success) {
+          setSelectedAppointment(response.data.appointment);
+        }
+      });
+      return;
+    }
+
     try {
       const response = await appointmentAPI.getById(appointmentId);
       if (response.success) {
@@ -1949,14 +1973,13 @@ function DashboardContent() {
         if (!mounted) return;
 
         try {
-          const promises = [];
-
+          // Perform silent, background refreshes of the current active views
           if (
             isSuperAdminUser ||
             (hasModule(Module.GRIEVANCE) &&
               hasPermission(user, Permission.READ_GRIEVANCE))
           ) {
-            promises.push(grievanceAPI.getAll({ page: 1, limit: 10 }));
+            fetchGrievances(grievancePage, true);
           }
 
           if (
@@ -1964,92 +1987,22 @@ function DashboardContent() {
             (hasModule(Module.APPOINTMENT) &&
               hasPermission(user, Permission.READ_APPOINTMENT))
           ) {
-            promises.push(appointmentAPI.getAll({ page: 1, limit: 10 }));
+            fetchAppointments(appointmentPage, true);
           }
 
-          if (promises.length === 0) return;
-
-          const results = await Promise.all(promises);
-
-          // Re-verify mounting after awaits
-          if (!mounted) return;
-
-          let grievanceRes: any = null;
-          let appointmentRes: any = null;
-
-          let resultIdx = 0;
-          if (
-            isSuperAdminUser ||
-            (hasModule(Module.GRIEVANCE) &&
-              hasPermission(user, Permission.READ_GRIEVANCE))
-          ) {
-            grievanceRes = results[resultIdx++];
-          }
-          if (
-            isSuperAdminUser ||
-            (hasModule(Module.APPOINTMENT) &&
-              hasPermission(user, Permission.READ_APPOINTMENT))
-          ) {
-            appointmentRes = results[resultIdx++];
-          }
-
-          if (grievanceRes?.success && prevGrievanceCount !== null) {
-            const newCount = grievanceRes.data?.pagination?.total || 0;
-            if (newCount > prevGrievanceCount) {
-              toast.success(
-                `📋 New grievance received! (${newCount - prevGrievanceCount} new)`,
-                { duration: 1000 },
-              );
-              fetchDashboardData();
-            }
-            setPrevGrievanceCount(newCount);
-            if (grievancePage === 1) {
-              setGrievances(grievanceRes.data.grievances);
-              setGrievancePagination((prev) => ({
-                ...prev,
-                total: grievanceRes.data.pagination.total,
-                pages: grievanceRes.data.pagination.pages,
-              }));
-            }
-          } else if (grievanceRes?.success) {
-            setPrevGrievanceCount(grievanceRes.data?.pagination?.total || 0);
-          }
-
-          if (appointmentRes?.success && prevAppointmentCount !== null) {
-            const newCount = appointmentRes.data?.pagination?.total || 0;
-            if (newCount > prevAppointmentCount) {
-              toast.success(
-                `📅 New appointment scheduled! (${newCount - prevAppointmentCount} new)`,
-                { duration: 1000 },
-              );
-              fetchDashboardData();
-            }
-            setPrevAppointmentCount(newCount);
-            if (appointmentPage === 1) {
-              setAppointments(appointmentRes.data.appointments);
-              setAppointmentPagination((prev) => ({
-                ...prev,
-                total: appointmentRes.data.pagination.total,
-                pages: appointmentRes.data.pagination.pages,
-              }));
-            }
-          } else if (appointmentRes?.success) {
-            setPrevAppointmentCount(
-              appointmentRes.data?.pagination?.total || 0,
-            );
-          }
+          // Also keep KPI stats fresh
+          fetchDashboardData(true);
         } catch (error: any) {
-          // 🤫 Background polling errors should be silent if they are network failures
-          // to avoid spamming the console when the server is temporarily down.
+          // 🤫 Background polling errors should be silent
           if (
             error.code === "ERR_NETWORK" ||
             error.message === "Network Error"
           ) {
             return;
           }
-          console.error("Polling error:", error);
+          console.error("High-sync polling error:", error);
         }
-      }, 60000);
+      }, 15000); // 15 seconds for a near-instant feel without overloading the server
 
       return () => clearInterval(pollInterval);
     }
@@ -2058,9 +2011,9 @@ function DashboardContent() {
     user,
     grievancePage,
     appointmentPage,
+    fetchGrievances,
+    fetchAppointments,
     fetchDashboardData,
-    prevGrievanceCount,
-    prevAppointmentCount,
     hasModule,
     companyIdParam,
     isSuperAdminUser,
@@ -5312,7 +5265,9 @@ function DashboardContent() {
                               <div
                                 key={incident.id}
                                 className="p-3 rounded-xl border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/30 transition-all cursor-pointer group"
-                                onClick={() => openGrievanceDetail(incident.id)}
+                                onClick={() =>
+                                  openGrievanceDetail(incident.id, incident as any)
+                                }
                               >
                                 <div className="flex items-center justify-between mb-1">
                                   <span
@@ -7910,6 +7865,7 @@ function DashboardContent() {
                                               onClick={() =>
                                                 openGrievanceDetail(
                                                   grievance._id,
+                                                  grievance,
                                                 )
                                               }
                                               className="text-gray-900 font-bold text-sm text-left hover:text-blue-600 hover:underline"
@@ -8197,6 +8153,7 @@ function DashboardContent() {
                                               onClick={() =>
                                                 openGrievanceDetail(
                                                   grievance._id,
+                                                  grievance,
                                                 )
                                               }
                                               title="View"
@@ -8453,6 +8410,7 @@ function DashboardContent() {
                                               onClick={() =>
                                                 openGrievanceDetail(
                                                   grievance._id,
+                                                  grievance,
                                                 )
                                               }
                                               className="text-slate-900 font-bold text-sm text-left hover:text-indigo-600 transition-colors"
@@ -8602,6 +8560,7 @@ function DashboardContent() {
                                               onClick={() =>
                                                 openGrievanceDetail(
                                                   grievance._id,
+                                                  grievance,
                                                 )
                                               }
                                               className="h-8 w-8 p-0 text-slate-400 hover:bg-slate-50 hover:text-slate-900 rounded-lg shadow-none border-0 transition-all"
@@ -9338,6 +9297,10 @@ function DashboardContent() {
           onClose={() => {
             setShowGrievanceDetail(false);
             setSelectedGrievance(null);
+          }}
+          onSuccess={() => {
+            fetchGrievances(grievancePage, true);
+            fetchDashboardData(true);
           }}
         />
 
