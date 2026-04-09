@@ -1922,11 +1922,17 @@ export class DynamicFlowEngine {
     const cidFromObj = this.company.companyId || (this.company._id ? this.company._id.toString() : "");
     const deptDisplay = sessionData.departmentName || sessionData.category || "";
     const subDeptDisplay = sessionData.subDepartmentName || "";
+    const subDepartmentLineEn = subDeptDisplay ? `🏢 *Office:* ${subDeptDisplay}` : "";
+    const subDepartmentLineHi = subDeptDisplay ? `🏢 *कार्यालय:* ${subDeptDisplay}` : "";
+    const subDepartmentLineOr = subDeptDisplay ? `🏢 *କାର୍ଯ୍ୟାଳୟ:* ${subDeptDisplay}` : "";
 
     const getReplacement = (key: string): string | null => {
       if (key === 'companyId') return cidFromObj;
       if (key === 'department') return deptDisplay;
       if (key === 'subDepartment' || key === 'subDepartmentName') return subDeptDisplay;
+      if (key === "subDepartmentLineEn") return subDepartmentLineEn;
+      if (key === "subDepartmentLineHi") return subDepartmentLineHi;
+      if (key === "subDepartmentLineOr") return subDepartmentLineOr;
       if (key === 'companyName') return this.company.name || "";
       if (key === 'websiteUrl') return this.company.website || "Digital Portal";
       if (key === 'companyAddress') return this.company.address || "Office Headquarters";
@@ -2863,6 +2869,35 @@ export class DynamicFlowEngine {
           displayName.length > 24 ? displayName.substring(0, 72) : displayDesc,
       };
     });
+
+    // Keep main department as first option in office list
+    if (offset === 0 && departmentId) {
+      const parentDept = await Department.findById(departmentId);
+      if (parentDept) {
+        let parentDisplayName = parentDept.name;
+        if (lang === "hi" && parentDept.nameHi?.trim()) {
+          parentDisplayName = parentDept.nameHi.trim();
+        } else if (lang === "or" && parentDept.nameOr?.trim()) {
+          parentDisplayName = parentDept.nameOr.trim();
+        } else if (lang === "mr" && parentDept.nameMr?.trim()) {
+          parentDisplayName = parentDept.nameMr.trim();
+        }
+
+        rows.unshift({
+          id: `${currentPrefix}_main_dept_${parentDept._id}`,
+          title:
+            parentDisplayName.length > 24
+              ? parentDisplayName.substring(0, 21) + "..."
+              : parentDisplayName,
+          description:
+            lang === "hi"
+              ? "मुख्य विभाग"
+              : lang === "or"
+                ? "ମୁଖ୍ୟ ବିଭାଗ"
+                : "Main Department",
+        });
+      }
+    }
 
     if (remainingSubDepts.length > 0) {
       rows.push({
