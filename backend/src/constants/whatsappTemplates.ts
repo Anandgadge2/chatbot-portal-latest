@@ -396,7 +396,12 @@ Digital Appointment System`,
 🎫 *संदर्भ संख्या:* {grievanceId}
 👤 *नागरिक:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}
 📅 *प्राप्ति दिनांक:* {formattedDate}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+
+*आवश्यक कार्रवाई:*
+कृपया इस शिकायत की शीघ्र समीक्षा करें। सेवा स्तर समझौते के अनुसार समाधान प्रदान किया जाना चाहिए।
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Digital Grievance Redressal System
+This is an automated notification.`,
 
   grievance_created_admin_or: `*{localizedCompanyBrand}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -408,7 +413,12 @@ Digital Appointment System`,
 🎫 *ରେଫରେନ୍ସ ନମ୍ବର:* {grievanceId}
 👤 *ନାଗରିକ:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}
 📅 *ପ୍ରାପ୍ତି ତାରିଖ:* {formattedDate}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+
+*ଆବଶ୍ୟକ କାର୍ଯ୍ୟବାହୀ:*
+ଦୟାକରି ଏହି ଅଭିଯୋଗକୁ ଶୀଘ୍ର ସମୀକ୍ଷା କରନ୍ତୁ। ସେବା ସ୍ତର ଚୁକ୍ତି ଅନୁଯାୟୀ ସମାଧାନ ପ୍ରଦାନ କରାଯିବା ଉଚିତ।
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Digital Grievance Redressal System
+This is an automated notification.`,
 
   grievance_assigned_admin_hi: `*{localizedCompanyBrand}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -420,7 +430,12 @@ Digital Appointment System`,
 👤 *नागरिक:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}
 👨‍💼 *सौंपने वाले अधिकारी:* {assignedByName}
 📅 *सौंपने की तिथि:* {formattedDate}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+
+*आवश्यक कार्रवाई:*
+कृपया जांच करें और आवश्यक कार्रवाई करें।
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Digital Grievance Redressal System
+This is an automated notification.`,
 
   grievance_assigned_admin_or: `*{localizedCompanyBrand}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -432,7 +447,12 @@ Digital Appointment System`,
 👤 *ନାଗରିକ:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}
 👨‍💼 *ଅବଣ୍ଟନ କରିଥିବା ଅଧିକାରୀ:* {assignedByName}
 📅 *ଅବଣ୍ଟନ ତାରିଖ:* {formattedDate}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+
+*ଆବଶ୍ୟକ କାର୍ଯ୍ୟବାହୀ:*
+ଦୟାକରି ଯାଞ୍ଚ କରନ୍ତୁ ଏବଂ ଆବଶ୍ୟକ ପଦକ୍ଷେପ ନିଅନ୍ତୁ।
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Digital Grievance Redressal System
+This is an automated notification.`,
 
   grievance_reassigned_admin_hi: `*{localizedCompanyBrand}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -444,7 +464,12 @@ Digital Appointment System`,
 👤 *नागरिक:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}
 👨‍💼 *पुनः आवंटित करने वाले अधिकारी:* {assignedByName}
 📅 *पुनः आवंटन तिथि:* {formattedDate}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+
+*आवश्यक कार्रवाई:*
+कृपया जांच करें और आवश्यक कार्रवाई करें।
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Digital Grievance Redressal System
+This is an automated notification.`,
 
   grievance_reassigned_admin_or: `*{localizedCompanyBrand}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -456,7 +481,12 @@ Digital Appointment System`,
 👤 *ନାଗରିକ:* {citizenName}{deptLabel}{subDeptLabel}{descriptionLabel}
 👨‍💼 *ପୁନଃ ଅବଣ୍ଟନ କରିଥିବା ଅଧିକାରୀ:* {assignedByName}
 📅 *ପୁନଃ ଅବଣ୍ଟନ ତାରିଖ:* {formattedDate}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+
+*ଆବଶ୍ୟକ କାର୍ଯ୍ୟବାହୀ:*
+ଦୟାକରି ଯାଞ୍ଚ କରନ୍ତୁ ଏବଂ ଆବଶ୍ୟକ ପଦକ୍ଷେପ ନିଅନ୍ତୁ।
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Digital Grievance Redressal System
+This is an automated notification.`,
 
   grievance_confirmation_hi: `*{localizedCompanyBrand}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━

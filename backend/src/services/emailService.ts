@@ -29,7 +29,7 @@ const getLocalizedWhatsAppBrandName = (companyName: string, lang: string): strin
     case 'or':
       return 'ସହଜ - ପ୍ରଶାସନ ଦ୍ୱାରା ସ୍ୱିଫ୍ଟ ଆକ୍ସେସ ଏବଂ ସହାୟତା, ଝାରସୁଗୁଡା';
     default:
-      return 'Sahaj - Swift Access & Help by Administration, Jharsuguda';
+      return 'SAHAJ - Swift Access & Help by Administration, Jharsuguda';
   }
 };
 

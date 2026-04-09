@@ -10,6 +10,7 @@ import {
 } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Card,
@@ -227,7 +228,7 @@ const LoadingDots = () => (
 );
 
 function DashboardContent() {
-  const { user: authUser, loading, logout } = useAuth();
+  const { user: authUser, loading, logout, refreshUser } = useAuth();
   const user = authUser as any;
   const roleName = (user?.role || "").toString().toLowerCase();
   const explicitLevel =
@@ -423,7 +424,8 @@ function DashboardContent() {
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setUpdatingProfile(true);
-    try {
+
+    const updatePromise = (async () => {
       const payload = {
         ...profileForm,
         phone: normalizePhoneNumber(profileForm.phone),
@@ -433,31 +435,44 @@ function DashboardContent() {
           .filter(Boolean),
       };
       const response = await apiClient.put("/auth/profile", payload);
-      
-      // If the request succeeded (2xx), show the toast
-      toast.success("Profile Updated Successfully!", {
-        duration: 2000,
-        position: "top-right",
+      if (response && response.success === false) {
+        throw new Error(response.message || 'Failed to update profile');
+      }
+      await refreshUser();
+      return response;
+    })();
+
+    toast.promise(
+      updatePromise,
+      {
+        loading: 'Updating profile...',
+        success: 'Profile Updated Successfully!',
+        error: (err: any) => err.response?.data?.message || 'Failed to update profile',
+      },
+      {
         style: {
-          background: "#0f172a",
-          color: "#fff",
-          fontWeight: "bold",
-          borderRadius: "12px",
-          border: "1px solid #334155",
-          zIndex: 9999,
+          borderRadius: '12px',
+          background: '#0f172a',
+          color: '#fff',
+          fontWeight: 'bold',
+          border: '1px solid #334155',
+          fontSize: '14px',
+          padding: '12px 24px',
         },
-      });
-    } catch (error: any) {
+        success: {
+          duration: 3000,
+          iconTheme: {
+            primary: '#10b981',
+            secondary: '#fff',
+          },
+        },
+      }
+    );
+
+    try {
+      await updatePromise;
+    } catch (error) {
       console.error("Profile update error:", error);
-      toast.error(error.response?.data?.message || "Failed to update profile", {
-        position: "top-right",
-        style: {
-          borderRadius: "12px",
-          background: "#450a0a",
-          color: "#fff",
-          fontWeight: "bold",
-        }
-      });
     } finally {
       setUpdatingProfile(false);
     }
@@ -469,44 +484,69 @@ function DashboardContent() {
     const trimmedConfirmPassword = passwordForm.confirmPassword.trim();
 
     if (!trimmedNewPassword || !trimmedConfirmPassword) {
-      toast.error("Please enter and confirm your new password");
+      toast.error("Please enter and confirm your new password", {
+        style: { borderRadius: '12px', fontWeight: 'bold' }
+      });
       return;
     }
 
     if (trimmedNewPassword.length < 6) {
-      toast.error("Password must be at least 6 characters");
+      toast.error("Password must be at least 6 characters", {
+        style: { borderRadius: '12px', fontWeight: 'bold' }
+      });
       return;
     }
 
     if (trimmedNewPassword !== trimmedConfirmPassword) {
-      toast.error("Passwords do not match");
+      toast.error("Passwords do not match", {
+        style: { borderRadius: '12px', fontWeight: 'bold' }
+      });
       return;
     }
     
-    // Instant feedback: start loading
     setUpdatingPassword(true);
     
-    try {
+    const updatePromise = (async () => {
       const response = await apiClient.put("/auth/profile", {
         password: trimmedNewPassword,
       });
-      if (response.data.success) {
-        toast.success("Password updated successfully");
+      if (response && response.success === false) {
+        throw new Error(response.message || 'Failed to update security');
+      }
+      return response;
+    })();
+
+    toast.promise(
+      updatePromise,
+      {
+        loading: 'Updating password...',
+        success: 'Password Updated Successfully!',
+        error: (err: any) => err.response?.data?.message || 'Failed to update security',
+      },
+      {
+        style: {
+          borderRadius: '12px',
+          background: '#0f172a',
+          color: '#fff',
+          fontWeight: 'bold',
+          border: '1px solid #334155',
+          fontSize: '14px',
+          padding: '12px 24px',
+        },
+        success: {
+          duration: 3000,
+        },
+      }
+    );
+
+    try {
+      const response: any = await updatePromise;
+      if (response.success || response) {
         setPasswordForm({ newPassword: "", confirmPassword: "" });
       }
     } catch (error: any) {
       console.error("Password update error:", error);
-      toast.error(error.response?.data?.message || "Failed to update security", {
-        position: "top-right",
-        style: {
-          borderRadius: "12px",
-          background: "#450a0a",
-          color: "#fff",
-          fontWeight: "bold",
-        }
-      });
     } finally {
-      // Ensure loading state is cleared instantly
       setUpdatingPassword(false);
     }
   };
@@ -2636,13 +2676,25 @@ function DashboardContent() {
                 <button
                   type="button"
                   onClick={() => setIsMobileTabMenuOpen(true)}
-                  className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-900/40 border border-blue-500/30 active:scale-95 transition-transform duration-300 md:hidden"
+                  className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg shadow-blue-900/20 border border-slate-200 active:scale-95 transition-transform duration-300 md:hidden overflow-hidden"
                   title="Open sidebar"
                 >
-                  <LayoutGrid className="w-5 h-5 text-white" />
+                  <Image
+                    src="/assets/sahaj.png"
+                    alt="Sahaj Logo"
+                    width={40}
+                    height={40}
+                    className="object-contain"
+                  />
                 </button>
-                <div className="hidden md:flex w-10 h-10 bg-indigo-600 rounded-xl items-center justify-center shadow-lg shadow-indigo-900/40 border border-indigo-500/30 group-hover:scale-105 transition-transform duration-300">
-                  <LayoutDashboard className="w-5 h-5 text-white" />
+                <div className="hidden md:flex w-10 h-10 bg-white rounded-xl items-center justify-center shadow-lg shadow-indigo-900/20 border border-slate-200 group-hover:scale-105 transition-transform duration-300 overflow-hidden">
+                  <Image
+                    src="/assets/sahaj.png"
+                    alt="Sahaj Logo"
+                    width={40}
+                    height={40}
+                    className="object-contain"
+                  />
                 </div>
                 <div className="flex flex-col">
                   <h1 className="text-sm font-black text-white tracking-tight leading-none uppercase">
@@ -7892,7 +7944,6 @@ function DashboardContent() {
                                             </span>
                                           </div>
                                         </td>
-                                        {/* Assigned With Column */}
                                         <td className="px-4 py-4">
                                           <div className="flex flex-col">
                                             {grievance.assignedTo ? (
@@ -7904,8 +7955,7 @@ function DashboardContent() {
                                                     grievance.assignedTo !==
                                                       null
                                                       ? `${(grievance.assignedTo as any).firstName} ${(grievance.assignedTo as any).lastName}`
-                                                      : // Fallback: try to find in users list if it's just an ID
-                                                        users.find(
+                                                      : users.find(
                                                             (u) =>
                                                               u._id ===
                                                                 grievance.assignedTo ||
@@ -7960,13 +8010,9 @@ function DashboardContent() {
                                         </td>
                                         <td className="px-4 py-4">
                                           <button
-                                            onClick={() => {
+                                            /* onClick={() => {
                                               // Status updates now open from the Actions column.
-                                              // setSelectedGrievanceForStatus(
-                                              //   grievance,
-                                              // );
-                                              // setShowGrievanceStatusModal(true);
-                                            }}
+                                            }} */
                                             disabled={
                                               grievance.status === "RESOLVED" ||
                                               grievance.status === "CLOSED" ||
@@ -7975,7 +8021,7 @@ function DashboardContent() {
                                                 grievance._id,
                                               )
                                             }
-                                            className={`px-3 py-1.5 text-[10px] font-bold border border-gray-200 rounded bg-white hover:border-purple-400 hover:bg-purple-50 focus:outline-none focus:ring-1 focus:ring-purple-500 uppercase tracking-tight transition-all ${
+                                            className={`px-3 py-1.5 text-[10px] font-bold border border-gray-200 rounded bg-white uppercase tracking-tight transition-all cursor-default ${
                                               updatingGrievanceStatus.has(
                                                 grievance._id,
                                               )
@@ -7985,17 +8031,15 @@ function DashboardContent() {
                                               grievance.status === "RESOLVED" ||
                                               grievance.status === "CLOSED" ||
                                               grievance.status === "REJECTED"
-                                                ? "opacity-60 cursor-not-allowed"
+                                                ? "opacity-60"
                                                 : ""
                                             }`}
                                           >
                                             {grievance.status}
                                           </button>
                                         </td>
-                                        {/* Overdue Status Column */}
                                         <td className="px-4 py-4">
                                           {(() => {
-                                            // Calculate overdue status based on SLA
                                             const createdDate = new Date(
                                               grievance.createdAt,
                                             );
@@ -8006,7 +8050,6 @@ function DashboardContent() {
                                                 (1000 * 60 * 60),
                                             );
 
-                                            // SLA: PENDING should be assigned within 24h, ASSIGNED should be resolved within 120h (5 days)
                                             let isOverdue = false;
                                             let slaHours = 0;
 
@@ -8847,438 +8890,6 @@ function DashboardContent() {
                         </div>
                       </div>
 
-                      <CardContent className="p-0">
-                        {loadingAppointments ? (
-                          <TableSkeleton rows={8} cols={6} />
-                        ) : appointments.length === 0 ? (
-                          <div className="text-center py-16 bg-gradient-to-b from-slate-50 to-white rounded-2xl border border-slate-200">
-                            <div className="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                              <svg
-                                className="w-8 h-8 text-purple-500"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                                />
-                              </svg>
-                            </div>
-                            <p className="text-slate-600 font-medium">
-                              No appointments found
-                            </p>
-                            <p className="text-slate-400 text-sm mt-1">
-                              New appointments will appear here
-                            </p>
-                          </div>
-                        ) : (
-                          <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-lg bg-white">
-                            <div className="max-h-[600px] overflow-y-auto custom-scrollbar">
-                              <table className="w-full relative border-collapse">
-                                <thead className="sticky top-0 z-20 bg-[#fcfdfe] border-b border-slate-200">
-                                  <tr className="whitespace-nowrap">
-                                    {isSuperAdminUser && (
-                                      <th className="px-3 py-4 text-center">
-                                        <input
-                                          type="checkbox"
-                                          checked={
-                                            selectedAppointments.size > 0 &&
-                                            selectedAppointments.size ===
-                                              getSortedData(
-                                                appointments,
-                                                "appointments",
-                                              ).length
-                                          }
-                                          onChange={(e) => {
-                                            if (e.target.checked) {
-                                              setSelectedAppointments(
-                                                new Set(
-                                                  getSortedData(
-                                                    appointments,
-                                                    "appointments",
-                                                  ).map((a) => a._id),
-                                                ),
-                                              );
-                                            } else {
-                                              setSelectedAppointments(
-                                                new Set(),
-                                              );
-                                            }
-                                          }}
-                                          className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer"
-                                          title="Select All"
-                                        />
-                                      </th>
-                                    )}
-                                    <th className="px-3 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                      Sr.
-                                    </th>
-                                    <th className="px-4 py-3 text-left">
-                                      <button
-                                        onClick={() =>
-                                          handleSort(
-                                            "appointmentId",
-                                            "appointments",
-                                          )
-                                        }
-                                        className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
-                                      >
-                                        <span>App ID</span>
-                                        <ArrowUpDown
-                                          className={`w-3 h-3 transition-colors ${sortConfig.key === "appointmentId" ? "text-indigo-500" : "text-slate-300 group-hover:text-slate-400"}`}
-                                        />
-                                      </button>
-                                    </th>
-                                    <th className="px-4 py-3 text-left">
-                                      <button
-                                        onClick={() =>
-                                          handleSort(
-                                            "citizenName",
-                                            "appointments",
-                                          )
-                                        }
-                                        className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
-                                      >
-                                        <span>Citizen</span>
-                                        <ArrowUpDown
-                                          className={`w-3 h-3 transition-colors ${sortConfig.key === "citizenName" ? "text-indigo-500" : "text-slate-300 group-hover:text-slate-400"}`}
-                                        />
-                                      </button>
-                                    </th>
-                                    <th className="px-4 py-3 text-left">
-                                      <button
-                                        onClick={() =>
-                                          handleSort("purpose", "appointments")
-                                        }
-                                        className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
-                                      >
-                                        <span>Purpose</span>
-                                        <ArrowUpDown
-                                          className={`w-3 h-3 transition-colors ${sortConfig.key === "purpose" ? "text-indigo-500" : "text-slate-300 group-hover:text-slate-400"}`}
-                                        />
-                                      </button>
-                                    </th>
-                                    <th className="px-4 py-3 text-left">
-                                      <button
-                                        onClick={() =>
-                                          handleSort(
-                                            "appointmentDate",
-                                            "appointments",
-                                          )
-                                        }
-                                        className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
-                                      >
-                                        <span>Scheduled At</span>
-                                        <ArrowUpDown
-                                          className={`w-3 h-3 transition-colors ${sortConfig.key === "appointmentDate" ? "text-indigo-500" : "text-slate-300 group-hover:text-slate-400"}`}
-                                        />
-                                      </button>
-                                    </th>
-                                    <th className="px-4 py-3 text-left">
-                                      <button
-                                        onClick={() =>
-                                          handleSort("status", "appointments")
-                                        }
-                                        className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
-                                      >
-                                        <span>Status</span>
-                                        <ArrowUpDown
-                                          className={`w-3 h-3 transition-colors ${sortConfig.key === "status" ? "text-indigo-500" : "text-slate-300 group-hover:text-slate-400"}`}
-                                        />
-                                      </button>
-                                    </th>
-                                    <th className="px-4 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                      Actions
-                                    </th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100">
-                                  {getSortedData(
-                                    appointments,
-                                    "appointments",
-                                  ).map((appointment, index) => (
-                                    <tr
-                                      key={appointment._id}
-                                      className="hover:bg-gradient-to-r hover:from-purple-50/50 hover:to-pink-50/50 transition-all duration-200 group/row"
-                                    >
-                                      {isSuperAdminUser && (
-                                        <td className="px-3 py-4 text-center">
-                                          <input
-                                            type="checkbox"
-                                            checked={selectedAppointments.has(
-                                              appointment._id,
-                                            )}
-                                            onChange={(e) => {
-                                              const newSelected = new Set(
-                                                selectedAppointments,
-                                              );
-                                              if (e.target.checked) {
-                                                newSelected.add(
-                                                  appointment._id,
-                                                );
-                                              } else {
-                                                newSelected.delete(
-                                                  appointment._id,
-                                                );
-                                              }
-                                              setSelectedAppointments(
-                                                newSelected,
-                                              );
-                                            }}
-                                            className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer"
-                                          />
-                                        </td>
-                                      )}
-                                      <td className="px-3 py-4 text-center">
-                                        <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-purple-100 text-purple-700 text-xs font-bold">
-                                          {(appointmentPage - 1) *
-                                            appointmentPagination.limit +
-                                            index +
-                                            1}
-                                        </span>
-                                      </td>
-                                      <td className="px-4 py-4">
-                                        <button
-                                          onClick={() =>
-                                            openAppointmentDetail(
-                                              appointment._id,
-                                            )
-                                          }
-                                          className="font-bold text-sm text-purple-700 hover:text-purple-800 hover:underline"
-                                        >
-                                          {appointment.appointmentId}
-                                        </button>
-                                      </td>
-                                      <td className="px-4 py-4">
-                                        <div className="flex flex-col">
-                                          <button
-                                            onClick={() =>
-                                              openAppointmentDetail(
-                                                appointment._id,
-                                              )
-                                            }
-                                            className="text-gray-900 font-bold text-sm text-left hover:text-purple-600 hover:underline whitespace-normal break-words"
-                                          >
-                                            {appointment.citizenName}
-                                          </button>
-                                          <div className="flex items-center text-xs text-gray-500 font-medium">
-                                            <Phone className="w-3 h-3 mr-1.5" />
-                                            {formatTo10Digits(
-                                              appointment.citizenPhone,
-                                            )}
-                                          </div>
-                                        </div>
-                                      </td>
-                                      <td className="px-4 py-4">
-                                        <div className="flex flex-col max-w-[150px]">
-                                          <span className="text-[12px] text-gray-500 whitespace-normal break-words italic">
-                                            {appointment.purpose}
-                                          </span>
-                                        </div>
-                                      </td>
-                                      <td className="px-4 py-4">
-                                        <div className="flex items-start gap-2">
-                                          <div className="flex flex-col items-center justify-center w-12 h-12 bg-gradient-to-br from-purple-100 to-fuchsia-100 rounded-xl border border-purple-200/50 shadow-sm">
-                                            <span className="text-[10px] font-bold text-purple-600 uppercase">
-                                              {new Date(
-                                                appointment.appointmentDate,
-                                              ).toLocaleDateString("en-US", {
-                                                month: "short",
-                                              })}
-                                            </span>
-                                            <span className="text-lg font-black text-purple-700 leading-tight">
-                                              {new Date(
-                                                appointment.appointmentDate,
-                                              ).getDate()}
-                                            </span>
-                                          </div>
-                                          <div className="flex flex-col justify-center">
-                                            <span className="text-xs font-semibold text-gray-800">
-                                              {new Date(
-                                                appointment.appointmentDate,
-                                              ).toLocaleDateString("en-US", {
-                                                weekday: "long",
-                                              })}
-                                            </span>
-                                            <span className="text-[11px] text-gray-500">
-                                              {new Date(
-                                                appointment.appointmentDate,
-                                              ).getFullYear()}
-                                            </span>
-                                            <div className="flex items-center gap-1 mt-1">
-                                              <Clock className="w-3 h-3 text-amber-500" />
-                                              <span className="text-xs font-bold text-amber-600">
-                                                {appointment.appointmentTime
-                                                  ? (() => {
-                                                      const [hours, minutes] =
-                                                        appointment.appointmentTime.split(
-                                                          ":",
-                                                        );
-                                                      const hour = parseInt(
-                                                        hours,
-                                                        10,
-                                                      );
-                                                      const period =
-                                                        hour >= 12
-                                                          ? "PM"
-                                                          : "AM";
-                                                      const displayHour =
-                                                        hour > 12
-                                                          ? hour - 12
-                                                          : hour === 0
-                                                            ? 12
-                                                            : hour;
-                                                      return `${displayHour}:${minutes || "00"} ${period}`;
-                                                    })()
-                                                  : "TBD"}
-                                              </span>
-                                            </div>
-                                          </div>
-                                        </div>
-                                      </td>
-                                      <td className="px-4 py-4">
-                                        <div className="relative flex items-center gap-2">
-                                          <button
-                                            onClick={() => {
-                                              // Status updates now open from the Actions column.
-                                              // setSelectedAppointmentForStatus(
-                                              //   appointment,
-                                              // );
-                                              // setShowAppointmentStatusModal(
-                                              //   true,
-                                              // );
-                                            }}
-                                            className={`px-3 py-1.5 text-[10px] font-bold border border-gray-200 rounded bg-white hover:border-purple-400 hover:bg-purple-50 focus:outline-none focus:ring-1 focus:ring-purple-500 uppercase tracking-tight transition-all ${
-                                              updatingAppointmentStatus.has(
-                                                appointment._id,
-                                              )
-                                                ? "opacity-50 cursor-wait"
-                                                : ""
-                                            }`}
-                                            disabled={updatingAppointmentStatus.has(
-                                              appointment._id,
-                                            )}
-                                          >
-                                            {appointment.status}
-                                          </button>
-                                          {updatingAppointmentStatus.has(
-                                            appointment._id,
-                                          ) && (
-                                            <RefreshCw className="w-3.5 h-3.5 text-purple-600 animate-spin flex-shrink-0" />
-                                          )}
-                                        </div>
-                                      </td>
-                                      <td className="px-4 py-4">
-                                        <div className="flex items-center justify-center gap-1">
-                                          {/* Assign button removed - Appointments are for CEO only, no assignment needed */}
-                                          <button
-                                            onClick={() =>
-                                              openAppointmentDetail(
-                                                appointment._id,
-                                              )
-                                            }
-                                            title="View Details"
-                                            className="p-2 rounded-lg text-purple-600 hover:text-purple-700 hover:bg-purple-50 border border-transparent hover:border-purple-200 transition-all duration-200"
-                                          >
-                                            <svg
-                                              className="w-4 h-4"
-                                              fill="none"
-                                              stroke="currentColor"
-                                              viewBox="0 0 24 24"
-                                            >
-                                              <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                              />
-                                              <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                                              />
-                                            </svg>
-                                          </button>
-                                        </div>
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-
-                            <Pagination
-                              currentPage={appointmentPage}
-                              totalPages={appointmentPagination.pages}
-                              totalItems={appointmentPagination.total}
-                              itemsPerPage={appointmentPagination.limit}
-                              onPageChange={setAppointmentPage}
-                              className="mt-6 shadow-none border-t border-slate-100 rounded-none bg-slate-50/30"
-                            />
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-                )}
-
-              {isSuperAdminUser && companyIdParam && (
-                <TabsContent value="roles" className="space-y-4">
-                  <Card className="border-0 shadow-xl rounded-2xl overflow-hidden bg-white text-left">
-                    <CardContent className="p-6">
-                      <RoleManagement
-                        companyId={
-                          isSuperAdminUser && companyIdParam
-                            ? companyIdParam
-                            : typeof user?.companyId === "object"
-                              ? (user.companyId as any)?._id
-                              : user?.companyId || ""
-                        }
-                      />
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              )}
-
-              {/* Project Leads Tab - NEW for PugArch and others with LEAD_CAPTURE */}
-              {user &&
-                (user.enabledModules?.includes(Module.LEAD_CAPTURE) ||
-                  !user.companyId) &&
-                isCompanyLevel && (
-                  <TabsContent value="leads" className="space-y-6">
-                    <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
-                      <CardHeader className="bg-slate-900 px-6 py-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
-                              <UserPlus className="w-5 h-5 text-indigo-400" />
-                            </div>
-                            <div>
-                              <CardTitle className="text-base font-bold text-white uppercase tracking-tight">
-                                Project Leads
-                              </CardTitle>
-                              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-                                Manage and track potential business
-                                opportunities
-                              </p>
-                            </div>
-                          </div>
-                          <Button
-                            onClick={() => fetchLeads()}
-                            variant="outline"
-                            className="bg-white/10 hover:bg-white/20 text-white border-white/20 h-8 text-[10px] font-bold uppercase tracking-wider"
-                          >
-                            <RefreshCw
-                              className={`w-3.5 h-3.5 mr-2 ${loadingLeads ? "animate-spin" : ""}`}
-                            />
-                            Refresh
-                          </Button>
-                        </div>
-                      </CardHeader>
                       <CardContent className="p-0">
                         {loadingLeads ? (
                           <TableSkeleton rows={8} cols={6} />
