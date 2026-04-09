@@ -478,9 +478,12 @@ function canNotify(company: any, user: any, type: 'email' | 'whatsapp', action?:
   if (!rolesMap) return true; // Default to true if no company-level restrictions
 
   // Extract roles identifiers (Key and Name)
-  const roleKey = (user?.customRoleId as any)?.key || '';
-  const roleName = (user?.customRoleId as any)?.name || '';
-  const isSuper = user?.isSuperAdmin || roleKey === 'SUPER_ADMIN';
+  const roleKey = (user?.customRoleId as any)?.key || user?.role || '';
+  const roleName = (user?.customRoleId as any)?.name || user?.role || '';
+  const isSuper =
+    user?.isSuperAdmin ||
+    String(roleKey || '').toUpperCase() === 'SUPER_ADMIN' ||
+    String(roleName || '').toUpperCase() === 'SUPER ADMIN';
 
   if (isSuper) return true; // Platform admins bypass company restrictions
 
