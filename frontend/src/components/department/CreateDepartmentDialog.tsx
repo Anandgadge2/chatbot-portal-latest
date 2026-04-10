@@ -405,7 +405,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
             }}
             className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all duration-300 border border-white/10 group cursor-pointer"
           >
-            <X className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
+            <X className="w-5 h-5 text-white group-hover:text-white transition-colors" />
           </button>
         </CardHeader>
         <CardContent className="flex-1 overflow-y-auto p-6 custom-scrollbar">
