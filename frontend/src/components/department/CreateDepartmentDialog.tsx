@@ -81,6 +81,10 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
   });
   const [companyUsers, setCompanyUsers] = useState<any[]>([]);
   const [showCreateUser, setShowCreateUser] = useState(false);
+  const currentUserDepartmentId =
+    user?.departmentId && typeof user.departmentId === "object"
+      ? (user.departmentId as any)._id
+      : (user?.departmentId as string) || "";
 
   useEffect(() => {
     if (isOpen) {
@@ -862,6 +866,8 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
           onClose={() => setShowCreateUser(false)}
           defaultCompanyId={formData.companyId}
           hideDepartmentSelection={true}
+          allowedRoleKeywords={["sub-department admin", "sub department admin", "operator"]}
+          forceSingleDepartmentId={formData.parentDepartmentId || currentUserDepartmentId}
           onUserCreated={async (newUser) => {
             const newId = newUser?._id || (newUser as any)?.id;
             if (newUser && newId) {
