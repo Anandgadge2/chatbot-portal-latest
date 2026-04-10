@@ -56,6 +56,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
     !isSuperAdmin(user) &&
     (user?.level === 1 ||
       (user?.role || "").toString().toLowerCase().includes("company"));
+  const creatorLevel = (user as any)?.level || 4;
   const [loading, setLoading] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [allDepartments, setAllDepartments] = useState<Department[]>([]);
@@ -81,6 +82,10 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
   });
   const [companyUsers, setCompanyUsers] = useState<any[]>([]);
   const [showCreateUser, setShowCreateUser] = useState(false);
+  const currentUserDepartmentId =
+    user?.departmentId && typeof user.departmentId === "object"
+      ? (user.departmentId as any)._id
+      : (user?.departmentId as string) || "";
 
   useEffect(() => {
     if (isOpen) {
@@ -862,6 +867,18 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
           onClose={() => setShowCreateUser(false)}
           defaultCompanyId={formData.companyId}
           hideDepartmentSelection={true}
+          allowedRoleKeywords={
+            creatorLevel === 2
+              ? ["sub-department admin", "sub department admin", "operator"]
+              : creatorLevel === 3
+                ? ["operator"]
+                : undefined
+          }
+          forceSingleDepartmentId={
+            creatorLevel >= 2
+              ? formData.parentDepartmentId || currentUserDepartmentId
+              : undefined
+          }
           onUserCreated={async (newUser) => {
             const newId = newUser?._id || (newUser as any)?.id;
             if (newUser && newId) {
