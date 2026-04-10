@@ -9216,7 +9216,7 @@ function DashboardContent() {
         {/* Dialogs */}
         {(isViewingCompany || isDepartmentLevel) && (
           <div key="dashboard-dialogs-root">
-            {isViewingCompany && (
+            {(isViewingCompany || isDepartmentLevel) && (
               <CreateDepartmentDialog
                 isOpen={showDepartmentDialog}
                 onClose={() => {

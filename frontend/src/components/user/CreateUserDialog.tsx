@@ -36,6 +36,8 @@ interface CreateUserDialogProps {
   editingUser?: User | null;
   defaultCompanyId?: string;
   hideDepartmentSelection?: boolean;
+  allowedRoleKeywords?: string[];
+  forceSingleDepartmentId?: string;
 }
 
 // allowedRoleNames removed to allow all custom roles to be visible and selectable.
@@ -48,6 +50,8 @@ export default function CreateUserDialog({
   editingUser,
   defaultCompanyId,
   hideDepartmentSelection = false,
+  allowedRoleKeywords,
+  forceSingleDepartmentId,
 }: CreateUserDialogProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -108,6 +112,13 @@ export default function CreateUserDialog({
       }
     }
 
+    if (allowedRoleKeywords && allowedRoleKeywords.length > 0) {
+      const normalizedKeywords = allowedRoleKeywords.map((k) => k.toLowerCase());
+      filteredCustomRoles = filteredCustomRoles.filter((r) =>
+        normalizedKeywords.some((keyword) => r.name.toLowerCase().includes(keyword)),
+      );
+    }
+
     const options: { value: string; label: string }[] = [];
 
     const customRoleOptions = filteredCustomRoles.map((r) => ({
@@ -122,7 +133,7 @@ export default function CreateUserDialog({
     }
 
     return options;
-  }, [user, customRoles]);
+  }, [user, customRoles, allowedRoleKeywords]);
 
   const fetchCompanies = useCallback(async () => {
     try {
@@ -319,11 +330,18 @@ export default function CreateUserDialog({
         submissionCustomRoleId = formData.role.split(":")[1];
       }
 
-      const finalDeptIds = isMultiDept 
+      const forceDeptId = forceSingleDepartmentId?.trim();
+      const fallbackDeptIds = formData.departmentIds?.length
+        ? formData.departmentIds
+        : (formData.departmentId ? [formData.departmentId] : []);
+
+      const finalDeptIds = forceDeptId
+        ? [forceDeptId]
+        : isMultiDept 
         ? formData.departmentIds 
         : (selectedSubDeptId 
             ? [selectedSubDeptId] 
-            : (selectedMainDeptId && selectedMainDeptId !== "NONE" ? [selectedMainDeptId] : []));
+            : (selectedMainDeptId && selectedMainDeptId !== "NONE" ? [selectedMainDeptId] : fallbackDeptIds));
 
       const submissionData: any = {
         ...formData,
@@ -331,9 +349,11 @@ export default function CreateUserDialog({
         customRoleId: submissionCustomRoleId || null,
         companyId: formData.companyId || undefined,
         departmentIds: finalDeptIds,
-        departmentId: isMultiDept 
+        departmentId: forceDeptId
+          ? forceDeptId
+          : isMultiDept 
           ? (formData.departmentIds.length > 0 ? formData.departmentIds[0] : undefined)
-          : (selectedSubDeptId || (selectedMainDeptId === "NONE" ? undefined : selectedMainDeptId) || undefined),
+          : (selectedSubDeptId || (selectedMainDeptId === "NONE" ? undefined : selectedMainDeptId) || formData.departmentId || undefined),
       };
 
       let response;
