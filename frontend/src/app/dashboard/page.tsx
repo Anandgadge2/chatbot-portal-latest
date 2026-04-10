@@ -20,6 +20,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiClient } from "@/lib/api/client";
 import { companyAPI, Company } from "@/lib/api/company";
@@ -258,6 +259,7 @@ function DashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const companyIdParam = searchParams.get("companyId");
+  const isSuperAdminDrilldown = isSuperAdminUser && !!companyIdParam;
   const targetCompanyId = useMemo(
     () =>
       companyIdParam ||
@@ -552,8 +554,12 @@ function DashboardContent() {
   };
 
   const [company, setCompany] = useState<Company | null>(null);
+  const showDepartmentPriorityColumn =
+    company?.showDepartmentPriorityColumn !== false;
   const canManageDepartmentPriority =
-    isCompanyAdminRole && company?.showDepartmentPriorityColumn !== false;
+    isSuperAdminDrilldown ||
+    (isCompanyAdminRole && company?.showDepartmentPriorityColumn !== false);
+  const canToggleDepartmentPriorityColumn = isSuperAdminDrilldown;
   const isHierarchicalCompany = useMemo(() => {
     const fromStats = stats?.isHierarchicalEnabled;
     if (typeof fromStats === "boolean") return fromStats;
@@ -808,6 +814,14 @@ function DashboardContent() {
     },
     [user, company, isViewingCompany, isSuperAdminUser],
   );
+
+  const canShowAppointmentsInView = useMemo(() => {
+    if (isSuperAdminDrilldown) return false;
+    return (
+      hasModule(Module.APPOINTMENT) &&
+      hasPermission(user, Permission.READ_APPOINTMENT)
+    );
+  }, [hasModule, isSuperAdminDrilldown, user]);
 
   // Export functions
   const exportToCSV = (
@@ -1096,10 +1110,7 @@ function DashboardContent() {
   useEffect(() => {
     if (!user || activeTab !== "appointments") return;
 
-    const canAccessAppointments =
-      hasModule(Module.APPOINTMENT) && hasPermission(user, Permission.READ_APPOINTMENT);
-
-    if (!canAccessAppointments) {
+    if (!canShowAppointmentsInView) {
       const fallbackTab = hasPermission(user, Permission.READ_GRIEVANCE)
         ? "grievances"
         : hasPermission(user, Permission.VIEW_ANALYTICS) || isSuperAdminUser
@@ -1107,7 +1118,7 @@ function DashboardContent() {
           : "profile";
       setActiveTab(fallbackTab);
     }
-  }, [activeTab, hasModule, isSuperAdminUser, user]);
+  }, [activeTab, canShowAppointmentsInView, isSuperAdminUser, user]);
 
   // Handle browser back/forward navigation persistence
   useEffect(() => {
@@ -1516,6 +1527,47 @@ function DashboardContent() {
     ],
   );
 
+  const handleToggleDepartmentPriorityColumn = useCallback(
+    async (checked: boolean) => {
+      if (!isSuperAdminDrilldown || !companyIdParam) {
+        toast.error("Only superadmin can change priority column visibility");
+        return;
+      }
+
+      try {
+        const response = await companyAPI.update(companyIdParam, {
+          showDepartmentPriorityColumn: checked,
+        });
+
+        if (!response.success) {
+          toast.error("Failed to update priority column visibility");
+          return;
+        }
+
+        setCompany((prev) =>
+          prev
+            ? {
+                ...prev,
+                showDepartmentPriorityColumn: checked,
+              }
+            : prev,
+        );
+        toast.success(
+          checked
+            ? "Priority column enabled for company admin"
+            : "Priority column hidden from company admin",
+        );
+      } catch (error: any) {
+        toast.error(
+          error?.response?.data?.message ||
+            error?.message ||
+            "Failed to update priority column visibility",
+        );
+      }
+    },
+    [companyIdParam, isSuperAdminDrilldown],
+  );
+
   const fetchUsers = useCallback(
     async (page = userPage, isSilent = false) => {
       if (isSuperAdminUser && !companyIdParam) return;
@@ -1639,10 +1691,7 @@ function DashboardContent() {
   const fetchAppointments = useCallback(
     async (page = appointmentPage, isSilent = false) => {
       if (isSuperAdminUser && !companyIdParam) return;
-      if (
-        !hasModule(Module.APPOINTMENT) ||
-        !hasPermission(user, Permission.READ_APPOINTMENT)
-      ) {
+      if (!canShowAppointmentsInView) {
         return;
       }
 
@@ -1676,8 +1725,7 @@ function DashboardContent() {
       appointmentPage,
       appointmentPagination.limit,
       appointmentSearch,
-      user,
-      hasModule,
+      canShowAppointmentsInView,
       isSuperAdminUser,
       companyIdParam,
     ],
@@ -1924,9 +1972,7 @@ function DashboardContent() {
       activeTab === "appointments" &&
       mounted &&
       user &&
-      (isSuperAdminUser ||
-        (hasModule(Module.APPOINTMENT) &&
-          hasPermission(user, Permission.READ_APPOINTMENT)))
+      canShowAppointmentsInView
     ) {
       fetchAppointments(appointmentPage);
     }
@@ -1935,10 +1981,10 @@ function DashboardContent() {
     mounted,
     user,
     appointmentPage,
+    canShowAppointmentsInView,
     fetchAppointments,
-    hasModule,
-    isSuperAdminUser,
     companyIdParam,
+    isSuperAdminUser,
   ]);
 
   useEffect(() => {
@@ -1982,11 +2028,7 @@ function DashboardContent() {
             fetchGrievances(grievancePage, true);
           }
 
-          if (
-            isSuperAdminUser ||
-            (hasModule(Module.APPOINTMENT) &&
-              hasPermission(user, Permission.READ_APPOINTMENT))
-          ) {
+          if (canShowAppointmentsInView) {
             fetchAppointments(appointmentPage, true);
           }
 
@@ -2011,6 +2053,7 @@ function DashboardContent() {
     user,
     grievancePage,
     appointmentPage,
+    canShowAppointmentsInView,
     fetchGrievances,
     fetchAppointments,
     fetchDashboardData,
@@ -2815,8 +2858,7 @@ function DashboardContent() {
                   )}
                   {(isCompanyAdminRole ||
                     (isSuperAdminUser && companyIdParam)) &&
-                    hasModule(Module.APPOINTMENT) &&
-                    hasPermission(user, Permission.READ_APPOINTMENT) && (
+                    canShowAppointmentsInView && (
                       <TabsTrigger
                         value="appointments"
                         className="w-full justify-center group-hover:justify-start h-10 px-0 group-hover:px-4 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all duration-200"
@@ -3072,11 +3114,7 @@ function DashboardContent() {
                           )}
                           {(isCompanyAdminRole ||
                             (isSuperAdminUser && companyIdParam)) &&
-                            hasModule(Module.APPOINTMENT) &&
-                            hasPermission(
-                              user,
-                              Permission.READ_APPOINTMENT,
-                            ) && (
+                            canShowAppointmentsInView && (
                               <Button
                                 type="button"
                                 variant="ghost"
@@ -3435,9 +3473,7 @@ function DashboardContent() {
                       )}
 
                     {/* Total Appointments */}
-                    {hasModule(Module.APPOINTMENT) &&
-                      isViewingCompany &&
-                      hasPermission(user, Permission.READ_APPOINTMENT) && (
+                    {canShowAppointmentsInView && isViewingCompany && (
                         <Card
                           onClick={() => setActiveTab("appointments")}
                           className="min-h-[7rem] sm:min-h-[9.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(15,23,42,0.1)]"
@@ -4153,9 +4189,7 @@ function DashboardContent() {
                       </>
                     )}
 
-                    {hasModule(Module.APPOINTMENT) &&
-                      isViewingCompany &&
-                      hasPermission(user, Permission.READ_APPOINTMENT) && (
+                    {canShowAppointmentsInView && isViewingCompany && (
                       <>
                         {/* 4. Total Appointments */}
                         <div
@@ -4560,9 +4594,7 @@ function DashboardContent() {
                     )}
 
                     {/* Appointments by Status - Company Admin only */}
-                    {hasModule(Module.APPOINTMENT) &&
-                      isViewingCompany &&
-                      hasPermission(user, Permission.READ_APPOINTMENT) && (
+                    {canShowAppointmentsInView && isViewingCompany && (
                       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
                         <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-3">
                           <div className="w-8 h-8 bg-violet-50 rounded-lg flex items-center justify-center">
@@ -5739,6 +5771,21 @@ function DashboardContent() {
                                     Clear
                                   </Button>
                                 )}
+                                {canToggleDepartmentPriorityColumn && (
+                                  <div className="flex items-center gap-2 h-8 px-3 rounded-xl border border-slate-200 bg-white shadow-sm">
+                                    <Settings className="w-3.5 h-3.5 text-slate-500" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-600 whitespace-nowrap">
+                                      Priority Column
+                                    </span>
+                                    <Switch
+                                      checked={showDepartmentPriorityColumn}
+                                      onCheckedChange={
+                                        handleToggleDepartmentPriorityColumn
+                                      }
+                                      aria-label="Toggle priority column visibility for company admin"
+                                    />
+                                  </div>
+                                )}
                               </div>
                             </>
                           )}
@@ -5878,7 +5925,7 @@ function DashboardContent() {
                                   <th className="px-4 py-3 text-center border-b border-slate-100 text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                     Users
                                   </th>
-                                  {canManageDepartmentPriority && (
+                                  {showDepartmentPriorityColumn && (
                                     <th className="px-4 py-3 text-center border-b border-slate-100 text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                       Priority
                                     </th>
@@ -6057,44 +6104,59 @@ function DashboardContent() {
                                         </td>
 
                                         {/* Priority */}
-                                        {canManageDepartmentPriority && (
+                                        {showDepartmentPriorityColumn && (
                                           <td className="px-4 py-4 text-center">
                                             {isMain ? (
-                                              <div className="flex items-center justify-center gap-1.5">
-                                                <input
-                                                  type="number"
-                                                  min={0}
-                                                  step={1}
-                                                  value={
-                                                    priorityDrafts[dept._id] ??
-                                                    String(dept.displayOrder ?? 999)
-                                                  }
-                                                  onChange={(e) =>
-                                                    setPriorityDrafts((prev) => ({
-                                                      ...prev,
-                                                      [dept._id]: e.target.value,
-                                                    }))
-                                                  }
-                                                  className="w-16 h-8 rounded-lg border border-slate-300 px-2 text-center text-xs font-bold focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500"
-                                                  title="Lower number appears first in chatbot list"
-                                                />
-                                                <Button
-                                                  variant="ghost"
-                                                  size="sm"
-                                                  className="h-8 px-2 text-[10px] font-black text-indigo-600 hover:bg-indigo-50 disabled:opacity-60"
-                                                  onClick={() =>
-                                                    handleSaveDepartmentPriority(dept)
-                                                  }
-                                                  disabled={savingPriorityIds.has(
-                                                    dept._id,
-                                                  )}
-                                                  title="Save priority"
-                                                >
-                                                  {savingPriorityIds.has(dept._id)
-                                                    ? "Saving..."
-                                                    : "Save"}
-                                                </Button>
-                                              </div>
+                                              canManageDepartmentPriority ? (
+                                                <div className="flex items-center justify-center gap-1.5">
+                                                  <input
+                                                    type="number"
+                                                    min={0}
+                                                    step={1}
+                                                    value={
+                                                      priorityDrafts[dept._id] ??
+                                                      String(
+                                                        dept.displayOrder ?? 999,
+                                                      )
+                                                    }
+                                                    onChange={(e) =>
+                                                      setPriorityDrafts((prev) => ({
+                                                        ...prev,
+                                                        [dept._id]: e.target.value,
+                                                      }))
+                                                    }
+                                                    className="w-16 h-8 rounded-lg border border-slate-300 px-2 text-center text-xs font-bold focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500"
+                                                    title="Lower number appears first in chatbot list"
+                                                  />
+                                                  <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-8 px-2 text-[10px] font-black text-indigo-600 hover:bg-indigo-50 disabled:opacity-60"
+                                                    onClick={() =>
+                                                      handleSaveDepartmentPriority(
+                                                        dept,
+                                                      )
+                                                    }
+                                                    disabled={savingPriorityIds.has(
+                                                      dept._id,
+                                                    )}
+                                                    title="Save priority"
+                                                  >
+                                                    {savingPriorityIds.has(
+                                                      dept._id,
+                                                    )
+                                                      ? "Saving..."
+                                                      : "Save"}
+                                                  </Button>
+                                                </div>
+                                              ) : (
+                                                <span className="inline-flex items-center justify-center min-w-[42px] h-8 rounded-lg border border-amber-200 bg-amber-50 px-2 text-xs font-black text-amber-700">
+                                                  {typeof dept.displayOrder ===
+                                                  "number"
+                                                    ? dept.displayOrder
+                                                    : 999}
+                                                </span>
+                                              )
                                             ) : (
                                               <span className="text-[10px] font-bold text-slate-300">
                                                 -
@@ -7611,6 +7673,21 @@ function DashboardContent() {
                             </Button>
                           )}
 
+                          {isSuperAdminDrilldown &&
+                            selectedGrievances.size > 0 && (
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={handleBulkDeleteGrievances}
+                                disabled={isDeleting}
+                                className="text-xs h-8 px-4 bg-red-600 hover:bg-red-700 text-white rounded-xl border border-red-700 shadow-sm"
+                                title={`Delete ${selectedGrievances.size} selected grievance(s)`}
+                              >
+                                <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                                Delete ({selectedGrievances.size})
+                              </Button>
+                            )}
+
                           {/* Redundant Bulk Delete Button removed (consolidated above) */}
 
                           {/* Rows per page Selector */}
@@ -8604,8 +8681,7 @@ function DashboardContent() {
                 )}
 
               {/* Appointments Tab - Modern Specialized Calendar Integration */}
-              {hasModule(Module.APPOINTMENT) &&
-                hasPermission(user, Permission.READ_APPOINTMENT) &&
+              {canShowAppointmentsInView &&
                 (isViewingCompany || isDepartmentLevel) && (
                   <TabsContent value="appointments" className="space-y-4">
                     <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
@@ -8970,6 +9046,10 @@ function DashboardContent() {
 
               {isSuperAdminUser && companyIdParam && (
                 <CompanyProvider companyId={companyIdParam}>
+                  <TabsContent value="roles" className="space-y-4">
+                    <RoleManagement companyId={companyIdParam} />
+                  </TabsContent>
+
                   <TabsContent value="whatsapp" className="space-y-4">
                     <WhatsAppConfigTab companyId={companyIdParam} />
                   </TabsContent>
@@ -9238,7 +9318,7 @@ function DashboardContent() {
                   setShowDepartmentDialog(false);
                 }}
                 showPriorityField={
-                  company?.showDepartmentPriorityColumn !== false
+                  showDepartmentPriorityColumn
                 }
               />
             )}

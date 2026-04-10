@@ -31,6 +31,11 @@ interface DepartmentListProps {
   showPriorityColumn?: boolean;
   onTogglePriorityColumn?: (value: boolean) => void;
   priorityToggleSaving?: boolean;
+  canEditPriority?: boolean;
+  priorityDrafts?: Record<string, string>;
+  savingPriorityIds?: Set<string>;
+  onPriorityDraftChange?: (departmentId: string, value: string) => void;
+  onSavePriority?: (department: Department) => void;
 }
 
 export default function DepartmentList({
@@ -43,6 +48,11 @@ export default function DepartmentList({
   showPriorityColumn = true,
   onTogglePriorityColumn,
   priorityToggleSaving = false,
+  canEditPriority = false,
+  priorityDrafts = {},
+  savingPriorityIds = new Set(),
+  onPriorityDraftChange,
+  onSavePriority,
 }: DepartmentListProps) {
   const router = useRouter();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -293,9 +303,42 @@ export default function DepartmentList({
                     </td>
                     <td className="px-6 py-4 text-center">
                       {isMain ? (
-                        <span className="inline-flex items-center justify-center min-w-[42px] h-8 rounded-lg border border-amber-200 bg-amber-50 px-2 text-xs font-black text-amber-700">
-                          {typeof d.displayOrder === "number" ? d.displayOrder : 999}
-                        </span>
+                        canEditPriority ? (
+                          <div className="flex items-center justify-center gap-1.5">
+                            <input
+                              type="number"
+                              min={0}
+                              step={1}
+                              value={
+                                priorityDrafts[d._id] ??
+                                String(d.displayOrder ?? 999)
+                              }
+                              onChange={(e) =>
+                                onPriorityDraftChange?.(d._id, e.target.value)
+                              }
+                              className="w-16 h-8 rounded-lg border border-slate-300 px-2 text-center text-xs font-bold focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500"
+                              title="Lower number appears first in chatbot list"
+                            />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 px-2 text-[10px] font-black text-indigo-600 hover:bg-indigo-50 disabled:opacity-60"
+                              onClick={() => onSavePriority?.(d)}
+                              disabled={savingPriorityIds.has(d._id)}
+                              title="Save priority"
+                            >
+                              {savingPriorityIds.has(d._id)
+                                ? "Saving..."
+                                : "Save"}
+                            </Button>
+                          </div>
+                        ) : (
+                          <span className="inline-flex items-center justify-center min-w-[42px] h-8 rounded-lg border border-amber-200 bg-amber-50 px-2 text-xs font-black text-amber-700">
+                            {typeof d.displayOrder === "number"
+                              ? d.displayOrder
+                              : 999}
+                          </span>
+                        )
                       ) : (
                         <span className="text-[10px] font-bold text-slate-300">-</span>
                       )}

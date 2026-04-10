@@ -10,6 +10,8 @@ import { formatTo10Digits } from "@/lib/utils/phoneUtils";
 interface GrievanceListProps {
   grievances: Grievance[];
   filteredGrievances: Grievance[];
+  selectedGrievances: Set<string>;
+  onSelectionChange: (ids: Set<string>) => void;
   exportToCSV: (data: any[], filename: string) => void;
   setSelectedGrievance: (g: Grievance) => void;
   setShowGrievanceDetail: (open: boolean) => void;
@@ -21,6 +23,8 @@ interface GrievanceListProps {
 export default function GrievanceList({
   grievances,
   filteredGrievances,
+  selectedGrievances,
+  onSelectionChange,
   exportToCSV,
   setSelectedGrievance,
   setShowGrievanceDetail,
@@ -28,6 +32,30 @@ export default function GrievanceList({
   refreshing,
   onAssign,
 }: GrievanceListProps) {
+  const allSelected =
+    filteredGrievances.length > 0 &&
+    filteredGrievances.every((g) => selectedGrievances.has(g._id));
+
+  const toggleAll = () => {
+    const next = new Set(selectedGrievances);
+    if (allSelected) {
+      filteredGrievances.forEach((g) => next.delete(g._id));
+    } else {
+      filteredGrievances.forEach((g) => next.add(g._id));
+    }
+    onSelectionChange(next);
+  };
+
+  const toggleOne = (id: string) => {
+    const next = new Set(selectedGrievances);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+    }
+    onSelectionChange(next);
+  };
+
   return (
     <Card className="rounded-2xl border-slate-200 shadow-xl overflow-hidden bg-white text-left">
       <CardHeader className="flex flex-row items-center justify-between border-b bg-slate-50/50 px-6 py-4">
@@ -63,6 +91,14 @@ export default function GrievanceList({
           <table className="w-full text-left">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 whitespace-nowrap">
+                <th className="px-6 py-4 w-10">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={toggleAll}
+                    className="w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                  />
+                </th>
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">
                   Sr. No.
                 </th>
@@ -84,8 +120,18 @@ export default function GrievanceList({
               {filteredGrievances.map((g, idx) => (
                 <tr
                   key={g._id}
-                  className="group hover:bg-slate-50 transition-colors"
+                  className={`group hover:bg-slate-50 transition-colors ${
+                    selectedGrievances.has(g._id) ? "bg-amber-50/40" : ""
+                  }`}
                 >
+                  <td className="px-6 py-4">
+                    <input
+                      type="checkbox"
+                      checked={selectedGrievances.has(g._id)}
+                      onChange={() => toggleOne(g._id)}
+                      className="w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                    />
+                  </td>
                   <td className="px-6 py-4">
                     <span className="inline-flex items-center justify-center w-7 h-7 bg-slate-100 text-slate-600 font-black text-[10px] rounded-lg group-hover:bg-amber-100 group-hover:text-amber-700 transition-colors">
                       {idx + 1}
