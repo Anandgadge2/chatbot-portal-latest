@@ -10,11 +10,14 @@ import { authenticate } from '../middleware/auth';
 import crypto from 'crypto';
 import { sendEmail } from '../services/emailService';
 import CompanyWhatsAppConfig from '../models/CompanyWhatsAppConfig';
-import { sendWhatsAppMessage } from '../services/whatsappService';
+import { sendWhatsAppMessage, sendWhatsAppTemplate } from '../services/whatsappService';
 // SMS service import removed as per user request to disable SMS channel
 
 
 const router = express.Router();
+
+const PASSWORD_RESET_OTP_TEMPLATE_NAME = process.env.WHATSAPP_PASSWORD_RESET_OTP_TEMPLATE || 'password_reset_otp_v1';
+const PASSWORD_RESET_OTP_TEMPLATE_LANGUAGE = (process.env.WHATSAPP_PASSWORD_RESET_OTP_TEMPLATE_LANGUAGE || 'en') as 'en' | 'hi' | 'mr' | 'or';
 
 
 const buildSessionResponse = async (user: any) => {
@@ -343,13 +346,29 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
             accessToken: waConfig.accessToken
           }
         };
-        const waResult = await sendWhatsAppMessage(
+        const otpTextMessage = `Your password reset OTP is ${otp}. It expires in 10 minutes.`;
+
+        // Prefer Meta-approved authentication template for out-of-window reliability.
+        const templateResult = await sendWhatsAppTemplate(
           waCompany,
           user.phone,
-          `Your password reset OTP is ${otp}. It expires in 10 minutes.`
+          PASSWORD_RESET_OTP_TEMPLATE_NAME,
+          [otp],
+          PASSWORD_RESET_OTP_TEMPLATE_LANGUAGE
         );
-        deliverySuccess = !!waResult?.success;
-        deliveryError = waResult?.error;
+
+        if (templateResult?.success) {
+          deliverySuccess = true;
+        } else {
+          console.warn(
+            `⚠️ OTP template send failed for ${user.phone}. Falling back to text message.`,
+            { error: templateResult?.error, templateName: PASSWORD_RESET_OTP_TEMPLATE_NAME }
+          );
+
+          const fallbackResult = await sendWhatsAppMessage(waCompany, user.phone, otpTextMessage);
+          deliverySuccess = !!fallbackResult?.success;
+          deliveryError = fallbackResult?.error || templateResult?.error;
+        }
       } else {
         deliveryError = 'WhatsApp is not configured for this company';
       }
