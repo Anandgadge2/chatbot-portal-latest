@@ -1012,6 +1012,67 @@ router.put('/:id', requirePermission(Permission.UPDATE_USER), async (req: Reques
   }
 });
 
+// @route   POST /api/users/:id/reset-password
+// @desc    Reset a user's password from admin dashboard
+// @access  Private (requires UPDATE_USER permission)
+router.post('/:id/reset-password', requirePermission(Permission.UPDATE_USER), async (req: Request, res: Response) => {
+  try {
+    const { password } = req.body as { password?: string };
+    const currentUser = req.user!;
+
+    if (!password || password.trim().length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters'
+      });
+    }
+
+    const targetUser = await User.findById(req.params.id).select('+password');
+    if (!targetUser) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (!currentUser.isSuperAdmin) {
+      if (
+        !currentUser.companyId ||
+        !targetUser.companyId ||
+        targetUser.companyId.toString() !== currentUser.companyId.toString()
+      ) {
+        return res.status(403).json({
+          success: false,
+          message: 'Unauthorized: Cross-company password reset is not allowed'
+        });
+      }
+    }
+
+    targetUser.password = password.trim();
+    targetUser.resetPasswordOtpHash = undefined;
+    targetUser.resetPasswordOtpExpires = undefined;
+    targetUser.resetPasswordOtpChannel = undefined;
+    targetUser.resetPasswordOtpAttempts = 0;
+    await targetUser.save();
+
+    await logUserAction(
+      req,
+      AuditAction.UPDATE,
+      'User',
+      targetUser._id.toString(),
+      { action: 'ADMIN_PASSWORD_RESET' }
+    );
+
+    return res.json({
+      success: true,
+      message: 'Password reset successfully'
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to reset password',
+      error: error.message
+    });
+  }
+});
+
 // @route   DELETE /api/users/:id
 // @desc    Soft delete user
 // @access  Private
