@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express';
+import crypto from 'crypto';
 import { requireDatabaseConnection } from '../middleware/dbConnection';
 import { processWhatsAppMessage } from '../services/dynamicFlowEngine';
 import { getRedisClient, isRedisConnected } from '../config/redis';
@@ -7,6 +8,7 @@ import CompanyWhatsAppConfig from '../models/CompanyWhatsAppConfig';
 import { logger } from '../config/logger';
 
 const router = express.Router();
+type WebhookRequest = Request & { rawBody?: Buffer };
 
 /**
  * ============================================================
@@ -48,8 +50,15 @@ router.get('/', requireDatabaseConnection, async (req: Request, res: Response) =
  * ============================================================
  */
 router.post('/', requireDatabaseConnection, async (req: Request, res: Response) => {
+  const signedRequest = req as WebhookRequest;
   const body = req.body;
   logger.info(`📥 Webhook POST received`);
+
+  const isSignatureValid = await verifyWebhookSignature(signedRequest);
+  if (!isSignatureValid) {
+    logger.warn('⚠️ Invalid webhook signature. Request rejected.');
+    return res.status(403).send('INVALID_SIGNATURE');
+  }
 
   // ✅ CRITICAL: On Vercel, we MUST await the processing before responding.
   // Using setImmediate or non-awaited promises will result in the process being killed
@@ -163,7 +172,8 @@ async function getCompanyFromMetadata(metadata: any): Promise<any | null> {
     phoneNumberId: config.phoneNumberId,
     businessAccountId: config.businessAccountId,
     accessToken: config.accessToken,
-    verifyToken: config.verifyToken
+    verifyToken: config.verifyToken,
+    rateLimits: config.rateLimits
   };
 
   console.log(`✅ Company resolved by phone number ID: ${company.name} (${company.companyId})`);
@@ -337,3 +347,44 @@ async function markMessageAsProcessed(messageId: string): Promise<void> {
 }
 
 export default router;
+
+async function verifyWebhookSignature(req: WebhookRequest): Promise<boolean> {
+  const signature = req.headers['x-hub-signature-256'];
+  if (!signature || typeof signature !== 'string') {
+    logger.warn('⚠️ Missing x-hub-signature-256 header on webhook request.');
+    return false;
+  }
+
+  const body = req.body;
+  const phoneNumberId = body?.entry?.[0]?.changes?.[0]?.value?.metadata?.phone_number_id;
+  if (!phoneNumberId) {
+    logger.warn('⚠️ Webhook payload missing phone_number_id. Signature verification skipped.');
+    return false;
+  }
+
+  if (!req.rawBody) {
+    logger.warn('⚠️ rawBody not available for signature verification.');
+    return false;
+  }
+
+  const config = await CompanyWhatsAppConfig.findOne({
+    phoneNumberId,
+    isActive: true
+  }).select('webhookSecret companyId');
+
+  if (!config?.webhookSecret) {
+    logger.warn(`⚠️ Webhook secret missing for phoneNumberId=${phoneNumberId}.`);
+    return false;
+  }
+
+  const expected = `sha256=${crypto
+    .createHmac('sha256', config.webhookSecret)
+    .update(req.rawBody)
+    .digest('hex')}`;
+
+  try {
+    return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+  } catch {
+    return false;
+  }
+}
