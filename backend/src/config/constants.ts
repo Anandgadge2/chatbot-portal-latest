@@ -96,7 +96,8 @@ export enum AuditAction {
   ASSIGN = 'ASSIGN',
   STATUS_CHANGE = 'STATUS_CHANGE',
   CONFIG_CHANGE = 'CONFIG_CHANGE',
-  WHATSAPP_MSG = 'WHATSAPP_MSG'
+  WHATSAPP_MSG = 'WHATSAPP_MSG',
+  CONSENT_CHANGE = 'CONSENT_CHANGE'
 }
 
 // ================================

@@ -8,6 +8,8 @@ import { AuditAction } from '../config/constants';
 import { normalizePhoneNumber } from '../utils/phoneUtils';
 import { getRedisClient, isRedisConnected } from '../config/redis';
 
+const COMPLIANCE_FOOTER = "\n\nType STOP to unsubscribe\nThis is an official government assistance chatbot";
+
 /**
  * WhatsApp Business API limits are enforced here and in flow builder.
  * See config/whatsappLimits.ts for full documentation.
@@ -194,7 +196,7 @@ export async function sendWhatsAppMessage(
       to: normalizedTo,
       type: 'text',
       text: {
-        body: safeText(message)
+        body: safeText(message + COMPLIANCE_FOOTER)
       }
     };
 
@@ -393,6 +395,9 @@ export async function sendWhatsAppButtons(
         body: {
           text: safeText(message)
         },
+        footer: {
+          text: safeText("Type STOP to unsubscribe\nOfficial Govt Chatbot", 60)
+        },
         action: {
           buttons: buttons
             .slice(0, WHATSAPP_LIMITS_BUTTONS.MAX_BUTTONS_PER_MESSAGE)
@@ -464,6 +469,9 @@ export async function sendWhatsAppCTA(
         type: 'cta_url',
         body: {
           text: safeText(message, 1024)
+        },
+        footer: {
+          text: safeText("Type STOP to unsubscribe\nOfficial Govt Chatbot", 60)
         },
         action: {
           name: 'cta_url',
@@ -559,6 +567,9 @@ export async function sendWhatsAppList(
         type: 'list',
         body: {
           text: safeText(message, 1024) // Max 1024 chars for body
+        },
+        footer: {
+          text: safeText("Type STOP to unsubscribe\nOfficial Govt Chatbot", 60)
         },
         action: {
           button: (buttonText || 'Select').slice(0, WHATSAPP_LIMITS_BUTTONS.BUTTON_TITLE_MAX_LENGTH),

@@ -9,6 +9,8 @@ export interface IWhatsAppSession extends Document {
   language?: string;
   lastMessageAt: Date;
   isActive: boolean;
+  hasConsent?: boolean; // null = pending, true = opted-in, false = opted-out
+  unsubscribedAt?: Date;
   expiresAt: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -49,6 +51,14 @@ const WhatsAppSessionSchema: Schema = new Schema(
       type: Boolean,
       default: true,
       index: true
+    },
+    hasConsent: {
+      type: Boolean,
+      default: null,
+      index: true
+    },
+    unsubscribedAt: {
+      type: Date
     },
     expiresAt: {
       type: Date,
