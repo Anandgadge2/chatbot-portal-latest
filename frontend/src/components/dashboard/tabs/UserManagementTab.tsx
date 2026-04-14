@@ -65,6 +65,30 @@ export default function UserManagementTab({ companyId: propCompanyId }: UserMana
   const [customRoles, setCustomRoles] = useState<any[]>([]);
   const [showUserDialog, setShowUserDialog] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [resettingUserId, setResettingUserId] = useState<string | null>(null);
+
+  const handleResetPassword = useCallback(async (targetUser: User) => {
+    const newPassword = window.prompt(`Set a new password for ${targetUser.firstName} ${targetUser.lastName} (minimum 6 characters):`);
+    if (!newPassword) return;
+    if (newPassword.trim().length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+
+    setResettingUserId(targetUser._id);
+    try {
+      const response = await userAPI.resetPassword(targetUser._id, newPassword.trim());
+      if (response.success) {
+        toast.success(`Password reset for ${targetUser.firstName} ${targetUser.lastName}`);
+      } else {
+        toast.error(response.message || "Unable to reset password");
+      }
+    } catch (error: any) {
+      toast.error(error?.message || "Unable to reset password");
+    } finally {
+      setResettingUserId(null);
+    }
+  }, []);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -287,6 +311,20 @@ export default function UserManagementTab({ companyId: propCompanyId }: UserMana
                           <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
                             <Button size="icon" variant="ghost" className="h-9 w-9 rounded-xl bg-white border border-slate-200 shadow-sm hover:scale-105 transition-transform">
                               <ShieldAlert className="w-4 h-4 text-slate-400 group-hover:text-yellow-600" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              title="Reset password"
+                              onClick={() => handleResetPassword(u)}
+                              disabled={resettingUserId === u._id}
+                              className="h-9 w-9 rounded-xl bg-white border border-slate-200 shadow-sm hover:scale-105 transition-transform"
+                            >
+                              {resettingUserId === u._id ? (
+                                <RefreshCw className="w-4 h-4 text-indigo-500 animate-spin" />
+                              ) : (
+                                <Key className="w-4 h-4 text-slate-500" />
+                              )}
                             </Button>
                             <Button size="icon" variant="ghost" className="h-9 w-9 rounded-xl bg-white border border-slate-200 shadow-sm hover:scale-105 transition-transform">
                               <ChevronRight className="w-4 h-4 text-indigo-600" />
