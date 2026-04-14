@@ -11,6 +11,7 @@ export interface UserSession {
   data: Record<string, any>;
   pendingAction?: string;
   lastActivity: Date;
+  hasConsent?: boolean | null;
 }
 
 const SESSION_TTL = 60 * 60; // 60 minutes in seconds
@@ -161,7 +162,8 @@ export async function getSessionFromMongo(phoneNumber: string, companyId: string
       language: (dbSession.language as 'en' | 'hi' | 'mr') || 'en',
       step: dbSession.currentStep || 'start',
       data: dbSession.sessionData && typeof dbSession.sessionData === 'object' ? dbSession.sessionData : {},
-      lastActivity: dbSession.lastMessageAt
+      lastActivity: dbSession.lastMessageAt,
+      hasConsent: dbSession.hasConsent
     };
   } catch (error) {
     console.error('❌ Error reading session from MongoDB (recovery):', error);
@@ -215,7 +217,8 @@ export async function getSession(phoneNumber: string, companyId: string): Promis
           language: (dbSession.language as 'en' | 'hi' | 'mr') || 'en',
           step: dbSession.currentStep || 'start',
           data: sessionData && typeof sessionData === 'object' ? sessionData : {},
-          lastActivity: dbSession.lastMessageAt
+          lastActivity: dbSession.lastMessageAt,
+          hasConsent: dbSession.hasConsent
         };
 
         // Sync to Redis if available
@@ -248,7 +251,8 @@ export async function getSession(phoneNumber: string, companyId: string): Promis
     language: 'en',
     step: 'start',
     data: {},
-    lastActivity: new Date()
+    lastActivity: new Date(),
+    hasConsent: null
   };
 
   // Save to Redis
@@ -273,6 +277,7 @@ export async function getSession(phoneNumber: string, companyId: string): Promis
           sessionData: {},
           language: 'en',
           isActive: true,
+          hasConsent: null,
           lastMessageAt: new Date(),
           expiresAt: new Date(Date.now() + SESSION_TTL * 1000)
         },
@@ -330,7 +335,8 @@ export async function updateSession(session: UserSession): Promise<void> {
             language: session.language,
             lastMessageAt: session.lastActivity,
             expiresAt: new Date(Date.now() + SESSION_TTL * 1000),
-            isActive: true
+            isActive: true,
+            hasConsent: session.hasConsent
           },
           { upsert: true, new: true }
         );

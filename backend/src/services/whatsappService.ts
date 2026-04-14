@@ -7,6 +7,9 @@ import { createAuditLog } from '../utils/auditLogger';
 import { AuditAction } from '../config/constants';
 import { normalizePhoneNumber } from '../utils/phoneUtils';
 import { getRedisClient, isRedisConnected } from '../config/redis';
+import WhatsAppSession from '../models/WhatsAppSession';
+
+const COMPLIANCE_FOOTER = "\n\nType STOP to unsubscribe\nThis is an official government assistance chatbot";
 
 /**
  * WhatsApp Business API limits are enforced here and in flow builder.
@@ -37,8 +40,19 @@ const DEFAULT_RATE_LIMITS = {
   messagesPerHour: 500,
   messagesPerDay: 5000
 };
+const USER_INITIATED_WINDOW_MS = 24 * 60 * 60 * 1000;
 const RECIPIENT_LIMIT_PER_MINUTE = 10;
 const rateFallbackStore = new Map<string, { count: number; expiresAt: number }>();
+const FALLBACK_CLEANUP_INTERVAL = 250;
+let fallbackWritesSinceCleanup = 0;
+
+function cleanupExpiredFallbackCounters(now: number): void {
+  for (const [key, value] of rateFallbackStore.entries()) {
+    if (value.expiresAt <= now) {
+      rateFallbackStore.delete(key);
+    }
+  }
+}
 
 function getRateLimitConfig(company: any) {
   return {
@@ -72,6 +86,11 @@ function getTtlSeconds(window: 'minute' | 'hour' | 'day'): number {
 
 function incrementFallbackCounter(key: string, ttlSeconds: number): number {
   const now = Date.now();
+  fallbackWritesSinceCleanup += 1;
+  if (fallbackWritesSinceCleanup >= FALLBACK_CLEANUP_INTERVAL) {
+    cleanupExpiredFallbackCounters(now);
+    fallbackWritesSinceCleanup = 0;
+  }
   const existing = rateFallbackStore.get(key);
   if (!existing || existing.expiresAt <= now) {
     rateFallbackStore.set(key, { count: 1, expiresAt: now + ttlSeconds * 1000 });
@@ -148,6 +167,63 @@ function safeText(text: string, limit = 4000): string {
   return text.length > limit ? text.substring(0, limit - 10) + '…' : text;
 }
 
+function buildComplianceFooter(): string {
+  return [
+    'This is an official government assistance chatbot.',
+    'Type STOP to unsubscribe.'
+  ].join('\n');
+}
+
+function applyComplianceFooter(message: string, limit = 4000): string {
+  const base = safeText(message, limit);
+  const footer = buildComplianceFooter();
+
+  if (!base.trim()) {
+    return safeText(footer, limit);
+  }
+
+  if (base.includes('Type STOP to unsubscribe') && base.includes('official government assistance chatbot')) {
+    return base;
+  }
+
+  return safeText(`${base}\n\n${footer}`, limit);
+}
+
+async function getSessionComplianceContext(company: any, to: string): Promise<{ optedOut: boolean; within24hWindow: boolean }> {
+  const companyId = company?._id;
+  if (!companyId) {
+    return { optedOut: false, within24hWindow: false };
+  }
+
+  const normalizedTo = normalizePhoneNumber(to);
+  const session = await WhatsAppSession.findOne({
+    phoneNumber: normalizedTo,
+    companyId
+  }).select('lastMessageAt sessionData').lean();
+
+  if (!session) {
+    return { optedOut: false, within24hWindow: false };
+  }
+
+  const lastMessageAt = session.lastMessageAt ? new Date(session.lastMessageAt) : null;
+  const within24hWindow = !!lastMessageAt && (Date.now() - lastMessageAt.getTime()) <= USER_INITIATED_WINDOW_MS;
+  const optedOut = Boolean((session.sessionData as any)?.optedOut);
+
+  return { optedOut, within24hWindow };
+}
+
+async function enforceMessagingPolicy(company: any, to: string, messageType: 'template' | 'freeform'): Promise<void> {
+  const compliance = await getSessionComplianceContext(company, to);
+
+  if (compliance.optedOut) {
+    throw new Error('Recipient has unsubscribed (STOP). Message blocked.');
+  }
+
+  if (messageType === 'freeform' && !compliance.within24hWindow) {
+    throw new Error('Free-form message blocked outside 24-hour user-initiated window. Use an approved template.');
+  }
+}
+
 function logMetaError(error: any, context: Record<string, any>) {
   const metaError = error?.response?.data?.error;
 
@@ -170,16 +246,18 @@ export async function sendWhatsAppMessage(
   message: string
 ): Promise<any> {
   try {
+    await enforceMessagingPolicy(company, to, 'freeform');
     await enforceRateLimit(company, to);
     const { url, headers } = getWhatsAppConfig(company);
 
     const normalizedTo = normalizePhoneNumber(to);
+    const composedMessage = applyComplianceFooter(message);
     const payload = {
       messaging_product: 'whatsapp',
       to: normalizedTo,
       type: 'text',
       text: {
-        body: safeText(message)
+        body: composedMessage
       }
     };
 
@@ -189,7 +267,7 @@ export async function sendWhatsAppMessage(
     console.log(`   Message ID: ${response.data.messages?.[0]?.id || 'N/A'}`);
     
     // Log to audit for SuperAdmin terminal
-    await logOutgoingMessage(company, to, message, 'text');
+    await logOutgoingMessage(company, to, composedMessage, 'text');
     
     return {
       success: true,
@@ -262,6 +340,7 @@ export async function sendWhatsAppTemplate(
   buttonParam?: string
 ): Promise<any> {
   try {
+    await enforceMessagingPolicy(company, to, 'template');
     await enforceRateLimit(company, to);
     const { url, headers } = getWhatsAppConfig(company);
     const normalizedTo = normalizePhoneNumber(to);
@@ -365,9 +444,11 @@ export async function sendWhatsAppButtons(
   buttons: Array<{ id: string; title: string }>
 ): Promise<any> {
   try {
+    await enforceMessagingPolicy(company, to, 'freeform');
     await enforceRateLimit(company, to);
     const { url, headers } = getWhatsAppConfig(company);
 
+    const composedMessage = applyComplianceFooter(message);
     const normalizedTo = normalizePhoneNumber(to);
     const payload = {
       messaging_product: 'whatsapp',
@@ -376,7 +457,10 @@ export async function sendWhatsAppButtons(
       interactive: {
         type: 'button',
         body: {
-          text: safeText(message)
+          text: safeText(composedMessage)
+        },
+        footer: {
+          text: safeText("Type STOP to unsubscribe\nOfficial Govt Chatbot", 60)
         },
         action: {
           buttons: buttons
@@ -397,7 +481,7 @@ export async function sendWhatsAppButtons(
     console.log(`✅ [WhatsApp API] Buttons sent to ${to} (${company.name})`);
 
     // Log to audit for SuperAdmin terminal
-    await logOutgoingMessage(company, to, message, 'buttons');
+    await logOutgoingMessage(company, to, composedMessage, 'buttons');
 
     return {
       success: true,
@@ -413,7 +497,7 @@ export async function sendWhatsAppButtons(
 
     // Fallback to plain text
     const fallbackText =
-      safeText(message) +
+      applyComplianceFooter(message) +
       '\n\n' +
       buttons.map((b, i) => `${i + 1}. ${b.title}`).join('\n');
 
@@ -436,9 +520,11 @@ export async function sendWhatsAppCTA(
   footerText?: string
 ): Promise<any> {
   try {
+    await enforceMessagingPolicy(company, to, 'freeform');
     await enforceRateLimit(company, to);
     const { url: apiURL, headers } = getWhatsAppConfig(company);
 
+    const composedMessage = applyComplianceFooter(message, 1024);
     const normalizedTo = normalizePhoneNumber(to);
     const payload: any = {
       messaging_product: 'whatsapp',
@@ -448,7 +534,10 @@ export async function sendWhatsAppCTA(
       interactive: {
         type: 'cta_url',
         body: {
-          text: safeText(message, 1024)
+          text: composedMessage
+        },
+        footer: {
+          text: safeText("Type STOP to unsubscribe\nOfficial Govt Chatbot", 60)
         },
         action: {
           name: 'cta_url',
@@ -478,7 +567,7 @@ export async function sendWhatsAppCTA(
     console.log(`✅ WhatsApp CTA sent → ${to} (Button: ${buttonTitle})`);
 
     // Log to audit for SuperAdmin terminal
-    await logOutgoingMessage(company, to, message, 'cta_url');
+    await logOutgoingMessage(company, to, composedMessage, 'cta_url');
 
     return {
       success: true,
@@ -495,7 +584,7 @@ export async function sendWhatsAppCTA(
     });
 
     // Fallback to text
-    const fallbackText = `${message}\n\n🔗 ${buttonTitle}: ${url}`;
+    const fallbackText = `${applyComplianceFooter(message)}\n\n🔗 ${buttonTitle}: ${url}`;
     return sendWhatsAppMessage(company, to, fallbackText);
   }
 }
@@ -516,9 +605,11 @@ export async function sendWhatsAppList(
   }>
 ): Promise<any> {
   try {
+    await enforceMessagingPolicy(company, to, 'freeform');
     await enforceRateLimit(company, to);
     const { url, headers } = getWhatsAppConfig(company);
 
+    const composedMessage = applyComplianceFooter(message, 1024);
     // Enforce WhatsApp list limits (max 1 section, 10 rows, 24/72 chars)
     const validatedSections = sections
       .slice(0, WHATSAPP_LIMITS_LIST.MAX_SECTIONS_PER_LIST)
@@ -543,7 +634,10 @@ export async function sendWhatsAppList(
       interactive: {
         type: 'list',
         body: {
-          text: safeText(message, 1024) // Max 1024 chars for body
+          text: composedMessage // Max 1024 chars for body
+        },
+        footer: {
+          text: safeText("Type STOP to unsubscribe\nOfficial Govt Chatbot", 60)
         },
         action: {
           button: (buttonText || 'Select').slice(0, WHATSAPP_LIMITS_BUTTONS.BUTTON_TITLE_MAX_LENGTH),
@@ -563,7 +657,7 @@ export async function sendWhatsAppList(
     console.log(`✅ [WhatsApp API] List sent to ${to} (${company.name})`);
 
     // Log to audit for SuperAdmin terminal
-    await logOutgoingMessage(company, to, message, 'list');
+    await logOutgoingMessage(company, to, composedMessage, 'list');
 
     return {
       success: true,
@@ -584,7 +678,7 @@ export async function sendWhatsAppList(
 
     // Fallback to text
     const fallbackText =
-      safeText(message) +
+      applyComplianceFooter(message) +
       '\n\n' +
       sections
         .map(section =>
@@ -611,6 +705,7 @@ export async function sendWhatsAppMedia(
   filename?: string
 ): Promise<any> {
   try {
+    await enforceMessagingPolicy(company, to, 'freeform');
     await enforceRateLimit(company, to);
     const { url, headers } = getWhatsAppConfig(company);
 

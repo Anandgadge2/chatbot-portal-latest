@@ -26,7 +26,9 @@ import {
   GrievanceStatus,
   AppointmentStatus,
   UserRole,
+  AuditAction,
 } from "../config/constants";
+import { createAuditLog } from "../utils/auditLogger";
 import { getChatbotAvailabilityData } from "../routes/availability.routes";
 
 // ─── Message Interface ────────────────────────────────────────────────────────
@@ -167,6 +169,21 @@ async function handleFlowCommand(
     // Execute Action
     switch (config.action) {
       case 'STOP':
+        session.hasConsent = false;
+        await updateSession(session);
+        
+        // Log the opt-out
+        await createAuditLog({
+          action: AuditAction.CONSENT_CHANGE,
+          resource: 'WhatsAppUser',
+          resourceId: from,
+          companyId: company._id.toString(),
+          details: {
+            phoneNumber: from,
+            action: 'UNSUBSCRIBE',
+            message: 'User sent STOP command'
+          }
+        });
         await clearSession(from, companyId);
         console.log(`🛑 Session cleared via STOP command`);
         return true;
@@ -283,6 +300,7 @@ export class DynamicFlowEngine {
   private session: UserSession;
   private company: any;
   private userPhone: string;
+  private executionDepth: number = 0;
 
   constructor(
     flow: IChatbotFlow,
@@ -331,6 +349,13 @@ export class DynamicFlowEngine {
     userInput?: string,
     locationData?: { lat: number; long: number; address?: string },
   ): Promise<void> {
+    // Prevent automated loops/chains from sending too many messages at once
+    if (this.executionDepth > 10) {
+      console.error(`🛑 Max execution depth (10) reached for ${this.userPhone}. Aborting to prevent loop.`);
+      return;
+    }
+    this.executionDepth++;
+
     let step = this.flow.steps.find((s) => s.stepId === stepId);
     // If not found, try base step ID (e.g. grievance_category_en -> grievance_category) so flows with single department step work
     if (!step && stepId && /_.+$/.test(stepId)) {
@@ -3125,6 +3150,25 @@ export async function processWhatsAppMessage(
 
   // ── 2. Load or create session ─────────────────────────────────────────────
   let session = await getSession(from, companyId);
+
+  // ✅ Log User Consent (Incoming message = Implicit Opt-in)
+  if (session.hasConsent !== true) {
+    session.hasConsent = true;
+    await updateSession(session);
+    
+    await createAuditLog({
+      action: AuditAction.CONSENT_CHANGE,
+      resource: 'WhatsAppUser',
+      resourceId: from,
+      companyId: company._id.toString(),
+      details: {
+        phoneNumber: from,
+        action: 'SUBSCRIBE',
+        message: 'Implicit consent via message initiation'
+      }
+    });
+    console.log(`✅ User ${from} opted-in/resubscribed via message initiation`);
+  }
 
   // ── 3. Handle greeting → always restart the flow ─────────────────────────
   // Also treat 'menu' and 'restart' as greetings when there's NO active session

@@ -5,10 +5,22 @@ import { processWhatsAppMessage } from '../services/dynamicFlowEngine';
 import { getRedisClient, isRedisConnected } from '../config/redis';
 import Company from '../models/Company';
 import CompanyWhatsAppConfig from '../models/CompanyWhatsAppConfig';
+import WhatsAppSession from '../models/WhatsAppSession';
 import { logger } from '../config/logger';
 
 const router = express.Router();
 type WebhookRequest = Request & { rawBody?: Buffer };
+type VerifiedWebhookContext = {
+  phoneNumberId: string;
+  config: {
+    companyId: any;
+    phoneNumberId: string;
+    businessAccountId?: string;
+    accessToken?: string;
+    verifyToken?: string;
+    rateLimits?: any;
+  };
+};
 
 /**
  * ============================================================
@@ -54,8 +66,8 @@ router.post('/', requireDatabaseConnection, async (req: Request, res: Response) 
   const body = req.body;
   logger.info(`📥 Webhook POST received`);
 
-  const isSignatureValid = await verifyWebhookSignature(signedRequest);
-  if (!isSignatureValid) {
+  const verifiedWebhookContext = await verifyWebhookSignature(signedRequest);
+  if (!verifiedWebhookContext) {
     logger.warn('⚠️ Invalid webhook signature. Request rejected.');
     return res.status(403).send('INVALID_SIGNATURE');
   }
@@ -83,7 +95,7 @@ router.post('/', requireDatabaseConnection, async (req: Request, res: Response) 
           }
 
           // Resolve company early
-          const company = await getCompanyFromMetadata(metadata);
+          const company = await getCompanyFromMetadata(metadata, verifiedWebhookContext.config);
           if (!company) {
             logger.error(`❌ Could not resolve company for phoneNumberId: ${metadata?.phone_number_id}.`);
             continue;
@@ -141,7 +153,7 @@ router.post('/', requireDatabaseConnection, async (req: Request, res: Response) 
  * Finds the company based on phone number ID from metadata.
  * ✅ Source of truth: CompanyWhatsAppConfig (DB). No env fallback.
  */
-async function getCompanyFromMetadata(metadata: any): Promise<any | null> {
+async function getCompanyFromMetadata(metadata: any, verifiedConfig?: VerifiedWebhookContext['config']): Promise<any | null> {
   const phoneNumberId = metadata?.phone_number_id;
   
   if (!phoneNumberId) {
@@ -151,10 +163,12 @@ async function getCompanyFromMetadata(metadata: any): Promise<any | null> {
   
   console.log(`🔍 Looking up company by phone number ID: ${phoneNumberId}`);
   
-  const config = await CompanyWhatsAppConfig.findOne({
-    phoneNumberId,
-    isActive: true
-  });
+  const config = verifiedConfig && verifiedConfig.phoneNumberId === phoneNumberId
+    ? verifiedConfig
+    : await CompanyWhatsAppConfig.findOne({
+      phoneNumberId,
+      isActive: true
+    });
 
   if (!config) {
     console.error(`❌ WhatsApp config not found for phoneNumberId=${phoneNumberId}.`);
@@ -235,6 +249,12 @@ async function handleIncomingMessage(message: any, metadata: any, resolvedCompan
       `📨 Message from ${from} → Company: ${company.name} (ID: ${company.companyId})`
     );
 
+    await handleConsentCommand({
+      companyObjectId: company._id,
+      from,
+      messageText
+    });
+
     const response = await processWhatsAppMessage({
       companyId: company.companyId,
       from,
@@ -251,6 +271,54 @@ async function handleIncomingMessage(message: any, metadata: any, resolvedCompan
     console.error('❌ Error in handleIncomingMessage:', error);
     throw error;
   }
+}
+
+type ConsentCommandInput = {
+  companyObjectId: any;
+  from: string;
+  messageText: string;
+};
+
+async function handleConsentCommand({
+  companyObjectId,
+  from,
+  messageText
+}: ConsentCommandInput): Promise<void> {
+  const normalized = (messageText || '').trim().toLowerCase();
+  if (!normalized) {
+    return;
+  }
+
+  const isStopCommand = normalized === 'stop' || normalized === 'unsubscribe';
+  const isStartCommand = normalized === 'start' || normalized === 'resume';
+
+  if (!isStopCommand && !isStartCommand) {
+    return;
+  }
+
+  const consentPatch = isStopCommand
+    ? {
+      'sessionData.optedOut': true,
+      'sessionData.consentStatus': 'opted_out',
+      'sessionData.lastConsentAction': 'STOP',
+      'sessionData.lastConsentAt': new Date()
+    }
+    : {
+      'sessionData.optedOut': false,
+      'sessionData.consentStatus': 'subscribed',
+      'sessionData.lastConsentAction': 'START',
+      'sessionData.lastConsentAt': new Date()
+    };
+
+  await WhatsAppSession.updateOne(
+    { phoneNumber: from, companyId: companyObjectId },
+    {
+      $set: consentPatch
+    },
+    { upsert: false }
+  );
+
+  logger.info(`✅ Consent command processed for ${from}: ${isStopCommand ? 'STOP' : 'START'}`);
 }
 
 /**
@@ -348,43 +416,69 @@ async function markMessageAsProcessed(messageId: string): Promise<void> {
 
 export default router;
 
-async function verifyWebhookSignature(req: WebhookRequest): Promise<boolean> {
+async function verifyWebhookSignature(req: WebhookRequest): Promise<VerifiedWebhookContext | null> {
   const signature = req.headers['x-hub-signature-256'];
   if (!signature || typeof signature !== 'string') {
     logger.warn('⚠️ Missing x-hub-signature-256 header on webhook request.');
-    return false;
+    return null;
   }
 
   const body = req.body;
   const phoneNumberId = body?.entry?.[0]?.changes?.[0]?.value?.metadata?.phone_number_id;
   if (!phoneNumberId) {
     logger.warn('⚠️ Webhook payload missing phone_number_id. Signature verification skipped.');
-    return false;
+    return null;
   }
 
   if (!req.rawBody) {
     logger.warn('⚠️ rawBody not available for signature verification.');
-    return false;
+    return null;
+  }
+
+  if (!signature.startsWith('sha256=')) {
+    logger.warn('⚠️ Invalid webhook signature format.');
+    return null;
   }
 
   const config = await CompanyWhatsAppConfig.findOne({
     phoneNumberId,
     isActive: true
-  }).select('webhookSecret companyId');
+  }).select('webhookSecret companyId phoneNumberId businessAccountId accessToken verifyToken rateLimits');
 
   if (!config?.webhookSecret) {
     logger.warn(`⚠️ Webhook secret missing for phoneNumberId=${phoneNumberId}.`);
-    return false;
+    return null;
   }
 
-  const expected = `sha256=${crypto
+  const expectedDigest = crypto
     .createHmac('sha256', config.webhookSecret)
     .update(req.rawBody)
-    .digest('hex')}`;
+    .digest();
+
+  const providedDigest = Buffer.from(signature.slice('sha256='.length), 'hex');
+  if (providedDigest.length !== expectedDigest.length) {
+    logger.warn('⚠️ Webhook signature length mismatch.');
+    return null;
+  }
 
   try {
-    return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+    const isValid = crypto.timingSafeEqual(providedDigest, expectedDigest);
+    if (!isValid) {
+      return null;
+    }
+
+    return {
+      phoneNumberId,
+      config: {
+        companyId: config.companyId,
+        phoneNumberId: config.phoneNumberId,
+        businessAccountId: config.businessAccountId,
+        accessToken: config.accessToken,
+        verifyToken: config.verifyToken,
+        rateLimits: config.rateLimits
+      }
+    };
   } catch {
-    return false;
+    return null;
   }
 }
