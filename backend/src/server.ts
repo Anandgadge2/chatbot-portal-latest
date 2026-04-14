@@ -152,7 +152,12 @@ app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/sso', authLimiter);
 
 // Body parsing
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({
+  limit: '10mb',
+  verify: (req: Request, _res: Response, buf: Buffer) => {
+    (req as Request & { rawBody?: Buffer }).rawBody = Buffer.from(buf);
+  }
+}));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Per-tenant API rate limiting

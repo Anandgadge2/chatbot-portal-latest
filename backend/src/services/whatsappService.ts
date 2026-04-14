@@ -6,6 +6,7 @@ import {
 import { createAuditLog } from '../utils/auditLogger';
 import { AuditAction } from '../config/constants';
 import { normalizePhoneNumber } from '../utils/phoneUtils';
+import { getRedisClient, isRedisConnected } from '../config/redis';
 
 /**
  * WhatsApp Business API limits are enforced here and in flow builder.
@@ -29,6 +30,98 @@ function getWhatsAppConfig(company: any) {
       'Content-Type': 'application/json'
     }
   };
+}
+
+const DEFAULT_RATE_LIMITS = {
+  messagesPerMinute: 30,
+  messagesPerHour: 500,
+  messagesPerDay: 5000
+};
+const RECIPIENT_LIMIT_PER_MINUTE = 10;
+const rateFallbackStore = new Map<string, { count: number; expiresAt: number }>();
+
+function getRateLimitConfig(company: any) {
+  return {
+    messagesPerMinute: Math.max(
+      1,
+      Number(company?.whatsappConfig?.rateLimits?.messagesPerMinute) || DEFAULT_RATE_LIMITS.messagesPerMinute
+    ),
+    messagesPerHour: Math.max(
+      1,
+      Number(company?.whatsappConfig?.rateLimits?.messagesPerHour) || DEFAULT_RATE_LIMITS.messagesPerHour
+    ),
+    messagesPerDay: Math.max(
+      1,
+      Number(company?.whatsappConfig?.rateLimits?.messagesPerDay) || DEFAULT_RATE_LIMITS.messagesPerDay
+    )
+  };
+}
+
+function getWindowSuffix(date: Date, window: 'minute' | 'hour' | 'day'): string {
+  const iso = date.toISOString();
+  if (window === 'minute') return iso.slice(0, 16);
+  if (window === 'hour') return iso.slice(0, 13);
+  return iso.slice(0, 10);
+}
+
+function getTtlSeconds(window: 'minute' | 'hour' | 'day'): number {
+  if (window === 'minute') return 70;
+  if (window === 'hour') return 3700;
+  return 90000;
+}
+
+function incrementFallbackCounter(key: string, ttlSeconds: number): number {
+  const now = Date.now();
+  const existing = rateFallbackStore.get(key);
+  if (!existing || existing.expiresAt <= now) {
+    rateFallbackStore.set(key, { count: 1, expiresAt: now + ttlSeconds * 1000 });
+    return 1;
+  }
+
+  const nextCount = existing.count + 1;
+  rateFallbackStore.set(key, { count: nextCount, expiresAt: existing.expiresAt });
+  return nextCount;
+}
+
+async function incrementRateCounter(key: string, ttlSeconds: number): Promise<number> {
+  const redis = getRedisClient();
+  if (!redis || !isRedisConnected()) {
+    return incrementFallbackCounter(key, ttlSeconds);
+  }
+
+  const count = await redis.incr(key);
+  if (count === 1) {
+    await redis.expire(key, ttlSeconds);
+  }
+  return count;
+}
+
+async function enforceRateLimit(company: any, to: string): Promise<void> {
+  const limits = getRateLimitConfig(company);
+  const companyId = company?._id?.toString() || 'unknown_company';
+  const normalizedTo = normalizePhoneNumber(to);
+  const now = new Date();
+
+  const windows = [
+    { name: 'minute' as const, limit: limits.messagesPerMinute },
+    { name: 'hour' as const, limit: limits.messagesPerHour },
+    { name: 'day' as const, limit: limits.messagesPerDay }
+  ];
+
+  for (const window of windows) {
+    const suffix = getWindowSuffix(now, window.name);
+    const key = `wa_rate:${companyId}:${window.name}:${suffix}`;
+    const count = await incrementRateCounter(key, getTtlSeconds(window.name));
+    if (count > window.limit) {
+      throw new Error(`Rate limit exceeded for ${window.name}. Try again later.`);
+    }
+  }
+
+  const recipientKey = `wa_rate:recipient:${companyId}:${normalizedTo}:${getWindowSuffix(now, 'minute')}`;
+  const recipientCount = await incrementRateCounter(recipientKey, getTtlSeconds('minute'));
+  if (recipientCount > RECIPIENT_LIMIT_PER_MINUTE) {
+    throw new Error('Recipient message rate limit exceeded. Try again later.');
+  }
 }
 
 async function logOutgoingMessage(company: any, to: string, message: string, type: string) {
@@ -77,6 +170,7 @@ export async function sendWhatsAppMessage(
   message: string
 ): Promise<any> {
   try {
+    await enforceRateLimit(company, to);
     const { url, headers } = getWhatsAppConfig(company);
 
     const normalizedTo = normalizePhoneNumber(to);
@@ -168,6 +262,7 @@ export async function sendWhatsAppTemplate(
   buttonParam?: string
 ): Promise<any> {
   try {
+    await enforceRateLimit(company, to);
     const { url, headers } = getWhatsAppConfig(company);
     const normalizedTo = normalizePhoneNumber(to);
     
@@ -256,6 +351,7 @@ export async function sendWhatsAppButtons(
   buttons: Array<{ id: string; title: string }>
 ): Promise<any> {
   try {
+    await enforceRateLimit(company, to);
     const { url, headers } = getWhatsAppConfig(company);
 
     const normalizedTo = normalizePhoneNumber(to);
@@ -326,6 +422,7 @@ export async function sendWhatsAppCTA(
   footerText?: string
 ): Promise<any> {
   try {
+    await enforceRateLimit(company, to);
     const { url: apiURL, headers } = getWhatsAppConfig(company);
 
     const normalizedTo = normalizePhoneNumber(to);
@@ -405,6 +502,7 @@ export async function sendWhatsAppList(
   }>
 ): Promise<any> {
   try {
+    await enforceRateLimit(company, to);
     const { url, headers } = getWhatsAppConfig(company);
 
     // Enforce WhatsApp list limits (max 1 section, 10 rows, 24/72 chars)
@@ -499,6 +597,7 @@ export async function sendWhatsAppMedia(
   filename?: string
 ): Promise<any> {
   try {
+    await enforceRateLimit(company, to);
     const { url, headers } = getWhatsAppConfig(company);
 
     const normalizedTo = normalizePhoneNumber(to);
