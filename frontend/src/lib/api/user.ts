@@ -130,5 +130,9 @@ export const userAPI = {
 
   deleteBulk: async (ids: string[]): Promise<{ success: boolean; message: string; data: { deletedCount: number } }> => {
     return apiClient.delete('/users/bulk', { ids });
+  },
+
+  resetPassword: async (id: string, password: string): Promise<{ success: boolean; message: string }> => {
+    return apiClient.post(`/users/${id}/reset-password`, { password });
   }
 };

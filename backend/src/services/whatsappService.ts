@@ -257,7 +257,7 @@ export async function sendWhatsAppTemplate(
   to: string,
   templateName: string,
   parameters: string[] = [],
-  language: 'en' | 'hi' | 'mr' | 'or' = 'en',
+  language: string = 'en',
   headerParam?: string,
   buttonParam?: string
 ): Promise<any> {
@@ -265,6 +265,20 @@ export async function sendWhatsAppTemplate(
     await enforceRateLimit(company, to);
     const { url, headers } = getWhatsAppConfig(company);
     const normalizedTo = normalizePhoneNumber(to);
+    const normalizedLanguage = (() => {
+      const lang = (language || 'en').toLowerCase().replace('-', '_');
+      const languageMap: Record<string, string> = {
+        en: 'en_US',
+        en_us: 'en_US',
+        hi: 'hi_IN',
+        hi_in: 'hi_IN',
+        mr: 'mr_IN',
+        mr_in: 'mr_IN',
+        or: 'or_IN',
+        or_in: 'or_IN'
+      };
+      return languageMap[lang] || language;
+    })();
     
     const components: any[] = [];
 
@@ -303,7 +317,7 @@ export async function sendWhatsAppTemplate(
       type: 'template',
       template: {
         name: templateName,
-        language: { code: language },
+        language: { code: normalizedLanguage },
         components: components.length > 0 ? components : undefined
       }
     };
