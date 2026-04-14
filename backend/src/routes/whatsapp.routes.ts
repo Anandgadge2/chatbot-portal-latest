@@ -5,6 +5,7 @@ import { processWhatsAppMessage } from '../services/dynamicFlowEngine';
 import { getRedisClient, isRedisConnected } from '../config/redis';
 import Company from '../models/Company';
 import CompanyWhatsAppConfig from '../models/CompanyWhatsAppConfig';
+import WhatsAppSession from '../models/WhatsAppSession';
 import { logger } from '../config/logger';
 
 const router = express.Router();
@@ -248,6 +249,12 @@ async function handleIncomingMessage(message: any, metadata: any, resolvedCompan
       `📨 Message from ${from} → Company: ${company.name} (ID: ${company.companyId})`
     );
 
+    await handleConsentCommand({
+      companyObjectId: company._id,
+      from,
+      messageText
+    });
+
     const response = await processWhatsAppMessage({
       companyId: company.companyId,
       from,
@@ -264,6 +271,54 @@ async function handleIncomingMessage(message: any, metadata: any, resolvedCompan
     console.error('❌ Error in handleIncomingMessage:', error);
     throw error;
   }
+}
+
+type ConsentCommandInput = {
+  companyObjectId: any;
+  from: string;
+  messageText: string;
+};
+
+async function handleConsentCommand({
+  companyObjectId,
+  from,
+  messageText
+}: ConsentCommandInput): Promise<void> {
+  const normalized = (messageText || '').trim().toLowerCase();
+  if (!normalized) {
+    return;
+  }
+
+  const isStopCommand = normalized === 'stop' || normalized === 'unsubscribe';
+  const isStartCommand = normalized === 'start' || normalized === 'resume';
+
+  if (!isStopCommand && !isStartCommand) {
+    return;
+  }
+
+  const consentPatch = isStopCommand
+    ? {
+      'sessionData.optedOut': true,
+      'sessionData.consentStatus': 'opted_out',
+      'sessionData.lastConsentAction': 'STOP',
+      'sessionData.lastConsentAt': new Date()
+    }
+    : {
+      'sessionData.optedOut': false,
+      'sessionData.consentStatus': 'subscribed',
+      'sessionData.lastConsentAction': 'START',
+      'sessionData.lastConsentAt': new Date()
+    };
+
+  await WhatsAppSession.updateOne(
+    { phoneNumber: from, companyId: companyObjectId },
+    {
+      $set: consentPatch
+    },
+    { upsert: false }
+  );
+
+  logger.info(`✅ Consent command processed for ${from}: ${isStopCommand ? 'STOP' : 'START'}`);
 }
 
 /**
