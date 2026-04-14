@@ -89,6 +89,17 @@ const getLocaleForLanguage = (lang: 'en' | 'hi' | 'or' | 'mr'): string => {
   return 'en-IN';
 };
 
+const GRIEVANCE_CREATED_ADMIN_TEMPLATE_NAME =
+  process.env.WHATSAPP_GRIEVANCE_CREATED_ADMIN_TEMPLATE || 'grievance_created_admin_v1';
+const GRIEVANCE_CONFIRMATION_TEMPLATE_NAME =
+  process.env.WHATSAPP_GRIEVANCE_CONFIRMATION_TEMPLATE || 'grievance_confirmation_v1';
+const GRIEVANCE_STATUS_UPDATE_TEMPLATE_NAME =
+  process.env.WHATSAPP_GRIEVANCE_STATUS_UPDATE_TEMPLATE || 'grievance_status_update_v1';
+const GRIEVANCE_RESOLVED_TEMPLATE_NAME =
+  process.env.WHATSAPP_GRIEVANCE_RESOLVED_TEMPLATE || 'grievance_resolved_v1';
+const GRIEVANCE_TEMPLATE_LANGUAGE =
+  (process.env.WHATSAPP_GRIEVANCE_TEMPLATE_LANGUAGE || 'en') as 'en' | 'hi' | 'or' | 'mr';
+
 const getLocalizedDepartmentName = (department: any, lang: 'en' | 'hi' | 'or' | 'mr'): string => {
   if (!department) return '';
   if (lang === 'hi' && department.nameHi) return String(department.nameHi).trim();
@@ -776,6 +787,50 @@ async function safeSendWhatsApp(
   }
 }
 
+async function sendWhatsAppTemplateWithTextFallback(
+  company: any,
+  to: string | undefined,
+  templateName: string,
+  parameters: string[],
+  fallbackMessage: string,
+  options?: {
+    language?: 'en' | 'hi' | 'or' | 'mr';
+    headerParam?: string;
+    contextLabel?: string;
+  }
+): Promise<{ success: boolean; error?: string }> {
+  if (!to) {
+    return { success: false, error: 'No phone number provided' };
+  }
+
+  const language = options?.language || GRIEVANCE_TEMPLATE_LANGUAGE;
+  const contextLabel = options?.contextLabel || templateName;
+  const safeParams = parameters.map(p => (p ?? '').toString());
+
+  const templateResult = await sendWhatsAppTemplate(
+    company,
+    to,
+    templateName,
+    safeParams,
+    language,
+    options?.headerParam
+  );
+
+  if (templateResult?.success) {
+    logger.info(`✅ WhatsApp template sent (${contextLabel})`, { to, templateName, language });
+    return { success: true };
+  }
+
+  logger.warn(`⚠️ WhatsApp template failed; falling back to text (${contextLabel})`, {
+    to,
+    templateName,
+    language,
+    error: templateResult?.error
+  });
+
+  return safeSendWhatsApp(company, to, fallbackMessage);
+}
+
 /* ------------------------------------------------------------------ */
 /* Department Admin Lookup                                             */
 /* ------------------------------------------------------------------ */
@@ -996,9 +1051,9 @@ export async function notifyDepartmentAdminOnCreation(
               const templateResult = await sendWhatsAppTemplate(
                 company,
                 user.phone,
-                'grievance_created_admin_v1',
+                GRIEVANCE_CREATED_ADMIN_TEMPLATE_NAME,
                 bodyParams,
-                'en',
+                GRIEVANCE_TEMPLATE_LANGUAGE,
                 headerValue // Sent as header component param
               );
 
@@ -1205,7 +1260,28 @@ export async function notifyCitizenOnResolution(
       logger.error(`❌ Still no message found for ${data.type}_resolved even with defaults.`);
       return;
     }
-    await safeSendWhatsApp(company, data.citizenWhatsApp || data.citizenPhone, message);
+    if (data.type === 'grievance') {
+      const templateParams = [
+        fullData.citizenName || '',
+        fullData.grievanceId || '',
+        fullData.departmentName || '',
+        fullData.subDepartmentName || 'N/A',
+        fullData.resolvedByName || 'N/A',
+        fullData.formattedResolvedDate || fullData.formattedDate || '',
+        fullData.remarks || '-'
+      ];
+
+      await sendWhatsAppTemplateWithTextFallback(
+        company,
+        data.citizenWhatsApp || data.citizenPhone,
+        GRIEVANCE_RESOLVED_TEMPLATE_NAME,
+        templateParams,
+        message,
+        { language: GRIEVANCE_TEMPLATE_LANGUAGE, contextLabel: 'grievance_resolved_citizen' }
+      );
+    } else {
+      await safeSendWhatsApp(company, data.citizenWhatsApp || data.citizenPhone, message);
+    }
     if (data.evidenceUrls && data.evidenceUrls.length > 0) {
       await sendMediaIfAvailable(company, data.citizenWhatsApp || data.citizenPhone, data.evidenceUrls, 'Resolution Support Documents');
     }
@@ -1256,7 +1332,27 @@ export async function notifyCitizenOnCreation(
         return;
       }
 
-      await safeSendWhatsApp(company, phoneToNotify, message);
+      if (data.type === 'grievance' && actionKey === 'confirmation') {
+        const templateParams = [
+          fullData.citizenName || '',
+          fullData.grievanceId || '',
+          fullData.departmentName || '',
+          fullData.subDepartmentName || 'N/A',
+          fullData.description || 'No description provided',
+          fullData.formattedDate || ''
+        ];
+
+        await sendWhatsAppTemplateWithTextFallback(
+          company,
+          phoneToNotify,
+          GRIEVANCE_CONFIRMATION_TEMPLATE_NAME,
+          templateParams,
+          message,
+          { language: GRIEVANCE_TEMPLATE_LANGUAGE, contextLabel: 'grievance_confirmation_citizen' }
+        );
+      } else {
+        await safeSendWhatsApp(company, phoneToNotify, message);
+      }
     } else {
       logger.info(`ℹ️ Skipping citizen WhatsApp: phone=${phoneToNotify}, action=${actionKey}, canNotify=${canNotify(company, null, 'whatsapp', `${data.type}_${actionKey}`)}`);
     }
@@ -1320,7 +1416,23 @@ export async function notifyCitizenOnGrievanceStatusChange(data: {
       return;
     }
 
-    await safeSendWhatsApp(company, data.citizenWhatsApp || data.citizenPhone, message);
+    const templateParams = [
+      fullData.citizenName || '',
+      fullData.grievanceId || '',
+      fullData.departmentName || '',
+      fullData.subDepartmentName || 'N/A',
+      fullData.newStatus || data.newStatus || '',
+      fullData.remarks || '-'
+    ];
+
+    await sendWhatsAppTemplateWithTextFallback(
+      company,
+      data.citizenWhatsApp || data.citizenPhone,
+      GRIEVANCE_STATUS_UPDATE_TEMPLATE_NAME,
+      templateParams,
+      message,
+      { language: GRIEVANCE_TEMPLATE_LANGUAGE, contextLabel: 'grievance_status_update_citizen' }
+    );
 
     if (data.evidenceUrls && data.evidenceUrls.length > 0) {
       await sendMediaIfAvailable(company, data.citizenWhatsApp || data.citizenPhone, data.evidenceUrls, 'Status Update Evidence');
