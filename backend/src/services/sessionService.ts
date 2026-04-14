@@ -11,7 +11,7 @@ export interface UserSession {
   data: Record<string, any>;
   pendingAction?: string;
   lastActivity: Date;
-  hasConsent?: boolean;
+  hasConsent?: boolean | null;
 }
 
 const SESSION_TTL = 60 * 60; // 60 minutes in seconds
