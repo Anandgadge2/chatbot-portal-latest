@@ -417,7 +417,7 @@ export default function AssignmentDialog({
           </div>
         </DialogHeader>
 
-        <div className="p-5 space-y-4 flex-1 overflow-visible flex flex-col bg-slate-50">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-50 p-5">
           {/* Filters */}
           <div className="flex flex-col space-y-3">
             {/* Search */}
@@ -520,7 +520,7 @@ export default function AssignmentDialog({
           </div>
 
           {/* Users List */}
-          <div className="flex-1 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="mt-4 min-h-0 flex-1 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-sm">
             {!selectedDepartment ? (
               <div className="p-10 text-center">
                 <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
