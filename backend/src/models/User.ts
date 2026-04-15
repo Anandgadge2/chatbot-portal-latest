@@ -248,6 +248,16 @@ UserSchema.pre('validate', async function (next) {
       this.userId = `USER${String(nextNum).padStart(6, '0')}`;
     }
   }
+
+  if (this.isModified('phone') && this.phone) {
+    try {
+      const { normalizePhoneNumber } = await import('../utils/phoneUtils');
+      this.phone = normalizePhoneNumber(String(this.phone));
+    } catch (error) {
+      console.error('❌ Error normalizing user phone:', error);
+    }
+  }
+
   next();
 });
 

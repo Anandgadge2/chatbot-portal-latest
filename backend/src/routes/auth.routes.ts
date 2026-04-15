@@ -19,6 +19,16 @@ const router = express.Router();
 const PASSWORD_RESET_OTP_TEMPLATE_NAME = process.env.WHATSAPP_PASSWORD_RESET_OTP_TEMPLATE || 'password_reset_otp_v1';
 const PASSWORD_RESET_OTP_TEMPLATE_LANGUAGE = (process.env.WHATSAPP_PASSWORD_RESET_OTP_TEMPLATE_LANGUAGE || 'en') as 'en' | 'hi' | 'mr' | 'or';
 
+const buildPhoneLookupQuery = (rawPhone: string) => {
+  const digitsOnly = String(rawPhone || '').replace(/\D/g, '');
+  const last10Digits = digitsOnly.length >= 10 ? digitsOnly.slice(-10) : digitsOnly;
+  const variants = Array.from(
+    new Set([digitsOnly, last10Digits ? `91${last10Digits}` : '', last10Digits].filter(Boolean)),
+  );
+
+  return variants.length === 1 ? { phone: variants[0] } : { phone: { $in: variants } };
+};
+
 
 const buildSessionResponse = async (user: any) => {
   const access = await resolveUserAccess(user);
@@ -128,7 +138,7 @@ router.post('/sso/login', async (req: Request, res: Response) => {
       return;
     }
 
-    const user = await User.findOne({ phone }).populate('companyId').populate('departmentIds');
+    const user = await User.findOne(buildPhoneLookupQuery(phone)).populate('companyId').populate('departmentIds');
 
     if (!user) {
       res.status(404).json({ success: false, message: 'No account found with this phone number' });
@@ -205,7 +215,7 @@ router.post('/login', async (req: Request, res: Response) => {
       normalizedPhone = normalizePhoneNumber(phoneTrimmed);
     }
 
-    const query: any = email ? { email } : { phone: normalizedPhone };
+    const query: any = email ? { email } : buildPhoneLookupQuery(normalizedPhone);
     const user = await User.findOne(query).select('+password').populate('companyId').populate('departmentIds');
     if (!user) {
       return res.status(401).json({
@@ -287,7 +297,7 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
     }
     const normalizedPhone = normalizePhoneNumber(phoneTrimmed);
 
-    const user = await User.findOne({ phone: normalizedPhone })
+    const user = await User.findOne(buildPhoneLookupQuery(normalizedPhone))
       .select('+resetPasswordOtpHash +resetPasswordOtpExpires +resetPasswordOtpChannel +resetPasswordOtpAttempts')
       .populate('companyId');
 
@@ -420,9 +430,8 @@ router.post('/reset-password', async (req: Request, res: Response) => {
     }
     const normalizedPhone = normalizePhoneNumber(phoneTrimmed);
 
-    const user = await User.findOne({
-      phone: normalizedPhone
-    }).select('+resetPasswordOtpHash +resetPasswordOtpExpires +resetPasswordOtpAttempts +password');
+    const user = await User.findOne(buildPhoneLookupQuery(normalizedPhone))
+      .select('+resetPasswordOtpHash +resetPasswordOtpExpires +resetPasswordOtpAttempts +password');
 
     if (!user || !user.isActive) {
       return res.status(400).json({ success: false, message: 'Invalid OTP or OTP has expired' });
@@ -622,11 +631,22 @@ router.post('/register', authenticate, async (req: Request, res: Response) => {
       return;
     }
 
+    const { validatePhoneNumber, normalizePhoneNumber } = await import('../utils/phoneUtils');
+    const phoneTrimmed = String(phone).trim();
+    if (!validatePhoneNumber(phoneTrimmed)) {
+      res.status(400).json({
+        success: false,
+        message: 'Phone number must be 10 digits or 12 digits (with country code)'
+      });
+      return;
+    }
+    const normalizedPhone = normalizePhoneNumber(phoneTrimmed);
+
     // Check if user already exists by phone in the same company
     // Allow same phone/email across different companies, but not within the same company
     // For SUPER_ADMIN (companyId = null), keep phone/email globally unique
     const phoneQuery: any = { 
-      phone
+      phone: normalizedPhone
     };
     
     if (companyId) {
@@ -687,7 +707,7 @@ router.post('/register', authenticate, async (req: Request, res: Response) => {
       lastName,
       email,
       password,
-      phone,
+      phone: normalizedPhone,
       customRoleId: customRoleId || null,
       companyId,
       departmentIds: departmentId ? [departmentId] : []

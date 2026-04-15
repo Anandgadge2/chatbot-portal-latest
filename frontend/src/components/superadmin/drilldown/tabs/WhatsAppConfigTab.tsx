@@ -535,6 +535,7 @@ export interface WhatsAppConfigTabProps {
 
 export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps) {
   const { user } = useAuth();
+  const currentUserId = (user as any)?._id || (user as any)?.id;
   const { company } = useCompanyContext();
   const { data: cachedConfig } = useWhatsappConfig(companyId);
   const isJharsugudaCompany = isJharsugudaCompanyName(company?.name);
@@ -557,6 +558,40 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
     TEMPLATE_GROUPS.reduce((acc, g) => ({ ...acc, [g.label]: true }), {}),
   );
   const [isCustomCollapsed, setIsCustomCollapsed] = useState(true);
+
+  const buildEmptyConfig = useCallback(() => ({
+    companyId,
+    phoneNumber: "",
+    displayPhoneNumber: "",
+    phoneNumberId: "",
+    businessAccountId: "",
+    accessToken: "",
+    verifyToken: "",
+    webhookUrl: "",
+    webhookSecret: "",
+    isActive: true,
+    chatbotSettings: {
+      isEnabled: true,
+      defaultLanguage: "en",
+      supportedLanguages: ["en"],
+      welcomeMessage: "Welcome! How can we help you today?",
+      offlineMessage: "",
+    },
+    activeFlows: [],
+    rateLimits: {
+      messagesPerMinute: 60,
+      messagesPerHour: 1000,
+      messagesPerDay: 10000,
+    },
+    createdBy: currentUserId,
+  }), [companyId, currentUserId]);
+
+  const updateConfigField = (field: string, value: any) => {
+    setConfig((prev: any) => ({
+      ...(prev || buildEmptyConfig()),
+      [field]: value,
+    }));
+  };
 
   const fetchData = useCallback(async () => {
     try {
@@ -615,15 +650,23 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
     if (cachedConfig) {
       setConfig(cachedConfig);
       setIsEditing(false);
+    } else {
+      setConfig(buildEmptyConfig());
     }
-  }, [cachedConfig]);
+  }, [buildEmptyConfig, cachedConfig]);
 
   const handleSave = async () => {
     try {
       setSaving(true);
-      const method = config?._id ? "put" : "post";
-      const url = config?._id ? `/whatsapp-config/${config._id}` : "/whatsapp-config";
-      await apiClient[method](url, config);
+      const payload = {
+        ...(config || buildEmptyConfig()),
+        companyId,
+        displayPhoneNumber:
+          config?.displayPhoneNumber?.trim() || config?.phoneNumber?.trim() || "",
+      };
+      const method = payload?._id ? "put" : "post";
+      const url = payload?._id ? `/whatsapp-config/${payload._id}` : "/whatsapp-config";
+      await apiClient[method](url, payload);
       toast.success("Connection matrix updated");
       setIsEditing(false);
     } catch (error) {
@@ -761,16 +804,82 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
                 <Label className="text-[9px] font-black uppercase text-slate-500">Official Phone Number</Label>
                 <Input 
                   value={config?.phoneNumber || ""} 
-                  onChange={e => setConfig({...config, phoneNumber: e.target.value})}
+                  onChange={e => updateConfigField("phoneNumber", e.target.value)}
                   disabled={!isEditing}
                   className="h-9 text-xs font-bold"
+                  placeholder="e.g. 918999999999"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[9px] font-black uppercase text-slate-500">Display Phone Number</Label>
+                <Input
+                  value={config?.displayPhoneNumber || ""}
+                  onChange={e => updateConfigField("displayPhoneNumber", e.target.value)}
+                  disabled={!isEditing}
+                  className="h-9 text-xs font-bold"
+                  placeholder="e.g. +91 89999 99999"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[9px] font-black uppercase text-slate-500">Phone Number ID</Label>
+                <Input
+                  value={config?.phoneNumberId || ""}
+                  onChange={e => updateConfigField("phoneNumberId", e.target.value)}
+                  disabled={!isEditing}
+                  className="h-9 text-xs font-bold"
+                  placeholder="Meta phone_number_id"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[9px] font-black uppercase text-slate-500">Business Account ID</Label>
+                <Input
+                  value={config?.businessAccountId || ""}
+                  onChange={e => updateConfigField("businessAccountId", e.target.value)}
+                  disabled={!isEditing}
+                  className="h-9 text-xs font-bold"
+                  placeholder="Meta business account ID"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[9px] font-black uppercase text-slate-500">Access Token</Label>
+                <Input
+                  type="password"
+                  value={config?.accessToken || ""}
+                  onChange={e => updateConfigField("accessToken", e.target.value)}
+                  disabled={!isEditing}
+                  className="h-9 text-xs font-bold"
+                  placeholder="Permanent/system access token"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[9px] font-black uppercase text-slate-500">Verify Token</Label>
+                <Input
+                  value={config?.verifyToken || ""}
+                  onChange={e => updateConfigField("verifyToken", e.target.value)}
+                  disabled={!isEditing}
+                  className="h-9 text-xs font-bold"
+                  placeholder="Webhook verify token"
                 />
               </div>
               <div className="flex items-center justify-between">
                 <Label className="text-[9px] font-black uppercase text-slate-500">Messenger pipeline</Label>
                 <Switch 
                   checked={config?.chatbotSettings?.isEnabled}
-                  onCheckedChange={checked => setConfig({...config, chatbotSettings: {...config.chatbotSettings, isEnabled: checked}})}
+                  onCheckedChange={checked => setConfig((prev: any) => ({
+                    ...(prev || buildEmptyConfig()),
+                    chatbotSettings: {
+                      ...((prev || buildEmptyConfig()).chatbotSettings || {}),
+                      isEnabled: checked,
+                    },
+                  }))}
+                  disabled={!isEditing}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label className="text-[9px] font-black uppercase text-slate-500">WhatsApp config active</Label>
+                <Switch
+                  checked={config?.isActive !== false}
+                  onCheckedChange={checked => updateConfigField("isActive", checked)}
                   disabled={!isEditing}
                 />
               </div>
