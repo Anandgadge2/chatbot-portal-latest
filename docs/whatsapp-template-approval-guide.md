@@ -1,197 +1,184 @@
-# WhatsApp 24-Hour Window Template Approval Guide
+# Collectorate Jharsuguda – WhatsApp Template Verification & Meta Setup Guide
 
-This guide documents **all template-based WhatsApp messages currently used by this portal backend** and exactly how to create them in Meta WhatsApp Manager so they are approved and can be sent outside the 24-hour customer care window.
+This guide is tailored for **Collectorate Jharsuguda** and covers:
 
----
+> For copy-paste ready EN/HI/OR template content, use `docs/jharsuguda-meta-template-content.md`.
 
-## 1) Templates currently used in this portal
-
-The code currently sends these template names:
-
-1. `password_reset_otp_v1`  
-   - Used in password reset OTP flow (`auth.routes.ts`), with 1 body variable for OTP.
-2. `grievance_created_admin_v1`  
-   - Used for grievance-created admin notification (`notificationService.ts`), with:
-     - Header variable `{{1}}` (company name)
-     - Body variables `{{1}}..{{7}}` (recipient/admin details + grievance details)
-
-> Note: `password_reset_otp_v1` can be overridden by env var `WHATSAPP_PASSWORD_RESET_OTP_TEMPLATE`, so if your env points to another template name, create/approve that exact name too.
+1. How to audit every WhatsApp template used by this portal (DB + WhatsApp config page).
+2. Exactly what to enter in Meta templates (header/body/footer/buttons).
+3. Required language setup in **English, Hindi, Odia**.
+4. Admin vs citizen footer behavior.
 
 ---
 
-## 2) Global rules for approval (important)
+## 1) Mandatory content standards you requested
 
-When creating templates in Meta:
+Use these values in Meta template drafts:
 
-- Choose the **right category**:
-  - OTP/Auth use-case → `Authentication`
-  - Service notifications (grievance updates) → `Utility`
-- Variable placeholders must be sequential (`{{1}}`, `{{2}}`, ...).
-- Do not use promotional/marketing language in utility/auth templates.
-- Keep content clear, transactional, and user-expected.
-- Add compliance footer where applicable:
-  - `This is an official government assistance chatbot.`
-  - `Type STOP to unsubscribe`
-- Language in Meta template must match the language code your backend sends.
+- **Header (all templates):**
+  `SAHAJ-Swift Access & Help by Administration, Jharsuguda`
+- **Footer for admin notification templates:**
+  `Digital Grievance Redressal System`
+- **Footer for citizen notification templates:**
+  `District Administration, Jharsuguda`
+- **Admin templates must include CTA button:**
+  - Label: `Access Dashboard`
+  - URL: `https://connect.pugarch.in/`
 
----
-
-## 3) Meta UI: exact create + submit flow
-
-1. Open **Meta Business Suite → WhatsApp Manager → Message templates**.
-2. Click **Create template**.
-3. Fill:
-   - **Template name** (must exactly match backend usage)
-   - **Category**
-   - **Language**
-4. Add **Header** (if needed), **Body**, **Footer**, and **Buttons**.
-5. Use **Add variable** for all placeholders used by backend.
-6. Use realistic sample values in all variable sample fields.
-7. Click **Submit for review**.
-8. Wait for status: **Approved**.
-9. Repeat for each language variant required.
+> Recommendation: Keep the above header/footer exactly identical across EN/HI/OR versions for faster approval consistency.
 
 ---
 
-## 4) Template-by-template field values
+## 2) Templates used in this portal
 
-## A) `password_reset_otp_v1`
+There are two groups to verify:
 
-### Recommended category
-- `Authentication` (preferred), or `Utility` if your account doesn’t support auth template type.
+### A) Meta API template names used directly in backend sends
 
-### Language
-- `English` (required by default code path)
-- Also create Hindi/Marathi/Odia variants if you send those language codes.
+These names are used by backend code while calling `sendWhatsAppTemplate`:
 
-### Header
-- Optional. Keep empty unless required.
+- `password_reset_otp_v1`
+- `grievance_created_admin_v1`
+- `grievance_confirmation_v1`
+- `grievance_status_update_v1`
+- `grievance_resolved_v1`
 
-### Body (exact safe draft)
-```text
-Your password reset OTP is {{1}}. It expires in 10 minutes. Do not share this code with anyone.
+### B) Company template keys editable in WhatsApp Configuration page
+
+These keys are surfaced/managed via WhatsApp config APIs and DB collection `companywhatsapptemplates`:
+
+- Grievance admin: `grievance_created_admin`, `grievance_assigned_admin`, `grievance_reassigned_admin`, `grievance_reverted_admin`, `grievance_resolved_admin`, `grievance_rejected_admin`
+- Grievance citizen: `grievance_confirmation`, `grievance_status_update`, `grievance_resolved`, `grievance_rejected`
+- Command templates: `cmd_stop`, `cmd_restart`, `cmd_menu`, `cmd_back`
+
+---
+
+## 3) Where to put what (Meta UI fields)
+
+For each template (EN/HI/OR), fill Meta fields like this:
+
+1. **Category**
+   - `Authentication`: only OTP template.
+   - `Utility`: all grievance notification templates.
+2. **Language**
+   - Create separate variants: English (`en`), Hindi (`hi`), Odia (`or`).
+3. **Header**
+   - Header type: `Text`
+   - Header text: `SAHAJ-Swift Access & Help by Administration, Jharsuguda`
+4. **Body**
+   - Transactional content only (no marketing).
+   - Keep variables sequential (`{{1}}`, `{{2}}`, ...).
+5. **Footer**
+   - Admin template → `Digital Grievance Redressal System`
+   - Citizen template → `District Administration, Jharsuguda`
+6. **Buttons**
+   - Admin template: add URL button
+     - Button text: `Access Dashboard`
+     - URL: `https://connect.pugarch.in/`
+   - Citizen template: optional/no button unless policy requires.
+
+---
+
+## 4) Language-ready sample footer lines
+
+If reviewers ask translated variants, use these aligned equivalents:
+
+- English
+  - Admin footer: `Digital Grievance Redressal System`
+  - Citizen footer: `District Administration, Jharsuguda`
+- Hindi
+  - Admin footer: `डिजिटल शिकायत निवारण प्रणाली`
+  - Citizen footer: `जिला प्रशासन, झारसुगुड़ा`
+- Odia
+  - Admin footer: `ଡିଜିଟାଲ ଅଭିଯୋଗ ନିବାରଣ ପ୍ରଣାଳୀ`
+  - Citizen footer: `ଜିଲ୍ଲା ପ୍ରଶାସନ, ଝାରସୁଗୁଡା`
+
+> If you need strict uniform brand style, keep the exact English footer text for all languages.
+
+---
+
+## 5) Full verification steps (DB + portal + Meta)
+
+## Step 1: Verify DB records for Collectorate Jharsuguda
+
+Run:
+
+```bash
+cd backend
+npx ts-node src/scripts/auditJharsugudaWhatsAppTemplates.ts
 ```
 
-### Footer (recommended)
-```text
-This is an official government assistance chatbot.
-```
+What this checks:
 
-### Buttons
-- None required for current backend usage.
+- Finds company by Jharsuguda/Collectorate name in `companies`.
+- Reads all templates from `companywhatsapptemplates`.
+- Shows missing/active templates.
+- Verifies expected admin/citizen footer presence.
+- Shows WhatsApp config languages from `companywhatsappconfigs`.
 
-### Variable mapping used by backend
-- `{{1}}` = OTP code (`sendWhatsAppTemplate(..., [otp], ...)`)
+> Pre-requisite: `MONGODB_URI` must be exported.
 
-### Sample values for Meta review form
-- `{{1}}` sample: `482913`
+## Step 2: Verify in WhatsApp Config page
 
----
+Portal path:
 
-## B) `grievance_created_admin_v1`
+- Superadmin → Company → **WhatsApp Configuration**
+- Confirm every template key in section 2(B) exists and is active.
+- Ensure language variants are present (`_en`, `_hi`, `_or`) where your workflow needs per-language messages.
 
-### Category
-- `Utility`
+## Step 3: Create/verify Meta templates
 
-### Language
-- `English` (current code sends `'en'`)
+Meta path:
 
-### Header
-- Type: `Text`
-- Header text:
-```text
-{{1}}
-```
-- Variable mapping:
-  - `{{1}}` = company name
+- Meta Business Suite → WhatsApp Manager → Message templates
 
-### Body (exact draft with seven placeholders)
-```text
-Hello {{1}},
+For each required template:
 
-A new grievance has been created.
-Grievance ID: {{2}}
-Citizen: {{3}}
-Department: {{4}}
-Sub-Department: {{5}}
-Description: {{6}}
-Created On: {{7}}
+1. Create EN + HI + OR variants.
+2. Use required header/footer/button standards from section 1.
+3. Add realistic sample values for variables.
+4. Submit and wait for **Approved** status.
 
-This is an official government assistance chatbot.
-Type STOP to unsubscribe
-```
+## Step 4: Map names and language in backend env
 
-### Footer
-- Optional. If added, keep short and non-promotional.
+Set or verify:
 
-### Buttons
-- Not required for current backend template call.
+- `WHATSAPP_GRIEVANCE_CREATED_ADMIN_TEMPLATE`
+- `WHATSAPP_GRIEVANCE_CONFIRMATION_TEMPLATE`
+- `WHATSAPP_GRIEVANCE_STATUS_UPDATE_TEMPLATE`
+- `WHATSAPP_GRIEVANCE_RESOLVED_TEMPLATE`
+- `WHATSAPP_PASSWORD_RESET_OTP_TEMPLATE`
+- `WHATSAPP_GRIEVANCE_TEMPLATE_LANGUAGE` (`en`/`hi`/`or`)
 
-### Variable mapping used by backend
-- Body `{{1}}` = recipient/admin name
-- Body `{{2}}` = grievance ID
-- Body `{{3}}` = citizen name
-- Body `{{4}}` = department name
-- Body `{{5}}` = sub-department name
-- Body `{{6}}` = grievance description
-- Body `{{7}}` = formatted created date
+Template names in env must exactly match Meta names.
 
-### Sample values for Meta review form
-- Header `{{1}}`: `District Support Office`
-- Body `{{1}}`: `Officer Sharma`
-- Body `{{2}}`: `GRV-2026-004512`
-- Body `{{3}}`: `Ravi Kumar`
-- Body `{{4}}`: `Water Supply`
-- Body `{{5}}`: `Pipeline Maintenance`
-- Body `{{6}}`: `No water supply for 2 days in Ward 9`
-- Body `{{7}}`: `14 Apr 2026, 10:30 AM`
+## Step 5: Live test outside 24-hour window
+
+Run one admin + one citizen flow and confirm:
+
+- Template gets delivered.
+- Admin messages show `Access Dashboard` URL button.
+- Footer changes by recipient type (admin vs citizen).
 
 ---
 
-## 5) Post-approval backend checklist
+## 6) Suggested template naming convention in Meta
 
-1. In Meta, confirm status = **Approved** for every template/language pair.
-2. Ensure template name in backend env/code exactly matches Meta name.
-3. Ensure backend language code matches approved language.
-4. Send a live test:
-   - user outside 24h window
-   - template send succeeds
-   - free-form send is blocked (as expected by policy)
-5. Store screenshot evidence of:
-   - template approved page
-   - successful message delivery
-   - blocked free-form outside 24h
+To keep versioning clear:
+
+- `grievance_created_admin_v1_en`
+- `grievance_created_admin_v1_hi`
+- `grievance_created_admin_v1_or`
+
+Use similar naming for all required templates.
 
 ---
 
-## 6) Rejection troubleshooting (quick map)
+## 7) Quick policy notes to avoid rejection
 
-- **Reason: Variable mismatch**  
-  Ensure count/order of `{{n}}` placeholders exactly matches backend parameters.
-
-- **Reason: Marketing language in utility template**  
-  Remove offers/promotions/CTA sales content.
-
-- **Reason: Ambiguous content**  
-  Make message transactional and event-specific (OTP, grievance, status update).
-
-- **Reason: Unsupported category**  
-  Move OTP template to Authentication category or keep strictly Utility transactional style.
-
----
-
-## 7) Operational recommendation
-
-Maintain a single source-of-truth sheet:
-
-- Template Name
-- Category
-- Language
-- Header variables
-- Body variables
-- Backend source file and line owner
-- Meta status (Pending/Approved/Rejected)
-- Last review date
-
-This prevents drift between code and Meta configuration during audits.
+- Keep grievance utility templates strictly service-oriented.
+- No promotional words/offers.
+- No skipped variable numbers.
+- Keep recipient intent obvious (status/update/confirmation).
+- For admin templates, URL must be official and working HTTPS.
 
