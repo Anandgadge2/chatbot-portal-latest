@@ -600,7 +600,7 @@ export default function StatusUpdateForm({
           ) : (
             <>
               <CheckCircle2 className="w-4 h-4" />
-              <span>Update &amp; Notify</span>
+              <span>Submit &amp; Notify</span>
             </>
           )}
         </button>
