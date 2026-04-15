@@ -673,7 +673,7 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_GRIEVANCE, 
 // @access  Private
 router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async (req: Request, res: Response) => {
   try {
-    const { assignedTo, departmentId } = req.body;
+    const { assignedTo, departmentId, note, description } = req.body;
 
     if (!assignedTo) {
       res.status(400).json({
@@ -717,8 +717,10 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
       return;
     }
 
+    const transferNote = String(note || description || '').trim();
     const oldAssignedTo = grievance.assignedTo;
-    const oldDepartmentId = grievance.departmentId?._id;
+    const oldDepartmentId = grievance.departmentId;
+    const oldSubDepartmentId = grievance.subDepartmentId;
 
     // Update assignment details
     grievance.assignedTo = assignedUser._id;
@@ -729,10 +731,18 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
     if (assignedUser.departmentId) {
       const targetDept = await Department.findById(assignedUser.departmentId).select('_id name parentDepartmentId');
       if (targetDept) {
-        const nextDepartmentId = targetDept.parentDepartmentId ? targetDept.parentDepartmentId : targetDept._id;
+        const parentDepartment = targetDept.parentDepartmentId
+          ? await Department.findById(targetDept.parentDepartmentId).select('_id name')
+          : null;
+        const nextDepartmentId = parentDepartment?._id || targetDept._id;
         const nextSubDepartmentId = targetDept.parentDepartmentId ? targetDept._id : undefined;
+        const toDepartmentName = parentDepartment?.name || targetDept.name || 'Department';
+        const toSubDepartmentName = targetDept.parentDepartmentId ? targetDept.name : '';
 
-        const departmentChanged = !oldDepartmentId || oldDepartmentId.toString() !== nextDepartmentId.toString();
+        const departmentChanged =
+          !oldDepartmentId ||
+          oldDepartmentId.toString() !== nextDepartmentId.toString() ||
+          oldSubDepartmentId?.toString() !== nextSubDepartmentId?.toString();
         if (departmentChanged) {
           grievance.departmentId = nextDepartmentId as any;
           grievance.subDepartmentId = nextSubDepartmentId as any;
@@ -741,12 +751,16 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
           grievance.timeline.push({
             action: 'DEPARTMENT_TRANSFER',
             details: {
-              fromDepartmentId: oldDepartmentId,
+              grievanceId: grievance.grievanceId,
+              fromDepartmentId: oldDepartmentId || null,
+              fromSubDepartmentId: oldSubDepartmentId || null,
               toDepartmentId: nextDepartmentId,
               toSubDepartmentId: nextSubDepartmentId || null,
-              toDepartmentName: targetDept?.name || 'Department',
+              toDepartmentName,
+              toSubDepartmentName: toSubDepartmentName || null,
               toUserName: assignedUser.getFullName(),
-              reason: 'Auto-updated during reassignment'
+              note: transferNote || null,
+              reason: transferNote || 'Auto-updated during reassignment'
             },
             performedBy: req.user!._id,
             timestamp: new Date()
@@ -756,9 +770,11 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
     }
 
     // Add to status history
-    const statusRemarks = departmentId 
-      ? `Assigned to user and transferred to new department`
-      : `Assigned to user`;
+    const statusRemarks = transferNote
+      ? `Assigned to user. Note: ${transferNote}`
+      : departmentId
+        ? `Assigned to user and transferred to new department`
+        : `Assigned to user`;
     
     grievance.statusHistory.push({
       status: GrievanceStatus.ASSIGNED,
@@ -771,9 +787,11 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
     grievance.timeline.push({
       action: 'ASSIGNED',
       details: {
+        grievanceId: grievance.grievanceId,
         fromUserId: oldAssignedTo,
         toUserId: assignedUser._id,
-        toUserName: assignedUser.getFullName()
+        toUserName: assignedUser.getFullName(),
+        note: transferNote || null
       },
       performedBy: req.user!._id,
       timestamp: new Date()

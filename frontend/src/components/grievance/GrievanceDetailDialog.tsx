@@ -162,6 +162,23 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
   const statusConfig = getStatusConfig(grievance.status);
   const createdDate = new Date(grievance.createdAt);
   const timeAgo = formatDistanceToNow(createdDate, { addSuffix: true });
+  const latestTransferContext = [...(grievance.timeline || [])].reverse().find((event: any) => {
+    const note = String(event?.details?.note || '').trim();
+    return !!note && (event.action === 'DEPARTMENT_TRANSFER' || event.action === 'ASSIGNED');
+  });
+  const latestTransferNote = String(latestTransferContext?.details?.note || '').trim();
+  const latestTransferActor =
+    typeof latestTransferContext?.performedBy === 'object' && latestTransferContext?.performedBy
+      ? `${latestTransferContext.performedBy.firstName} ${latestTransferContext.performedBy.lastName}`
+      : '';
+  const latestTransferTarget = [
+    latestTransferContext?.details?.toDepartmentName,
+    latestTransferContext?.details?.toSubDepartmentName
+      ? `(${latestTransferContext.details.toSubDepartmentName})`
+      : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   // Get assigned user info
   const assignedTo =
@@ -252,6 +269,35 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                     <p className="text-sm font-medium text-white leading-relaxed whitespace-pre-wrap">
                       {grievance.resolution}
                     </p>
+                  </div>
+                </div>
+              )}
+
+              {latestTransferNote && (
+                <div className="rounded-2xl border border-sky-200 bg-gradient-to-r from-sky-50 to-cyan-50 p-5 shadow-sm">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-sky-100 text-sky-700">
+                      <ArrowRight className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-[10px] font-black uppercase tracking-widest text-sky-700">
+                        Transfer Context
+                      </h3>
+                      <p className="mt-2 whitespace-pre-wrap text-sm font-medium leading-relaxed text-slate-700">
+                        {latestTransferNote}
+                      </p>
+                      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-semibold text-slate-500">
+                        {latestTransferActor && <span>Shared by {latestTransferActor}</span>}
+                        {latestTransferTarget && <span>Sent to {latestTransferTarget}</span>}
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab("timeline")}
+                          className="text-sky-700 transition-colors hover:text-sky-800"
+                        >
+                          View full routing history
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -480,7 +526,12 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                     if (event.action === "ASSIGNED") {
                        c = { bg: "bg-orange-50", ring: "ring-orange-100", text: "text-orange-600", i: <UserCheck className="w-3 h-3" /> };
                        title = "Personnel Allocation";
-                       desc = `Assigned to ${event.details?.toUserName || "a specialized officer"} for investigation.`;
+                       const assignLines = [
+                         event.details?.grievanceId ? `Grievance ID: ${event.details.grievanceId}` : "",
+                         `Assigned to ${event.details?.toUserName || "a specialized officer"} for investigation.`,
+                         event.details?.note ? `Note: ${event.details.note}` : "",
+                       ].filter(Boolean);
+                       desc = assignLines.join("\n");
                     } else if (event.action === "STATUS_UPDATED") {
                        const iR = ["RESOLVED", "CLOSED"].includes(event.details?.toStatus);
                        c = { bg: iR ? "bg-emerald-50" : "bg-blue-50", ring: iR ? "ring-emerald-100" : "ring-blue-100", text: iR ? "text-emerald-600" : "text-blue-600", i: iR ? <CheckCircle2 className="w-3 h-3" /> : <RefreshCw className="w-3 h-3" /> };
@@ -488,7 +539,16 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                     } else if (event.action === "DEPARTMENT_TRANSFER") {
                        c = { bg: "bg-purple-50", ring: "ring-purple-100", text: "text-purple-600", i: <Building className="w-3 h-3" /> };
                        title = "Cross-Department Routing";
-                       desc = `Re-routed to ${event.details?.toDepartmentName || "relevant authority"} for cross-unit resolution.`;
+                       const targetLabel = [
+                         event.details?.toDepartmentName || "relevant authority",
+                         event.details?.toSubDepartmentName ? `(${event.details.toSubDepartmentName})` : "",
+                       ].filter(Boolean).join(" ");
+                       const transferLines = [
+                         event.details?.grievanceId ? `Grievance ID: ${event.details.grievanceId}` : "",
+                         `Re-routed to ${targetLabel} for cross-unit resolution.`,
+                         event.details?.note ? `Note: ${event.details.note}` : "",
+                       ].filter(Boolean);
+                       desc = transferLines.join("\n");
                     }
 
                     const perf = typeof event.performedBy === "object" ? `${event.performedBy.firstName} ${event.performedBy.lastName}` : "Automated System";
@@ -504,7 +564,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                               <span className="text-[9px] font-bold text-slate-400 font-mono">{formatDateTime(event.timestamp)}</span>
                            </div>
                            <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                             <p className="text-xs text-slate-600 font-medium leading-relaxed">{desc || "Status update logged without additional remarks."}</p>
+                             <p className="whitespace-pre-line text-xs text-slate-600 font-medium leading-relaxed">{desc || "Status update logged without additional remarks."}</p>
                              <div className="mt-2 flex items-center gap-1.5 opacity-60">
                                 <User className="w-2.5 h-2.5 text-slate-400" />
                                 <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Actioned By {perf}</span>

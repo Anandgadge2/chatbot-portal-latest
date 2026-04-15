@@ -182,7 +182,16 @@ export default function AnalyticsTab({ companyId }: { companyId?: string | null 
                     data={[
                       { name: 'Pending', value: stats?.grievances?.pending || 0 },
                       { name: 'Resolved', value: stats?.grievances?.resolved || 0 },
-                      { name: 'Other', value: (stats?.grievances?.total - (stats?.grievances?.pending + stats?.grievances?.resolved)) || 0 }
+                      {
+                        name: 'Other',
+                        value:
+                          ((stats?.grievances?.registeredTotal ??
+                            stats?.grievances?.total ??
+                            0) -
+                            ((stats?.grievances?.pending || 0) +
+                              (stats?.grievances?.resolved || 0))) ||
+                          0,
+                      }
                     ]}
                     cx="50%"
                     cy="50%"
@@ -200,7 +209,9 @@ export default function AnalyticsTab({ companyId }: { companyId?: string | null 
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-4xl font-black text-slate-900 tracking-tighter leading-none">{stats?.grievances?.total || 0}</span>
+                <span className="text-4xl font-black text-slate-900 tracking-tighter leading-none">
+                  {stats?.grievances?.registeredTotal ?? stats?.grievances?.total ?? 0}
+                </span>
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">Packets Trace</span>
               </div>
             </div>

@@ -151,6 +151,7 @@ export const dashboard = async (req: Request, res: Response) => {
     // 🚀 Performance Optimization: Single Parallel Block for ALL queries (approx 35+ metrics)
     const [
       totalGrievances,
+      openGrievances,
       pendingGrievances,
       resolvedGrievances,
       assignedGrievancesCount,
@@ -189,6 +190,7 @@ export const dashboard = async (req: Request, res: Response) => {
       activeUsers,
     ] = await Promise.all([
       Grievance.countDocuments({ ...baseQuery }),
+      Grievance.countDocuments({ ...baseQuery, status: { $in: [GrievanceStatus.PENDING, GrievanceStatus.ASSIGNED, GrievanceStatus.REVERTED] } }),
       Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.PENDING }),
       Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.RESOLVED }),
       Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.ASSIGNED }),
@@ -258,7 +260,8 @@ export const dashboard = async (req: Request, res: Response) => {
       success: true,
       data: {
         grievances: {
-          total: totalGrievances,
+          total: openGrievances,
+          registeredTotal: totalGrievances,
           pending: pendingGrievances,
           assigned: assignedGrievances,
           reverted: revertedGrievances,

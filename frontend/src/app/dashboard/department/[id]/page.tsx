@@ -435,12 +435,7 @@ export default function DepartmentDetail() {
     { name: "Resolved", value: stats.resolvedGrievances, color: "#10b981" },
     {
       name: "In Progress",
-      value: Math.max(
-        0,
-        stats.totalGrievances -
-          stats.pendingGrievances -
-          stats.resolvedGrievances,
-      ),
+      value: Math.max(0, stats.totalGrievances - stats.pendingGrievances),
       color: "#6366f1",
     },
   ].filter((item) => item.value > 0);
@@ -457,8 +452,12 @@ export default function DepartmentDetail() {
   }, []);
 
   const resolutionRate =
-    stats.totalGrievances > 0
-      ? Math.round((stats.resolvedGrievances / stats.totalGrievances) * 100)
+    stats.resolvedGrievances + stats.totalGrievances > 0
+      ? Math.round(
+          (stats.resolvedGrievances /
+            (stats.resolvedGrievances + stats.totalGrievances)) *
+            100,
+        )
       : 0;
 
   if (loading) {
@@ -730,13 +729,13 @@ export default function DepartmentDetail() {
                       </span>
                     </div>
                     <p className="text-2xl font-black text-slate-900 tracking-tighter">
-                      {grievances.length}
+                      {stats.totalGrievances}
                     </p>
                     <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">
                       Active Grievances
                     </p>
                     <p className="text-[10px] text-slate-400 mt-0.5">
-                      Total: {stats.totalGrievances}
+                      Open now in this department
                     </p>
                   </div>
                 )}
@@ -1275,7 +1274,7 @@ export default function DepartmentDetail() {
                     </h2>
                     <p className="text-slate-400 text-xs mt-0.5">
                       {department.name} · {stats.totalUsers} staff ·{" "}
-                      {stats.totalGrievances} total grievances
+                      {stats.totalGrievances} open grievances
                     </p>
                   </div>
                 </div>
@@ -1310,7 +1309,7 @@ export default function DepartmentDetail() {
                     <FileText className="w-4 h-4" />
                   </div>
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-50 text-slate-500">
-                    {stats.totalGrievances} total
+                    {stats.totalGrievances} open
                   </span>
                 </div>
                 <p className="text-2xl font-black text-slate-900 tracking-tighter">
@@ -1561,7 +1560,7 @@ export default function DepartmentDetail() {
                     </ResponsiveContainer>
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                        <div className="text-center">
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total</p>
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Open</p>
                           <p className="text-xl font-black text-slate-800">{stats.totalGrievances}</p>
                        </div>
                     </div>

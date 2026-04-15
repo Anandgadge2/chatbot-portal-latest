@@ -123,8 +123,8 @@ export const grievanceAPI = {
     return apiClient.put(`/grievances/${id}/status`, { status, remarks });
   },
 
-  assign: async (id: string, assignedTo: string, departmentId?: string): Promise<{ success: boolean; data: { grievance: Grievance } }> => {
-    return apiClient.put(`/grievances/${id}/assign`, { assignedTo, departmentId });
+  assign: async (id: string, assignedTo: string, departmentId?: string, note?: string): Promise<{ success: boolean; data: { grievance: Grievance } }> => {
+    return apiClient.put(`/grievances/${id}/assign`, { assignedTo, departmentId, note });
   },
 
   update: async (id: string, data: Partial<CreateGrievanceData>): Promise<{ success: boolean; data: { grievance: Grievance } }> => {

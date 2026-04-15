@@ -282,10 +282,7 @@ export default function DepartmentDrillDown() {
     { name: "Resolved", value: stats.resolvedGrievances, color: "#00C49F" },
     {
       name: "In Progress",
-      value:
-        stats.totalGrievances -
-        stats.pendingGrievances -
-        stats.resolvedGrievances,
+      value: Math.max(0, stats.totalGrievances - stats.pendingGrievances),
       color: "#0088FE",
     },
   ].filter((item) => item.value > 0);

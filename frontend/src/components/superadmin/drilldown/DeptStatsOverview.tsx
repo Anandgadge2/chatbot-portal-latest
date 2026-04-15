@@ -53,7 +53,7 @@ const DeptStatsOverview: React.FC<DeptStatsOverviewProps> = ({
             <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
               <FileText className="w-4 h-4 text-white" />
             </div>
-            Grievances
+            Open Grievances
           </CardTitle>
         </CardHeader>
         <CardContent className="relative">
@@ -61,7 +61,7 @@ const DeptStatsOverview: React.FC<DeptStatsOverviewProps> = ({
             {stats.totalGrievances}
           </p>
           <p className="text-sm text-white/70">
-            {stats.pendingGrievances} pending
+            {stats.pendingGrievances} pending right now
           </p>
         </CardContent>
       </Card>

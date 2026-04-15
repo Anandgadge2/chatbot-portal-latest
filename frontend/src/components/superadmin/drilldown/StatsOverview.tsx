@@ -89,7 +89,7 @@ export default function StatsOverview({
         <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-bl-full group-hover:bg-amber-500/10 transition-colors"></div>
         <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 relative">
           <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-            Grievances
+            Open Grievances
           </CardTitle>
           <div className="w-9 h-9 bg-amber-50 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
             <FileText className="w-4 h-4 text-amber-600" />

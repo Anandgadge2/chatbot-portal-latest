@@ -155,6 +155,7 @@ import {
 interface DashboardStats {
   grievances: {
     total: number;
+    registeredTotal?: number;
     pending: number;
     assigned?: number;
     inProgress: number;
@@ -4494,7 +4495,10 @@ function DashboardContent() {
                                         <p className="text-[8px] font-bold text-slate-400 mt-0.5">
                                           {(
                                             (d.value /
-                                              (stats?.grievances.total || 1)) *
+                                              (stats?.grievances
+                                                .registeredTotal ||
+                                                stats?.grievances.total ||
+                                                1)) *
                                             100
                                           ).toFixed(0)}
                                           %
@@ -9434,12 +9438,17 @@ function DashboardContent() {
               setShowGrievanceAssignment(false);
               setSelectedGrievanceForAssignment(null);
             }}
-            onAssign={async (userId: string, departmentId?: string) => {
+            onAssign={async (
+              userId: string,
+              departmentId?: string,
+              note?: string,
+            ) => {
               if (!selectedGrievanceForAssignment) return;
               await grievanceAPI.assign(
                 selectedGrievanceForAssignment._id,
                 userId,
                 departmentId,
+                note,
               );
               fetchGrievances(grievancePage, true);
               fetchDashboardData(true);
@@ -9512,7 +9521,11 @@ function DashboardContent() {
               setShowAppointmentAssignment(false);
               setSelectedAppointmentForAssignment(null);
             }}
-            onAssign={async (userId: string, departmentId?: string) => {
+            onAssign={async (
+              userId: string,
+              departmentId?: string,
+              _note?: string,
+            ) => {
               await appointmentAPI.assign(
                 selectedAppointmentForAssignment._id,
                 userId,

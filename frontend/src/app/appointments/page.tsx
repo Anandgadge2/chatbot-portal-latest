@@ -102,7 +102,11 @@ export default function AppointmentsPage() {
     setAssignDialogOpen(true);
   };
 
-  const handleAssign = async (userId: string, departmentId?: string) => {
+  const handleAssign = async (
+    userId: string,
+    departmentId?: string,
+    _note?: string,
+  ) => {
     if (!appointmentToAssign) return;
     await appointmentAPI.assign(appointmentToAssign._id, userId, departmentId);
     await fetchAppointments();

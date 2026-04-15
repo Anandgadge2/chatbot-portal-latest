@@ -767,22 +767,22 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between pb-4 border-b">
+      <div className="flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-sm font-black text-slate-800 uppercase tracking-tight">WhatsApp API Config</h2>
           <p className="text-[10px] text-slate-500 font-medium">Meta Business Integration</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
           {!isEditing ? (
-            <Button onClick={() => setIsEditing(true)} variant="outline" size="sm" className="font-bold text-[10px] uppercase">
+            <Button onClick={() => setIsEditing(true)} variant="outline" size="sm" className="w-full font-bold text-[10px] uppercase sm:w-auto">
               Edit Params
             </Button>
           ) : (
-            <div className="flex gap-2">
-              <Button onClick={handleSave} disabled={saving} size="sm" className="bg-indigo-600 font-bold text-[10px] uppercase">
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+              <Button onClick={handleSave} disabled={saving} size="sm" className="w-full bg-indigo-600 font-bold text-[10px] uppercase sm:w-auto">
                 {saving ? "Deploying..." : "Commit Changes"}
               </Button>
-              <Button onClick={() => setIsEditing(false)} variant="ghost" size="sm" className="text-[10px] uppercase">
+              <Button onClick={() => setIsEditing(false)} variant="ghost" size="sm" className="w-full text-[10px] uppercase sm:w-auto">
                 Cancel
               </Button>
             </div>
@@ -895,9 +895,9 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
                 <Bell className="w-3 h-3 text-emerald-400" /> Outbound Designer
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-0 flex flex-col md:flex-row min-h-[500px]">
+            <CardContent className="flex min-h-[500px] flex-col p-0 lg:flex-row">
               {/* Sidebar */}
-              <div className="w-full md:w-64 border-r bg-slate-50/30 overflow-y-auto max-h-[700px]">
+              <div className="w-full border-b bg-slate-50/30 max-h-[280px] overflow-y-auto lg:max-h-[700px] lg:w-72 lg:border-b-0 lg:border-r">
                  {TEMPLATE_GROUPS.map(group => (
                    <div key={group.label} className="border-b">
                      <div onClick={() => toggleGroup(group.label)} className="p-3 flex items-center justify-between cursor-pointer hover:bg-slate-50">
@@ -940,13 +940,13 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
               </div>
 
               {/* Editor */}
-              <div className="flex-1 p-6 space-y-4 bg-white relative">
-                 <div className="flex items-center justify-between border-b pb-4">
-                    <div className="flex items-center gap-4">
-                       <div>
+              <div className="relative flex-1 space-y-4 bg-white p-4 sm:p-6">
+                 <div className="flex flex-col gap-4 border-b pb-4 xl:flex-row xl:items-start xl:justify-between">
+                    <div className="flex flex-col gap-4 xl:flex-row xl:items-start">
+                       <div className="min-w-0">
                           <h3 className="text-xs font-black uppercase text-slate-800">{normalizedCurrentTemplate.label || selectedWaTemplate}</h3>
                           <p className="text-[10px] text-slate-500 mt-1 italic">{KEY_META[selectedWaTemplate]?.when || "Manual Trigger"}</p>
-                          <div className="flex items-center gap-2 mt-3">
+                          <div className="mt-3 flex flex-wrap items-center gap-2">
                             {TEMPLATE_LANGS.map((lang) => (
                               <button
                                 key={lang.code}
@@ -964,7 +964,7 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
                             ))}
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 px-3 py-1 bg-emerald-50 border border-emerald-200 rounded-full">
+                        <div className="flex w-fit items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1">
                            <Label htmlFor="template-active-switch" className="text-[9px] font-black uppercase text-emerald-700 cursor-pointer select-none">
                               {normalizedCurrentTemplate.isActive !== false ? "Active" : "Inactive"}
                            </Label>
@@ -1004,22 +1004,24 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
                               className="scale-75 data-[state=checked]:bg-emerald-600"
                            />
                         </div>
-                       <Button onClick={() => setIsPreviewOpen(true)} variant="outline" size="sm" className="h-8 text-[10px] font-bold border-indigo-200 text-indigo-600">
-                          <Eye className="w-3 h-3 mr-1" /> Preview
-                       </Button>
-                       <Button 
-                          onClick={handleSaveWhatsAppTemplates} 
-                          disabled={savingTemplates}
-                          size="sm" 
-                          className="h-8 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[10px] uppercase px-4 shadow-sm transition-all"
-                       >
-                          {savingTemplates ? (
-                            <LoadingSpinner className="w-3 h-3 mr-1" />
-                          ) : (
-                            <Save className="w-3 h-3 mr-1" />
-                          )}
-                          {savingTemplates ? "Updating..." : "Save Logic"}
-                       </Button>
+                    </div>
+                    <div className="flex flex-col gap-2 sm:flex-row xl:flex-col">
+                      <Button onClick={() => setIsPreviewOpen(true)} variant="outline" size="sm" className="h-8 text-[10px] font-bold border-indigo-200 text-indigo-600">
+                         <Eye className="w-3 h-3 mr-1" /> Preview
+                      </Button>
+                      <Button
+                         onClick={handleSaveWhatsAppTemplates}
+                         disabled={savingTemplates}
+                         size="sm"
+                         className="h-8 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[10px] uppercase px-4 shadow-sm transition-all"
+                      >
+                         {savingTemplates ? (
+                           <LoadingSpinner className="w-3 h-3 mr-1" />
+                         ) : (
+                           <Save className="w-3 h-3 mr-1" />
+                         )}
+                         {savingTemplates ? "Updating..." : "Save Logic"}
+                      </Button>
                     </div>
                  </div>
 
@@ -1029,7 +1031,7 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
                       ...(normalizedCurrentTemplate.messageTranslations || {}),
                       [activeTemplateLanguage]: e.target.value,
                     })}
-                    className="w-full min-h-[400px] p-4 text-xs font-bold font-mono bg-slate-50 border rounded-xl outline-none resize-none"
+                    className="min-h-[320px] w-full rounded-xl border bg-slate-50 p-4 text-xs font-bold font-mono outline-none resize-none sm:min-h-[400px]"
                  />
 
                  <div className="space-y-2">

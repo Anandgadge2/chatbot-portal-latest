@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { userAPI, User } from '../../lib/api/user';
 import { departmentAPI, Department } from '../../lib/api/department';
-import { UserCircle, Building2, Search, Loader2, UserCheck, Mail, Shield, ChevronRight, X, Users, ArrowRight, Layers } from 'lucide-react';
+import { Building2, Search, Loader2, UserCheck, Mail, X, Users, Layers } from 'lucide-react';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '../ui/LoadingSpinner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -12,7 +12,7 @@ import { SearchableSelect } from '../ui/SearchableSelect';
 interface AssignmentDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onAssign: (userId: string, departmentId?: string) => Promise<void>;
+  onAssign: (userId: string, departmentId?: string, note?: string) => Promise<void>;
   itemType: 'grievance' | 'appointment';
   itemId: string; 
   companyId: string;
@@ -50,6 +50,7 @@ export default function AssignmentDialog({
   const [selectedDepartment, setSelectedDepartment] = useState<string>('');
   const [selectedSubDepartment, setSelectedSubDepartment] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [assignmentNote, setAssignmentNote] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingDepts, setLoadingDepts] = useState(false);
   const [assigningUserId, setAssigningUserId] = useState<string | null>(null);
@@ -164,6 +165,7 @@ export default function AssignmentDialog({
       setAllDepartments([]);
       setSelectedDepartment('');
       setSelectedSubDepartment('');
+      setAssignmentNote('');
       setAssigningUserId(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -307,7 +309,7 @@ export default function AssignmentDialog({
         ? (typeof assignedUser.departmentId === 'object' ? assignedUser.departmentId._id : assignedUser.departmentId)
         : undefined;
       
-      await onAssign(userId, userDeptId);
+      await onAssign(userId, userDeptId, assignmentNote.trim() || undefined);
       
       if (userDeptId && currentDepartmentId && userDeptId !== currentDepartmentId) {
         const newDept = allDepartments.find(d => d._id === userDeptId);
@@ -381,36 +383,39 @@ export default function AssignmentDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent hideClose className="w-[96vw] max-w-2xl max-h-[92vh] sm:max-h-[85vh] overflow-hidden flex flex-col p-0 gap-0 rounded-2xl sm:rounded-[2rem] border-0 shadow-2xl bg-white">
-        {/* Modern Slate Header */}
-        <div className="bg-slate-900 p-4 sm:p-8 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-transparent to-purple-500/10"></div>
-          <div className="absolute -top-10 -right-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl"></div>
-          
-          <div className="relative flex items-start justify-between gap-3">
-            <div className="flex items-center gap-3 sm:gap-5 min-w-0">
-              <div className="w-10 h-10 sm:w-14 sm:h-14 bg-white/10 rounded-xl sm:rounded-2xl flex items-center justify-center backdrop-blur-xl border border-white/20 shadow-inner flex-shrink-0">
-                <UserCheck className="w-5 h-5 sm:w-7 sm:h-7 text-cyan-100" />
-              </div>
-              <div className="min-w-0">
-                <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight truncate">
-                  Assign {itemType === 'grievance' ? 'Grievance' : 'Appointment'}
-                </h2>
-                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                  <span className="text-cyan-50 text-[11px] sm:text-xs font-semibold uppercase tracking-[0.08em]">Currently With:</span>
-                  <span className="px-2.5 py-1 bg-white/15 rounded-full text-[10px] font-bold uppercase tracking-[0.06em] text-white backdrop-blur-md border border-white/30 max-w-full truncate">
-                    {getCurrentAssigneeName()}
-                  </span>
+        <DialogHeader className="relative space-y-0 border-b-0 p-0 text-left">
+          <div className="relative overflow-hidden rounded-t-2xl sm:rounded-t-[2rem] bg-gradient-to-r from-[#1aa6ea] via-[#0d9ee3] to-[#2bb4ef] px-5 py-5 sm:px-6 sm:py-6">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.2),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.16),transparent_28%)]" />
+            <div className="relative flex items-start justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl border border-white/30 bg-white/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.25)] backdrop-blur-md">
+                  <UserCheck className="h-6 w-6 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <DialogTitle className="truncate text-2xl font-black tracking-tight text-white sm:text-[2rem]">
+                    Assign {itemType === 'grievance' ? 'Grievance' : 'Appointment'}
+                  </DialogTitle>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                    <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-cyan-50/90">
+                      Currently with
+                    </span>
+                    <span className="max-w-full truncate rounded-full border border-white/35 bg-white/16 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.06em] text-white backdrop-blur-sm">
+                      {getCurrentAssigneeName()}
+                    </span>
+                  </div>
                 </div>
               </div>
+
+              <button
+                onClick={onClose}
+                className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl border border-white/35 bg-white/12 transition-all duration-200 hover:bg-white/20"
+                aria-label="Close assignment dialog"
+              >
+                <X className="h-5 w-5 text-white" />
+              </button>
             </div>
-            <button 
-              onClick={onClose}
-              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all duration-300 border border-white/40 group cursor-pointer flex-shrink-0"
-            >
-              <X className="w-4 h-4 sm:w-5 sm:h-5 text-white group-hover:text-white transition-colors" />
-            </button>
           </div>
-        </div>
+        </DialogHeader>
 
         <div className="p-5 space-y-4 flex-1 overflow-visible flex flex-col bg-slate-50">
           {/* Filters */}
@@ -493,6 +498,23 @@ export default function AssignmentDialog({
                     <span className="text-indigo-400"> (sub-department)</span>
                   )}
                 </span>
+              </div>
+            )}
+
+            {itemType === 'grievance' && (
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1">
+                  Note / Description
+                  <span className="ml-1 text-[9px] font-semibold normal-case tracking-normal text-slate-400">
+                    (optional)
+                  </span>
+                </label>
+                <textarea
+                  value={assignmentNote}
+                  onChange={(e) => setAssignmentNote(e.target.value)}
+                  placeholder="Add context for this sub-department transfer..."
+                  className="min-h-[88px] w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-sm outline-none transition-all placeholder:text-slate-400 focus:border-transparent focus:ring-2 focus:ring-indigo-500"
+                />
               </div>
             )}
           </div>
