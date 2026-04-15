@@ -382,17 +382,17 @@ export default function AssignmentDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent hideClose className="w-[96vw] max-w-2xl max-h-[92vh] sm:max-h-[85vh] overflow-hidden flex flex-col p-0 gap-0 rounded-2xl sm:rounded-[2rem] border-0 shadow-2xl bg-white">
+      <DialogContent hideClose className="w-[96vw] max-w-2xl max-h-[92vh] sm:max-h-[88vh] overflow-y-auto flex flex-col p-0 gap-0 rounded-2xl sm:rounded-[2rem] border-0 shadow-2xl bg-white">
         <DialogHeader className="relative space-y-0 border-b-0 p-0 text-left">
-          <div className="relative overflow-hidden rounded-t-2xl sm:rounded-t-[2rem] bg-gradient-to-r from-[#1aa6ea] via-[#0d9ee3] to-[#2bb4ef] px-5 py-5 sm:px-6 sm:py-6">
+          <div className="relative overflow-hidden rounded-t-2xl sm:rounded-t-[2rem] bg-gradient-to-r from-[#1aa6ea] via-[#0d9ee3] to-[#2bb4ef] px-5 py-3 sm:px-6 sm:py-4">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.2),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.16),transparent_28%)]" />
             <div className="relative flex items-start justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3 sm:gap-4">
-                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl border border-white/30 bg-white/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.25)] backdrop-blur-md">
-                  <UserCheck className="h-6 w-6 text-white" />
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl border border-white/30 bg-white/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.25)] backdrop-blur-md">
+                  <UserCheck className="h-5 w-5 text-white" />
                 </div>
                 <div className="min-w-0">
-                  <DialogTitle className="truncate text-2xl font-black tracking-tight text-white sm:text-[2rem]">
+                  <DialogTitle className="truncate text-xl font-black tracking-tight text-white sm:text-2xl">
                     Assign {itemType === 'grievance' ? 'Grievance' : 'Appointment'}
                   </DialogTitle>
                   <div className="mt-1.5 flex flex-wrap items-center gap-2">
@@ -408,29 +408,29 @@ export default function AssignmentDialog({
 
               <button
                 onClick={onClose}
-                className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl border border-white/35 bg-white/12 transition-all duration-200 hover:bg-white/20"
+                className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl border border-white/35 bg-white/12 transition-all duration-200 hover:bg-white/20"
                 aria-label="Close assignment dialog"
               >
-                <X className="h-5 w-5 text-white" />
+                <X className="h-4 w-4 text-white" />
               </button>
             </div>
           </div>
         </DialogHeader>
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-50 p-5">
+        <div className="flex flex-col bg-slate-50 p-4">
           {/* Filters */}
-          <div className="flex flex-col space-y-3">
-            {/* Search */}
-            <div className="relative group">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4 group-focus-within:text-indigo-500 transition-colors" />
-              <input
-                type="text"
-                placeholder="Search name, email, or ID..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm transition-all bg-white shadow-sm font-medium"
-              />
-            </div>
+          <div className="flex flex-col space-y-2">
+
+
+
+
+
+
+
+
+
+
+
 
             {/* Department & Sub-Department Dropdowns - Always shown */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -513,14 +513,14 @@ export default function AssignmentDialog({
                   value={assignmentNote}
                   onChange={(e) => setAssignmentNote(e.target.value)}
                   placeholder="Add context for this sub-department transfer..."
-                  className="min-h-[88px] w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-sm outline-none transition-all placeholder:text-slate-400 focus:border-transparent focus:ring-2 focus:ring-indigo-500"
+                  className="min-h-[60px] w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-sm outline-none transition-all placeholder:text-slate-400 focus:border-transparent focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
             )}
           </div>
 
           {/* Users List */}
-          <div className="mt-4 min-h-0 flex-1 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="mt-3 rounded-xl border border-slate-200 bg-white shadow-sm">
             {!selectedDepartment ? (
               <div className="p-10 text-center">
                 <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
