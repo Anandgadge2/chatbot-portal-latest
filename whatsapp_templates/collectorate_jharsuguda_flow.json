@@ -427,7 +427,7 @@
       },
       "data": {
         "label": "Confirm Submission (EN)",
-        "messageText": "📋 *Confirm Submission*\n\nPlease verify your details:\n\n👤 *Name:* {citizenName}\n🏢 *Dept:* {departmentName}\n{subDepartmentLineEn}\n📝 *Issue:* {description}\n\n👇 Is this correct?",
+        "messageText": "📋 *Confirm Submission*\n\nPlease verify your details:\n\n👤 *Name:* {citizenName}\n🏢 *Dept:* {departmentName}\n{subDepartmentLineEn}\n📝 *Issue:* {description}\n✅ *Consent:* Given\n\n👇 Is this correct?",
         "buttons": [
           {
             "id": "submit_grv_en",
@@ -551,7 +551,7 @@
       },
       "data": {
         "label": "Confirm Submission (HI)",
-        "messageText": "📋 *सबमिशन की पुष्टि करें*\n\nकृपया अपने विवरणों को सत्यापित करें:\n\n👤 *नाम:* {citizenName}\n🏢 *विभाग:* {departmentName}\n{subDepartmentLineHi}\n📝 *समस्या:* {description}\n\n👇 क्या यह सही है?",
+        "messageText": "📋 *सबमिशन की पुष्टि करें*\n\nकृपया अपने विवरणों को सत्यापित करें:\n\n👤 *नाम:* {citizenName}\n🏢 *विभाग:* {departmentName}\n{subDepartmentLineHi}\n📝 *समस्या:* {description}\n✅ *सहमति:* प्रदान की गई\n\n👇 क्या यह सही है?",
         "buttons": [
           {
             "id": "submit_grv_hi",
@@ -675,7 +675,7 @@
       },
       "data": {
         "label": "Confirm Submission (OR)",
-        "messageText": "📋 *ଦାଖଲ ନିଶ୍ଚିତ କରନ୍ତୁ*\n\nଦୟାକରି ଆପଣଙ୍କର ବିବରଣୀ ଯାଞ୍ଚ କରନ୍ତୁ:\n\n👤 *ନାମ:* {citizenName}\n🏢 *ବିଭାଗ:* {departmentName}\n{subDepartmentLineOr}\n📝 *ସମସ୍ୟା:* {description}\n\n👇 ଏହା ସଠିକ୍ କି?",
+        "messageText": "📋 *ଦାଖଲ ନିଶ୍ଚିତ କରନ୍ତୁ*\n\nଦୟାକରି ଆପଣଙ୍କର ବିବରଣୀ ଯାଞ୍ଚ କରନ୍ତୁ:\n\n👤 *ନାମ:* {citizenName}\n🏢 *ବିଭାଗ:* {departmentName}\n{subDepartmentLineOr}\n📝 *ସମସ୍ୟା:* {description}\n✅ *ସମ୍ମତି:* ପ୍ରଦାନ କରାଯାଇଛି\n\n👇 ଏହା ସଠିକ୍ କି?",
         "buttons": [
           {
             "id": "submit_grv_or",
@@ -845,7 +845,8 @@
       },
       "data": {
         "label": "Grievance Success (EN)",
-        "messageText": ""
+        "messageText": "",
+        "clearSession": true
       }
     },
     {
@@ -857,7 +858,8 @@
       },
       "data": {
         "label": "Grievance Success (HI)",
-        "messageText": ""
+        "messageText": "",
+        "clearSession": true
       }
     },
     {
@@ -869,7 +871,8 @@
       },
       "data": {
         "label": "Grievance Success (OR)",
-        "messageText": ""
+        "messageText": "",
+        "clearSession": true
       }
     },
     {
@@ -933,17 +936,17 @@
       },
       "data": {
         "label": "Data Consent (HI)",
-        "messageText": "*Data Processing Consent*\n\nPlease confirm that you allow grievance registration and resolution using the details shared in this chat.\n\nThis is an official government assistance chatbot.\nType STOP to unsubscribe.\n\nPlease choose:",
+        "messageText": "*डेटा प्रोसेसिंग सहमति*\n\nकृपया पुष्टि करें कि आप इस चैट में साझा किए गए विवरणों का उपयोग करके शिकायत पंजीकरण और समाधान की अनुमति देते हैं।\n\nयह एक आधिकारिक सरकारी सहायता चैटबॉट है।\nअनसब्सक्राइब करने के लिए STOP टाइप करें।\n\nकृपया चुनें:",
         "buttons": [
           {
             "id": "grv_consent_data_yes_hi",
-            "text": "Agree",
+            "text": "सहमति है",
             "type": "quick_reply",
             "nextStepId": "grv_consent_updates_hi"
           },
           {
             "id": "grv_consent_data_no_hi",
-            "text": "Do not agree",
+            "text": "सहमति नहीं है",
             "type": "quick_reply",
             "nextStepId": "main_menu_hi"
           }
@@ -959,17 +962,17 @@
       },
       "data": {
         "label": "Notification Consent (HI)",
-        "messageText": "*WhatsApp Update Consent*\n\nWould you like to receive grievance status updates on WhatsApp using approved templates?\n\nThis is an official government assistance chatbot.\nType STOP to unsubscribe.\n\nPlease choose:",
+        "messageText": "*व्हाट्सएप अपडेट सहमति*\n\nक्या आप अनुमोदित टेम्प्लेट का उपयोग करके व्हाट्सएप पर शिकायत स्थिति अपडेट प्राप्त करना चाहेंगे?\n\nयह एक आधिकारिक सरकारी सहायता चैटबॉट है।\nअनसब्सक्राइब करने के लिए STOP टाइप करें।\n\nकृपया चुनें:",
         "buttons": [
           {
             "id": "grv_consent_updates_yes_hi",
-            "text": "Yes, send updates",
+            "text": "हाँ, अपडेट भेजें",
             "type": "quick_reply",
             "nextStepId": "grv_confirm_hi"
           },
           {
             "id": "grv_consent_updates_no_hi",
-            "text": "No updates",
+            "text": "अपडेट नहीं चाहिए",
             "type": "quick_reply",
             "nextStepId": "grv_confirm_hi"
           }
@@ -985,17 +988,17 @@
       },
       "data": {
         "label": "Data Consent (OR)",
-        "messageText": "*Data Processing Consent*\n\nPlease confirm that you allow grievance registration and resolution using the details shared in this chat.\n\nThis is an official government assistance chatbot.\nType STOP to unsubscribe.\n\nPlease choose:",
+        "messageText": "*ଡାଟା ପ୍ରୋସେସିଂ ସମ୍ମତି*\n\nଅଭିଯୋଗ ପଞ୍ଜିକରଣ ଏବଂ ସମାଧାନ ପାଇଁ ଏହି ଚାଟ୍‌ରେ ସେୟାର କରାଯାଇଥିବା ବିବରଣୀ ବ୍ୟବହାର କରିବାକୁ ଆପଣ ଅନୁମତି ଦେଉଛନ୍ତି ବୋଲି ଦୟାକରି ନିଶ୍ଚିତ କରନ୍ତୁ।\n\nଏହା ଏକ ସରକାରୀ ସହାୟତା ଚାଟବଟ୍।\nଅନସବସ୍କ୍ରାଇବ କରିବା ପାଇଁ STOP ଟାଇପ୍ କରନ୍ତୁ।\n\nଦୟାକରି ବାଛନ୍ତୁ:",
         "buttons": [
           {
             "id": "grv_consent_data_yes_or",
-            "text": "Agree",
+            "text": "ସମ୍ମତ",
             "type": "quick_reply",
             "nextStepId": "grv_consent_updates_or"
           },
           {
             "id": "grv_consent_data_no_or",
-            "text": "Do not agree",
+            "text": "ଅସମ୍ମତ",
             "type": "quick_reply",
             "nextStepId": "main_menu_or"
           }
@@ -1011,17 +1014,17 @@
       },
       "data": {
         "label": "Notification Consent (OR)",
-        "messageText": "*WhatsApp Update Consent*\n\nWould you like to receive grievance status updates on WhatsApp using approved templates?\n\nThis is an official government assistance chatbot.\nType STOP to unsubscribe.\n\nPlease choose:",
+        "messageText": "*ହ୍ୱାଟସ୍‌ଆପ୍ ଅପଡେଟ୍ ସମ୍ମତି*\n\nଆପଣ ଅନୁମୋଦିତ ଟେମ୍ପଲେଟ୍ ବ୍ୟବହାର କରି ହ୍ୱାଟସ୍‌ଆପ୍‌ରେ ଅଭିଯୋଗ ସ୍ଥିତି ଅପଡେଟ୍ ଗ୍ରହଣ କରିବାକୁ ଚାହାଁନ୍ତି କି?\n\nଏହା ଏକ ସରକାରୀ ସହାୟତା ଚାଟବଟ୍।\nଅନସବସ୍କ୍ରାଇବ କରିବା ପାଇଁ STOP ଟାଇପ୍ କରନ୍ତୁ।\n\nଦୟାକରି ବାଛନ୍ତୁ:",
         "buttons": [
           {
             "id": "grv_consent_updates_yes_or",
-            "text": "Yes, send updates",
+            "text": "ହଁ, ଅପଡେଟ୍ ପଠାନ୍ତୁ",
             "type": "quick_reply",
             "nextStepId": "grv_confirm_or"
           },
           {
             "id": "grv_consent_updates_no_or",
-            "text": "No updates",
+            "text": "ଅପଡେଟ୍ ଦରକାର ନାହିଁ",
             "type": "quick_reply",
             "nextStepId": "grv_confirm_or"
           }

@@ -1725,6 +1725,10 @@ export class DynamicFlowEngine {
     if (clearSessionFlag) {
       console.log(`🧹 Clearing session for user ${this.userPhone}`);
       this.session.data = { currentStepId: "start" };
+      // Explicitly remove flow context to prevent auto-restart loop
+      if (this.session.data) {
+        delete (this.session.data as any).flowId;
+      }
       await updateSession(this.session);
     }
   }

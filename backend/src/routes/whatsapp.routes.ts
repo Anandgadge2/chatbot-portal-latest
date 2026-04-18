@@ -256,18 +256,27 @@ async function handleIncomingMessage(message: any, metadata: any, resolvedCompan
       `📨 Message from ${from} → Company: ${company.name} (ID: ${company.companyId})`
     );
 
+    // 1. Update interaction timestamp immediately to open the 24h window
+    await CitizenProfile.updateOne(
+      { companyId: company._id, phone_number: from },
+      { $set: { lastUserInteractionAt: new Date(), phoneNumber: from } },
+      { upsert: true }
+    );
+
+    // 2. Update session lastMessageAt to sync window check
+    const WhatsAppSession = (await import('../models/WhatsAppSession')).default;
+    await WhatsAppSession.updateOne(
+      { phoneNumber: from, companyId: company._id },
+      { $set: { lastMessageAt: new Date() } },
+      { upsert: false }
+    );
+
     await handleConsentCommand({
       companyObjectId: company._id,
       from,
       messageText,
       company
     });
-
-    await CitizenProfile.updateOne(
-      { companyId: company._id, phone_number: from },
-      { $set: { lastUserInteractionAt: new Date(), phoneNumber: from } },
-      { upsert: true }
-    );
 
     const citizenProfile = await CitizenProfile.findOne({ companyId: company._id, phone_number: from }).select('opt_out').lean();
     const normalizedText = (messageText || '').trim().toLowerCase();
@@ -319,6 +328,21 @@ async function handleConsentCommand({
 
   if (!isStopCommand && !isStartCommand && !isConsentAffirmed) {
     return;
+  }
+
+  if (isStopCommand) {
+    // Clear chatbot session on STOP
+    try {
+      const { clearSession } = await import('../services/sessionService');
+      const Company = (await import('../models/Company')).default;
+      const comp = await Company.findById(companyObjectId).lean();
+      if (comp) {
+        await clearSession(from, comp.companyId);
+        console.log(`🧹 Session cleared for user ${from} due to STOP command`);
+      }
+    } catch (err) {
+      console.error(`❌ Error clearing session on STOP: ${err}`);
+    }
   }
 
   const consentPatch = isStopCommand

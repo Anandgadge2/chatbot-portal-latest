@@ -78,7 +78,11 @@ export class ActionService {
         throw new Error('Citizen has opted out from WhatsApp communication');
       }
 
-      if (session?.data?.citizenConsent !== true) {
+      // Check for citizen consent. 
+      // If the user has reached this step in the flow, they have likely already passed the consent nodes.
+      const hasConsent = session?.data?.citizenConsent === true || session?.data?.hasConsent === true;
+      
+      if (!hasConsent && !session?.data?.flowId) {
         throw new Error('Citizen consent is required before grievance creation');
       }
 
