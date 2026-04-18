@@ -165,6 +165,15 @@ router.post('/', requireDatabaseConnection, async (req: Request, res: Response) 
           // Since it's usually 1 message anyway, we'll keep it simple but awaited.
           for (const message of value.messages) {
             try {
+              if (!shouldProcessInboundMessage(message)) {
+                logger.info('ℹ️ Ignoring non-interaction WhatsApp webhook message.', {
+                  type: message?.type,
+                  messageId: message?.id,
+                  from: message?.from
+                });
+                continue;
+              }
+
               const messageId = message.id;
 
               // IDEMPOTENCY CHECK
@@ -537,6 +546,50 @@ async function handleInteractiveMessage(message: any, metadata: any, resolvedCom
     console.error('❌ Error in handleInteractiveMessage:', error);
     throw error;
   }
+}
+
+function shouldProcessInboundMessage(message: any): boolean {
+  if (!message || typeof message !== 'object') return false;
+
+  const type = String(message.type || '').trim().toLowerCase();
+  const from = String(message.from || '').trim();
+  const messageId = String(message.id || '').trim();
+
+  if (!type || !from || !messageId) return false;
+
+  // Meta can emit technical/automation message types that are not explicit user interactions.
+  if (['request_welcome', 'system', 'unknown', 'unsupported'].includes(type)) return false;
+
+  if (type === 'text') {
+    return Boolean(String(message.text?.body || '').trim());
+  }
+
+  if (type === 'button') {
+    return Boolean(
+      String(message.button?.payload || '').trim() ||
+      String(message.button?.text || '').trim()
+    );
+  }
+
+  if (type === 'interactive') {
+    const interactiveType = String(message.interactive?.type || '').trim();
+    if (interactiveType === 'button_reply') {
+      return Boolean(
+        String(message.interactive?.button_reply?.id || '').trim() ||
+        String(message.interactive?.button_reply?.title || '').trim()
+      );
+    }
+    if (interactiveType === 'list_reply') {
+      return Boolean(
+        String(message.interactive?.list_reply?.id || '').trim() ||
+        String(message.interactive?.list_reply?.title || '').trim()
+      );
+    }
+    return false;
+  }
+
+  // Treat media/location/contact as valid user interactions.
+  return ['image', 'video', 'audio', 'voice', 'document', 'location', 'contacts', 'sticker'].includes(type);
 }
 
 /**
