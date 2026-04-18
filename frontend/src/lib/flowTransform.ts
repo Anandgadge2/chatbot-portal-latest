@@ -1,6 +1,7 @@
 import { 
   FlowNode, 
   FlowEdge, 
+  Flow,
   BackendFlow, 
   BackendFlowStep, 
   FlowMetadata,
@@ -209,21 +210,28 @@ export function transformToBackendFormat(flow: {
 /**
  * Transforms Backend flow format back to frontend React Flow structure
  */
-export function transformFromBackendFormat(backendFlow: BackendFlow): {
-  nodes: FlowNode[];
-  edges: FlowEdge[];
-} {
+export function transformFromBackendFormat(backendFlow: BackendFlow): Flow {
+  const metadata: FlowMetadata = {
+    name: backendFlow.flowName || backendFlow.name || 'Imported Flow',
+    companyId: backendFlow.companyId,
+    version: backendFlow.version || 1,
+    isActive: backendFlow.isActive,
+    description: backendFlow.flowDescription || backendFlow.description
+  };
+
   // If original nodes and edges are stored, use them
   if (backendFlow.nodes && backendFlow.edges && backendFlow.nodes.length > 0) {
     return {
+      metadata,
       nodes: backendFlow.nodes as FlowNode[],
       edges: backendFlow.edges as FlowEdge[]
     };
   }
 
   // Otherwise, reconstruct from steps (more complex, requires layouting)
-  // For now, assume they are present as they are saved in transformToBackendFormat
+  // For now, return empty if no visual data is found
   return {
+    metadata,
     nodes: [],
     edges: []
   };

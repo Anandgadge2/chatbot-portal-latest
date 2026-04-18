@@ -71,7 +71,7 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
           </div>
           <h3 className="text-lg font-bold text-slate-900">No Configuration Found</h3>
           <p className="text-sm text-slate-500">
-            This company hasn't been configured with WhatsApp Business API credentials yet.
+            This company hasn&apos;t been configured with WhatsApp Business API credentials yet.
           </p>
           <Button className="bg-indigo-600 hover:bg-indigo-700">
             Initialize Configuration
