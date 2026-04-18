@@ -2,11 +2,11 @@ import User from '../models/User';
 import Company from '../models/Company';
 import CompanyWhatsAppConfig from '../models/CompanyWhatsAppConfig';
 import CitizenProfile from '../models/CitizenProfile';
+import Role from '../models/Role';
 import { sendWhatsAppTemplate } from './whatsappService';
 import { buildCitizenMessage } from './citizenMessageBuilder';
 import { sanitizeGrievanceDetails, sanitizeNote, sanitizeRemarks, sanitizeText } from '../utils/sanitize';
 import { normalizeLanguage } from './templateValidationService';
-import { UserRole } from '../config/constants';
 import { normalizePhoneNumber } from '../utils/phoneUtils';
 
 async function getCompanyWithConfig(companyId: any): Promise<any> {
@@ -32,10 +32,18 @@ async function getCompanyWithConfig(companyId: any): Promise<any> {
 }
 
 async function getAdminRecipients(companyId: any): Promise<string[]> {
+  const companyAdminRoleIds = await Role.find({
+    companyId,
+    key: { $in: ['COMPANY_ADMIN', 'ADMIN', 'COMPANY_HEAD', 'SUPER_ADMIN'] }
+  }).distinct('_id');
+
   const admins = await User.find({
     companyId,
     isActive: true,
-    role: { $in: [UserRole.COMPANY_ADMIN, 'DEPARTMENT_ADMIN', 'SUB_DEPARTMENT_ADMIN'] }
+    $or: [
+      { isSuperAdmin: true },
+      { customRoleId: { $in: companyAdminRoleIds } }
+    ]
   }).select('phone').lean();
 
   return Array.from(new Set(admins.map((admin: any) => admin.phone).filter(Boolean)));
@@ -51,11 +59,22 @@ export async function triggerAdminTemplate(options: {
   companyId: any;
   language?: string;
   values: string[];
+  recipientPhones?: string[];
 }) {
   const company = await getCompanyWithConfig(options.companyId);
-  const recipients = await getAdminRecipients(options.companyId);
+  const recipients = Array.from(
+    new Set(
+      (options.recipientPhones?.length
+        ? options.recipientPhones
+        : await getAdminRecipients(options.companyId))
+        .map((phone) => normalizePhoneNumber(phone))
+        .filter(Boolean)
+    )
+  );
   const language = normalizeLanguage(options.language);
   const safeValues = options.values.map((value) => sanitizeText(value, 100));
+
+  if (recipients.length === 0) return;
 
   await Promise.allSettled(
     recipients.map((to) => sendWhatsAppTemplate(company, to, options.event, safeValues, language))
@@ -79,7 +98,7 @@ export async function triggerCitizenTemplate(options: {
     citizenProfile?.notification_consent ?? citizenProfile?.notificationConsent
   );
 
-  if (!hasNotificationConsent) {
+  if (options.template === 'grievance_status_citizen_v1' && !hasNotificationConsent) {
     return;
   }
 
@@ -134,6 +153,7 @@ export async function triggerCitizenStatusTemplate(options: {
     remarks: sanitizeRemarks(options.remarks || '')
   });
 
+  // Use the unified grievance_status_citizen_v1 template for all status changes
   await triggerCitizenTemplate({
     template: 'grievance_status_citizen_v1',
     companyId: options.companyId,
@@ -167,7 +187,7 @@ export async function triggerGrievanceNotifications(options: {
   assignedAdmins?: any[];
   companyAdmins?: any[];
 }) {
-  const isAssigned = options.status !== 'PENDING' && (options.assignedAdmins || []).length > 0;
+  const isAssigned = (options.status !== 'PENDING' && options.status !== 'UNASSIGNED') && (options.assignedAdmins || []).length > 0;
   const safeDescription = sanitizeGrievanceDetails(options.description || 'N/A');
 
   const notifications = [];
@@ -196,7 +216,7 @@ export async function triggerGrievanceNotifications(options: {
       );
     }
   } else {
-    // 2. Send 'pending' template to company admins if not properly assigned
+    // 2. Send 'pending' template to company admins if status is UNASSIGNED or PENDING (no mapping)
     let companyAdminPhones = options.companyAdmins 
       ? options.companyAdmins.map(a => a.phone).filter(Boolean)
       : [];
@@ -226,4 +246,37 @@ export async function triggerGrievanceNotifications(options: {
   }
 
   await Promise.allSettled(notifications);
+}
+
+/**
+ * Trigger specific admin notifications for status/assignment changes
+ */
+export async function triggerAdminAssignmentNotification(options: {
+  event: 'grievance_assigned_admin_v1' | 'grievance_reassigned_admin_v1' | 'grievance_reverted_company_v1';
+  companyId: any;
+  grievanceId: string;
+  citizenName: string;
+  category: string;
+  subDepartmentName?: string;
+  description?: string;
+  recipientPhones: string[];
+  language?: string;
+}) {
+  const company = await getCompanyWithConfig(options.companyId);
+  const language = normalizeLanguage(options.language);
+  const safeDescription = sanitizeGrievanceDetails(options.description || 'N/A');
+  
+  const values = [
+    sanitizeText(options.citizenName, 60),
+    sanitizeText(options.grievanceId, 30),
+    sanitizeText(options.category, 60),
+    sanitizeText(options.subDepartmentName || 'N/A', 60),
+    safeDescription
+  ];
+
+  await Promise.allSettled(
+    options.recipientPhones.map(to => 
+      sendWhatsAppTemplate(company, to, options.event, values, language)
+    )
+  );
 }

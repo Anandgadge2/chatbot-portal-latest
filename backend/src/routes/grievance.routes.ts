@@ -248,30 +248,18 @@ router.post('/', enforceWhatsAppGrievanceCompliance, async (req: Request, res: R
     }
 
     Promise.allSettled([
-      triggerAdminTemplate({
-        event: 'grievance_received_admin_v1',
-        companyId,
-        language: grievance.language,
-        values: [
-          grievance.grievanceId,
-          grievance.citizenName,
-          grievance.citizenPhone,
-          grievance.category || 'General',
-          safeDescription
-        ]
-      }),
-      targetAdmin
+      targetAdmin?.phone
         ? triggerAdminTemplate({
-            event: 'grievance_assigned_admin_v1',
+            event: 'grievance_received_admin_v1',
             companyId,
             language: grievance.language,
+            recipientPhones: [targetAdmin.phone],
             values: [
               grievance.grievanceId,
               grievance.citizenName,
               grievance.citizenPhone,
               grievance.category || 'General',
-              safeDescription,
-              targetAdmin.getFullName?.() || targetAdmin.email || 'Assigned Officer'
+              safeDescription
             ]
           })
         : triggerAdminTemplate({
@@ -503,6 +491,7 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
       citizenName: grievance.citizenName,
       citizenPhone: grievance.citizenPhone,
       citizenWhatsApp: grievance.citizenWhatsApp,
+      language: grievance.language,
       departmentId: previousDepartmentId as any,
       subDepartmentId: previousSubDepartmentId as any,
       companyId: grievance.companyId,
@@ -745,6 +734,7 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_GRIEVANCE, 
         citizenName: grievance.citizenName,
         citizenPhone: grievance.citizenPhone,
         citizenWhatsApp: grievance.citizenWhatsApp,
+        language: grievance.language,
         departmentId: grievance.departmentId,
         subDepartmentId: grievance.subDepartmentId,
         companyId: grievance.companyId,
@@ -767,6 +757,7 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_GRIEVANCE, 
           citizenName: grievance.citizenName,
           citizenPhone: grievance.citizenPhone,
           citizenWhatsApp: grievance.citizenWhatsApp,
+          language: grievance.language,
           description: grievance.description,
           departmentId: grievance.departmentId,
           subDepartmentId: grievance.subDepartmentId,
@@ -931,6 +922,28 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
 
     await grievance.save();
 
+    const isReassignment = Boolean(
+      oldAssignedTo ||
+      grievance.timeline?.some((entry: any) => entry.action === 'REVERTED_TO_COMPANY_ADMIN')
+    );
+
+    if (assignedUser.phone) {
+      await triggerAdminTemplate({
+        event: isReassignment ? 'grievance_reassigned_admin_v1' : 'grievance_assigned_admin_v1',
+        companyId: grievance.companyId,
+        language: grievance.language,
+        recipientPhones: [assignedUser.phone],
+        values: [
+          grievance.grievanceId,
+          grievance.citizenName,
+          grievance.citizenPhone,
+          grievance.category || 'General',
+          grievance.description,
+          assignedUser.getFullName()
+        ]
+      }).catch((err) => logger.error('Failed to trigger grievance assignment admin template', err));
+    }
+
     // Notify assigned user
     const { notifyUserOnAssignment } = await import('../services/notificationService');
     await notifyUserOnAssignment({
@@ -939,6 +952,7 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
       grievanceId: grievance.grievanceId,
       citizenName: grievance.citizenName,
       citizenPhone: grievance.citizenPhone,
+      citizenWhatsApp: grievance.citizenWhatsApp,
       departmentId: grievance.departmentId,
       subDepartmentId: grievance.subDepartmentId,
       companyId: grievance.companyId,
@@ -948,6 +962,7 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
       assignedByName: req.user!.getFullName(),
       assignedAt: grievance.assignedAt,
       createdAt: grievance.createdAt,
+      language: grievance.language,
       timeline: grievance.timeline
     });
 
@@ -960,6 +975,7 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
       citizenName: grievance.citizenName,
       citizenPhone: grievance.citizenPhone,
       citizenWhatsApp: grievance.citizenWhatsApp,
+      language: grievance.language,
       description: grievance.description,
       departmentId: grievance.departmentId,
       subDepartmentId: grievance.subDepartmentId,

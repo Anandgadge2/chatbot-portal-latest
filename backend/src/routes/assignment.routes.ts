@@ -188,6 +188,7 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
       event: isReassignment ? 'grievance_reassigned_admin_v1' : 'grievance_assigned_admin_v1',
       companyId: grievance.companyId,
       language: grievance.language,
+      recipientPhones: assignedUser.phone ? [assignedUser.phone] : [],
       values: [
         grievance.grievanceId,
         grievance.citizenName,
@@ -206,6 +207,7 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
         grievanceId: grievance.grievanceId,
         citizenName: grievance.citizenName,
         citizenPhone: grievance.citizenPhone,
+        citizenWhatsApp: grievance.citizenWhatsApp,
         departmentId: grievance.departmentId,
         subDepartmentId: grievance.subDepartmentId,
         companyId: grievance.companyId,
@@ -215,6 +217,7 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
         assignedByName: currentUser.getFullName(),
         assignedAt: grievance.assignedAt,
         createdAt: grievance.createdAt,
+        language: grievance.language,
         timeline: grievance.timeline
       }).catch(err => console.error('Failed to send assignment notification:', err));
 
@@ -224,6 +227,7 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
         citizenName: grievance.citizenName,
         citizenPhone: grievance.citizenPhone,
         citizenWhatsApp: grievance.citizenWhatsApp,
+        language: grievance.language,
         description: grievance.description,
         departmentId: grievance.departmentId,
         subDepartmentId: grievance.subDepartmentId,

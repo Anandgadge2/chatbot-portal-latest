@@ -76,6 +76,15 @@ const GREETINGS = new Set([
   'ନମସ୍କାର', 'helo', 'hey', 'begin', 'restart', 'restrt', 'menu', 'main menu'
 ]);
 
+function isGreetingTrigger(input: string): boolean {
+  const normalized = input.trim().toLowerCase();
+  if (!normalized) return false;
+  if (GREETINGS.has(normalized)) return true;
+  if (/^h+i+(e+)?$/i.test(normalized)) return true;
+  if (/^h{2,}$/i.test(normalized)) return true;
+  return false;
+}
+
 /**
  * ─── Flow Command Handler ────────────────────────────────────────────────────
  * Reads special control keywords (stop/restart/menu/back) from DB templates (CompanyWhatsAppTemplate)
@@ -2418,6 +2427,7 @@ export class DynamicFlowEngine {
             this.session,
             this.company,
             this.userPhone,
+            { sendCitizenConfirmation: false }
           );
         } catch (error: any) {
           console.error(`❌ Error creating grievance (mapped):`, error);
@@ -2436,6 +2446,7 @@ export class DynamicFlowEngine {
             this.session,
             this.company,
             this.userPhone,
+            { sendCitizenConfirmation: false }
           );
         } catch (error: any) {
           console.error(`❌ Error creating appointment (mapped):`, error);
@@ -2513,6 +2524,7 @@ export class DynamicFlowEngine {
             this.session,
             this.company,
             this.userPhone,
+            { sendCitizenConfirmation: false }
           );
         } catch (error: any) {
           console.error(`❌ Error creating grievance (default path):`, error);
@@ -2541,6 +2553,7 @@ export class DynamicFlowEngine {
               this.session,
               this.company,
               this.userPhone,
+              { sendCitizenConfirmation: false }
             );
           } catch (error: any) {
             console.error(`❌ Error creating appointment (default path):`, error);
@@ -3302,7 +3315,7 @@ export async function processWhatsAppMessage(
   // ── 3. Handle greeting → always restart the flow ─────────────────────────
   // Also treat 'menu' and 'restart' as greetings when there's NO active session
   // (if session is active, handleFlowCommand inside continueFlow handles them dynamically)
-  const isGreeting = GREETINGS.has(userInput);
+  const isGreeting = isGreetingTrigger(userInput);
   const isNoSessionCommand = !session.data?.flowId && (userInput === 'menu' || userInput === 'restart' || userInput === 'start again');
   if (!buttonId && (isGreeting || isNoSessionCommand)) {
     await handleGreeting(from, companyId, 'hi', company, message);
@@ -3315,7 +3328,7 @@ export async function processWhatsAppMessage(
     !session.data?.flowId &&
     !buttonId &&
     rawInput &&
-    !GREETINGS.has(userInput)
+    !isGreetingTrigger(userInput)
   ) {
     const mongoSession = await getSessionFromMongo(from, companyId);
     if (
@@ -3331,6 +3344,10 @@ export async function processWhatsAppMessage(
 
   // ── 5. Auto-start if session has no flow context yet ─────────────────────
   if (session.step === "start" && !session.data?.flowId) {
+    if (!isGreeting && !isNoSessionCommand) {
+      console.log(`ℹ️ Ignoring non-trigger first message from ${from}: "${rawInput.substring(0, 80)}"`);
+      return;
+    }
     await handleAutoStart(from, companyId, buttonId, company, session, message);
     return;
   }
@@ -3354,11 +3371,8 @@ export async function processWhatsAppMessage(
   }
 
   // ── 7. Fallback: no flow context at all ───────────────────────────────────
-  await sendWhatsAppMessage(
-    company,
-    from,
-    ui("welcome", session.language || "en"),
-  );
+  console.log(`ℹ️ No active flow and no greeting trigger for ${from}; skipping auto-response.`);
+  return;
 }
 
 /**

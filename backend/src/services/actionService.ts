@@ -366,13 +366,7 @@ export class ActionService {
 
       const notifications = [];
 
-      const { notifyCitizenOnCreation, notifyDepartmentAdminOnCreation, notifyUserOnAssignment } = await import('./notificationService');
-      
-      // Notify citizen only when flow does not already show a success/confirmation node.
-      // This prevents duplicate "success + grievance id" messages in WhatsApp chats.
-      if (sendCitizenConfirmation && session.data.notificationConsent === true) {
-        await notifyCitizenOnCreation(notificationData);
-      }
+      const { notifyDepartmentAdminOnCreation } = await import('./notificationService');
 
       // Email notifications for admins are preserved in the legacy notification service.
       notifications.push(notifyDepartmentAdminOnCreation({

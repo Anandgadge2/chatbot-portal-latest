@@ -6,6 +6,7 @@ import CompanyEmailConfig from '../models/CompanyEmailConfig';
 import CompanyEmailTemplate from '../models/CompanyEmailTemplate';
 import Company from '../models/Company';
 import CompanyWhatsAppTemplate from '../models/CompanyWhatsAppTemplate';
+import ChatbotFlow from '../models/ChatbotFlow';
 import { DEFAULT_WA_MESSAGES } from '../constants/whatsappTemplates';
 
 /**
@@ -519,6 +520,50 @@ export async function getNotificationWhatsAppMessage(
       : companyId;
 
   const lang = data.language || data.lang || 'en';
+
+  // 1. Try to fetch from Active Chatbot Flow (Prioritize Flow Definition for Citizen Success)
+  if (type === 'grievance' && (action === 'confirmation' || action === 'created')) {
+    try {
+      const activeFlow = await ChatbotFlow.findOne({ companyId: cid, isActive: true }).lean();
+      if (activeFlow && activeFlow.steps) {
+        const stepId = `grv_success_${String(lang).toLowerCase()}`;
+        const successStep = activeFlow.steps.find((s: any) => s.stepId === stepId);
+        
+        let flowMessage = successStep?.messageText;
+        
+        // Fallback: Check translations or UI nodes if primary messageText is empty
+        if (!flowMessage || !flowMessage.trim()) {
+          if (successStep?.messageTextTranslations && successStep.messageTextTranslations[lang]) {
+            flowMessage = successStep.messageTextTranslations[lang];
+          } else if (activeFlow.nodes) {
+            const node = activeFlow.nodes.find((n: any) => n.id === stepId);
+            flowMessage = node?.data?.messageText;
+          }
+        }
+
+        if (flowMessage && flowMessage.trim()) {
+          logger.info(`[WhatsApp Template] Using prioritized message from active flow: ${activeFlow.flowName} (Step: ${stepId})`);
+          
+          // Use localized brand name if applicable
+          let resolvedCompanyName = String(data.companyName || '').trim();
+          if (!resolvedCompanyName) {
+            const company = await Company.findById(cid).select('name').lean();
+            resolvedCompanyName = String(company?.name || '').trim();
+          }
+          const localizedBrand = getLocalizedWhatsAppBrandName(resolvedCompanyName, lang);
+          
+          return replacePlaceholders(flowMessage.trim(), {
+            ...data,
+            companyName: localizedBrand,
+            localizedCompanyBrand: localizedBrand
+          });
+        }
+      }
+    } catch (err) {
+      logger.error(`[WhatsApp Template] Error fetching from ChatbotFlow:`, err);
+    }
+  }
+
   let resolvedCompanyName = String(data.companyName || '').trim();
 
   if (!resolvedCompanyName) {

@@ -280,7 +280,10 @@ async function handleIncomingMessage(message: any, metadata: any, resolvedCompan
 
     const citizenProfile = await CitizenProfile.findOne({ companyId: company._id, phone_number: from }).select('opt_out').lean();
     const normalizedText = (messageText || '').trim().toLowerCase();
-    const isOptInCommand = ['start', 'resume', 'hi', 'hello', 'hie', 'menu'].includes(normalizedText);
+    const isOptInCommand =
+      ['start', 'resume', 'hi', 'hii', 'hello', 'hie', 'hey', 'menu', 'main menu'].includes(normalizedText) ||
+      /^h+i+(e+)?$/i.test(normalizedText) ||
+      /^h{2,}$/i.test(normalizedText);
     if (citizenProfile?.opt_out && !isOptInCommand) {
       logger.info(`⛔ Message ignored for opted-out user ${from}`);
       return;
@@ -323,7 +326,10 @@ async function handleConsentCommand({
   }
 
   const isStopCommand = normalized === 'stop' || normalized === 'unsubscribe';
-  const isStartCommand = ['start', 'resume', 'hi', 'hello', 'hie', 'menu'].includes(normalized);
+  const isStartCommand =
+    ['start', 'resume', 'hi', 'hii', 'hello', 'hie', 'hey', 'menu', 'main menu'].includes(normalized) ||
+    /^h+i+(e+)?$/i.test(normalized) ||
+    /^h{2,}$/i.test(normalized);
   const isConsentAffirmed = normalized === 'yes' || normalized === 'i agree';
 
   if (!isStopCommand && !isStartCommand && !isConsentAffirmed) {

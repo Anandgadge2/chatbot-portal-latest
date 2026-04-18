@@ -44,6 +44,7 @@ interface NotificationData {
   resolvedAt?: Date | string;
   createdAt?: Date | string;
   assignedAt?: Date | string;
+  language?: string;
   appointmentDate?: Date | string;
   appointmentTime?: string;
   resolutionTimeText?: string;
@@ -462,6 +463,7 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
       : ((data.action === 'assigned' || data.action === 'assigned_admin') ? (assignedByName || 'Admin') : (data.citizenName || 'Citizen')),
     departmentName,
     subDepartmentName,
+    subdepartmentName: subDepartmentName, // Compatibility with chatbot flow placeholders
     description,
     deptLabel,
     subDeptLabel,
@@ -1103,6 +1105,11 @@ export async function notifyCompanyAdminsOnRevert(
   data: NotificationData
 ): Promise<void> {
   try {
+    if (data.type === 'grievance') {
+      logger.info('ℹ️ Skipping legacy grievance revert WhatsApp; Meta template handles company-admin revert notifications.');
+      return;
+    }
+
     const companyId = normalizeId(data.companyId);
     const company = await getCompanyWithWhatsAppConfig(companyId);
     if (!company) return;
@@ -1194,6 +1201,11 @@ export async function notifyUserOnAssignment(
       (data as any).phone?.replace(/\D/g, '')
     ].filter(Boolean);
 
+    if (data.type === 'grievance') {
+      logger.info('ℹ️ Skipping legacy grievance assignment WhatsApp; Meta templates handle grievance assignee notifications.');
+      return;
+    }
+
     await Promise.allSettled(Array.from(recipients.values()).map(async (recipient: any) => {
       const isStaff = recipient.isSuperAdmin === true || (recipient.customRoleId != null);
       if (!isStaff || !recipient.phone || !canNotify(company, recipient, 'whatsapp', assignmentAction)) return;
@@ -1283,7 +1295,7 @@ export async function notifyCitizenOnResolution(
         templateParams,
         message,
         {
-          language: GRIEVANCE_TEMPLATE_LANGUAGE,
+          language: getNotificationLanguage({ ...fullData, language: data.language }),
           contextLabel: 'grievance_resolved_citizen',
           disableTextFallback: true
         }
@@ -1329,8 +1341,7 @@ export async function notifyCitizenOnCreation(
     // 📱 WhatsApp
     const actionKey = data.action || 'confirmation';
     const phoneToNotify = data.citizenWhatsApp || data.citizenPhone;
-    const canSendCitizenTemplate =
-      data.type !== 'grievance' || await hasCitizenNotificationConsent(data.companyId, phoneToNotify);
+    const canSendCitizenTemplate = true;
 
     if (phoneToNotify && canSendCitizenTemplate && canNotify(company, null, 'whatsapp', `${data.type}_${actionKey}`)) {
       logger.info(`📢 [Citizen Notify] Preparing WhatsApp confirmation for citizen: ${data.citizenName} (${phoneToNotify}) (Action: ${actionKey})`);
@@ -1391,6 +1402,7 @@ export async function notifyCitizenOnGrievanceStatusChange(data: {
   citizenPhone: string;
   citizenWhatsApp?: string;
   citizenEmail?: string;
+  language?: string;
   description?: string;
   departmentId?: any;
   subDepartmentId?: any;
@@ -1449,7 +1461,7 @@ export async function notifyCitizenOnGrievanceStatusChange(data: {
       templateParams,
       message,
       {
-        language: GRIEVANCE_TEMPLATE_LANGUAGE,
+        language: getNotificationLanguage({ ...fullData, language: data.language }),
         contextLabel: 'grievance_status_update_citizen',
         disableTextFallback: true
       }
