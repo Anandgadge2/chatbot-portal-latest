@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Card,
   CardContent,
@@ -21,6 +21,7 @@ import {
 import { useWhatsappConfig } from "@/lib/query/useWhatsappConfig";
 import { useCachedQuery } from "@/lib/query/cache";
 import { templateAPI } from "@/lib/api/template";
+import { whatsappAPI } from "@/lib/api/whatsapp";
 import toast from "react-hot-toast";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import TemplateFilters from "@/components/templates/TemplateFilters";
@@ -44,7 +45,23 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
   const [syncing, setSyncing] = useState(false);
   const [savingMapping, setSavingMapping] = useState(false);
   const [sendingTemplate, setSendingTemplate] = useState(false);
+  const [savingConfig, setSavingConfig] = useState(false);
+  const [editingConfig, setEditingConfig] = useState(false);
+  const [configForm, setConfigForm] = useState({
+    phoneNumberId: "",
+    businessAccountId: "",
+    accessToken: "",
+  });
   const [refreshTick, setRefreshTick] = useState(0);
+
+  useEffect(() => {
+    if (!config) return;
+    setConfigForm({
+      phoneNumberId: config.phoneNumberId || "",
+      businessAccountId: config.businessAccountId || config.wabaId || "",
+      accessToken: config.accessToken || "",
+    });
+  }, [config]);
 
   const {
     data: templatesResponse,
@@ -72,7 +89,7 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
     enabled: Boolean(companyId),
   });
 
-  const templates = templatesResponse?.data ?? [];
+  const templates = useMemo(() => templatesResponse?.data ?? [], [templatesResponse?.data]);
   const languages = useMemo(
     () => Array.from(new Set(templates.map((template) => template.language))),
     [templates],
@@ -113,6 +130,29 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
       toast.error(error?.response?.data?.message || "Failed to save template mapping");
     } finally {
       setSavingMapping(false);
+    }
+  };
+
+  const handleSaveConfig = async () => {
+    if (!config?._id) {
+      toast.error("Configuration ID missing");
+      return;
+    }
+
+    try {
+      setSavingConfig(true);
+      const response = await whatsappAPI.updateConfig(config._id, {
+        phoneNumberId: configForm.phoneNumberId.trim(),
+        businessAccountId: configForm.businessAccountId.trim(),
+        wabaId: configForm.businessAccountId.trim(),
+        accessToken: configForm.accessToken.trim(),
+      });
+      setEditingConfig(false);
+      toast.success(response?.message || "WhatsApp configuration updated");
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Failed to update WhatsApp configuration");
+    } finally {
+      setSavingConfig(false);
     }
   };
 
@@ -167,17 +207,47 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
     <div className="space-y-6">
       <Card className="border-0 shadow-sm bg-white overflow-hidden">
         <CardHeader className="bg-slate-50 border-b border-slate-100 py-4">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-sm">
-              <Key className="w-4 h-4 text-white" />
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-sm">
+                <Key className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <CardTitle className="text-sm font-black uppercase tracking-wider text-slate-900">
+                  Meta API Credentials
+                </CardTitle>
+                <CardDescription className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">
+                  Manage WhatsApp Business Account access tokens
+                </CardDescription>
+              </div>
             </div>
-            <div>
-              <CardTitle className="text-sm font-black uppercase tracking-wider text-slate-900">
-                Meta API Credentials
-              </CardTitle>
-              <CardDescription className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">
-                Manage WhatsApp Business Account access tokens
-              </CardDescription>
+            <div className="flex gap-2">
+              {editingConfig ? (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={savingConfig}
+                    onClick={() => {
+                      setEditingConfig(false);
+                      setConfigForm({
+                        phoneNumberId: config.phoneNumberId || "",
+                        businessAccountId: config.businessAccountId || config.wabaId || "",
+                        accessToken: config.accessToken || "",
+                      });
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button size="sm" disabled={savingConfig} onClick={handleSaveConfig}>
+                    {savingConfig ? "Saving..." : "Save"}
+                  </Button>
+                </>
+              ) : (
+                <Button size="sm" variant="outline" onClick={() => setEditingConfig(true)}>
+                  Edit Configuration
+                </Button>
+              )}
             </div>
           </div>
         </CardHeader>
@@ -187,17 +257,35 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                 Phone Number ID
               </label>
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs text-slate-600 break-all">
-                {config.phoneNumberId || "Not Set"}
-              </div>
+              <input
+                value={configForm.phoneNumberId}
+                onChange={(event) =>
+                  setConfigForm((prev) => ({ ...prev, phoneNumberId: event.target.value }))
+                }
+                readOnly={!editingConfig}
+                className={`w-full p-3 border rounded-xl font-mono text-xs break-all focus:outline-none ${
+                  editingConfig
+                    ? "bg-white border-indigo-200 text-slate-700 focus:ring-2 focus:ring-indigo-100"
+                    : "bg-slate-50 border-slate-200 text-slate-600"
+                }`}
+              />
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                 Business Account ID
               </label>
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs text-slate-600 break-all">
-                {config.businessAccountId || config.wabaId || "Not Set"}
-              </div>
+              <input
+                value={configForm.businessAccountId}
+                onChange={(event) =>
+                  setConfigForm((prev) => ({ ...prev, businessAccountId: event.target.value }))
+                }
+                readOnly={!editingConfig}
+                className={`w-full p-3 border rounded-xl font-mono text-xs break-all focus:outline-none ${
+                  editingConfig
+                    ? "bg-white border-indigo-200 text-slate-700 focus:ring-2 focus:ring-indigo-100"
+                    : "bg-slate-50 border-slate-200 text-slate-600"
+                }`}
+              />
             </div>
             <div className="col-span-1 md:col-span-2 space-y-2">
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -205,9 +293,16 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
               </label>
               <input
                 type="password"
-                value={config.accessToken || ""}
-                readOnly
-                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs text-slate-600 focus:outline-none"
+                value={configForm.accessToken}
+                onChange={(event) =>
+                  setConfigForm((prev) => ({ ...prev, accessToken: event.target.value }))
+                }
+                readOnly={!editingConfig}
+                className={`w-full p-3 border rounded-xl font-mono text-xs focus:outline-none ${
+                  editingConfig
+                    ? "bg-white border-indigo-200 text-slate-700 focus:ring-2 focus:ring-indigo-100"
+                    : "bg-slate-50 border-slate-200 text-slate-600"
+                }`}
               />
             </div>
           </div>
