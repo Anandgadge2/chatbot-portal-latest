@@ -34,7 +34,11 @@ async function getCompanyWithConfig(companyId: any): Promise<any> {
 async function getAdminRecipients(companyId: any): Promise<string[]> {
   const companyAdminRoleIds = await Role.find({
     companyId,
-    key: { $in: ['COMPANY_ADMIN', 'ADMIN', 'COMPANY_HEAD', 'SUPER_ADMIN'] }
+    $or: [
+      { key: { $in: ['COMPANY_ADMIN', 'ADMIN', 'COMPANY_HEAD', 'SUPER_ADMIN'] } },
+      { level: { $lte: 1 } },
+      { name: { $regex: /company\s*admin|administrator|head|collector|commissioner|director|supervisor|manager/i } }
+    ]
   }).distinct('_id');
 
   const admins = await User.find({
@@ -42,11 +46,18 @@ async function getAdminRecipients(companyId: any): Promise<string[]> {
     isActive: true,
     $or: [
       { isSuperAdmin: true },
+      { level: { $lte: 1 } },
       { customRoleId: { $in: companyAdminRoleIds } }
     ]
   }).select('phone').lean();
 
-  return Array.from(new Set(admins.map((admin: any) => admin.phone).filter(Boolean)));
+  return Array.from(
+    new Set(
+      admins
+        .map((admin: any) => normalizePhoneNumber(admin.phone))
+        .filter(Boolean)
+    )
+  );
 }
 
 export async function triggerAdminTemplate(options: {
@@ -76,9 +87,18 @@ export async function triggerAdminTemplate(options: {
 
   if (recipients.length === 0) return;
 
-  await Promise.allSettled(
+  const results = await Promise.allSettled(
     recipients.map((to) => sendWhatsAppTemplate(company, to, options.event, safeValues, language))
   );
+
+  const failures = results.filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
+    .filter((result: PromiseFulfilledResult<any>) => !result.value?.success);
+  if (failures.length > 0) {
+    console.error(
+      `⚠️ triggerAdminTemplate: ${failures.length}/${recipients.length} sends failed for ${options.event}`,
+      failures.map((item) => item.value?.error).filter(Boolean)
+    );
+  }
 }
 
 export async function triggerCitizenTemplate(options: {
@@ -189,29 +209,39 @@ export async function triggerGrievanceNotifications(options: {
 }) {
   const isAssigned = (options.status !== 'PENDING' && options.status !== 'UNASSIGNED') && (options.assignedAdmins || []).length > 0;
   const safeDescription = sanitizeGrievanceDetails(options.description || 'N/A');
+  const company = await getCompanyWithConfig(options.companyId);
+  const language = normalizeLanguage(options.language);
+  const values = [
+    sanitizeText(options.citizenName, 60),
+    sanitizeText(options.grievanceId, 30),
+    sanitizeText(options.category, 60),
+    sanitizeText(options.subDepartmentName || 'N/A', 60),
+    safeDescription
+  ];
 
   const notifications = [];
 
   if (isAssigned) {
     // 1. Send 'received' template to specifically assigned admins
-    const recipientPhones = (options.assignedAdmins || [])
+    const assignedRecipientPhones = Array.from(new Set((options.assignedAdmins || [])
       .map(a => a.phone)
-      .filter(Boolean);
+      .filter(Boolean)
+      .map((phone) => normalizePhoneNumber(phone))
+      .filter(Boolean)));
 
-    if (recipientPhones.length > 0) {
-      const company = await getCompanyWithConfig(options.companyId);
-      const language = normalizeLanguage(options.language);
-      const values = [
-        sanitizeText(options.citizenName, 60),
-        sanitizeText(options.grievanceId, 30),
-        sanitizeText(options.category, 60),
-        sanitizeText(options.subDepartmentName || 'N/A', 60),
-        safeDescription
-      ];
-
+    if (assignedRecipientPhones.length > 0) {
       notifications.push(
-        ...recipientPhones.map(to => 
+        ...assignedRecipientPhones.map(to => 
           sendWhatsAppTemplate(company, to, 'grievance_received_admin_v1', values, language)
+        )
+      );
+    } else {
+      // Defensive fallback: grievance is assigned but target admin users have no valid phones.
+      // Send the pending template to company admins so the grievance is still visible.
+      const fallbackPhones = await getAdminRecipients(options.companyId);
+      notifications.push(
+        ...fallbackPhones.map((to) =>
+          sendWhatsAppTemplate(company, to, 'grievance_pending_admin_v1', values, language)
         )
       );
     }
@@ -227,16 +257,6 @@ export async function triggerGrievanceNotifications(options: {
     }
 
     if (companyAdminPhones.length > 0) {
-      const company = await getCompanyWithConfig(options.companyId);
-      const language = normalizeLanguage(options.language);
-      const values = [
-        sanitizeText(options.citizenName, 60),
-        sanitizeText(options.grievanceId, 30),
-        sanitizeText(options.category, 60),
-        sanitizeText(options.subDepartmentName || 'N/A', 60),
-        safeDescription
-      ];
-
       notifications.push(
         ...companyAdminPhones.map(to => 
           sendWhatsAppTemplate(company, to, 'grievance_pending_admin_v1', values, language)
@@ -245,7 +265,16 @@ export async function triggerGrievanceNotifications(options: {
     }
   }
 
-  await Promise.allSettled(notifications);
+  const settled = await Promise.allSettled(notifications);
+  const failed = settled
+    .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
+    .filter((result: PromiseFulfilledResult<any>) => !result.value?.success);
+  if (failed.length > 0) {
+    console.error(
+      `⚠️ triggerGrievanceNotifications: ${failed.length}/${notifications.length} sends failed for grievance ${options.grievanceId}`,
+      failed.map((item) => item.value?.error).filter(Boolean)
+    );
+  }
 }
 
 /**
