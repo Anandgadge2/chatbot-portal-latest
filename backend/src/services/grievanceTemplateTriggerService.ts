@@ -123,9 +123,15 @@ export async function triggerCitizenTemplate(options: {
   data?: Record<string, string>;
 }) {
   const normalizedPhone = normalizePhoneNumber(options.citizenPhone);
+  const rawPhone = String(options.citizenPhone || '').trim();
   const citizenProfile = await CitizenProfile.findOne({
     companyId: options.companyId,
-    phone_number: normalizedPhone
+    $or: [
+      { phone_number: normalizedPhone },
+      { phone_number: rawPhone },
+      { phoneNumber: normalizedPhone },
+      { phoneNumber: rawPhone }
+    ]
   }).select('notification_consent notificationConsent').lean();
 
   const hasNotificationConsent = Boolean(
