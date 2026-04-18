@@ -204,6 +204,18 @@ export class ActionService {
         }
         throw saveErr;
       }
+
+      await CitizenProfile.updateOne(
+        { companyId: company._id, phone_number: userPhone },
+        {
+          $set: {
+            lastGrievanceDate: new Date(),
+            phoneNumber: userPhone,
+            name: session.data.citizenName || ''
+          }
+        },
+        { upsert: true }
+      );
       
       // Update session with results for placeholders
       session.data.grievanceId = grievance.grievanceId;

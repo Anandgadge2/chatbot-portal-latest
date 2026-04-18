@@ -3,13 +3,20 @@ import mongoose, { Document, Model, Schema } from 'mongoose';
 export interface ICitizenProfile extends Document {
   companyId: mongoose.Types.ObjectId;
   phone_number: string;
+  phoneNumber?: string;
+  name?: string;
   citizen_consent: boolean;
+  consentGiven?: boolean;
   citizen_consent_timestamp?: Date;
-  consent_source?: 'whatsapp_button';
+  consentTimestamp?: Date;
+  consent_source?: 'whatsapp_button' | 'whatsapp_text';
   admin_consent: boolean;
   admin_consent_timestamp?: Date;
   opt_out: boolean;
+  isSubscribed?: boolean;
   lastUserInteractionAt?: Date;
+  lastGrievanceDate?: Date;
+  isFlagged?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -28,7 +35,21 @@ const CitizenProfileSchema = new Schema<ICitizenProfile>(
       trim: true,
       index: true
     },
+    phoneNumber: {
+      type: String,
+      trim: true,
+      index: true
+    },
+    name: {
+      type: String,
+      trim: true
+    },
     citizen_consent: {
+      type: Boolean,
+      default: false,
+      index: true
+    },
+    consentGiven: {
       type: Boolean,
       default: false,
       index: true
@@ -37,9 +58,13 @@ const CitizenProfileSchema = new Schema<ICitizenProfile>(
       type: Date,
       default: null
     },
+    consentTimestamp: {
+      type: Date,
+      default: null
+    },
     consent_source: {
       type: String,
-      enum: ['whatsapp_button'],
+      enum: ['whatsapp_button', 'whatsapp_text'],
       default: null
     },
     admin_consent: {
@@ -56,10 +81,23 @@ const CitizenProfileSchema = new Schema<ICitizenProfile>(
       default: false,
       index: true
     },
+    isSubscribed: {
+      type: Boolean,
+      default: true,
+      index: true
+    },
     lastUserInteractionAt: {
       type: Date,
       default: null,
       index: true
+    },
+    lastGrievanceDate: {
+      type: Date,
+      default: null
+    },
+    isFlagged: {
+      type: Boolean,
+      default: false
     }
   },
   { timestamps: true }

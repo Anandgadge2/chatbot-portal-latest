@@ -207,6 +207,18 @@ router.post('/', enforceWhatsAppGrievanceCompliance, async (req: Request, res: R
       admin_consent: false
     });
 
+    await CitizenProfile.updateOne(
+      { companyId, phone_number: citizenPhone },
+      {
+        $set: {
+          lastGrievanceDate: new Date(),
+          phoneNumber: citizenPhone,
+          name: citizenName
+        }
+      },
+      { upsert: true }
+    );
+
     // ✅ AUTO-ASSIGNMENT (Designated Officer / Dept Admin)
     const { getHierarchicalDepartmentAdmins, notifyUserOnAssignment, notifyDepartmentAdminOnCreation, notifyCitizenOnCreation } = await import('../services/notificationService');
     const targetDeptId = (grievance as any).subDepartmentId || departmentId;
@@ -348,9 +360,13 @@ router.post('/consent/citizen', async (req: Request, res: Response) => {
       {
         $set: {
           citizen_consent: consent,
+          consentGiven: consent,
           citizen_consent_timestamp: new Date(),
+          consentTimestamp: new Date(),
           consent_source: 'whatsapp_button',
-          opt_out: false
+          opt_out: false,
+          isSubscribed: true,
+          phoneNumber: phone_number
         }
       },
       { upsert: true, new: true }

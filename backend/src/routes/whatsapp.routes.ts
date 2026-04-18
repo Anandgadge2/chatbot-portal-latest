@@ -8,6 +8,7 @@ import CompanyWhatsAppConfig from '../models/CompanyWhatsAppConfig';
 import WhatsAppSession from '../models/WhatsAppSession';
 import CitizenProfile from '../models/CitizenProfile';
 import { logger } from '../config/logger';
+import { sendWhatsAppMessage } from '../services/whatsappService';
 
 const router = express.Router();
 type WebhookRequest = Request & { rawBody?: Buffer };
@@ -253,12 +254,13 @@ async function handleIncomingMessage(message: any, metadata: any, resolvedCompan
     await handleConsentCommand({
       companyObjectId: company._id,
       from,
-      messageText
+      messageText,
+      company
     });
 
     await CitizenProfile.updateOne(
       { companyId: company._id, phone_number: from },
-      { $set: { lastUserInteractionAt: new Date() } },
+      { $set: { lastUserInteractionAt: new Date(), phoneNumber: from } },
       { upsert: true }
     );
 
@@ -292,12 +294,14 @@ type ConsentCommandInput = {
   companyObjectId: any;
   from: string;
   messageText: string;
+  company?: any;
 };
 
 async function handleConsentCommand({
   companyObjectId,
   from,
-  messageText
+  messageText,
+  company
 }: ConsentCommandInput): Promise<void> {
   const normalized = (messageText || '').trim().toLowerCase();
   if (!normalized) {
@@ -306,8 +310,9 @@ async function handleConsentCommand({
 
   const isStopCommand = normalized === 'stop' || normalized === 'unsubscribe';
   const isStartCommand = normalized === 'start' || normalized === 'resume';
+  const isConsentAffirmed = normalized === 'yes' || normalized === 'i agree';
 
-  if (!isStopCommand && !isStartCommand) {
+  if (!isStopCommand && !isStartCommand && !isConsentAffirmed) {
     return;
   }
 
@@ -318,6 +323,12 @@ async function handleConsentCommand({
       'sessionData.lastConsentAction': 'STOP',
       'sessionData.lastConsentAt': new Date()
     }
+    : isConsentAffirmed
+      ? {
+        'sessionData.consentStatus': 'consent_given',
+        'sessionData.lastConsentAction': 'YES',
+        'sessionData.lastConsentAt': new Date()
+      }
     : {
       'sessionData.optedOut': false,
       'sessionData.consentStatus': 'subscribed',
@@ -338,16 +349,46 @@ async function handleConsentCommand({
     {
       $set: isStopCommand
         ? {
-            opt_out: true
+            opt_out: true,
+            isSubscribed: false
           }
+        : isConsentAffirmed
+          ? {
+              citizen_consent: true,
+              consentGiven: true,
+              citizen_consent_timestamp: new Date(),
+              consentTimestamp: new Date(),
+              consent_source: 'whatsapp_text',
+              isSubscribed: true,
+              opt_out: false
+            }
         : {
-            opt_out: false
+            opt_out: false,
+            isSubscribed: true
           }
     },
     { upsert: true }
   );
 
-  logger.info(`✅ Consent command processed for ${from}: ${isStopCommand ? 'STOP' : 'START'}`);
+  if (company && isStopCommand) {
+    await sendWhatsAppMessage(
+      company,
+      from,
+      'You have been unsubscribed from grievance updates. Reply START to subscribe again.',
+      { requireConsent: false, allowUnsubscribed: true }
+    );
+  }
+
+  if (company && isConsentAffirmed) {
+    await sendWhatsAppMessage(
+      company,
+      from,
+      'Thank you. Your consent has been recorded. You can now continue grievance submission.',
+      { requireConsent: false }
+    );
+  }
+
+  logger.info(`✅ Consent command processed for ${from}: ${isStopCommand ? 'STOP' : isConsentAffirmed ? 'YES' : 'START'}`);
 }
 
 /**
@@ -388,7 +429,7 @@ async function handleInteractiveMessage(message: any, metadata: any, resolvedCom
 
     await CitizenProfile.updateOne(
       { companyId: company._id, phone_number: from },
-      { $set: { lastUserInteractionAt: new Date() } },
+      { $set: { lastUserInteractionAt: new Date(), phoneNumber: from } },
       { upsert: true }
     );
 

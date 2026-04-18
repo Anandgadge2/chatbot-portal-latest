@@ -17,6 +17,7 @@ export interface IGrievance extends Document {
   status: GrievanceStatus;
   admin_consent: boolean;
   admin_consent_timestamp?: Date;
+  isFlagged?: boolean;
   statusHistory: Array<{
     status: GrievanceStatus;
     changedBy?: mongoose.Types.ObjectId;
@@ -124,6 +125,11 @@ const GrievanceSchema: Schema = new Schema(
     },
     admin_consent_timestamp: {
       type: Date
+    },
+    isFlagged: {
+      type: Boolean,
+      default: false,
+      index: true
     },
     statusHistory: [{
       status: {

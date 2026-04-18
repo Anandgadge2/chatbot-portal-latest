@@ -63,5 +63,12 @@ export async function assertTemplateApproved(options: {
     throw error;
   }
 
+  const footer = String((template as any).footer || '').toLowerCase();
+  const body = String((template as any).body?.text || '').toLowerCase();
+  if (!footer.includes('stop') && !body.includes('stop')) {
+    const error: any = new Error(`Template ${options.templateName} must include unsubscribe instruction (Reply STOP to unsubscribe).`);
+    error.code = 'TEMPLATE_INVALID';
+    throw error;
+  }
   return template;
 }
