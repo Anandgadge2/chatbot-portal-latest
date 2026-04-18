@@ -24,7 +24,6 @@ type VerifiedWebhookContext = {
     rateLimits?: any;
   };
 };
-const DEFAULT_WEBHOOK_SECRET = 'chatbot_portal_verify';
 
 /**
  * ============================================================
@@ -532,16 +531,38 @@ async function verifyWebhookRequest(req: WebhookRequest): Promise<VerifiedWebhoo
     return null;
   }
 
-  const webhookSecret = config.webhookSecret || DEFAULT_WEBHOOK_SECRET;
+  /**
+   * Webhook signature secret resolution (per-company, multi-tenant):
+   *   1. webhookSecret field (recommended — store Meta App Secret here)
+   *   2. verifyToken field (fallback — in case admin stored App Secret here)
+   *
+   * The correct value is the Meta "App Secret" from:
+   *   Meta Developer Dashboard → Your App → Settings → Basic → App Secret
+   */
+  const webhookSecret = config.webhookSecret || config.verifyToken;
+  if (!webhookSecret) {
+    logger.error(
+      `❌ No webhook secret available for phoneNumberId=${phoneNumberId}. ` +
+      `Set the 'Webhook Secret' field in WhatsApp Config (Dashboard → Company → WhatsApp Config → Edit Params).`
+    );
+    return null;
+  }
+
   if (!config.webhookSecret) {
     logger.warn(
-      `⚠️ Webhook secret missing in CompanyWhatsAppConfig for phoneNumberId=${phoneNumberId}. Using fallback secret.`
+      `⚠️ 'webhookSecret' not set for phoneNumberId=${phoneNumberId}. Using 'verifyToken' as fallback. ` +
+      `For reliability, set the Meta App Secret in the 'Webhook Secret' field via the dashboard.`
     );
   }
 
   const isValid = verifyWebhookSignatureDigest(req.rawBody, signature, webhookSecret);
   if (!isValid) {
-    logger.error('❌ Invalid webhook signature');
+    logger.error(
+      `❌ Webhook signature mismatch for phoneNumberId=${phoneNumberId}. ` +
+      `The secret does not match what Meta used to sign the payload. ` +
+      `Fix: Get your App Secret from Meta Developer Dashboard → Settings → Basic → App Secret, ` +
+      `then paste it into the 'Webhook Secret' field in your WhatsApp Config (Dashboard → Company → WhatsApp Config → Edit Params).`
+    );
     return null;
   }
 

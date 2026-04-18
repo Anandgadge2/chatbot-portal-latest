@@ -273,7 +273,9 @@ async function enforceMessagingPolicy(
     }
   }
 
-  if (requireConsent && !compliance.consentGiven) {
+  // Consent is only required for proactive/outbound messages.
+  // If the user is within the 24-hour window (they messaged us first), we can respond without consent.
+  if (requireConsent && !compliance.consentGiven && !compliance.within24hWindow) {
     throw new Error('Recipient consent missing. Message blocked.');
   }
 

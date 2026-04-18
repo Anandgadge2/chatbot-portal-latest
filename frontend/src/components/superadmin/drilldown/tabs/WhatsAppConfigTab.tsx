@@ -862,15 +862,18 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-[9px] font-black uppercase text-slate-500">Webhook Secret</Label>
+                <Label className="text-[9px] font-black uppercase text-slate-500">App Secret (Webhook Signing)</Label>
                 <Input
                   type="password"
                   value={config?.webhookSecret || ""}
                   onChange={e => updateConfigField("webhookSecret", e.target.value)}
                   disabled={!isEditing}
                   className="h-9 text-xs font-bold"
-                  placeholder="Meta app secret for signature verification"
+                  placeholder="Meta App Secret (Settings → Basic → App Secret)"
                 />
+                <p className="text-[8px] text-slate-400 leading-tight">
+                  Found at: Meta Developer Dashboard → Your App → Settings → Basic → App Secret. Required for webhook signature verification.
+                </p>
               </div>
               <div className="flex items-center justify-between">
                 <Label className="text-[9px] font-black uppercase text-slate-500">Messenger pipeline</Label>
