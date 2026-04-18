@@ -20,6 +20,7 @@ import {
   Shield,
   AlertCircle,
   Activity,
+  Trash2,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -67,6 +68,7 @@ const COLORS = ["#6366f1", "#10b981", "#f59e0b", "#f43f5e"];
 export default function DepartmentDetail() {
   const { user } = useAuth();
   const canUpdateGrievanceStatus = canChangeGrievanceStatus(user);
+  const canDeleteGrievance = hasPermission(user, Permission.DELETE_GRIEVANCE);
   const router = useRouter();
   const params = useParams();
   const departmentId = Array.isArray(params.id) ? params.id[0] : (params.id as string);
@@ -216,6 +218,46 @@ export default function DepartmentDetail() {
       }
     },
     [departmentId, grievancePage, grievancePagination.limit, statusFilter, searchTerm]
+  );
+
+  const handleDeleteGrievance = useCallback(
+    async (grievance: Grievance) => {
+      if (!canDeleteGrievance) return;
+
+      if (
+        !confirm(
+          `Are you sure you want to delete grievance ${grievance.grievanceId}? This action cannot be undone.`,
+        )
+      ) {
+        return;
+      }
+
+      try {
+        const response = await grievanceAPI.delete(grievance._id);
+        if (response.success) {
+          toast.success(response.message || "Grievance deleted successfully");
+          setGrievances((prev) => prev.filter((item) => item._id !== grievance._id));
+          setSelectedGrievance((prev) =>
+            prev?._id === grievance._id ? null : prev,
+          );
+          fetchGrievances(grievancePage, grievancePagination.limit);
+        } else {
+          toast.error("Failed to delete grievance");
+        }
+      } catch (error: any) {
+        toast.error(
+          error?.response?.data?.message ||
+            error?.message ||
+            "Failed to delete grievance",
+        );
+      }
+    },
+    [
+      canDeleteGrievance,
+      fetchGrievances,
+      grievancePage,
+      grievancePagination.limit,
+    ],
   );
 
   const fetchData = async () => {
@@ -1231,6 +1273,15 @@ export default function DepartmentDetail() {
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                       </svg>
                                     </button>
+                                    {canDeleteGrievance && (
+                                      <button
+                                        onClick={() => handleDeleteGrievance(g)}
+                                        className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                                        title="Delete grievance"
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </button>
+                                    )}
                                   </td>
                                 </tr>
                               ))}

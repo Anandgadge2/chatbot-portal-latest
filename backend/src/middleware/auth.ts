@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { verifyToken } from '../utils/jwt';
 import User, { IUser } from '../models/User';
 import Company from '../models/Company';
-import Role from '../models/Role';
+import { resolveUserAccess } from '../utils/accessControl';
 
 // Extend Express Request to include user
 
@@ -58,19 +58,8 @@ export const authenticate = async (
     }
 
 
-    if (!decoded.isSuperAdmin && user.customRoleId) {
-      const assignedRoleExists = await Role.exists({ _id: user.customRoleId });
-      if (!assignedRoleExists) {
-        res.status(401).json({
-          success: false,
-          message: 'Assigned role no longer exists'
-        });
-        return;
-      }
-    }
-
     if (!decoded.isSuperAdmin && user.companyId) {
-      const company = await Company.findById(user.companyId).select('isActive isSuspended permissionsVersion').lean();
+      const company = await Company.findById(user.companyId).select('isActive isSuspended').lean();
 
       if (!company || !company.isActive || company.isSuspended) {
         res.status(401).json({
@@ -79,23 +68,17 @@ export const authenticate = async (
         });
         return;
       }
-
-      if (decoded.permissionsVersion !== (company.permissionsVersion ?? 1)) {
-        res.status(401).json({
-          success: false,
-          message: 'Session expired. Please login again.'
-        });
-        return;
-      }
     }
 
+    const access = await resolveUserAccess(user);
+
     req.user = Object.assign(user, {
-      isSuperAdmin: decoded.isSuperAdmin,
-      level: decoded.level,
-      scope: decoded.scope,
-      filteredPermissions: decoded.filteredPermissions,
-      permissionsVersion: decoded.permissionsVersion,
-      roleId: decoded.roleId,
+      isSuperAdmin: access.isSuperAdmin,
+      level: access.level,
+      scope: access.scope,
+      filteredPermissions: access.filteredPermissions,
+      permissionsVersion: access.permissionsVersion,
+      roleId: access.roleId,
     });
 
     next();
@@ -137,13 +120,14 @@ export const optionalAuth = async (
       const user = await User.findById(decoded.userId);
       
       if (user && user.isActive) {
+        const access = await resolveUserAccess(user);
         req.user = Object.assign(user, {
-          isSuperAdmin: decoded.isSuperAdmin,
-          level: decoded.level,
-          scope: decoded.scope,
-          filteredPermissions: decoded.filteredPermissions,
-          permissionsVersion: decoded.permissionsVersion,
-          roleId: decoded.roleId,
+          isSuperAdmin: access.isSuperAdmin,
+          level: access.level,
+          scope: access.scope,
+          filteredPermissions: access.filteredPermissions,
+          permissionsVersion: access.permissionsVersion,
+          roleId: access.roleId,
         });
       }
     }

@@ -257,6 +257,10 @@ function DashboardContent() {
       (user?.departmentIds && user.departmentIds.length > 0)) &&
     !user.isSuperAdmin;
   const isSuperAdminUser = useMemo(() => isSuperAdmin(user), [user]);
+  const canDeleteGrievance = useMemo(
+    () => hasPermission(user, Permission.DELETE_GRIEVANCE),
+    [user],
+  );
   const router = useRouter();
   const searchParams = useSearchParams();
   const companyIdParam = searchParams.get("companyId");
@@ -954,6 +958,47 @@ function DashboardContent() {
         error?.response?.data?.message ||
           error?.message ||
           "Failed to delete grievances",
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleDeleteGrievance = async (grievance: Grievance) => {
+    if (!canDeleteGrievance) return;
+
+    if (
+      !confirm(
+        `Are you sure you want to delete grievance ${grievance.grievanceId}? This action cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const response = await grievanceAPI.delete(grievance._id);
+      if (response.success) {
+        toast.success(response.message || "Grievance deleted successfully");
+        setGrievances((prev) => prev.filter((item) => item._id !== grievance._id));
+        setSelectedGrievance((prev) =>
+          prev?._id === grievance._id ? null : prev,
+        );
+        setSelectedGrievances((prev) => {
+          const next = new Set(prev);
+          next.delete(grievance._id);
+          return next;
+        });
+        fetchGrievances(grievancePage, true);
+        fetchDashboardData(true);
+      } else {
+        toast.error("Failed to delete grievance");
+      }
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Failed to delete grievance",
       );
     } finally {
       setIsDeleting(false);
@@ -8260,6 +8305,20 @@ function DashboardContent() {
                                                 />
                                               </svg>
                                             </Button>
+                                            {canDeleteGrievance && (
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() =>
+                                                  handleDeleteGrievance(grievance)
+                                                }
+                                                disabled={isDeleting}
+                                                title="Delete grievance"
+                                                className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                              >
+                                                <Trash2 className="w-4 h-4" />
+                                              </Button>
+                                            )}
                                           </div>
                                         </td>
                                       </tr>
@@ -8649,6 +8708,20 @@ function DashboardContent() {
                                             >
                                               <Eye className="w-3.5 h-3.5" />
                                             </Button>
+                                            {canDeleteGrievance && (
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() =>
+                                                  handleDeleteGrievance(grievance)
+                                                }
+                                                disabled={isDeleting}
+                                                className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 hover:text-red-700 rounded-lg shadow-none border-0 transition-all"
+                                                title="Delete grievance"
+                                              >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                              </Button>
+                                            )}
                                           </div>
                                         </td>
                                       </tr>

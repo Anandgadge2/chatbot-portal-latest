@@ -811,6 +811,7 @@ async function sendWhatsAppTemplateWithTextFallback(
     headerParam?: string;
     contextLabel?: string;
     disableTextFallback?: boolean;
+    priority?: 'text' | 'template';
   }
 ): Promise<{ success: boolean; error?: string }> {
   if (!to) {
@@ -821,6 +822,17 @@ async function sendWhatsAppTemplateWithTextFallback(
   const contextLabel = options?.contextLabel || templateName;
   const safeParams = parameters.map(p => (p ?? '').toString());
 
+  // 1. If priority is 'text', try sending regular message first
+  if (options?.priority === 'text') {
+    const textResult = await safeSendWhatsApp(company, to, fallbackMessage);
+    if (textResult.success) {
+      logger.info(`✅ WhatsApp message sent (${contextLabel}) - Text Priority`, { to });
+      return { success: true };
+    }
+    logger.warn(`⚠️ WhatsApp text priority failed, falling back to template (${contextLabel})`, { to, error: textResult.error });
+  }
+
+  // 2. Try Template (as default or as backup for text priority)
   const templateResult = await sendWhatsAppTemplate(
     company,
     to,
@@ -842,11 +854,12 @@ async function sendWhatsAppTemplateWithTextFallback(
     error: templateResult?.error
   });
 
-  if (options?.disableTextFallback) {
-    return { success: false, error: templateResult?.error || 'Template send failed' };
+  // 3. Final fallback: If template failed and we haven't tried text yet (and it's not disabled)
+  if (options?.priority !== 'text' && !options?.disableTextFallback) {
+    return safeSendWhatsApp(company, to, fallbackMessage);
   }
 
-  return safeSendWhatsApp(company, to, fallbackMessage);
+  return { success: false, error: templateResult?.error || 'Message delivery failed' };
 }
 
 /* ------------------------------------------------------------------ */
@@ -1348,7 +1361,7 @@ export async function notifyCitizenOnCreation(
           {
             language: getNotificationLanguage(data),
             contextLabel: 'grievance_confirmation_citizen',
-            disableTextFallback: true
+            priority: 'text'
           }
         );
       } else {
