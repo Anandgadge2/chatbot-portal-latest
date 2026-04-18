@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -51,20 +51,29 @@ export default function TemplateDrawer({
   const [overrideValues, setOverrideValues] = useState<Record<string, string>>({});
 
   const validation = useMemo(() => (template ? getValidationState(template) : "NOT_APPROVED"), [template]);
+  const templateId = template?._id;
+
+  useEffect(() => {
+    if (!templateId) return;
+    setOverrideValues({});
+    setTo("");
+  }, [templateId]);
 
   if (!template) return null;
 
   const variables = extractVariables(template.body.text);
   const mapping = template.mapping || {};
+  const sampleValues = template.body.sampleValues || [];
 
   const autoFillParameters = variables.map((variable) => {
     const key = variable.replace(/[{}]/g, "");
-    return overrideValues[key] ?? mapping[key] ?? "";
+    const sampleIndex = Number(key) - 1;
+    return overrideValues[key] ?? mapping[key] ?? sampleValues[sampleIndex] ?? "";
   });
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
-      <DialogContent className="w-[95vw] sm:w-full max-w-4xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="w-[96vw] sm:w-full max-w-4xl h-[92vh] sm:h-auto max-h-[92vh] overflow-y-auto p-3 sm:p-6">
         <DialogHeader>
           <DialogTitle>{template.name}</DialogTitle>
           <DialogDescription>
@@ -89,6 +98,7 @@ export default function TemplateDrawer({
               acc[`{{${key}}}`] = value;
               return acc;
             }, {})}
+            sampleValues={sampleValues}
             isSaving={isSavingMapping}
             onSave={(updated) => onSaveMapping(template.name, updated)}
           />
@@ -107,7 +117,7 @@ export default function TemplateDrawer({
             </div>
           )}
 
-          <div className="rounded-xl border border-slate-200 p-4 space-y-3">
+          <div className="rounded-xl border border-slate-200 p-3 sm:p-4 space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Use Template</p>
               <span className="text-xs font-semibold">
@@ -132,7 +142,7 @@ export default function TemplateDrawer({
                     <input
                       key={key}
                       className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
-                      value={overrideValues[key] ?? mapping[key] ?? ""}
+                      value={overrideValues[key] ?? mapping[key] ?? sampleValues[Number(key) - 1] ?? ""}
                       onChange={(event) =>
                         setOverrideValues((prev) => ({ ...prev, [key]: event.target.value }))
                       }

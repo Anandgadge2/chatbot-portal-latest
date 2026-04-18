@@ -17,6 +17,7 @@ export interface WhatsAppTemplate {
   body: {
     text: string;
     variables: number;
+    sampleValues?: string[];
   };
   buttons: WhatsAppTemplateButton[];
   lastSyncedAt?: string;

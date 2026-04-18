@@ -11,6 +11,19 @@ function extractVariables(text: string): number {
   return unique.size;
 }
 
+function extractBodySampleValues(rawBodyComponent: any): string[] {
+  const example = rawBodyComponent?.example;
+  const bodyText = example?.body_text;
+  if (!Array.isArray(bodyText) || bodyText.length === 0) return [];
+
+  const firstSampleSet = Array.isArray(bodyText[0]) ? bodyText[0] : bodyText;
+  if (!Array.isArray(firstSampleSet)) return [];
+
+  return firstSampleSet
+    .map((value: any) => String(value ?? '').trim())
+    .filter((value: string) => value.length > 0);
+}
+
 function normalizeTemplate(companyId: mongoose.Types.ObjectId, raw: any) {
   const components = raw.components || [];
   const header = components.find((c: any) => c.type === 'HEADER');
@@ -31,7 +44,8 @@ function normalizeTemplate(companyId: mongoose.Types.ObjectId, raw: any) {
     },
     body: {
       text: body?.text || '',
-      variables: extractVariables(body?.text || '')
+      variables: extractVariables(body?.text || ''),
+      sampleValues: extractBodySampleValues(body)
     },
     footer: footer?.text || '',
     buttons: (buttons?.buttons || []).map((button: any) => ({

@@ -17,6 +17,7 @@ export interface IWhatsAppTemplate extends Document {
   body: {
     text: string;
     variables: number;
+    sampleValues?: string[];
   };
   footer: string;
   buttons: Array<{
@@ -48,7 +49,8 @@ const WhatsAppTemplateSchema = new Schema<IWhatsAppTemplate>(
     },
     body: {
       text: { type: String, default: '' },
-      variables: { type: Number, default: 0 }
+      variables: { type: Number, default: 0 },
+      sampleValues: { type: [String], default: [] }
     },
     footer: { type: String, default: '' },
     buttons: [
