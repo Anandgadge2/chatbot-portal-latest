@@ -550,7 +550,7 @@ async function verifyWebhookRequest(req: WebhookRequest): Promise<VerifiedWebhoo
   const config = await CompanyWhatsAppConfig.findOne({
     phoneNumberId,
     isActive: true
-  }).select('webhookSecret companyId phoneNumberId businessAccountId accessToken verifyToken rateLimits');
+  }).select('appSecret webhookSecret companyId phoneNumberId businessAccountId accessToken verifyToken rateLimits');
 
   if (!config) {
     logger.error(`❌ Active WhatsApp config not found for phoneNumberId=${phoneNumberId}.`);
@@ -565,19 +565,19 @@ async function verifyWebhookRequest(req: WebhookRequest): Promise<VerifiedWebhoo
    * The correct value is the Meta "App Secret" from:
    *   Meta Developer Dashboard → Your App → Settings → Basic → App Secret
    */
-  const webhookSecret = config.webhookSecret || config.verifyToken;
+  const webhookSecret = config.appSecret || config.webhookSecret || config.verifyToken;
   if (!webhookSecret) {
     logger.error(
       `❌ No webhook secret available for phoneNumberId=${phoneNumberId}. ` +
-      `Set the 'Webhook Secret' field in WhatsApp Config (Dashboard → Company → WhatsApp Config → Edit Params).`
+      `Set the 'App Secret' field in WhatsApp Config (Dashboard → Company → WhatsApp Config → Edit Params).`
     );
     return null;
   }
 
-  if (!config.webhookSecret) {
+  if (!config.appSecret && !config.webhookSecret) {
     logger.warn(
-      `⚠️ 'webhookSecret' not set for phoneNumberId=${phoneNumberId}. Using 'verifyToken' as fallback. ` +
-      `For reliability, set the Meta App Secret in the 'Webhook Secret' field via the dashboard.`
+      `⚠️ 'appSecret' not set for phoneNumberId=${phoneNumberId}. Using 'verifyToken' as fallback. ` +
+      `For reliability, set the Meta App Secret in the 'App Secret' field via the dashboard.`
     );
   }
 

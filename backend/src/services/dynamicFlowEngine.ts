@@ -3451,6 +3451,7 @@ async function continueFlow(
   locationData?: { lat: number; long: number; address?: string },
 ): Promise<void> {
   let flow = await ChatbotFlow.findOne({
+    companyId: company._id,
     flowId: session.data.flowId,
     isActive: true,
   });

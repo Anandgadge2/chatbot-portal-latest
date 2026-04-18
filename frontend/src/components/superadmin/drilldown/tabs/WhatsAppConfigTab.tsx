@@ -569,6 +569,8 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
     verifyToken: "",
     webhookUrl: "",
     webhookSecret: "",
+    appSecret: "",
+
     isActive: true,
     chatbotSettings: {
       isEnabled: true,
@@ -862,18 +864,29 @@ export default function WhatsAppConfigTab({ companyId }: WhatsAppConfigTabProps)
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-[9px] font-black uppercase text-slate-500">App Secret (Webhook Signing)</Label>
+                <Label className="text-[9px] font-black uppercase text-slate-500">App Secret (Primary)</Label>
+                <Input
+                  type="password"
+                  value={config?.appSecret || ""}
+                  onChange={e => updateConfigField("appSecret", e.target.value)}
+                  disabled={!isEditing}
+                  className="h-9 text-xs font-bold"
+                  placeholder="Meta App Secret"
+                />
+                <p className="text-[8px] text-slate-400 leading-tight">
+                  Found at: Meta Developer Dashboard → Your App → Settings → Basic → App Secret. Required for secure webhook validation.
+                </p>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[9px] font-black uppercase text-slate-500">Webhook Secret (Legacy/Fallback)</Label>
                 <Input
                   type="password"
                   value={config?.webhookSecret || ""}
                   onChange={e => updateConfigField("webhookSecret", e.target.value)}
                   disabled={!isEditing}
                   className="h-9 text-xs font-bold"
-                  placeholder="Meta App Secret (Settings → Basic → App Secret)"
+                  placeholder="Legacy Webhook Secret"
                 />
-                <p className="text-[8px] text-slate-400 leading-tight">
-                  Found at: Meta Developer Dashboard → Your App → Settings → Basic → App Secret. Required for webhook signature verification.
-                </p>
               </div>
               <div className="flex items-center justify-between">
                 <Label className="text-[9px] font-black uppercase text-slate-500">Messenger pipeline</Label>

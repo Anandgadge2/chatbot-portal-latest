@@ -123,7 +123,8 @@ const run = async () => {
     ...config,
     accessToken: redactSecrets ? maskSecret(config.accessToken) : config.accessToken,
     verifyToken: redactSecrets ? maskSecret(config.verifyToken) : config.verifyToken,
-    webhookSecret: redactSecrets ? maskSecret(config.webhookSecret) : config.webhookSecret
+    webhookSecret: redactSecrets ? maskSecret(config.webhookSecret) : config.webhookSecret,
+    appSecret: redactSecrets ? maskSecret(config.appSecret) : config.appSecret
   }));
 
   const sanitizedEmailConfigs = emailConfigs.map((config) => ({

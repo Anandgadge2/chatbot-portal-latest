@@ -22,6 +22,8 @@ export interface ICompanyWhatsAppConfig extends Document {
   // Webhook Configuration
   webhookUrl?: string; // Optional custom webhook URL
   webhookSecret?: string; // For webhook signature verification
+  appSecret?: string; // Meta App Secret for signature verification
+
   
   // Chatbot Settings
   chatbotSettings: {
@@ -115,6 +117,8 @@ const CompanyWhatsAppConfigSchema: Schema = new Schema(
     },
     webhookUrl: String,
     webhookSecret: String,
+    appSecret: String,
+
     chatbotSettings: {
       isEnabled: { type: Boolean, default: true },
       defaultLanguage: { type: String, default: 'en' },
