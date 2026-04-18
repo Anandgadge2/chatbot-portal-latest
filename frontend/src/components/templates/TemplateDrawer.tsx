@@ -64,7 +64,7 @@ export default function TemplateDrawer({
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
-      <DialogContent className="w-[95vw] sm:w-full max-w-4xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="w-[96vw] sm:w-full max-w-4xl h-[92vh] sm:h-auto max-h-[92vh] overflow-y-auto p-3 sm:p-6">
         <DialogHeader>
           <DialogTitle>{template.name}</DialogTitle>
           <DialogDescription>
@@ -107,7 +107,7 @@ export default function TemplateDrawer({
             </div>
           )}
 
-          <div className="rounded-xl border border-slate-200 p-4 space-y-3">
+          <div className="rounded-xl border border-slate-200 p-3 sm:p-4 space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Use Template</p>
               <span className="text-xs font-semibold">
