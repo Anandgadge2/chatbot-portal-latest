@@ -445,13 +445,22 @@ async function verifyWebhookSignature(req: WebhookRequest): Promise<VerifiedWebh
     isActive: true
   }).select('webhookSecret companyId phoneNumberId businessAccountId accessToken verifyToken rateLimits');
 
-  if (!config?.webhookSecret) {
-    logger.warn(`⚠️ Webhook secret missing for phoneNumberId=${phoneNumberId}.`);
+  if (!config) {
+    logger.warn(`⚠️ Active WhatsApp config not found for phoneNumberId=${phoneNumberId}.`);
+    return null;
+  }
+
+  const webhookSecret = config?.webhookSecret || process.env.WHATSAPP_WEBHOOK_SECRET || process.env.META_APP_SECRET;
+
+  if (!webhookSecret) {
+    logger.warn(
+      `⚠️ Webhook secret missing for phoneNumberId=${phoneNumberId}. Set company webhookSecret or WHATSAPP_WEBHOOK_SECRET/META_APP_SECRET env var.`
+    );
     return null;
   }
 
   const expectedDigest = crypto
-    .createHmac('sha256', config.webhookSecret)
+    .createHmac('sha256', webhookSecret)
     .update(req.rawBody)
     .digest();
 
