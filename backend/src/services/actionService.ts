@@ -20,7 +20,7 @@ import { logger } from '../config/logger';
 import { ForestService } from './forestService';
 import CitizenProfile from '../models/CitizenProfile';
 import { enforceDailyLimitOrThrow } from './grievanceRateLimitService';
-import { sendWhatsAppMessage } from './whatsappService';
+import { sendWhatsAppTemplate } from './whatsappService';
 import { sanitizeGrievanceDetails } from '../utils/sanitize';
 
 interface CreateActionOptions {
@@ -79,12 +79,7 @@ export class ActionService {
       }
 
       if (!citizenProfile?.citizen_consent) {
-        await sendWhatsAppMessage(
-          company,
-          userPhone,
-          'Do you agree to share your personal details (name, grievance) for processing? Reply YES to continue.',
-          { requireConsent: false }
-        );
+        await sendWhatsAppTemplate(company, userPhone, 'consent_request_citizen', [], session.language || 'en');
         throw new Error('Citizen consent is required before grievance creation');
       }
 

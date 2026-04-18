@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import CitizenProfile from '../models/CitizenProfile';
 import Company from '../models/Company';
-import { sendWhatsAppMessage } from '../services/whatsappService';
+import { sendWhatsAppTemplate } from '../services/whatsappService';
 import { enforceDailyLimitOrThrow } from '../services/grievanceRateLimitService';
 import { isWithin24Hours } from '../utils/istDate';
 import { logger } from '../config/logger';
@@ -37,15 +37,8 @@ export async function enforceWhatsAppGrievanceCompliance(req: Request, res: Resp
     }
 
     // 2) citizen consent check
-    if (!citizen?.citizen_consent && !citizen?.consentGiven) {
-      if (!citizen?.lastUserInteractionAt || isWithin24Hours(citizen.lastUserInteractionAt, new Date())) {
-        await sendWhatsAppMessage(
-          company,
-          phone_number,
-          'Do you agree to share your personal details (name, grievance) for processing? Reply YES to continue.',
-          { requireConsent: false }
-        );
-      }
+    if (!citizen?.citizen_consent) {
+      await sendWhatsAppTemplate(company, phone_number, 'consent_request_citizen', [], language);
       logger.warn('Rejected due to missing citizen consent', { companyId, phone_number });
       rejection(res, 403, 'CONSENT_REQUIRED', 'Citizen consent is required before grievance creation.');
       return;

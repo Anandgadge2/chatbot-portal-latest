@@ -70,6 +70,5 @@ export async function assertTemplateApproved(options: {
     error.code = 'TEMPLATE_INVALID';
     throw error;
   }
-
   return template;
 }

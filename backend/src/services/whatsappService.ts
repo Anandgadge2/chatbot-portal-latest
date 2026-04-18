@@ -256,6 +256,7 @@ async function enforceMessagingPolicy(
 ): Promise<void> {
   const compliance = await getSessionComplianceContext(company, to);
   const requireConsent = options?.requireConsent !== false;
+  const optInTemplates = new Set(['consent_request_citizen', 'consent_confirmed']);
   const approvedOutsideWindowTemplates = new Set([
     'grievance_received_admin_v1',
     'grievance_pending_admin_v1',
@@ -267,7 +268,9 @@ async function enforceMessagingPolicy(
   ]);
 
   if ((!compliance.isSubscribed || compliance.optedOut) && !options?.allowUnsubscribed) {
-    throw new Error('Recipient has unsubscribed (STOP). Message blocked.');
+    if (!(messageType === 'template' && templateName && optInTemplates.has(templateName))) {
+      throw new Error('Recipient has unsubscribed (STOP). Message blocked.');
+    }
   }
 
   if (requireConsent && !compliance.consentGiven) {
