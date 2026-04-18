@@ -3,6 +3,7 @@ import { authenticate } from '../middleware/auth';
 import { requireDatabaseConnection } from '../middleware/dbConnection';
 import WhatsAppTemplate from '../models/WhatsAppTemplate';
 import WhatsAppTemplateSyncLog from '../models/WhatsAppTemplateSyncLog';
+import CompanyTemplateMapping from '../models/CompanyTemplateMapping';
 import { syncTemplatesForCompany } from '../services/whatsappTemplateSyncService';
 import { UserRole } from '../config/constants';
 
@@ -19,11 +20,12 @@ router.use((req: Request, res: Response, next) => {
 
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const { page = 1, limit = 20, status, language, category, companyId, search } = req.query as any;
+    const { page = 1, limit = 20, status, language, category, companyId, search, approvedOnly } = req.query as any;
 
     const query: any = {};
     if (companyId) query.companyId = companyId;
     if (status) query.status = status;
+    if (approvedOnly === 'true') query.status = 'APPROVED';
     if (language) query.language = language;
     if (category) query.category = category;
     if (search) query.name = { $regex: search, $options: 'i' };
@@ -35,9 +37,28 @@ router.get('/', async (req: Request, res: Response) => {
 
     const total = await WhatsAppTemplate.countDocuments(query);
 
+    const templateNames = templates.map((template) => template.name);
+    const mappings = companyId
+      ? await CompanyTemplateMapping.find({
+        companyId,
+        templateName: { $in: templateNames }
+      })
+      : [];
+
+    const mappingByTemplate = mappings.reduce<Record<string, Record<string, string>>>((acc, entry) => {
+      const mapSource = entry.mappings instanceof Map ? Object.fromEntries(entry.mappings.entries()) : Object(entry.mappings || {});
+      acc[entry.templateName] = mapSource as Record<string, string>;
+      return acc;
+    }, {});
+
+    const serializedTemplates = templates.map((template) => ({
+      ...template.toObject(),
+      mapping: mappingByTemplate[template.name] || {}
+    }));
+
     res.json({
       success: true,
-      data: templates,
+      data: serializedTemplates,
       pagination: {
         page: Number(page),
         limit: Number(limit),
@@ -47,6 +68,42 @@ router.get('/', async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+router.post('/mapping', async (req: Request, res: Response) => {
+  try {
+    const { companyId, templateName, mappings } = req.body as {
+      companyId?: string;
+      templateName?: string;
+      mappings?: Record<string, string>;
+    };
+
+    if (!companyId || !templateName || !mappings || typeof mappings !== 'object') {
+      return res.status(400).json({
+        success: false,
+        message: 'companyId, templateName and mappings are required'
+      });
+    }
+
+    const updated = await CompanyTemplateMapping.findOneAndUpdate(
+      { companyId, templateName },
+      { $set: { mappings } },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+
+    return res.json({
+      success: true,
+      data: {
+        companyId,
+        templateName,
+        mappings: updated?.mappings instanceof Map
+          ? Object.fromEntries(updated.mappings.entries())
+          : Object(updated?.mappings || {})
+      }
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
   }
 });
 

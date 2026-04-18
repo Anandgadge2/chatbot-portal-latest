@@ -7,8 +7,9 @@ import CompanyWhatsAppConfig from '../models/CompanyWhatsAppConfig';
 import WhatsAppSession from '../models/WhatsAppSession';
 import CitizenProfile from '../models/CitizenProfile';
 import { logger } from '../config/logger';
-import { sendWhatsAppMessage } from '../services/whatsappService';
+import { sendWhatsAppMessage, sendWhatsAppTemplate } from '../services/whatsappService';
 import { verifyWebhookSignature as verifyWebhookSignatureDigest } from '../utils/verifyWebhookSignature';
+import { authenticate } from '../middleware/auth';
 
 const router = express.Router();
 type WebhookRequest = Request & { rawBody?: Buffer };
@@ -24,6 +25,57 @@ type VerifiedWebhookContext = {
     rateLimits?: any;
   };
 };
+
+
+router.post('/send-template', requireDatabaseConnection, authenticate, async (req: Request, res: Response) => {
+  try {
+    const { companyId, to, templateName, parameters = [], language = 'en' } = req.body as {
+      companyId?: string;
+      to?: string;
+      templateName?: string;
+      parameters?: string[];
+      language?: string;
+    };
+
+    if (!companyId || !to || !templateName) {
+      return res.status(400).json({
+        success: false,
+        message: 'companyId, to and templateName are required'
+      });
+    }
+
+    const company = await Company.findById(companyId);
+    if (!company) {
+      return res.status(404).json({ success: false, message: 'Company not found' });
+    }
+
+    const config = await CompanyWhatsAppConfig.findOne({ companyId, isActive: true });
+    if (!config) {
+      return res.status(404).json({ success: false, message: 'Active WhatsApp config not found for company' });
+    }
+
+    (company as any).whatsappConfig = {
+      phoneNumberId: config.phoneNumberId,
+      businessAccountId: config.businessAccountId,
+      accessToken: config.accessToken,
+      verifyToken: config.verifyToken,
+      rateLimits: config.rateLimits
+    };
+
+    const result = await sendWhatsAppTemplate(company, to, templateName, parameters, language);
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        message: result.error || 'Failed to send template message'
+      });
+    }
+
+    return res.json({ success: true, data: result });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
 
 /**
  * ============================================================
