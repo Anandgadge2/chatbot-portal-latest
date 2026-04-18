@@ -838,7 +838,7 @@
     },
     {
       "id": "grv_success_en",
-      "type": "end",
+      "type": "buttonMessage",
       "position": {
         "x": 3150,
         "y": 0
@@ -846,38 +846,59 @@
       "data": {
         "label": "Grievance Success (EN)",
         "messageText": "*SAHAJ-Swift Access & Help by Administration, Jharsuguda*\n\n✅ *GRIEVANCE SUBMITTED SUCCESSFULLY*\n\nHello {citizenName},\nThank you for reaching out. Your grievance has been submitted Successfully.\n*Details:*\n🎫 *Reference ID:* {grievanceId}\n🏢 *Department:* {departmentName}\n🏢 *Office:* {subdepartmentName}\n📝 *Description:* {description}\n📅 *Submitted On:* {formattedDate}\n\nYou can track your status using the Reference ID: *{grievanceId}*\n\nYour grievance, our priority.\n– District Administration, Jharsuguda",
-        "clearSession": true
+        "buttons": [
+          {
+            "id": "back_to_menu_en_success",
+            "text": "↩️ Main Menu",
+            "type": "quick_reply",
+            "nextStepId": "language_selection"
+          }
+        ]
       }
     },
     {
       "id": "grv_success_hi",
-      "type": "end",
+      "type": "buttonMessage",
       "position": {
         "x": 3150,
         "y": 300
       },
       "data": {
         "label": "Grievance Success (HI)",
-        "messageText": "*सहज - प्रशासन द्वारा त्वरित पहुँच और सहायता, झारसुगुड़ा*\n\n✅ *शिकायत सफलतापूर्वक जमा हो गई है*\n\nनमस्ते {citizenName},\nहमसे संपर्क करने के लिए धन्यवाद। आपकी शिकायत सफलतापूर्वक जमा हो गई है।\n*विवरण:*\n🎫 *रेफरेंस ID:* {grievanceId}\n🏢 *विभाग:* {departmentName}\n🏢 *कार्यालय:* {subdepartmentName}\n📝 *विवरण:* {description}\n📅 *जमा करने की तिथि:* {formattedDate}\n\nआप इस रेफरेंस ID: *{grievanceId}* का उपयोग करके अपनी शिकायत की स्थिति ट्रैक कर सकते हैं।\n\nआपकी शिकायत, हमारी प्राथमिकता।\n– जिला प्रशासन, झारसुगुड़ा",
-        "clearSession": true
+        "messageText": "*सहज-प्रशासन द्वारा त्वरित पहुँच और सहायता, झारसुगुडा*\n\n✅ *शिकायत सफलतापूर्वक दर्ज की गई*\n\nनमस्ते {citizenName}, \nहमसे संपर्क करने के लिए धन्यवाद। आपकी शिकायत सफलतापूर्वक दर्ज कर ली गई है।\n*विवरण:*\n🎫 *संदर्भ आईडी:* {grievanceId}\n🏢 *विभाग:* {departmentName}\n🏢 *कार्यालय:* {subdepartmentName}\n📝 *विवरण:* {description}\n📅 *दिनांक:* {formattedDate}\n\nआप संदर्भ आईडी का उपयोग करके अपनी स्थिति को ट्रैक कर सकते हैं: *{grievanceId}*\n\nआपकी शिकायत, हमारी प्राथमिकता।\n- जिला प्रशासन, झारसुगुडा",
+        "buttons": [
+          {
+            "id": "back_to_menu_hi_success",
+            "text": "↩️ मुख्य मेनू",
+            "type": "quick_reply",
+            "nextStepId": "language_selection"
+          }
+        ]
       }
     },
     {
       "id": "grv_success_or",
-      "type": "end",
+      "type": "buttonMessage",
       "position": {
         "x": 3150,
         "y": 600
       },
       "data": {
         "label": "Grievance Success (OR)",
-        "messageText": "*ଝାରସୁଗୁଡ଼ା ପ୍ରଶାସନ ଦ୍ୱାରା ସହଜ-ସ୍ୱିଫ୍ଟ ପ୍ରବେଶ ଏବଂ ସହାୟତା*\n\n✅ *ଅଭିଯୋଗ ସଫଳତାର ସହ ଦାଖଲ ହୋଇଛି*\n\nନମସ୍କାର {citizenName},\nସମ୍ପର୍କ କରିବା ପାଇଁ ଧନ୍ୟବାଦ। ଆପଣଙ୍କ ଅଭିଯୋଗ ସଫଳତାର ସହ ଦାଖଲ କରାଯାଇଛି।\n*ବିବରଣୀ:*\n🎫 *ସନ୍ଦର୍ଭ ID:* {ଗ୍ରିଭନ୍ସଆଇଡି}\n🏢 *ବିଭାଗ:* {ବିଭାଗନାମ}\n🏢 *କାର୍ଯ୍ୟାଳୟ:* {ଉପବିଭାଗନାମ}\n📝 *ବିବରଣୀ:* {ବର୍ଣ୍ଣନା}\n📅 *ଦାଖଲ କରାଯାଇଛି:* {formattedDate}\n\nଆପଣ ରେଫରେନ୍ସ ଆଇଡି ବ୍ୟବହାର କରି ଆପଣଙ୍କର ସ୍ଥିତି ଟ୍ରାକ୍ କରିପାରିବେ: *{ଗ୍ରିଭନ୍ସଆଇଡି}*\n\nଆପଣଙ୍କ ଅଭିଯୋଗ, ଆମର ପ୍ରାଥମିକତା।\n– ଜିଲ୍ଲା ପ୍ରଶାସନ, ଝାରସୁଗୁଡ଼ା",
-        "clearSession": true
+        "messageText": "*ଝାରସୁଗୁଡ଼ା ପ୍ରଶାସନ ଦ୍ୱାରା ସହଜ-ସ୍ୱିଫ୍ଟ ପ୍ରବେଶ ଏବଂ ସହାୟତା*\n\n✅ *ଅଭିଯୋଗ ସଫଳତାର ସହିତ ଦାଖଲ ହୋଇଛି*\n\nନମସ୍କାର {citizenName},\nଯୋଗାଯୋଗ କରିଥିବାରୁ ଧନ୍ୟବାଦ। ଆପଣଙ୍କର ଅଭିଯୋଗ ସଫଳତାର ସହିତ ଦାଖଲ ହୋଇଛି।\n*ବିବରଣୀ:*\n🎫 *ରେଫରେନ୍ସ ଆଇଡି:* {grievanceId}\n🏢 *ବିଭାଗ:* {departmentName}\n🏢 *କାର୍ଯ୍ୟାଳୟ:* {subdepartmentName}\n📝 *ବର୍ଣ୍ଣନା:* {description}\n📅 *ଦାଖଲ ତାରିଖ:* {formattedDate}\n\nଆପଣ ରେଫରେନ୍ସ ଆଇଡି ବ୍ୟବହାର କରି ଆପଣଙ୍କର ସ୍ଥିତି ଟ୍ରାକ୍ କରିପାରିବେ: *{grievanceId}*\n\nଆପଣଙ୍କର ଅଭିଯୋଗ, ଆମର ପ୍ରାଥମିକତା।\n- ଜିଲ୍ଲା ପ୍ରଶାସନ, ଝାରସୁଗୁଡ଼ା",
+        "buttons": [
+          {
+            "id": "back_to_menu_or_success",
+            "text": "↩️ ମୁଖ୍ୟ ମେନୁ",
+            "type": "quick_reply",
+            "nextStepId": "language_selection"
+          }
+        ]
       }
     },
     {
       "id": "grv_consent_data_en",
-      "type": "chatbotNode",
+      "type": "buttonMessage",
       "position": {
         "x": 2330,
         "y": -40
@@ -903,7 +924,7 @@
     },
     {
       "id": "grv_consent_updates_en",
-      "type": "chatbotNode",
+      "type": "buttonMessage",
       "position": {
         "x": 2490,
         "y": -40
@@ -929,7 +950,7 @@
     },
     {
       "id": "grv_consent_data_hi",
-      "type": "chatbotNode",
+      "type": "buttonMessage",
       "position": {
         "x": 2330,
         "y": 360
@@ -955,7 +976,7 @@
     },
     {
       "id": "grv_consent_updates_hi",
-      "type": "chatbotNode",
+      "type": "buttonMessage",
       "position": {
         "x": 2490,
         "y": 360
@@ -981,7 +1002,7 @@
     },
     {
       "id": "grv_consent_data_or",
-      "type": "chatbotNode",
+      "type": "buttonMessage",
       "position": {
         "x": 2330,
         "y": 760
@@ -1007,7 +1028,7 @@
     },
     {
       "id": "grv_consent_updates_or",
-      "type": "chatbotNode",
+      "type": "buttonMessage",
       "position": {
         "x": 2490,
         "y": 760

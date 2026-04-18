@@ -2262,14 +2262,23 @@ export class DynamicFlowEngine {
         // Case 1: Grievance
         if (isGrievanceConfirm && isSubmitClick) {
           console.log(`🎯 Triggering createGrievance for button: ${buttonId}`);
-          await ActionService.createGrievance(this.session, this.company, this.userPhone);
-          // If the flow has a success node, move to it. Otherwise, end session here.
-          if (isGrievanceSuccess) {
-            await this.runNextStepIfDifferent(nextStepId, currentStep.stepId);
-          } else {
-            this.session.data.stepQueue = [];
-            this.session.data.lastStepId = "end";
-            await updateSession(this.session);
+          try {
+            await ActionService.createGrievance(this.session, this.company, this.userPhone);
+            // If the flow has a success node, move to it. Otherwise, end session here.
+            if (isGrievanceSuccess) {
+              await this.runNextStepIfDifferent(nextStepId, currentStep.stepId);
+            } else {
+              this.session.data.stepQueue = [];
+              this.session.data.lastStepId = "end";
+              await updateSession(this.session);
+            }
+          } catch (error: any) {
+            console.error(`❌ Error creating grievance:`, error);
+            if (error.code === "LIMIT_EXCEEDED") {
+              await sendWhatsAppMessage(this.company, this.userPhone, `⚠️ *Submission Limit Reached*\n\n${error.message}`);
+              return;
+            }
+            throw error;
           }
           return;
         }
@@ -2277,14 +2286,23 @@ export class DynamicFlowEngine {
         // Case 2: Appointment
         if (isAppointmentConfirm && isApptSubmitClick) {
           console.log(`🎯 Triggering createAppointment for button: ${buttonId}`);
-          await ActionService.createAppointment(this.session, this.company, this.userPhone);
-          // Move to success node or end session
-          if (isAppointmentSubmitted) {
-            await this.runNextStepIfDifferent(nextStepId, currentStep.stepId);
-          } else {
-            this.session.data.stepQueue = [];
-            this.session.data.lastStepId = "end";
-            await updateSession(this.session);
+          try {
+            await ActionService.createAppointment(this.session, this.company, this.userPhone);
+            // Move to success node or end session
+            if (isAppointmentSubmitted) {
+              await this.runNextStepIfDifferent(nextStepId, currentStep.stepId);
+            } else {
+              this.session.data.stepQueue = [];
+              this.session.data.lastStepId = "end";
+              await updateSession(this.session);
+            }
+          } catch (error: any) {
+            console.error(`❌ Error creating appointment:`, error);
+            if (error.code === "LIMIT_EXCEEDED") {
+              await sendWhatsAppMessage(this.company, this.userPhone, `⚠️ *Submission Limit Reached*\n\n${error.message}`);
+              return;
+            }
+            throw error;
           }
           return;
         }
@@ -2395,20 +2413,38 @@ export class DynamicFlowEngine {
         console.log(
           `🎯 [Grievance Trigger] Matched 'success/submit' path. Executing createGrievance...`,
         );
-        await ActionService.createGrievance(
-          this.session,
-          this.company,
-          this.userPhone,
-        );
+        try {
+          await ActionService.createGrievance(
+            this.session,
+            this.company,
+            this.userPhone,
+          );
+        } catch (error: any) {
+          console.error(`❌ Error creating grievance (mapped):`, error);
+          if (error.code === "LIMIT_EXCEEDED") {
+            await sendWhatsAppMessage(this.company, this.userPhone, `⚠️ *Submission Limit Reached*\n\n${error.message}`);
+            return;
+          }
+          throw error;
+        }
       } else if (bmIsAptConfirm && bmIsAptSuccess && bmIsSubmit) {
         console.log(
           `🎯 [buttonMapping path] Triggering createAppointment for button: ${buttonId}`,
         );
-        await ActionService.createAppointment(
-          this.session,
-          this.company,
-          this.userPhone,
-        );
+        try {
+          await ActionService.createAppointment(
+            this.session,
+            this.company,
+            this.userPhone,
+          );
+        } catch (error: any) {
+          console.error(`❌ Error creating appointment (mapped):`, error);
+          if (error.code === "LIMIT_EXCEEDED") {
+            await sendWhatsAppMessage(this.company, this.userPhone, `⚠️ *Submission Limit Reached*\n\n${error.message}`);
+            return;
+          }
+          throw error;
+        }
       }
       await this.runNextStepIfDifferent(
         nextStepIdFromMapping,
@@ -2472,11 +2508,20 @@ export class DynamicFlowEngine {
         console.log(
           `🎯 [Path3/default] Triggering createGrievance. StepId: ${currentStep.stepId}, NextStep: ${defNextStepId}, ButtonId: ${buttonId}`,
         );
-        await ActionService.createGrievance(
-          this.session,
-          this.company,
-          this.userPhone,
-        );
+        try {
+          await ActionService.createGrievance(
+            this.session,
+            this.company,
+            this.userPhone,
+          );
+        } catch (error: any) {
+          console.error(`❌ Error creating grievance (default path):`, error);
+          if (error.code === "LIMIT_EXCEEDED") {
+            await sendWhatsAppMessage(this.company, this.userPhone, `⚠️ *Submission Limit Reached*\n\n${error.message}`);
+            return;
+          }
+          throw error;
+        }
       } else {
         const dfIsAptConfirmStep =
           currentStep.stepId === "appointment_confirm" ||
@@ -2491,11 +2536,20 @@ export class DynamicFlowEngine {
           console.log(
             `🎯 [Path3/default] Triggering createAppointment. StepId: ${currentStep.stepId}, NextStep: ${defNextStepId}, ButtonId: ${buttonId}`,
           );
-          await ActionService.createAppointment(
-            this.session,
-            this.company,
-            this.userPhone,
-          );
+          try {
+            await ActionService.createAppointment(
+              this.session,
+              this.company,
+              this.userPhone,
+            );
+          } catch (error: any) {
+            console.error(`❌ Error creating appointment (default path):`, error);
+            if (error.code === "LIMIT_EXCEEDED") {
+              await sendWhatsAppMessage(this.company, this.userPhone, `⚠️ *Submission Limit Reached*\n\n${error.message}`);
+              return;
+            }
+            throw error;
+          }
         }
       }
 
