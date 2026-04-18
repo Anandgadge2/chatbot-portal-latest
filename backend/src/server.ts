@@ -39,6 +39,8 @@ import emailConfigRoutes from './routes/companyEmailConfig.routes';
 import leadRoutes from './routes/lead.routes';
 import roleRoutes from './routes/role.routes';
 import moduleRoutes from './routes/module.routes';
+import whatsappTemplateRoutes from './routes/whatsappTemplate.routes';
+import { startWhatsAppTemplateSyncCron } from './services/whatsappTemplateSyncCron';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -243,6 +245,7 @@ app.use('/api/email-config', emailConfigRoutes);
 app.use('/api/leads', leadRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/modules', moduleRoutes);
+app.use('/api/templates', whatsappTemplateRoutes);
 
 // ================================
 // Error Handling
@@ -317,6 +320,7 @@ if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
     // Create server instance
     const server = app.listen(PORT, () => {
       logger.info(`🚀 Server running on port ${PORT}`);
+      startWhatsAppTemplateSyncCron();
     });
 
     // Production-grade error handling for port conflicts
