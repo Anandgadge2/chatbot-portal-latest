@@ -355,7 +355,9 @@ async function handleConsentCommand({
       $set: isStopCommand
         ? {
             opt_out: true,
-            isSubscribed: false
+            isSubscribed: false,
+            notification_consent: false,
+            notificationConsent: false
           }
         : isConsentAffirmed
           ? {
@@ -380,7 +382,7 @@ async function handleConsentCommand({
       company,
       from,
       'You have been unsubscribed from grievance updates. Reply START to subscribe again.',
-      { requireConsent: false, allowUnsubscribed: true }
+      { requireConsent: false, allowUnsubscribed: true, includeComplianceFooter: true }
     );
   }
 
@@ -389,7 +391,7 @@ async function handleConsentCommand({
       company,
       from,
       'Thank you. Your consent has been recorded. You can now continue grievance submission.',
-      { requireConsent: false }
+      { requireConsent: false, includeComplianceFooter: true }
     );
   }
 

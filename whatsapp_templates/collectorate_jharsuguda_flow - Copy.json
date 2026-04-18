@@ -195,7 +195,7 @@
       },
       "data": {
         "label": "Language Selection",
-        "messageText": "🇮🇳 *Welcome to Sahaj - Swift Access & Help by Administration, Jharsuguda*\n*ଝାରସୁଗୁଡା ପ୍ରଶାସନ ଦ୍ୱାରା ସହଜ - ସ୍ୱିଫ୍ଟ ଆକ୍ସେସ ଏବଂ ସହାୟତାକୁ ସ୍ୱାଗତ।*\n\nYou can now register and track your grievances easily through this platform.\nଆପଣ ଏବେ ଏହି ପ୍ଲାଟଫର୍ମ ମାଧ୍ୟମରେ ସହଜରେ ପଞ୍ଜୀକରଣ କରିପାରିବେ ଏବଂ ଆପଣଙ୍କର ଅଭିଯୋଗଗୁଡ଼ିକୁ ଟ୍ରାକ୍ କରିପାରିବେ।\n\n👇 Please select your preferred language:",
+        "messageText": "🇮🇳 *Welcome to Sahaj - Swift Access & Help by Administration, Jharsuguda*\n*ଝାରସୁଗୁଡା ପ୍ରଶାସନ ଦ୍ୱାରା ସହଜ - ସ୍ୱିଫ୍ଟ ଆକ୍ସେସ ଏବଂ ସହାୟତାକୁ ସ୍ୱାଗତ।*\n\nYou can now register and track your grievances easily through this platform.\nଆପଣ ଏବେ ଏହି ପ୍ଲାଟଫର୍ମ ମାଧ୍ୟମରେ ସହଜରେ ପଞ୍ଜୀକରଣ କରିପାରିବେ ଏବଂ ଆପଣଙ୍କର ଅଭିଯୋଗଗୁଡ଼ିକୁ ଟ୍ରାକ୍ କରିପାରିବେ।\n\n👇 Please select your preferred language:\n\nThis is an official government assistance chatbot.\nType STOP to unsubscribe.",
         "buttons": [
           {
             "id": "lang_or",
@@ -1300,6 +1300,162 @@
         "isDynamic": true,
         "dynamicSource": "sub-departments"
       }
+    },
+    {
+      "id": "grv_consent_data_en",
+      "type": "chatbotNode",
+      "position": {
+        "x": 2330,
+        "y": -40
+      },
+      "data": {
+        "label": "Data Consent (EN)",
+        "messageText": "*Data Processing Consent*\n\nTo file your grievance, you must consent to the processing of the details you shared for grievance registration and resolution.\n\nThis is an official government assistance chatbot.\nType STOP to unsubscribe.\n\nPlease choose:",
+        "buttons": [
+          {
+            "id": "grv_consent_data_yes_en",
+            "text": "I Agree",
+            "type": "quick_reply",
+            "nextStepId": "grv_consent_updates_en"
+          },
+          {
+            "id": "grv_consent_data_no_en",
+            "text": "I Do Not Agree",
+            "type": "quick_reply",
+            "nextStepId": "main_menu_en"
+          }
+        ]
+      }
+    },
+    {
+      "id": "grv_consent_updates_en",
+      "type": "chatbotNode",
+      "position": {
+        "x": 2490,
+        "y": -40
+      },
+      "data": {
+        "label": "Notification Consent (EN)",
+        "messageText": "*WhatsApp Update Consent*\n\nWould you like to receive grievance status updates on WhatsApp using approved templates?\n\nThis is an official government assistance chatbot.\nType STOP to unsubscribe.\n\nPlease choose:",
+        "buttons": [
+          {
+            "id": "grv_consent_updates_yes_en",
+            "text": "Yes, send updates",
+            "type": "quick_reply",
+            "nextStepId": "grv_confirm_en"
+          },
+          {
+            "id": "grv_consent_updates_no_en",
+            "text": "No updates",
+            "type": "quick_reply",
+            "nextStepId": "grv_confirm_en"
+          }
+        ]
+      }
+    },
+    {
+      "id": "grv_consent_data_hi",
+      "type": "chatbotNode",
+      "position": {
+        "x": 2330,
+        "y": 360
+      },
+      "data": {
+        "label": "Data Consent (HI)",
+        "messageText": "*Data Processing Consent*\n\nPlease confirm that you allow grievance registration and resolution using the details shared in this chat.\n\nThis is an official government assistance chatbot.\nType STOP to unsubscribe.\n\nPlease choose:",
+        "buttons": [
+          {
+            "id": "grv_consent_data_yes_hi",
+            "text": "Agree",
+            "type": "quick_reply",
+            "nextStepId": "grv_consent_updates_hi"
+          },
+          {
+            "id": "grv_consent_data_no_hi",
+            "text": "Do not agree",
+            "type": "quick_reply",
+            "nextStepId": "main_menu_hi"
+          }
+        ]
+      }
+    },
+    {
+      "id": "grv_consent_updates_hi",
+      "type": "chatbotNode",
+      "position": {
+        "x": 2490,
+        "y": 360
+      },
+      "data": {
+        "label": "Notification Consent (HI)",
+        "messageText": "*WhatsApp Update Consent*\n\nWould you like to receive grievance status updates on WhatsApp using approved templates?\n\nThis is an official government assistance chatbot.\nType STOP to unsubscribe.\n\nPlease choose:",
+        "buttons": [
+          {
+            "id": "grv_consent_updates_yes_hi",
+            "text": "Yes, send updates",
+            "type": "quick_reply",
+            "nextStepId": "grv_confirm_hi"
+          },
+          {
+            "id": "grv_consent_updates_no_hi",
+            "text": "No updates",
+            "type": "quick_reply",
+            "nextStepId": "grv_confirm_hi"
+          }
+        ]
+      }
+    },
+    {
+      "id": "grv_consent_data_or",
+      "type": "chatbotNode",
+      "position": {
+        "x": 2330,
+        "y": 760
+      },
+      "data": {
+        "label": "Data Consent (OR)",
+        "messageText": "*Data Processing Consent*\n\nPlease confirm that you allow grievance registration and resolution using the details shared in this chat.\n\nThis is an official government assistance chatbot.\nType STOP to unsubscribe.\n\nPlease choose:",
+        "buttons": [
+          {
+            "id": "grv_consent_data_yes_or",
+            "text": "Agree",
+            "type": "quick_reply",
+            "nextStepId": "grv_consent_updates_or"
+          },
+          {
+            "id": "grv_consent_data_no_or",
+            "text": "Do not agree",
+            "type": "quick_reply",
+            "nextStepId": "main_menu_or"
+          }
+        ]
+      }
+    },
+    {
+      "id": "grv_consent_updates_or",
+      "type": "chatbotNode",
+      "position": {
+        "x": 2490,
+        "y": 760
+      },
+      "data": {
+        "label": "Notification Consent (OR)",
+        "messageText": "*WhatsApp Update Consent*\n\nWould you like to receive grievance status updates on WhatsApp using approved templates?\n\nThis is an official government assistance chatbot.\nType STOP to unsubscribe.\n\nPlease choose:",
+        "buttons": [
+          {
+            "id": "grv_consent_updates_yes_or",
+            "text": "Yes, send updates",
+            "type": "quick_reply",
+            "nextStepId": "grv_confirm_or"
+          },
+          {
+            "id": "grv_consent_updates_no_or",
+            "text": "No updates",
+            "type": "quick_reply",
+            "nextStepId": "grv_confirm_or"
+          }
+        ]
+      }
     }
   ],
   "edges": [
@@ -1366,14 +1522,14 @@
     {
       "id": "e_en_grv8",
       "source": "grv_evidence_en",
-      "target": "grv_confirm_en",
+      "target": "grv_consent_data_en",
       "sourceHandle": "skip_evidence_en",
       "type": "smoothstep"
     },
     {
       "id": "e_en_grv9",
       "source": "grv_upload_en",
-      "target": "grv_confirm_en",
+      "target": "grv_consent_data_en",
       "type": "smoothstep"
     },
     {
@@ -1418,14 +1574,14 @@
     {
       "id": "e_hi_grv8",
       "source": "grv_evidence_hi",
-      "target": "grv_confirm_hi",
+      "target": "grv_consent_data_hi",
       "sourceHandle": "skip_evidence_hi",
       "type": "smoothstep"
     },
     {
       "id": "e_hi_grv9",
       "source": "grv_upload_hi",
-      "target": "grv_confirm_hi",
+      "target": "grv_consent_data_hi",
       "type": "smoothstep"
     },
     {
@@ -1470,14 +1626,14 @@
     {
       "id": "e_or_grv8",
       "source": "grv_evidence_or",
-      "target": "grv_confirm_or",
+      "target": "grv_consent_data_or",
       "sourceHandle": "skip_evidence_or",
       "type": "smoothstep"
     },
     {
       "id": "e_or_grv9",
       "source": "grv_upload_or",
-      "target": "grv_confirm_or",
+      "target": "grv_consent_data_or",
       "type": "smoothstep"
     },
     {
@@ -1782,6 +1938,90 @@
       "id": "e_or_grv_sub_to_desc",
       "source": "grv_subdept_or",
       "target": "grv_desc_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_en_grv_consent_data_yes",
+      "source": "grv_consent_data_en",
+      "target": "grv_consent_updates_en",
+      "sourceHandle": "grv_consent_data_yes_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_en_grv_consent_data_no",
+      "source": "grv_consent_data_en",
+      "target": "main_menu_en",
+      "sourceHandle": "grv_consent_data_no_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_en_grv_consent_updates_yes",
+      "source": "grv_consent_updates_en",
+      "target": "grv_confirm_en",
+      "sourceHandle": "grv_consent_updates_yes_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_en_grv_consent_updates_no",
+      "source": "grv_consent_updates_en",
+      "target": "grv_confirm_en",
+      "sourceHandle": "grv_consent_updates_no_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_hi_grv_consent_data_yes",
+      "source": "grv_consent_data_hi",
+      "target": "grv_consent_updates_hi",
+      "sourceHandle": "grv_consent_data_yes_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_hi_grv_consent_data_no",
+      "source": "grv_consent_data_hi",
+      "target": "main_menu_hi",
+      "sourceHandle": "grv_consent_data_no_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_hi_grv_consent_updates_yes",
+      "source": "grv_consent_updates_hi",
+      "target": "grv_confirm_hi",
+      "sourceHandle": "grv_consent_updates_yes_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_hi_grv_consent_updates_no",
+      "source": "grv_consent_updates_hi",
+      "target": "grv_confirm_hi",
+      "sourceHandle": "grv_consent_updates_no_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_or_grv_consent_data_yes",
+      "source": "grv_consent_data_or",
+      "target": "grv_consent_updates_or",
+      "sourceHandle": "grv_consent_data_yes_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_or_grv_consent_data_no",
+      "source": "grv_consent_data_or",
+      "target": "main_menu_or",
+      "sourceHandle": "grv_consent_data_no_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_or_grv_consent_updates_yes",
+      "source": "grv_consent_updates_or",
+      "target": "grv_confirm_or",
+      "sourceHandle": "grv_consent_updates_yes_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_or_grv_consent_updates_no",
+      "source": "grv_consent_updates_or",
+      "target": "grv_confirm_or",
+      "sourceHandle": "grv_consent_updates_no_or",
       "type": "smoothstep"
     }
   ]

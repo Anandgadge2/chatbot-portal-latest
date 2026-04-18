@@ -11,7 +11,6 @@ import { logUserAction } from '../utils/auditLogger';
 import { AuditAction } from '../config/constants';
 import { sendWhatsAppMessage } from '../services/whatsappService';
 import { cloudinary } from '../config/cloudinary';
-import { triggerCitizenStatusTemplate } from '../services/grievanceTemplateTriggerService';
 
 const router = express.Router();
 const upload = multer({
@@ -211,20 +210,6 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
     });
 
     await grievance.save();
-
-    triggerCitizenStatusTemplate({
-      companyId: grievance.companyId,
-      citizenPhone: grievance.citizenPhone,
-      citizenName: grievance.citizenName,
-      grievanceId: grievance.grievanceId,
-      departmentName: ((grievance.departmentId as any)?.name || 'Department') as string,
-      subDepartmentName: ((grievance.subDepartmentId as any)?.name || '') as string,
-      status,
-      resolvedByName: currentUser.getFullName(),
-      formattedResolvedDate: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
-      remarks,
-      language: grievance.language
-    }).catch((err) => console.error('Failed to trigger grievance_status_citizen_v1 template:', err));
 
     // 🚀 BACKGROUND NOTIFICATIONS: Fire and forget to keep UI responsive
     (async () => {

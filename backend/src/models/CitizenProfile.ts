@@ -10,6 +10,9 @@ export interface ICitizenProfile extends Document {
   citizen_consent_timestamp?: Date;
   consentTimestamp?: Date;
   consent_source?: 'whatsapp_button' | 'whatsapp_text';
+  notification_consent?: boolean;
+  notificationConsent?: boolean;
+  notification_consent_timestamp?: Date;
   admin_consent: boolean;
   admin_consent_timestamp?: Date;
   opt_out: boolean;
@@ -65,6 +68,20 @@ const CitizenProfileSchema = new Schema<ICitizenProfile>(
     consent_source: {
       type: String,
       enum: ['whatsapp_button', 'whatsapp_text'],
+      default: null
+    },
+    notification_consent: {
+      type: Boolean,
+      default: false,
+      index: true
+    },
+    notificationConsent: {
+      type: Boolean,
+      default: false,
+      index: true
+    },
+    notification_consent_timestamp: {
+      type: Date,
       default: null
     },
     admin_consent: {

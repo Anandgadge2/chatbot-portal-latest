@@ -6,6 +6,7 @@ import Grievance from "../models/Grievance";
 import Appointment from "../models/Appointment";
 import Department from "../models/Department";
 import User from "../models/User";
+import CitizenProfile from "../models/CitizenProfile";
 import CompanyWhatsAppTemplate from "../models/CompanyWhatsAppTemplate";
 import {
   sendWhatsAppMessage,
@@ -320,6 +321,74 @@ export class DynamicFlowEngine {
    */
   private ui(key: string): string {
     return ui(key, this.session.language || "en", this.flow);
+  }
+
+  private async persistConsentSelection(stepId: string, buttonId: string): Promise<void> {
+    if (!stepId || !buttonId) return;
+
+    const normalizedButtonId = String(buttonId).toLowerCase();
+    const consentTimestamp = new Date();
+    let shouldUpdateSession = false;
+
+    if (stepId.startsWith("grv_consent_data_")) {
+      const consentAccepted = normalizedButtonId.includes("consent_data_yes");
+      const consentDeclined = normalizedButtonId.includes("consent_data_no");
+
+      if (consentAccepted || consentDeclined) {
+        this.session.data.citizenConsent = consentAccepted;
+        shouldUpdateSession = true;
+
+        await CitizenProfile.updateOne(
+          { companyId: this.company._id, phone_number: this.userPhone },
+          {
+            $set: consentAccepted
+              ? {
+                  phoneNumber: this.userPhone,
+                  citizen_consent: true,
+                  consentGiven: true,
+                  citizen_consent_timestamp: consentTimestamp,
+                  consentTimestamp: consentTimestamp,
+                  consent_source: "whatsapp_button",
+                  opt_out: false,
+                  isSubscribed: true
+                }
+              : {
+                  phoneNumber: this.userPhone,
+                  citizen_consent: false,
+                  consentGiven: false
+                }
+          },
+          { upsert: true }
+        );
+      }
+    }
+
+    if (stepId.startsWith("grv_consent_updates_")) {
+      const consentAccepted = normalizedButtonId.includes("consent_updates_yes");
+      const consentDeclined = normalizedButtonId.includes("consent_updates_no");
+
+      if (consentAccepted || consentDeclined) {
+        this.session.data.notificationConsent = consentAccepted;
+        shouldUpdateSession = true;
+
+        await CitizenProfile.updateOne(
+          { companyId: this.company._id, phone_number: this.userPhone },
+          {
+            $set: {
+              phoneNumber: this.userPhone,
+              notification_consent: consentAccepted,
+              notificationConsent: consentAccepted,
+              notification_consent_timestamp: consentTimestamp
+            }
+          },
+          { upsert: true }
+        );
+      }
+    }
+
+    if (shouldUpdateSession) {
+      await updateSession(this.session);
+    }
   }
 
   /**
@@ -2075,6 +2144,8 @@ export class DynamicFlowEngine {
     console.log(
       `   Expected responses: ${JSON.stringify(currentStep.expectedResponses)}`,
     );
+
+    await this.persistConsentSelection(currentStep.stepId, buttonId);
     console.log(
       `   Button mapping: ${JSON.stringify(this.session.data.buttonMapping)}`,
     );

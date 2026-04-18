@@ -12,7 +12,7 @@ import { AuditAction, Permission, UserRole, GrievanceStatus } from '../config/co
 import { logger } from '../config/logger';
 import { enforceWhatsAppGrievanceCompliance } from '../middleware/whatsappGrievanceCompliance';
 import CitizenProfile from '../models/CitizenProfile';
-import { triggerAdminTemplate, triggerCitizenSubmissionTemplate } from '../services/grievanceTemplateTriggerService';
+import { triggerAdminTemplate } from '../services/grievanceTemplateTriggerService';
 import { sanitizeGrievanceDetails } from '../utils/sanitize';
 
 const router = express.Router();
@@ -286,16 +286,6 @@ router.post('/', enforceWhatsAppGrievanceCompliance, async (req: Request, res: R
               safeDescription
             ]
           }),
-      triggerCitizenSubmissionTemplate({
-        companyId,
-        citizenPhone: grievance.citizenPhone,
-        citizenName: grievance.citizenName,
-        grievanceId: grievance.grievanceId,
-        departmentName: 'Portal Submission',
-        subDepartmentName: '',
-        grievanceDetails: safeDescription,
-        language: grievance.language
-      })
     ]);
 
 

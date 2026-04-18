@@ -1,12 +1,10 @@
 import { enforceWhatsAppGrievanceCompliance } from '../middleware/whatsappGrievanceCompliance';
 import CitizenProfile from '../models/CitizenProfile';
 import Company from '../models/Company';
-import { sendWhatsAppTemplate } from '../services/whatsappService';
 import { enforceDailyLimitOrThrow } from '../services/grievanceRateLimitService';
 
 jest.mock('../models/CitizenProfile', () => ({ __esModule: true, default: { findOne: jest.fn() } }));
 jest.mock('../models/Company', () => ({ __esModule: true, default: { findById: jest.fn() } }));
-jest.mock('../services/whatsappService', () => ({ sendWhatsAppTemplate: jest.fn() }));
 jest.mock('../services/grievanceRateLimitService', () => ({ enforceDailyLimitOrThrow: jest.fn() }));
 
 function mockRes() {
@@ -20,7 +18,6 @@ describe('whatsapp grievance compliance middleware', () => {
   const next = jest.fn();
   const findCompany = Company.findById as unknown as jest.Mock;
   const findCitizen = CitizenProfile.findOne as unknown as jest.Mock;
-  const sendTemplate = sendWhatsAppTemplate as unknown as jest.Mock;
   const enforceLimit = enforceDailyLimitOrThrow as unknown as jest.Mock;
 
   beforeEach(() => {
@@ -38,13 +35,12 @@ describe('whatsapp grievance compliance middleware', () => {
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 'OPT_OUT' }));
   });
 
-  it('blocks when citizen consent missing and triggers template', async () => {
+  it('blocks when citizen consent missing', async () => {
     findCitizen.mockResolvedValue({ opt_out: false, citizen_consent: false });
     const req: any = { body: { companyId: 'company1', citizenPhone: '91x' } };
     const res = mockRes();
 
     await enforceWhatsAppGrievanceCompliance(req, res as any, next);
-    expect(sendTemplate).toHaveBeenCalledWith(expect.anything(), '91x', 'consent_request_citizen', [], 'en');
     expect(res.status).toHaveBeenCalledWith(403);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 'CONSENT_REQUIRED' }));
   });

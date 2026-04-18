@@ -1,7 +1,6 @@
 import mongoose from 'mongoose';
 import Grievance from '../models/Grievance';
 import { getIstDayBoundsUtc, getNextIstMidnightUtc } from '../utils/istDate';
-import { sendWhatsAppTemplate } from './whatsappService';
 import { logger } from '../config/logger';
 
 export async function checkDailyLimit(options: {
@@ -40,16 +39,6 @@ export async function enforceDailyLimitOrThrow(options: {
   });
 
   if (!result.allowed) {
-    if (options.company) {
-      await sendWhatsAppTemplate(
-        options.company,
-        options.phone_number,
-        'grievance_limit_exceeded',
-        [result.nextEligibleAt || ''],
-        options.language || 'en'
-      );
-    }
-
     logger.warn('Rejected grievance due to daily limit', {
       companyId: options.companyId.toString(),
       phone_number: options.phone_number,

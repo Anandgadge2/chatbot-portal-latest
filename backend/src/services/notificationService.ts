@@ -3,6 +3,7 @@ import Company from '../models/Company';
 import CompanyWhatsAppConfig from '../models/CompanyWhatsAppConfig';
 import Department from '../models/Department';
 import User from '../models/User';
+import CitizenProfile from '../models/CitizenProfile';
 import { sendEmail, getNotificationEmailContent, getNotificationWhatsAppMessage } from './emailService';
 import { sendWhatsAppMessage, sendWhatsAppMedia, sendWhatsAppTemplate } from './whatsappService';
 import { normalizePhoneNumber } from '../utils/phoneUtils';
@@ -90,13 +91,13 @@ const getLocaleForLanguage = (lang: 'en' | 'hi' | 'or' | 'mr'): string => {
 };
 
 const GRIEVANCE_CREATED_ADMIN_TEMPLATE_NAME =
-  process.env.WHATSAPP_GRIEVANCE_CREATED_ADMIN_TEMPLATE || 'grievance_created_admin_v1';
+  process.env.WHATSAPP_GRIEVANCE_CREATED_ADMIN_TEMPLATE || 'grievance_received_admin_v1';
 const GRIEVANCE_CONFIRMATION_TEMPLATE_NAME =
-  process.env.WHATSAPP_GRIEVANCE_CONFIRMATION_TEMPLATE || 'grievance_confirmation_v1';
+  process.env.WHATSAPP_GRIEVANCE_CONFIRMATION_TEMPLATE || 'grievance_submitted_citizen_v1';
 const GRIEVANCE_STATUS_UPDATE_TEMPLATE_NAME =
-  process.env.WHATSAPP_GRIEVANCE_STATUS_UPDATE_TEMPLATE || 'grievance_status_update_v1';
+  process.env.WHATSAPP_GRIEVANCE_STATUS_UPDATE_TEMPLATE || 'grievance_status_citizen_v1';
 const GRIEVANCE_RESOLVED_TEMPLATE_NAME =
-  process.env.WHATSAPP_GRIEVANCE_RESOLVED_TEMPLATE || 'grievance_resolved_v1';
+  process.env.WHATSAPP_GRIEVANCE_RESOLVED_TEMPLATE || 'grievance_status_citizen_v1';
 const GRIEVANCE_TEMPLATE_LANGUAGE =
   (process.env.WHATSAPP_GRIEVANCE_TEMPLATE_LANGUAGE || 'en') as 'en' | 'hi' | 'or' | 'mr';
 
@@ -736,6 +737,18 @@ async function sendMediaIfAvailable(company: any, to: string, urls?: string[], c
   }
 }
 
+async function hasCitizenNotificationConsent(companyId: any, rawPhone: string | undefined): Promise<boolean> {
+  if (!rawPhone) return false;
+
+  const phone = normalizePhoneNumber(rawPhone);
+  const profile = await CitizenProfile.findOne({
+    companyId: normalizeId(companyId),
+    phone_number: phone
+  }).select('notification_consent notificationConsent').lean();
+
+  return Boolean(profile?.notification_consent ?? profile?.notificationConsent);
+}
+
 async function safeSendWhatsApp(
   company: any,
   rawPhone: string | undefined,
@@ -797,6 +810,7 @@ async function sendWhatsAppTemplateWithTextFallback(
     language?: 'en' | 'hi' | 'or' | 'mr';
     headerParam?: string;
     contextLabel?: string;
+    disableTextFallback?: boolean;
   }
 ): Promise<{ success: boolean; error?: string }> {
   if (!to) {
@@ -821,12 +835,16 @@ async function sendWhatsAppTemplateWithTextFallback(
     return { success: true };
   }
 
-  logger.warn(`⚠️ WhatsApp template failed; falling back to text (${contextLabel})`, {
+  logger.warn(`⚠️ WhatsApp template send failed (${contextLabel})`, {
     to,
     templateName,
     language,
     error: templateResult?.error
   });
+
+  if (options?.disableTextFallback) {
+    return { success: false, error: templateResult?.error || 'Template send failed' };
+  }
 
   return safeSendWhatsApp(company, to, fallbackMessage);
 }
@@ -1030,42 +1048,12 @@ export async function notifyDepartmentAdminOnCreation(
             const fullData = await populateNotificationData(notificationData);
             logger.info(`📢 Dispatching WhatsApp to admin: ${user.phone} (${user.getFullName()})`);
 
-            // ✅ Prefer approved utility template for grievance-created admin notifications.
-            // Fallback to legacy text/CTA flow for other cases or if template send fails.
-            let sentViaTemplate = false;
-            if (data.type === 'grievance' && user.phone) {
-              // 🏗️ MAPPED STRUCTURE FOR META TEMPLATE:
-              // Header: {{1}} (Company Name)
-              // Body: {{1}}..{{7}} (Recipient, ID, Citizen, Dept, SubDept, Desc, Date)
-              const headerValue = fullData.companyName || company?.name || '';
-              const bodyParams = [
-                fullData.recipientName || user.getFullName() || 'Admin',
-                fullData.grievanceId || '',
-                fullData.citizenName || '',
-                fullData.departmentName || '',
-                fullData.subDepartmentName || 'N/A',
-                fullData.description || 'No description provided',
-                fullData.formattedDate || ''
-              ];
-
-              const templateResult = await sendWhatsAppTemplate(
-                company,
-                user.phone,
-                GRIEVANCE_CREATED_ADMIN_TEMPLATE_NAME,
-                bodyParams,
-                GRIEVANCE_TEMPLATE_LANGUAGE,
-                headerValue // Sent as header component param
-              );
-
-              if (templateResult?.success) {
-                sentViaTemplate = true;
-                logger.info(`✅ WhatsApp template sent to admin: ${user.phone}`);
-              } else {
-                logger.warn(`⚠️ Template send failed for ${user.email}; falling back to text flow`, {
-                  error: templateResult?.error
-                });
-              }
+            if (data.type === 'grievance') {
+              logger.info(`ℹ️ Skipping legacy grievance admin WhatsApp send for ${user.phone}; Meta template trigger handles this path.`);
+              return;
             }
+
+            let sentViaTemplate = false;
 
             if (!sentViaTemplate) {
               // 🏷️ ALIGNMENT FIX: Use 'created_admin' to match DEFAULT_WA_MESSAGES
@@ -1208,7 +1196,7 @@ export async function notifyUserOnAssignment(
       const message = await getNotificationWhatsAppMessage(data.companyId, data.type, actionKey, recipientData);
       if (!message) return;
       await safeSendWhatsApp(company, recipient.phone, message, adminCta);
-      if (data.evidenceUrls?.length) {
+      if (data.type !== 'grievance' && data.evidenceUrls?.length) {
         await sendMediaIfAvailable(company, recipient.phone, data.evidenceUrls, `Files for Assignment: ${recipientData.grievanceId || recipientData.appointmentId}`);
       }
     }));
@@ -1261,6 +1249,10 @@ export async function notifyCitizenOnResolution(
       return;
     }
     if (data.type === 'grievance') {
+      if (!(await hasCitizenNotificationConsent(data.companyId, data.citizenWhatsApp || data.citizenPhone))) {
+        return;
+      }
+
       const templateParams = [
         fullData.citizenName || '',
         fullData.grievanceId || '',
@@ -1277,12 +1269,16 @@ export async function notifyCitizenOnResolution(
         GRIEVANCE_RESOLVED_TEMPLATE_NAME,
         templateParams,
         message,
-        { language: GRIEVANCE_TEMPLATE_LANGUAGE, contextLabel: 'grievance_resolved_citizen' }
+        {
+          language: GRIEVANCE_TEMPLATE_LANGUAGE,
+          contextLabel: 'grievance_resolved_citizen',
+          disableTextFallback: true
+        }
       );
     } else {
       await safeSendWhatsApp(company, data.citizenWhatsApp || data.citizenPhone, message);
     }
-    if (data.evidenceUrls && data.evidenceUrls.length > 0) {
+    if (data.type !== 'grievance' && data.evidenceUrls && data.evidenceUrls.length > 0) {
       await sendMediaIfAvailable(company, data.citizenWhatsApp || data.citizenPhone, data.evidenceUrls, 'Resolution Support Documents');
     }
 
@@ -1320,8 +1316,10 @@ export async function notifyCitizenOnCreation(
     // 📱 WhatsApp
     const actionKey = data.action || 'confirmation';
     const phoneToNotify = data.citizenWhatsApp || data.citizenPhone;
+    const canSendCitizenTemplate =
+      data.type !== 'grievance' || await hasCitizenNotificationConsent(data.companyId, phoneToNotify);
 
-    if (phoneToNotify && canNotify(company, null, 'whatsapp', `${data.type}_${actionKey}`)) {
+    if (phoneToNotify && canSendCitizenTemplate && canNotify(company, null, 'whatsapp', `${data.type}_${actionKey}`)) {
       logger.info(`📢 [Citizen Notify] Preparing WhatsApp confirmation for citizen: ${data.citizenName} (${phoneToNotify}) (Action: ${actionKey})`);
       
       // Check if there's a custom template in the database first
@@ -1338,8 +1336,7 @@ export async function notifyCitizenOnCreation(
           fullData.grievanceId || '',
           fullData.departmentName || '',
           fullData.subDepartmentName || 'N/A',
-          fullData.description || 'No description provided',
-          fullData.formattedDate || ''
+          fullData.description || 'No description provided'
         ];
 
         await sendWhatsAppTemplateWithTextFallback(
@@ -1348,16 +1345,20 @@ export async function notifyCitizenOnCreation(
           GRIEVANCE_CONFIRMATION_TEMPLATE_NAME,
           templateParams,
           message,
-          { language: GRIEVANCE_TEMPLATE_LANGUAGE, contextLabel: 'grievance_confirmation_citizen' }
+          {
+            language: GRIEVANCE_TEMPLATE_LANGUAGE,
+            contextLabel: 'grievance_confirmation_citizen',
+            disableTextFallback: true
+          }
         );
       } else {
         await safeSendWhatsApp(company, phoneToNotify, message);
       }
     } else {
-      logger.info(`ℹ️ Skipping citizen WhatsApp: phone=${phoneToNotify}, action=${actionKey}, canNotify=${canNotify(company, null, 'whatsapp', `${data.type}_${actionKey}`)}`);
+      logger.info(`ℹ️ Skipping citizen WhatsApp: phone=${phoneToNotify}, action=${actionKey}, canNotify=${canNotify(company, null, 'whatsapp', `${data.type}_${actionKey}`)}, consent=${canSendCitizenTemplate}`);
     }
 
-    if (data.evidenceUrls && data.evidenceUrls.length > 0) {
+    if (data.type !== 'grievance' && data.evidenceUrls && data.evidenceUrls.length > 0) {
       await sendMediaIfAvailable(company, data.citizenWhatsApp || data.citizenPhone, data.evidenceUrls, 'Submission Evidence');
     }
 
@@ -1391,6 +1392,9 @@ export async function notifyCitizenOnGrievanceStatusChange(data: {
   try {
     const company = await getCompanyWithWhatsAppConfig(data.companyId);
     if (!company) return;
+    if (!(await hasCitizenNotificationConsent(data.companyId, data.citizenWhatsApp || data.citizenPhone))) {
+      return;
+    }
 
     // Use centralized data population (includes formattedDate for "Submitted On")
     const fullData = await populateNotificationData({ ...data, type: 'grievance', action: 'status_update' });
@@ -1431,12 +1435,12 @@ export async function notifyCitizenOnGrievanceStatusChange(data: {
       GRIEVANCE_STATUS_UPDATE_TEMPLATE_NAME,
       templateParams,
       message,
-      { language: GRIEVANCE_TEMPLATE_LANGUAGE, contextLabel: 'grievance_status_update_citizen' }
+      {
+        language: GRIEVANCE_TEMPLATE_LANGUAGE,
+        contextLabel: 'grievance_status_update_citizen',
+        disableTextFallback: true
+      }
     );
-
-    if (data.evidenceUrls && data.evidenceUrls.length > 0) {
-      await sendMediaIfAvailable(company, data.citizenWhatsApp || data.citizenPhone, data.evidenceUrls, 'Status Update Evidence');
-    }
 
     // 📧 Email
     if (data.citizenEmail) {
@@ -1621,7 +1625,7 @@ export async function notifyHierarchyOnStatusChange(
           logger.warn(`⚠️ Skipping WhatsApp for ${user.email} — phone matches citizen's phone (avoiding duplicate).`);
         } else if (canNotify(company, user, 'whatsapp', statusControlKey)) {
           tasks.push(safeSendWhatsApp(company, user.phone as string, hierarchyMessage, adminCta));
-          if (data.evidenceUrls && data.evidenceUrls.length > 0) {
+          if (data.type !== 'grievance' && data.evidenceUrls && data.evidenceUrls.length > 0) {
             tasks.push(sendMediaIfAvailable(company, user.phone as string, data.evidenceUrls, `Hierarchy Update: ${userFullData.grievanceId || userFullData.appointmentId}`));
           }
         }

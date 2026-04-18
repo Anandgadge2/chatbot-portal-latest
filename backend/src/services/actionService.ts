@@ -20,8 +20,8 @@ import { logger } from '../config/logger';
 import { ForestService } from './forestService';
 import CitizenProfile from '../models/CitizenProfile';
 import { enforceDailyLimitOrThrow } from './grievanceRateLimitService';
-import { sendWhatsAppTemplate } from './whatsappService';
 import { sanitizeGrievanceDetails } from '../utils/sanitize';
+import { triggerAdminTemplate } from './grievanceTemplateTriggerService';
 
 interface CreateActionOptions {
   sendCitizenConfirmation?: boolean;
@@ -78,8 +78,7 @@ export class ActionService {
         throw new Error('Citizen has opted out from WhatsApp communication');
       }
 
-      if (!citizenProfile?.citizen_consent) {
-        await sendWhatsAppTemplate(company, userPhone, 'consent_request_citizen', [], session.language || 'en');
+      if (session?.data?.citizenConsent !== true) {
         throw new Error('Citizen consent is required before grievance creation');
       }
 
@@ -211,7 +210,17 @@ export class ActionService {
           $set: {
             lastGrievanceDate: new Date(),
             phoneNumber: userPhone,
-            name: session.data.citizenName || ''
+            name: session.data.citizenName || '',
+            citizen_consent: true,
+            consentGiven: true,
+            citizen_consent_timestamp: new Date(),
+            consentTimestamp: new Date(),
+            consent_source: 'whatsapp_button',
+            notification_consent: session.data.notificationConsent === true,
+            notificationConsent: session.data.notificationConsent === true,
+            notification_consent_timestamp: new Date(),
+            opt_out: false,
+            isSubscribed: true
           }
         },
         { upsert: true }
@@ -332,18 +341,57 @@ export class ActionService {
       
       // Notify citizen only when flow does not already show a success/confirmation node.
       // This prevents duplicate "success + grievance id" messages in WhatsApp chats.
-      if (sendCitizenConfirmation) {
+      if (sendCitizenConfirmation && session.data.notificationConsent === true) {
         await notifyCitizenOnCreation(notificationData);
       }
 
-      // 2. Admin Creation Notification — always send.
-      // If department/sub-department exists, hierarchy admins are notified.
-      // If department is missing, service still notifies company-level admins.
+      // Email notifications for admins are preserved in the legacy notification service.
       notifications.push(notifyDepartmentAdminOnCreation({
         ...notificationData,
         type: 'grievance',
         action: 'created',
       }));
+
+      notifications.push(
+        triggerAdminTemplate({
+          event: 'grievance_received_admin_v1',
+          companyId: company._id,
+          language: session.language || 'en',
+          values: [
+            grievance.grievanceId,
+            session.data.citizenName || '',
+            userPhone,
+            session.data.category || 'General',
+            safeDescription
+          ]
+        })
+      );
+
+      notifications.push(
+        triggerAdminTemplate({
+          event: grievance.status === GrievanceStatus.ASSIGNED
+            ? 'grievance_assigned_admin_v1'
+            : 'grievance_pending_admin_v1',
+          companyId: company._id,
+          language: session.language || 'en',
+          values: grievance.status === GrievanceStatus.ASSIGNED
+            ? [
+                grievance.grievanceId,
+                session.data.citizenName || '',
+                userPhone,
+                session.data.category || 'General',
+                safeDescription,
+                session.data.assignedToName || 'Assigned Officer'
+              ]
+            : [
+                grievance.grievanceId,
+                session.data.citizenName || '',
+                userPhone,
+                session.data.category || 'General',
+                safeDescription
+              ]
+        })
+      );
 
       // 3. Skip separate assignment notification on creation as per requirements.
       // All hierarchy users (including the assigned officer) will receive the 'New Grievance Received' template

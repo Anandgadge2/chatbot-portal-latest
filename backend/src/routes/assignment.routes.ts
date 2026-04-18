@@ -8,7 +8,7 @@ import Appointment from '../models/Appointment';
 import User from '../models/User';
 import { logUserAction } from '../utils/auditLogger';
 import { AuditAction } from '../config/constants';
-import { triggerAdminTemplate, triggerCitizenStatusTemplate } from '../services/grievanceTemplateTriggerService';
+import { triggerAdminTemplate } from '../services/grievanceTemplateTriggerService';
 
 const router = express.Router();
 
@@ -197,18 +197,6 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
         assignedUser.getFullName()
       ]
     }).catch((err) => console.error('Failed to trigger admin assignment template:', err));
-
-    triggerCitizenStatusTemplate({
-      companyId: grievance.companyId,
-      citizenPhone: grievance.citizenPhone,
-      citizenName: grievance.citizenName,
-      grievanceId: grievance.grievanceId,
-      departmentName: ((grievance.departmentId as any)?.name || 'Department') as string,
-      subDepartmentName: ((grievance.subDepartmentId as any)?.name || '') as string,
-      status: 'ASSIGNED',
-      remarks: `Assigned to ${assignedUser.getFullName()}`,
-      language: grievance.language
-    }).catch((err) => console.error('Failed to trigger citizen status template:', err));
 
     // Notify assigned user (fire and forget - don't block response)
     import('../services/notificationService').then(({ notifyUserOnAssignment, notifyCitizenOnGrievanceStatusChange }) => {

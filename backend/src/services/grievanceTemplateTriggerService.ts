@@ -1,11 +1,13 @@
 import User from '../models/User';
 import Company from '../models/Company';
 import CompanyWhatsAppConfig from '../models/CompanyWhatsAppConfig';
+import CitizenProfile from '../models/CitizenProfile';
 import { sendWhatsAppTemplate } from './whatsappService';
 import { buildCitizenMessage } from './citizenMessageBuilder';
 import { sanitizeGrievanceDetails, sanitizeNote, sanitizeRemarks, sanitizeText } from '../utils/sanitize';
 import { normalizeLanguage } from './templateValidationService';
 import { UserRole } from '../config/constants';
+import { normalizePhoneNumber } from '../utils/phoneUtils';
 
 async function getCompanyWithConfig(companyId: any): Promise<any> {
   const [company, cfg] = await Promise.all([
@@ -67,10 +69,24 @@ export async function triggerCitizenTemplate(options: {
   language?: string;
   values: string[];
 }) {
+  const normalizedPhone = normalizePhoneNumber(options.citizenPhone);
+  const citizenProfile = await CitizenProfile.findOne({
+    companyId: options.companyId,
+    phone_number: normalizedPhone
+  }).select('notification_consent notificationConsent').lean();
+
+  const hasNotificationConsent = Boolean(
+    citizenProfile?.notification_consent ?? citizenProfile?.notificationConsent
+  );
+
+  if (!hasNotificationConsent) {
+    return;
+  }
+
   const company = await getCompanyWithConfig(options.companyId);
   const language = normalizeLanguage(options.language);
   const safeValues = options.values.map((value) => sanitizeText(value, 100));
-  await sendWhatsAppTemplate(company, options.citizenPhone, options.template, safeValues, language);
+  await sendWhatsAppTemplate(company, normalizedPhone, options.template, safeValues, language);
 }
 
 export async function triggerCitizenSubmissionTemplate(options: {

@@ -11,8 +11,6 @@ import WhatsAppSession from '../models/WhatsAppSession';
 import CitizenProfile from '../models/CitizenProfile';
 import { assertTemplateApproved, normalizeLanguage, sanitizeTemplateVariables, validateTemplateVariables } from './templateValidationService';
 
-const COMPLIANCE_FOOTER = "\n\nType STOP to unsubscribe\nThis is an official government assistance chatbot";
-
 /**
  * WhatsApp Business API limits are enforced here and in flow builder.
  * See config/whatsappLimits.ts for full documentation.
@@ -177,8 +175,13 @@ function buildComplianceFooter(): string {
   ].join('\n');
 }
 
-function applyComplianceFooter(message: string, limit = 4000): string {
+function applyComplianceFooter(message: string, includeFooter: boolean = false, limit = 4000): string {
   const base = safeText(message, limit);
+
+  if (!includeFooter) {
+    return base;
+  }
+
   const footer = buildComplianceFooter();
 
   if (!base.trim()) {
@@ -256,7 +259,7 @@ async function enforceMessagingPolicy(
 ): Promise<void> {
   const compliance = await getSessionComplianceContext(company, to);
   const requireConsent = options?.requireConsent !== false;
-  const optInTemplates = new Set(['consent_request_citizen', 'consent_confirmed']);
+  const optInTemplates = new Set<string>();
   const approvedOutsideWindowTemplates = new Set([
     'grievance_received_admin_v1',
     'grievance_pending_admin_v1',
@@ -308,7 +311,7 @@ export async function sendWhatsAppMessage(
   company: any,
   to: string,
   message: string,
-  options?: { requireConsent?: boolean; allowUnsubscribed?: boolean }
+  options?: { requireConsent?: boolean; allowUnsubscribed?: boolean; includeComplianceFooter?: boolean }
 ): Promise<any> {
   try {
     await enforceMessagingPolicy(company, to, 'freeform', undefined, options);
@@ -316,7 +319,7 @@ export async function sendWhatsAppMessage(
     const { url, headers } = getWhatsAppConfig(company);
 
     const normalizedTo = normalizePhoneNumber(to);
-    const composedMessage = applyComplianceFooter(message);
+    const composedMessage = applyComplianceFooter(message, options?.includeComplianceFooter);
     const payload = {
       messaging_product: 'whatsapp',
       to: normalizedTo,
@@ -502,14 +505,15 @@ export async function sendWhatsAppButtons(
   company: any,
   to: string,
   message: string,
-  buttons: Array<{ id: string; title: string }>
+  buttons: Array<{ id: string; title: string }>,
+  options?: { includeComplianceFooter?: boolean }
 ): Promise<any> {
   try {
     await enforceMessagingPolicy(company, to, 'freeform');
     await enforceRateLimit(company, to);
     const { url, headers } = getWhatsAppConfig(company);
 
-    const composedMessage = applyComplianceFooter(message);
+    const composedMessage = applyComplianceFooter(message, options?.includeComplianceFooter);
     const normalizedTo = normalizePhoneNumber(to);
     const payload = {
       messaging_product: 'whatsapp',
@@ -519,9 +523,6 @@ export async function sendWhatsAppButtons(
         type: 'button',
         body: {
           text: safeText(composedMessage)
-        },
-        footer: {
-          text: safeText("Type STOP to unsubscribe\nOfficial Govt Chatbot", 60)
         },
         action: {
           buttons: buttons
@@ -558,7 +559,7 @@ export async function sendWhatsAppButtons(
 
     // Fallback to plain text
     const fallbackText =
-      applyComplianceFooter(message) +
+      applyComplianceFooter(message, options?.includeComplianceFooter) +
       '\n\n' +
       buttons.map((b, i) => `${i + 1}. ${b.title}`).join('\n');
 
@@ -578,14 +579,15 @@ export async function sendWhatsAppCTA(
   buttonTitle: string,
   url: string,
   headerText?: string,
-  footerText?: string
+  footerText?: string,
+  options?: { includeComplianceFooter?: boolean }
 ): Promise<any> {
   try {
     await enforceMessagingPolicy(company, to, 'freeform');
     await enforceRateLimit(company, to);
     const { url: apiURL, headers } = getWhatsAppConfig(company);
 
-    const composedMessage = applyComplianceFooter(message, 1024);
+    const composedMessage = applyComplianceFooter(message, options?.includeComplianceFooter, 1024);
     const normalizedTo = normalizePhoneNumber(to);
     const payload: any = {
       messaging_product: 'whatsapp',
@@ -596,9 +598,6 @@ export async function sendWhatsAppCTA(
         type: 'cta_url',
         body: {
           text: composedMessage
-        },
-        footer: {
-          text: safeText("Type STOP to unsubscribe\nOfficial Govt Chatbot", 60)
         },
         action: {
           name: 'cta_url',
@@ -645,7 +644,7 @@ export async function sendWhatsAppCTA(
     });
 
     // Fallback to text
-    const fallbackText = `${applyComplianceFooter(message)}\n\n🔗 ${buttonTitle}: ${url}`;
+    const fallbackText = `${applyComplianceFooter(message, options?.includeComplianceFooter)}\n\n🔗 ${buttonTitle}: ${url}`;
     return sendWhatsAppMessage(company, to, fallbackText);
   }
 }
@@ -663,14 +662,15 @@ export async function sendWhatsAppList(
   sections: Array<{
     title: string;
     rows: Array<{ id: string; title: string; description?: string }>;
-  }>
+  }>,
+  options?: { includeComplianceFooter?: boolean }
 ): Promise<any> {
   try {
     await enforceMessagingPolicy(company, to, 'freeform');
     await enforceRateLimit(company, to);
     const { url, headers } = getWhatsAppConfig(company);
 
-    const composedMessage = applyComplianceFooter(message, 1024);
+    const composedMessage = applyComplianceFooter(message, options?.includeComplianceFooter, 1024);
     // Enforce WhatsApp list limits (max 1 section, 10 rows, 24/72 chars)
     const validatedSections = sections
       .slice(0, WHATSAPP_LIMITS_LIST.MAX_SECTIONS_PER_LIST)
@@ -696,9 +696,6 @@ export async function sendWhatsAppList(
         type: 'list',
         body: {
           text: composedMessage // Max 1024 chars for body
-        },
-        footer: {
-          text: safeText("Type STOP to unsubscribe\nOfficial Govt Chatbot", 60)
         },
         action: {
           button: (buttonText || 'Select').slice(0, WHATSAPP_LIMITS_BUTTONS.BUTTON_TITLE_MAX_LENGTH),
@@ -739,7 +736,7 @@ export async function sendWhatsAppList(
 
     // Fallback to text
     const fallbackText =
-      applyComplianceFooter(message) +
+      applyComplianceFooter(message, options?.includeComplianceFooter) +
       '\n\n' +
       sections
         .map(section =>
