@@ -845,7 +845,7 @@
       },
       "data": {
         "label": "Grievance Success (EN)",
-        "messageText": "",
+        "messageText": "*SAHAJ-Swift Access & Help by Administration, Jharsuguda*\n\n✅ *GRIEVANCE SUBMITTED SUCCESSFULLY*\n\nHello {citizenName},\nThank you for reaching out. Your grievance has been submitted Successfully.\n*Details:*\n🎫 *Reference ID:* {grievanceId}\n🏢 *Department:* {departmentName}\n🏢 *Office:* {subdepartmentName}\n📝 *Description:* {description}\n📅 *Submitted On:* {formattedDate}\n\nYou can track your status using the Reference ID: *{grievanceId}*\n\nYour grievance, our priority.\n– District Administration, Jharsuguda",
         "clearSession": true
       }
     },
@@ -858,7 +858,7 @@
       },
       "data": {
         "label": "Grievance Success (HI)",
-        "messageText": "",
+        "messageText": "*सहज - प्रशासन द्वारा त्वरित पहुँच और सहायता, झारसुगुड़ा*\n\n✅ *शिकायत सफलतापूर्वक जमा हो गई है*\n\nनमस्ते {citizenName},\nहमसे संपर्क करने के लिए धन्यवाद। आपकी शिकायत सफलतापूर्वक जमा हो गई है।\n*विवरण:*\n🎫 *रेफरेंस ID:* {grievanceId}\n🏢 *विभाग:* {departmentName}\n🏢 *कार्यालय:* {subdepartmentName}\n📝 *विवरण:* {description}\n📅 *जमा करने की तिथि:* {formattedDate}\n\nआप इस रेफरेंस ID: *{grievanceId}* का उपयोग करके अपनी शिकायत की स्थिति ट्रैक कर सकते हैं।\n\nआपकी शिकायत, हमारी प्राथमिकता।\n– जिला प्रशासन, झारसुगुड़ा",
         "clearSession": true
       }
     },
@@ -871,7 +871,7 @@
       },
       "data": {
         "label": "Grievance Success (OR)",
-        "messageText": "",
+        "messageText": "*ଝାରସୁଗୁଡ଼ା ପ୍ରଶାସନ ଦ୍ୱାରା ସହଜ-ସ୍ୱିଫ୍ଟ ପ୍ରବେଶ ଏବଂ ସହାୟତା*\n\n✅ *ଅଭିଯୋଗ ସଫଳତାର ସହ ଦାଖଲ ହୋଇଛି*\n\nନମସ୍କାର {citizenName},\nସମ୍ପର୍କ କରିବା ପାଇଁ ଧନ୍ୟବାଦ। ଆପଣଙ୍କ ଅଭିଯୋଗ ସଫଳତାର ସହ ଦାଖଲ କରାଯାଇଛି।\n*ବିବରଣୀ:*\n🎫 *ସନ୍ଦର୍ଭ ID:* {ଗ୍ରିଭନ୍ସଆଇଡି}\n🏢 *ବିଭାଗ:* {ବିଭାଗନାମ}\n🏢 *କାର୍ଯ୍ୟାଳୟ:* {ଉପବିଭାଗନାମ}\n📝 *ବିବରଣୀ:* {ବର୍ଣ୍ଣନା}\n📅 *ଦାଖଲ କରାଯାଇଛି:* {formattedDate}\n\nଆପଣ ରେଫରେନ୍ସ ଆଇଡି ବ୍ୟବହାର କରି ଆପଣଙ୍କର ସ୍ଥିତି ଟ୍ରାକ୍ କରିପାରିବେ: *{ଗ୍ରିଭନ୍ସଆଇଡି}*\n\nଆପଣଙ୍କ ଅଭିଯୋଗ, ଆମର ପ୍ରାଥମିକତା।\n– ଜିଲ୍ଲା ପ୍ରଶାସନ, ଝାରସୁଗୁଡ଼ା",
         "clearSession": true
       }
     },

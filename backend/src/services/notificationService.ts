@@ -1346,7 +1346,7 @@ export async function notifyCitizenOnCreation(
           templateParams,
           message,
           {
-            language: GRIEVANCE_TEMPLATE_LANGUAGE,
+            language: getNotificationLanguage(data),
             contextLabel: 'grievance_confirmation_citizen',
             disableTextFallback: true
           }

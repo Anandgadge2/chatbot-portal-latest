@@ -21,7 +21,7 @@ import { ForestService } from './forestService';
 import CitizenProfile from '../models/CitizenProfile';
 import { enforceDailyLimitOrThrow } from './grievanceRateLimitService';
 import { sanitizeGrievanceDetails } from '../utils/sanitize';
-import { triggerAdminTemplate } from './grievanceTemplateTriggerService';
+import { triggerAdminTemplate, triggerGrievanceNotifications } from './grievanceTemplateTriggerService';
 
 interface CreateActionOptions {
   sendCitizenConfirmation?: boolean;
@@ -239,13 +239,20 @@ export class ActionService {
       
       const dept = departmentId ? await Department.findById(departmentId) : null;
       const subDept = session.data.subDepartmentId ? await Department.findById(session.data.subDepartmentId) : null;
+      
       // Set explicit fields for placeholder resolution in success/confirm steps
       session.data.department = dept ? dept.name : (session.data.category || 'General');
       session.data.subDepartment = subDept ? subDept.name : '';
       session.data.subDepartmentName = subDept ? subDept.name : '';
       // Keep departmentName the parent-only name for display
-      session.data.departmentName = dept ? dept.name : (session.data.category || 'General');
+      session.data.departmentName = dept ? dept.name : (session.data.category || 'General');      
+      session.data.subdepartmentName = subDept ? subDept.name : '';
       
+      // Odia & Hindi translated keys for session placeholders to match user request
+      session.data['ଗ୍ରିଭନ୍ସଆଇଡି'] = grievance.grievanceId;
+      session.data['ବିଭାଗନାମ'] = session.data.departmentName;
+      session.data['ଉପବିଭାଗନାମ'] = session.data.subDepartmentName;
+      session.data['ବର୍ଣ୍ଣନା'] = session.data.description;
       // Build evidence URL string for success notification
       const evidenceUrls = (session.data.media || []).map((m: any) => m.url).filter(Boolean);
       session.data.evidenceUrl = evidenceUrls.length > 0 ? evidenceUrls.join(', ') : '';
@@ -254,6 +261,7 @@ export class ActionService {
 
       // ✅ AUTO-ASSIGNMENT (Designated Officer / Dept Admin)
       let autoAssigned = false;
+      let assignedAdmins: any[] = [];
 
       // 🌲 Forest-Specific Assignment & Multi-Notification
       if (forestArea) {
@@ -266,6 +274,7 @@ export class ActionService {
           grievance.status = GrievanceStatus.ASSIGNED;
           await grievance.save();
           autoAssigned = true;
+          assignedAdmins = forestOfficers;
           session.data.assignedToName = forestOfficers.map(o => o.getFullName()).join(', ');
           
           // Store all target officers for the notification loop below
@@ -285,10 +294,26 @@ export class ActionService {
             grievance.status = GrievanceStatus.ASSIGNED;
             await grievance.save();
             autoAssigned = true;
+            assignedAdmins = potentialAdmins;
             session.data.assignedToName = targetAdmin.getFullName();
           }
         }
       }
+
+      // Get Company Admins for fallback notification
+      const CompanyAdminRoleIds = await (await import('../models/Role')).default.find({
+        companyId: company._id,
+        key: { $in: ['COMPANY_ADMIN', 'ADMIN', 'COMPANY_HEAD', 'SUPER_ADMIN'] }
+      }).distinct('_id');
+
+      const companyAdmins = await User.find({
+        companyId: company._id,
+        $or: [
+          { isSuperAdmin: true },
+          { customRoleId: { $in: CompanyAdminRoleIds } }
+        ],
+        isActive: true
+      });
       
       await updateSession(session);
       
@@ -357,59 +382,24 @@ export class ActionService {
       }));
 
       notifications.push(
-        triggerAdminTemplate({
-          event: 'grievance_received_admin_v1',
+        triggerGrievanceNotifications({
           companyId: company._id,
+          grievanceId: grievance.grievanceId,
+          citizenName: session.data.citizenName || '',
+          citizenPhone: userPhone,
+          category: session.data.category || 'General',
+          description: safeDescription,
+          status: grievance.status,
           language: session.language || 'en',
-          values: [
-            grievance.grievanceId,
-            session.data.citizenName || '',
-            userPhone,
-            session.data.category || 'General',
-            safeDescription
-          ]
+          assignedAdmins,
+          companyAdmins
         })
       );
 
-      notifications.push(
-        triggerAdminTemplate({
-          event: grievance.status === GrievanceStatus.ASSIGNED
-            ? 'grievance_assigned_admin_v1'
-            : 'grievance_pending_admin_v1',
-          companyId: company._id,
-          language: session.language || 'en',
-          values: grievance.status === GrievanceStatus.ASSIGNED
-            ? [
-                grievance.grievanceId,
-                session.data.citizenName || '',
-                userPhone,
-                session.data.category || 'General',
-                safeDescription,
-                session.data.assignedToName || 'Assigned Officer'
-              ]
-            : [
-                grievance.grievanceId,
-                session.data.citizenName || '',
-                userPhone,
-                session.data.category || 'General',
-                safeDescription
-              ]
-        })
-      );
-
-      // 3. Skip separate assignment notification on creation as per requirements.
-      // All hierarchy users (including the assigned officer) will receive the 'New Grievance Received' template
-      // via notifyDepartmentAdminOnCreation above. Only manual reassignments from the dashboard 
-      // will use the 'Grievance Assigned to You' template later.
-      if (grievance.status === GrievanceStatus.ASSIGNED) {
-        logger.info(`ℹ️ Grievance ${grievance.grievanceId} is AUTO-ASSIGNED. Skipping separate assignment notification to avoid duplication.`);
-      }
-
-      await Promise.allSettled(notifications);
-
-    } catch (err: any) {
-      console.error('❌ ActionService: Error creating grievance:', err);
-      throw err;
+      await Promise.all(notifications);
+    } catch (error) {
+      logger.error('❌ Error in createGrievance action:', error);
+      throw error;
     }
   }
 

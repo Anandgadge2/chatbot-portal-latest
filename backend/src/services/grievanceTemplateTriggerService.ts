@@ -149,3 +149,78 @@ export async function triggerCitizenStatusTemplate(options: {
     ]
   });
 }
+
+/**
+ * Higher-level helper to decide which admin template to shoot based on assignment status.
+ * Used in ActionService after grievance creation.
+ */
+export async function triggerGrievanceNotifications(options: {
+  companyId: any;
+  grievanceId: string;
+  citizenName: string;
+  citizenPhone: string;
+  category: string;
+  description?: string;
+  status: string;
+  language?: string;
+  assignedAdmins?: any[];
+  companyAdmins?: any[];
+}) {
+  const isAssigned = options.status !== 'PENDING' && (options.assignedAdmins || []).length > 0;
+  const safeDescription = sanitizeGrievanceDetails(options.description || 'N/A');
+
+  const notifications = [];
+
+  if (isAssigned) {
+    // 1. Send 'received' template to specifically assigned admins
+    const recipientPhones = (options.assignedAdmins || [])
+      .map(a => a.phone)
+      .filter(Boolean);
+
+    if (recipientPhones.length > 0) {
+      const company = await getCompanyWithConfig(options.companyId);
+      const language = normalizeLanguage(options.language);
+      const values = [
+        sanitizeText(options.citizenName, 60),
+        sanitizeText(options.grievanceId, 30),
+        sanitizeText(options.category, 60),
+        safeDescription
+      ];
+
+      notifications.push(
+        ...recipientPhones.map(to => 
+          sendWhatsAppTemplate(company, to, 'grievance_received_admin_v1', values, language)
+        )
+      );
+    }
+  } else {
+    // 2. Send 'pending' template to company admins if not properly assigned
+    let companyAdminPhones = options.companyAdmins 
+      ? options.companyAdmins.map(a => a.phone).filter(Boolean)
+      : [];
+
+    // Fallback: If no companyAdmins passed, fetch them manually
+    if (companyAdminPhones.length === 0) {
+      companyAdminPhones = await getAdminRecipients(options.companyId);
+    }
+
+    if (companyAdminPhones.length > 0) {
+      const company = await getCompanyWithConfig(options.companyId);
+      const language = normalizeLanguage(options.language);
+      const values = [
+        sanitizeText(options.citizenName, 60),
+        sanitizeText(options.grievanceId, 30),
+        sanitizeText(options.category, 60),
+        safeDescription
+      ];
+
+      notifications.push(
+        ...companyAdminPhones.map(to => 
+          sendWhatsAppTemplate(company, to, 'grievance_pending_admin_v1', values, language)
+        )
+      );
+    }
+  }
+
+  await Promise.allSettled(notifications);
+}
