@@ -8,6 +8,8 @@ import { AuditAction } from '../config/constants';
 import { normalizePhoneNumber } from '../utils/phoneUtils';
 import { getRedisClient, isRedisConnected } from '../config/redis';
 import WhatsAppSession from '../models/WhatsAppSession';
+import CitizenProfile from '../models/CitizenProfile';
+import { assertTemplateApproved, normalizeLanguage, sanitizeTemplateVariables, validateTemplateVariables } from './templateValidationService';
 
 const COMPLIANCE_FOOTER = "\n\nType STOP to unsubscribe\nThis is an official government assistance chatbot";
 
@@ -143,7 +145,7 @@ async function enforceRateLimit(company: any, to: string): Promise<void> {
   }
 }
 
-async function logOutgoingMessage(company: any, to: string, message: string, type: string) {
+async function logOutgoingMessage(company: any, to: string, message: string, type: string, templateName?: string) {
   try {
     await createAuditLog({
       action: AuditAction.WHATSAPP_MSG,
@@ -154,6 +156,7 @@ async function logOutgoingMessage(company: any, to: string, message: string, typ
         to,
         message: message.substring(0, 1000), // Cap length
         type,
+        templateName: templateName || null,
         description: `Bot replied to ${to} (${type}): ${message.substring(0, 50)}...`
       }
     });
@@ -189,38 +192,94 @@ function applyComplianceFooter(message: string, limit = 4000): string {
   return safeText(`${base}\n\n${footer}`, limit);
 }
 
-async function getSessionComplianceContext(company: any, to: string): Promise<{ optedOut: boolean; within24hWindow: boolean }> {
+async function getSessionComplianceContext(
+  company: any,
+  to: string
+): Promise<{ optedOut: boolean; within24hWindow: boolean; consentGiven: boolean; isSubscribed: boolean }> {
   const companyId = company?._id;
   if (!companyId) {
-    return { optedOut: false, within24hWindow: false };
+    return { optedOut: false, within24hWindow: false, consentGiven: true, isSubscribed: true };
   }
 
   const normalizedTo = normalizePhoneNumber(to);
+  const citizen = await CitizenProfile.findOne({
+    companyId,
+    phone_number: normalizedTo
+  }).select('opt_out isSubscribed citizen_consent consentGiven lastUserInteractionAt').lean();
+
+  if (citizen?.opt_out || citizen?.isSubscribed === false) {
+    return { optedOut: true, within24hWindow: false, consentGiven: Boolean(citizen?.citizen_consent || citizen?.consentGiven), isSubscribed: false };
+  }
+
+  if (citizen?.lastUserInteractionAt) {
+    const within24hWindow = (Date.now() - new Date(citizen.lastUserInteractionAt).getTime()) <= USER_INITIATED_WINDOW_MS;
+    return {
+      optedOut: false,
+      within24hWindow,
+      consentGiven: Boolean(citizen.citizen_consent || citizen.consentGiven),
+      isSubscribed: Boolean(citizen?.isSubscribed ?? true)
+    };
+  }
+
   const session = await WhatsAppSession.findOne({
     phoneNumber: normalizedTo,
     companyId
   }).select('lastMessageAt sessionData').lean();
 
   if (!session) {
-    return { optedOut: false, within24hWindow: false };
+    return {
+      optedOut: false,
+      within24hWindow: false,
+      consentGiven: Boolean(citizen?.citizen_consent || citizen?.consentGiven || true),
+      isSubscribed: Boolean(citizen?.isSubscribed ?? true)
+    };
   }
 
   const lastMessageAt = session.lastMessageAt ? new Date(session.lastMessageAt) : null;
   const within24hWindow = !!lastMessageAt && (Date.now() - lastMessageAt.getTime()) <= USER_INITIATED_WINDOW_MS;
   const optedOut = Boolean((session.sessionData as any)?.optedOut);
 
-  return { optedOut, within24hWindow };
+  return {
+    optedOut,
+    within24hWindow,
+    consentGiven: Boolean(citizen?.citizen_consent || citizen?.consentGiven || true),
+    isSubscribed: Boolean(citizen?.isSubscribed ?? true)
+  };
 }
 
-async function enforceMessagingPolicy(company: any, to: string, messageType: 'template' | 'freeform'): Promise<void> {
+async function enforceMessagingPolicy(
+  company: any,
+  to: string,
+  messageType: 'template' | 'freeform',
+  templateName?: string,
+  options?: { requireConsent?: boolean; allowUnsubscribed?: boolean }
+): Promise<void> {
   const compliance = await getSessionComplianceContext(company, to);
+  const requireConsent = options?.requireConsent !== false;
+  const approvedOutsideWindowTemplates = new Set([
+    'grievance_received_admin_v1',
+    'grievance_pending_admin_v1',
+    'grievance_assigned_admin_v1',
+    'grievance_reassigned_admin_v1',
+    'grievance_reverted_company_v1',
+    'grievance_submitted_citizen_v1',
+    'grievance_status_citizen_v1'
+  ]);
 
-  if (compliance.optedOut) {
+  if ((!compliance.isSubscribed || compliance.optedOut) && !options?.allowUnsubscribed) {
     throw new Error('Recipient has unsubscribed (STOP). Message blocked.');
+  }
+
+  if (requireConsent && !compliance.consentGiven) {
+    throw new Error('Recipient consent missing. Message blocked.');
   }
 
   if (messageType === 'freeform' && !compliance.within24hWindow) {
     throw new Error('Free-form message blocked outside 24-hour user-initiated window. Use an approved template.');
+  }
+
+  if (!compliance.within24hWindow && messageType === 'template' && templateName && !approvedOutsideWindowTemplates.has(templateName)) {
+    throw new Error(`Template ${templateName} is not permitted outside the 24-hour window.`);
   }
 }
 
@@ -243,10 +302,11 @@ function logMetaError(error: any, context: Record<string, any>) {
 export async function sendWhatsAppMessage(
   company: any,
   to: string,
-  message: string
+  message: string,
+  options?: { requireConsent?: boolean; allowUnsubscribed?: boolean }
 ): Promise<any> {
   try {
-    await enforceMessagingPolicy(company, to, 'freeform');
+    await enforceMessagingPolicy(company, to, 'freeform', undefined, options);
     await enforceRateLimit(company, to);
     const { url, headers } = getWhatsAppConfig(company);
 
@@ -337,27 +397,23 @@ export async function sendWhatsAppTemplate(
   parameters: string[] = [],
   language: string = 'en',
   headerParam?: string,
-  buttonParam?: string
+  buttonParam?: string,
+  options?: { requireConsent?: boolean; allowUnsubscribed?: boolean }
 ): Promise<any> {
   try {
-    await enforceMessagingPolicy(company, to, 'template');
+    const companyId = company?._id;
+    if (!companyId) {
+      throw new Error('Company ID missing for template compliance validation.');
+    }
+    const normalizedLanguage = normalizeLanguage(language);
+    const sanitizedParams = sanitizeTemplateVariables(parameters);
+    validateTemplateVariables(templateName, sanitizedParams);
+    await assertTemplateApproved({ companyId, templateName, language: normalizedLanguage });
+
+    await enforceMessagingPolicy(company, to, 'template', templateName, options);
     await enforceRateLimit(company, to);
     const { url, headers } = getWhatsAppConfig(company);
     const normalizedTo = normalizePhoneNumber(to);
-    const normalizedLanguage = (() => {
-      const lang = (language || 'en').toLowerCase().replace('-', '_');
-      const languageMap: Record<string, string> = {
-        en: 'en_US',
-        en_us: 'en_US',
-        hi: 'hi_IN',
-        hi_in: 'hi_IN',
-        mr: 'mr_IN',
-        mr_in: 'mr_IN',
-        or: 'or_IN',
-        or_in: 'or_IN'
-      };
-      return languageMap[lang] || language;
-    })();
     
     const components: any[] = [];
 
@@ -370,10 +426,10 @@ export async function sendWhatsAppTemplate(
     }
 
     // 2. Handle Body Parameters (standard)
-    if (parameters.length > 0) {
+    if (sanitizedParams.length > 0) {
       components.push({
         type: 'body',
-        parameters: parameters.map(p => ({
+        parameters: sanitizedParams.map(p => ({
           type: 'text',
           text: safeText(p, 1000)
         }))
@@ -404,7 +460,7 @@ export async function sendWhatsAppTemplate(
     const response = await axios.post(url, payload, { headers });
 
     console.log(`✅ [WhatsApp API] Template '${templateName}' sent to ${to} (${company.name})`);
-    await logOutgoingMessage(company, to, `Template: ${templateName}`, 'template');
+    await logOutgoingMessage(company, to, `Template: ${templateName}`, 'template', templateName);
 
     return {
       success: true,

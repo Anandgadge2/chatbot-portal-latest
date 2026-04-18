@@ -18,6 +18,10 @@ import { GrievanceStatus, AppointmentStatus, UserRole } from '../config/constant
 import { updateSession } from './sessionService';
 import { logger } from '../config/logger';
 import { ForestService } from './forestService';
+import CitizenProfile from '../models/CitizenProfile';
+import { enforceDailyLimitOrThrow } from './grievanceRateLimitService';
+import { sendWhatsAppMessage } from './whatsappService';
+import { sanitizeGrievanceDetails } from '../utils/sanitize';
 
 interface CreateActionOptions {
   sendCitizenConfirmation?: boolean;
@@ -65,6 +69,32 @@ export class ActionService {
   ): Promise<void> {
     try {
       const sendCitizenConfirmation = options.sendCitizenConfirmation !== false;
+      const citizenProfile = await CitizenProfile.findOne({
+        companyId: company._id,
+        phone_number: userPhone
+      });
+
+      if (citizenProfile?.opt_out) {
+        throw new Error('Citizen has opted out from WhatsApp communication');
+      }
+
+      if (!citizenProfile?.citizen_consent) {
+        await sendWhatsAppMessage(
+          company,
+          userPhone,
+          'Do you agree to share your personal details (name, grievance) for processing? Reply YES to continue.',
+          { requireConsent: false }
+        );
+        throw new Error('Citizen consent is required before grievance creation');
+      }
+
+      await enforceDailyLimitOrThrow({
+        companyId: company._id,
+        phone_number: userPhone,
+        company,
+        language: session.language || 'en'
+      });
+
       let departmentId: mongoose.Types.ObjectId | null = null;
       
       if (session.data.departmentId) {
@@ -107,6 +137,7 @@ export class ActionService {
       }
 
       const sanitizedMedia = [...mediaFromArray, ...extraMedia];
+      const safeDescription = sanitizeGrievanceDetails(session.data.description || '');
       
       const grievanceData = {
         companyId: company._id,
@@ -114,8 +145,10 @@ export class ActionService {
         subDepartmentId: ActionService.toObjectId(session.data.subDepartmentId),
         citizenName: session.data.citizenName,
         citizenPhone: userPhone,
+        phone_number: userPhone,
         citizenWhatsApp: userPhone,
-        description: session.data.description,
+        description: safeDescription,
+        message: safeDescription,
         category: session.data.category,
         media: sanitizedMedia,
         location: (session.data.latitude && session.data.longitude || session.data.locationAddress) ? {
@@ -126,6 +159,7 @@ export class ActionService {
           address: session.data.locationAddress || ''
         } : undefined,
         status: GrievanceStatus.PENDING,
+        admin_consent: false,
         priority: (session.data.category?.toLowerCase().includes('fire') || 
                    session.data.category?.toLowerCase().includes('wildlife') || 
                    session.data.category?.toLowerCase().includes('animal')) ? 'HIGH' : 'MEDIUM',
@@ -175,6 +209,18 @@ export class ActionService {
         }
         throw saveErr;
       }
+
+      await CitizenProfile.updateOne(
+        { companyId: company._id, phone_number: userPhone },
+        {
+          $set: {
+            lastGrievanceDate: new Date(),
+            phoneNumber: userPhone,
+            name: session.data.citizenName || ''
+          }
+        },
+        { upsert: true }
+      );
       
       // Update session with results for placeholders
       session.data.grievanceId = grievance.grievanceId;
@@ -249,7 +295,7 @@ export class ActionService {
         departmentId: departmentId as any,
         subDepartmentId: session.data.subDepartmentId,
         companyId: company._id,
-        description: session.data.description || session.data.grievance_description || 'N/A',
+        description: safeDescription || session.data.grievance_description || 'N/A',
         category: session.data.category,
         departmentName: dept ? dept.name : session.data.category,
         subDepartmentName: subDept ? subDept.name : undefined,
