@@ -388,6 +388,7 @@ export class ActionService {
           citizenName: session.data.citizenName || '',
           citizenPhone: userPhone,
           category: session.data.category || 'General',
+          subDepartmentName: session.data.subDepartmentName || 'N/A',
           description: safeDescription,
           status: grievance.status,
           language: session.language || 'en',

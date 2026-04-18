@@ -162,6 +162,7 @@ export async function triggerGrievanceNotifications(options: {
   category: string;
   description?: string;
   status: string;
+  subDepartmentName?: string;
   language?: string;
   assignedAdmins?: any[];
   companyAdmins?: any[];
@@ -184,6 +185,7 @@ export async function triggerGrievanceNotifications(options: {
         sanitizeText(options.citizenName, 60),
         sanitizeText(options.grievanceId, 30),
         sanitizeText(options.category, 60),
+        sanitizeText(options.subDepartmentName || 'N/A', 60),
         safeDescription
       ];
 
@@ -211,6 +213,7 @@ export async function triggerGrievanceNotifications(options: {
         sanitizeText(options.citizenName, 60),
         sanitizeText(options.grievanceId, 30),
         sanitizeText(options.category, 60),
+        sanitizeText(options.subDepartmentName || 'N/A', 60),
         safeDescription
       ];
 
