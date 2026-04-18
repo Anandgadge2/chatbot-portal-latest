@@ -1,0 +1,82 @@
+import axios from 'axios';
+
+export function isWithin24Hours(lastUserMessageTimestamp?: Date | string | null): boolean {
+  if (!lastUserMessageTimestamp) return false;
+
+  const timestamp = new Date(lastUserMessageTimestamp);
+  if (Number.isNaN(timestamp.getTime())) return false;
+
+  return (Date.now() - timestamp.getTime()) <= 24 * 60 * 60 * 1000;
+}
+
+export function parseWhatsAppApiError(error: any): {
+  status?: number;
+  code?: number;
+  message: string;
+  fbtraceId?: string;
+  isTransient: boolean;
+  shouldRetry: boolean;
+} {
+  const metaError = error?.response?.data?.error;
+  const status = error?.response?.status;
+  const code = metaError?.code;
+  const message = metaError?.message || error?.message || 'Unknown WhatsApp API error';
+  const fbtraceId = metaError?.fbtrace_id;
+
+  const transientCodes = new Set([1, 2, 4, 17, 341, 80007, 131016, 131049, 131056]);
+  const nonRetryableCodes = new Set([100, 190, 131008, 132000, 132001, 132012, 132015]);
+  const isTransient = (status >= 500) || transientCodes.has(code);
+  const shouldRetry = isTransient && !nonRetryableCodes.has(code);
+
+  return {
+    status,
+    code,
+    message,
+    fbtraceId,
+    isTransient,
+    shouldRetry
+  };
+}
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export async function sendTemplateRequest(options: {
+  url: string;
+  headers: Record<string, string>;
+  payload: any;
+  logContext: Record<string, any>;
+  retryCount?: number;
+}): Promise<any> {
+  const retryCount = Math.max(0, options.retryCount ?? 1);
+  let attempt = 0;
+
+  while (true) {
+    try {
+      return await axios.post(options.url, options.payload, { headers: options.headers });
+    } catch (error: any) {
+      const parsed = parseWhatsAppApiError(error);
+      const status = attempt >= retryCount ? 'FAILED' : 'RETRYING';
+
+      console.error('❌ WhatsApp API Error', {
+        ...options.logContext,
+        payload: options.payload,
+        status,
+        error: {
+          statusCode: parsed.status || null,
+          metaCode: parsed.code || null,
+          metaMessage: parsed.message,
+          fbtraceId: parsed.fbtraceId || null
+        }
+      });
+
+      if (!parsed.shouldRetry || attempt >= retryCount) {
+        throw error;
+      }
+
+      attempt += 1;
+      await wait(400 * attempt);
+    }
+  }
+}

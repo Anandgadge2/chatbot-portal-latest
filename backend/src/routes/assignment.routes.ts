@@ -189,14 +189,15 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
       companyId: grievance.companyId,
       language: grievance.language,
       recipientPhones: assignedUser.phone ? [assignedUser.phone] : [],
-      values: [
-        grievance.grievanceId,
-        grievance.citizenName,
-        grievance.citizenPhone,
-        grievance.category || 'General',
-        grievance.description,
-        assignedUser.getFullName()
-      ]
+      citizenPhone: grievance.citizenPhone,
+      data: {
+        grievance_id: grievance.grievanceId,
+        citizen_name: grievance.citizenName,
+        citizen_phone: grievance.citizenPhone,
+        department_name: grievance.category || 'General',
+        description: grievance.description,
+        remarks: assignedUser.getFullName()
+      }
     }).catch((err) => console.error('Failed to trigger admin assignment template:', err));
 
     // Notify assigned user (fire and forget - don't block response)

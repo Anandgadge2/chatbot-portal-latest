@@ -836,13 +836,19 @@ async function sendWhatsAppTemplateWithTextFallback(
 
   // 2. Try Template (as default or as backup for text priority)
   const templateResult = await sendWhatsAppTemplate(
-    company,
-    to,
-    templateName,
-    safeParams,
-    language,
-    options?.headerParam
-  );
+      company,
+      to,
+      templateName,
+      safeParams,
+      language,
+      options?.headerParam,
+      undefined,
+      {
+        recipientType: 'CITIZEN',
+        fallbackText: fallbackMessage,
+        disableFreeformFallback: options?.disableTextFallback === true
+      }
+    );
 
   if (templateResult?.success) {
     logger.info(`✅ WhatsApp template sent (${contextLabel})`, { to, templateName, language });
@@ -1648,9 +1654,11 @@ export async function notifyHierarchyOnStatusChange(
           logger.warn(`⚠️ Hierarchy admin ${user.email} (${user.getFullName()}) has NO phone number — skipping WhatsApp, will try email.`);
         } else if (isCitizenPhone) {
           logger.warn(`⚠️ Skipping WhatsApp for ${user.email} — phone matches citizen's phone (avoiding duplicate).`);
+        } else if (data.type === 'grievance') {
+          logger.info(`ℹ️ Skipping legacy grievance hierarchy WhatsApp for ${user.email}; grievance templates handle targeted recipients only.`);
         } else if (canNotify(company, user, 'whatsapp', statusControlKey)) {
           tasks.push(safeSendWhatsApp(company, user.phone as string, hierarchyMessage, adminCta));
-          if (data.type !== 'grievance' && data.evidenceUrls && data.evidenceUrls.length > 0) {
+          if (data.evidenceUrls && data.evidenceUrls.length > 0) {
             tasks.push(sendMediaIfAvailable(company, user.phone as string, data.evidenceUrls, `Hierarchy Update: ${userFullData.grievanceId || userFullData.appointmentId}`));
           }
         }

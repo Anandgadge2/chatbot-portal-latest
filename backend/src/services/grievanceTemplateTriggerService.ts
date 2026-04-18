@@ -69,26 +69,39 @@ export async function triggerAdminTemplate(options: {
     | 'grievance_reverted_company_v1';
   companyId: any;
   language?: string;
-  values: string[];
+  values?: string[];
+  data?: Record<string, string>;
   recipientPhones?: string[];
+  citizenPhone?: string;
 }) {
   const company = await getCompanyWithConfig(options.companyId);
   const recipients = Array.from(
     new Set(
-      (options.recipientPhones?.length
-        ? options.recipientPhones
-        : await getAdminRecipients(options.companyId))
-        .map((phone) => normalizePhoneNumber(phone))
-        .filter(Boolean)
-    )
-  );
+        (options.recipientPhones?.length
+          ? options.recipientPhones
+          : await getAdminRecipients(options.companyId))
+          .map((phone) => normalizePhoneNumber(phone))
+          .filter((phone) => !options.citizenPhone || phone !== normalizePhoneNumber(options.citizenPhone))
+          .filter(Boolean)
+      )
+    );
   const language = normalizeLanguage(options.language);
-  const safeValues = options.values.map((value) => sanitizeText(value, 100));
+  const safeValues = options.values?.map((value) => sanitizeText(value, 100)) || [];
+  const safeData = options.data
+    ? Object.fromEntries(
+        Object.entries(options.data).map(([key, value]) => [key, sanitizeText(String(value || ''), 100)])
+      )
+    : undefined;
 
   if (recipients.length === 0) return;
 
   const results = await Promise.allSettled(
-    recipients.map((to) => sendWhatsAppTemplate(company, to, options.event, safeValues, language))
+    recipients.map((to) =>
+      sendWhatsAppTemplate(company, to, options.event, safeData || safeValues, language, undefined, undefined, {
+        recipientType: 'ADMIN',
+        citizenPhone: options.citizenPhone
+      })
+    )
   );
 
   const failures = results.filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
@@ -106,7 +119,8 @@ export async function triggerCitizenTemplate(options: {
   companyId: any;
   citizenPhone: string;
   language?: string;
-  values: string[];
+  values?: string[];
+  data?: Record<string, string>;
 }) {
   const normalizedPhone = normalizePhoneNumber(options.citizenPhone);
   const citizenProfile = await CitizenProfile.findOne({
@@ -124,8 +138,15 @@ export async function triggerCitizenTemplate(options: {
 
   const company = await getCompanyWithConfig(options.companyId);
   const language = normalizeLanguage(options.language);
-  const safeValues = options.values.map((value) => sanitizeText(value, 100));
-  await sendWhatsAppTemplate(company, normalizedPhone, options.template, safeValues, language);
+  const safeValues = options.values?.map((value) => sanitizeText(value, 100)) || [];
+  const safeData = options.data
+    ? Object.fromEntries(
+        Object.entries(options.data).map(([key, value]) => [key, sanitizeText(String(value || ''), 100)])
+      )
+    : undefined;
+  await sendWhatsAppTemplate(company, normalizedPhone, options.template, safeData || safeValues, language, undefined, undefined, {
+    recipientType: 'CITIZEN'
+  });
 }
 
 export async function triggerCitizenSubmissionTemplate(options: {
@@ -143,13 +164,13 @@ export async function triggerCitizenSubmissionTemplate(options: {
     companyId: options.companyId,
     citizenPhone: options.citizenPhone,
     language: options.language,
-    values: [
-      sanitizeText(options.citizenName, 60),
-      sanitizeText(options.grievanceId, 30),
-      sanitizeText(options.departmentName, 60),
-      sanitizeText(options.subDepartmentName || 'N/A', 60),
-      sanitizeGrievanceDetails(options.grievanceDetails)
-    ]
+    data: {
+      citizen_name: sanitizeText(options.citizenName, 60),
+      grievance_id: sanitizeText(options.grievanceId, 30),
+      department_name: sanitizeText(options.departmentName, 60),
+      sub_department_name: sanitizeText(options.subDepartmentName || 'N/A', 60),
+      description: sanitizeGrievanceDetails(options.grievanceDetails)
+    }
   });
 }
 
@@ -179,14 +200,14 @@ export async function triggerCitizenStatusTemplate(options: {
     companyId: options.companyId,
     citizenPhone: options.citizenPhone,
     language: options.language,
-    values: [
-      sanitizeText(options.citizenName, 60),
-      sanitizeText(options.grievanceId, 30),
-      sanitizeText(options.departmentName, 60),
-      sanitizeText(options.subDepartmentName || 'N/A', 60),
-      sanitizeText(options.status, 30),
-      sanitizeNote(extraMessage)
-    ]
+    data: {
+      citizen_name: sanitizeText(options.citizenName, 60),
+      grievance_id: sanitizeText(options.grievanceId, 30),
+      department_name: sanitizeText(options.departmentName, 60),
+      sub_department_name: sanitizeText(options.subDepartmentName || 'N/A', 60),
+      status: sanitizeText(options.status, 30),
+      remarks: sanitizeNote(extraMessage)
+    }
   });
 }
 
@@ -211,40 +232,51 @@ export async function triggerGrievanceNotifications(options: {
   const safeDescription = sanitizeGrievanceDetails(options.description || 'N/A');
   const company = await getCompanyWithConfig(options.companyId);
   const language = normalizeLanguage(options.language);
-  const values = [
-    sanitizeText(options.citizenName, 60),
-    sanitizeText(options.grievanceId, 30),
-    sanitizeText(options.category, 60),
-    sanitizeText(options.subDepartmentName || 'N/A', 60),
-    safeDescription
-  ];
-
   const notifications = [];
 
   if (isAssigned) {
     // 1. Send 'received' template to specifically assigned admins
-    const assignedRecipientPhones = Array.from(new Set((options.assignedAdmins || [])
-      .map(a => a.phone)
-      .filter(Boolean)
-      .map((phone) => normalizePhoneNumber(phone))
-      .filter(Boolean)));
+      const assignedRecipientPhones = Array.from(new Set((options.assignedAdmins || [])
+        .map(a => a.phone)
+        .filter(Boolean)
+        .map((phone) => normalizePhoneNumber(phone))
+        .filter((phone) => phone !== normalizePhoneNumber(options.citizenPhone))
+        .filter(Boolean)));
 
-    if (assignedRecipientPhones.length > 0) {
-      notifications.push(
-        ...assignedRecipientPhones.map(to => 
-          sendWhatsAppTemplate(company, to, 'grievance_received_admin_v1', values, language)
-        )
-      );
-    } else {
+      if (assignedRecipientPhones.length > 0) {
+        notifications.push(
+          ...assignedRecipientPhones.map(to => 
+            sendWhatsAppTemplate(company, to, 'grievance_received_admin_v1', {
+              grievance_id: sanitizeText(options.grievanceId, 30),
+              citizen_name: sanitizeText(options.citizenName, 60),
+              citizen_phone: sanitizeText(options.citizenPhone, 20),
+              department_name: sanitizeText(options.category, 60),
+              description: safeDescription
+            }, language, undefined, undefined, {
+              recipientType: 'ADMIN',
+              citizenPhone: options.citizenPhone
+            })
+          )
+        );
+      } else {
       // Defensive fallback: grievance is assigned but target admin users have no valid phones.
       // Send the pending template to company admins so the grievance is still visible.
-      const fallbackPhones = await getAdminRecipients(options.companyId);
-      notifications.push(
-        ...fallbackPhones.map((to) =>
-          sendWhatsAppTemplate(company, to, 'grievance_pending_admin_v1', values, language)
-        )
-      );
-    }
+        const fallbackPhones = await getAdminRecipients(options.companyId);
+        notifications.push(
+          ...fallbackPhones.map((to) =>
+            sendWhatsAppTemplate(company, to, 'grievance_pending_admin_v1', {
+              grievance_id: sanitizeText(options.grievanceId, 30),
+              citizen_name: sanitizeText(options.citizenName, 60),
+              citizen_phone: sanitizeText(options.citizenPhone, 20),
+              department_name: sanitizeText(options.category, 60),
+              description: safeDescription
+            }, language, undefined, undefined, {
+              recipientType: 'ADMIN',
+              citizenPhone: options.citizenPhone
+            })
+          )
+        );
+      }
   } else {
     // 2. Send 'pending' template to company admins if status is UNASSIGNED or PENDING (no mapping)
     let companyAdminPhones = options.companyAdmins 
@@ -256,13 +288,22 @@ export async function triggerGrievanceNotifications(options: {
       companyAdminPhones = await getAdminRecipients(options.companyId);
     }
 
-    if (companyAdminPhones.length > 0) {
-      notifications.push(
-        ...companyAdminPhones.map(to => 
-          sendWhatsAppTemplate(company, to, 'grievance_pending_admin_v1', values, language)
-        )
-      );
-    }
+      if (companyAdminPhones.length > 0) {
+        notifications.push(
+          ...companyAdminPhones.map(to => 
+            sendWhatsAppTemplate(company, to, 'grievance_pending_admin_v1', {
+              grievance_id: sanitizeText(options.grievanceId, 30),
+              citizen_name: sanitizeText(options.citizenName, 60),
+              citizen_phone: sanitizeText(options.citizenPhone, 20),
+              department_name: sanitizeText(options.category, 60),
+              description: safeDescription
+            }, language, undefined, undefined, {
+              recipientType: 'ADMIN',
+              citizenPhone: options.citizenPhone
+            })
+          )
+        );
+      }
   }
 
   const settled = await Promise.allSettled(notifications);
@@ -295,17 +336,18 @@ export async function triggerAdminAssignmentNotification(options: {
   const language = normalizeLanguage(options.language);
   const safeDescription = sanitizeGrievanceDetails(options.description || 'N/A');
   
-  const values = [
-    sanitizeText(options.citizenName, 60),
-    sanitizeText(options.grievanceId, 30),
-    sanitizeText(options.category, 60),
-    sanitizeText(options.subDepartmentName || 'N/A', 60),
-    safeDescription
-  ];
-
   await Promise.allSettled(
     options.recipientPhones.map(to => 
-      sendWhatsAppTemplate(company, to, options.event, values, language)
+      sendWhatsAppTemplate(company, to, options.event, {
+        grievance_id: sanitizeText(options.grievanceId, 30),
+        citizen_name: sanitizeText(options.citizenName, 60),
+        citizen_phone: '',
+        department_name: sanitizeText(options.category, 60),
+        description: safeDescription,
+        remarks: safeDescription
+      }, language, undefined, undefined, {
+        recipientType: 'ADMIN'
+      })
     )
   );
 }

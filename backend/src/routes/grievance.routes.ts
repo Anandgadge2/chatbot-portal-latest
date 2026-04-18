@@ -254,25 +254,27 @@ router.post('/', enforceWhatsAppGrievanceCompliance, async (req: Request, res: R
             companyId,
             language: grievance.language,
             recipientPhones: [targetAdmin.phone],
-            values: [
-              grievance.grievanceId,
-              grievance.citizenName,
-              grievance.citizenPhone,
-              grievance.category || 'General',
-              safeDescription
-            ]
+            citizenPhone: grievance.citizenPhone,
+            data: {
+              grievance_id: grievance.grievanceId,
+              citizen_name: grievance.citizenName,
+              citizen_phone: grievance.citizenPhone,
+              department_name: grievance.category || 'General',
+              description: safeDescription
+            }
           })
         : triggerAdminTemplate({
             event: 'grievance_pending_admin_v1',
             companyId,
             language: grievance.language,
-            values: [
-              grievance.grievanceId,
-              grievance.citizenName,
-              grievance.citizenPhone,
-              grievance.category || 'General',
-              safeDescription
-            ]
+            citizenPhone: grievance.citizenPhone,
+            data: {
+              grievance_id: grievance.grievanceId,
+              citizen_name: grievance.citizenName,
+              citizen_phone: grievance.citizenPhone,
+              department_name: grievance.category || 'General',
+              description: safeDescription
+            }
           }),
     ]);
 
@@ -473,14 +475,15 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
       event: 'grievance_reverted_company_v1',
       companyId: grievance.companyId,
       language: grievance.language,
-      values: [
-        grievance.grievanceId,
-        grievance.citizenName,
-        grievance.citizenPhone,
-        (grievance.category as string) || 'General',
-        grievance.description,
-        remarks.trim()
-      ]
+      citizenPhone: grievance.citizenPhone,
+      data: {
+        grievance_id: grievance.grievanceId,
+        citizen_name: grievance.citizenName,
+        citizen_phone: grievance.citizenPhone,
+        department_name: (grievance.category as string) || 'General',
+        description: grievance.description,
+        remarks: remarks.trim()
+      }
     }).catch((err) => logger.error('Failed to trigger grievance_reverted_company_v1 template', err));
 
     const { notifyCompanyAdminsOnRevert } = await import('../services/notificationService');
@@ -927,22 +930,23 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
       grievance.timeline?.some((entry: any) => entry.action === 'REVERTED_TO_COMPANY_ADMIN')
     );
 
-    if (assignedUser.phone) {
-      await triggerAdminTemplate({
-        event: isReassignment ? 'grievance_reassigned_admin_v1' : 'grievance_assigned_admin_v1',
-        companyId: grievance.companyId,
-        language: grievance.language,
-        recipientPhones: [assignedUser.phone],
-        values: [
-          grievance.grievanceId,
-          grievance.citizenName,
-          grievance.citizenPhone,
-          grievance.category || 'General',
-          grievance.description,
-          assignedUser.getFullName()
-        ]
-      }).catch((err) => logger.error('Failed to trigger grievance assignment admin template', err));
-    }
+      if (assignedUser.phone) {
+        await triggerAdminTemplate({
+          event: isReassignment ? 'grievance_reassigned_admin_v1' : 'grievance_assigned_admin_v1',
+          companyId: grievance.companyId,
+          language: grievance.language,
+          recipientPhones: [assignedUser.phone],
+          citizenPhone: grievance.citizenPhone,
+          data: {
+            grievance_id: grievance.grievanceId,
+            citizen_name: grievance.citizenName,
+            citizen_phone: grievance.citizenPhone,
+            department_name: grievance.category || 'General',
+            description: grievance.description,
+            remarks: assignedUser.getFullName()
+          }
+        }).catch((err) => logger.error('Failed to trigger grievance assignment admin template', err));
+      }
 
     // Notify assigned user
     const { notifyUserOnAssignment } = await import('../services/notificationService');

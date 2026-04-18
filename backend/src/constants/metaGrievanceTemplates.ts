@@ -21,4 +21,4 @@ export const META_GRIEVANCE_TEMPLATE_VARIABLE_COUNT: Record<string, number> = {
   grievance_status_citizen_v1: 6
 };
 
-export const DEFAULT_TEMPLATE_LANGUAGE = 'en_US';
+export const DEFAULT_TEMPLATE_LANGUAGE = 'en';

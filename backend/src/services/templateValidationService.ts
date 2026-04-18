@@ -1,19 +1,19 @@
-import WhatsAppTemplate from '../models/WhatsAppTemplate';
 import { sanitizeText } from '../utils/sanitize';
 import { DEFAULT_TEMPLATE_LANGUAGE, META_GRIEVANCE_TEMPLATE_VARIABLE_COUNT } from '../constants/metaGrievanceTemplates';
+import { resolveTemplateRecord } from './whatsapp/template.service';
 
 export function normalizeLanguage(language?: string): string {
-  const value = (language || DEFAULT_TEMPLATE_LANGUAGE).toLowerCase().replace('-', '_');
+  const value = String(language || DEFAULT_TEMPLATE_LANGUAGE).trim().toLowerCase().replace('-', '_');
   const map: Record<string, string> = {
-    en: 'en_US',
+    en: 'en',
     en_us: 'en_US',
     hi: 'hi_IN',
     hi_in: 'hi_IN',
-    od: 'or_IN',
-    or: 'or_IN',
+    od: 'or',
+    or: 'or',
     or_in: 'or_IN'
   };
-  return map[value] || language || DEFAULT_TEMPLATE_LANGUAGE;
+  return map[value] || String(language || DEFAULT_TEMPLATE_LANGUAGE).trim();
 }
 
 export function sanitizeTemplateVariables(values: string[] = []): string[] {
@@ -46,22 +46,12 @@ export async function assertTemplateApproved(options: {
   templateName: string;
   language: string;
 }) {
-  const normalizedLanguage = normalizeLanguage(options.language);
-  const candidateLanguages = [normalizedLanguage, normalizedLanguage.toLowerCase(), normalizedLanguage.replace('_', '-')];
-
-  const template = await WhatsAppTemplate.findOne({
+  const resolved = await resolveTemplateRecord({
     companyId: options.companyId,
-    name: options.templateName,
-    language: { $in: candidateLanguages },
-    status: 'APPROVED',
-    isActive: true
-  }).lean();
-
-  if (!template) {
-    const error: any = new Error(`Template ${options.templateName} is not approved/active for ${normalizedLanguage}.`);
-    error.code = 'TEMPLATE_INVALID';
-    throw error;
-  }
+    templateName: options.templateName,
+    requestedLanguage: options.language
+  });
+  const template = resolved.template;
 
   const footer = String((template as any).footer || '').toLowerCase();
   const body = String((template as any).body?.text || '').toLowerCase();

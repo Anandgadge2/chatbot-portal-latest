@@ -10,6 +10,10 @@ import { getRedisClient, isRedisConnected } from '../config/redis';
 import WhatsAppSession from '../models/WhatsAppSession';
 import CitizenProfile from '../models/CitizenProfile';
 import { assertTemplateApproved, normalizeLanguage, sanitizeTemplateVariables, validateTemplateVariables } from './templateValidationService';
+import { buildTemplatePayload } from './whatsapp/payload.builder';
+import { resolveTemplateAudience, resolveTemplateRecord, TemplateAudience } from './whatsapp/template.service';
+import { validateTemplate } from './whatsapp/validator.service';
+import { isWithin24Hours, parseWhatsAppApiError, sendTemplateRequest } from './whatsapp/whatsapp.service';
 
 /**
  * WhatsApp Business API limits are enforced here and in flow builder.
@@ -402,57 +406,102 @@ export async function sendWhatsAppTemplate(
   company: any,
   to: string,
   templateName: string,
-  parameters: string[] = [],
+  parameters: string[] | Record<string, string> = [],
   language: string = 'en',
   headerParam?: string,
   buttonParam?: string,
-  options?: { requireConsent?: boolean; allowUnsubscribed?: boolean }
+  options?: {
+    requireConsent?: boolean;
+    allowUnsubscribed?: boolean;
+    recipientType?: TemplateAudience;
+    citizenPhone?: string;
+    fallbackText?: string;
+    disableFreeformFallback?: boolean;
+    includeComplianceFooter?: boolean;
+  }
 ): Promise<any> {
   try {
     const companyId = company?._id;
     if (!companyId) {
       throw new Error('Company ID missing for template compliance validation.');
     }
-    const normalizedLanguage = normalizeLanguage(language);
-    const sanitizedParams = sanitizeTemplateVariables(parameters);
-    validateTemplateVariables(templateName, sanitizedParams);
-    await assertTemplateApproved({ companyId, templateName, language: normalizedLanguage });
-
-    await enforceMessagingPolicy(company, to, 'template', templateName, options);
-    await enforceRateLimit(company, to);
-    const { url, headers } = getWhatsAppConfig(company);
     const normalizedTo = normalizePhoneNumber(to);
-    
-    const components: any[] = [];
+    const recipientType = options?.recipientType || resolveTemplateAudience(templateName);
+    const compliance = await getSessionComplianceContext(company, normalizedTo);
 
-    // 1. Handle Header Parameter (if any)
-    if (headerParam) {
-      components.push({
-        type: 'header',
-        parameters: [{ type: 'text', text: safeText(headerParam, 60) }]
+    if (
+      recipientType === 'CITIZEN' &&
+      options?.fallbackText &&
+      !options?.disableFreeformFallback &&
+      compliance.within24hWindow &&
+      isWithin24Hours(new Date())
+    ) {
+      return sendWhatsAppMessage(company, normalizedTo, options.fallbackText, {
+        requireConsent: options.requireConsent,
+        allowUnsubscribed: options.allowUnsubscribed,
+        includeComplianceFooter: options.includeComplianceFooter
       });
     }
 
-    // 2. Handle Body Parameters (standard)
-    if (sanitizedParams.length > 0) {
-      components.push({
-        type: 'body',
-        parameters: sanitizedParams.map(p => ({
-          type: 'text',
-          text: safeText(p, 1000)
-        }))
+    const resolvedTemplate = await resolveTemplateRecord({
+      companyId,
+      templateName,
+      requestedLanguage: normalizeLanguage(language),
+      companyDefaultLanguage: company?.whatsappConfig?.chatbotSettings?.defaultLanguage
+    });
+
+    let components: any[] = [];
+    if (Array.isArray(parameters)) {
+      const sanitizedParams = sanitizeTemplateVariables(parameters);
+      validateTemplateVariables(templateName, sanitizedParams);
+      await assertTemplateApproved({
+        companyId,
+        templateName,
+        language: resolvedTemplate.resolvedLanguage
       });
+
+      if (headerParam) {
+        components.push({
+          type: 'header',
+          parameters: [{ type: 'text', text: safeText(headerParam, 60) }]
+        });
+      }
+
+      if (sanitizedParams.length > 0) {
+        components.push({
+          type: 'body',
+          parameters: sanitizedParams.map((param) => ({
+            type: 'text',
+            text: safeText(param, 1000)
+          }))
+        });
+      }
+
+      if (buttonParam) {
+        components.push({
+          type: 'button',
+          sub_type: 'url',
+          index: '0',
+          parameters: [{ type: 'text', text: safeText(buttonParam, 255) }]
+        });
+      }
+    } else {
+      components = buildTemplatePayload(templateName, parameters).components;
     }
 
-    // 3. Handle Button Parameter (Dynamic URL or Quick Reply)
-    if (buttonParam) {
-      components.push({
-        type: 'button',
-        sub_type: 'url', // Most common for our app
-        index: '0',
-        parameters: [{ type: 'text', text: safeText(buttonParam, 255) }]
-      });
-    }
+    validateTemplate({
+      templateName,
+      language: resolvedTemplate.resolvedLanguage,
+      template: resolvedTemplate.template,
+      recipientType,
+      to: normalizedTo,
+      citizenPhone: options?.citizenPhone,
+      components
+    });
+
+    await enforceMessagingPolicy(company, normalizedTo, 'template', templateName, options);
+    await enforceRateLimit(company, normalizedTo);
+    const { url, headers } = getWhatsAppConfig(company);
 
     const payload: any = {
       messaging_product: 'whatsapp',
@@ -460,14 +509,35 @@ export async function sendWhatsAppTemplate(
       type: 'template',
       template: {
         name: templateName,
-        language: { code: normalizedLanguage },
+        language: { code: resolvedTemplate.resolvedLanguage },
         components: components.length > 0 ? components : undefined
       }
     };
 
-    const response = await axios.post(url, payload, { headers });
+    const response = await sendTemplateRequest({
+      url,
+      headers,
+      payload,
+      retryCount: 1,
+      logContext: {
+        action: 'send_template',
+        templateName,
+        language: resolvedTemplate.resolvedLanguage,
+        to: normalizedTo,
+        company: company?.name
+      }
+    });
 
-    console.log(`✅ [WhatsApp API] Template '${templateName}' sent to ${to} (${company.name})`);
+    console.log('✅ WhatsApp template sent', {
+      action: 'send_template',
+      templateName,
+      language: resolvedTemplate.resolvedLanguage,
+      to: normalizedTo,
+      company: company?.name,
+      payload,
+      status: 'SUCCESS',
+      error: null
+    });
     await logOutgoingMessage(company, to, `Template: ${templateName}`, 'template', templateName);
 
     return {
@@ -476,22 +546,26 @@ export async function sendWhatsAppTemplate(
     };
 
   } catch (error: any) {
-    logMetaError(error, {
+    const parsed = parseWhatsAppApiError(error);
+    console.error('❌ WhatsApp template failed', {
       action: 'send_template',
       templateName,
-      to,
+      language,
+      to: normalizePhoneNumber(to),
       company: company?.name,
-      payload: JSON.stringify(error.config?.data, null, 2)
+      payload: error?.config?.data || null,
+      status: 'FAILED',
+      error: {
+        statusCode: parsed.status || null,
+        metaCode: parsed.code || null,
+        metaMessage: parsed.message,
+        fbtraceId: parsed.fbtraceId || null
+      }
     });
-
-    // CRITICAL: If parameters are missing, log the template structure hint
-    if (error?.response?.data?.error?.code === 131008) {
-      console.error(`   ⚠️ Mismatch detected for template '${templateName}'. Check variables in Header/Buttons in Meta Manager.`);
-    }
 
     return {
       success: false,
-      error: error?.response?.data?.error?.message || error.message
+      error: parsed.message
     };
   }
 }
