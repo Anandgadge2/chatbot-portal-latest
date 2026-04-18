@@ -450,11 +450,10 @@ async function verifyWebhookSignature(req: WebhookRequest): Promise<VerifiedWebh
     return null;
   }
 
-  const webhookSecret = config?.webhookSecret || process.env.WHATSAPP_WEBHOOK_SECRET || process.env.META_APP_SECRET;
-
+  const webhookSecret = config.webhookSecret;
   if (!webhookSecret) {
     logger.warn(
-      `⚠️ Webhook secret missing for phoneNumberId=${phoneNumberId}. Set company webhookSecret or WHATSAPP_WEBHOOK_SECRET/META_APP_SECRET env var.`
+      `⚠️ Webhook secret missing in CompanyWhatsAppConfig for phoneNumberId=${phoneNumberId}.`
     );
     return null;
   }
