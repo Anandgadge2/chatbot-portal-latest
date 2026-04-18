@@ -391,7 +391,17 @@ export class ActionService {
         })
       );
 
-      await Promise.all(notifications);
+      const notificationResults = await Promise.allSettled(notifications);
+      const failedNotifications = notificationResults.filter(
+        (result) => result.status === 'rejected'
+      ) as PromiseRejectedResult[];
+
+      if (failedNotifications.length > 0) {
+        logger.error(
+          `⚠️ createGrievance completed but ${failedNotifications.length} notification task(s) failed.`,
+          failedNotifications.map((item) => item.reason)
+        );
+      }
     } catch (error) {
       logger.error('❌ Error in createGrievance action:', error);
       throw error;
