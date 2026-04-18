@@ -238,7 +238,7 @@ router.get('/phone/:phoneNumberId', async (req: Request, res: Response) => {
 router.post('/', authenticate, requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
-    const { companyId, phoneNumberId, phoneNumber, webhookSecret, isActive } = req.body;
+    const { companyId, phoneNumberId, phoneNumber } = req.body;
     
     // Validate companyId
     if (!companyId) {
@@ -248,13 +248,6 @@ router.post('/', authenticate, requireSuperAdmin, async (req: Request, res: Resp
       });
     }
 
-    if (isActive !== false && !String(webhookSecret || '').trim()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Webhook secret is required for active WhatsApp configurations'
-      });
-    }
-    
     // Check if config already exists for this company
     let existing = await CompanyWhatsAppConfig.findOne({ companyId });
     
@@ -379,15 +372,6 @@ router.put('/:id', authenticate, requireSuperAdmin, async (req: Request, res: Re
       return res.status(404).json({
         success: false,
         message: 'WhatsApp configuration not found'
-      });
-    }
-
-    const nextIsActive = req.body.isActive === undefined ? config.isActive : req.body.isActive;
-    const nextWebhookSecret = req.body.webhookSecret === undefined ? config.webhookSecret : req.body.webhookSecret;
-    if (nextIsActive !== false && !String(nextWebhookSecret || '').trim()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Webhook secret is required for active WhatsApp configurations'
       });
     }
 

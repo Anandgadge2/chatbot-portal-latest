@@ -15,6 +15,7 @@ export interface ICompanyWhatsAppConfig extends Document {
   displayPhoneNumber: string; // Formatted (e.g., '+91 98215 50841')
   phoneNumberId: string; // Meta Phone Number ID (unique identifier)
   businessAccountId: string; // WhatsApp Business Account ID
+  wabaId?: string; // Optional alias for WhatsApp Business Account ID
   accessToken: string; // Access token for API calls
   verifyToken: string; // Webhook verification token
   
@@ -103,6 +104,7 @@ const CompanyWhatsAppConfigSchema: Schema = new Schema(
       type: String,
       required: true
     },
+    wabaId: String,
     accessToken: {
       type: String,
       required: true
