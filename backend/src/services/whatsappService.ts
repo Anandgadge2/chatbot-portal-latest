@@ -8,6 +8,8 @@ import { AuditAction } from '../config/constants';
 import { normalizePhoneNumber } from '../utils/phoneUtils';
 import { getRedisClient, isRedisConnected } from '../config/redis';
 import WhatsAppSession from '../models/WhatsAppSession';
+import CitizenProfile from '../models/CitizenProfile';
+import { assertTemplateApproved, normalizeLanguage, sanitizeTemplateVariables, validateTemplateVariables } from './templateValidationService';
 
 const COMPLIANCE_FOOTER = "\n\nType STOP to unsubscribe\nThis is an official government assistance chatbot";
 
@@ -196,6 +198,20 @@ async function getSessionComplianceContext(company: any, to: string): Promise<{ 
   }
 
   const normalizedTo = normalizePhoneNumber(to);
+  const citizen = await CitizenProfile.findOne({
+    companyId,
+    phone_number: normalizedTo
+  }).select('opt_out lastUserInteractionAt').lean();
+
+  if (citizen?.opt_out) {
+    return { optedOut: true, within24hWindow: false };
+  }
+
+  if (citizen?.lastUserInteractionAt) {
+    const within24hWindow = (Date.now() - new Date(citizen.lastUserInteractionAt).getTime()) <= USER_INITIATED_WINDOW_MS;
+    return { optedOut: false, within24hWindow };
+  }
+
   const session = await WhatsAppSession.findOne({
     phoneNumber: normalizedTo,
     companyId
@@ -212,10 +228,16 @@ async function getSessionComplianceContext(company: any, to: string): Promise<{ 
   return { optedOut, within24hWindow };
 }
 
-async function enforceMessagingPolicy(company: any, to: string, messageType: 'template' | 'freeform'): Promise<void> {
+async function enforceMessagingPolicy(
+  company: any,
+  to: string,
+  messageType: 'template' | 'freeform',
+  templateName?: string
+): Promise<void> {
   const compliance = await getSessionComplianceContext(company, to);
+  const optInTemplates = new Set(['consent_request_citizen', 'consent_confirmed']);
 
-  if (compliance.optedOut) {
+  if (compliance.optedOut && !(messageType === 'template' && templateName && optInTemplates.has(templateName))) {
     throw new Error('Recipient has unsubscribed (STOP). Message blocked.');
   }
 
@@ -340,24 +362,19 @@ export async function sendWhatsAppTemplate(
   buttonParam?: string
 ): Promise<any> {
   try {
-    await enforceMessagingPolicy(company, to, 'template');
+    const companyId = company?._id;
+    if (!companyId) {
+      throw new Error('Company ID missing for template compliance validation.');
+    }
+    const normalizedLanguage = normalizeLanguage(language);
+    const sanitizedParams = sanitizeTemplateVariables(parameters);
+    validateTemplateVariables(templateName, sanitizedParams);
+    await assertTemplateApproved({ companyId, templateName, language: normalizedLanguage });
+
+    await enforceMessagingPolicy(company, to, 'template', templateName);
     await enforceRateLimit(company, to);
     const { url, headers } = getWhatsAppConfig(company);
     const normalizedTo = normalizePhoneNumber(to);
-    const normalizedLanguage = (() => {
-      const lang = (language || 'en').toLowerCase().replace('-', '_');
-      const languageMap: Record<string, string> = {
-        en: 'en_US',
-        en_us: 'en_US',
-        hi: 'hi_IN',
-        hi_in: 'hi_IN',
-        mr: 'mr_IN',
-        mr_in: 'mr_IN',
-        or: 'or_IN',
-        or_in: 'or_IN'
-      };
-      return languageMap[lang] || language;
-    })();
     
     const components: any[] = [];
 
@@ -370,10 +387,10 @@ export async function sendWhatsAppTemplate(
     }
 
     // 2. Handle Body Parameters (standard)
-    if (parameters.length > 0) {
+    if (sanitizedParams.length > 0) {
       components.push({
         type: 'body',
-        parameters: parameters.map(p => ({
+        parameters: sanitizedParams.map(p => ({
           type: 'text',
           text: safeText(p, 1000)
         }))

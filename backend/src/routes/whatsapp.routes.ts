@@ -6,6 +6,7 @@ import { getRedisClient, isRedisConnected } from '../config/redis';
 import Company from '../models/Company';
 import CompanyWhatsAppConfig from '../models/CompanyWhatsAppConfig';
 import WhatsAppSession from '../models/WhatsAppSession';
+import CitizenProfile from '../models/CitizenProfile';
 import { logger } from '../config/logger';
 
 const router = express.Router();
@@ -255,6 +256,20 @@ async function handleIncomingMessage(message: any, metadata: any, resolvedCompan
       messageText
     });
 
+    await CitizenProfile.updateOne(
+      { companyId: company._id, phone_number: from },
+      { $set: { lastUserInteractionAt: new Date() } },
+      { upsert: true }
+    );
+
+    const citizenProfile = await CitizenProfile.findOne({ companyId: company._id, phone_number: from }).select('opt_out').lean();
+    const normalizedText = (messageText || '').trim().toLowerCase();
+    const isOptInCommand = normalizedText === 'start' || normalizedText === 'resume';
+    if (citizenProfile?.opt_out && !isOptInCommand) {
+      logger.info(`⛔ Message ignored for opted-out user ${from}`);
+      return;
+    }
+
     const response = await processWhatsAppMessage({
       companyId: company.companyId,
       from,
@@ -318,6 +333,20 @@ async function handleConsentCommand({
     { upsert: false }
   );
 
+  await CitizenProfile.updateOne(
+    { companyId: companyObjectId, phone_number: from },
+    {
+      $set: isStopCommand
+        ? {
+            opt_out: true
+          }
+        : {
+            opt_out: false
+          }
+    },
+    { upsert: true }
+  );
+
   logger.info(`✅ Consent command processed for ${from}: ${isStopCommand ? 'STOP' : 'START'}`);
 }
 
@@ -356,6 +385,12 @@ async function handleInteractiveMessage(message: any, metadata: any, resolvedCom
     if (!buttonId) return;
 
     console.log(`🔘 Button "${buttonId}" clicked by ${from}`);
+
+    await CitizenProfile.updateOne(
+      { companyId: company._id, phone_number: from },
+      { $set: { lastUserInteractionAt: new Date() } },
+      { upsert: true }
+    );
 
     const response = await processWhatsAppMessage({
       companyId: company.companyId,

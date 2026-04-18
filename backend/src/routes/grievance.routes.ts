@@ -10,6 +10,10 @@ import { findOptimalAdmin } from '../utils/userUtils';
 import { buildNameSearchQuery, escapeRegExp } from '../utils/searchUtils';
 import { AuditAction, Permission, UserRole, GrievanceStatus } from '../config/constants';
 import { logger } from '../config/logger';
+import { enforceWhatsAppGrievanceCompliance } from '../middleware/whatsappGrievanceCompliance';
+import CitizenProfile from '../models/CitizenProfile';
+import { triggerAdminTemplate, triggerCitizenSubmissionTemplate } from '../services/grievanceTemplateTriggerService';
+import { sanitizeGrievanceDetails } from '../utils/sanitize';
 
 const router = express.Router();
 
@@ -159,7 +163,7 @@ router.get('/', requirePermission(Permission.READ_GRIEVANCE), async (req: Reques
 // @route   POST /api/grievances
 // @desc    Create new grievance (usually from WhatsApp webhook)
 // @access  Private
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', enforceWhatsAppGrievanceCompliance, async (req: Request, res: Response) => {
   try {
     const {
       companyId,
@@ -184,19 +188,23 @@ router.post('/', async (req: Request, res: Response) => {
       return;
     }
 
+    const safeDescription = sanitizeGrievanceDetails(description);
     const grievance = await Grievance.create({
       companyId,
       departmentId,
       subDepartmentId,
       citizenName,
       citizenPhone,
+      phone_number: citizenPhone,
       citizenWhatsApp: citizenWhatsApp || citizenPhone,
-      description,
+      description: safeDescription,
+      message: safeDescription,
       category,
       priority: priority || 'MEDIUM',
       location,
       media: media || [],
-      status: GrievanceStatus.PENDING
+      status: GrievanceStatus.PENDING,
+      admin_consent: false
     });
 
     // ✅ AUTO-ASSIGNMENT (Designated Officer / Dept Admin)
@@ -226,6 +234,57 @@ router.post('/', async (req: Request, res: Response) => {
       
       console.log(`🎯 Auto-assigned portal grievance ${grievance.grievanceId} to admin: ${targetAdmin.email}`);
     }
+
+    Promise.allSettled([
+      triggerAdminTemplate({
+        event: 'grievance_received_admin_v1',
+        companyId,
+        language: grievance.language,
+        values: [
+          grievance.grievanceId,
+          grievance.citizenName,
+          grievance.citizenPhone,
+          grievance.category || 'General',
+          safeDescription
+        ]
+      }),
+      targetAdmin
+        ? triggerAdminTemplate({
+            event: 'grievance_assigned_admin_v1',
+            companyId,
+            language: grievance.language,
+            values: [
+              grievance.grievanceId,
+              grievance.citizenName,
+              grievance.citizenPhone,
+              grievance.category || 'General',
+              safeDescription,
+              targetAdmin.getFullName?.() || targetAdmin.email || 'Assigned Officer'
+            ]
+          })
+        : triggerAdminTemplate({
+            event: 'grievance_pending_admin_v1',
+            companyId,
+            language: grievance.language,
+            values: [
+              grievance.grievanceId,
+              grievance.citizenName,
+              grievance.citizenPhone,
+              grievance.category || 'General',
+              safeDescription
+            ]
+          }),
+      triggerCitizenSubmissionTemplate({
+        companyId,
+        citizenPhone: grievance.citizenPhone,
+        citizenName: grievance.citizenName,
+        grievanceId: grievance.grievanceId,
+        departmentName: 'Portal Submission',
+        subDepartmentName: '',
+        grievanceDetails: safeDescription,
+        language: grievance.language
+      })
+    ]);
 
 
 
@@ -271,6 +330,59 @@ router.post('/', async (req: Request, res: Response) => {
       message: 'Failed to create grievance',
       error: error.message
     });
+  }
+});
+
+router.post('/consent/citizen', async (req: Request, res: Response) => {
+  try {
+    const { companyId, phone_number, consent, source } = req.body;
+    if (!companyId || !phone_number || typeof consent !== 'boolean') {
+      return res.status(400).json({ success: false, message: 'companyId, phone_number and consent(boolean) are required.' });
+    }
+    if (source !== 'whatsapp_button') {
+      return res.status(400).json({ success: false, message: 'Citizen consent must be captured using whatsapp_button source.' });
+    }
+
+    const profile = await CitizenProfile.findOneAndUpdate(
+      { companyId, phone_number },
+      {
+        $set: {
+          citizen_consent: consent,
+          citizen_consent_timestamp: new Date(),
+          consent_source: 'whatsapp_button',
+          opt_out: false
+        }
+      },
+      { upsert: true, new: true }
+    );
+
+    return res.json({ success: true, data: profile });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+router.post('/consent/admin', async (req: Request, res: Response) => {
+  try {
+    const { companyId, phone_number, consent } = req.body;
+    if (!companyId || !phone_number || typeof consent !== 'boolean') {
+      return res.status(400).json({ success: false, message: 'companyId, phone_number and consent(boolean) are required.' });
+    }
+
+    const profile = await CitizenProfile.findOneAndUpdate(
+      { companyId, phone_number },
+      {
+        $set: {
+          admin_consent: consent,
+          admin_consent_timestamp: new Date()
+        }
+      },
+      { upsert: true, new: true }
+    );
+
+    return res.json({ success: true, data: profile });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
   }
 });
 
@@ -362,6 +474,20 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
     });
 
     await grievance.save();
+
+    await triggerAdminTemplate({
+      event: 'grievance_reverted_company_v1',
+      companyId: grievance.companyId,
+      language: grievance.language,
+      values: [
+        grievance.grievanceId,
+        grievance.citizenName,
+        grievance.citizenPhone,
+        (grievance.category as string) || 'General',
+        grievance.description,
+        remarks.trim()
+      ]
+    }).catch((err) => logger.error('Failed to trigger grievance_reverted_company_v1 template', err));
 
     const { notifyCompanyAdminsOnRevert } = await import('../services/notificationService');
     await notifyCompanyAdminsOnRevert({

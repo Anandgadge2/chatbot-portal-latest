@@ -8,11 +8,15 @@ export interface IGrievance extends Document {
   subDepartmentId?: mongoose.Types.ObjectId; // 🏢 Added for hierarchical departments
   citizenName: string;
   citizenPhone: string;
+  phone_number: string;
   citizenWhatsApp?: string;
   description: string;
+  message: string;
   category?: string;
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
   status: GrievanceStatus;
+  admin_consent: boolean;
+  admin_consent_timestamp?: Date;
   statusHistory: Array<{
     status: GrievanceStatus;
     changedBy?: mongoose.Types.ObjectId;
@@ -81,10 +85,19 @@ const GrievanceSchema: Schema = new Schema(
       required: true,
       index: true
     },
+    phone_number: {
+      type: String,
+      required: true,
+      index: true
+    },
     citizenWhatsApp: {
       type: String
     },
     description: {
+      type: String,
+      required: true
+    },
+    message: {
       type: String,
       required: true
     },
@@ -103,6 +116,14 @@ const GrievanceSchema: Schema = new Schema(
       type: String,
       default: GrievanceStatus.PENDING,
       index: true
+    },
+    admin_consent: {
+      type: Boolean,
+      default: false,
+      index: true
+    },
+    admin_consent_timestamp: {
+      type: Date
     },
     statusHistory: [{
       status: {
