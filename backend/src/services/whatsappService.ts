@@ -9,6 +9,7 @@ import { normalizePhoneNumber } from '../utils/phoneUtils';
 import { getRedisClient, isRedisConnected } from '../config/redis';
 import WhatsAppSession from '../models/WhatsAppSession';
 import CitizenProfile from '../models/CitizenProfile';
+import CompanyTemplateMapping from '../models/CompanyTemplateMapping';
 import { assertTemplateApproved, normalizeLanguage, sanitizeTemplateVariables, validateTemplateVariables } from './templateValidationService';
 import { buildTemplatePayload } from './whatsapp/payload.builder';
 import { resolveTemplateAudience, resolveTemplateRecord, TemplateAudience } from './whatsapp/template.service';
@@ -306,6 +307,72 @@ function logMetaError(error: any, context: Record<string, any>) {
   });
 }
 
+async function buildMappedComponentsFromSavedTemplateMapping(options: {
+  companyId: any;
+  templateName: string;
+  expectedVariableCount: number;
+  data: Record<string, string>;
+}): Promise<any[] | null> {
+  if (!options.expectedVariableCount || options.expectedVariableCount <= 0) return [];
+
+  const mappingDoc = await CompanyTemplateMapping.findOne({
+    companyId: options.companyId,
+    templateName: options.templateName
+  }).lean();
+
+  if (!mappingDoc) return null;
+  const rawMappings = mappingDoc.mappings instanceof Map
+    ? Object.fromEntries(mappingDoc.mappings.entries())
+    : Object(mappingDoc.mappings || {});
+
+  const resolveMappedRuntimeValue = (inputKey: string): string | undefined => {
+    if (options.data[inputKey] !== undefined) return options.data[inputKey];
+    const snakeKey = inputKey
+      .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+      .replace(/[\s-]+/g, '_')
+      .toLowerCase();
+    if (options.data[snakeKey] !== undefined) return options.data[snakeKey];
+    const camelKey = inputKey.replace(/_([a-z])/g, (_, char: string) => char.toUpperCase());
+    if (options.data[camelKey] !== undefined) return options.data[camelKey];
+    return undefined;
+  };
+
+  const parameters = Array.from({ length: options.expectedVariableCount }).map((_, index) => {
+    const key = String(index + 1);
+    const mappedKeyOrLiteral = String(rawMappings[key] || '').trim();
+    if (!mappedKeyOrLiteral) {
+      const error: any = new Error(
+        `Template ${options.templateName} mapping missing for variable {{${key}}}.`
+      );
+      error.code = 'TEMPLATE_INVALID';
+      throw error;
+    }
+
+    const mappedFromPayload = resolveMappedRuntimeValue(mappedKeyOrLiteral);
+    const resolvedValue = mappedFromPayload !== undefined && mappedFromPayload !== null
+      ? String(mappedFromPayload)
+      : mappedKeyOrLiteral;
+
+    if (!resolvedValue.trim()) {
+      const error: any = new Error(
+        `Template ${options.templateName} has empty mapped value for variable {{${key}}}.`
+      );
+      error.code = 'TEMPLATE_INVALID';
+      throw error;
+    }
+
+    return {
+      type: 'text',
+      text: safeText(resolvedValue, 1000)
+    };
+  });
+
+  return [{
+    type: 'body',
+    parameters
+  }];
+}
+
 /**
  * ============================================================
  * SEND TEXT MESSAGE
@@ -451,6 +518,7 @@ export async function sendWhatsAppTemplate(
     });
 
     let components: any[] = [];
+    const expectedVariableCount = Number(resolvedTemplate.template?.body?.variables || 0);
     if (Array.isArray(parameters)) {
       const sanitizedParams = sanitizeTemplateVariables(parameters);
       validateTemplateVariables(templateName, sanitizedParams);
@@ -486,7 +554,15 @@ export async function sendWhatsAppTemplate(
         });
       }
     } else {
-      components = buildTemplatePayload(templateName, parameters).components;
+      const mappedComponents = await buildMappedComponentsFromSavedTemplateMapping({
+        companyId,
+        templateName,
+        expectedVariableCount,
+        data: Object.fromEntries(
+          Object.entries(parameters || {}).map(([key, value]) => [key, String(value ?? '')])
+        )
+      });
+      components = mappedComponents || buildTemplatePayload(templateName, parameters).components;
     }
 
     validateTemplate({

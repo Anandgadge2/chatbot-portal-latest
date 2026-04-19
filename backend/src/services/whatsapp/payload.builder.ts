@@ -129,14 +129,6 @@ export function buildTemplatePayload(templateName: string, data: TemplateInputDa
     return { type: 'text', text: value };
   });
 
-  const ignoredKeys = new Set(['header_text', 'headerText', 'button_url', 'buttonUrl']);
-  const extraKeys = Object.keys(data).filter((key) => !consumedKeys.has(key) && !ignoredKeys.has(key));
-  if (extraKeys.length > 0) {
-    const error: any = new Error(`Unexpected template parameters for ${templateName}: ${extraKeys.join(', ')}`);
-    error.code = 'TEMPLATE_INVALID';
-    throw error;
-  }
-
   const components: any[] = [];
   const headerValue = data.header_text ?? data.headerText;
   if (headerValue) {
