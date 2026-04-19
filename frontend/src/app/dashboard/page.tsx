@@ -248,6 +248,8 @@ function DashboardContent() {
   const isDepartmentAdminRole = resolvedRoleLevel === 2;
   const isSubDepartmentAdminRole = resolvedRoleLevel === 3;
   const isOperatorRole = resolvedRoleLevel >= 4;
+  const isLowerHierarchyRole =
+    isDepartmentAdminRole || isSubDepartmentAdminRole || isOperatorRole;
   const hasMultiDepartmentMapping =
     Array.isArray(user?.departmentIds) && user.departmentIds.length > 1;
   const isCompanyLevel = user && !user.departmentId && !user.isSuperAdmin;
@@ -257,6 +259,15 @@ function DashboardContent() {
       (user?.departmentIds && user.departmentIds.length > 0)) &&
     !user.isSuperAdmin;
   const isSuperAdminUser = useMemo(() => isSuperAdmin(user), [user]);
+  const isJharsugudaCompany = Boolean(
+    user?.companyId?.name?.toUpperCase().includes("JHARSUGUDA"),
+  );
+  const dashboardBrandTitle = isJharsugudaCompany ? "SAHAJ" : "Control Panel";
+  const dashboardBrandSubtitle = isJharsugudaCompany
+    ? "Centralised Grivences Command center"
+    : "Control Panel";
+  const canReopenResolvedGrievance =
+    isCompanyAdminRole || isSuperAdminUser;
   const canDeleteGrievance = useMemo(
     () => hasPermission(user, Permission.DELETE_GRIEVANCE),
     [user],
@@ -2753,32 +2764,29 @@ function DashboardContent() {
                   />
                 </div>
                 <div className="flex flex-col">
-                  <h1 className="text-sm font-black text-white tracking-tight leading-none uppercase">
-                    {isSuperAdminUser && companyIdParam ? (
-                      `Viewing: ${company?.name || "..."}`
-                    ) : (
-                      <>
-                        {isCompanyLevel &&
-                          (company?.name?.toUpperCase().includes("JHARSUGUDA")
-                            ? "Sahaj"
-                            : company?.name || "...")}
-                        {isDepartmentLevel && "Department"}
-                        {!hasPermission(user, Permission.READ_GRIEVANCE) &&
-                          !isSuperAdminUser &&
-                          "Operations Center"}
-                        {hasPermission(user, Permission.READ_GRIEVANCE) &&
-                          !isCompanyLevel &&
-                          !isSuperAdminUser &&
-                          " Portal"}
-                      </>
-                    )}
+                  <h1 className="text-[11px] sm:text-sm font-black text-white tracking-tight leading-tight uppercase whitespace-normal break-words">
+                    {isJharsugudaCompany
+                      ? dashboardBrandTitle
+                      : isSuperAdminUser && companyIdParam
+                        ? `Viewing: ${company?.name || "..."}`
+                        : (
+                            <>
+                              {isCompanyLevel && (company?.name || "...")}
+                              {isDepartmentLevel && "Department"}
+                              {!hasPermission(user, Permission.READ_GRIEVANCE) &&
+                                !isSuperAdminUser &&
+                                "Operations Center"}
+                              {hasPermission(user, Permission.READ_GRIEVANCE) &&
+                                !isCompanyLevel &&
+                                !isSuperAdminUser &&
+                                " Portal"}
+                            </>
+                          )}
                   </h1>
                   <div className="flex items-center gap-2 mt-1">
-                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">
-                      {user?.companyId?.name
-                        ?.toUpperCase()
-                        .includes("JHARSUGUDA")
-                        ? `${(user.role || "ADMIN").replace("_", " ")}`
+                    <p className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-[0.14em] whitespace-normal break-words">
+                      {isJharsugudaCompany
+                        ? dashboardBrandSubtitle
                         : "Control Panel"}
                     </p>
                     <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -2795,8 +2803,8 @@ function DashboardContent() {
                   {user.firstName} {user.lastName}
                 </span>
                 {user?.companyId?.name?.toUpperCase().includes("JHARSUGUDA") ? (
-                  <span className="text-[12px] font-black text-white uppercase tracking-widest mt-1">
-                    Sahaj
+                  <span className="text-[10px] sm:text-[11px] font-black text-white uppercase tracking-wide mt-1 whitespace-normal break-words text-right">
+                    {dashboardBrandTitle}
                   </span>
                 ) : (
                   <span className="text-[9px] font-black text-white/90 uppercase mt-1 bg-white/10 px-1.5 py-0.5 rounded border border-white/20 shadow-sm">
@@ -3089,8 +3097,8 @@ function DashboardContent() {
                             {user?.companyId?.name
                               ?.toUpperCase()
                               .includes("JHARSUGUDA") ? (
-                              <span className="text-[12px] font-black text-white uppercase tracking-widest mt-1">
-                                Sahaj
+                              <span className="text-[10px] font-black text-white uppercase tracking-wide mt-1 whitespace-normal break-words">
+                                {dashboardBrandTitle}
                               </span>
                             ) : (
                               <>
@@ -8255,7 +8263,7 @@ function DashboardContent() {
                                               user,
                                               Permission.ASSIGN_GRIEVANCE,
                                             ) &&
-                                              (isCompanyLevel ||
+                                              (canReopenResolvedGrievance ||
                                                 (grievance.status !==
                                                   "RESOLVED" &&
                                                   grievance.status !==
@@ -8291,10 +8299,12 @@ function DashboardContent() {
                                                   </svg>
                                                 </Button>
                                               )}
-                                            {isDepartmentLevel &&
-                                              grievance.status !== "RESOLVED" &&
-                                              grievance.status !== "REJECTED" &&
-                                              grievance.status !== "CLOSED" && (
+                                            {hasPermission(
+                                              user,
+                                              Permission.REVERT_GRIEVANCE,
+                                            ) &&
+                                              isLowerHierarchyRole &&
+                                              grievance.status === "RESOLVED" && (
                                                 <Button
                                                   variant="ghost"
                                                   size="sm"
@@ -8306,7 +8316,7 @@ function DashboardContent() {
                                                       true,
                                                     );
                                                   }}
-                                                  title="Revert to Company Admin"
+                                                  title="Request Reassignment"
                                                   className="h-8 w-8 p-0 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
                                                 >
                                                   <svg
