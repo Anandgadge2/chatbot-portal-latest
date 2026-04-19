@@ -56,6 +56,7 @@ export default function AssignmentDialog({
   const [loadingDepts, setLoadingDepts] = useState(false);
   const [assigningUserId, setAssigningUserId] = useState<string | null>(null);
   const [selectedUserProfile, setSelectedUserProfile] = useState<User | null>(null);
+  const [isUsingCompanyWideFallback, setIsUsingCompanyWideFallback] = useState(false);
 
   // Determine the effective role for filtering
   const effectiveRole = userRole || authUser?.role || '';
@@ -169,6 +170,7 @@ export default function AssignmentDialog({
       setSelectedSubDepartment('');
       setAssignmentNote('');
       setAssigningUserId(null);
+      setIsUsingCompanyWideFallback(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, companyId]);
@@ -302,13 +304,38 @@ export default function AssignmentDialog({
     
     setLoading(true);
     try {
-      const usersRes = await userAPI.getAll({ 
+      const usersRes = await userAPI.getAll({
         companyId,
         departmentId: targetDeptId,
         limit: 100
       });
+
       if (usersRes.success) {
-        setUsers(usersRes.data.users);
+        const departmentScopedUsers = usersRes.data.users || [];
+        const currentAssigneeId = typeof currentAssignee === 'object' ? currentAssignee?._id : currentAssignee;
+        const hasAlternativeAssignee = departmentScopedUsers.some((user) => user._id !== currentAssigneeId);
+
+        // For company admins, if the selected scope has no alternative assignee,
+        // fallback to company-wide users so reassignment is always possible.
+        if (effectiveRole === 'COMPANY_ADMIN' && !hasAlternativeAssignee) {
+          const companyWideRes = await userAPI.getAll({
+            companyId,
+            limit: 200
+          });
+
+          if (companyWideRes.success) {
+            const mergedUsersMap = new Map<string, User>();
+            [...departmentScopedUsers, ...(companyWideRes.data.users || [])].forEach((user) => {
+              mergedUsersMap.set(user._id, user);
+            });
+            setUsers(Array.from(mergedUsersMap.values()));
+            setIsUsingCompanyWideFallback(true);
+            return;
+          }
+        }
+
+        setUsers(departmentScopedUsers);
+        setIsUsingCompanyWideFallback(false);
       }
     } catch (error) {
       toast.error('Failed to load users');
@@ -519,6 +546,14 @@ export default function AssignmentDialog({
                   {selectedSubDepartment && (
                     <span className="text-indigo-400"> (sub-department)</span>
                   )}
+                </span>
+              </div>
+            )}
+            {isUsingCompanyWideFallback && effectiveRole === 'COMPANY_ADMIN' && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-700 font-medium">
+                <Users className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>
+                  No alternate assignee found in selected scope. Showing company-wide users for reassignment.
                 </span>
               </div>
             )}

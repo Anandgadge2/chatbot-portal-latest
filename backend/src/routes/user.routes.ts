@@ -25,10 +25,11 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
     const query: any = {};
 
     // Determine target companyId for scoping
-    const isSuperAdmin = !!currentUser.isSuperAdmin || 
-                         currentUser.role === UserRole.SUPER_ADMIN || 
-                         (typeof currentUser.role === 'string' && currentUser.role.toUpperCase() === 'SUPER_ADMIN') ||
+    const normalizedRole = typeof currentUser.role === 'string' ? currentUser.role.toUpperCase() : '';
+    const isSuperAdmin = !!currentUser.isSuperAdmin ||
+                         normalizedRole === UserRole.SUPER_ADMIN ||
                          currentUser.level === 0;
+    const isCompanyAdmin = normalizedRole === UserRole.COMPANY_ADMIN || currentUser.level === 1;
     const targetCompanyId = (isSuperAdmin && companyId) ? companyId : currentUser.companyId;
 
     // Strict multi-tenant scoping
@@ -44,7 +45,7 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
       }
       const uniqueUserDepts = [...new Set(userDepts)];
 
-      if (uniqueUserDepts.length > 0 && !isSuperAdmin && currentUser.level !== 1) {
+      if (uniqueUserDepts.length > 0 && !isSuperAdmin && !isCompanyAdmin) {
         // Hierarchical scoping: include all sub-departments
         const Department = (await import('../models/Department')).default;
         const subDeptIds = await Department.find({ 
