@@ -835,8 +835,11 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
         return;
       }
 
-      // Company Admin (level 1) can assign/reassign across all departments in their company.
-      if (currentUser.departmentId && currentUser.level !== 1) {
+      // Company Admin can assign/reassign across all departments in their company.
+      // Support both legacy `level` and role-based authorization to avoid blocking
+      // company admins when level is missing from token/user payload.
+      const isCompanyAdmin = currentUser.level === 1 || currentUser.role === 'COMPANY_ADMIN';
+      if (currentUser.departmentId && !isCompanyAdmin) {
         const grievanceDeptId = grievance.departmentId?.toString();
         const grievanceSubDeptId = grievance.subDepartmentId?.toString();
         const adminDeptId = currentUser.departmentId?.toString();
