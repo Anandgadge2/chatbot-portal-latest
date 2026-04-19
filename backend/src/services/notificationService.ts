@@ -6,6 +6,10 @@ import User from '../models/User';
 import CitizenProfile from '../models/CitizenProfile';
 import { sendEmail, getNotificationEmailContent, getNotificationWhatsAppMessage } from './emailService';
 import { sendWhatsAppMessage, sendWhatsAppMedia, sendWhatsAppTemplate } from './whatsappService';
+import { 
+  triggerAdminTemplate,
+  formatTemplateDate
+} from './grievanceTemplateTriggerService';
 import { normalizePhoneNumber } from '../utils/phoneUtils';
 import { logger } from '../config/logger';
 import { UserRole } from '../config/constants';
@@ -1361,27 +1365,8 @@ export async function notifyCitizenOnCreation(
       }
 
       if (data.type === 'grievance' && actionKey === 'confirmation') {
-        const templateParams = [
-          fullData.citizenName || '',
-          fullData.grievanceId || '',
-          fullData.departmentName || '',
-          fullData.subDepartmentName || 'N/A',
-          fullData.description || 'No description provided',
-          fullData.submittedOn || new Date().toLocaleDateString('en-IN')
-        ];
-
-        await sendWhatsAppTemplateWithTextFallback(
-          company,
-          phoneToNotify,
-          GRIEVANCE_CONFIRMATION_TEMPLATE_NAME,
-          templateParams,
-          message,
-          {
-            language: getNotificationLanguage(data),
-            contextLabel: 'grievance_confirmation_citizen',
-            priority: 'template'
-          }
-        );
+        // User requested to stop using Meta template for confirmation, falling back to text message from flow
+        await safeSendWhatsApp(company, phoneToNotify, message);
       } else {
         await safeSendWhatsApp(company, phoneToNotify, message);
       }

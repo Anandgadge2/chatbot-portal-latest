@@ -12,7 +12,11 @@ import { AuditAction, Permission, UserRole, GrievanceStatus } from '../config/co
 import { logger } from '../config/logger';
 import { enforceWhatsAppGrievanceCompliance } from '../middleware/whatsappGrievanceCompliance';
 import CitizenProfile from '../models/CitizenProfile';
-import { triggerAdminTemplate } from '../services/grievanceTemplateTriggerService';
+import { 
+  triggerAdminTemplate,
+  triggerAdminAssignmentNotification,
+  formatTemplateDate
+} from '../services/grievanceTemplateTriggerService';
 import { sanitizeGrievanceDetails } from '../utils/sanitize';
 
 const router = express.Router();
@@ -262,7 +266,7 @@ router.post('/', enforceWhatsAppGrievanceCompliance, async (req: Request, res: R
               department_name: grievance.category || 'General',
               office_name: (grievance as any).subDepartmentId ? (await Department.findById((grievance as any).subDepartmentId))?.name || 'N/A' : 'N/A',
               description: safeDescription,
-              received_on: new Date().toLocaleDateString('en-IN')
+              received_on: formatTemplateDate()
             }
           })
         : triggerAdminTemplate({
@@ -277,7 +281,7 @@ router.post('/', enforceWhatsAppGrievanceCompliance, async (req: Request, res: R
               department_name: grievance.category || 'General',
               office_name: 'N/A',
               description: safeDescription,
-              submitted_on: new Date().toLocaleDateString('en-IN')
+              submitted_on: formatTemplateDate()
             }
           }),
     ]);
@@ -488,7 +492,7 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
         office_name: (grievance.subDepartmentId as any)?.name || 'N/A',
         description: grievance.description,
         reverted_by: currentUser.getFullName(),
-        reverted_on: new Date().toLocaleDateString('en-IN')
+        reverted_on: formatTemplateDate()
       }
     }).catch((err) => logger.error('Failed to trigger grievance_reverted_company_v1 template', err));
 

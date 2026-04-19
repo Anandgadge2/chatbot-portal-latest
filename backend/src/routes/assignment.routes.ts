@@ -8,7 +8,10 @@ import Appointment from '../models/Appointment';
 import User from '../models/User';
 import { logUserAction } from '../utils/auditLogger';
 import { AuditAction } from '../config/constants';
-import { triggerAdminTemplate } from '../services/grievanceTemplateTriggerService';
+import { 
+  triggerAdminTemplate,
+  formatTemplateDate
+} from '../services/grievanceTemplateTriggerService';
 
 const router = express.Router();
 
@@ -200,8 +203,8 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
         previous_admin: oldAssignedTo ? (await (await import('../models/User')).default.findById(oldAssignedTo))?.getFullName() || 'N/A' : 'N/A',
         assigned_by: currentUser.getFullName(),
         reassigned_by: currentUser.getFullName(),
-        assigned_on: new Date().toLocaleDateString('en-IN'),
-        reassigned_on: new Date().toLocaleDateString('en-IN'),
+        assigned_on: formatTemplateDate(),
+        reassigned_on: formatTemplateDate(),
         reason: (req.body as any).reason || 'Administrative Reassignment',
         remarks: (req.body as any).remarks || 'N/A',
         priority: grievance.priority || 'MEDIUM'

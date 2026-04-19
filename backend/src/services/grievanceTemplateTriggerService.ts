@@ -9,6 +9,25 @@ import { sanitizeGrievanceDetails, sanitizeNote, sanitizeRemarks, sanitizeText }
 import { normalizeLanguage } from './templateValidationService';
 import { normalizePhoneNumber } from '../utils/phoneUtils';
 
+export function formatTemplateDate(date: Date = new Date()): string {
+  try {
+    const day = date.toLocaleString('en-IN', { day: '2-digit', timeZone: 'Asia/Kolkata' });
+    const month = date.toLocaleString('en-IN', { month: 'long', timeZone: 'Asia/Kolkata' });
+    const year = date.toLocaleString('en-IN', { year: 'numeric', timeZone: 'Asia/Kolkata' });
+    const time = date.toLocaleString('en-IN', { 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      second: '2-digit', 
+      hour12: true, 
+      timeZone: 'Asia/Kolkata' 
+    }).toLowerCase();
+    
+    return `${day} ${month} ${year} at ${time}`;
+  } catch (e) {
+    return date.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+  }
+}
+
 async function getCompanyWithConfig(companyId: any): Promise<any> {
   const [company, cfg] = await Promise.all([
     Company.findById(companyId).lean(),
@@ -236,7 +255,7 @@ export async function triggerGrievanceNotifications(options: {
               department_name: sanitizeText(options.category, 60),
               office_name: sanitizeText(options.subDepartmentName || 'N/A', 60),
               description: safeDescription,
-              received_on: new Date().toLocaleDateString('en-IN')
+              received_on: formatTemplateDate(),
             }, language, undefined, undefined, {
               recipientType: 'ADMIN',
               citizenPhone: options.citizenPhone
@@ -256,7 +275,7 @@ export async function triggerGrievanceNotifications(options: {
               department_name: sanitizeText(options.category, 60),
               office_name: sanitizeText(options.subDepartmentName || 'N/A', 60),
               description: safeDescription,
-              submitted_on: new Date().toLocaleDateString('en-IN')
+              submitted_on: formatTemplateDate(),
             }, language, undefined, undefined, {
               recipientType: 'ADMIN',
               citizenPhone: options.citizenPhone
@@ -283,7 +302,7 @@ export async function triggerGrievanceNotifications(options: {
               department_name: sanitizeText(options.category, 60),
               office_name: sanitizeText(options.subDepartmentName || 'N/A', 60),
               description: safeDescription,
-              submitted_on: new Date().toLocaleDateString('en-IN')
+              submitted_on: formatTemplateDate(),
             }, language, undefined, undefined, {
               recipientType: 'ADMIN',
               citizenPhone: options.citizenPhone
@@ -309,7 +328,7 @@ export async function triggerGrievanceNotifications(options: {
  * Trigger specific admin notifications for status/assignment changes
  */
 export async function triggerAdminAssignmentNotification(options: {
-  event: 'grievance_assigned_admin_v1' | 'grievance_reassigned_admin_v1' | 'grievance_reverted_company_v1';
+  event: 'grievance_assigned_admin_v1' | 'grievance_reassigned_admin_v1' | 'grievance_reverted_company_v1_';
   companyId: any;
   grievanceId: string;
   citizenName: string;
@@ -318,20 +337,39 @@ export async function triggerAdminAssignmentNotification(options: {
   description?: string;
   recipientPhones: string[];
   language?: string;
+  assignedByName?: string;
+  reassignedByName?: string;
+  revertedByName?: string;
+  remarks?: string;
+  originalDepartmentName?: string;
+  originalOfficeName?: string;
 }) {
   const company = await getCompanyWithConfig(options.companyId);
   const language = normalizeLanguage(options.language);
   const safeDescription = sanitizeGrievanceDetails(options.description || 'N/A');
-  
+  const safeRemarks = sanitizeRemarks(options.remarks || options.description || 'N/A');
+  const dateStr = formatTemplateDate();
+
   await Promise.allSettled(
     options.recipientPhones.map(to => 
       sendWhatsAppTemplate(company, to, options.event, {
+        admin_name: 'Administrator',
         grievance_id: sanitizeText(options.grievanceId, 30),
         citizen_name: sanitizeText(options.citizenName, 60),
-        citizen_phone: '',
         department_name: sanitizeText(options.category, 60),
+        office_name: sanitizeText(options.subDepartmentName || 'N/A', 60),
         description: safeDescription,
-        remarks: safeDescription
+        // Assigned / Reassigned / Reverted specific fields
+        assigned_by: sanitizeText(options.assignedByName || 'Admin', 60),
+        assigned_on: dateStr,
+        reassigned_by: sanitizeText(options.reassignedByName || options.assignedByName || 'Admin', 60),
+        reassigned_on: dateStr,
+        reverted_by: sanitizeText(options.revertedByName || 'Admin', 60),
+        reverted_on: dateStr,
+        remarks: safeRemarks,
+        submitted_on: dateStr,
+        original_department: sanitizeText(options.originalDepartmentName || 'N/A', 60),
+        original_office: sanitizeText(options.originalOfficeName || 'N/A', 60)
       }, language, undefined, undefined, {
         recipientType: 'ADMIN'
       })
