@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import LoadingSpinner from '../ui/LoadingSpinner';
 import { useAuth } from '@/contexts/AuthContext';
 import { SearchableSelect } from '../ui/SearchableSelect';
+import UserDetailsDialog from '../user/UserDetailsDialog';
 
 interface AssignmentDialogProps {
   isOpen: boolean;
@@ -54,6 +55,7 @@ export default function AssignmentDialog({
   const [loading, setLoading] = useState(false);
   const [loadingDepts, setLoadingDepts] = useState(false);
   const [assigningUserId, setAssigningUserId] = useState<string | null>(null);
+  const [selectedUserProfile, setSelectedUserProfile] = useState<User | null>(null);
 
   // Determine the effective role for filtering
   const effectiveRole = userRole || authUser?.role || '';
@@ -260,11 +262,31 @@ export default function AssignmentDialog({
   const fetchAllDepartments = async () => {
     setLoadingDepts(true);
     try {
-      // Fetch all departments (limit=500 to get all)
-      const deptRes = await departmentAPI.getAll({ companyId, limit: 200});
-      if (deptRes.success) {
-        setAllDepartments(deptRes.data.departments);
-      }
+      const pageSize = 200;
+      let page = 1;
+      let totalPages = 1;
+      const collected = new Map<string, Department>();
+
+      do {
+        const deptRes = await departmentAPI.getAll({
+          companyId,
+          page,
+          limit: pageSize
+        });
+
+        if (!deptRes.success) {
+          break;
+        }
+
+        deptRes.data.departments.forEach((department) => {
+          collected.set(department._id, department);
+        });
+
+        totalPages = Math.max(1, Number(deptRes.data.pagination?.pages || 1));
+        page += 1;
+      } while (page <= totalPages);
+
+      setAllDepartments(Array.from(collected.values()));
     } catch (error) {
       toast.error('Failed to load departments');
       console.error(error);
@@ -602,9 +624,19 @@ export default function AssignmentDialog({
                           </div>
                         </div>
 
-                        {/* Assign Button */}
-                        <Button
-                          onClick={() => handleAssign(user._id)}
+                        {/* Actions */}
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setSelectedUserProfile(user)}
+                            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all border border-transparent hover:border-indigo-100"
+                            title="View Profile"
+                          >
+                            <Search className="w-4 h-4" />
+                          </button>
+
+                          {/* Assign Button */}
+                          <Button
+                            onClick={() => handleAssign(user._id)}
                           disabled={assigningUserId !== null || isCurrentAssignee}
                           size="sm"
                           className={`min-w-[100px] rounded-xl font-semibold transition-all shadow-md ${
@@ -634,8 +666,9 @@ export default function AssignmentDialog({
                         </Button>
                       </div>
                     </div>
-                  );
-                })}
+                  </div>
+                );
+              })}
               </div>
             )}
           </div>
@@ -655,6 +688,15 @@ export default function AssignmentDialog({
           </Button>
         </div>
       </DialogContent>
+      {selectedUserProfile && (
+        <UserDetailsDialog 
+          isOpen={!!selectedUserProfile} 
+          onClose={() => setSelectedUserProfile(null)} 
+          user={selectedUserProfile}
+          onAssign={(u) => handleAssign(u._id)}
+          isAssigning={assigningUserId === selectedUserProfile._id}
+        />
+      )}
     </Dialog>
   );
 }

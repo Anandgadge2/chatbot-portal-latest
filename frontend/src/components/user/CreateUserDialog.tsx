@@ -74,8 +74,7 @@ export default function CreateUserDialog({
       email: true,
       whatsapp: true,
       hasOverride: false
-    },
-    setAsLead: true
+    }
   });
 
 
@@ -237,8 +236,7 @@ export default function CreateUserDialog({
             email: editingUser.notificationSettings?.email ?? true,
             whatsapp: editingUser.notificationSettings?.whatsapp ?? true,
             hasOverride: (editingUser.notificationSettings as any)?.hasOverride ?? false
-          },
-          setAsLead: false // Default to false when editing unless explicitly changed
+          }
         });
 
         if (editingUser.departmentIds && editingUser.departmentIds.length > 0) {
@@ -264,8 +262,7 @@ export default function CreateUserDialog({
             email: true,
             whatsapp: true,
             hasOverride: false
-          },
-          setAsLead: true // Default to true for new users
+          }
         });
 
         setIsMultiDept(false);
@@ -365,27 +362,6 @@ export default function CreateUserDialog({
       }
 
       if (response.success) {
-        const assignedDeptIds = submissionData.departmentIds || [];
-        if (formData.setAsLead && assignedDeptIds.length > 0) {
-          try {
-            const newUser = response.data.user;
-            const userId = isEditing ? editingUser!._id : newUser?._id;
-            
-            if (userId) {
-              await Promise.all(assignedDeptIds.map((deptId: string) => 
-                departmentAPI.update(deptId, {
-                  contactUserId: userId,
-                  contactPerson: `${formData.firstName} ${formData.lastName}`,
-                  contactEmail: formData.email,
-                  contactPhone: normalizePhoneNumber(formData.phone)
-                })
-              ));
-            }
-          } catch (syncError) {
-            console.error("Failed to sync department lead info:", syncError);
-          }
-        }
-
         toast.success(isEditing ? "User updated successfully!" : "User created successfully!");
         window.dispatchEvent(new CustomEvent('REFRESH_PORTAL_DATA', { 
           detail: { scope: ['USERS', 'DEPARTMENTS', 'DASHBOARD'] } 
@@ -477,7 +453,6 @@ export default function CreateUserDialog({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="phone">Phone</Label>
                 <Input id="phone" name="phone" type="tel" value={formData.phone} onChange={(e) => {
@@ -485,14 +460,9 @@ export default function CreateUserDialog({
                   setFormData(prev => ({ ...prev, phone: val }));
                 }} maxLength={10} placeholder="10 digit number" />
               </div>
-              <div>
-                <Label htmlFor="designation">Primary Designation</Label>
-                <Input id="designation" name="designation" value={formData.designation} onChange={handleChange} placeholder="e.g. Collector & DM" />
-              </div>
-            </div>
 
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-indigo-500">Additional Designations</Label>
+              <Label className="text-[10px] font-black uppercase text-indigo-500">Personnel Designations</Label>
               <div className="flex gap-2">
                 <Input 
                   id="new-designation" 
@@ -727,25 +697,6 @@ export default function CreateUserDialog({
                   </div>
                 )}
 
-                {/* Automation Toggle: Set as Lead */}
-                {(isMultiDept ? formData.departmentIds.length > 0 : (selectedMainDeptId && selectedMainDeptId !== "NONE")) && (
-                  <div className="flex items-center justify-between p-3 rounded-xl border border-indigo-100 bg-indigo-50/30 animate-in fade-in slide-in-from-top-2 duration-300">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center border border-indigo-200">
-                        <Users className="w-4 h-4 text-indigo-600" />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-[10px] font-black uppercase tracking-tight text-indigo-700">Set as Department Lead</span>
-                        <span className="text-[8px] font-medium text-indigo-400">Automatically update department contact personnel</span>
-                      </div>
-                    </div>
-                    <Switch 
-                      checked={formData.setAsLead} 
-                      onCheckedChange={(val) => setFormData(p => ({ ...p, setAsLead: val }))}
-                      className="data-[state=checked]:bg-indigo-600"
-                    />
-                  </div>
-                )}
               </div>
             )}
 

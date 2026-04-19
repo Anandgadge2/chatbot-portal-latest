@@ -340,7 +340,7 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
         [otp],
         PASSWORD_RESET_OTP_TEMPLATE_LANGUAGE,
         undefined,
-        undefined,
+        otp,
         {
           recipientType: 'ADMIN',
           requireConsent: false
@@ -352,18 +352,6 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
     } else {
       deliveryError = 'WhatsApp is not configured for this company';
     }
-    /*
-
-      
-        
-
-        
-          console.warn(
-            `⚠️ OTP template send failed for ${user.phone}. Falling back to text message.`,
-            { error: templateResult?.error, templateName: PASSWORD_RESET_OTP_TEMPLATE_NAME }
-          );
-
-    */
 
     if (!deliverySuccess) {
       user.resetPasswordOtpHash = undefined;
@@ -383,6 +371,10 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
       data: process.env.NODE_ENV === 'production' ? undefined : { otp }
     });
   } catch (_error: any) {
+    console.error('Forgot password OTP request failed', {
+      message: _error?.message,
+      stack: _error?.stack
+    });
     return res.status(500).json({ success: false, message: 'Unable to process forgot password request' });
   }
 });

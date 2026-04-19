@@ -10,6 +10,7 @@ import {
   Building,
   Calendar,
   CheckCircle,
+  CheckCircle2,
   XCircle,
   Clock,
 } from "lucide-react";
@@ -22,12 +23,17 @@ interface UserDetailsDialogProps {
   isOpen: boolean;
   onClose: () => void;
   user: User | null;
+  /** If provided, replaces the Close button with Submit & Notify */
+  onAssign?: (user: User) => void;
+  isAssigning?: boolean;
 }
 
 export default function UserDetailsDialog({
   isOpen,
   onClose,
   user,
+  onAssign,
+  isAssigning
 }: UserDetailsDialogProps) {
   if (!isOpen || !user) return null;
 
@@ -358,12 +364,41 @@ export default function UserDetailsDialog({
 
         {/* Footer */}
         <div className="flex-shrink-0 px-5 py-4 bg-gradient-to-r from-slate-50 to-white border-t border-slate-200">
-          <button
-            onClick={onClose}
-            className="w-full py-3.5 px-4 bg-slate-800 hover:bg-slate-900 text-white font-black rounded-xl transition-all duration-200 shadow-lg shadow-slate-900/40 ring-1 ring-blue-500/50 uppercase text-xs tracking-widest active:scale-95"
-          >
-            Close
-          </button>
+          {onAssign ? (
+            <div className="flex gap-3">
+              <button
+                onClick={onClose}
+                disabled={isAssigning}
+                className="flex-1 py-3 px-4 bg-white hover:bg-slate-50 text-slate-600 font-bold border border-slate-200 rounded-xl transition-all uppercase text-[10px] tracking-widest disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => onAssign(user)}
+                disabled={isAssigning}
+                className="flex-[2] py-3 px-4 bg-slate-800 hover:bg-slate-900 text-white font-black rounded-xl transition-all duration-200 shadow-lg shadow-slate-900/40 ring-1 ring-blue-500/50 uppercase text-[10px] tracking-widest active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isAssigning ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Processing...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Submit & Notify</span>
+                  </>
+                )}
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={onClose}
+              className="w-full py-3.5 px-4 bg-slate-800 hover:bg-slate-900 text-white font-black rounded-xl transition-all duration-200 shadow-lg shadow-slate-900/40 ring-1 ring-blue-500/50 uppercase text-xs tracking-widest active:scale-95"
+            >
+              Close
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -11,18 +11,30 @@ import { normalizePhoneNumber } from '../utils/phoneUtils';
 
 export function formatTemplateDate(date: Date = new Date()): string {
   try {
-    const day = date.toLocaleString('en-IN', { day: '2-digit', timeZone: 'Asia/Kolkata' });
-    const month = date.toLocaleString('en-IN', { month: 'long', timeZone: 'Asia/Kolkata' });
-    const year = date.toLocaleString('en-IN', { year: 'numeric', timeZone: 'Asia/Kolkata' });
-    const time = date.toLocaleString('en-IN', { 
-      hour: '2-digit', 
-      minute: '2-digit', 
-      second: '2-digit', 
-      hour12: true, 
-      timeZone: 'Asia/Kolkata' 
-    }).toLowerCase();
-    
-    return `${day} ${month} ${year} at ${time}`;
+    const formatter = new Intl.DateTimeFormat('en-IN', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true,
+      timeZone: 'Asia/Kolkata'
+    });
+
+    const parts = formatter.formatToParts(date);
+    const p: Record<string, string> = {};
+    parts.forEach(part => { p[part.type] = part.value; });
+
+    const day = p.day;
+    const month = p.month;
+    const year = p.year;
+    const hour = p.hour;
+    const minute = p.minute;
+    const second = p.second;
+    const dayPeriod = (p.dayPeriod || '').toLowerCase();
+
+    return `${day} ${month} ${year} at ${hour}:${minute}:${second} ${dayPeriod}`;
   } catch (e) {
     return date.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
   }
@@ -56,7 +68,7 @@ async function getAdminRecipients(companyId: any): Promise<string[]> {
     $or: [
       { key: { $in: ['COMPANY_ADMIN', 'ADMIN', 'COMPANY_HEAD', 'SUPER_ADMIN'] } },
       { level: { $lte: 1 } },
-      { name: { $regex: /company\s*admin|administrator|head|collector|commissioner|director|supervisor|manager/i } }
+      { name: { $regex: /company\s*admin|administrator|head|collector|commissioner|director/i } }
     ]
   }).distinct('_id');
 

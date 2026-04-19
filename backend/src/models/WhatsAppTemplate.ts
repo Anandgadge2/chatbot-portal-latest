@@ -21,7 +21,7 @@ export interface IWhatsAppTemplate extends Document {
   };
   footer: string;
   buttons: Array<{
-    type: 'QUICK_REPLY' | 'URL' | 'PHONE';
+    type: string;
     text: string;
     value: string;
   }>;
@@ -57,7 +57,6 @@ const WhatsAppTemplateSchema = new Schema<IWhatsAppTemplate>(
       {
         type: {
           type: String,
-          enum: ['QUICK_REPLY', 'URL', 'PHONE'],
           required: true
         },
         text: { type: String, required: true },

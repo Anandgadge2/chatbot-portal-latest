@@ -308,6 +308,102 @@ function logMetaError(error: any, context: Record<string, any>) {
   });
 }
 
+function normalizeTemplateButtonType(value?: string): string {
+  return String(value || '')
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, '_')
+    .replace(/-/g, '_');
+}
+
+function buildTemplateButtonComponent(options: {
+  templateName: string;
+  template: any;
+  buttonParam?: string;
+  fallbackParam?: string;
+}): any | null {
+  const firstButton = Array.isArray(options.template?.buttons) ? options.template.buttons[0] : null;
+  if (!firstButton) return null;
+
+  const buttonType = normalizeTemplateButtonType(firstButton.type);
+  const runtimeValue = safeText(options.buttonParam || options.fallbackParam || '', 255);
+
+  if (buttonType === 'COPY_CODE' || buttonType === 'OTP') {
+    if (!runtimeValue) {
+      const error: any = new Error(`Template ${options.templateName} requires an OTP button value.`);
+      error.code = 'TEMPLATE_INVALID';
+      throw error;
+    }
+
+    return {
+      type: 'button',
+      sub_type: 'copy_code',
+      index: '0',
+      parameters: [{ type: 'text', text: runtimeValue }]
+    };
+  }
+
+  if (buttonType === 'URL') {
+    if (!runtimeValue) {
+      const error: any = new Error(`Template ${options.templateName} requires a URL button parameter.`);
+      error.code = 'TEMPLATE_INVALID';
+      throw error;
+    }
+
+    return {
+      type: 'button',
+      sub_type: 'url',
+      index: '0',
+      parameters: [{ type: 'text', text: runtimeValue }]
+    };
+  }
+
+  return null;
+}
+
+function buildArrayTemplateComponents(options: {
+  templateName: string;
+  template: any;
+  parameters: string[];
+  headerParam?: string;
+  buttonParam?: string;
+}): any[] {
+  const sanitizedParams = sanitizeTemplateVariables(options.parameters);
+  const expectedBodyVariables = Number(options.template?.body?.variables || 0);
+  const components: any[] = [];
+
+  if (options.headerParam) {
+    components.push({
+      type: 'header',
+      parameters: [{ type: 'text', text: safeText(options.headerParam, 60) }]
+    });
+  }
+
+  if (expectedBodyVariables > 0) {
+    validateTemplateVariables(options.templateName, sanitizedParams);
+    components.push({
+      type: 'body',
+      parameters: sanitizedParams.slice(0, expectedBodyVariables).map((param) => ({
+        type: 'text',
+        text: safeText(param, 1000)
+      }))
+    });
+  }
+
+  const buttonComponent = buildTemplateButtonComponent({
+    templateName: options.templateName,
+    template: options.template,
+    buttonParam: options.buttonParam,
+    fallbackParam: sanitizedParams[0]
+  });
+
+  if (buttonComponent) {
+    components.push(buttonComponent);
+  }
+
+  return components;
+}
+
 async function buildMappedComponentsFromSavedTemplateMapping(options: {
   companyId: any;
   templateName: string;
@@ -538,39 +634,18 @@ export async function sendWhatsAppTemplate(
     let components: any[] = [];
     const expectedVariableCount = Number(resolvedTemplate.template?.body?.variables || 0);
     if (Array.isArray(parameters)) {
-      const sanitizedParams = sanitizeTemplateVariables(parameters);
-      validateTemplateVariables(templateName, sanitizedParams);
       await assertTemplateApproved({
         companyId,
         templateName,
         language: resolvedTemplate.resolvedLanguage
       });
-
-      if (headerParam) {
-        components.push({
-          type: 'header',
-          parameters: [{ type: 'text', text: safeText(headerParam, 60) }]
-        });
-      }
-
-      if (sanitizedParams.length > 0) {
-        components.push({
-          type: 'body',
-          parameters: sanitizedParams.map((param) => ({
-            type: 'text',
-            text: safeText(param, 1000)
-          }))
-        });
-      }
-
-      if (buttonParam) {
-        components.push({
-          type: 'button',
-          sub_type: 'url',
-          index: '0',
-          parameters: [{ type: 'text', text: safeText(buttonParam, 255) }]
-        });
-      }
+      components = buildArrayTemplateComponents({
+        templateName,
+        template: resolvedTemplate.template,
+        parameters,
+        headerParam,
+        buttonParam
+      });
     } else {
       const mappedComponents = await buildMappedComponentsFromSavedTemplateMapping({
         companyId,
@@ -653,13 +728,14 @@ export async function sendWhatsAppTemplate(
         statusCode: parsed.status || null,
         metaCode: parsed.code || null,
         metaMessage: parsed.message,
+        details: parsed.details || null,
         fbtraceId: parsed.fbtraceId || null
       }
     });
 
     return {
       success: false,
-      error: parsed.message
+      error: parsed.details ? `${parsed.message}: ${parsed.details}` : parsed.message
     };
   }
 }

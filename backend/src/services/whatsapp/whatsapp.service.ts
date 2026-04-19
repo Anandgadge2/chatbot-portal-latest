@@ -13,6 +13,7 @@ export function parseWhatsAppApiError(error: any): {
   status?: number;
   code?: number;
   message: string;
+  details?: string;
   fbtraceId?: string;
   isTransient: boolean;
   shouldRetry: boolean;
@@ -21,6 +22,7 @@ export function parseWhatsAppApiError(error: any): {
   const status = error?.response?.status;
   const code = metaError?.code;
   const message = metaError?.message || error?.message || 'Unknown WhatsApp API error';
+  const details = metaError?.error_data?.details || metaError?.details;
   const fbtraceId = metaError?.fbtrace_id;
 
   const transientCodes = new Set([1, 2, 4, 17, 341, 80007, 131016, 131049, 131056]);
@@ -32,6 +34,7 @@ export function parseWhatsAppApiError(error: any): {
     status,
     code,
     message,
+    details,
     fbtraceId,
     isTransient,
     shouldRetry
@@ -67,6 +70,7 @@ export async function sendTemplateRequest(options: {
           statusCode: parsed.status || null,
           metaCode: parsed.code || null,
           metaMessage: parsed.message,
+          details: parsed.details || null,
           fbtraceId: parsed.fbtraceId || null
         }
       });

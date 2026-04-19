@@ -447,6 +447,8 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
     const previousSubDepartmentId = grievance.subDepartmentId;
     const previousAssignedTo = grievance.assignedTo;
     const oldStatus = grievance.status;
+    const previousDepartmentName = (grievance.departmentId as any)?.name || grievance.category || 'General';
+    const previousSubDepartmentName = (grievance.subDepartmentId as any)?.name || 'N/A';
 
     grievance.status = GrievanceStatus.REVERTED;
     grievance.departmentId = undefined;
@@ -485,13 +487,13 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
       language: grievance.language,
       citizenPhone: grievance.citizenPhone,
       data: {
-        admin_name: 'Administrator',
+        admin_name: 'Company Admin',
         grievance_id: grievance.grievanceId,
         citizen_name: grievance.citizenName,
-        department_name: (grievance.category as string) || 'General',
-        office_name: (grievance.subDepartmentId as any)?.name || 'N/A',
-        description: grievance.description,
+        department_name: previousDepartmentName,
+        office_name: previousSubDepartmentName,
         reverted_by: currentUser.getFullName(),
+        remarks: remarks.trim(),
         reverted_on: formatTemplateDate()
       }
     }).catch((err) => logger.error('Failed to trigger grievance_reverted_company_v1 template', err));
@@ -857,6 +859,14 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
     const oldAssignedTo = grievance.assignedTo;
     const oldDepartmentId = grievance.departmentId;
     const oldSubDepartmentId = grievance.subDepartmentId;
+    const [oldDepartmentDoc, oldSubDepartmentDoc] = await Promise.all([
+      oldDepartmentId ? Department.findById(oldDepartmentId).select('_id name') : Promise.resolve(null),
+      oldSubDepartmentId ? Department.findById(oldSubDepartmentId).select('_id name') : Promise.resolve(null)
+    ]);
+    let currentDepartmentName = oldDepartmentDoc?.name || grievance.category || 'General';
+    let currentOfficeName = oldSubDepartmentDoc?.name || oldDepartmentDoc?.name || 'N/A';
+    const originalDepartmentName = oldDepartmentDoc?.name || grievance.category || 'General';
+    const originalOfficeName = oldSubDepartmentDoc?.name || oldDepartmentDoc?.name || 'N/A';
 
     // Update assignment details
     grievance.assignedTo = assignedUser._id;
@@ -882,6 +892,8 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
         if (departmentChanged) {
           grievance.departmentId = nextDepartmentId as any;
           grievance.subDepartmentId = nextSubDepartmentId as any;
+          currentDepartmentName = toDepartmentName || currentDepartmentName;
+          currentOfficeName = toSubDepartmentName || toDepartmentName || currentOfficeName;
 
           // Add department transfer event to timeline
           grievance.timeline.push({
@@ -902,6 +914,8 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
             timestamp: new Date()
           });
         }
+      } else {
+        currentOfficeName = currentDepartmentName;
       }
     }
 
@@ -948,12 +962,19 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
           recipientPhones: [assignedUser.phone],
           citizenPhone: grievance.citizenPhone,
           data: {
+            admin_name: assignedUser.getFullName(),
             grievance_id: grievance.grievanceId,
             citizen_name: grievance.citizenName,
-            citizen_phone: grievance.citizenPhone,
-            department_name: grievance.category || 'General',
+            department_name: currentDepartmentName,
+            office_name: currentOfficeName,
             description: grievance.description,
-            remarks: assignedUser.getFullName()
+            assigned_by: req.user!.getFullName(),
+            reassigned_by: req.user!.getFullName(),
+            assigned_on: formatTemplateDate(grievance.assignedAt || new Date()),
+            reassigned_on: formatTemplateDate(grievance.assignedAt || new Date()),
+            remarks: transferNote || 'Assigned for resolution.',
+            original_department: originalDepartmentName,
+            original_office: originalOfficeName
           }
         }).catch((err) => logger.error('Failed to trigger grievance assignment admin template', err));
       }
