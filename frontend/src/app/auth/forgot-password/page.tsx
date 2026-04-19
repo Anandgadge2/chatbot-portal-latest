@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { ArrowLeft, Mail, MessageCircle, Phone } from "lucide-react";
+import { ArrowLeft, MessageCircle, Phone } from "lucide-react";
 import { authAPI } from "@/lib/api/auth";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,6 @@ import { Label } from "@/components/ui/label";
 export default function ForgotPasswordPage() {
   const router = useRouter();
   const [phone, setPhone] = useState("");
-  const [deliveryChannel, setDeliveryChannel] = useState<"email" | "whatsapp">("whatsapp");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -27,9 +26,8 @@ export default function ForgotPasswordPage() {
     try {
       await authAPI.forgotPassword({
         phone: phone.trim(),
-        deliveryChannel
       });
-      toast.success("If your account exists, an OTP has been sent.");
+      toast.success("If your account exists, an OTP has been sent on WhatsApp.");
       router.push(`/auth/reset-password?phone=${encodeURIComponent(phone.trim())}`);
     } catch (error: any) {
       const message =
@@ -54,7 +52,7 @@ export default function ForgotPasswordPage() {
 
         <h1 className="text-2xl font-black text-slate-900 tracking-tight">Forgot password</h1>
         <p className="text-sm text-slate-500 mt-2">
-          Enter your registered phone number and choose where to receive OTP.
+          Enter your registered phone number to receive your OTP on WhatsApp.
         </p>
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-5">
@@ -82,25 +80,9 @@ export default function ForgotPasswordPage() {
             <Label className="text-[11px] font-black uppercase tracking-wider text-slate-700">
               Send OTP via
             </Label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              {[
-                { id: "whatsapp", label: "WhatsApp", icon: <MessageCircle className="w-3.5 h-3.5" /> },
-                { id: "email", label: "Email", icon: <Mail className="w-3.5 h-3.5" /> }
-              ].map((option) => (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => setDeliveryChannel(option.id as "email" | "whatsapp")}
-                  className={`h-10 rounded-xl border text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors ${
-                    deliveryChannel === option.id
-                      ? "bg-slate-900 text-white border-slate-900"
-                      : "bg-white text-slate-700 border-slate-200 hover:border-slate-400"
-                  }`}
-                >
-                  {option.icon}
-                  {option.label}
-                </button>
-              ))}
+            <div className="h-10 rounded-xl border border-slate-900 bg-slate-900 text-white text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5">
+              <MessageCircle className="w-3.5 h-3.5" />
+              WhatsApp
             </div>
           </div>
 

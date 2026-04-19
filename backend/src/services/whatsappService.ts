@@ -334,6 +334,23 @@ async function buildMappedComponentsFromSavedTemplateMapping(options: {
     if (options.data[snakeKey] !== undefined) return options.data[snakeKey];
     const camelKey = inputKey.replace(/_([a-z])/g, (_, char: string) => char.toUpperCase());
     if (options.data[camelKey] !== undefined) return options.data[camelKey];
+
+    const legacyAliases: Record<string, string[]> = {
+      formattedDate: ['received_on', 'submitted_on', 'assigned_on', 'reassigned_on', 'reverted_on', 'date'],
+      formatted_date: ['received_on', 'submitted_on', 'assigned_on', 'reassigned_on', 'reverted_on', 'date'],
+      receivedOn: ['received_on', 'submitted_on', 'formattedDate'],
+      submittedOn: ['submitted_on', 'received_on', 'formattedDate'],
+      assignedOn: ['assigned_on', 'formattedDate'],
+      reassignedOn: ['reassigned_on', 'assigned_on', 'formattedDate'],
+      revertedOn: ['reverted_on', 'formattedDate'],
+    };
+
+    for (const alias of legacyAliases[inputKey] || []) {
+      if (options.data[alias] !== undefined) return options.data[alias];
+      const aliasCamel = alias.replace(/_([a-z])/g, (_, char: string) => char.toUpperCase());
+      if (options.data[aliasCamel] !== undefined) return options.data[aliasCamel];
+    }
+
     return undefined;
   };
 

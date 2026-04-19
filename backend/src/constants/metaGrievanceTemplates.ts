@@ -3,7 +3,8 @@ export const ADMIN_TEMPLATE_NAMES = [
   'grievance_pending_admin_v1',
   'grievance_assigned_admin_v1',
   'grievance_reassigned_admin_v1',
-  'grievance_reverted_company_v1'
+  'grievance_reverted_company_v1',
+  'admin_password_reset_otp'
 ] as const;
 
 export const CITIZEN_TEMPLATE_NAMES = [
@@ -16,6 +17,7 @@ export const META_GRIEVANCE_TEMPLATE_VARIABLE_COUNT: Record<string, number> = {
   grievance_assigned_admin_v1: 9,
   grievance_reassigned_admin_v1: 12,
   grievance_reverted_company_v1: 8,
+  admin_password_reset_otp: 1,
   grievance_status_citizen_v1: 6
 };
 

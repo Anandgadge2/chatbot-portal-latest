@@ -470,7 +470,7 @@ export default function StatusUpdateForm({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 p-5 space-y-5">
+      <div className="flex-1 p-5 space-y-5 overflow-y-auto custom-scrollbar">
         {/* Current Status */}
         <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
           <p className="text-[11px] font-semibold text-slate-600 uppercase tracking-[0.08em] mb-2">Current Status</p>

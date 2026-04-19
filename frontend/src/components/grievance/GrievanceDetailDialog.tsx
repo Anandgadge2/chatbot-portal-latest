@@ -225,17 +225,17 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
         </div>
 
         {/* Tab Navigation */}
-        <div className="bg-slate-50 border-b border-slate-200 px-5 flex items-center gap-1 overflow-x-auto no-scrollbar">
+        <div className="bg-slate-50 border-b border-slate-200 px-5  flex items-center gap-1 overflow-x-auto no-scrollbar">
           {[
             { id: "overview", label: "Overview", icon: <FileText className="w-3.5 h-3.5" /> },
             { id: "media", label: "Media Assets", icon: <ImageIcon className="w-3.5 h-3.5" />, count: grievance.media?.length },
-            { id: "timeline", label: "History & Resolution", icon: <RefreshCw className="w-3.5 h-3.5" /> },
-            ...(canUpdateStatus ? [{ id: "actions", label: "Actions", icon: <Settings className="w-3.5 h-3.5" /> }] : [])
+            ...(canUpdateStatus ? [{ id: "actions", label: "Actions", icon: <Settings className="w-3.5 h-3.5" /> }] : []),
+            { id: "timeline", label: "History & Resolution", icon: <RefreshCw className="w-3.5 h-3.5" /> }
           ].map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-all border-b-2 -mb-[1px] relative whitespace-nowrap ${
+              className={`flex items-center gap-2 px-4 py-4 text-[11px] font-black uppercase tracking-widest transition-all border-b-2 -mb-[1px] relative whitespace-nowrap ${
                 activeTab === tab.id 
                   ? "border-blue-500 text-slate-800 bg-white ring-1 ring-blue-500/20" 
                   : "border-transparent text-slate-400 hover:text-slate-600 hover:bg-slate-100"
@@ -598,15 +598,8 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
           )}
         </div>
 
-        {/* Global Action Footer */}
-        <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-3 flex-shrink-0">
-          <Button
-            onClick={onClose}
-            className="h-9 px-6 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-slate-900/40 ring-1 ring-blue-500/50 transition-all active:scale-95"
-          >
-            Close Profile
-          </Button>
-        </div>
+
+
       </div>
 
       {/* Full Screen Media Modal — preserved logic with updated theme */}

@@ -48,26 +48,26 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
   const [savingConfig, setSavingConfig] = useState(false);
   const [editingConfig, setEditingConfig] = useState(false);
   const [configForm, setConfigForm] = useState({
+    phoneNumber: "",
+    displayPhoneNumber: "",
     phoneNumberId: "",
     businessAccountId: "",
     accessToken: "",
     verifyToken: "",
-    appSecret: "",
     webhookSecret: "",
-    webhookUrl: "",
   });
   const [refreshTick, setRefreshTick] = useState(0);
 
   useEffect(() => {
     if (!config) return;
     setConfigForm({
+      phoneNumber: config.phoneNumber || "",
+      displayPhoneNumber: config.displayPhoneNumber || "",
       phoneNumberId: config.phoneNumberId || "",
       businessAccountId: config.businessAccountId || config.wabaId || "",
       accessToken: config.accessToken || "",
       verifyToken: config.verifyToken || "",
-      appSecret: config.appSecret || "",
       webhookSecret: config.webhookSecret || "",
-      webhookUrl: config.webhookUrl || "",
     });
   }, [config]);
 
@@ -150,14 +150,14 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
     try {
       setSavingConfig(true);
       const response = await whatsappAPI.updateConfig(config._id, {
+        phoneNumber: configForm.phoneNumber.trim(),
+        displayPhoneNumber: configForm.displayPhoneNumber.trim(),
         phoneNumberId: configForm.phoneNumberId.trim(),
         businessAccountId: configForm.businessAccountId.trim(),
         wabaId: configForm.businessAccountId.trim(),
         accessToken: configForm.accessToken.trim(),
         verifyToken: configForm.verifyToken.trim(),
-        appSecret: configForm.appSecret.trim(),
         webhookSecret: configForm.webhookSecret.trim(),
-        webhookUrl: configForm.webhookUrl.trim(),
       });
       setEditingConfig(false);
       toast.success(response?.message || "WhatsApp configuration updated");
@@ -243,13 +243,13 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
                     onClick={() => {
                       setEditingConfig(false);
                       setConfigForm({
+                        phoneNumber: config.phoneNumber || "",
+                        displayPhoneNumber: config.displayPhoneNumber || "",
                         phoneNumberId: config.phoneNumberId || "",
                         businessAccountId: config.businessAccountId || config.wabaId || "",
                         accessToken: config.accessToken || "",
                         verifyToken: config.verifyToken || "",
-                        appSecret: config.appSecret || "",
                         webhookSecret: config.webhookSecret || "",
-                        webhookUrl: config.webhookUrl || "",
                       });
                     }}
                   >
@@ -270,125 +270,114 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
         <CardContent className="p-4 sm:p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                Phone Number ID
-              </label>
-              <input
-                value={configForm.phoneNumberId}
-                onChange={(event) =>
-                  setConfigForm((prev) => ({ ...prev, phoneNumberId: event.target.value }))
-                }
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone Number</label>
+              <input 
+                type="text"
+                value={editingConfig ? configForm.phoneNumber : config.phoneNumber}
+                onChange={(e) => setConfigForm({...configForm, phoneNumber: e.target.value})}
                 readOnly={!editingConfig}
-                className={`w-full p-3 border rounded-xl font-mono text-xs break-all focus:outline-none ${
+                className={`w-full p-3 border rounded-xl text-xs ${
                   editingConfig
                     ? "bg-white border-indigo-200 text-slate-700 focus:ring-2 focus:ring-indigo-100"
                     : "bg-slate-50 border-slate-200 text-slate-600"
                 }`}
+                placeholder="e.g. 9821550841"
               />
             </div>
+
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                Business Account ID
-              </label>
-              <input
-                value={configForm.businessAccountId}
-                onChange={(event) =>
-                  setConfigForm((prev) => ({ ...prev, businessAccountId: event.target.value }))
-                }
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Display Phone Number</label>
+              <input 
+                type="text"
+                value={editingConfig ? configForm.displayPhoneNumber : config.displayPhoneNumber}
+                onChange={(e) => setConfigForm({...configForm, displayPhoneNumber: e.target.value})}
                 readOnly={!editingConfig}
-                className={`w-full p-3 border rounded-xl font-mono text-xs break-all focus:outline-none ${
+                className={`w-full p-3 border rounded-xl text-xs ${
                   editingConfig
                     ? "bg-white border-indigo-200 text-slate-700 focus:ring-2 focus:ring-indigo-100"
                     : "bg-slate-50 border-slate-200 text-slate-600"
                 }`}
+                placeholder="e.g. +91 98215 50841"
               />
             </div>
-            <div className="col-span-1 md:col-span-2 space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                Access Token (Permanent)
-              </label>
-              <input
+
+            <div className="space-y-2">
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone Number ID</label>
+              <input 
+                type="text"
+                value={editingConfig ? configForm.phoneNumberId : config.phoneNumberId}
+                onChange={(e) => setConfigForm({...configForm, phoneNumberId: e.target.value})}
+                readOnly={!editingConfig}
+                className={`w-full p-3 border rounded-xl text-xs ${
+                  editingConfig
+                    ? "bg-white border-indigo-200 text-slate-700 focus:ring-2 focus:ring-indigo-100"
+                    : "bg-slate-50 border-slate-200 text-slate-600"
+                }`}
+                placeholder="Enter Meta Phone Number ID"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Business Account ID</label>
+              <input 
+                type="text"
+                value={editingConfig ? configForm.businessAccountId : config.businessAccountId}
+                onChange={(e) => setConfigForm({...configForm, businessAccountId: e.target.value})}
+                readOnly={!editingConfig}
+                className={`w-full p-3 border rounded-xl text-xs ${
+                  editingConfig
+                    ? "bg-white border-indigo-200 text-slate-700 focus:ring-2 focus:ring-indigo-100"
+                    : "bg-slate-50 border-slate-200 text-slate-600"
+                }`}
+                placeholder="Enter WABA ID"
+              />
+            </div>
+
+            <div className="space-y-2 sm:col-span-2">
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Permanent Access Token</label>
+              <input 
                 type="password"
-                value={configForm.accessToken}
-                onChange={(event) =>
-                  setConfigForm((prev) => ({ ...prev, accessToken: event.target.value }))
-                }
+                value={editingConfig ? configForm.accessToken : config.accessToken}
+                onChange={(e) => setConfigForm({...configForm, accessToken: e.target.value})}
                 readOnly={!editingConfig}
-                className={`w-full p-3 border rounded-xl font-mono text-xs focus:outline-none ${
+                className={`w-full p-3 border rounded-xl text-xs ${
                   editingConfig
                     ? "bg-white border-indigo-200 text-slate-700 focus:ring-2 focus:ring-indigo-100"
                     : "bg-slate-50 border-slate-200 text-slate-600"
                 }`}
+                placeholder="Enter Meta System User Token"
               />
             </div>
+
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                Verify Token
-              </label>
-              <input
-                value={configForm.verifyToken}
-                onChange={(event) =>
-                  setConfigForm((prev) => ({ ...prev, verifyToken: event.target.value }))
-                }
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Webhook Verify Token</label>
+              <input 
+                type="text"
+                value={editingConfig ? configForm.verifyToken : config.verifyToken}
+                onChange={(e) => setConfigForm({...configForm, verifyToken: e.target.value})}
                 readOnly={!editingConfig}
-                className={`w-full p-3 border rounded-xl font-mono text-xs break-all focus:outline-none ${
+                className={`w-full p-3 border rounded-xl text-xs ${
                   editingConfig
                     ? "bg-white border-indigo-200 text-slate-700 focus:ring-2 focus:ring-indigo-100"
                     : "bg-slate-50 border-slate-200 text-slate-600"
                 }`}
+                placeholder="Your custom verify string"
               />
             </div>
+
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                Meta App Secret
-              </label>
-              <input
-                type="password"
-                value={configForm.appSecret}
-                onChange={(event) =>
-                  setConfigForm((prev) => ({ ...prev, appSecret: event.target.value }))
-                }
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Webhook Secret</label>
+              <input 
+                type="text"
+                value={editingConfig ? configForm.webhookSecret : config.webhookSecret}
+                onChange={(e) => setConfigForm({...configForm, webhookSecret: e.target.value})}
                 readOnly={!editingConfig}
-                className={`w-full p-3 border rounded-xl font-mono text-xs break-all focus:outline-none ${
+                className={`w-full p-3 border rounded-xl text-xs ${
                   editingConfig
                     ? "bg-white border-indigo-200 text-slate-700 focus:ring-2 focus:ring-indigo-100"
                     : "bg-slate-50 border-slate-200 text-slate-600"
                 }`}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                Webhook Secret
-              </label>
-              <input
-                type="password"
-                value={configForm.webhookSecret}
-                onChange={(event) =>
-                  setConfigForm((prev) => ({ ...prev, webhookSecret: event.target.value }))
-                }
-                readOnly={!editingConfig}
-                className={`w-full p-3 border rounded-xl font-mono text-xs break-all focus:outline-none ${
-                  editingConfig
-                    ? "bg-white border-indigo-200 text-slate-700 focus:ring-2 focus:ring-indigo-100"
-                    : "bg-slate-50 border-slate-200 text-slate-600"
-                }`}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                Webhook URL
-              </label>
-              <input
-                value={configForm.webhookUrl}
-                onChange={(event) =>
-                  setConfigForm((prev) => ({ ...prev, webhookUrl: event.target.value }))
-                }
-                readOnly={!editingConfig}
-                className={`w-full p-3 border rounded-xl text-xs break-all focus:outline-none ${
-                  editingConfig
-                    ? "bg-white border-indigo-200 text-slate-700 focus:ring-2 focus:ring-indigo-100"
-                    : "bg-slate-50 border-slate-200 text-slate-600"
-                }`}
+                placeholder="Your webhook secret"
               />
             </div>
           </div>

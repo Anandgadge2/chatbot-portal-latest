@@ -8,15 +8,13 @@ import Company from '../models/Company';
 import { resolveUserAccess } from '../utils/accessControl';
 import { authenticate } from '../middleware/auth';
 import crypto from 'crypto';
-import { sendEmail } from '../services/emailService';
 import CompanyWhatsAppConfig from '../models/CompanyWhatsAppConfig';
-import { sendWhatsAppMessage, sendWhatsAppTemplate } from '../services/whatsappService';
-// SMS service import removed as per user request to disable SMS channel
+import { sendWhatsAppTemplate } from '../services/whatsappService';
 
 
 const router = express.Router();
 
-const PASSWORD_RESET_OTP_TEMPLATE_NAME = process.env.WHATSAPP_PASSWORD_RESET_OTP_TEMPLATE || 'password_reset_otp_v1';
+const PASSWORD_RESET_OTP_TEMPLATE_NAME = process.env.WHATSAPP_PASSWORD_RESET_OTP_TEMPLATE || 'admin_password_reset_otp';
 const PASSWORD_RESET_OTP_TEMPLATE_LANGUAGE = (process.env.WHATSAPP_PASSWORD_RESET_OTP_TEMPLATE_LANGUAGE || 'en') as 'en' | 'hi' | 'mr' | 'or';
 
 const buildPhoneLookupQuery = (rawPhone: string) => {
@@ -276,19 +274,15 @@ router.post('/login', async (req: Request, res: Response) => {
 // @access  Public
 router.post('/forgot-password', async (req: Request, res: Response) => {
   try {
-    const { phone, deliveryChannel } = req.body as {
+    const { phone } = req.body as {
       phone?: string;
-      deliveryChannel?: 'email' | 'whatsapp';
     };
 
     if (!phone || !phone.trim()) {
       return res.status(400).json({ success: false, message: 'Phone number is required' });
     }
 
-    const channel = deliveryChannel || 'whatsapp';
-    if (!['email', 'whatsapp'].includes(channel)) {
-      return res.status(400).json({ success: false, message: 'deliveryChannel must be email or whatsapp' });
-    }
+    const channel = 'whatsapp' as const;
 
     const { validatePhoneNumber, normalizePhoneNumber } = await import('../utils/phoneUtils');
     const phoneTrimmed = phone.trim();
@@ -305,7 +299,7 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
     if (!user || !user.isActive) {
       return res.json({
         success: true,
-        message: 'If an account exists, an OTP has been sent.'
+        message: 'If an account exists, an OTP has been sent on WhatsApp.'
       });
     }
 
@@ -315,32 +309,49 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
 
     user.resetPasswordOtpHash = otpHash;
     user.resetPasswordOtpExpires = otpExpiry;
-    user.resetPasswordOtpChannel = channel;
+    user.resetPasswordOtpChannel = 'whatsapp';
     user.resetPasswordOtpAttempts = 0;
     await user.save();
 
     let deliverySuccess = false;
     let deliveryError: string | undefined;
 
-    if (channel === 'email' && user.email) {
-      const fullName = `${user.firstName} ${user.lastName}`.trim();
-      const subject = 'Your password reset OTP';
-      const html = `
-        <p>Hello ${fullName || 'User'},</p>
-        <p>Your OTP for password reset is: <strong>${otp}</strong></p>
-        <p>This OTP will expire in 10 minutes.</p>
-        <p>If you did not request this, you can safely ignore this email.</p>
-      `;
-      const emailResult = await sendEmail(
-        user.email,
-        subject,
-        html,
-        `Your password reset OTP is ${otp}. It expires in 10 minutes.`,
-        { companyId: user.companyId as any }
+    const companyId = user.companyId instanceof mongoose.Types.ObjectId
+      ? user.companyId
+      : (user.companyId as any)?._id;
+    const waConfig = companyId
+      ? await CompanyWhatsAppConfig.findOne({ companyId, isActive: true })
+      : null;
+
+    if (waConfig) {
+      const waCompany = {
+        _id: companyId,
+        name: (user.companyId as any)?.name || 'Portal',
+        whatsappConfig: {
+          phoneNumberId: waConfig.phoneNumberId,
+          accessToken: waConfig.accessToken
+        }
+      };
+
+      const templateResult = await sendWhatsAppTemplate(
+        waCompany,
+        user.phone,
+        PASSWORD_RESET_OTP_TEMPLATE_NAME,
+        [otp],
+        PASSWORD_RESET_OTP_TEMPLATE_LANGUAGE,
+        undefined,
+        undefined,
+        {
+          recipientType: 'ADMIN'
+        }
       );
-      deliverySuccess = emailResult.success;
-      deliveryError = emailResult.success ? undefined : emailResult.error;
-    } else if (channel === 'whatsapp') {
+
+      deliverySuccess = !!templateResult?.success;
+      deliveryError = templateResult?.error;
+    } else {
+      deliveryError = 'WhatsApp is not configured for this company';
+    }
+    /*
       const companyId = user.companyId instanceof mongoose.Types.ObjectId
         ? user.companyId
         : (user.companyId as any)?._id;
@@ -386,6 +397,8 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
       deliveryError = 'Selected delivery channel is unavailable for this account';
     }
 
+    */
+
     if (!deliverySuccess) {
       user.resetPasswordOtpHash = undefined;
       user.resetPasswordOtpExpires = undefined;
@@ -394,13 +407,13 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
       await user.save();
       return res.status(400).json({
         success: false,
-        message: deliveryError || 'Unable to send OTP. Please try another method.'
+        message: deliveryError || 'Unable to send OTP on WhatsApp. Please try again.'
       });
     }
 
     return res.json({
       success: true,
-      message: 'If an account exists, an OTP has been sent.',
+      message: 'If an account exists, an OTP has been sent on WhatsApp.',
       data: process.env.NODE_ENV === 'production' ? undefined : { otp }
     });
   } catch (_error: any) {

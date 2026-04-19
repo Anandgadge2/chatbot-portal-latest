@@ -47,7 +47,6 @@ export interface RegisterData {
 
 export interface ForgotPasswordPayload {
   phone: string;
-  deliveryChannel: 'email' | 'whatsapp';
 }
 
 export interface ResetPasswordPayload {

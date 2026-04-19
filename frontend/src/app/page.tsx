@@ -280,7 +280,7 @@ export default function LoginPage() {
                       Password Key
                     </Label>
                     <Link href="/auth/forgot-password" className="text-[9px] font-black text-sky-600 hover:text-sky-700 uppercase tracking-widest transition-colors">
-                      Recovery?
+                      .
                     </Link>
                   </div>
                   <div className="relative group/input">
