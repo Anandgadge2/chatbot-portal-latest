@@ -3342,13 +3342,10 @@ export async function processWhatsAppMessage(
     }
   }
 
-  // ── 5. Auto-start if session has no flow context yet ─────────────────────
+  // ── 5. Do not auto-start a fresh flow implicitly ─────────────────────────
+  // Only the explicit greeting branch above is allowed to start/restart the flow.
   if (session.step === "start" && !session.data?.flowId) {
-    if (!isGreeting && !isNoSessionCommand) {
-      console.log(`ℹ️ Ignoring non-trigger first message from ${from}: "${rawInput.substring(0, 80)}"`);
-      return;
-    }
-    await handleAutoStart(from, companyId, buttonId, company, session, message);
+    console.log(`ℹ️ Ignoring sessionless message from ${from}: "${rawInput.substring(0, 80)}"`);
     return;
   }
 

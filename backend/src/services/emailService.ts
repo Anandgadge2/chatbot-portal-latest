@@ -263,7 +263,7 @@ function formatDateTime(date: Date | string | undefined): string {
     parts.forEach(part => { p[part.type] = part.value; });
     
     // Format: "10 March 2026, 09:05:53 AM"
-    return `${p.day} ${p.month} ${p.year}, ${p.hour}:${p.minute}:${p.second} ${p.dayPeriod || p.ampm || ''}`.trim().replace(/\s+/g, ' ');
+    return `${p.day} ${p.month} ${p.year} at ${p.hour}:${p.minute}:${p.second} ${p.dayPeriod || p.ampm || ''}`.trim().replace(/\s+/g, ' ');
   } catch (e) {
     return d.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
   }

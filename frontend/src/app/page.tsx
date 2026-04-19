@@ -280,9 +280,9 @@ export default function LoginPage() {
                       Password Key
                     </Label>
                     <Link href="/auth/forgot-password" className="text-[9px] font-black text-sky-600 hover:text-sky-700 uppercase tracking-widest transition-colors">
-                      .
+                      Forget Password?
                     </Link>
-                  </div>
+                  </div>a
                   <div className="relative group/input">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                       <div className="w-9 h-9 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-400 group-focus-within/input:text-sky-600 group-focus-within/input:bg-sky-100 group-focus-within/input:border-sky-200 transition-all">

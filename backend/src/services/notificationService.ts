@@ -97,12 +97,8 @@ const getLocaleForLanguage = (lang: 'en' | 'hi' | 'or' | 'mr'): string => {
 
 const GRIEVANCE_CREATED_ADMIN_TEMPLATE_NAME =
   process.env.WHATSAPP_GRIEVANCE_CREATED_ADMIN_TEMPLATE || 'grievance_received_admin_v1';
-const GRIEVANCE_CONFIRMATION_TEMPLATE_NAME =
-  process.env.WHATSAPP_GRIEVANCE_CONFIRMATION_TEMPLATE || 'grievance_submitted_citizen_v1';
-const GRIEVANCE_STATUS_UPDATE_TEMPLATE_NAME =
-  process.env.WHATSAPP_GRIEVANCE_STATUS_UPDATE_TEMPLATE || 'grievance_status_citizen_v1';
-const GRIEVANCE_RESOLVED_TEMPLATE_NAME =
-  process.env.WHATSAPP_GRIEVANCE_RESOLVED_TEMPLATE || 'grievance_status_citizen_v1';
+const GRIEVANCE_CITIZEN_STATUS_TEMPLATE_NAME =
+  process.env.WHATSAPP_GRIEVANCE_CITIZEN_STATUS_TEMPLATE || 'grievance_status_citizen_v1';
 const GRIEVANCE_TEMPLATE_LANGUAGE =
   (process.env.WHATSAPP_GRIEVANCE_TEMPLATE_LANGUAGE || 'en') as 'en' | 'hi' | 'or' | 'mr';
 
@@ -303,7 +299,7 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
       const parts = formatter.formatToParts(d);
       const p: Record<string, string> = {};
       parts.forEach(part => { p[part.type] = part.value; });
-      return `${p.day} ${p.month} ${p.year}, ${p.hour}:${p.minute}:${p.second} ${p.dayPeriod || p.ampm || ''}`.trim().replace(/\s+/g, ' ');
+      return `${p.day} ${p.month} ${p.year} at ${p.hour}:${p.minute}:${p.second} ${p.dayPeriod || p.ampm || ''}`.trim().replace(/\s+/g, ' ').toLowerCase();
     } catch (e) {
       return d.toLocaleString(locale, { timeZone: 'Asia/Kolkata' });
     }
@@ -499,7 +495,9 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
     remarks: data.remarks || '',
     'Case ID': data.grievanceId || data.appointmentId || 'N/A',
     grievanceId: data.grievanceId || 'N/A',
-    appointmentId: data.appointmentId || 'N/A'
+    appointmentId: data.appointmentId || 'N/A',
+    refNumber: data.grievanceId || data.appointmentId || 'N/A',
+    createdAt: formattedDate
   };
 }
 
@@ -827,9 +825,10 @@ async function sendWhatsAppTemplateWithTextFallback(
   const language = options?.language || GRIEVANCE_TEMPLATE_LANGUAGE;
   const contextLabel = options?.contextLabel || templateName;
   const safeParams = parameters.map(p => (p ?? '').toString());
+  const allowTextFallback = options?.disableTextFallback !== true;
 
   // 1. If priority is 'text', try sending regular message first
-  if (options?.priority === 'text') {
+  if (options?.priority === 'text' && allowTextFallback) {
     const textResult = await safeSendWhatsApp(company, to, fallbackMessage);
     if (textResult.success) {
       logger.info(`✅ WhatsApp message sent (${contextLabel}) - Text Priority`, { to });
@@ -849,8 +848,8 @@ async function sendWhatsAppTemplateWithTextFallback(
       undefined,
       {
         recipientType: 'CITIZEN',
-        fallbackText: fallbackMessage,
-        disableFreeformFallback: options?.disableTextFallback === true
+        fallbackText: allowTextFallback ? fallbackMessage : undefined,
+        disableFreeformFallback: !allowTextFallback
       }
     );
 
@@ -867,7 +866,7 @@ async function sendWhatsAppTemplateWithTextFallback(
   });
 
   // 3. Final fallback: If template failed and we haven't tried text yet (and it's not disabled)
-  if (options?.priority !== 'text' && !options?.disableTextFallback) {
+  if (options?.priority !== 'text' && allowTextFallback) {
     return safeSendWhatsApp(company, to, fallbackMessage);
   }
 
@@ -1301,7 +1300,7 @@ export async function notifyCitizenOnResolution(
       await sendWhatsAppTemplateWithTextFallback(
         company,
         data.citizenWhatsApp || data.citizenPhone,
-        GRIEVANCE_RESOLVED_TEMPLATE_NAME,
+        GRIEVANCE_CITIZEN_STATUS_TEMPLATE_NAME,
         templateParams,
         message,
         {
@@ -1449,7 +1448,7 @@ export async function notifyCitizenOnGrievanceStatusChange(data: {
     await sendWhatsAppTemplateWithTextFallback(
       company,
       data.citizenWhatsApp || data.citizenPhone,
-      GRIEVANCE_STATUS_UPDATE_TEMPLATE_NAME,
+      GRIEVANCE_CITIZEN_STATUS_TEMPLATE_NAME,
       templateParams,
       message,
       {
