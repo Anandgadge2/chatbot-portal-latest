@@ -476,7 +476,7 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
     await grievance.save();
 
     await triggerAdminTemplate({
-      event: 'grievance_reverted_company_v1_',
+      event: 'grievance_reverted_company_v1',
       companyId: grievance.companyId,
       language: grievance.language,
       citizenPhone: grievance.citizenPhone,
@@ -490,7 +490,7 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
         reverted_by: currentUser.getFullName(),
         reverted_on: new Date().toLocaleDateString('en-IN')
       }
-    }).catch((err) => logger.error('Failed to trigger grievance_reverted_company_v1_ template', err));
+    }).catch((err) => logger.error('Failed to trigger grievance_reverted_company_v1 template', err));
 
     const { notifyCompanyAdminsOnRevert } = await import('../services/notificationService');
     await notifyCompanyAdminsOnRevert({

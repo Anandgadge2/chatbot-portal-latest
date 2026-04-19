@@ -1379,7 +1379,7 @@ export async function notifyCitizenOnCreation(
           {
             language: getNotificationLanguage(data),
             contextLabel: 'grievance_confirmation_citizen',
-            priority: 'text'
+            priority: 'template'
           }
         );
       } else {

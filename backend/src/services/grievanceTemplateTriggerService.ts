@@ -66,7 +66,7 @@ export async function triggerAdminTemplate(options: {
     | 'grievance_pending_admin_v1'
     | 'grievance_assigned_admin_v1'
     | 'grievance_reassigned_admin_v1'
-    | 'grievance_reverted_company_v1_';
+    | 'grievance_reverted_company_v1';
   companyId: any;
   language?: string;
   values?: string[];
@@ -289,19 +289,17 @@ export async function triggerGrievanceNotifications(options: {
         );
       }
   } else {
-    // 2. Send 'pending' template to company admins if status is UNASSIGNED or PENDING (no mapping)
-    let companyAdminPhones = options.companyAdmins 
-      ? options.companyAdmins.map(a => a.phone).filter(Boolean)
-      : [];
+    // 2. Send 'pending' template only to selected department admins (no company-wide fallback).
+    const departmentAdminPhones = Array.from(new Set((options.assignedAdmins || [])
+      .map(a => a.phone)
+      .filter(Boolean)
+      .map((phone) => normalizePhoneNumber(phone))
+      .filter((phone) => phone !== normalizePhoneNumber(options.citizenPhone))
+      .filter(Boolean)));
 
-    // Fallback: If no companyAdmins passed, fetch them manually
-    if (companyAdminPhones.length === 0) {
-      companyAdminPhones = await getAdminRecipients(options.companyId);
-    }
-
-      if (companyAdminPhones.length > 0) {
+      if (departmentAdminPhones.length > 0) {
         notifications.push(
-          ...companyAdminPhones.map(to => 
+          ...departmentAdminPhones.map(to => 
             sendWhatsAppTemplate(company, to, 'grievance_pending_admin_v1', {
               admin_name: 'Administrator',
               grievance_id: sanitizeText(options.grievanceId, 30),
@@ -335,7 +333,7 @@ export async function triggerGrievanceNotifications(options: {
  * Trigger specific admin notifications for status/assignment changes
  */
 export async function triggerAdminAssignmentNotification(options: {
-  event: 'grievance_assigned_admin_v1' | 'grievance_reassigned_admin_v1' | 'grievance_reverted_company_v1_';
+  event: 'grievance_assigned_admin_v1' | 'grievance_reassigned_admin_v1' | 'grievance_reverted_company_v1';
   companyId: any;
   grievanceId: string;
   citizenName: string;
