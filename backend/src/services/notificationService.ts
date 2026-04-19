@@ -1761,3 +1761,6 @@ export async function notifyCitizenOnAppointmentStatusChange(data: {
     logger.error('❌ notifyCitizenOnAppointmentStatusChange failed:', error);
   }
 }
+
+
+

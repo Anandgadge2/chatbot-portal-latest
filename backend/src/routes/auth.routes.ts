@@ -353,50 +353,15 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
       deliveryError = 'WhatsApp is not configured for this company';
     }
     /*
-      const companyId = user.companyId instanceof mongoose.Types.ObjectId
-        ? user.companyId
-        : (user.companyId as any)?._id;
-      const waConfig = companyId
-        ? await CompanyWhatsAppConfig.findOne({ companyId, isActive: true })
-        : null;
 
-      if (waConfig) {
-        const waCompany = {
-          name: (user.companyId as any)?.name || 'Portal',
-          whatsappConfig: {
-            phoneNumberId: waConfig.phoneNumberId,
-            accessToken: waConfig.accessToken
-          }
-        };
-        const otpTextMessage = `Your password reset OTP is ${otp}. It expires in 10 minutes.`;
+      
+        
 
-        // Prefer Meta-approved authentication template for out-of-window reliability.
-        const templateResult = await sendWhatsAppTemplate(
-          waCompany,
-          user.phone,
-          PASSWORD_RESET_OTP_TEMPLATE_NAME,
-          [otp],
-          PASSWORD_RESET_OTP_TEMPLATE_LANGUAGE
-        );
-
-        if (templateResult?.success) {
-          deliverySuccess = true;
-        } else {
+        
           console.warn(
             `⚠️ OTP template send failed for ${user.phone}. Falling back to text message.`,
             { error: templateResult?.error, templateName: PASSWORD_RESET_OTP_TEMPLATE_NAME }
           );
-
-          const fallbackResult = await sendWhatsAppMessage(waCompany, user.phone, otpTextMessage);
-          deliverySuccess = !!fallbackResult?.success;
-          deliveryError = fallbackResult?.error || templateResult?.error;
-        }
-      } else {
-        deliveryError = 'WhatsApp is not configured for this company';
-      }
-    } else {
-      deliveryError = 'Selected delivery channel is unavailable for this account';
-    }
 
     */
 
