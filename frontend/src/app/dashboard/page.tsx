@@ -269,6 +269,12 @@ function DashboardContent() {
     () => hasPermission(user, Permission.DELETE_GRIEVANCE),
     [user],
   );
+  const canReopenResolvedGrievance = useMemo(() => {
+    if (!hasPermission(user, Permission.ASSIGN_GRIEVANCE)) return false;
+    if (!hasPermission(user, Permission.REVERT_GRIEVANCE)) return false;
+
+    return isCompanyAdminRole || isSuperAdminUser;
+  }, [user, isCompanyAdminRole, isSuperAdminUser]);
   const router = useRouter();
   const searchParams = useSearchParams();
   const companyIdParam = searchParams.get("companyId");
@@ -8261,7 +8267,7 @@ function DashboardContent() {
                                               user,
                                               Permission.ASSIGN_GRIEVANCE,
                                             ) &&
-                                              (isCompanyLevel ||
+                                              (canReopenResolvedGrievance ||
                                                 (grievance.status !==
                                                   "RESOLVED" &&
                                                   grievance.status !==
@@ -8301,7 +8307,8 @@ function DashboardContent() {
                                               user,
                                               Permission.REVERT_GRIEVANCE,
                                             ) &&
-                                              grievance.status !== "REVERTED" && (
+                                              isLowerHierarchyRole &&
+                                              grievance.status === "RESOLVED" && (
                                                 <Button
                                                   variant="ghost"
                                                   size="sm"
