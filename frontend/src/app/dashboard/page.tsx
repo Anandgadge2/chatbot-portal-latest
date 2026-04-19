@@ -269,6 +269,12 @@ function DashboardContent() {
     () => hasPermission(user, Permission.DELETE_GRIEVANCE),
     [user],
   );
+  const canReopenResolvedGrievance = useMemo(() => {
+    if (!hasPermission(user, Permission.ASSIGN_GRIEVANCE)) return false;
+    if (!hasPermission(user, Permission.REVERT_GRIEVANCE)) return false;
+
+    return isCompanyAdminRole || isSuperAdminUser;
+  }, [user, isCompanyAdminRole, isSuperAdminUser]);
   const router = useRouter();
   const searchParams = useSearchParams();
   const companyIdParam = searchParams.get("companyId");
