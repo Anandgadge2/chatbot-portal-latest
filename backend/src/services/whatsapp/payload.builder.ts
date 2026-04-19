@@ -25,7 +25,7 @@ const TEMPLATE_DEFINITIONS: Record<string, TemplateDefinition> = {
   grievance_received_admin_v1: {
     audience: 'ADMIN',
     body: [
-      { key: 'admin_name', aliases: ['admin_name', 'adminName', 'recipient_name'], maxLength: 60 },
+      { key: 'admin_name', aliases: ['admin_name', 'adminName', 'recipient_name', 'recipientName', 'recepientName', 'recipient'], maxLength: 60 },
       { key: 'grievance_id', aliases: ['grievance_id', 'grievanceId', 'reference_id'], maxLength: 30 },
       { key: 'citizen_name', aliases: ['citizen_name', 'citizenName'], maxLength: 60 },
       { key: 'department_name', aliases: ['department_name', 'departmentName', 'category'], maxLength: 60 },
@@ -37,42 +37,42 @@ const TEMPLATE_DEFINITIONS: Record<string, TemplateDefinition> = {
   grievance_pending_admin_v1: {
     audience: 'ADMIN',
     body: [
-      { key: 'admin_name', aliases: ['admin_name', 'adminName', 'recipient_name'], maxLength: 60 },
+      { key: 'admin_name', aliases: ['admin_name', 'adminName', 'recipient_name', 'recipientName', 'recepientName', 'recipient'], maxLength: 60 },
       { key: 'grievance_id', aliases: ['grievance_id', 'grievanceId', 'reference_id'], maxLength: 30 },
       { key: 'citizen_name', aliases: ['citizen_name', 'citizenName'], maxLength: 60 },
       { key: 'department_name', aliases: ['department_name', 'departmentName', 'category'], maxLength: 60 },
       { key: 'office_name', aliases: ['office_name', 'officeName', 'sub_department_name', 'subDepartmentName'], maxLength: 60 },
       { key: 'description', aliases: ['description', 'grievance_details', 'grievanceDetails'], maxLength: 100 },
-      { key: 'submitted_on', aliases: ['submitted_on', 'submittedOn', 'received_on', 'receivedOn', 'formattedDate', 'formatted_date', 'date'], maxLength: 60 }
+      { key: 'submitted_on', aliases: ['submitted_on', 'submittedOn', 'submittedDate', 'received_on', 'receivedOn', 'formattedDate', 'formatted_date', 'date'], maxLength: 60 }
     ]
   },
   grievance_assigned_admin_v1: {
     audience: 'ADMIN',
     body: [
-      { key: 'admin_name', aliases: ['admin_name', 'adminName', 'recipient_name'], maxLength: 60 },
+      { key: 'admin_name', aliases: ['admin_name', 'adminName', 'recipient_name', 'recipientName', 'recepientName', 'recipient'], maxLength: 60 },
       { key: 'grievance_id', aliases: ['grievance_id', 'grievanceId', 'reference_id'], maxLength: 30 },
       { key: 'citizen_name', aliases: ['citizen_name', 'citizenName'], maxLength: 60 },
       { key: 'department_name', aliases: ['department_name', 'departmentName', 'category'], maxLength: 60 },
       { key: 'office_name', aliases: ['office_name', 'officeName', 'sub_department_name', 'subDepartmentName'], maxLength: 60 },
       { key: 'description', aliases: ['description', 'grievance_details', 'grievanceDetails'], maxLength: 100 },
-      { key: 'assigned_by', aliases: ['assigned_by', 'assignedBy', 'reassigned_by', 'reassignedBy'], maxLength: 60 },
-      { key: 'assigned_on', aliases: ['assigned_on', 'assignedOn', 'formattedDate', 'formatted_date', 'date'], maxLength: 60 },
-      { key: 'remarks', aliases: ['remarks', 'note', 'assignment_note', 'revert_note'], maxLength: 100 }
+      { key: 'assigned_by', aliases: ['assigned_by', 'assignedBy', 'assignedByName', 'reassigned_by', 'reassignedBy', 'reassignedByName'], maxLength: 60 },
+      { key: 'assigned_on', aliases: ['assigned_on', 'assignedOn', 'assignedDate', 'formattedDate', 'formatted_date', 'date'], maxLength: 60 },
+      { key: 'remarks', aliases: ['remarks', 'note', 'assignment_note', 'assignmentNote', 'reassignment_note', 'reassignmentNote', 'revert_note'], maxLength: 100 }
     ]
   },
   grievance_reassigned_admin_v1: {
     audience: 'ADMIN',
     body: [
-      { key: 'admin_name', aliases: ['admin_name', 'adminName', 'recipient_name'], maxLength: 60 },
+      { key: 'admin_name', aliases: ['admin_name', 'adminName', 'recipient_name', 'recipientName', 'recepientName', 'recipient'], maxLength: 60 },
       { key: 'grievance_id', aliases: ['grievance_id', 'grievanceId', 'reference_id'], maxLength: 30 },
       { key: 'citizen_name', aliases: ['citizen_name', 'citizenName'], maxLength: 60 },
       { key: 'department_name', aliases: ['department_name', 'departmentName', 'category'], maxLength: 60 },
       { key: 'office_name', aliases: ['office_name', 'officeName', 'sub_department_name', 'subDepartmentName'], maxLength: 60 },
       { key: 'description', aliases: ['description', 'grievance_details', 'grievanceDetails'], maxLength: 100 },
-      { key: 'submitted_on', aliases: ['submitted_on', 'submittedOn', 'formattedDate', 'formatted_date', 'date'], maxLength: 60 },
-      { key: 'reassigned_by', aliases: ['reassigned_by', 'reassignedBy', 'assigned_by', 'assignedBy'], maxLength: 60 },
-      { key: 'remarks', aliases: ['remarks', 'note', 'assignment_note', 'reassignment_note', 'revert_note'], maxLength: 100 },
-      { key: 'reassigned_on', aliases: ['reassigned_on', 'reassignedOn', 'assigned_on', 'assignedOn', 'formattedDate', 'formatted_date'], maxLength: 60 },
+      { key: 'submitted_on', aliases: ['submitted_on', 'submittedOn', 'submittedDate', 'formattedDate', 'formatted_date', 'date'], maxLength: 60 },
+      { key: 'reassigned_by', aliases: ['reassigned_by', 'reassignedBy', 'reassignedByName', 'assigned_by', 'assignedBy', 'assignedByName'], maxLength: 60 },
+      { key: 'remarks', aliases: ['remarks', 'note', 'assignment_note', 'reassignment_note', 'reassignmentNote', 'revert_note'], maxLength: 100 },
+      { key: 'reassigned_on', aliases: ['reassigned_on', 'reassignedOn', 'reassignedDate', 'assigned_on', 'assignedOn', 'assignedDate', 'formattedDate', 'formatted_date'], maxLength: 60 },
       { key: 'original_department', aliases: ['original_department', 'originalDepartment'], maxLength: 60 },
       { key: 'original_office', aliases: ['original_office', 'originalOffice'], maxLength: 60 }
     ]
@@ -80,14 +80,14 @@ const TEMPLATE_DEFINITIONS: Record<string, TemplateDefinition> = {
   grievance_reverted_company_v1: {
     audience: 'ADMIN',
     body: [
-      { key: 'admin_name', aliases: ['admin_name', 'adminName', 'recipient_name'], maxLength: 60 },
+      { key: 'admin_name', aliases: ['admin_name', 'adminName', 'recipient_name', 'recipientName', 'recepientName', 'recipient'], maxLength: 60 },
       { key: 'grievance_id', aliases: ['grievance_id', 'grievanceId', 'reference_id'], maxLength: 30 },
       { key: 'citizen_name', aliases: ['citizen_name', 'citizenName'], maxLength: 60 },
       { key: 'department_name', aliases: ['department_name', 'departmentName', 'category'], maxLength: 60 },
       { key: 'office_name', aliases: ['office_name', 'officeName', 'sub_department_name', 'subDepartmentName'], maxLength: 60 },
-      { key: 'reverted_by', aliases: ['reverted_by', 'revertedBy'], maxLength: 60 },
+      { key: 'reverted_by', aliases: ['reverted_by', 'revertedBy', 'revertedByName'], maxLength: 60 },
       { key: 'remarks', aliases: ['remarks', 'note', 'revert_reason', 'revert_note'], maxLength: 100 },
-      { key: 'reverted_on', aliases: ['reverted_on', 'revertedOn', 'formattedDate', 'formatted_date', 'date'], maxLength: 60 }
+      { key: 'reverted_on', aliases: ['reverted_on', 'revertedOn', 'revertedDate', 'formattedDate', 'formatted_date', 'date'], maxLength: 60 }
     ]
   },
   admin_password_reset_otp: {

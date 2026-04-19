@@ -435,11 +435,21 @@ async function buildMappedComponentsFromSavedTemplateMapping(options: {
     const legacyAliases: Record<string, string[]> = {
       formattedDate: ['received_on', 'submitted_on', 'assigned_on', 'reassigned_on', 'reverted_on', 'date'],
       formatted_date: ['received_on', 'submitted_on', 'assigned_on', 'reassigned_on', 'reverted_on', 'date'],
+      recipientName: ['admin_name', 'recipient_name'],
+      recepientName: ['admin_name', 'recipient_name'],
       receivedOn: ['received_on', 'submitted_on', 'formattedDate'],
       submittedOn: ['submitted_on', 'received_on', 'formattedDate'],
+      submittedDate: ['submitted_on', 'received_on', 'formattedDate'],
+      assignedByName: ['assigned_by', 'reassigned_by'],
       assignedOn: ['assigned_on', 'formattedDate'],
+      assignedDate: ['assigned_on', 'formattedDate'],
+      reassignedByName: ['reassigned_by', 'assigned_by'],
+      reassignmentNote: ['reassignment_note', 'assignment_note', 'remarks', 'note', 'revert_note'],
       reassignedOn: ['reassigned_on', 'assigned_on', 'formattedDate'],
+      reassignedDate: ['reassigned_on', 'assigned_on', 'formattedDate'],
+      revertedByName: ['reverted_by'],
       revertedOn: ['reverted_on', 'formattedDate'],
+      revertedDate: ['reverted_on', 'formattedDate'],
     };
 
     for (const alias of legacyAliases[inputKey] || []) {
