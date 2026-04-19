@@ -66,7 +66,7 @@ export async function triggerAdminTemplate(options: {
     | 'grievance_pending_admin_v1'
     | 'grievance_assigned_admin_v1'
     | 'grievance_reassigned_admin_v1'
-    | 'grievance_reverted_company_v1';
+    | 'grievance_reverted_company_v1_';
   companyId: any;
   language?: string;
   values?: string[];
@@ -123,9 +123,15 @@ export async function triggerCitizenTemplate(options: {
   data?: Record<string, string>;
 }) {
   const normalizedPhone = normalizePhoneNumber(options.citizenPhone);
+  const rawPhone = String(options.citizenPhone || '').trim();
   const citizenProfile = await CitizenProfile.findOne({
     companyId: options.companyId,
-    phone_number: normalizedPhone
+    $or: [
+      { phone_number: normalizedPhone },
+      { phone_number: rawPhone },
+      { phoneNumber: normalizedPhone },
+      { phoneNumber: rawPhone }
+    ]
   }).select('notification_consent notificationConsent').lean();
 
   const hasNotificationConsent = Boolean(
@@ -168,8 +174,9 @@ export async function triggerCitizenSubmissionTemplate(options: {
       citizen_name: sanitizeText(options.citizenName, 60),
       grievance_id: sanitizeText(options.grievanceId, 30),
       department_name: sanitizeText(options.departmentName, 60),
-      sub_department_name: sanitizeText(options.subDepartmentName || 'N/A', 60),
-      description: sanitizeGrievanceDetails(options.grievanceDetails)
+      office_name: sanitizeText(options.subDepartmentName || 'N/A', 60),
+      description: sanitizeGrievanceDetails(options.grievanceDetails),
+      submitted_on: new Date().toLocaleDateString('en-IN')
     }
   });
 }
@@ -204,7 +211,7 @@ export async function triggerCitizenStatusTemplate(options: {
       citizen_name: sanitizeText(options.citizenName, 60),
       grievance_id: sanitizeText(options.grievanceId, 30),
       department_name: sanitizeText(options.departmentName, 60),
-      sub_department_name: sanitizeText(options.subDepartmentName || 'N/A', 60),
+      office_name: sanitizeText(options.subDepartmentName || 'N/A', 60),
       status: sanitizeText(options.status, 30),
       remarks: sanitizeNote(extraMessage)
     }
@@ -247,11 +254,13 @@ export async function triggerGrievanceNotifications(options: {
         notifications.push(
           ...assignedRecipientPhones.map(to => 
             sendWhatsAppTemplate(company, to, 'grievance_received_admin_v1', {
+              admin_name: 'Administrator', // Generic if name not available
               grievance_id: sanitizeText(options.grievanceId, 30),
               citizen_name: sanitizeText(options.citizenName, 60),
-              citizen_phone: sanitizeText(options.citizenPhone, 20),
               department_name: sanitizeText(options.category, 60),
-              description: safeDescription
+              office_name: sanitizeText(options.subDepartmentName || 'N/A', 60),
+              description: safeDescription,
+              received_on: new Date().toLocaleDateString('en-IN')
             }, language, undefined, undefined, {
               recipientType: 'ADMIN',
               citizenPhone: options.citizenPhone
@@ -265,11 +274,13 @@ export async function triggerGrievanceNotifications(options: {
         notifications.push(
           ...fallbackPhones.map((to) =>
             sendWhatsAppTemplate(company, to, 'grievance_pending_admin_v1', {
+              admin_name: 'Administrator',
               grievance_id: sanitizeText(options.grievanceId, 30),
               citizen_name: sanitizeText(options.citizenName, 60),
-              citizen_phone: sanitizeText(options.citizenPhone, 20),
               department_name: sanitizeText(options.category, 60),
-              description: safeDescription
+              office_name: sanitizeText(options.subDepartmentName || 'N/A', 60),
+              description: safeDescription,
+              submitted_on: new Date().toLocaleDateString('en-IN')
             }, language, undefined, undefined, {
               recipientType: 'ADMIN',
               citizenPhone: options.citizenPhone
@@ -292,11 +303,13 @@ export async function triggerGrievanceNotifications(options: {
         notifications.push(
           ...companyAdminPhones.map(to => 
             sendWhatsAppTemplate(company, to, 'grievance_pending_admin_v1', {
+              admin_name: 'Administrator',
               grievance_id: sanitizeText(options.grievanceId, 30),
               citizen_name: sanitizeText(options.citizenName, 60),
-              citizen_phone: sanitizeText(options.citizenPhone, 20),
               department_name: sanitizeText(options.category, 60),
-              description: safeDescription
+              office_name: sanitizeText(options.subDepartmentName || 'N/A', 60),
+              description: safeDescription,
+              submitted_on: new Date().toLocaleDateString('en-IN')
             }, language, undefined, undefined, {
               recipientType: 'ADMIN',
               citizenPhone: options.citizenPhone
@@ -322,7 +335,7 @@ export async function triggerGrievanceNotifications(options: {
  * Trigger specific admin notifications for status/assignment changes
  */
 export async function triggerAdminAssignmentNotification(options: {
-  event: 'grievance_assigned_admin_v1' | 'grievance_reassigned_admin_v1' | 'grievance_reverted_company_v1';
+  event: 'grievance_assigned_admin_v1' | 'grievance_reassigned_admin_v1' | 'grievance_reverted_company_v1_';
   companyId: any;
   grievanceId: string;
   citizenName: string;

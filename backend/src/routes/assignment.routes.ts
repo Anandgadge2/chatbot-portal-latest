@@ -191,12 +191,20 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
       recipientPhones: assignedUser.phone ? [assignedUser.phone] : [],
       citizenPhone: grievance.citizenPhone,
       data: {
+        admin_name: assignedUser.getFullName(),
         grievance_id: grievance.grievanceId,
         citizen_name: grievance.citizenName,
-        citizen_phone: grievance.citizenPhone,
         department_name: grievance.category || 'General',
+        office_name: (await (await import('../models/Department')).default.findById(assignedUser.departmentId))?.name || 'N/A',
         description: grievance.description,
-        remarks: assignedUser.getFullName()
+        previous_admin: oldAssignedTo ? (await (await import('../models/User')).default.findById(oldAssignedTo))?.getFullName() || 'N/A' : 'N/A',
+        assigned_by: currentUser.getFullName(),
+        reassigned_by: currentUser.getFullName(),
+        assigned_on: new Date().toLocaleDateString('en-IN'),
+        reassigned_on: new Date().toLocaleDateString('en-IN'),
+        reason: (req.body as any).reason || 'Administrative Reassignment',
+        remarks: (req.body as any).remarks || 'N/A',
+        priority: grievance.priority || 'MEDIUM'
       }
     }).catch((err) => console.error('Failed to trigger admin assignment template:', err));
 
