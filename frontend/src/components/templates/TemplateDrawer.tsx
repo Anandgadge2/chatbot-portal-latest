@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -51,15 +51,24 @@ export default function TemplateDrawer({
   const [overrideValues, setOverrideValues] = useState<Record<string, string>>({});
 
   const validation = useMemo(() => (template ? getValidationState(template) : "NOT_APPROVED"), [template]);
+  const templateId = template?._id;
+
+  useEffect(() => {
+    if (!templateId) return;
+    setOverrideValues({});
+    setTo("");
+  }, [templateId]);
 
   if (!template) return null;
 
   const variables = extractVariables(template.body.text);
   const mapping = template.mapping || {};
+  const sampleValues = template.body.sampleValues || [];
 
   const autoFillParameters = variables.map((variable) => {
     const key = variable.replace(/[{}]/g, "");
-    return overrideValues[key] ?? mapping[key] ?? "";
+    const sampleIndex = Number(key) - 1;
+    return overrideValues[key] ?? mapping[key] ?? sampleValues[sampleIndex] ?? "";
   });
 
   return (
@@ -89,6 +98,7 @@ export default function TemplateDrawer({
               acc[`{{${key}}}`] = value;
               return acc;
             }, {})}
+            sampleValues={sampleValues}
             isSaving={isSavingMapping}
             onSave={(updated) => onSaveMapping(template.name, updated)}
           />
@@ -132,7 +142,7 @@ export default function TemplateDrawer({
                     <input
                       key={key}
                       className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
-                      value={overrideValues[key] ?? mapping[key] ?? ""}
+                      value={overrideValues[key] ?? mapping[key] ?? sampleValues[Number(key) - 1] ?? ""}
                       onChange={(event) =>
                         setOverrideValues((prev) => ({ ...prev, [key]: event.target.value }))
                       }

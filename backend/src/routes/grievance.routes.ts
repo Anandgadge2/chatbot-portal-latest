@@ -256,11 +256,13 @@ router.post('/', enforceWhatsAppGrievanceCompliance, async (req: Request, res: R
             recipientPhones: [targetAdmin.phone],
             citizenPhone: grievance.citizenPhone,
             data: {
+              admin_name: targetAdmin.getFullName(),
               grievance_id: grievance.grievanceId,
               citizen_name: grievance.citizenName,
-              citizen_phone: grievance.citizenPhone,
               department_name: grievance.category || 'General',
-              description: safeDescription
+              office_name: (grievance as any).subDepartmentId ? (await Department.findById((grievance as any).subDepartmentId))?.name || 'N/A' : 'N/A',
+              description: safeDescription,
+              received_on: new Date().toLocaleDateString('en-IN')
             }
           })
         : triggerAdminTemplate({
@@ -269,11 +271,13 @@ router.post('/', enforceWhatsAppGrievanceCompliance, async (req: Request, res: R
             language: grievance.language,
             citizenPhone: grievance.citizenPhone,
             data: {
+              admin_name: 'Administrator',
               grievance_id: grievance.grievanceId,
               citizen_name: grievance.citizenName,
-              citizen_phone: grievance.citizenPhone,
               department_name: grievance.category || 'General',
-              description: safeDescription
+              office_name: 'N/A',
+              description: safeDescription,
+              submitted_on: new Date().toLocaleDateString('en-IN')
             }
           }),
     ]);
@@ -472,19 +476,21 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
     await grievance.save();
 
     await triggerAdminTemplate({
-      event: 'grievance_reverted_company_v1',
+      event: 'grievance_reverted_company_v1_',
       companyId: grievance.companyId,
       language: grievance.language,
       citizenPhone: grievance.citizenPhone,
       data: {
+        admin_name: 'Administrator',
         grievance_id: grievance.grievanceId,
         citizen_name: grievance.citizenName,
-        citizen_phone: grievance.citizenPhone,
         department_name: (grievance.category as string) || 'General',
+        office_name: (grievance.subDepartmentId as any)?.name || 'N/A',
         description: grievance.description,
-        remarks: remarks.trim()
+        reverted_by: currentUser.getFullName(),
+        reverted_on: new Date().toLocaleDateString('en-IN')
       }
-    }).catch((err) => logger.error('Failed to trigger grievance_reverted_company_v1 template', err));
+    }).catch((err) => logger.error('Failed to trigger grievance_reverted_company_v1_ template', err));
 
     const { notifyCompanyAdminsOnRevert } = await import('../services/notificationService');
     await notifyCompanyAdminsOnRevert({

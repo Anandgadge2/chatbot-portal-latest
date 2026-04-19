@@ -51,6 +51,10 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
     phoneNumberId: "",
     businessAccountId: "",
     accessToken: "",
+    verifyToken: "",
+    appSecret: "",
+    webhookSecret: "",
+    webhookUrl: "",
   });
   const [refreshTick, setRefreshTick] = useState(0);
 
@@ -60,6 +64,10 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
       phoneNumberId: config.phoneNumberId || "",
       businessAccountId: config.businessAccountId || config.wabaId || "",
       accessToken: config.accessToken || "",
+      verifyToken: config.verifyToken || "",
+      appSecret: config.appSecret || "",
+      webhookSecret: config.webhookSecret || "",
+      webhookUrl: config.webhookUrl || "",
     });
   }, [config]);
 
@@ -146,6 +154,10 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
         businessAccountId: configForm.businessAccountId.trim(),
         wabaId: configForm.businessAccountId.trim(),
         accessToken: configForm.accessToken.trim(),
+        verifyToken: configForm.verifyToken.trim(),
+        appSecret: configForm.appSecret.trim(),
+        webhookSecret: configForm.webhookSecret.trim(),
+        webhookUrl: configForm.webhookUrl.trim(),
       });
       setEditingConfig(false);
       toast.success(response?.message || "WhatsApp configuration updated");
@@ -234,6 +246,10 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
                         phoneNumberId: config.phoneNumberId || "",
                         businessAccountId: config.businessAccountId || config.wabaId || "",
                         accessToken: config.accessToken || "",
+                        verifyToken: config.verifyToken || "",
+                        appSecret: config.appSecret || "",
+                        webhookSecret: config.webhookSecret || "",
+                        webhookUrl: config.webhookUrl || "",
                       });
                     }}
                   >
@@ -299,6 +315,76 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
                 }
                 readOnly={!editingConfig}
                 className={`w-full p-3 border rounded-xl font-mono text-xs focus:outline-none ${
+                  editingConfig
+                    ? "bg-white border-indigo-200 text-slate-700 focus:ring-2 focus:ring-indigo-100"
+                    : "bg-slate-50 border-slate-200 text-slate-600"
+                }`}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                Verify Token
+              </label>
+              <input
+                value={configForm.verifyToken}
+                onChange={(event) =>
+                  setConfigForm((prev) => ({ ...prev, verifyToken: event.target.value }))
+                }
+                readOnly={!editingConfig}
+                className={`w-full p-3 border rounded-xl font-mono text-xs break-all focus:outline-none ${
+                  editingConfig
+                    ? "bg-white border-indigo-200 text-slate-700 focus:ring-2 focus:ring-indigo-100"
+                    : "bg-slate-50 border-slate-200 text-slate-600"
+                }`}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                Meta App Secret
+              </label>
+              <input
+                type="password"
+                value={configForm.appSecret}
+                onChange={(event) =>
+                  setConfigForm((prev) => ({ ...prev, appSecret: event.target.value }))
+                }
+                readOnly={!editingConfig}
+                className={`w-full p-3 border rounded-xl font-mono text-xs break-all focus:outline-none ${
+                  editingConfig
+                    ? "bg-white border-indigo-200 text-slate-700 focus:ring-2 focus:ring-indigo-100"
+                    : "bg-slate-50 border-slate-200 text-slate-600"
+                }`}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                Webhook Secret
+              </label>
+              <input
+                type="password"
+                value={configForm.webhookSecret}
+                onChange={(event) =>
+                  setConfigForm((prev) => ({ ...prev, webhookSecret: event.target.value }))
+                }
+                readOnly={!editingConfig}
+                className={`w-full p-3 border rounded-xl font-mono text-xs break-all focus:outline-none ${
+                  editingConfig
+                    ? "bg-white border-indigo-200 text-slate-700 focus:ring-2 focus:ring-indigo-100"
+                    : "bg-slate-50 border-slate-200 text-slate-600"
+                }`}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                Webhook URL
+              </label>
+              <input
+                value={configForm.webhookUrl}
+                onChange={(event) =>
+                  setConfigForm((prev) => ({ ...prev, webhookUrl: event.target.value }))
+                }
+                readOnly={!editingConfig}
+                className={`w-full p-3 border rounded-xl text-xs break-all focus:outline-none ${
                   editingConfig
                     ? "bg-white border-indigo-200 text-slate-700 focus:ring-2 focus:ring-indigo-100"
                     : "bg-slate-50 border-slate-200 text-slate-600"

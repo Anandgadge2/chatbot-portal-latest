@@ -1289,8 +1289,8 @@ export async function notifyCitizenOnResolution(
         fullData.grievanceId || '',
         fullData.departmentName || '',
         fullData.subDepartmentName || 'N/A',
-        fullData.resolvedByName || 'N/A',
-        fullData.formattedResolvedDate || fullData.formattedDate || '',
+        'RESOLVED',
+
         fullData.remarks || '-'
       ];
 
@@ -1366,7 +1366,8 @@ export async function notifyCitizenOnCreation(
           fullData.grievanceId || '',
           fullData.departmentName || '',
           fullData.subDepartmentName || 'N/A',
-          fullData.description || 'No description provided'
+          fullData.description || 'No description provided',
+          fullData.submittedOn || new Date().toLocaleDateString('en-IN')
         ];
 
         await sendWhatsAppTemplateWithTextFallback(

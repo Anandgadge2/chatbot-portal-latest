@@ -1,6 +1,6 @@
 import { sanitizeText } from '../utils/sanitize';
 import { DEFAULT_TEMPLATE_LANGUAGE, META_GRIEVANCE_TEMPLATE_VARIABLE_COUNT } from '../constants/metaGrievanceTemplates';
-import { resolveTemplateRecord } from './whatsapp/template.service';
+import { resolveTemplateAudience, resolveTemplateRecord } from './whatsapp/template.service';
 
 export function normalizeLanguage(language?: string): string {
   const value = String(language || DEFAULT_TEMPLATE_LANGUAGE).trim().toLowerCase().replace('-', '_');
@@ -53,12 +53,15 @@ export async function assertTemplateApproved(options: {
   });
   const template = resolved.template;
 
-  const footer = String((template as any).footer || '').toLowerCase();
-  const body = String((template as any).body?.text || '').toLowerCase();
-  if (!footer.includes('stop') && !body.includes('stop')) {
-    const error: any = new Error(`Template ${options.templateName} must include unsubscribe instruction (Reply STOP to unsubscribe).`);
-    error.code = 'TEMPLATE_INVALID';
-    throw error;
+  const audience = resolveTemplateAudience(options.templateName);
+  if (audience === 'CITIZEN') {
+    const footer = String((template as any).footer || '').toLowerCase();
+    const body = String((template as any).body?.text || '').toLowerCase();
+    if (!footer.includes('stop') && !body.includes('stop')) {
+      const error: any = new Error(`Template ${options.templateName} must include unsubscribe instruction (Reply STOP to unsubscribe).`);
+      error.code = 'TEMPLATE_INVALID';
+      throw error;
+    }
   }
   return template;
 }

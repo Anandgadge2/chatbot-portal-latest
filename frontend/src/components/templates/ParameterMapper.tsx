@@ -13,6 +13,7 @@ interface ParameterMapperProps {
   templateName: string;
   bodyText: string;
   initialMapping: Record<string, string>;
+  sampleValues?: string[];
   isSaving: boolean;
   onSave: (mappings: Record<string, string>) => Promise<void>;
 }
@@ -42,6 +43,7 @@ export default function ParameterMapper({
   templateName,
   bodyText,
   initialMapping,
+  sampleValues = [],
   isSaving,
   onSave,
 }: ParameterMapperProps) {
@@ -52,9 +54,16 @@ export default function ParameterMapper({
 
   useEffect(() => {
     setMappingState(initialMapping || {});
-    setCustomValues({});
+    const sampleByVariable = variables.reduce<Record<string, string>>((acc, variable) => {
+      const index = Number(variable.replace(/[{}]/g, "")) - 1;
+      if (index >= 0 && sampleValues[index]) {
+        acc[variable] = sampleValues[index];
+      }
+      return acc;
+    }, {});
+    setCustomValues(sampleByVariable);
     setCustomMode({});
-  }, [initialMapping, templateName]);
+  }, [initialMapping, templateName, sampleValues, variables]);
 
   const setVariableMapping = (variable: string, value: string) => {
     if (value === "custom") {
@@ -111,6 +120,12 @@ export default function ParameterMapper({
           </Button>
         </div>
       </div>
+
+      {sampleValues.length > 0 && (
+        <p className="text-[11px] text-slate-500 mb-3">
+          Meta sample values detected and prefilled for quick testing.
+        </p>
+      )}
 
       {variables.length === 0 ? (
         <p className="text-sm text-slate-500">No dynamic parameters in this template.</p>
