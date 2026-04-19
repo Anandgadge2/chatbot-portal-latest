@@ -1,17 +1,17 @@
+import Department from '../models/Department';
 import mongoose from 'mongoose';
 import Grievance from '../models/Grievance';
 import Appointment from '../models/Appointment';
 import Lead from '../models/Lead';
 import User from '../models/User';
-import Department from '../models/Department';
-import { findDepartmentByCategory } from './departmentMapper';
 import { 
   notifyDepartmentAdminOnCreation, 
   notifyUserOnAssignment, 
   notifyCitizenOnCreation,
   notifyCitizenOnGrievanceStatusChange, 
   notifyCitizenOnAppointmentStatusChange,
-  getHierarchicalDepartmentAdmins
+  getHierarchicalDepartmentAdmins,
+  getLocalizedDepartmentName
 } from './notificationService';
 import { findOptimalAdmin } from '../utils/userUtils';
 import { GrievanceStatus, AppointmentStatus, UserRole } from '../config/constants';
@@ -93,20 +93,20 @@ export class ActionService {
         language: session.language || 'en'
       });
 
-      let departmentId: mongoose.Types.ObjectId | null = null;
-      
-      if (session.data.departmentId) {
-        try {
-          departmentId = typeof session.data.departmentId === 'string'
-            ? new mongoose.Types.ObjectId(session.data.departmentId)
-            : session.data.departmentId;
-        } catch {
-          departmentId = await findDepartmentByCategory(company._id, session.data.category);
+      // ✅ STRICT SELECTION: Prioritize IDs provided by the chatbot flow
+      let departmentId = ActionService.toObjectId(session.data.departmentId);
+      const subDepartmentId = ActionService.toObjectId(session.data.subDepartmentId);
+
+      // If departmentId is missing, check if we can derive it from subDepartmentId
+      if (!departmentId && subDepartmentId) {
+        const subDept = await Department.findById(subDepartmentId).select('parentDepartmentId').lean();
+        if (subDept?.parentDepartmentId) {
+          departmentId = ActionService.toObjectId(subDept.parentDepartmentId) || undefined;
         }
       }
-      
-      if (!departmentId && session.data.category) {
-        departmentId = await findDepartmentByCategory(company._id, session.data.category);
+
+      if (!departmentId && !subDepartmentId) {
+        throw new Error('Department selection is compulsory. Please select a department to proceed.');
       }
 
       // Collect media from session.data.media[] (array) AND any plain-string attachment fields.
@@ -140,7 +140,7 @@ export class ActionService {
       const grievanceData = {
         companyId: company._id,
         departmentId: departmentId || undefined,
-        subDepartmentId: ActionService.toObjectId(session.data.subDepartmentId),
+        subDepartmentId: subDepartmentId || undefined,
         citizenName: session.data.citizenName,
         citizenPhone: userPhone,
         phone_number: userPhone,
@@ -238,15 +238,18 @@ export class ActionService {
       session.data.time = new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' });
       
       const dept = departmentId ? await Department.findById(departmentId) : null;
-      const subDept = session.data.subDepartmentId ? await Department.findById(session.data.subDepartmentId) : null;
+      const subDept = subDepartmentId ? await Department.findById(subDepartmentId) : null;
+      
+      const lang = (session.language || 'en') as 'en' | 'hi' | 'or' | 'mr';
       
       // Set explicit fields for placeholder resolution in success/confirm steps
-      session.data.department = dept ? dept.name : (session.data.category || 'General');
-      session.data.subDepartment = subDept ? subDept.name : '';
-      session.data.subDepartmentName = subDept ? subDept.name : '';
+      session.data.department = dept ? getLocalizedDepartmentName(dept, lang) : (session.data.category || 'General');
+      session.data.subDepartment = subDept ? getLocalizedDepartmentName(subDept, lang) : '';
+      session.data.subDepartmentName = subDept ? getLocalizedDepartmentName(subDept, lang) : '';
+      
       // Keep departmentName the parent-only name for display
-      session.data.departmentName = dept ? dept.name : (session.data.category || 'General');      
-      session.data.subdepartmentName = subDept ? subDept.name : '';
+      session.data.departmentName = dept ? getLocalizedDepartmentName(dept, lang) : (session.data.category || 'General');      
+      session.data.subdepartmentName = subDept ? getLocalizedDepartmentName(subDept, lang) : '';
       
       // Odia & Hindi translated keys for session placeholders to match user request
       session.data['ଗ୍ରିଭନ୍ସଆଇଡି'] = grievance.grievanceId;
@@ -284,7 +287,7 @@ export class ActionService {
 
       // Fallback to Department Admin assignment
       if (!autoAssigned) {
-        const targetDeptId = session.data.subDepartmentId || departmentId;
+        const targetDeptId = subDepartmentId || departmentId;
         if (targetDeptId) {
           const potentialAdmins = await getHierarchicalDepartmentAdmins(targetDeptId);
           const targetAdmin = findOptimalAdmin(potentialAdmins);
@@ -326,7 +329,7 @@ export class ActionService {
         citizenWhatsApp: userPhone,
         language: session.language || 'en',
         departmentId: departmentId as any,
-        subDepartmentId: session.data.subDepartmentId,
+        subDepartmentId: subDepartmentId,
         companyId: company._id,
         description: safeDescription || session.data.grievance_description || 'N/A',
         category: session.data.category,

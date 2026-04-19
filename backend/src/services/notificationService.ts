@@ -102,7 +102,7 @@ const GRIEVANCE_RESOLVED_TEMPLATE_NAME =
 const GRIEVANCE_TEMPLATE_LANGUAGE =
   (process.env.WHATSAPP_GRIEVANCE_TEMPLATE_LANGUAGE || 'en') as 'en' | 'hi' | 'or' | 'mr';
 
-const getLocalizedDepartmentName = (department: any, lang: 'en' | 'hi' | 'or' | 'mr'): string => {
+export const getLocalizedDepartmentName = (department: any, lang: 'en' | 'hi' | 'or' | 'mr'): string => {
   if (!department) return '';
   if (lang === 'hi' && department.nameHi) return String(department.nameHi).trim();
   if (lang === 'or' && department.nameOr) return String(department.nameOr).trim();
