@@ -77,7 +77,7 @@ const TEMPLATE_DEFINITIONS: Record<string, TemplateDefinition> = {
       { key: 'original_office', aliases: ['original_office', 'originalOffice'], maxLength: 60 }
     ]
   },
-  grievance_reverted_company_v1_: {
+  grievance_reverted_company_v1: {
     audience: 'ADMIN',
     body: [
       { key: 'admin_name', aliases: ['admin_name', 'adminName', 'recipient_name'], maxLength: 60 },
