@@ -835,7 +835,8 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
         return;
       }
 
-      if (currentUser.departmentId) {
+      // Company Admin (level 1) can assign/reassign across all departments in their company.
+      if (currentUser.departmentId && currentUser.level !== 1) {
         const grievanceDeptId = grievance.departmentId?.toString();
         const grievanceSubDeptId = grievance.subDepartmentId?.toString();
         const adminDeptId = currentUser.departmentId?.toString();
@@ -846,7 +847,14 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
       }
     }
 
-    const assignedUser = await User.findById(assignedTo);
+    const assignedToValue = String(assignedTo).trim();
+    const assignedUser = await User.findOne({
+      ...(currentUser.isSuperAdmin ? {} : { companyId: currentUser.companyId }),
+      $or: [
+        { userId: assignedToValue },
+        ...(assignedToValue.match(/^[0-9a-fA-F]{24}$/) ? [{ _id: assignedToValue }] : [])
+      ]
+    });
     if (!assignedUser) {
       res.status(404).json({
         success: false,
@@ -857,6 +865,7 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
 
     const transferNote = String(note || description || '').trim();
     const oldAssignedTo = grievance.assignedTo;
+    const oldStatus = grievance.status;
     const oldDepartmentId = grievance.departmentId;
     const oldSubDepartmentId = grievance.subDepartmentId;
     const [oldDepartmentDoc, oldSubDepartmentDoc] = await Promise.all([
@@ -871,7 +880,12 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
     // Update assignment details
     grievance.assignedTo = assignedUser._id;
     grievance.assignedAt = new Date();
-    grievance.status = GrievanceStatus.ASSIGNED;
+    const shouldMoveToAssignedStatus =
+      grievance.status !== GrievanceStatus.RESOLVED &&
+      grievance.status !== GrievanceStatus.REJECTED;
+    if (shouldMoveToAssignedStatus) {
+      grievance.status = GrievanceStatus.ASSIGNED;
+    }
 
     // Auto-update department/sub-department based on assigned user's mapped department
     if (assignedUser.departmentId) {
@@ -927,10 +941,12 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
         : `Assigned to user`;
     
     grievance.statusHistory.push({
-      status: GrievanceStatus.ASSIGNED,
+      status: shouldMoveToAssignedStatus ? GrievanceStatus.ASSIGNED : grievance.status,
       changedBy: req.user!._id,
       changedAt: new Date(),
-      remarks: statusRemarks
+      remarks: shouldMoveToAssignedStatus
+        ? statusRemarks
+        : `${statusRemarks}. Assignment updated without changing grievance status (${oldStatus}).`
     });
 
     // Add assignment event to timeline
@@ -1005,21 +1021,23 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
     // Notify citizen about assignment/status change
     const { notifyCitizenOnGrievanceStatusChange } = await import('../services/notificationService');
     const dept = grievance.departmentId ? await Department.findById(grievance.departmentId) : null;
-    await notifyCitizenOnGrievanceStatusChange({
-      companyId: grievance.companyId,
-      grievanceId: grievance.grievanceId,
-      citizenName: grievance.citizenName,
-      citizenPhone: grievance.citizenPhone,
-      citizenWhatsApp: grievance.citizenWhatsApp,
-      language: grievance.language,
-      description: grievance.description,
-      departmentId: grievance.departmentId,
-      subDepartmentId: grievance.subDepartmentId,
-      departmentName: dept ? dept.name : undefined,
-      newStatus: GrievanceStatus.ASSIGNED,
-      remarks: `Your grievance has been assigned to ${assignedUser.getFullName()} for resolution.`,
-      timeline: grievance.timeline
-    });
+    if (shouldMoveToAssignedStatus) {
+      await notifyCitizenOnGrievanceStatusChange({
+        companyId: grievance.companyId,
+        grievanceId: grievance.grievanceId,
+        citizenName: grievance.citizenName,
+        citizenPhone: grievance.citizenPhone,
+        citizenWhatsApp: grievance.citizenWhatsApp,
+        language: grievance.language,
+        description: grievance.description,
+        departmentId: grievance.departmentId,
+        subDepartmentId: grievance.subDepartmentId,
+        departmentName: dept ? dept.name : undefined,
+        newStatus: GrievanceStatus.ASSIGNED,
+        remarks: `Your grievance has been assigned to ${assignedUser.getFullName()} for resolution.`,
+        timeline: grievance.timeline
+      });
+    }
 
     await logUserAction(
       req,
