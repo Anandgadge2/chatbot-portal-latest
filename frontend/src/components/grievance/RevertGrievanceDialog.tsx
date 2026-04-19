@@ -65,8 +65,8 @@ export default function RevertGrievanceDialog({ isOpen, grievanceId, onClose, on
               <Undo2 className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-white font-bold text-sm">Revert Grievance</h3>
-              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">Send back to company admin</p>
+              <h3 className="text-white font-bold text-sm">Request Reassignment</h3>
+              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">Send request to company admin</p>
             </div>
           </div>
           <button onClick={onClose} className="text-white/80 hover:text-white transition-colors">
@@ -82,7 +82,7 @@ export default function RevertGrievanceDialog({ isOpen, grievanceId, onClose, on
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-2">Target Department <span className="text-red-500">*</span></label>
+              <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-2">Target Department <span className="text-slate-400 normal-case">(optional)</span></label>
               <div className="relative group">
                 <select
                   value={selectedMainDept}
@@ -102,7 +102,7 @@ export default function RevertGrievanceDialog({ isOpen, grievanceId, onClose, on
             </div>
 
             <div>
-              <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-2">Sub Department <span className="text-red-500">*</span></label>
+              <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-2">Sub Department <span className="text-slate-400 normal-case">(optional)</span></label>
               <div className="relative group">
                 <select
                   disabled={!selectedMainDept}
@@ -121,7 +121,7 @@ export default function RevertGrievanceDialog({ isOpen, grievanceId, onClose, on
           </div>
 
           <div>
-            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-2">Revert Remarks *</label>
+            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-2">Reason for Reassignment *</label>
             <textarea
               value={remarks}
               onChange={(e) => setRemarks(e.target.value)}
@@ -140,12 +140,10 @@ export default function RevertGrievanceDialog({ isOpen, grievanceId, onClose, on
             Cancel
           </button>
           <button
-            disabled={!remarks.trim() || !selectedMainDept || !selectedSubDept || submitting}
+            disabled={!remarks.trim() || submitting}
             onClick={async () => {
               setSubmitting(true);
               try {
-                // Priority: Sub-department > Main department
-                const targetDeptId = selectedSubDept || selectedMainDept;
                 await onSubmit({ 
                   remarks: remarks.trim(), 
                   suggestedDepartmentId: selectedMainDept || undefined,
@@ -158,7 +156,7 @@ export default function RevertGrievanceDialog({ isOpen, grievanceId, onClose, on
             }}
             className="px-6 py-2 text-xs font-black bg-amber-600 text-white rounded-xl shadow-lg shadow-amber-600/20 hover:bg-amber-700 active:scale-95 transition-all disabled:opacity-50 disabled:pointer-events-none"
           >
-            {submitting ? 'Reverting...' : 'Revert to Company Admin'}
+            {submitting ? 'Submitting...' : 'Submit Request'}
           </button>
         </div>
       </div>

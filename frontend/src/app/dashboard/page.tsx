@@ -8291,10 +8291,11 @@ function DashboardContent() {
                                                   </svg>
                                                 </Button>
                                               )}
-                                            {isDepartmentLevel &&
-                                              grievance.status !== "RESOLVED" &&
-                                              grievance.status !== "REJECTED" &&
-                                              grievance.status !== "CLOSED" && (
+                                            {hasPermission(
+                                              user,
+                                              Permission.REVERT_GRIEVANCE,
+                                            ) &&
+                                              grievance.status !== "REVERTED" && (
                                                 <Button
                                                   variant="ghost"
                                                   size="sm"
@@ -8306,7 +8307,7 @@ function DashboardContent() {
                                                       true,
                                                     );
                                                   }}
-                                                  title="Revert to Company Admin"
+                                                  title="Request Reassignment"
                                                   className="h-8 w-8 p-0 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
                                                 >
                                                   <svg

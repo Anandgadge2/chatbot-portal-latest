@@ -397,6 +397,7 @@ router.post('/consent/admin', async (req: Request, res: Response) => {
 router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async (req: Request, res: Response) => {
   try {
     const currentUser = req.user!;
+    const isCompanyAdmin = currentUser.level === 1 || currentUser.role === 'COMPANY_ADMIN';
     const { remarks, suggestedDepartmentId, suggestedSubDepartmentId, suggestedAssigneeId } = req.body;
 
     if (!remarks || !remarks.trim()) {
@@ -421,7 +422,7 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
       // Enforce department scope only if the user is assigned to a department
       // Company Admins (who have no departmentId) can revert any grievance in their company
       // 🏢 Multi-Department & Hierarchical Scoping
-      if (currentUser.departmentId || (currentUser.departmentIds && currentUser.departmentIds.length > 0)) {
+      if (!isCompanyAdmin && (currentUser.departmentId || (currentUser.departmentIds && currentUser.departmentIds.length > 0))) {
         const userDepts: string[] = [];
         if (currentUser.departmentId) userDepts.push(currentUser.departmentId.toString());
         if (currentUser.departmentIds && Array.isArray(currentUser.departmentIds)) {
@@ -827,8 +828,10 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
       return;
     }
 
-    // ✅ Multi-Tenant Scoping Check
     const currentUser = req.user!;
+    const isCompanyAdmin = currentUser.level === 1 || currentUser.role === 'COMPANY_ADMIN';
+
+    // ✅ Multi-Tenant Scoping Check
     if (!currentUser.isSuperAdmin) {
       if (grievance.companyId?.toString() !== currentUser.companyId?.toString()) {
         res.status(403).json({ success: false, message: 'Access denied' });
@@ -838,7 +841,6 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
       // Company Admin can assign/reassign across all departments in their company.
       // Support both legacy `level` and role-based authorization to avoid blocking
       // company admins when level is missing from token/user payload.
-      const isCompanyAdmin = currentUser.level === 1 || currentUser.role === 'COMPANY_ADMIN';
       if (currentUser.departmentId && !isCompanyAdmin) {
         const grievanceDeptId = grievance.departmentId?.toString();
         const grievanceSubDeptId = grievance.subDepartmentId?.toString();
@@ -884,8 +886,12 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
     grievance.assignedTo = assignedUser._id;
     grievance.assignedAt = new Date();
     const shouldMoveToAssignedStatus =
-      grievance.status !== GrievanceStatus.RESOLVED &&
-      grievance.status !== GrievanceStatus.REJECTED;
+      grievance.status !== GrievanceStatus.REJECTED &&
+      (
+        grievance.status !== GrievanceStatus.RESOLVED ||
+        isCompanyAdmin ||
+        currentUser.isSuperAdmin
+      );
     if (shouldMoveToAssignedStatus) {
       grievance.status = GrievanceStatus.ASSIGNED;
     }
