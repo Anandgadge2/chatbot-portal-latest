@@ -876,6 +876,20 @@ function DashboardContent() {
     }
   };
 
+  const navigateToGrievances = useCallback(
+    (filters?: Partial<typeof grievanceFilters>) => {
+      setActiveTab("grievances");
+      setGrievancePage(1);
+      if (filters) {
+        setGrievanceFilters((prev) => ({
+          ...prev,
+          ...filters,
+        }));
+      }
+    },
+    [],
+  );
+
   const openGrievanceDetail = async (grievanceId: string, initialData?: Grievance) => {
     if (initialData) {
       setSelectedGrievance(initialData);
@@ -4517,7 +4531,26 @@ function DashboardContent() {
                                   {chart.map((d, i) => (
                                     <div
                                       key={i}
-                                      className="group flex items-center justify-between p-1.5 rounded-lg hover:bg-slate-50 transition-colors"
+                                      className="group flex items-center justify-between p-1.5 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
+                                      role="button"
+                                      tabIndex={0}
+                                      aria-label={`Open ${d.name} grievances`}
+                                      onClick={() =>
+                                        navigateToGrievances({
+                                          status: d.name.toUpperCase(),
+                                        })
+                                      }
+                                      onKeyDown={(e) => {
+                                        if (
+                                          e.key === "Enter" ||
+                                          e.key === " "
+                                        ) {
+                                          e.preventDefault();
+                                          navigateToGrievances({
+                                            status: d.name.toUpperCase(),
+                                          });
+                                        }
+                                      }}
                                     >
                                       <div className="flex items-center gap-2">
                                         <span
@@ -4635,6 +4668,24 @@ function DashboardContent() {
                                 radius={[0, 4, 4, 0]}
                                 barSize={16}
                                 name="Total Grievances"
+                                className="cursor-pointer"
+                                onClick={(data: any) => {
+                                  const departmentId =
+                                    data?.departmentId || data?._id || "";
+                                  const filters: Partial<
+                                    typeof grievanceFilters
+                                  > = {
+                                    status: "",
+                                  };
+
+                                  if (departmentId) {
+                                    filters.subDeptId = departmentId;
+                                    filters.mainDeptId = "";
+                                    filters.department = "";
+                                  }
+
+                                  navigateToGrievances(filters);
+                                }}
                               />
                             </BarChart>
                           </ResponsiveContainer>
