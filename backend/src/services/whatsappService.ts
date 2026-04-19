@@ -238,7 +238,7 @@ async function getSessionComplianceContext(
     return {
       optedOut: false,
       within24hWindow: false,
-      consentGiven: Boolean(citizen?.citizen_consent || citizen?.consentGiven || true),
+      consentGiven: Boolean(citizen?.citizen_consent ?? citizen?.consentGiven ?? false),
       isSubscribed: Boolean(citizen?.isSubscribed ?? true)
     };
   }
@@ -250,7 +250,7 @@ async function getSessionComplianceContext(
   return {
     optedOut,
     within24hWindow,
-    consentGiven: Boolean(citizen?.citizen_consent || citizen?.consentGiven || true),
+    consentGiven: Boolean(citizen?.citizen_consent ?? citizen?.consentGiven ?? false),
     isSubscribed: Boolean(citizen?.isSubscribed ?? true)
   };
 }
@@ -270,7 +270,7 @@ async function enforceMessagingPolicy(
     'grievance_pending_admin_v1',
     'grievance_assigned_admin_v1',
     'grievance_reassigned_admin_v1',
-    'grievance_reverted_company_v1_',
+    'grievance_reverted_company_v1',
     'grievance_submitted_citizen_v1',
     'grievance_status_citizen_v1'
   ]);

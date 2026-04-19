@@ -54,7 +54,8 @@ export async function assertTemplateApproved(options: {
   const template = resolved.template;
 
   const audience = resolveTemplateAudience(options.templateName);
-  if (audience === 'CITIZEN') {
+  const requiresUnsubscribeInstruction = /(consent|opt[_\s-]?in|subscription)/i.test(options.templateName);
+  if (audience === 'CITIZEN' && requiresUnsubscribeInstruction) {
     const footer = String((template as any).footer || '').toLowerCase();
     const body = String((template as any).body?.text || '').toLowerCase();
     if (!footer.includes('stop') && !body.includes('stop')) {

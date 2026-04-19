@@ -21,7 +21,11 @@ import { ForestService } from './forestService';
 import CitizenProfile from '../models/CitizenProfile';
 import { enforceDailyLimitOrThrow } from './grievanceRateLimitService';
 import { sanitizeGrievanceDetails } from '../utils/sanitize';
-import { triggerAdminTemplate, triggerGrievanceNotifications } from './grievanceTemplateTriggerService';
+import {
+  triggerAdminTemplate,
+  triggerCitizenSubmissionTemplate,
+  triggerGrievanceNotifications
+} from './grievanceTemplateTriggerService';
 
 interface CreateActionOptions {
   sendCitizenConfirmation?: boolean;
@@ -294,27 +298,12 @@ export class ActionService {
             grievance.status = GrievanceStatus.ASSIGNED;
             await grievance.save();
             autoAssigned = true;
-            assignedAdmins = potentialAdmins;
+            assignedAdmins = [targetAdmin];
             session.data.assignedToName = targetAdmin.getFullName();
           }
         }
       }
 
-      // Get Company Admins for fallback notification
-      const CompanyAdminRoleIds = await (await import('../models/Role')).default.find({
-        companyId: company._id,
-        key: { $in: ['COMPANY_ADMIN', 'ADMIN', 'COMPANY_HEAD', 'SUPER_ADMIN'] }
-      }).distinct('_id');
-
-      const companyAdmins = await User.find({
-        companyId: company._id,
-        $or: [
-          { isSuperAdmin: true },
-          { customRoleId: { $in: CompanyAdminRoleIds } }
-        ],
-        isActive: true
-      });
-      
       await updateSession(session);
       
       // ✅ PREPARE NOTIFICATIONS
@@ -386,10 +375,24 @@ export class ActionService {
           description: safeDescription,
           status: grievance.status,
           language: session.language || 'en',
-          assignedAdmins,
-          companyAdmins
+          assignedAdmins
         })
       );
+
+      if (sendCitizenConfirmation) {
+        notifications.push(
+          triggerCitizenSubmissionTemplate({
+            companyId: company._id,
+            citizenPhone: userPhone,
+            citizenName: session.data.citizenName || 'Citizen',
+            grievanceId: grievance.grievanceId,
+            departmentName: session.data.departmentName || session.data.category || 'General',
+            subDepartmentName: session.data.subDepartmentName || 'N/A',
+            grievanceDetails: safeDescription || session.data.grievance_description || 'N/A',
+            language: session.language || 'en'
+          })
+        );
+      }
 
       const notificationResults = await Promise.allSettled(notifications);
       const failedNotifications = notificationResults.filter(
