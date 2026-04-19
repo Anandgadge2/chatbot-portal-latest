@@ -342,7 +342,8 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
         undefined,
         undefined,
         {
-          recipientType: 'ADMIN'
+          recipientType: 'ADMIN',
+          requireConsent: false
         }
       );
 

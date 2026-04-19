@@ -271,6 +271,7 @@ async function enforceMessagingPolicy(
     'grievance_assigned_admin_v1',
     'grievance_reassigned_admin_v1',
     'grievance_reverted_company_v1',
+    'admin_password_reset_otp',
     'grievance_submitted_citizen_v1',
     'grievance_status_citizen_v1'
   ]);

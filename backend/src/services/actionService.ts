@@ -23,7 +23,8 @@ import { enforceDailyLimitOrThrow } from './grievanceRateLimitService';
 import { sanitizeGrievanceDetails } from '../utils/sanitize';
 import {
   triggerAdminTemplate,
-  triggerGrievanceNotifications
+  triggerGrievanceNotifications,
+  formatTemplateDate
 } from './grievanceTemplateTriggerService';
 
 interface CreateActionOptions {
@@ -335,16 +336,7 @@ export class ActionService {
 
       // ✅ EXECUTE NOTIFICATIONS IN PARALLEL
       const createdAt = grievance.createdAt || new Date();
-      const formattedDate = new Intl.DateTimeFormat('en-IN', {
-        timeZone: 'Asia/Kolkata',
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: true
-      }).format(new Date(createdAt));
+      const formattedDate = formatTemplateDate(new Date(createdAt));
 
       session.data.formattedDate = formattedDate;
       session.data.fullData = session.data.fullData || {};
@@ -471,16 +463,7 @@ export class ActionService {
       };
 
       const createdAt = appointment.createdAt || new Date();
-      const formattedDate = new Intl.DateTimeFormat('en-IN', {
-        timeZone: 'Asia/Kolkata',
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: true
-      }).format(new Date(createdAt));
+      const formattedDate = formatTemplateDate(new Date(createdAt));
 
       session.data.formattedDate = formattedDate;
       session.data.fullData = session.data.fullData || {};
