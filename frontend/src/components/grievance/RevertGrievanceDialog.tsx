@@ -121,7 +121,7 @@ export default function RevertGrievanceDialog({ isOpen, grievanceId, onClose, on
           </div>
 
           <div>
-            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-2">Note / Description for Reassignment *</label>
+            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-2">Reason for Reassignment *</label>
             <textarea
               value={remarks}
               onChange={(e) => setRemarks(e.target.value)}

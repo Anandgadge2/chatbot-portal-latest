@@ -8301,8 +8301,7 @@ function DashboardContent() {
                                               user,
                                               Permission.REVERT_GRIEVANCE,
                                             ) &&
-                                              isLowerHierarchyRole &&
-                                              grievance.status === "RESOLVED" && (
+                                              grievance.status !== "REVERTED" && (
                                                 <Button
                                                   variant="ghost"
                                                   size="sm"
