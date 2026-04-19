@@ -262,12 +262,9 @@ function DashboardContent() {
   const isJharsugudaCompany = Boolean(
     user?.companyId?.name?.toUpperCase().includes("JHARSUGUDA"),
   );
-  const dashboardBrandTitle = isJharsugudaCompany ? "SAHAJ" : "Control Panel";
-  const dashboardBrandSubtitle = isJharsugudaCompany
-    ? "Centralised Grivences Command center"
+  const dashboardBrandTitle = isJharsugudaCompany
+    ? "Sahaj Centralised Grievances Command Center"
     : "Control Panel";
-  const canReopenResolvedGrievance =
-    isCompanyAdminRole || isSuperAdminUser;
   const canDeleteGrievance = useMemo(
     () => hasPermission(user, Permission.DELETE_GRIEVANCE),
     [user],
@@ -2764,29 +2761,30 @@ function DashboardContent() {
                   />
                 </div>
                 <div className="flex flex-col">
-                  <h1 className="text-[11px] sm:text-sm font-black text-white tracking-tight leading-tight uppercase whitespace-normal break-words">
-                    {isJharsugudaCompany
-                      ? dashboardBrandTitle
-                      : isSuperAdminUser && companyIdParam
-                        ? `Viewing: ${company?.name || "..."}`
-                        : (
-                            <>
-                              {isCompanyLevel && (company?.name || "...")}
-                              {isDepartmentLevel && "Department"}
-                              {!hasPermission(user, Permission.READ_GRIEVANCE) &&
-                                !isSuperAdminUser &&
-                                "Operations Center"}
-                              {hasPermission(user, Permission.READ_GRIEVANCE) &&
-                                !isCompanyLevel &&
-                                !isSuperAdminUser &&
-                                " Portal"}
-                            </>
-                          )}
+                  <h1 className="text-[11px] sm:text-sm font-black text-white tracking-tight leading-tight uppercase max-w-[58vw] sm:max-w-none truncate">
+                    {isSuperAdminUser && companyIdParam ? (
+                      `Viewing: ${company?.name || "..."}`
+                    ) : (
+                      <>
+                        {isCompanyLevel &&
+                          (company?.name?.toUpperCase().includes("JHARSUGUDA")
+                            ? dashboardBrandTitle
+                            : company?.name || "...")}
+                        {isDepartmentLevel && "Department"}
+                        {!hasPermission(user, Permission.READ_GRIEVANCE) &&
+                          !isSuperAdminUser &&
+                          "Operations Center"}
+                        {hasPermission(user, Permission.READ_GRIEVANCE) &&
+                          !isCompanyLevel &&
+                          !isSuperAdminUser &&
+                          " Portal"}
+                      </>
+                    )}
                   </h1>
                   <div className="flex items-center gap-2 mt-1">
-                    <p className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-[0.14em] whitespace-normal break-words">
+                    <p className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-[0.14em] max-w-[62vw] sm:max-w-none truncate">
                       {isJharsugudaCompany
-                        ? dashboardBrandSubtitle
+                        ? dashboardBrandTitle
                         : "Control Panel"}
                     </p>
                     <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -2803,7 +2801,7 @@ function DashboardContent() {
                   {user.firstName} {user.lastName}
                 </span>
                 {user?.companyId?.name?.toUpperCase().includes("JHARSUGUDA") ? (
-                  <span className="text-[10px] sm:text-[11px] font-black text-white uppercase tracking-wide mt-1 whitespace-normal break-words text-right">
+                  <span className="text-[10px] sm:text-[11px] font-black text-white uppercase tracking-wide mt-1 max-w-[220px] truncate text-right">
                     {dashboardBrandTitle}
                   </span>
                 ) : (
