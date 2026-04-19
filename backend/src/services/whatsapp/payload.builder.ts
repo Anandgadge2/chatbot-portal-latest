@@ -90,17 +90,7 @@ const TEMPLATE_DEFINITIONS: Record<string, TemplateDefinition> = {
       { key: 'reverted_on', aliases: ['reverted_on', 'revertedOn', 'date'], maxLength: 30 }
     ]
   },
-  grievance_submitted_citizen_v1: {
-    audience: 'CITIZEN',
-    body: [
-      { key: 'citizen_name', aliases: ['citizen_name', 'citizenName'], maxLength: 60 },
-      { key: 'grievance_id', aliases: ['grievance_id', 'grievanceId', 'reference_id'], maxLength: 30 },
-      { key: 'department_name', aliases: ['department_name', 'departmentName'], maxLength: 60 },
-      { key: 'office_name', aliases: ['office_name', 'officeName', 'sub_department_name', 'subDepartmentName'], maxLength: 60 },
-      { key: 'description', aliases: ['description', 'grievance_details', 'grievanceDetails'], maxLength: 100 },
-      { key: 'submitted_on', aliases: ['submitted_on', 'submittedOn', 'date'], maxLength: 30 }
-    ]
-  },
+
   grievance_status_citizen_v1: {
     audience: 'CITIZEN',
     body: [

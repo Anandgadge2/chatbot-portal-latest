@@ -155,31 +155,7 @@ export async function triggerCitizenTemplate(options: {
   });
 }
 
-export async function triggerCitizenSubmissionTemplate(options: {
-  companyId: any;
-  citizenPhone: string;
-  citizenName: string;
-  grievanceId: string;
-  departmentName: string;
-  subDepartmentName?: string;
-  grievanceDetails: string;
-  language?: string;
-}) {
-  await triggerCitizenTemplate({
-    template: 'grievance_submitted_citizen_v1',
-    companyId: options.companyId,
-    citizenPhone: options.citizenPhone,
-    language: options.language,
-    data: {
-      citizen_name: sanitizeText(options.citizenName, 60),
-      grievance_id: sanitizeText(options.grievanceId, 30),
-      department_name: sanitizeText(options.departmentName, 60),
-      office_name: sanitizeText(options.subDepartmentName || 'N/A', 60),
-      description: sanitizeGrievanceDetails(options.grievanceDetails),
-      submitted_on: new Date().toLocaleDateString('en-IN')
-    }
-  });
-}
+
 
 export async function triggerCitizenStatusTemplate(options: {
   companyId: any;

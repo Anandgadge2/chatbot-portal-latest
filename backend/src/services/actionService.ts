@@ -23,7 +23,6 @@ import { enforceDailyLimitOrThrow } from './grievanceRateLimitService';
 import { sanitizeGrievanceDetails } from '../utils/sanitize';
 import {
   triggerAdminTemplate,
-  triggerCitizenSubmissionTemplate,
   triggerGrievanceNotifications
 } from './grievanceTemplateTriggerService';
 
@@ -382,20 +381,7 @@ export class ActionService {
         })
       );
 
-      if (sendCitizenConfirmation) {
-        notifications.push(
-          triggerCitizenSubmissionTemplate({
-            companyId: company._id,
-            citizenPhone: userPhone,
-            citizenName: session.data.citizenName || 'Citizen',
-            grievanceId: grievance.grievanceId,
-            departmentName: session.data.departmentName || session.data.category || 'General',
-            subDepartmentName: session.data.subDepartmentName || 'N/A',
-            grievanceDetails: safeDescription || session.data.grievance_description || 'N/A',
-            language: session.language || 'en'
-          })
-        );
-      }
+
 
       const notificationResults = await Promise.allSettled(notifications);
       const failedNotifications = notificationResults.filter(
