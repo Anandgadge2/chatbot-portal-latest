@@ -423,6 +423,11 @@ export default function StatusUpdateForm({
       }
     }
 
+    if (itemType === 'grievance' && grievanceVariant === 'department-admin' && selectedStatus === 'RESOLVED' && !remarks.trim()) {
+      toast.error('Remarks / notes are required when resolving a grievance.');
+      return;
+    }
+
     try {
       setSubmitting(true);
       let response;
@@ -467,6 +472,18 @@ export default function StatusUpdateForm({
 
   const currentStatusInfo = statuses.find(s => s.value === currentStatus) || statuses[0];
   const typeLabel = itemType === 'grievance' ? 'Grievance' : 'Appointment';
+  const isAdminResolvedRemarksRequired =
+    itemType === 'grievance' &&
+    grievanceVariant === 'department-admin' &&
+    selectedStatus === 'RESOLVED';
+  const isResolvedRemarksMissing = isAdminResolvedRemarksRequired && !remarks.trim();
+  const isSubmitDisabled =
+    selectedStatus === currentStatus ||
+    submitting ||
+    (itemType === 'appointment' &&
+      selectedStatus === 'CONFIRMED' &&
+      (!appointmentDate || !appointmentTime)) ||
+    isResolvedRemarksMissing;
 
   return (
     <div className="flex flex-col h-full">
@@ -544,7 +561,12 @@ export default function StatusUpdateForm({
         {/* Remarks */}
         <div>
           <label className="block text-[11px] font-semibold text-slate-600 uppercase tracking-[0.08em] mb-2">
-            Remarks / Notes <span className="text-slate-400 font-normal normal-case">(optional but recommended)</span>
+            Remarks / Notes{' '}
+            {isAdminResolvedRemarksRequired ? (
+              <span className="text-rose-500 font-normal normal-case">(required for admins when status is Resolved)</span>
+            ) : (
+              <span className="text-slate-400 font-normal normal-case">(optional but recommended)</span>
+            )}
           </label>
           <textarea
             value={remarks}
@@ -589,7 +611,7 @@ export default function StatusUpdateForm({
         )}
         <button
           onClick={handleUpdate}
-          disabled={selectedStatus === currentStatus || submitting || (itemType === 'appointment' && selectedStatus === 'CONFIRMED' && (!appointmentDate || !appointmentTime))}
+          disabled={isSubmitDisabled}
           className="px-5 py-2.5 bg-[#029fe7] hover:bg-[#028fcf] text-white rounded-lg text-xs font-bold uppercase tracking-[0.08em] shadow-lg shadow-cyan-700/30 ring-1 ring-cyan-300/60 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
         >
           {submitting ? (
