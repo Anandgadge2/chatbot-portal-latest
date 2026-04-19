@@ -998,47 +998,52 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
         }).catch((err) => logger.error('Failed to trigger grievance assignment admin template', err));
       }
 
-    // Notify assigned user
-    const { notifyUserOnAssignment } = await import('../services/notificationService');
-    await notifyUserOnAssignment({
-      type: 'grievance',
-      action: 'assigned',
-      grievanceId: grievance.grievanceId,
-      citizenName: grievance.citizenName,
-      citizenPhone: grievance.citizenPhone,
-      citizenWhatsApp: grievance.citizenWhatsApp,
-      departmentId: grievance.departmentId,
-      subDepartmentId: grievance.subDepartmentId,
-      companyId: grievance.companyId,
-      description: grievance.description,
-      category: grievance.category,
-      assignedTo: assignedUser._id,
-      assignedByName: req.user!.getFullName(),
-      assignedAt: grievance.assignedAt,
-      createdAt: grievance.createdAt,
-      language: grievance.language,
-      remarks: transferNote,
-      timeline: grievance.timeline
-    });
-
-    // Notify citizen about assignment/status change
-    const { notifyCitizenOnGrievanceStatusChange } = await import('../services/notificationService');
-    const dept = grievance.departmentId ? await Department.findById(grievance.departmentId) : null;
-    if (shouldMoveToAssignedStatus) {
-      await notifyCitizenOnGrievanceStatusChange({
-        companyId: grievance.companyId,
+    // Send notifications as best-effort. Assignment success must not fail due to downstream notification issues.
+    try {
+      const { notifyUserOnAssignment, notifyCitizenOnGrievanceStatusChange } = await import('../services/notificationService');
+      await notifyUserOnAssignment({
+        type: 'grievance',
+        action: 'assigned',
         grievanceId: grievance.grievanceId,
         citizenName: grievance.citizenName,
         citizenPhone: grievance.citizenPhone,
         citizenWhatsApp: grievance.citizenWhatsApp,
-        language: grievance.language,
-        description: grievance.description,
         departmentId: grievance.departmentId,
         subDepartmentId: grievance.subDepartmentId,
-        departmentName: dept ? dept.name : undefined,
-        newStatus: GrievanceStatus.ASSIGNED,
-        remarks: `Your grievance has been assigned to ${assignedUser.getFullName()} for resolution.`,
+        companyId: grievance.companyId,
+        description: grievance.description,
+        category: grievance.category,
+        assignedTo: assignedUser._id,
+        assignedByName: req.user!.getFullName(),
+        assignedAt: grievance.assignedAt,
+        createdAt: grievance.createdAt,
+        language: grievance.language,
+        remarks: transferNote,
         timeline: grievance.timeline
+      });
+
+      if (shouldMoveToAssignedStatus) {
+        const dept = grievance.departmentId ? await Department.findById(grievance.departmentId).select('name') : null;
+        await notifyCitizenOnGrievanceStatusChange({
+          companyId: grievance.companyId,
+          grievanceId: grievance.grievanceId,
+          citizenName: grievance.citizenName,
+          citizenPhone: grievance.citizenPhone,
+          citizenWhatsApp: grievance.citizenWhatsApp,
+          language: grievance.language,
+          description: grievance.description,
+          departmentId: grievance.departmentId,
+          subDepartmentId: grievance.subDepartmentId,
+          departmentName: dept ? dept.name : undefined,
+          newStatus: GrievanceStatus.ASSIGNED,
+          remarks: `Your grievance has been assigned to ${assignedUser.getFullName()} for resolution.`,
+          timeline: grievance.timeline
+        });
+      }
+    } catch (notificationError: any) {
+      logger.error('Grievance assigned but notification dispatch failed', {
+        grievanceId: grievance._id?.toString(),
+        error: notificationError?.message || String(notificationError)
       });
     }
 
