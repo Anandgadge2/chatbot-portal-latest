@@ -397,6 +397,7 @@ router.post('/consent/admin', async (req: Request, res: Response) => {
 router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async (req: Request, res: Response) => {
   try {
     const currentUser = req.user!;
+    const isCompanyAdmin = currentUser.level === 1 || currentUser.role === 'COMPANY_ADMIN';
     const { remarks, suggestedDepartmentId, suggestedSubDepartmentId, suggestedAssigneeId } = req.body;
 
     if (!remarks || !remarks.trim()) {
@@ -421,7 +422,7 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
       // Enforce department scope only if the user is assigned to a department
       // Company Admins (who have no departmentId) can revert any grievance in their company
       // 🏢 Multi-Department & Hierarchical Scoping
-      if (currentUser.departmentId || (currentUser.departmentIds && currentUser.departmentIds.length > 0)) {
+      if (!isCompanyAdmin && (currentUser.departmentId || (currentUser.departmentIds && currentUser.departmentIds.length > 0))) {
         const userDepts: string[] = [];
         if (currentUser.departmentId) userDepts.push(currentUser.departmentId.toString());
         if (currentUser.departmentIds && Array.isArray(currentUser.departmentIds)) {
@@ -827,16 +828,20 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
       return;
     }
 
-    // ✅ Multi-Tenant Scoping Check
     const currentUser = req.user!;
+    const isCompanyAdmin = currentUser.level === 1 || currentUser.role === 'COMPANY_ADMIN';
+
+    // ✅ Multi-Tenant Scoping Check
     if (!currentUser.isSuperAdmin) {
       if (grievance.companyId?.toString() !== currentUser.companyId?.toString()) {
         res.status(403).json({ success: false, message: 'Access denied' });
         return;
       }
 
-      // Company Admin (level 1) can assign/reassign across all departments in their company.
-      if (currentUser.departmentId && currentUser.level !== 1) {
+      // Company Admin can assign/reassign across all departments in their company.
+      // Support both legacy `level` and role-based authorization to avoid blocking
+      // company admins when level is missing from token/user payload.
+      if (currentUser.departmentId && !isCompanyAdmin) {
         const grievanceDeptId = grievance.departmentId?.toString();
         const grievanceSubDeptId = grievance.subDepartmentId?.toString();
         const adminDeptId = currentUser.departmentId?.toString();
@@ -881,8 +886,12 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
     grievance.assignedTo = assignedUser._id;
     grievance.assignedAt = new Date();
     const shouldMoveToAssignedStatus =
-      grievance.status !== GrievanceStatus.RESOLVED &&
-      grievance.status !== GrievanceStatus.REJECTED;
+      grievance.status !== GrievanceStatus.REJECTED &&
+      (
+        grievance.status !== GrievanceStatus.RESOLVED ||
+        isCompanyAdmin ||
+        currentUser.isSuperAdmin
+      );
     if (shouldMoveToAssignedStatus) {
       grievance.status = GrievanceStatus.ASSIGNED;
     }
@@ -995,47 +1004,52 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
         }).catch((err) => logger.error('Failed to trigger grievance assignment admin template', err));
       }
 
-    // Notify assigned user
-    const { notifyUserOnAssignment } = await import('../services/notificationService');
-    await notifyUserOnAssignment({
-      type: 'grievance',
-      action: 'assigned',
-      grievanceId: grievance.grievanceId,
-      citizenName: grievance.citizenName,
-      citizenPhone: grievance.citizenPhone,
-      citizenWhatsApp: grievance.citizenWhatsApp,
-      departmentId: grievance.departmentId,
-      subDepartmentId: grievance.subDepartmentId,
-      companyId: grievance.companyId,
-      description: grievance.description,
-      category: grievance.category,
-      assignedTo: assignedUser._id,
-      assignedByName: req.user!.getFullName(),
-      assignedAt: grievance.assignedAt,
-      createdAt: grievance.createdAt,
-      language: grievance.language,
-      remarks: transferNote,
-      timeline: grievance.timeline
-    });
-
-    // Notify citizen about assignment/status change
-    const { notifyCitizenOnGrievanceStatusChange } = await import('../services/notificationService');
-    const dept = grievance.departmentId ? await Department.findById(grievance.departmentId) : null;
-    if (shouldMoveToAssignedStatus) {
-      await notifyCitizenOnGrievanceStatusChange({
-        companyId: grievance.companyId,
+    // Send notifications as best-effort. Assignment success must not fail due to downstream notification issues.
+    try {
+      const { notifyUserOnAssignment, notifyCitizenOnGrievanceStatusChange } = await import('../services/notificationService');
+      await notifyUserOnAssignment({
+        type: 'grievance',
+        action: 'assigned',
         grievanceId: grievance.grievanceId,
         citizenName: grievance.citizenName,
         citizenPhone: grievance.citizenPhone,
         citizenWhatsApp: grievance.citizenWhatsApp,
-        language: grievance.language,
-        description: grievance.description,
         departmentId: grievance.departmentId,
         subDepartmentId: grievance.subDepartmentId,
-        departmentName: dept ? dept.name : undefined,
-        newStatus: GrievanceStatus.ASSIGNED,
-        remarks: `Your grievance has been assigned to ${assignedUser.getFullName()} for resolution.`,
+        companyId: grievance.companyId,
+        description: grievance.description,
+        category: grievance.category,
+        assignedTo: assignedUser._id,
+        assignedByName: req.user!.getFullName(),
+        assignedAt: grievance.assignedAt,
+        createdAt: grievance.createdAt,
+        language: grievance.language,
+        remarks: transferNote,
         timeline: grievance.timeline
+      });
+
+      if (shouldMoveToAssignedStatus) {
+        const dept = grievance.departmentId ? await Department.findById(grievance.departmentId).select('name') : null;
+        await notifyCitizenOnGrievanceStatusChange({
+          companyId: grievance.companyId,
+          grievanceId: grievance.grievanceId,
+          citizenName: grievance.citizenName,
+          citizenPhone: grievance.citizenPhone,
+          citizenWhatsApp: grievance.citizenWhatsApp,
+          language: grievance.language,
+          description: grievance.description,
+          departmentId: grievance.departmentId,
+          subDepartmentId: grievance.subDepartmentId,
+          departmentName: dept ? dept.name : undefined,
+          newStatus: GrievanceStatus.ASSIGNED,
+          remarks: `Your grievance has been assigned to ${assignedUser.getFullName()} for resolution.`,
+          timeline: grievance.timeline
+        });
+      }
+    } catch (notificationError: any) {
+      logger.error('Grievance assigned but notification dispatch failed', {
+        grievanceId: grievance._id?.toString(),
+        error: notificationError?.message || String(notificationError)
       });
     }
 
