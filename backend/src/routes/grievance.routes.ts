@@ -998,6 +998,7 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
       assignedAt: grievance.assignedAt,
       createdAt: grievance.createdAt,
       language: grievance.language,
+      remarks: transferNote,
       timeline: grievance.timeline
     });
 

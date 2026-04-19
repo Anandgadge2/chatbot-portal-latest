@@ -230,6 +230,7 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
         assignedAt: grievance.assignedAt,
         createdAt: grievance.createdAt,
         language: grievance.language,
+        remarks: String((req.body as any).remarks || (req.body as any).note || '').trim(),
         timeline: grievance.timeline
       }).catch(err => console.error('Failed to send assignment notification:', err));
 

@@ -9,6 +9,33 @@ import CompanyWhatsAppTemplate from '../models/CompanyWhatsAppTemplate';
 import ChatbotFlow from '../models/ChatbotFlow';
 import { DEFAULT_WA_MESSAGES } from '../constants/whatsappTemplates';
 
+const DEFAULT_WA_MESSAGE_OVERRIDES: Record<string, string> = {
+  grievance_reassigned_admin: `*{localizedCompanyBrand}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+👤 *GRIEVANCE REASSIGNED TO YOU*
+
+Respected {recipientName},
+
+Details:
+🎫 *Reference ID:* {grievanceId}
+👤 *Citizen Name:* {citizenName}
+🏢 *Department:* {departmentName}
+🏢 *Office:* {officeName}
+📝 *Grievance Details:*
+{grievanceDetails}
+📅 *Submitted On:* {submittedDate}
+👨‍💼 *Reassigned By:* {reassignedByName}
+📝 *Reassignment Note:*
+{reassignmentNote}
+📅 *Reassigned On:* {reassignedDate}
+🏢 *Original Department:* {originalDepartment}
+🏢 *Original Office:* {originalOffice}
+
+Please review and take necessary action.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Digital Grievance Redressal System`
+};
+
 /**
  * Reusable SMTP transporter from env (singleton, fallback)
  */
@@ -465,9 +492,55 @@ function generateTimelineHTML(timeline: any[] | undefined, resolvedBy: any, reso
 /**
  * Replace placeholders in a string with data values. E.g. {citizenName} -> data.citizenName
  */
+const FLEXIBLE_TEMPLATE_KEYS = [
+  'recipientName',
+  'grievanceId',
+  'appointmentId',
+  'citizenName',
+  'citizenPhone',
+  'departmentName',
+  'subDepartmentName',
+  'officeName',
+  'description',
+  'grievanceDetails',
+  'submittedDate',
+  'assignedByName',
+  'assignedDate',
+  'formattedAssignedDate',
+  'reassignedByName',
+  'reassignmentNote',
+  'reassignedDate',
+  'formattedReassignedDate',
+  'originalDepartment',
+  'originalOffice',
+  'formattedDate',
+  'remarks',
+  'reason',
+  'newStatus',
+  'resolvedByName',
+  'formattedResolvedDate',
+  'resolutionTimeText',
+  'companyName',
+  'localizedCompanyBrand'
+];
+
+function normalizeLooseTemplateTokens(str: string): string {
+  let normalized = str;
+
+  for (const key of FLEXIBLE_TEMPLATE_KEYS.sort((a, b) => b.length - a.length)) {
+    const pattern = new RegExp(`(^|[^\\w{])(${key})(?=[^\\w}]|$)`, 'g');
+    normalized = normalized.replace(pattern, (match, prefix, token) => {
+      if (match.includes(`{${token}}`)) return match;
+      return `${prefix}{${token}}`;
+    });
+  }
+
+  return normalized;
+}
+
 export function replacePlaceholders(str: string, data: Record<string, any>): string {
   if (!str || typeof str !== 'string') return str;
-  return str.replace(/\{([^{}]+)\}/g, (_, key) => {
+  return normalizeLooseTemplateTokens(str).replace(/\{([^{}]+)\}/g, (_, key) => {
     const v = data[key];
     // Return the value if it exists, otherwise provide a user-friendly fallback
     return (v != null && v !== '') ? String(v) : '';
@@ -651,11 +724,12 @@ export async function getNotificationWhatsAppMessage(
 
   const resolveFromDefaults = (keys: string[], label: string) => {
     for (const key of keys) {
-      if (DEFAULT_WA_MESSAGES[key]) {
+      const templateMessage = DEFAULT_WA_MESSAGE_OVERRIDES[key] || DEFAULT_WA_MESSAGES[key];
+      if (templateMessage) {
         logger.info(
           `[WhatsApp Template] Using ${label} system default for key: ${key}`,
         );
-        return replacePlaceholders(DEFAULT_WA_MESSAGES[key], localizedData);
+        return replacePlaceholders(templateMessage, localizedData);
       }
     }
 

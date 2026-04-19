@@ -307,6 +307,14 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
 
   const createdAt = data.createdAt || new Date();
   const formattedDate = formatFn(new Date(createdAt));
+  const formattedSubmittedDate = formattedDate;
+
+  let formattedAssignedDate = '';
+  if (data.assignedAt) {
+    try {
+      formattedAssignedDate = formatFn(new Date(data.assignedAt));
+    } catch (e) {}
+  }
 
   const resolvedAt = data.resolvedAt || (data.action === 'resolved' ? new Date() : null);
   let formattedResolvedDate = '';
@@ -382,6 +390,8 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
   let reassignmentRemarks = '';
   let revertedByName = '';
   let formattedRevertedDate = '';
+  const reassignedByName = String((data as any).reassignedByName || data.assignedByName || '').trim();
+  let formattedReassignedDate = formattedAssignedDate;
 
   if (data.timeline && Array.isArray(data.timeline)) {
     // Look for the latest revert event to get context
@@ -431,6 +441,9 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
     if (wasReverted) {
       const reassignmentNote = copy.reassignmentLead.replace('{assignedBy}', assignedByName || 'Admin');
       description = `${reassignmentNote}\n${reassignmentRemarksLabel}\n${originalDeptLabel}${originalSubDeptLabel}\n\n*${copy.originalCitizenDescription}:*\n${description}`;
+      if (!formattedReassignedDate) {
+        formattedReassignedDate = formattedAssignedDate || formattedSubmittedDate;
+      }
     }
   }
 
@@ -463,8 +476,10 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
       : ((data.action === 'assigned' || data.action === 'assigned_admin') ? (assignedByName || 'Admin') : (data.citizenName || 'Citizen')),
     departmentName,
     subDepartmentName,
+    officeName: subDepartmentName || departmentName,
     subdepartmentName: subDepartmentName, // Compatibility with chatbot flow placeholders
     description,
+    grievanceDetails: description,
     deptLabel,
     subDeptLabel,
     descriptionLabel,
@@ -475,16 +490,25 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
     categoryLabel,
     locationLabel,
     assignedByName,
+    reassignedByName: reassignedByName || assignedByName,
+    reassignmentNote: rawRemarks || reassignmentRemarks || '',
     resolvedByName,
     revertedByName,
     formattedDate,
+    submittedDate: formattedSubmittedDate,
+    assignedDate: formattedAssignedDate || formattedSubmittedDate,
+    formattedAssignedDate: formattedAssignedDate || formattedSubmittedDate,
     formattedResolvedDate,
     formattedRevertedDate,
+    reassignedDate: formattedReassignedDate || formattedAssignedDate || formattedSubmittedDate,
+    formattedReassignedDate: formattedReassignedDate || formattedAssignedDate || formattedSubmittedDate,
     formattedAppointmentDate,
     formattedAppointmentTime,
     appointmentDate: formattedAppointmentDate || data.appointmentDate || '',
     appointmentTime: formattedAppointmentTime || data.appointmentTime || '',
     resolutionTimeText,
+    originalDepartment: originalDeptName || '',
+    originalOffice: originalSubDeptName || originalDeptName || '',
     newStatus: localizeStatusValue((data as any).newStatus, lang),
     oldStatus: localizeStatusValue((data as any).oldStatus, lang),
     'Submitted On': formattedDate,
