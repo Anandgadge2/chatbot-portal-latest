@@ -263,10 +263,8 @@ function DashboardContent() {
     user?.companyId?.name?.toUpperCase().includes("JHARSUGUDA"),
   );
   const dashboardBrandTitle = isJharsugudaCompany
-    ? "SAHAJ Centralised Grivences Command center"
+    ? "Sahaj Centralised Grievances Command Center"
     : "Control Panel";
-  const canReopenResolvedGrievance =
-    isCompanyAdminRole || isSuperAdminUser;
   const canDeleteGrievance = useMemo(
     () => hasPermission(user, Permission.DELETE_GRIEVANCE),
     [user],
@@ -2764,23 +2762,24 @@ function DashboardContent() {
                 </div>
                 <div className="flex flex-col">
                   <h1 className="text-[11px] sm:text-sm font-black text-white tracking-tight leading-tight uppercase max-w-[58vw] sm:max-w-none truncate">
-                    {isJharsugudaCompany
-                      ? dashboardBrandTitle
-                      : isSuperAdminUser && companyIdParam
-                        ? `Viewing: ${company?.name || "..."}`
-                        : (
-                            <>
-                              {isCompanyLevel && (company?.name || "...")}
-                              {isDepartmentLevel && "Department"}
-                              {!hasPermission(user, Permission.READ_GRIEVANCE) &&
-                                !isSuperAdminUser &&
-                                "Operations Center"}
-                              {hasPermission(user, Permission.READ_GRIEVANCE) &&
-                                !isCompanyLevel &&
-                                !isSuperAdminUser &&
-                                " Portal"}
-                            </>
-                          )}
+                    {isSuperAdminUser && companyIdParam ? (
+                      `Viewing: ${company?.name || "..."}`
+                    ) : (
+                      <>
+                        {isCompanyLevel &&
+                          (company?.name?.toUpperCase().includes("JHARSUGUDA")
+                            ? dashboardBrandTitle
+                            : company?.name || "...")}
+                        {isDepartmentLevel && "Department"}
+                        {!hasPermission(user, Permission.READ_GRIEVANCE) &&
+                          !isSuperAdminUser &&
+                          "Operations Center"}
+                        {hasPermission(user, Permission.READ_GRIEVANCE) &&
+                          !isCompanyLevel &&
+                          !isSuperAdminUser &&
+                          " Portal"}
+                      </>
+                    )}
                   </h1>
                   <div className="flex items-center gap-2 mt-1">
                     <p className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-[0.14em] max-w-[62vw] sm:max-w-none truncate">
