@@ -677,9 +677,8 @@ router.put('/:id', requirePermission(Permission.UPDATE_USER), async (req: Reques
     }
 
     // Build a clean update object with only whitelisted schema fields
-    // This prevents non-schema fields (role, designation virtual, etc.) from causing errors
     const allowedFields = [
-      'firstName', 'lastName', 'email', 'phone',
+      'firstName', 'lastName', 'email', 'phone', 'password',
       'designations', 'departmentIds', 'companyId',
       'customRoleId', 'isActive', 'notificationSettings', 'responsibleAreas'
     ];
@@ -831,8 +830,21 @@ router.put('/:id', requirePermission(Permission.UPDATE_USER), async (req: Reques
       }
     }
 
-    // Don't allow password update through this route
-    delete req.body.password;
+    // 🔒 Password Update Authorization: Only Company Admin or higher can set passwords for others
+    if (req.body.password) {
+      const isSuperAdminUser = currentUser.isSuperAdmin || currentUser.level === 0;
+      const isCompanyAdmin = currentUser.level === 1;
+      
+      if (!isSuperAdminUser && !isCompanyAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: 'Only Company Administrators or higher can reset user passwords'
+        });
+      }
+      
+      // Also update rawPassword for administrator visibility (per project pattern)
+      req.body.rawPassword = req.body.password;
+    }
 
     // Normalize empty strings to undefined for optional fields
     if (req.body.email === "") req.body.email = undefined;
@@ -934,14 +946,24 @@ router.put('/:id', requirePermission(Permission.UPDATE_USER), async (req: Reques
        }
     }
 
-    let user = await User.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    ).select('-password')
-     .populate('companyId', 'name companyId')
-     .populate('departmentIds', 'name departmentId')
-     .populate('customRoleId', 'name');
+    // Perform update using .save() to trigger pre-save hooks (for password hashing)
+    const userToUpdate = await User.findById(req.params.id);
+    if (!userToUpdate) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Apply updates from req.body
+    Object.keys(req.body).forEach(key => {
+      (userToUpdate as any)[key] = req.body[key];
+    });
+
+    await userToUpdate.save();
+    
+    let user = await User.findById(req.params.id)
+      .populate('companyId', 'name companyId')
+      .populate('departmentIds', 'name departmentId')
+      .populate('customRoleId', 'name')
+      .select('-password');
 
     await logUserAction(
       req,

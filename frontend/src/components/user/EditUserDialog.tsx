@@ -8,7 +8,7 @@ import { userAPI, User } from "@/lib/api/user";
 import { departmentAPI, Department } from "@/lib/api/department";
 import { roleAPI, Role } from "@/lib/api/role";
 import { useAuth } from "@/contexts/AuthContext";
-import { isSuperAdmin } from "@/lib/permissions";
+import { isSuperAdmin, isCompanyAdminOrHigher } from "@/lib/permissions";
 import toast from "react-hot-toast";
 import { User as UserIcon, Mail, MessageSquare, X, Building, Users, Check } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
@@ -51,7 +51,8 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
       email: true,
       whatsapp: true,
       hasOverride: false
-    }
+    },
+    password: ""
   });
 
 
@@ -110,7 +111,8 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
           email: user.notificationSettings?.email ?? true,
           whatsapp: user.notificationSettings?.whatsapp ?? true,
           hasOverride: (user.notificationSettings as any)?.hasOverride ?? false
-        }
+        },
+        password: ""
       });
 
 
@@ -195,6 +197,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
         departmentId: isMultiDept 
           ? (formData.departmentIds.length > 0 ? formData.departmentIds[0] : undefined)
           : (selectedSubDeptId || (selectedMainDeptId === "NONE" ? undefined : selectedMainDeptId) || undefined),
+        ...(formData.password ? { password: formData.password } : {}),
       };
 
       await userAPI.update(user._id, submissionData);
@@ -373,13 +376,13 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
               />
             </div>
 
-            <div className="space-y-1.5">
-              <Label
-                htmlFor="phone"
-                className="text-[10px] font-black text-slate-500 uppercase tracking-widest"
-              >
-                Phone *
-              </Label>
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="phone"
+                  className="text-[10px] font-black text-slate-500 uppercase tracking-widest"
+                >
+                  Phone *
+                </Label>
                 <Input
                   id="phone"
                   type="tel"
@@ -392,7 +395,29 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
                   placeholder="10 digit number"
                   className="h-10 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-lg text-sm"
                 />
-            </div>
+              </div>
+
+              {isCompanyAdminOrHigher(currentUser) && (
+                <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-300">
+                  <Label
+                    htmlFor="password"
+                    className="text-[10px] font-black text-indigo-500 uppercase tracking-widest"
+                  >
+                    Set Password
+                  </Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) =>
+                      setFormData({ ...formData, password: e.target.value })
+                    }
+                    placeholder="Enter new password (optional)"
+                    className="h-10 border-indigo-100 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-lg text-sm bg-indigo-50/30"
+                  />
+                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-tighter">Leave blank to keep existing</p>
+                </div>
+              )}
 
             <div className="space-y-1.5">
               <Label
