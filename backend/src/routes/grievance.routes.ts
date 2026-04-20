@@ -263,7 +263,7 @@ router.post('/', enforceWhatsAppGrievanceCompliance, async (req: Request, res: R
               admin_name: targetAdmin.getFullName(),
               grievance_id: grievance.grievanceId,
               citizen_name: grievance.citizenName,
-              department_name: grievance.category || 'General',
+              department_name: grievance.category || 'Collector & DM',
               office_name: (grievance as any).subDepartmentId ? (await Department.findById((grievance as any).subDepartmentId))?.name || 'N/A' : 'N/A',
               description: safeDescription,
               received_on: formatTemplateDate()
@@ -278,7 +278,7 @@ router.post('/', enforceWhatsAppGrievanceCompliance, async (req: Request, res: R
               admin_name: 'Administrator',
               grievance_id: grievance.grievanceId,
               citizen_name: grievance.citizenName,
-              department_name: grievance.category || 'General',
+              department_name: grievance.category || 'Collector & DM',
               office_name: 'N/A',
               description: safeDescription,
               submitted_on: formatTemplateDate()
@@ -448,7 +448,7 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
     const previousSubDepartmentId = grievance.subDepartmentId;
     const previousAssignedTo = grievance.assignedTo;
     const oldStatus = grievance.status;
-    const previousDepartmentName = (grievance.departmentId as any)?.name || grievance.category || 'General';
+    const previousDepartmentName = (grievance.departmentId as any)?.name || grievance.category || 'Collector & DM';
     const previousSubDepartmentName = (grievance.subDepartmentId as any)?.name || 'N/A';
 
     grievance.status = GrievanceStatus.REVERTED;
@@ -483,7 +483,7 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
     await grievance.save();
 
     await triggerAdminTemplate({
-      event: 'grievance_reverted_admin_v1',
+      event: 'grievance_reverted_company_v1_',
       companyId: grievance.companyId,
       language: grievance.language,
       citizenPhone: grievance.citizenPhone,
@@ -497,7 +497,7 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
         remarks: remarks.trim(),
         reverted_on: formatTemplateDate()
       }
-    }).catch((err) => logger.error('Failed to trigger grievance_reverted_admin_v1 template', err));
+    }).catch((err) => logger.error('Failed to trigger grievance_reverted_company_v1_ template', err));
 
     const { notifyCompanyAdminsOnRevert } = await import('../services/notificationService');
     await notifyCompanyAdminsOnRevert({
@@ -706,6 +706,7 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_GRIEVANCE, 
     }
 
     const oldStatus = grievance.status;
+    const newMedia = req.body.media || [];
     
     // Update status
     grievance.status = status;
@@ -715,6 +716,18 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_GRIEVANCE, 
       changedAt: new Date(),
       remarks
     });
+
+    // Handle new media attachments (proof/evidence)
+    if (Array.isArray(newMedia) && newMedia.length > 0) {
+      if (!grievance.media) grievance.media = [];
+      const formattedMedia = newMedia.map((m: any) => ({
+        url: m.url,
+        type: m.type || 'image',
+        uploadedAt: new Date(),
+        uploadedBy: currentUser._id
+      }));
+      grievance.media.push(...formattedMedia);
+    }
 
     // Update timestamps based on status
     if (status === GrievanceStatus.RESOLVED) {
@@ -728,7 +741,8 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_GRIEVANCE, 
       details: {
         fromStatus: oldStatus,
         toStatus: status,
-        remarks
+        remarks,
+        attachmentsCount: newMedia.length
       },
       performedBy: currentUser._id,
       timestamp: new Date()
@@ -738,12 +752,26 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_GRIEVANCE, 
 
     if (oldStatus !== status) {
       const {
-        notifyHierarchyOnStatusChange,
-        notifyCitizenOnGrievanceStatusChange,
-        notifyCitizenOnResolution
-      } = await import('../services/notificationService');
+        triggerCitizenStatusTemplate
+      } = await import('../services/grievanceTemplateTriggerService');
 
-      const payload = {
+      await triggerCitizenStatusTemplate({
+        companyId: grievance.companyId,
+        citizenPhone: grievance.citizenPhone,
+        citizenName: grievance.citizenName,
+        grievanceId: grievance.grievanceId,
+        departmentName: (grievance.departmentId as any)?.name || grievance.category || 'Collector & DM',
+        subDepartmentName: (grievance.subDepartmentId as any)?.name || 'N/A',
+        status,
+        remarks,
+        resolvedByName: currentUser.getFullName(),
+        formattedResolvedDate: formatTemplateDate(),
+        language: grievance.language,
+        media: newMedia // Pass only the new media to the citizen as proof
+      });
+
+      // Notify Hierarchy (Internal Admins)
+      const hierarchyPayload = {
         type: 'grievance' as const,
         action: 'status_change' as any,
         grievanceId: grievance.grievanceId,
@@ -762,27 +790,8 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_GRIEVANCE, 
         remarks: remarks || ''
       };
 
-      await notifyHierarchyOnStatusChange(payload, oldStatus, status).catch(e => console.error('Admin notification failed:', e));
-
-      if (status === GrievanceStatus.RESOLVED) {
-        await notifyCitizenOnResolution(payload).catch(e => console.error('Citizen resolution notification failed:', e));
-      } else {
-        await notifyCitizenOnGrievanceStatusChange({
-          companyId: grievance.companyId,
-          grievanceId: grievance.grievanceId,
-          citizenName: grievance.citizenName,
-          citizenPhone: grievance.citizenPhone,
-          citizenWhatsApp: grievance.citizenWhatsApp,
-          language: grievance.language,
-          description: grievance.description,
-          departmentId: grievance.departmentId,
-          subDepartmentId: grievance.subDepartmentId,
-          newStatus: status,
-          remarks: remarks || '',
-          createdAt: grievance.createdAt,
-          timeline: grievance.timeline
-        }).catch(e => console.error('Citizen status notification failed:', e));
-      }
+      const { notifyHierarchyOnStatusChange } = await import('../services/notificationService');
+      await notifyHierarchyOnStatusChange(hierarchyPayload, oldStatus, status).catch(e => console.error('Admin hierarchy notification failed:', e));
     }
 
     await logUserAction(
@@ -799,11 +808,8 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_GRIEVANCE, 
       data: { grievance }
     });
   } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update grievance status',
-      error: error.message
-    });
+    console.error('❌ Status update failed:', error);
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
@@ -877,9 +883,9 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
       oldDepartmentId ? Department.findById(oldDepartmentId).select('_id name') : Promise.resolve(null),
       oldSubDepartmentId ? Department.findById(oldSubDepartmentId).select('_id name') : Promise.resolve(null)
     ]);
-    let currentDepartmentName = oldDepartmentDoc?.name || grievance.category || 'General';
+    let currentDepartmentName = oldDepartmentDoc?.name || grievance.category || 'Collector & DM';
     let currentOfficeName = oldSubDepartmentDoc?.name || oldDepartmentDoc?.name || 'N/A';
-    const originalDepartmentName = oldDepartmentDoc?.name || grievance.category || 'General';
+    const originalDepartmentName = oldDepartmentDoc?.name || grievance.category || 'Collector & DM';
     const originalOfficeName = oldSubDepartmentDoc?.name || oldDepartmentDoc?.name || 'N/A';
 
     // Update assignment details

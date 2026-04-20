@@ -242,7 +242,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
         </div>
 
         {/* Tab Navigation */}
-        <div className="bg-slate-50 border-b border-slate-200 px-5  flex items-center gap-1 overflow-x-auto no-scrollbar">
+        <div className="bg-slate-50 border-b border-slate-200 px-5 flex items-stretch gap-1 overflow-x-auto no-scrollbar flex-shrink-0 min-h-[3.25rem]">
           {[
             {
               id: "overview",
@@ -273,9 +273,9 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-4 text-[11px] font-black uppercase tracking-widest transition-all border-b-2 -mb-[1px] relative whitespace-nowrap ${
+              className={`flex items-center gap-2 px-5 text-[11px] font-black uppercase tracking-widest transition-all border-b-2 -mb-[1px] relative whitespace-nowrap ${
                 activeTab === tab.id
-                  ? "border-blue-500 text-slate-800 bg-white ring-1 ring-blue-500/20"
+                  ? "border-blue-500 text-slate-800 bg-white ring-1 ring-blue-500/10 shadow-sm"
                   : "border-transparent text-slate-400 hover:text-slate-600 hover:bg-slate-100"
               }`}
             >

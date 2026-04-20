@@ -219,7 +219,7 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
         admin_name: assignedUser.getFullName(),
         grievance_id: grievance.grievanceId,
         citizen_name: grievance.citizenName,
-        department_name: grievance.category || 'General',
+        department_name: grievance.category || 'Collector & DM',
         office_name: (await (await import('../models/Department')).default.findById(assignedUser.departmentId))?.name || 'N/A',
         description: grievance.description,
         previous_admin: oldAssignedTo ? (await (await import('../models/User')).default.findById(oldAssignedTo))?.getFullName() || 'N/A' : 'N/A',

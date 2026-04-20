@@ -423,8 +423,8 @@ export default function StatusUpdateForm({
       }
     }
 
-    if (itemType === 'grievance' && grievanceVariant === 'department-admin' && selectedStatus === 'RESOLVED' && !remarks.trim()) {
-      toast.error('Remarks / notes are required when resolving a grievance.');
+    if (!remarks.trim()) {
+      toast.error('Remarks / notes are compulsory for updating status.');
       return;
     }
 
@@ -435,7 +435,7 @@ export default function StatusUpdateForm({
         const formData = new FormData();
         formData.append('status', selectedStatus);
         if (remarks) formData.append('remarks', remarks);
-        if (selectedStatus === 'RESOLVED' && documents.length > 0) {
+        if (['RESOLVED', 'REJECTED'].includes(selectedStatus) && documents.length > 0) {
           documents.forEach((file) => formData.append('documents', file));
         }
         response = await apiClient.put(
@@ -472,18 +472,14 @@ export default function StatusUpdateForm({
 
   const currentStatusInfo = statuses.find(s => s.value === currentStatus) || statuses[0];
   const typeLabel = itemType === 'grievance' ? 'Grievance' : 'Appointment';
-  const isAdminResolvedRemarksRequired =
-    itemType === 'grievance' &&
-    grievanceVariant === 'department-admin' &&
-    selectedStatus === 'RESOLVED';
-  const isResolvedRemarksMissing = isAdminResolvedRemarksRequired && !remarks.trim();
+  const isRemarksMissing = !remarks.trim();
   const isSubmitDisabled =
     selectedStatus === currentStatus ||
     submitting ||
     (itemType === 'appointment' &&
       selectedStatus === 'CONFIRMED' &&
       (!appointmentDate || !appointmentTime)) ||
-    isResolvedRemarksMissing;
+    isRemarksMissing;
 
   return (
     <div className="flex flex-col h-full">
@@ -561,12 +557,7 @@ export default function StatusUpdateForm({
         {/* Remarks */}
         <div>
           <label className="block text-[11px] font-semibold text-slate-600 uppercase tracking-[0.08em] mb-2">
-            Remarks / Notes{' '}
-            {isAdminResolvedRemarksRequired ? (
-              <span className="text-rose-500 font-normal normal-case">(required for admins when status is Resolved)</span>
-            ) : (
-              <span className="text-slate-400 font-normal normal-case">(optional but recommended)</span>
-            )}
+            Remarks / Notes <span className="text-rose-500 font-normal normal-case">(compulsory)</span>
           </label>
           <textarea
             value={remarks}
@@ -577,7 +568,7 @@ export default function StatusUpdateForm({
           />
         </div>
 
-        {itemType === 'grievance' && selectedStatus === 'RESOLVED' && (
+        {itemType === 'grievance' && ['RESOLVED', 'REJECTED'].includes(selectedStatus) && (
           <DocumentUploadZone
             documents={documents}
             onChange={setDocuments}

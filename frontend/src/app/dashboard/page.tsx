@@ -150,6 +150,7 @@ import {
   Workflow,
   LayoutGrid,
   Menu,
+  AlertCircle,
 } from "lucide-react";
 
 interface DashboardStats {
@@ -1531,7 +1532,7 @@ function DashboardContent() {
         listAll: true,
 
         page: 1,
-        limit: 100,
+        limit: 200,
         companyId:
           isSuperAdminUser && companyIdParam ? companyIdParam : undefined,
       });
@@ -2744,8 +2745,8 @@ function DashboardContent() {
         {/* Removed blue pattern backdrop */}
 
         <div className="max-w-[1600px] mx-auto px-4 lg:px-6 relative z-10">
-          <div className="flex items-center justify-between h-14">
-            <div className="flex items-center gap-10">
+          <div className="flex items-center justify-between min-h-[3.5rem] py-1.5 sm:h-20">
+            <div className="flex items-center gap-10 min-w-0 flex-1">
               <div className="flex items-center gap-5 sm:gap-8 group">
                 <button
                   type="button"
@@ -2771,7 +2772,7 @@ function DashboardContent() {
                   />
                 </div>
                 <div className="flex flex-col">
-                  <h1 className="text-[11px] sm:text-sm font-black text-white tracking-tight leading-tight uppercase max-w-[58vw] sm:max-w-none truncate">
+                  <h1 className="text-[12px] sm:text-sm font-black text-white tracking-tight leading-tight uppercase max-w-[45vw] sm:max-w-none whitespace-normal break-words">
                     {isSuperAdminUser && companyIdParam ? (
                       `Viewing: ${company?.name || "..."}`
                     ) : (
@@ -2788,12 +2789,12 @@ function DashboardContent() {
                         {hasPermission(user, Permission.READ_GRIEVANCE) &&
                           !isCompanyLevel &&
                           !isSuperAdminUser &&
-                          " Portal"}
+                          ""}
                       </>
                     )}
                   </h1>
                   <div className="flex items-center gap-2 mt-1">
-                    <p className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-[0.14em] max-w-[62vw] sm:max-w-none truncate">
+                    <p className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-[0.14em] max-w-[50vw] sm:max-w-none whitespace-normal break-words">
                       {isJharsugudaCompany
                         ? dashboardBrandSubtitle
                         : "Control Panel"}
@@ -2806,14 +2807,14 @@ function DashboardContent() {
               <div className="h-8 w-px bg-slate-800 hidden lg:block"></div>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
               <div className="hidden sm:flex flex-col items-end mr-3 sm:mr-4 lg:mr-0">
                 <span className="hidden sm:block text-[10px] font-black text-white leading-none uppercase tracking-tight">
                   {user.firstName} {user.lastName}
                 </span>
                 {isJharsugudaCompany ? (
-                  <span className="text-[10px] sm:text-[11px] font-black text-white uppercase tracking-wide mt-1 max-w-[220px] truncate text-right">
-                    {dashboardBrandSubtitle}
+                  <span className="text-[10px] sm:text-[11px] font-black text-white uppercase tracking-wide mt-1 max-w-[220px] break-words text-right">
+                    {(user.role || "CUSTOM").replace(/_/g, " ")}
                   </span>
                 ) : (
                   <span className="text-[9px] font-black text-white/90 uppercase mt-1 bg-white/10 px-1.5 py-0.5 rounded border border-white/20 shadow-sm">
@@ -2834,33 +2835,33 @@ function DashboardContent() {
                   Back to Master Admin
                 </Link>
               )}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <Button
                   onClick={handleRefresh}
                   variant="ghost"
                   disabled={refreshing}
-                  className="h-10 w-10 p-0 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-xl transition-all duration-300 border border-transparent hover:border-indigo-500/20 md:hidden"
+                  className="h-9 w-9 sm:h-10 sm:w-10 p-0 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-xl transition-all duration-300 border border-transparent hover:border-indigo-500/20 md:hidden flex items-center justify-center"
                   title="Refresh data"
                 >
                   <RefreshCw
-                    className={cn("w-5 h-5", refreshing && "animate-spin")}
+                    className={cn("w-4.5 h-4.5 sm:w-5 sm:h-5", refreshing && "animate-spin")}
                   />
                 </Button>
                 <Button
                   onClick={logout}
                   variant="ghost"
-                  className="h-10 w-10 p-0 text-rose-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all duration-300 border border-transparent hover:border-rose-500/20"
+                  className="h-9 w-9 sm:h-10 sm:w-10 p-0 text-rose-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all duration-300 border border-transparent hover:border-rose-500/20 flex items-center justify-center"
                   title="Logout Account"
                 >
-                  <Power className="w-5 h-5" />
+                  <Power className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
                 </Button>
                 {/* Profile Button - Optimized for Visibility */}
                 <button
                   onClick={() => handleTabChange("profile")}
-                  className="flex h-10 w-10 bg-white/15 rounded-xl items-center justify-center border border-white/40 shadow-lg group hover:bg-white/25 transition-all duration-300 active:scale-95"
+                  className="flex h-9 w-9 sm:h-10 sm:w-10 bg-white/20 rounded-xl items-center justify-center border border-white/50 shadow-[0_0_15px_rgba(255,255,255,0.1)] group hover:bg-white/30 transition-all duration-300 active:scale-95"
                   title="Profile"
                 >
-                  <UserIcon className="w-5 h-5 text-white group-hover:scale-110 transition-transform duration-300" />
+                  <UserIcon className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-white group-hover:scale-110 transition-transform duration-300" />
                 </button>
               </div>
             </div>
@@ -3105,7 +3106,7 @@ function DashboardContent() {
                           <div className="flex flex-col mt-0.5">
                             {isJharsugudaCompany ? (
                               <span className="text-[10px] font-black text-white uppercase tracking-wide mt-1 whitespace-normal break-words">
-                                {dashboardBrandSubtitle}
+                                {(user.role || "CUSTOM").replace(/_/g, " ")}
                               </span>
                             ) : (
                               <>
@@ -3359,312 +3360,158 @@ function DashboardContent() {
               {/* Overview Tab */}
               <TabsContent value="overview" className="space-y-4 sm:space-y-6">
                 {/* Dashboard Headers & Quick Stats */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-2 sm:gap-3">
-                  {/* Statistical KPI Cards */}
-                  <>
-                    {/* Total Grievances */}
-                    {hasPermission(user, Permission.READ_GRIEVANCE) && (
-                      <Card
-                        onClick={() => setActiveTab("grievances")}
-                        className="min-h-[6.5rem] sm:min-h-[8.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_20px_rgba(15,23,42,0.04)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_25px_rgba(15,23,42,0.08)]"
-                      >
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-[#2f5aa6] bg-slate-50/70 px-3 py-3 pb-2">
-                          <CardTitle className="text-[8px] sm:text-[9px] font-extrabold uppercase tracking-[0.16em] text-slate-400">
-                            {isDFO ? "Total Incidents" : "Total Grievances"}
-                          </CardTitle>
-                          <div className="rounded-md bg-indigo-50 p-1">
-                            <FileText className="h-3 w-3 text-indigo-500" />
-                          </div>
-                        </CardHeader>
-                        <CardContent className="px-3 pb-2 pt-1.5">
-                          <div className="text-[1.75rem] font-extrabold leading-none tracking-tight text-slate-800 tabular-nums">
-                            {loadingStats ? (
-                              <LoadingDots />
-                            ) : (
-                              stats?.grievances.total || 0
-                            )}
-                          </div>
-                          <div className="mt-2 flex items-center gap-1">
-                            <span className="rounded-full bg-indigo-50 px-1.5 py-0.5 text-[8px] sm:text-[9px] font-bold text-indigo-600">
-                              {stats?.grievances.last7Days || 0} New
-                            </span>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
+                <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-2 sm:gap-4">
+                  {/* Total Grievances */}
+                  {hasPermission(user, Permission.READ_GRIEVANCE) && (
+                    <Card
+                      onClick={() => {
+                        setActiveTab("grievances");
+                        setGrievanceFilters(prev => ({ ...prev, status: "" }));
+                      }}
+                      className="min-h-[6.5rem] sm:min-h-[8.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
+                    >
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-indigo-500 bg-slate-50/50 px-3 py-2.5">
+                        <CardTitle className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-slate-400">
+                          Total Grievances
+                        </CardTitle>
+                        <FileText className="h-3 w-3 text-indigo-500" />
+                      </CardHeader>
+                      <CardContent className="px-3 py-2.5">
+                        <div className="text-xl sm:text-2xl font-black text-slate-800 tabular-nums">
+                          {loadingStats ? <LoadingDots /> : (stats?.grievances.registeredTotal || 0)}
+                        </div>
+                        <div className="mt-1 flex items-center gap-1">
+                          <span className="text-[8px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-full">
+                            {stats?.grievances.last7Days || 0} New
+                          </span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
 
-                    {/* Overdue Grievances */}
-                    {hasPermission(user, Permission.READ_GRIEVANCE) &&
-                      (isViewingCompany ||
-                        isDepartmentAdminRole ||
-                        isSubDepartmentAdminRole ||
-                        isOperatorRole) && (
-                        <Card
-                          onClick={() => {
-                            setActiveTab("grievances");
-                            setGrievanceFilters((prev) => ({
-                              ...prev,
-                              status: "PENDING",
-                              overdueStatus: "overdue",
-                            }));
-                          }}
-                          className="min-h-[6.5rem] sm:min-h-[8.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_20px_rgba(15,23,42,0.04)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_25px_rgba(15,23,42,0.08)]"
-                        >
-                          <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-[#2f5aa6] bg-slate-50/70 px-3 py-3 pb-2">
-                            <CardTitle className="text-[8px] sm:text-[9px] font-extrabold uppercase tracking-[0.16em] text-slate-400">
-                              {isDFO ? "Critical Alerts" : "Overdue Grievances"}
-                            </CardTitle>
-                            <div className="rounded-md bg-amber-50 p-1">
-                              <Clock className="h-3 w-3 text-amber-500" />
-                            </div>
-                          </CardHeader>
-                          <CardContent className="px-3 pb-2 pt-1.5">
-                            <div className="text-[1.75rem] font-extrabold leading-none tracking-tight text-amber-600 tabular-nums">
-                              {loadingStats ? (
-                                <LoadingDots />
-                              ) : (
-                                overdueGrievancesCount
-                              )}
-                            </div>
-                            <p className="mt-2 text-[8px] sm:text-[9px] font-bold uppercase text-slate-400">
-                              Pending
-                            </p>
-                          </CardContent>
-                        </Card>
-                      )}
+                  {/* Overdue Grievances */}
+                  {hasPermission(user, Permission.READ_GRIEVANCE) && (
+                    <Card
+                      onClick={() => {
+                        setActiveTab("grievances");
+                        setGrievanceFilters((prev) => ({
+                          ...prev,
+                          status: "PENDING",
+                          overdueStatus: "overdue",
+                        }));
+                      }}
+                      className="min-h-[6.5rem] sm:min-h-[8.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
+                    >
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-amber-500 bg-slate-50/50 px-3 py-2.5">
+                        <CardTitle className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-slate-400">
+                          Overdue
+                        </CardTitle>
+                        <Clock className="h-3 w-3 text-amber-500" />
+                      </CardHeader>
+                      <CardContent className="px-3 py-2.5">
+                        <div className="text-xl sm:text-2xl font-black text-amber-600 tabular-nums">
+                          {loadingStats ? <LoadingDots /> : overdueGrievancesCount}
+                        </div>
+                        <p className="mt-1 text-[8px] font-bold uppercase text-slate-400">Delayed</p>
+                      </CardContent>
+                    </Card>
+                  )}
 
-                    {/* Total Resolved */}
-                    {hasPermission(user, Permission.READ_GRIEVANCE) &&
-                      !isCompanyAdminRole && (
-                        <Card
-                          onClick={() => {
-                            setActiveTab("grievances");
-                            setGrievanceFilters((prev) => ({
-                              ...prev,
-                              status: "RESOLVED",
-                            }));
-                          }}
-                          className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer min-h-[7rem] sm:min-h-[9.5rem]"
-                        >
-                          <CardHeader className="p-3 sm:p-5 pb-1 sm:pb-1 space-y-0 flex flex-row items-center justify-between">
-                            <CardTitle className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                              Resolved Grievances
-                            </CardTitle>
-                            <div className="p-1 sm:p-1.5 bg-emerald-50 rounded-lg">
-                              <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-500" />
-                            </div>
-                          </CardHeader>
-                          <CardContent className="px-3 sm:px-6 pb-2 pt-1">
-                            <div className="text-xl sm:text-2xl font-black text-emerald-600 tabular-nums leading-none">
-                              {loadingStats ? (
-                                <LoadingDots />
-                              ) : (
-                                stats?.grievances.resolved || 0
-                              )}
-                            </div>
-                            <div className="flex items-center gap-1 mt-1.5">
-                              <span className="text-[8px] sm:text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
-                                Completed
-                              </span>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )}
+                  {/* Pending Grievances */}
+                  {hasPermission(user, Permission.READ_GRIEVANCE) && (
+                    <Card
+                      onClick={() => {
+                        setActiveTab("grievances");
+                        setGrievanceFilters((prev) => ({ ...prev, status: "PENDING" }));
+                      }}
+                      className="min-h-[6.5rem] sm:min-h-[8.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
+                    >
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-blue-500 bg-slate-50/50 px-3 py-2.5">
+                        <CardTitle className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-slate-400">
+                          Pending
+                        </CardTitle>
+                        <AlertCircle className="h-3 w-3 text-blue-500" />
+                      </CardHeader>
+                      <CardContent className="px-3 py-2.5">
+                        <div className="text-xl sm:text-2xl font-black text-blue-600 tabular-nums">
+                          {loadingStats ? <LoadingDots /> : (stats?.grievances.pending || 0)}
+                        </div>
+                        <p className="mt-1 text-[8px] font-bold uppercase text-slate-400">Waiting</p>
+                      </CardContent>
+                    </Card>
+                  )}
 
-                    {/* Total Rejected */}
-                    {hasPermission(user, Permission.READ_GRIEVANCE) && (
-                      <Card
-                        onClick={() => {
-                          setActiveTab("grievances");
-                          setGrievanceFilters((prev) => ({
-                            ...prev,
-                            status: "REJECTED",
-                          }));
-                        }}
-                        className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer min-h-[7rem] sm:min-h-[9.5rem]"
-                      >
-                        <CardHeader className="p-3 sm:p-5 pb-1 sm:pb-1 space-y-0 flex flex-row items-center justify-between">
-                          <CardTitle className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                            Rejected Grievances
-                          </CardTitle>
-                          <div className="p-1 sm:p-1.5 bg-rose-50 rounded-lg">
-                            <XCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-rose-500" />
-                          </div>
-                        </CardHeader>
-                        <CardContent className="px-3 sm:px-6 pb-2 pt-1">
-                          <div className="text-xl sm:text-2xl font-black text-rose-600 tabular-nums leading-none">
-                            {loadingStats ? (
-                              <LoadingDots />
-                            ) : (
-                              stats?.grievances.rejected || 0
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1 mt-1.5">
-                            <span className="text-[8px] sm:text-[9px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded-full">
-                              Declined
-                            </span>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
+                  {/* Reverted Grievances */}
+                  {hasPermission(user, Permission.READ_GRIEVANCE) && (
+                    <Card
+                      onClick={() => {
+                        setActiveTab("grievances");
+                        setGrievanceFilters((prev) => ({ ...prev, status: "REVERTED" }));
+                      }}
+                      className="min-h-[6.5rem] sm:min-h-[8.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
+                    >
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-sky-500 bg-slate-50/50 px-3 py-2.5">
+                        <CardTitle className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-slate-400">
+                          Reverted
+                        </CardTitle>
+                        <ArrowLeft className="h-3 w-3 text-sky-500" />
+                      </CardHeader>
+                      <CardContent className="px-3 py-2.5">
+                        <div className="text-xl sm:text-2xl font-black text-sky-600 tabular-nums">
+                          {loadingStats ? <LoadingDots /> : (stats?.grievances.reverted || 0)}
+                        </div>
+                        <p className="mt-1 text-[8px] font-bold uppercase text-slate-400">Reassigned</p>
+                      </CardContent>
+                    </Card>
+                  )}
 
-                    {hasPermission(user, Permission.READ_GRIEVANCE) &&
-                      isViewingCompany &&
-                      isCompanyAdminRole &&
-                      isCollectorateJharsuguda && (
-                        <Card
-                          onClick={() => {
-                            setActiveTab("grievances");
-                            setGrievanceFilters((prev) => ({
-                              ...prev,
-                              status: "REVERTED",
-                            }));
-                          }}
-                          className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer min-h-[7rem] sm:min-h-[9.5rem]"
-                        >
-                          <CardHeader className="p-3 sm:p-5 pb-1 sm:pb-1 space-y-0 flex flex-row items-center justify-between">
-                            <CardTitle className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                              Reverted Grievances
-                            </CardTitle>
-                            <div className="p-1 sm:p-1.5 bg-sky-50 rounded-lg">
-                              <ArrowLeft className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-sky-500" />
-                            </div>
-                          </CardHeader>
-                          <CardContent className="px-3 sm:px-6 pb-2 pt-1">
-                            <div className="text-xl sm:text-2xl font-black text-sky-600 tabular-nums leading-none">
-                              {loadingStats ? (
-                                <LoadingDots />
-                              ) : (
-                                stats?.grievances.reverted || 0
-                              )}
-                            </div>
-                            <div className="flex items-center gap-1 mt-1.5">
-                              <span className="text-[8px] sm:text-[9px] font-bold text-sky-600 bg-sky-50 px-1.5 py-0.5 rounded-full">
-                                Reassigned
-                              </span>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )}
+                  {/* Resolved Grievances */}
+                  {hasPermission(user, Permission.READ_GRIEVANCE) && (
+                    <Card
+                      onClick={() => {
+                        setActiveTab("grievances");
+                        setGrievanceFilters((prev) => ({ ...prev, status: "RESOLVED" }));
+                      }}
+                      className="min-h-[6.5rem] sm:min-h-[8.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
+                    >
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-emerald-500 bg-slate-50/50 px-3 py-2.5">
+                        <CardTitle className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-slate-400">
+                          Resolved
+                        </CardTitle>
+                        <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                      </CardHeader>
+                      <CardContent className="px-3 py-2.5">
+                        <div className="text-xl sm:text-2xl font-black text-emerald-600 tabular-nums">
+                          {loadingStats ? <LoadingDots /> : (stats?.grievances.resolved || 0)}
+                        </div>
+                        <p className="mt-1 text-[8px] font-bold uppercase text-slate-400">Completed</p>
+                      </CardContent>
+                    </Card>
+                  )}
 
-                    {/* Total Appointments */}
-                    {canShowAppointmentsInView && isViewingCompany && (
-                        <Card
-                          onClick={() => setActiveTab("appointments")}
-                          className="min-h-[7rem] sm:min-h-[9.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(15,23,42,0.1)]"
-                        >
-                          <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-[#2f5aa6] bg-slate-50/70 px-4 py-4 pb-3">
-                            <CardTitle className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-[0.16em] text-slate-400">
-                              Appointments
-                            </CardTitle>
-                            <div className="rounded-md bg-emerald-50 p-1.5">
-                              <CalendarCheck className="h-3.5 w-3.5 text-emerald-500" />
-                            </div>
-                          </CardHeader>
-                          <CardContent className="px-4 pb-3 pt-2">
-                            <div className="text-[2rem] font-extrabold leading-none tracking-tight text-slate-800 tabular-nums">
-                              {loadingStats ? (
-                                <LoadingDots />
-                              ) : (
-                                stats?.appointments.total || 0
-                              )}
-                            </div>
-                            <div className="mt-2 flex items-center gap-1">
-                              <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[8px] sm:text-[9px] font-bold text-emerald-600">
-                                {stats?.appointments.confirmed || 0} Confirmed
-                              </span>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )}
-
-                    {/* Departments (Mirroring Logic) */}
-                    {isViewingCompany && (
-                      <>
-                        {isHierarchicalCompany ? (
-                          <>
-                            <Card
-                              onClick={() => setActiveTab("departments")}
-                              className="min-h-[7rem] sm:min-h-[9.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(15,23,42,0.1)]"
-                            >
-                              <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-[#2f5aa6] bg-slate-50/70 px-4 py-4 pb-3">
-                                <CardTitle className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-[0.16em] text-slate-400">
-                                  {isDFO ? "Forest Ranges" : "Main Departments"}
-                                </CardTitle>
-                                <div className="rounded-md bg-blue-50 p-1.5">
-                                  <Building className="h-3.5 w-3.5 text-blue-500" />
-                                </div>
-                              </CardHeader>
-                              <CardContent className="px-4 pb-3 pt-2">
-                                <div className="text-[2rem] font-extrabold leading-none tracking-tight text-slate-800 tabular-nums">
-                                  {loadingStats ? (
-                                    <LoadingDots />
-                                  ) : (
-                                    stats?.mainDepartments || 0
-                                  )}
-                                </div>
-                                <p className="mt-2 text-[8px] sm:text-[9px] font-bold uppercase text-slate-400">
-                                  Primary Units
-                                </p>
-                              </CardContent>
-                            </Card>
-                            <Card
-                              onClick={() => setActiveTab("departments")}
-                              className="min-h-[7rem] sm:min-h-[9.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(15,23,42,0.1)]"
-                            >
-                              <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-[#2f5aa6] bg-slate-50/70 px-4 py-4 pb-3">
-                                <CardTitle className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-[0.16em] text-indigo-400">
-                                  {isDFO ? "Forest Beats" : "Sub Departments"}
-                                </CardTitle>
-                                <div className="rounded-md bg-indigo-50 p-1.5">
-                                  <Zap className="h-3.5 w-3.5 text-indigo-500" />
-                                </div>
-                              </CardHeader>
-                              <CardContent className="px-4 pb-3 pt-2">
-                                <div className="text-[2rem] font-extrabold leading-none tracking-tight text-indigo-600 tabular-nums">
-                                  {loadingStats ? (
-                                    <LoadingDots />
-                                  ) : (
-                                    stats?.subDepartments || 0
-                                  )}
-                                </div>
-                                <p className="mt-2 text-[8px] sm:text-[9px] font-bold uppercase text-slate-400">
-                                  Specialized Units
-                                </p>
-                              </CardContent>
-                            </Card>
-                          </>
-                        ) : (
-                          <Card
-                            onClick={() => setActiveTab("departments")}
-                            className="bg-white/50 backdrop-blur-sm border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer min-h-[7rem] sm:min-h-[9.5rem]"
-                          >
-                            <CardHeader className="p-3 sm:p-5 pb-1 sm:pb-1 space-y-0 flex flex-row items-center justify-between">
-                              <CardTitle className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                Departments
-                              </CardTitle>
-                              <div className="p-1 sm:p-1.5 bg-blue-50 rounded-lg">
-                                <Building className="w-3 h-3 text-blue-500" />
-                              </div>
-                            </CardHeader>
-                            <CardContent className="px-3 sm:px-6 pb-2 pt-1">
-                              <div className="text-xl sm:text-2xl font-black text-slate-800 tabular-nums leading-none">
-                                {loadingStats ? (
-                                  <LoadingDots />
-                                ) : (
-                                  stats?.departments || 0
-                                )}
-                              </div>
-                              <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">
-                                Functional Depts
-                              </p>
-                            </CardContent>
-                          </Card>
-                        )}
-                      </>
-                    )}
-
-                  </>
+                  {/* Rejected Grievances */}
+                  {hasPermission(user, Permission.READ_GRIEVANCE) && (
+                    <Card
+                      onClick={() => {
+                        setActiveTab("grievances");
+                        setGrievanceFilters((prev) => ({ ...prev, status: "REJECTED" }));
+                      }}
+                      className="min-h-[6.5rem] sm:min-h-[8.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
+                    >
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-rose-500 bg-slate-50/50 px-3 py-2.5">
+                        <CardTitle className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-slate-400">
+                          Rejected
+                        </CardTitle>
+                        <XCircle className="h-3 w-3 text-rose-500" />
+                      </CardHeader>
+                      <CardContent className="px-3 py-2.5">
+                        <div className="text-xl sm:text-2xl font-black text-rose-600 tabular-nums">
+                          {loadingStats ? <LoadingDots /> : (stats?.grievances.rejected || 0)}
+                        </div>
+                        <p className="mt-1 text-[8px] font-bold uppercase text-slate-400">Declined</p>
+                      </CardContent>
+                    </Card>
+                  )}
                 </div>
 
                 {/* Company Info (for Company Admin) - Beautified Modern Design */}
@@ -4685,17 +4532,23 @@ function DashboardContent() {
                                 name="Total Grievances"
                                 className="cursor-pointer"
                                 onClick={(data: any) => {
-                                  const departmentId =
-                                    data?.departmentId || data?._id || "";
-                                  const filters: Partial<
-                                    typeof grievanceFilters
-                                  > = {
+                                  const departmentId = data?.departmentId || data?._id || "";
+                                  const parentId = data?.parentDepartmentId || "";
+                                  
+                                  const filters: Partial<typeof grievanceFilters> = {
                                     status: "",
                                   };
 
                                   if (departmentId) {
-                                    filters.subDeptId = departmentId;
-                                    filters.mainDeptId = "";
+                                    if (parentId) {
+                                      // 🏢 Sub-Department: Filter by parent AND self
+                                      filters.mainDeptId = parentId;
+                                      filters.subDeptId = departmentId;
+                                    } else {
+                                      // 🏢 Main Department: Filter by self only
+                                      filters.mainDeptId = departmentId;
+                                      filters.subDeptId = "";
+                                    }
                                     filters.department = "";
                                   }
 
@@ -6031,9 +5884,9 @@ function DashboardContent() {
                                       />
                                     </button>
                                   </th>
-                                  <th className="px-4 py-3 text-left border-b border-slate-100 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                  {/* <th className="px-4 py-3 text-left border-b border-slate-100 text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                     Dept ID
-                                  </th>
+                                  </th> */}
                                   <th className="px-4 py-3 text-center border-b border-slate-100 text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                     Type
                                   </th>
@@ -6147,11 +6000,11 @@ function DashboardContent() {
                                         </td>
 
                                         {/* Dept ID */}
-                                        <td className="px-4 py-4 whitespace-nowrap">
+                                        {/* <td className="px-4 py-4 whitespace-nowrap">
                                           <span className="inline-flex items-center text-[10px] font-bold bg-slate-50 text-slate-600 px-2 py-0.5 rounded border border-slate-200 uppercase tracking-tighter shadow-sm">
                                             {dept.departmentId}
                                           </span>
-                                        </td>
+                                        </td> */}
 
                                         {/* Type */}
                                         <td className="px-4 py-4 text-center whitespace-normal">
@@ -8085,7 +7938,7 @@ function DashboardContent() {
                                                   : (
                                                       grievance.departmentId as any
                                                     ).name
-                                                : "General"}
+                                                : "Collector & DM"}
                                             </span>
                                             <span className="text-[10px] text-orange-400 uppercase">
                                               {grievance.category}
@@ -8311,7 +8164,9 @@ function DashboardContent() {
                                               Permission.REVERT_GRIEVANCE,
                                             ) &&
                                               isLowerHierarchyRole &&
-                                              grievance.status === "RESOLVED" && (
+                                              ["PENDING", "ASSIGNED", "RESOLVED"].includes(
+                                                grievance.status,
+                                              ) && (
                                                 <Button
                                                   variant="ghost"
                                                   size="sm"
@@ -8668,7 +8523,7 @@ function DashboardContent() {
                                                   ? (
                                                       grievance.departmentId as any
                                                     ).name
-                                                  : "General"}
+                                                  : "Collector & DM"}
                                               </span>
                                             </div>
 

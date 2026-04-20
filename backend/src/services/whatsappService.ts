@@ -1068,3 +1068,38 @@ export async function sendWhatsAppMedia(
     return sendWhatsAppMessage(company, to, `${caption ? caption + '\n\n' : ''}🔗 Attachment: ${mediaUrl}`);
   }
 }
+/**
+ * ============================================================
+ * SEND MEDIA SEQUENTIALLY (PRODUCTION STYLE)
+ * ============================================================
+ * Sends multiple media items one by one with a delay to ensure order
+ * and satisfy Meta's rate limits/compliance.
+ */
+export async function sendMediaSequentially(
+  company: any,
+  to: string,
+  media: Array<{ url: string; type: 'image' | 'video' | 'document'; caption?: string; filename?: string }>
+): Promise<void> {
+  if (!media || !media.length) return;
+
+  console.log(`🚀 Starting sequential media send to ${to} (${media.length} items)`);
+
+  for (const item of media) {
+    try {
+      // Small safety delay (500ms) recommended to maintain order in WhatsApp UI
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      await sendWhatsAppMedia(
+        company, 
+        to, 
+        item.url, 
+        item.type, 
+        item.caption, 
+        item.filename
+      );
+    } catch (err: any) {
+      console.error(`❌ Sequential media send failed for ${item.url}:`, err.message);
+      // We don't throw here to allow other items to attempt delivery
+    }
+  }
+}

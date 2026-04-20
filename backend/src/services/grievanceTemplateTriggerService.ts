@@ -3,7 +3,7 @@ import Company from '../models/Company';
 import CompanyWhatsAppConfig from '../models/CompanyWhatsAppConfig';
 import CitizenProfile from '../models/CitizenProfile';
 import Role from '../models/Role';
-import { sendWhatsAppTemplate } from './whatsappService';
+import { sendWhatsAppTemplate, sendMediaSequentially } from './whatsappService';
 import { buildCitizenMessage } from './citizenMessageBuilder';
 import { sanitizeGrievanceDetails, sanitizeNote, sanitizeRemarks, sanitizeText } from '../utils/sanitize';
 import { normalizeLanguage } from './templateValidationService';
@@ -97,7 +97,7 @@ export async function triggerAdminTemplate(options: {
     | 'grievance_pending_admin_v1'
     | 'grievance_assigned_admin_v1'
     | 'grievance_reassigned_admin_v1'
-    | 'grievance_reverted_admin_v1';
+    | 'grievance_reverted_company_v1_';
   companyId: any;
   language?: string;
   values?: string[];
@@ -200,6 +200,7 @@ export async function triggerCitizenStatusTemplate(options: {
   formattedResolvedDate?: string;
   remarks?: string;
   language?: string;
+  media?: Array<{ url: string; type: 'image' | 'video' | 'document'; caption?: string; filename?: string }>;
 }) {
   const extraMessage = buildCitizenMessage({
     status: options.status,
@@ -223,6 +224,17 @@ export async function triggerCitizenStatusTemplate(options: {
       remarks: sanitizeNote(extraMessage)
     }
   });
+
+  // ✅ 2. Send Media Sequentially (Compliance: Template first, then media)
+  if (options.media && options.media.length > 0) {
+    const company = await getCompanyWithConfig(options.companyId);
+    const normalizedPhone = normalizePhoneNumber(options.citizenPhone);
+    
+    // Don't block the response, but ensure sequential delivery
+    sendMediaSequentially(company, normalizedPhone, options.media).catch(err => 
+      console.error(`❌ Sequential media delivery failed for citizen ${normalizedPhone}:`, err)
+    );
+  }
 }
 
 /**
@@ -241,6 +253,7 @@ export async function triggerGrievanceNotifications(options: {
   language?: string;
   assignedAdmins?: any[];
   companyAdmins?: any[];
+  media?: Array<{ url: string; type: 'image' | 'video' | 'document'; caption?: string; filename?: string }>;
 }) {
   const isAssigned = (options.status !== 'PENDING' && options.status !== 'UNASSIGNED') && (options.assignedAdmins || []).length > 0;
   const safeDescription = sanitizeGrievanceDetails(options.description || 'N/A');
@@ -333,6 +346,22 @@ export async function triggerGrievanceNotifications(options: {
       `⚠️ triggerGrievanceNotifications: ${failed.length}/${notifications.length} sends failed for grievance ${options.grievanceId}`,
       failed.map((item) => item.value?.error).filter(Boolean)
     );
+  }
+
+  // ✅ 3. Send Media Sequentially (Compliance: Template first, then media)
+  if (options.media && options.media.length > 0) {
+    const allRecipientPhones = Array.from(new Set([
+      ...(options.assignedAdmins || []).map(a => a.phone),
+      ...(options.companyAdmins || []).map(a => a.phone)
+    ].filter(Boolean).map(p => normalizePhoneNumber(p))));
+
+    for (const phone of allRecipientPhones) {
+      // Don't await the entire media loop for all admins in parallel to avoid blocking, 
+      // but each admin gets their media sequentially.
+      sendMediaSequentially(company, phone, options.media).catch(err => 
+        console.error(`❌ Sequential media delivery failed for admin ${phone}:`, err)
+      );
+    }
   }
 }
 

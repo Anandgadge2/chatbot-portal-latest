@@ -247,12 +247,12 @@ export class ActionService {
       const lang = (session.language || 'en') as 'en' | 'hi' | 'or' | 'mr';
       
       // Set explicit fields for placeholder resolution in success/confirm steps
-      session.data.department = dept ? getLocalizedDepartmentName(dept, lang) : (session.data.category || 'General');
+      session.data.department = dept ? getLocalizedDepartmentName(dept, lang) : (session.data.category || 'Collector & DM');
       session.data.subDepartment = subDept ? getLocalizedDepartmentName(subDept, lang) : '';
       session.data.subDepartmentName = subDept ? getLocalizedDepartmentName(subDept, lang) : '';
       
       // Keep departmentName the parent-only name for display
-      session.data.departmentName = dept ? getLocalizedDepartmentName(dept, lang) : (session.data.category || 'General');      
+      session.data.departmentName = dept ? getLocalizedDepartmentName(dept, lang) : (session.data.category || 'Collector & DM');      
       session.data.subdepartmentName = subDept ? getLocalizedDepartmentName(subDept, lang) : '';
       
       // Odia & Hindi translated keys for session placeholders to match user request
@@ -369,7 +369,8 @@ export class ActionService {
           description: safeDescription,
           status: grievance.status,
           language: session.language || 'en',
-          assignedAdmins
+          assignedAdmins,
+          media: sanitizedMedia
         })
       );
 

@@ -346,7 +346,7 @@ export const grievancesByDepartment = async (req: Request, res: Response) => {
       { $group: { _id: { $ifNull: ['$subDepartmentId', '$departmentId'] }, count: { $sum: 1 }, pending: { $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.PENDING] }, 1, 0] } }, resolved: { $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.RESOLVED] }, 1, 0] } } } },
       { $lookup: { from: 'departments', localField: '_id', foreignField: '_id', as: 'department' } },
       { $unwind: { path: '$department', preserveNullAndEmptyArrays: true } },
-      { $project: { departmentId: '$_id', departmentName: '$department.name', count: 1, pending: 1, resolved: 1 } },
+      { $project: { departmentId: '$_id', departmentName: '$department.name', parentDepartmentId: '$department.parentDepartmentId', count: 1, pending: 1, resolved: 1 } },
       { $sort: { count: -1 } }
     ]);
     res.json({ success: true, data: distribution });
