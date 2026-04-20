@@ -18,6 +18,8 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024, files: 5 },
 });
 
+const COLLECTORATE_JHARSUGUDA_COMPANY_ID = '69ad4c6eb1ad8e405e6c0858';
+
 const uploadBufferToCloudinary = async (
   file: Express.Multer.File,
   companyId: string,
@@ -41,9 +43,8 @@ const uploadBufferToCloudinary = async (
   });
 };
 
-const isCollectorateJharsuguda = (companyName?: string): boolean => {
-  const normalized = String(companyName || '').trim().toLowerCase();
-  return normalized.includes('collectorate') && normalized.includes('jharsuguda');
+const isCollectorateJharsugudaCompanyId = (companyId?: string): boolean => {
+  return String(companyId || '') === COLLECTORATE_JHARSUGUDA_COMPANY_ID;
 };
 
 const canJharsugudaCompanyAdminOverrideFrozenGrievance = (
@@ -52,9 +53,12 @@ const canJharsugudaCompanyAdminOverrideFrozenGrievance = (
 ): boolean => {
   if (currentUser?.isSuperAdmin) return true;
   const role = String(currentUser?.role || '').toUpperCase();
-  const isCompanyAdmin = role.includes(UserRole.COMPANY_ADMIN) || currentUser?.level === 1;
-  const companyName = (grievance?.companyId as any)?.name;
-  return isCompanyAdmin && isCollectorateJharsuguda(companyName);
+  const isCompanyAdmin =
+    role.includes(UserRole.COMPANY_ADMIN) ||
+    currentUser?.level === 1 ||
+    !currentUser?.departmentId;
+  const grievanceCompanyId = String((grievance?.companyId as any)?._id || grievance?.companyId || '');
+  return isCompanyAdmin && isCollectorateJharsugudaCompanyId(grievanceCompanyId);
 };
 
 // All routes require database connection and authentication
@@ -157,7 +161,7 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
         return res.status(403).json({ success: false, message: 'Access denied to this company' });
       }
 
-      if (currentUser.departmentId) {
+      if (currentUser.departmentId && !canOverrideFrozenGrievance) {
         const grievanceDepartmentId = (grievance.departmentId as any)?._id?.toString() || grievance.departmentId?.toString();
         const grievanceSubDepartmentId = (grievance.subDepartmentId as any)?._id?.toString() || grievance.subDepartmentId?.toString();
         const currentUserDepartmentId = currentUser.departmentId?.toString();

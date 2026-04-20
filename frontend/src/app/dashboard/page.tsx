@@ -229,6 +229,8 @@ const LoadingDots = () => (
   </span>
 );
 
+const COLLECTORATE_JHARSUGUDA_COMPANY_ID = "69ad4c6eb1ad8e405e6c0858";
+
 function DashboardContent() {
   const { user: authUser, loading, logout, refreshUser } = useAuth();
   const user = authUser as any;
@@ -259,8 +261,12 @@ function DashboardContent() {
       (user?.departmentIds && user.departmentIds.length > 0)) &&
     !user.isSuperAdmin;
   const isSuperAdminUser = useMemo(() => isSuperAdmin(user), [user]);
+  const currentUserCompanyId =
+    user?.companyId && typeof user.companyId === "object"
+      ? (user.companyId as any)._id
+      : user?.companyId;
   const isJharsugudaCompany = Boolean(
-    user?.companyId?.name?.toUpperCase().includes("JHARSUGUDA"),
+    currentUserCompanyId === COLLECTORATE_JHARSUGUDA_COMPANY_ID,
   );
   const dashboardBrandTitle = isJharsugudaCompany ? "SAHAJ" : "Control Panel";
   const dashboardBrandSubtitle = isJharsugudaCompany
@@ -597,12 +603,9 @@ function DashboardContent() {
     );
   }, [company, user]);
   const isCollectorateJharsuguda = useMemo(() => {
-    const companyName = company?.name?.toLowerCase() || "";
-    return (
-      companyName.includes("collectorate") &&
-      companyName.includes("jharsuguda")
-    );
-  }, [company]);
+    const scopedCompanyId = companyIdParam || company?._id || currentUserCompanyId;
+    return scopedCompanyId === COLLECTORATE_JHARSUGUDA_COMPANY_ID;
+  }, [companyIdParam, company?._id, currentUserCompanyId]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [showDepartmentDialog, setShowDepartmentDialog] = useState(false);
   const [showDeptUsersDialog, setShowDeptUsersDialog] = useState(false);
@@ -2774,7 +2777,7 @@ function DashboardContent() {
                     ) : (
                       <>
                         {isCompanyLevel &&
-                          (company?.name?.toUpperCase().includes("JHARSUGUDA")
+                          (isJharsugudaCompany
                             ? dashboardBrandTitle
                             : company?.name || "...")}
                         {isDepartmentLevel &&
@@ -2808,7 +2811,7 @@ function DashboardContent() {
                 <span className="hidden sm:block text-[10px] font-black text-white leading-none uppercase tracking-tight">
                   {user.firstName} {user.lastName}
                 </span>
-                {user?.companyId?.name?.toUpperCase().includes("JHARSUGUDA") ? (
+                {isJharsugudaCompany ? (
                   <span className="text-[10px] sm:text-[11px] font-black text-white uppercase tracking-wide mt-1 max-w-[220px] truncate text-right">
                     {dashboardBrandSubtitle}
                   </span>
@@ -3100,9 +3103,7 @@ function DashboardContent() {
                             {user.firstName} {user.lastName}
                           </h4>
                           <div className="flex flex-col mt-0.5">
-                            {user?.companyId?.name
-                              ?.toUpperCase()
-                              .includes("JHARSUGUDA") ? (
+                            {isJharsugudaCompany ? (
                               <span className="text-[10px] font-black text-white uppercase tracking-wide mt-1 whitespace-normal break-words">
                                 {dashboardBrandSubtitle}
                               </span>
@@ -9644,6 +9645,7 @@ function DashboardContent() {
                 : subDept;
             })()}
             userRole={user.role}
+            canReassignCurrent={isCompanyAdminRole}
             userDepartmentId={
               typeof user.departmentId === "object" &&
               user.departmentId !== null
