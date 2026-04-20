@@ -3101,7 +3101,7 @@ function DashboardContent() {
                             {user?.companyId?.name
                               ?.toUpperCase()
                               .includes("JHARSUGUDA") ? (
-                              <span className="text-[10px] font-black text-white uppercase tracking-wide mt-1 max-w-[180px] truncate">
+                              <span className="text-[10px] font-black text-white uppercase tracking-wide mt-1 whitespace-normal break-words">
                                 {dashboardBrandTitle}
                               </span>
                             ) : (
