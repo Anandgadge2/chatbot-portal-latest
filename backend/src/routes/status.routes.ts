@@ -18,6 +18,8 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024, files: 5 },
 });
 
+const COLLECTORATE_JHARSUGUDA_COMPANY_ID = '69ad4c6eb1ad8e405e6c0858';
+
 const uploadBufferToCloudinary = async (
   file: Express.Multer.File,
   companyId: string,
@@ -39,6 +41,24 @@ const uploadBufferToCloudinary = async (
     );
     uploadStream.end(file.buffer);
   });
+};
+
+const isCollectorateJharsugudaCompanyId = (companyId?: string): boolean => {
+  return String(companyId || '') === COLLECTORATE_JHARSUGUDA_COMPANY_ID;
+};
+
+const canJharsugudaCompanyAdminOverrideFrozenGrievance = (
+  currentUser: any,
+  grievance: any,
+): boolean => {
+  if (currentUser?.isSuperAdmin) return true;
+  const role = String(currentUser?.role || '').toUpperCase();
+  const isCompanyAdmin =
+    role.includes(UserRole.COMPANY_ADMIN) ||
+    currentUser?.level === 1 ||
+    !currentUser?.departmentId;
+  const grievanceCompanyId = String((grievance?.companyId as any)?._id || grievance?.companyId || '');
+  return isCompanyAdmin && isCollectorateJharsugudaCompanyId(grievanceCompanyId);
 };
 
 // All routes require database connection and authentication
@@ -123,9 +143,11 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
       });
     }
 
-    // Prevent updates to resolved/rejected grievances (frozen) - except for super admin
+    // Prevent updates to resolved/rejected grievances (frozen),
+    // except for super admin and Collectorate Jharsuguda company admin override.
     const oldStatus = grievance.status;
-    if ((oldStatus === GrievanceStatus.RESOLVED || oldStatus === GrievanceStatus.REJECTED) && !currentUser.isSuperAdmin) {
+    const canOverrideFrozenGrievance = canJharsugudaCompanyAdminOverrideFrozenGrievance(currentUser, grievance);
+    if ((oldStatus === GrievanceStatus.RESOLVED || oldStatus === GrievanceStatus.REJECTED) && !canOverrideFrozenGrievance) {
       return res.status(403).json({
         success: false,
         message: 'Cannot update a resolved or rejected grievance. Grievance is frozen.'
@@ -139,7 +161,7 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
         return res.status(403).json({ success: false, message: 'Access denied to this company' });
       }
 
-      if (currentUser.departmentId) {
+      if (currentUser.departmentId && !canOverrideFrozenGrievance) {
         const grievanceDepartmentId = (grievance.departmentId as any)?._id?.toString() || grievance.departmentId?.toString();
         const grievanceSubDepartmentId = (grievance.subDepartmentId as any)?._id?.toString() || grievance.subDepartmentId?.toString();
         const currentUserDepartmentId = currentUser.departmentId?.toString();
@@ -155,6 +177,36 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
 
     // oldStatus is already declared above for freeze check
     grievance.status = status;
+
+    // Collectorate Jharsuguda requirement:
+    // When changing status of an already resolved grievance, reassign back to the officer who resolved it.
+    if (
+      oldStatus === GrievanceStatus.RESOLVED &&
+      status !== GrievanceStatus.RESOLVED &&
+      canOverrideFrozenGrievance
+    ) {
+      const lastResolver = [...(grievance.statusHistory || [])]
+        .reverse()
+        .find((entry: any) => entry.status === GrievanceStatus.RESOLVED && entry.changedBy);
+
+      if (lastResolver?.changedBy) {
+        grievance.assignedTo = lastResolver.changedBy;
+        grievance.assignedAt = new Date();
+
+        if (!grievance.timeline) {
+          grievance.timeline = [];
+        }
+        grievance.timeline.push({
+          action: 'ASSIGNED',
+          details: {
+            reason: 'Reassigned to resolver after post-resolution status change',
+            toUserId: lastResolver.changedBy
+          },
+          performedBy: currentUser._id,
+          timestamp: new Date()
+        });
+      }
+    }
 
     const uploadedDocumentUrls: string[] = [];
     if (status === GrievanceStatus.RESOLVED && uploadedFiles.length > 0) {

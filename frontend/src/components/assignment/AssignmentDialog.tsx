@@ -21,6 +21,7 @@ interface AssignmentDialogProps {
   currentDepartmentId?: string;
   currentSubDepartmentId?: string;
   userRole?: string;
+  canReassignCurrent?: boolean;
   userDepartmentId?: string;
   currentUserId?: string; // Current logged-in user ID to filter out from assignee list
 }
@@ -42,6 +43,7 @@ export default function AssignmentDialog({
   currentDepartmentId,
   currentSubDepartmentId,
   userRole,
+  canReassignCurrent = false,
   userDepartmentId,
   currentUserId
 }: AssignmentDialogProps) {
@@ -669,36 +671,49 @@ export default function AssignmentDialog({
                             <Search className="w-4 h-4" />
                           </button>
 
-                          {/* Assign Button */}
-                          <Button
-                            onClick={() => handleAssign(user._id)}
-                          disabled={assigningUserId !== null || isCurrentAssignee}
-                          size="sm"
-                          className={`min-w-[100px] rounded-xl font-semibold transition-all shadow-md ${
-                            isCurrentAssignee
-                              ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200 shadow-none'
-                              : isAssigning
-                              ? 'bg-blue-600'
-                              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
-                          }`}
-                        >
-                          {isAssigning ? (
-                            <span className="flex items-center gap-1.5">
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                              Assigning
-                            </span>
-                          ) : isCurrentAssignee ? (
-                            <span className="flex items-center gap-1.5">
-                              <UserCheck className="w-4 h-4" />
-                              Assigned
-                            </span>
-                          ) : (
-                            <span className="flex items-center gap-1.5">
-                              <UserCheck className="w-4 h-4" />
-                              Assign
-                            </span>
-                          )}
-                        </Button>
+                          <div className="flex flex-col items-end gap-1.5">
+                            {/* Assign Button */}
+                            <Button
+                              onClick={() => handleAssign(user._id)}
+                              disabled={assigningUserId !== null || isCurrentAssignee}
+                              size="sm"
+                              className={`min-w-[100px] rounded-xl font-semibold transition-all shadow-md ${
+                                isCurrentAssignee
+                                  ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200 shadow-none'
+                                  : isAssigning
+                                  ? 'bg-blue-600'
+                                  : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
+                              }`}
+                            >
+                              {isAssigning ? (
+                                <span className="flex items-center gap-1.5">
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                  Assigning
+                                </span>
+                              ) : isCurrentAssignee ? (
+                                <span className="flex items-center gap-1.5">
+                                  <UserCheck className="w-4 h-4" />
+                                  Assigned
+                                </span>
+                              ) : (
+                                <span className="flex items-center gap-1.5">
+                                  <UserCheck className="w-4 h-4" />
+                                  Assign
+                                </span>
+                              )}
+                            </Button>
+                            {isCurrentAssignee && canReassignCurrent && (
+                              <Button
+                                onClick={() => handleAssign(user._id)}
+                                disabled={assigningUserId !== null}
+                                size="sm"
+                                variant="outline"
+                                className="min-w-[100px] rounded-xl border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800 font-semibold"
+                              >
+                                Reassign
+                              </Button>
+                            )}
+                          </div>
                       </div>
                     </div>
                   </div>

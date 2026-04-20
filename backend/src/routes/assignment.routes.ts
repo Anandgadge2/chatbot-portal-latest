@@ -14,6 +14,25 @@ import {
 } from '../services/grievanceTemplateTriggerService';
 
 const router = express.Router();
+const COLLECTORATE_JHARSUGUDA_COMPANY_ID = '69ad4c6eb1ad8e405e6c0858';
+
+const isCollectorateJharsugudaCompanyId = (companyId?: string): boolean => {
+  return String(companyId || '') === COLLECTORATE_JHARSUGUDA_COMPANY_ID;
+};
+
+const canJharsugudaCompanyAdminOverrideFrozenGrievance = (
+  currentUser: any,
+  grievance: any,
+): boolean => {
+  if (currentUser?.isSuperAdmin) return true;
+  const role = String(currentUser?.role || '').toUpperCase();
+  const isCompanyAdmin =
+    role.includes(UserRole.COMPANY_ADMIN) ||
+    currentUser?.level === 1 ||
+    !currentUser?.departmentId;
+  const grievanceCompanyId = String((grievance?.companyId as any)?._id || grievance?.companyId || '');
+  return isCompanyAdmin && isCollectorateJharsugudaCompanyId(grievanceCompanyId);
+};
 
 // Apply middleware to all routes
 router.use(requireDatabaseConnection);
@@ -56,8 +75,11 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
       });
     }
 
-    // Prevent assignment to resolved/closed grievances (frozen)
-    if (grievance.status === 'RESOLVED') {
+    const canOverrideFrozenGrievance = canJharsugudaCompanyAdminOverrideFrozenGrievance(currentUser, grievance);
+
+    // Prevent assignment to resolved/closed grievances (frozen),
+    // except for super admin and Collectorate Jharsuguda company admin override.
+    if (grievance.status === 'RESOLVED' && !canOverrideFrozenGrievance) {
       return res.status(403).json({
         success: false,
         message: 'Cannot assign a resolved or closed grievance. Grievance is frozen.'
@@ -100,7 +122,7 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
       }
 
       // If restricted by department (Department Admin/Operator)
-      if (currentUser.departmentId) {
+      if (currentUser.departmentId && !canOverrideFrozenGrievance) {
         if (grievance.departmentId?._id.toString() !== currentUser.departmentId?.toString()) {
           return res.status(403).json({ success: false, message: 'You can only assign within your department' });
         }
