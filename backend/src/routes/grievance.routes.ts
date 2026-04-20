@@ -483,7 +483,7 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
     await grievance.save();
 
     await triggerAdminTemplate({
-      event: 'grievance_reverted_company_v1',
+      event: 'grievance_reverted_admin_v1',
       companyId: grievance.companyId,
       language: grievance.language,
       citizenPhone: grievance.citizenPhone,
@@ -497,7 +497,7 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
         remarks: remarks.trim(),
         reverted_on: formatTemplateDate()
       }
-    }).catch((err) => logger.error('Failed to trigger grievance_reverted_company_v1 template', err));
+    }).catch((err) => logger.error('Failed to trigger grievance_reverted_admin_v1 template', err));
 
     const { notifyCompanyAdminsOnRevert } = await import('../services/notificationService');
     await notifyCompanyAdminsOnRevert({
@@ -995,6 +995,7 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
             description: grievance.description,
             assigned_by: req.user!.getFullName(),
             reassigned_by: req.user!.getFullName(),
+            submitted_on: formatTemplateDate(grievance.createdAt),
             assigned_on: formatTemplateDate(grievance.assignedAt || new Date()),
             reassigned_on: formatTemplateDate(grievance.assignedAt || new Date()),
             remarks: transferNote || 'Assigned for resolution.',

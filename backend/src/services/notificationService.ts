@@ -237,17 +237,12 @@ const computeLocalizedResolutionTime = (
   return computeResolutionTime(createdAt, resolvedAt);
 };
 
-/**
- * Fetches all necessary names (company, department, etc.) to populate placeholder data.
- * Ensures resolutionTimeText is computed if not provided.
- */
 async function populateNotificationData(data: NotificationData): Promise<Record<string, any>> {
   const company = await findCompanyByIdOrCustomId(data.companyId);
   const lang = getNotificationLanguage(data as any);
   const locale = getLocaleForLanguage(lang);
   const copy = UI_TEXT[lang];
 
-  // Handle populated Mongoose objects — extract _id before calling findById
   const deptId = data.departmentId
     ? (typeof data.departmentId === 'object' && data.departmentId._id ? data.departmentId._id : data.departmentId)
     : null;
@@ -258,9 +253,6 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
   const department = deptId ? await findDepartmentByIdOrCustomId(deptId) : null;
   const subDept = subDeptId ? await findDepartmentByIdOrCustomId(subDeptId) : null;
 
-  // 🏢 HIERARCHY RESOLUTION: 
-  // If the 'department' is actually a sub-department (has a parent), 
-  // and we don't have a subDept already, shift them so we show both Parent and Child.
   let finalDept = department;
   let finalSubDept = subDept;
 
@@ -268,6 +260,27 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
     finalSubDept = finalDept;
     finalDept = await findDepartmentByIdOrCustomId(finalDept.parentDepartmentId);
   }
+
+  const formatFn = (d: Date) => {
+    try {
+      const formatter = new Intl.DateTimeFormat(locale, {
+        day: 'numeric', month: 'long', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true,
+        timeZone: 'Asia/Kolkata'
+      });
+      const parts = formatter.formatToParts(d);
+      const p: Record<string, string> = {};
+      parts.forEach(part => { p[part.type] = part.value; });
+      const dayPeriod = (p.dayPeriod || p.ampm || '').toLowerCase();
+      return `${p.day} ${p.month} ${p.year} at ${p.hour}:${p.minute}:${p.second} ${dayPeriod}`.trim().replace(/\s+/g, ' ');
+    } catch (e) {
+      return d.toLocaleString(locale, { timeZone: 'Asia/Kolkata' });
+    }
+  };
+
+  const createdAt = data.createdAt || new Date();
+  const formattedDate = formatFn(new Date(createdAt));
+  const formattedSubmittedDate = formattedDate;
 
   let assignedByName = data.assignedByName || 'Administrator';
   if (!data.assignedByName && data.assignedTo) {
@@ -289,26 +302,6 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
     } catch (e) {}
   }
 
-  const formatFn = (d: Date) => {
-    try {
-      const formatter = new Intl.DateTimeFormat(locale, {
-        day: '2-digit', month: 'long', year: 'numeric',
-        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true,
-        timeZone: 'Asia/Kolkata'
-      });
-      const parts = formatter.formatToParts(d);
-      const p: Record<string, string> = {};
-      parts.forEach(part => { p[part.type] = part.value; });
-      return `${p.day} ${p.month} ${p.year} at ${p.hour}:${p.minute}:${p.second} ${p.dayPeriod || p.ampm || ''}`.trim().replace(/\s+/g, ' ').toLowerCase();
-    } catch (e) {
-      return d.toLocaleString(locale, { timeZone: 'Asia/Kolkata' });
-    }
-  };
-
-  const createdAt = data.createdAt || new Date();
-  const formattedDate = formatFn(new Date(createdAt));
-  const formattedSubmittedDate = formattedDate;
-
   let formattedAssignedDate = '';
   if (data.assignedAt) {
     try {
@@ -327,14 +320,13 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
     }
   }
 
-  // Format Appointment Date if present
   let formattedAppointmentDate = '';
   if (data.appointmentDate) {
     try {
       const d = data.appointmentDate instanceof Date ? data.appointmentDate : new Date(data.appointmentDate);
       if (!isNaN(d.getTime())) {
         formattedAppointmentDate = d.toLocaleDateString(locale, {
-          day: '2-digit', month: 'long', year: 'numeric',
+          day: 'numeric', month: 'long', year: 'numeric',
           timeZone: 'Asia/Kolkata'
         });
       }
@@ -343,7 +335,6 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
     }
   }
 
-  // Format Appointment Time as AM/PM
   let formattedAppointmentTime = '';
   if (data.appointmentTime) {
     try {
@@ -351,7 +342,7 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
       if (parts.length >= 2) {
         const sampleDate = new Date(`2000-01-01T${parts[0].padStart(2, '0')}:${parts[1].substring(0, 2)}:00`);
         formattedAppointmentTime = sampleDate.toLocaleTimeString(locale, {
-          hour: '2-digit',
+          hour: 'numeric',
           minute: '2-digit',
           hour12: true,
           timeZone: 'Asia/Kolkata'
@@ -368,7 +359,6 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
     ? getLocalizedDepartmentName(finalDept, lang)
     : (data.departmentName || (data.type === 'appointment' ? copy.collectorOffice : copy.general))).trim();
   
-  // Clean departmentName if it contains location suffix (e.g. "Tahasil Office, Jharsuguda")
   if (departmentName.includes(',') && !departmentName.includes('Department')) {
     departmentName = departmentName.split(',')[0].trim();
   }
@@ -381,20 +371,17 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
   }
 
   let description = (data.description || '').trim();
-  logger.info(`🔍 [PopulateData] Action: ${data.action}, ID: ${data.grievanceId || data.appointmentId}, Description: "${description}"`);
   if (description.toLowerCase() === 'not provided') description = '';
 
-  // 🔄 REASSIGNMENT CONTEXT: If this was reverted and is being reassigned
   let originalDeptName = '';
   let originalSubDeptName = '';
   let reassignmentRemarks = '';
   let revertedByName = '';
   let formattedRevertedDate = '';
   const reassignedByName = String((data as any).reassignedByName || data.assignedByName || '').trim();
-  let formattedReassignedDate = formattedAssignedDate;
+  let formattedReassignedDate = formattedAssignedDate || formattedDate;
 
   if (data.timeline && Array.isArray(data.timeline)) {
-    // Look for the latest revert event to get context
     const revertEvent = [...data.timeline].reverse().find((t: any) => t.action === 'REVERTED_TO_COMPANY_ADMIN');
     if (revertEvent && revertEvent.details) {
       reassignmentRemarks = revertEvent.details.remarks || '';
@@ -404,7 +391,6 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
         } catch (e) {}
       }
       
-      // Resolve the name of the person who reverted
       if (revertEvent.performedBy) {
         try {
           const rUser = await User.findById(revertEvent.performedBy).select('firstName lastName');
@@ -447,8 +433,6 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
     }
   }
 
-  // Multi-line values (conditional blocks)
-  // Multi-line values (conditional blocks)
   const deptLabel = departmentName ? `\n🏢 *${copy.department}:* ${departmentName}` : '';
   const subDeptLabel = subDepartmentName ? `\n🏢 *${copy.subDepartment}:* ${subDepartmentName}` : '';
   const descriptionLabel = description ? `\n📝 *${copy.description}:*\n${description}` : '';
@@ -477,7 +461,7 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
     departmentName,
     subDepartmentName,
     officeName: subDepartmentName || departmentName,
-    subdepartmentName: subDepartmentName, // Compatibility with chatbot flow placeholders
+    subdepartmentName: subDepartmentName,
     description,
     grievanceDetails: description,
     deptLabel,

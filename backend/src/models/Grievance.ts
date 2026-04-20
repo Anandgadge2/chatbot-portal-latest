@@ -34,7 +34,7 @@ export interface IGrievance extends Document {
   forestAreaId?: string; // 🌲 Reference to ForestArea model's areaId
   media: Array<{
     url: string;
-    type: 'image' | 'document';
+    type: 'image' | 'document' | 'video';
     uploadedAt: Date;
     uploadedBy?: mongoose.Types.ObjectId;
   }>;
@@ -88,7 +88,7 @@ const GrievanceSchema: Schema = new Schema(
     },
     phone_number: {
       type: String,
-      required: true,
+      required: false, // Legacy fallback
       index: true
     },
     citizenWhatsApp: {
@@ -100,7 +100,7 @@ const GrievanceSchema: Schema = new Schema(
     },
     message: {
       type: String,
-      required: true
+      required: false // Legacy fallback
     },
     category: {
       type: String,
@@ -112,7 +112,6 @@ const GrievanceSchema: Schema = new Schema(
       default: 'MEDIUM',
       index: true
     },
-   
     status: {
       type: String,
       default: GrievanceStatus.PENDING,
@@ -177,7 +176,7 @@ const GrievanceSchema: Schema = new Schema(
       },
       type: {
         type: String,
-        enum: ['image', 'document', 'video'], // Added 'video' support
+        enum: ['image', 'document', 'video'],
         required: true
       },
       uploadedAt: {
@@ -231,6 +230,19 @@ const GrievanceSchema: Schema = new Schema(
     timestamps: true
   }
 );
+
+GrievanceSchema.pre('validate', function (next) {
+  // Backfill legacy records so status/assignment updates do not fail schema validation.
+  if (!this.phone_number) {
+    this.phone_number = this.citizenPhone || this.citizenWhatsApp || '';
+  }
+
+  if (!this.message) {
+    this.message = this.description || '';
+  }
+
+  next();
+});
 
 // Compound indexes
 GrievanceSchema.index({ companyId: 1, status: 1 });

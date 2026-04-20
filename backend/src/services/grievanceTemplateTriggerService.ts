@@ -12,7 +12,7 @@ import { normalizePhoneNumber } from '../utils/phoneUtils';
 export function formatTemplateDate(date: Date = new Date()): string {
   try {
     const formatter = new Intl.DateTimeFormat('en-IN', {
-      day: '2-digit',
+      day: 'numeric',
       month: 'long',
       year: 'numeric',
       hour: '2-digit',
@@ -32,7 +32,7 @@ export function formatTemplateDate(date: Date = new Date()): string {
     const hour = p.hour;
     const minute = p.minute;
     const second = p.second;
-    const dayPeriod = (p.dayPeriod || '').toLowerCase();
+    const dayPeriod = (p.dayPeriod || p.ampm || '').toLowerCase();
 
     return `${day} ${month} ${year} at ${hour}:${minute}:${second} ${dayPeriod}`;
   } catch (e) {
@@ -66,18 +66,18 @@ async function getAdminRecipients(companyId: any): Promise<string[]> {
   const companyAdminRoleIds = await Role.find({
     companyId,
     $or: [
-      { key: { $in: ['COMPANY_ADMIN', 'ADMIN', 'COMPANY_HEAD', 'SUPER_ADMIN'] } },
-      { level: { $lte: 1 } },
-      { name: { $regex: /company\s*admin|administrator|head|collector|commissioner|director/i } }
+      { key: { $in: ['COMPANY_ADMIN', 'COMPANY_HEAD'] } },
+      { name: { $regex: /collector|head|commissioner/i } }
     ]
   }).distinct('_id');
 
   const admins = await User.find({
     companyId,
     isActive: true,
+    'notificationSettings.whatsapp': { $ne: false }, // Only notify if not explicitly disabled
     $or: [
       { isSuperAdmin: true },
-      { level: { $lte: 1 } },
+      { level: 1 },
       { customRoleId: { $in: companyAdminRoleIds } }
     ]
   }).select('phone').lean();
@@ -97,7 +97,7 @@ export async function triggerAdminTemplate(options: {
     | 'grievance_pending_admin_v1'
     | 'grievance_assigned_admin_v1'
     | 'grievance_reassigned_admin_v1'
-    | 'grievance_reverted_company_v1';
+    | 'grievance_reverted_admin_v1';
   companyId: any;
   language?: string;
   values?: string[];

@@ -225,6 +225,7 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
         previous_admin: oldAssignedTo ? (await (await import('../models/User')).default.findById(oldAssignedTo))?.getFullName() || 'N/A' : 'N/A',
         assigned_by: currentUser.getFullName(),
         reassigned_by: currentUser.getFullName(),
+        submitted_on: formatTemplateDate(grievance.createdAt),
         assigned_on: formatTemplateDate(),
         reassigned_on: formatTemplateDate(),
         reason: (req.body as any).reason || 'Administrative Reassignment',

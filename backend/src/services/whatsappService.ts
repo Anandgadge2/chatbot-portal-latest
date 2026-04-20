@@ -440,6 +440,7 @@ async function buildMappedComponentsFromSavedTemplateMapping(options: {
       receivedOn: ['received_on', 'submitted_on', 'formattedDate'],
       submittedOn: ['submitted_on', 'received_on', 'formattedDate'],
       submittedDate: ['submitted_on', 'received_on', 'formattedDate'],
+      'submitted-on': ['submitted_on', 'received_on', 'formattedDate'],
       assignedByName: ['assigned_by', 'reassigned_by'],
       assignedOn: ['assigned_on', 'formattedDate'],
       assignedDate: ['assigned_on', 'formattedDate'],
@@ -450,6 +451,9 @@ async function buildMappedComponentsFromSavedTemplateMapping(options: {
       revertedByName: ['reverted_by'],
       revertedOn: ['reverted_on', 'formattedDate'],
       revertedDate: ['reverted_on', 'formattedDate'],
+      officeName: ['office_name', 'sub_department_name', 'subDepartmentName', 'department_name', 'departmentName'],
+      'sub-departmentName': ['sub_department_name', 'subDepartmentName', 'office_name'],
+      subdepartmentName: ['sub_department_name', 'subDepartmentName', 'office_name'],
     };
 
     for (const alias of legacyAliases[inputKey] || []) {
@@ -475,19 +479,19 @@ async function buildMappedComponentsFromSavedTemplateMapping(options: {
     const mappedFromPayload = resolveMappedRuntimeValue(mappedKeyOrLiteral);
     const resolvedValue = mappedFromPayload !== undefined && mappedFromPayload !== null
       ? String(mappedFromPayload)
-      : mappedKeyOrLiteral;
+      : (options.data[mappedKeyOrLiteral] !== undefined ? String(options.data[mappedKeyOrLiteral]) : mappedKeyOrLiteral);
 
-    if (!resolvedValue.trim()) {
-      const error: any = new Error(
-        `Template ${options.templateName} has empty mapped value for variable {{${key}}}.`
-      );
-      error.code = 'TEMPLATE_INVALID';
-      throw error;
-    }
+    // If it's still the key name and it looks like a variable key (no spaces), return 'N/A'
+    const finalValue = (resolvedValue === mappedKeyOrLiteral && !mappedKeyOrLiteral.includes(' '))
+      ? 'N/A'
+      : resolvedValue;
+
+    // 🛡️ CRITICAL: Never send an empty string to Meta; it will reject the entire template request.
+    const safeFinalValue = finalValue.trim() ? finalValue : 'N/A';
 
     return {
       type: 'text',
-      text: safeText(resolvedValue, 1000)
+      text: safeText(safeFinalValue, 1000)
     };
   });
 
