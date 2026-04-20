@@ -4449,6 +4449,28 @@ function DashboardContent() {
                                       </div>
                                     </div>
                                   ))}
+                                  {/* Rows per page Selector - Moved here */}
+                                  <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border border-slate-200 shadow-sm h-8 ml-auto">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                      Rows:
+                                    </span>
+                                    <select
+                                      value={departmentPagination.limit}
+                                      onChange={(e) =>
+                                        setDepartmentPagination((prev) => ({
+                                          ...prev,
+                                          limit: Number(e.target.value),
+                                        }))
+                                      }
+                                      className="text-[10px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer p-0 h-auto"
+                                    >
+                                      {[10, 20, 25, 50, 100, 200, 250].map((l) => (
+                                        <option key={l} value={l}>
+                                          {l}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
                                 </div>
                               </>
                             ) : (
@@ -5614,26 +5636,15 @@ function DashboardContent() {
                                   Filters
                                 </Button>
                             )}
-                           
-                            {/* {isViewingCompany && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                  exportToCSV(departments, "departments", [
-                                    { key: "departmentId", label: "ID" },
-                                    { key: "name", label: "Name" },
-                                    { key: "isActive", label: "Status" },
-                                  ])
-                                }
-                                className="border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl font-bold text-[11px] uppercase tracking-wider whitespace-nowrap"
-                                title="Export to CSV"
-                              >
-                                <Download className="w-3.5 h-3.5 mr-1.5" />
-                                Export
-                              </Button>
-                            )} */}
                           </div>
+                          
+                          <span className="text-[10px] font-bold text-slate-700 bg-white px-2 py-1 rounded-lg shadow-sm border border-slate-200 whitespace-nowrap">
+                            Showing{" "}
+                            <span className="text-indigo-600 font-black">
+                              {departments.length}
+                            </span>{" "}
+                            of {departmentPagination.total}
+                          </span>
                         </div>
 
                         <div
@@ -5722,7 +5733,7 @@ function DashboardContent() {
                                           subDeptId: "",
                                         });
                                       }}
-                                      className="h-8 px-2 text-[11px] text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg border border-red-200 font-medium"
+                                      className="h-8 px-3 text-[11px] text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg border border-red-200 font-medium"
                                       title="Clear all filters"
                                     >
                                       <X className="w-3 h-3 mr-1" />
@@ -5747,37 +5758,27 @@ function DashboardContent() {
                               </div>
                             </>
                           )}
-
-                          {/* Pagination Limit & Count */}
-                          <div className="flex items-center gap-3 ml-0 md:ml-auto shrink-0 w-full md:w-auto justify-between md:justify-start">
-                            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-slate-200">
-                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                Rows:
-                              </span>
-                              <select
-                                value={departmentPagination.limit}
-                                onChange={(e) =>
-                                  setDepartmentPagination((prev) => ({
-                                    ...prev,
-                                    limit: Number(e.target.value),
-                                  }))
-                                }
-                                className="text-[10px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer p-0"
-                              >
-                                {[10, 20, 25, 50, 100, 200, 250].map((l) => (
-                                  <option key={l} value={l}>
-                                    {l}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                            <span className="text-[10px] font-bold text-slate-700 bg-white px-3 py-2 rounded-xl shadow-sm border border-slate-200 whitespace-nowrap">
-                              Showing{" "}
-                              <span className="text-indigo-600 font-black">
-                                {departments.length}
-                              </span>{" "}
-                              of {departmentPagination.total}
+                          {/* Rows per page Selector - Moved here */}
+                          <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border border-slate-200 shadow-sm h-8 ml-auto">
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                              Rows:
                             </span>
+                            <select
+                              value={departmentPagination.limit}
+                              onChange={(e) =>
+                                setDepartmentPagination((prev) => ({
+                                  ...prev,
+                                  limit: Number(e.target.value),
+                                }))
+                              }
+                              className="text-[10px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer p-0 h-auto"
+                            >
+                              {[10, 20, 25, 50, 100, 200, 250].map((l) => (
+                                <option key={l} value={l}>
+                                  {l}
+                                </option>
+                              ))}
+                            </select>
                           </div>
                         </div>
                       </div>
@@ -6555,74 +6556,62 @@ function DashboardContent() {
                               />
                             </div>
 
-                            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-                              {isSuperAdminUser && selectedUsers.size > 0 && (
-                                <Button
-                                  variant="destructive"
-                                  size="sm"
-                                  onClick={handleBulkDeleteUsers}
-                                  disabled={isDeleting}
-                                  className="h-8 text-[10px] font-bold uppercase bg-red-600 hover:bg-red-700 text-white rounded-lg border border-red-700 shadow-sm transition-all px-3"
-                                >
-                                  <Trash2 className="w-3 h-3 mr-1.5" />
-                                  Delete ({selectedUsers.size})
-                                </Button>
-                              )}
+                             <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                               {isSuperAdminUser && selectedUsers.size > 0 && (
+                                 <Button
+                                   variant="destructive"
+                                   size="sm"
+                                   onClick={handleBulkDeleteUsers}
+                                   disabled={isDeleting}
+                                   className="h-8 text-[10px] font-bold uppercase bg-red-600 hover:bg-red-700 text-white rounded-lg border border-red-700 shadow-sm transition-all px-3"
+                                 >
+                                   <Trash2 className="w-3 h-3 mr-1.5" />
+                                   Delete ({selectedUsers.size})
+                                 </Button>
+                               )}
 
-                              {(isSuperAdminUser ||
-                                hasPermission(
-                                  user,
-                                  Permission.CREATE_USER,
-                                )) && (
-                              <Button
-                                type="button"
-                                onClick={() => setShowUserDialog(true)}
-                                className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-9 text-[11px] font-bold uppercase tracking-wide rounded-lg px-4 shadow-md transition-all active:scale-95 whitespace-nowrap"
-                              >
-                                <UserPlus className="w-3.5 h-3.5 mr-1.5" />
-                                Add User
-                              </Button>
-                              )}
-                              {!(
-                                isDepartmentAdminRole ||
-                                isSubDepartmentAdminRole ||
-                                isOperatorRole
-                              ) && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() =>
-                                    setShowUserFiltersOnMobile((prev) => !prev)
-                                  }
-                                  className="md:hidden border-slate-200 hover:bg-slate-50 rounded-lg whitespace-nowrap h-8 text-[11px] font-bold uppercase tracking-tight"
-                                  title="Toggle filters"
-                                >
-                                  <Filter className="w-3.5 h-3.5 mr-1" />
-                                  Filters
-                                </Button>
-                              )}
-                              {/* {isViewingCompany && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() =>
-                                    exportToCSV(users, "users", [
-                                      { key: "firstName", label: "First Name" },
-                                      { key: "lastName", label: "Last Name" },
-                                      { key: "email", label: "Email" },
-                                      { key: "phone", label: "Phone" },
-                                      { key: "role", label: "Role" },
-                                    ])
-                                  }
-                                  className="border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg font-bold h-8 text-[11px] uppercase tracking-tight whitespace-nowrap"
-                                  title="Export to CSV"
-                                >
-                                  <Download className="w-3.5 h-3.5 mr-1.5" />
-                                  Export
-                                </Button>
-                              )} */}
-                            </div>
-                          </div>
+                               {(isSuperAdminUser ||
+                                 hasPermission(
+                                   user,
+                                   Permission.CREATE_USER,
+                                 )) && (
+                               <Button
+                                 type="button"
+                                 onClick={() => setShowUserDialog(true)}
+                                 className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-9 text-[11px] font-bold uppercase tracking-wide rounded-lg px-4 shadow-md transition-all active:scale-95 whitespace-nowrap"
+                               >
+                                 <UserPlus className="w-3.5 h-3.5 mr-1.5" />
+                                 Add User
+                               </Button>
+                               )}
+                               {!(
+                                 isDepartmentAdminRole ||
+                                 isSubDepartmentAdminRole ||
+                                 isOperatorRole
+                               ) && (
+                                 <Button
+                                   variant="outline"
+                                   size="sm"
+                                   onClick={() =>
+                                     setShowUserFiltersOnMobile((prev) => !prev)
+                                   }
+                                   className="md:hidden border-slate-200 hover:bg-slate-50 rounded-lg whitespace-nowrap h-8 text-[11px] font-bold uppercase tracking-tight"
+                                   title="Toggle filters"
+                                 >
+                                   <Filter className="w-3.5 h-3.5 mr-1" />
+                                   Filters
+                                 </Button>
+                               )}
+                             </div>
+
+                             <span className="text-[10px] font-bold text-slate-700 bg-white px-2 py-1 rounded-lg shadow-sm border border-slate-200 whitespace-nowrap">
+                               Showing{" "}
+                               <span className="text-indigo-600 font-black">
+                                 {users.length}
+                               </span>{" "}
+                               of {userPagination.total}
+                             </span>
+                           </div>
 
                           <div
                             className={cn(
@@ -6718,19 +6707,17 @@ function DashboardContent() {
                                     });
                                     setUserPage(1);
                                   }}
-                                  className="h-8 px-2 text-[11px] text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg border border-red-200 font-medium"
+                                  className="h-8 px-3 text-[11px] text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg border border-red-200 font-medium"
                                   title="Clear all filters"
                                 >
                                   <X className="w-3 h-3 mr-1" />
                                   Clear
                                 </Button>
                               )}
-                            </div>
 
-                            {/* Pagination Limit & Count */}
-                            <div className="flex items-center gap-3 ml-0 md:ml-auto shrink-0 w-full md:w-auto justify-between md:justify-start">
-                              <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-slate-200">
-                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                              {/* Rows per page Selector - Moved here */}
+                              <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border border-slate-200 shadow-sm h-8 ml-auto">
+                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                   Rows:
                                 </span>
                                 <select
@@ -6741,23 +6728,17 @@ function DashboardContent() {
                                       limit: Number(e.target.value),
                                     }))
                                   }
-                                  className="text-[10px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer p-0"
+                                  className="text-[10px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer p-0 h-auto"
                                 >
-                                  {[10, 20, 25, 50, 100].map((l) => (
+                                  {[10, 20, 25, 50, 100, 200, 250].map((l) => (
                                     <option key={l} value={l}>
                                       {l}
                                     </option>
                                   ))}
                                 </select>
                               </div>
-                              <span className="text-[10px] font-bold text-slate-700 bg-white px-3 py-2 rounded-xl shadow-sm border border-slate-200">
-                                Total{" "}
-                                <span className="text-indigo-600 font-black">
-                                  {userPagination.total}
-                                </span>{" "}
-                                Users
-                              </span>
                             </div>
+
                           </div>
                         </div>
 
@@ -7429,35 +7410,15 @@ function DashboardContent() {
                               <Filter className="w-3.5 h-3.5 mr-1" />
                               Filters
                             </Button>
-                            {/* {isViewingCompany && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                  exportToCSV(
-                                    getSortedData(grievances, "grievances"),
-                                    "grievances",
-                                    [
-                                      { key: "grievanceId", label: "ID" },
-                                      {
-                                        key: "citizenName",
-                                        label: "Citizen Name",
-                                      },
-                                      { key: "citizenPhone", label: "Phone" },
-                                      { key: "category", label: "Category" },
-                                      { key: "status", label: "Status" },
-                                      { key: "createdAt", label: "Created At" },
-                                    ],
-                                  )
-                                }
-                                className="border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg whitespace-nowrap h-8 text-[11px] font-bold uppercase tracking-tight"
-                                title="Export to CSV"
-                              >
-                                <FileDown className="w-3.5 h-3.5 mr-1" />
-                                Export
-                              </Button>
-                            )} */}
                           </div>
+
+                          <span className="text-[10px] font-bold text-slate-700 bg-white px-2 py-1 rounded-lg shadow-sm border border-slate-200 whitespace-nowrap">
+                            Showing{" "}
+                            <span className="text-indigo-600 font-black">
+                              {getSortedData(grievances, "grievances").length}
+                            </span>{" "}
+                            of {grievancePagination.total}
+                          </span>
                         </div>
 
                         {/* Filters Row */}
@@ -7595,7 +7556,7 @@ function DashboardContent() {
                                   dateRange: "",
                                 })
                               }
-                              className="text-xs h-8 px-3 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl border border-red-200"
+                              className="text-[11px] h-8 px-3 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg border border-red-200 font-medium"
                               title="Clear all filters"
                             >
                               <X className="w-3 h-3 mr-1" />
@@ -7618,11 +7579,9 @@ function DashboardContent() {
                               </Button>
                             )}
 
-                          {/* Redundant Bulk Delete Button removed (consolidated above) */}
-
-                          {/* Rows per page Selector */}
-                          <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                          {/* Rows per page Selector - Moved here */}
+                          <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border border-slate-200 shadow-sm h-8 ml-auto">
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
                               Rows:
                             </span>
                             <select
@@ -7633,24 +7592,15 @@ function DashboardContent() {
                                   limit: Number(e.target.value),
                                 }))
                               }
-                              className="text-[10px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer"
+                              className="text-[10px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer p-0 h-auto"
                             >
-                              {[10, 20, 25, 50, 100].map((l) => (
+                              {[10, 20, 25, 50, 100, 200, 250].map((l) => (
                                 <option key={l} value={l}>
                                   {l}
                                 </option>
                               ))}
                             </select>
                           </div>
-
-                          {/* Results count */}
-                          <span className="text-xs text-slate-500 ml-auto bg-white px-3 py-1.5 rounded-lg shadow-sm border border-slate-200">
-                            Showing{" "}
-                            <span className="font-semibold text-indigo-600">
-                              {getSortedData(grievances, "grievances").length}
-                            </span>{" "}
-                            of {grievances.length} grievances
-                          </span>
                         </div>
                       </div>
 
@@ -8679,82 +8629,61 @@ function DashboardContent() {
                               onChange={(e) =>
                                 setAppointmentSearch(e.target.value)
                               }
-                              className="w-full pl-9 pr-3.5 h-9 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all text-[11px] font-bold uppercase tracking-tight placeholder:normal-case placeholder:text-slate-400 shadow-sm"
+                              className="w-full pl-9 pr-3.5 h-9 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-[11px] font-bold uppercase tracking-tight placeholder:normal-case placeholder:text-slate-400 shadow-sm"
                             />
                           </div>
-                          <div className="flex items-center gap-2 flex-wrap md:flex-nowrap">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                setShowAppointmentFiltersOnMobile(
-                                  (prev) => !prev,
-                                )
-                              }
-                              className="md:hidden border-slate-200 hover:bg-slate-50 rounded-lg h-8 text-[11px] font-bold uppercase tracking-tight"
-                              title="Toggle filters"
-                            >
-                              <Filter className="w-3.5 h-3.5 mr-1" />
-                              Filters
-                            </Button>
-                            <div className="flex items-center gap-2">
-                              {(isViewingCompany || isDepartmentLevel) && (
-                                <Button
-                                  onClick={() =>
-                                    setShowAvailabilityCalendar(true)
-                                  }
-                                  className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-9 text-[10px] font-bold uppercase tracking-widest rounded-lg px-4 shadow-md whitespace-nowrap"
-                                  title="Configure when appointments can be scheduled"
-                                >
-                                  <CalendarClock className="w-3.5 h-3.5 mr-1.5" />
-                                  Availability
-                                </Button>
-                              )}
-                            </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={handleRefreshData}
-                              disabled={isRefreshing}
-                              className="border-slate-200 hover:bg-slate-50 rounded-xl whitespace-nowrap"
-                              title="Refresh data"
-                            >
-                              <RefreshCw
-                                className={`w-4 h-4 mr-1.5 ${isRefreshing ? "animate-spin" : ""}`}
-                              />
-                              Refresh
-                            </Button>
-                            {/* {isViewingCompany && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                  exportToCSV(
-                                    getSortedData(appointments, "appointments"),
-                                    "appointments",
-                                    [
-                                      { key: "appointmentId", label: "ID" },
-                                      {
-                                        key: "citizenName",
-                                        label: "Citizen Name",
-                                      },
-                                      { key: "citizenPhone", label: "Phone" },
-                                      { key: "purpose", label: "Purpose" },
-                                      { key: "appointmentDate", label: "Date" },
-                                      { key: "appointmentTime", label: "Time" },
-                                      { key: "status", label: "Status" },
-                                    ],
-                                  )
-                                }
-                                className="border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl whitespace-nowrap"
-                                title="Export to CSV"
-                              >
-                                <FileDown className="w-4 h-4 mr-1.5" />
-                                Export
-                              </Button>
-                            )} */}
-                          </div>
-                        </div>
+                           <div className="flex items-center gap-2 flex-wrap md:flex-nowrap">
+                             <Button
+                               variant="outline"
+                               size="sm"
+                               onClick={() =>
+                                 setShowAppointmentFiltersOnMobile(
+                                   (prev) => !prev,
+                                 )
+                               }
+                               className="md:hidden border-slate-200 hover:bg-slate-50 rounded-lg h-8 text-[11px] font-bold uppercase tracking-tight"
+                               title="Toggle filters"
+                             >
+                               <Filter className="w-3.5 h-3.5 mr-1" />
+                               Filters
+                             </Button>
+                             <div className="flex items-center gap-2">
+                               {(isViewingCompany || isDepartmentLevel) && (
+                                 <Button
+                                   onClick={() =>
+                                     setShowAvailabilityCalendar(true)
+                                   }
+                                   className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-9 text-[10px] font-bold uppercase tracking-widest rounded-lg px-4 shadow-md whitespace-nowrap"
+                                   title="Configure when appointments can be scheduled"
+                                 >
+                                   <CalendarClock className="w-3.5 h-3.5 mr-1.5" />
+                                   Availability
+                                 </Button>
+                               )}
+                             </div>
+                             <Button
+                               variant="outline"
+                               size="sm"
+                               onClick={handleRefreshData}
+                               disabled={isRefreshing}
+                               className="border-slate-200 hover:bg-slate-50 rounded-lg whitespace-nowrap h-9 text-[11px] font-bold uppercase tracking-tight"
+                               title="Refresh data"
+                             >
+                               <RefreshCw
+                                 className={`w-4 h-4 mr-1.5 ${isRefreshing ? "animate-spin" : ""}`}
+                               />
+                               Refresh
+                             </Button>
+                           </div>
+
+                            <span className="text-[10px] font-bold text-slate-700 bg-white px-2 py-1 rounded-lg shadow-sm border border-slate-200 whitespace-nowrap">
+                              Showing{" "}
+                              <span className="text-indigo-600 font-black">
+                                {getSortedData(appointments, "appointments").length}
+                              </span>{" "}
+                              of {appointmentPagination.total}
+                            </span>
+                         </div>
 
                         {/* Filters Row */}
                         <div
@@ -8765,9 +8694,9 @@ function DashboardContent() {
                               : "hidden md:flex md:flex-row",
                           )}
                         >
-                          <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-slate-200">
-                            <Filter className="w-4 h-4 text-purple-500" />
-                            <span className="text-sm font-semibold text-slate-700">
+                          <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-lg shadow-sm border border-slate-200 h-8">
+                            <Filter className="w-3.5 h-3.5 text-indigo-500" />
+                            <span className="text-[11px] font-bold text-slate-700 uppercase tracking-tight">
                               Filters
                             </span>
                           </div>
@@ -8781,7 +8710,7 @@ function DashboardContent() {
                                 status: e.target.value,
                               }))
                             }
-                            className="w-full md:w-auto text-xs px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white shadow-sm hover:border-purple-300 transition-colors cursor-pointer"
+                            className="text-[11px] h-8 px-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer font-medium"
                             title="Filter by appointment status"
                           >
                             <option value="">📋 All Status</option>
@@ -8803,7 +8732,7 @@ function DashboardContent() {
                                 dateFilter: e.target.value,
                               }))
                             }
-                            className="w-full md:w-auto text-xs px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white shadow-sm hover:border-purple-300 transition-colors cursor-pointer"
+                            className="text-[11px] h-8 px-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer font-medium"
                             title="Filter by date"
                           >
                             <option value="">📅 All Time</option>
@@ -8816,23 +8745,23 @@ function DashboardContent() {
                           {/* Clear Filters */}
                           {(appointmentFilters.status ||
                             appointmentFilters.dateFilter) && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() =>
-                                setAppointmentFilters({
-                                  status: "",
-                                  department: "",
-                                  assignmentStatus: "",
-                                  dateFilter: "",
-                                })
-                              }
-                              className="text-xs h-8 px-3 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl border border-red-200"
-                              title="Clear all filters"
-                            >
-                              <X className="w-3 h-3 mr-1" />
-                              Clear
-                            </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  setAppointmentFilters({
+                                    status: "",
+                                    department: "",
+                                    assignmentStatus: "",
+                                    dateFilter: "",
+                                  })
+                                }
+                                className="text-[11px] h-8 px-3 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg border border-red-200 font-medium"
+                                title="Clear all filters"
+                              >
+                                <X className="w-3 h-3 mr-1" />
+                                Clear
+                              </Button>
                           )}
 
                           {isSuperAdminUser &&
@@ -8842,47 +8771,35 @@ function DashboardContent() {
                                 size="sm"
                                 onClick={handleBulkDeleteAppointments}
                                 disabled={isDeleting}
-                                className="text-xs h-8 px-4 bg-red-600 hover:bg-red-700 text-white rounded-xl border border-red-700 shadow-sm mr-2"
+                                                                 className="text-[10px] font-bold uppercase bg-red-600 hover:bg-red-700 text-white rounded-lg border border-red-700 shadow-sm transition-all px-3 h-8"
                                 title={`Delete ${selectedAppointments.size} selected appointment(s)`}
                               >
                                 <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                                Delete ({selectedAppointments.size})
-                              </Button>
-                            )}
+                               Delete ({selectedAppointments.size})
+                             </Button>
+                           )}
 
-                          {/* Results count */}
-                          <div className="flex items-center gap-4 ml-0 md:ml-auto w-full md:w-auto justify-between md:justify-start">
-                            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm">
-                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                Rows:
-                              </span>
-                              <select
-                                value={appointmentPagination.limit}
-                                onChange={(e) =>
-                                  setAppointmentPagination((prev) => ({
-                                    ...prev,
-                                    limit: Number(e.target.value),
-                                  }))
-                                }
-                                className="text-[10px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer"
-                              >
-                                {[10, 20, 25, 50, 100].map((l) => (
-                                  <option key={l} value={l}>
-                                    {l}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                            <span className="text-xs text-slate-500 bg-white px-3 py-1.5 rounded-lg shadow-sm border border-slate-200">
-                              Showing{" "}
-                              <span className="font-semibold text-purple-600">
-                                {
-                                  getSortedData(appointments, "appointments")
-                                    .length
-                                }
-                              </span>{" "}
-                              of {appointments.length} appointments
+                          {/* Rows per page Selector - Moved here */}
+                          <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border border-slate-200 shadow-sm h-8 ml-auto">
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                              Rows:
                             </span>
+                            <select
+                              value={appointmentPagination.limit}
+                              onChange={(e) =>
+                                setAppointmentPagination((prev) => ({
+                                  ...prev,
+                                  limit: Number(e.target.value),
+                                }))
+                              }
+                              className="text-[10px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer p-0 h-auto"
+                            >
+                              {[10, 20, 25, 50, 100, 200, 250].map((l) => (
+                                <option key={l} value={l}>
+                                  {l}
+                                </option>
+                              ))}
+                            </select>
                           </div>
                         </div>
                       </div>
