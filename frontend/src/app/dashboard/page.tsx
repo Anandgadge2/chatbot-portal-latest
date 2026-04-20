@@ -262,8 +262,9 @@ function DashboardContent() {
   const isJharsugudaCompany = Boolean(
     user?.companyId?.name?.toUpperCase().includes("JHARSUGUDA"),
   );
-  const dashboardBrandTitle = isJharsugudaCompany
-    ? "Sahaj Centralised Grievances Command Center"
+  const dashboardBrandTitle = isJharsugudaCompany ? "SAHAJ" : "Control Panel";
+  const dashboardBrandSubtitle = isJharsugudaCompany
+    ? "Centralised Grivences Command center"
     : "Control Panel";
   const canDeleteGrievance = useMemo(
     () => hasPermission(user, Permission.DELETE_GRIEVANCE),
@@ -2776,7 +2777,8 @@ function DashboardContent() {
                           (company?.name?.toUpperCase().includes("JHARSUGUDA")
                             ? dashboardBrandTitle
                             : company?.name || "...")}
-                        {isDepartmentLevel && "Department"}
+                        {isDepartmentLevel &&
+                          (isJharsugudaCompany ? dashboardBrandTitle : "Department")}
                         {!hasPermission(user, Permission.READ_GRIEVANCE) &&
                           !isSuperAdminUser &&
                           "Operations Center"}
@@ -2790,7 +2792,7 @@ function DashboardContent() {
                   <div className="flex items-center gap-2 mt-1">
                     <p className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-[0.14em] max-w-[62vw] sm:max-w-none truncate">
                       {isJharsugudaCompany
-                        ? dashboardBrandTitle
+                        ? dashboardBrandSubtitle
                         : "Control Panel"}
                     </p>
                     <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -2808,7 +2810,7 @@ function DashboardContent() {
                 </span>
                 {user?.companyId?.name?.toUpperCase().includes("JHARSUGUDA") ? (
                   <span className="text-[10px] sm:text-[11px] font-black text-white uppercase tracking-wide mt-1 max-w-[220px] truncate text-right">
-                    {dashboardBrandTitle}
+                    {dashboardBrandSubtitle}
                   </span>
                 ) : (
                   <span className="text-[9px] font-black text-white/90 uppercase mt-1 bg-white/10 px-1.5 py-0.5 rounded border border-white/20 shadow-sm">
@@ -3102,7 +3104,7 @@ function DashboardContent() {
                               ?.toUpperCase()
                               .includes("JHARSUGUDA") ? (
                               <span className="text-[10px] font-black text-white uppercase tracking-wide mt-1 whitespace-normal break-words">
-                                {dashboardBrandTitle}
+                                {dashboardBrandSubtitle}
                               </span>
                             ) : (
                               <>

@@ -41,6 +41,22 @@ const uploadBufferToCloudinary = async (
   });
 };
 
+const isCollectorateJharsuguda = (companyName?: string): boolean => {
+  const normalized = String(companyName || '').trim().toLowerCase();
+  return normalized.includes('collectorate') && normalized.includes('jharsuguda');
+};
+
+const canJharsugudaCompanyAdminOverrideFrozenGrievance = (
+  currentUser: any,
+  grievance: any,
+): boolean => {
+  if (currentUser?.isSuperAdmin) return true;
+  const role = String(currentUser?.role || '').toUpperCase();
+  const isCompanyAdmin = role.includes(UserRole.COMPANY_ADMIN) || currentUser?.level === 1;
+  const companyName = (grievance?.companyId as any)?.name;
+  return isCompanyAdmin && isCollectorateJharsuguda(companyName);
+};
+
 // All routes require database connection and authentication
 router.use(requireDatabaseConnection);
 router.use(authenticate);
@@ -123,9 +139,11 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
       });
     }
 
-    // Prevent updates to resolved/rejected grievances (frozen) - except for super admin
+    // Prevent updates to resolved/rejected grievances (frozen),
+    // except for super admin and Collectorate Jharsuguda company admin override.
     const oldStatus = grievance.status;
-    if ((oldStatus === GrievanceStatus.RESOLVED || oldStatus === GrievanceStatus.REJECTED) && !currentUser.isSuperAdmin) {
+    const canOverrideFrozenGrievance = canJharsugudaCompanyAdminOverrideFrozenGrievance(currentUser, grievance);
+    if ((oldStatus === GrievanceStatus.RESOLVED || oldStatus === GrievanceStatus.REJECTED) && !canOverrideFrozenGrievance) {
       return res.status(403).json({
         success: false,
         message: 'Cannot update a resolved or rejected grievance. Grievance is frozen.'
@@ -155,6 +173,36 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
 
     // oldStatus is already declared above for freeze check
     grievance.status = status;
+
+    // Collectorate Jharsuguda requirement:
+    // When changing status of an already resolved grievance, reassign back to the officer who resolved it.
+    if (
+      oldStatus === GrievanceStatus.RESOLVED &&
+      status !== GrievanceStatus.RESOLVED &&
+      canOverrideFrozenGrievance
+    ) {
+      const lastResolver = [...(grievance.statusHistory || [])]
+        .reverse()
+        .find((entry: any) => entry.status === GrievanceStatus.RESOLVED && entry.changedBy);
+
+      if (lastResolver?.changedBy) {
+        grievance.assignedTo = lastResolver.changedBy;
+        grievance.assignedAt = new Date();
+
+        if (!grievance.timeline) {
+          grievance.timeline = [];
+        }
+        grievance.timeline.push({
+          action: 'ASSIGNED',
+          details: {
+            reason: 'Reassigned to resolver after post-resolution status change',
+            toUserId: lastResolver.changedBy
+          },
+          performedBy: currentUser._id,
+          timestamp: new Date()
+        });
+      }
+    }
 
     const uploadedDocumentUrls: string[] = [];
     if (status === GrievanceStatus.RESOLVED && uploadedFiles.length > 0) {
