@@ -48,7 +48,7 @@ export const DashboardDepartmentFilters: React.FC<DepartmentFiltersProps> = ({
 
   return (
     <div className={`flex flex-col sm:flex-row items-stretch sm:items-center gap-2 ${className}`}>
-      <div className="flex-1 min-w-0 sm:min-w-[180px] lg:min-w-[220px]">
+      <div className="flex-1 min-w-0 sm:min-w-[140px] lg:min-w-[180px]">
         <SearchableSelect
           options={mainDeptOptions}
           value={currentFilters.mainDeptId}
@@ -57,10 +57,10 @@ export const DashboardDepartmentFilters: React.FC<DepartmentFiltersProps> = ({
           }
           placeholder={mainPlaceholder}
           className="w-full"
-          triggerClassName="h-10 px-4 group-hover:border-indigo-300 transition-all"
+          triggerClassName="h-8 px-3 group-hover:border-indigo-300 transition-all text-xs max-w-[150px] whitespace-normal break-words leading-tight flex items-center justify-between"
         />
       </div>
-      <div className="flex-1 min-w-0 sm:min-w-[180px] lg:min-w-[220px]">
+      <div className="flex-1 min-w-0 sm:min-w-[140px] lg:min-w-[180px]">
         <SearchableSelect
           options={subDeptOptions}
           value={currentFilters.subDeptId}
@@ -70,7 +70,7 @@ export const DashboardDepartmentFilters: React.FC<DepartmentFiltersProps> = ({
           disabled={!currentFilters.mainDeptId}
           placeholder={subPlaceholder}
           className="w-full"
-          triggerClassName="h-10 px-4 group-hover:border-indigo-300 transition-all"
+          triggerClassName="h-8 px-3 group-hover:border-indigo-300 transition-all text-xs max-w-[150px] whitespace-normal break-words leading-tight flex items-center justify-between"
         />
       </div>
     </div>

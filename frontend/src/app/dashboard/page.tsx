@@ -2174,7 +2174,7 @@ function DashboardContent() {
     // Apply grievance filters
     if (tab === "grievances" || tab === "reverted") {
       // Status filter
-      if (grievanceFilters.status) {
+      if (grievanceFilters.status && grievanceFilters.status !== "ALL") {
         filteredData = filteredData.filter(
           (g: Grievance) =>
             g.status?.toUpperCase() === grievanceFilters.status.toUpperCase(),
@@ -2256,7 +2256,6 @@ function DashboardContent() {
 
           if (
             g.status === "RESOLVED" ||
-            g.status === "CLOSED" ||
             g.status === "REJECTED"
           ) {
             isOverdue = false;
@@ -3361,33 +3360,31 @@ function DashboardContent() {
               <TabsContent value="overview" className="space-y-4 sm:space-y-6">
                 {/* Dashboard Headers & Quick Stats */}
                 <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-2 sm:gap-4">
-                  {/* Total Grievances */}
+                   {/* Pending Grievances */}
                   {hasPermission(user, Permission.READ_GRIEVANCE) && (
                     <Card
                       onClick={() => {
                         setActiveTab("grievances");
-                        setGrievanceFilters(prev => ({ ...prev, status: "" }));
+                        setGrievanceFilters((prev) => ({ ...prev, status: "PENDING" }));
                       }}
                       className="min-h-[6.5rem] sm:min-h-[8.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
                     >
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-indigo-500 bg-slate-50/50 px-3 py-2.5">
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-blue-500 bg-slate-50/50 px-3 py-2.5">
                         <CardTitle className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-slate-400">
-                          Total Grievances
+                          Pending
                         </CardTitle>
-                        <FileText className="h-3 w-3 text-indigo-500" />
+                        <AlertCircle className="h-3 w-3 text-blue-500" />
                       </CardHeader>
                       <CardContent className="px-3 py-2.5">
-                        <div className="text-xl sm:text-2xl font-black text-slate-800 tabular-nums">
-                          {loadingStats ? <LoadingDots /> : (stats?.grievances.registeredTotal || 0)}
+                        <div className="text-xl sm:text-2xl font-black text-blue-600 tabular-nums">
+                          {loadingStats ? <LoadingDots /> : (stats?.grievances.pending || 0)}
                         </div>
-                        <div className="mt-1 flex items-center gap-1">
-                          <span className="text-[8px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-full">
-                            {stats?.grievances.last7Days || 0} New
-                          </span>
-                        </div>
+                        <p className="mt-1 text-[8px] font-bold uppercase text-slate-400">Waiting</p>
                       </CardContent>
                     </Card>
                   )}
+
+                
 
                   {/* Overdue Grievances */}
                   {hasPermission(user, Permission.READ_GRIEVANCE) && (
@@ -3416,30 +3413,8 @@ function DashboardContent() {
                       </CardContent>
                     </Card>
                   )}
+                 
 
-                  {/* Pending Grievances */}
-                  {hasPermission(user, Permission.READ_GRIEVANCE) && (
-                    <Card
-                      onClick={() => {
-                        setActiveTab("grievances");
-                        setGrievanceFilters((prev) => ({ ...prev, status: "PENDING" }));
-                      }}
-                      className="min-h-[6.5rem] sm:min-h-[8.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
-                    >
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-blue-500 bg-slate-50/50 px-3 py-2.5">
-                        <CardTitle className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-slate-400">
-                          Pending
-                        </CardTitle>
-                        <AlertCircle className="h-3 w-3 text-blue-500" />
-                      </CardHeader>
-                      <CardContent className="px-3 py-2.5">
-                        <div className="text-xl sm:text-2xl font-black text-blue-600 tabular-nums">
-                          {loadingStats ? <LoadingDots /> : (stats?.grievances.pending || 0)}
-                        </div>
-                        <p className="mt-1 text-[8px] font-bold uppercase text-slate-400">Waiting</p>
-                      </CardContent>
-                    </Card>
-                  )}
 
                   {/* Reverted Grievances */}
                   {hasPermission(user, Permission.READ_GRIEVANCE) && (
@@ -3509,6 +3484,34 @@ function DashboardContent() {
                           {loadingStats ? <LoadingDots /> : (stats?.grievances.rejected || 0)}
                         </div>
                         <p className="mt-1 text-[8px] font-bold uppercase text-slate-400">Declined</p>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                   {/* Total Grievances */}
+                  {hasPermission(user, Permission.READ_GRIEVANCE) && (
+                    <Card
+                      onClick={() => {
+                        setActiveTab("grievances");
+                        setGrievanceFilters(prev => ({ ...prev, status: "ALL" }));
+                      }}
+                      className="min-h-[6.5rem] sm:min-h-[8.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
+                    >
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-indigo-500 bg-slate-50/50 px-3 py-2.5">
+                        <CardTitle className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-slate-400">
+                          Total Grievances
+                        </CardTitle>
+                        <FileText className="h-3 w-3 text-indigo-500" />
+                      </CardHeader>
+                      <CardContent className="px-3 py-2.5">
+                        <div className="text-xl sm:text-2xl font-black text-slate-800 tabular-nums">
+                          {loadingStats ? <LoadingDots /> : (stats?.grievances.registeredTotal || 0)}
+                        </div>
+                        <div className="mt-1 flex items-center gap-1">
+                          <span className="text-[8px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-full">
+                            {stats?.grievances.last7Days || 0} New
+                          </span>
+                        </div>
                       </CardContent>
                     </Card>
                   )}
@@ -5548,18 +5551,18 @@ function DashboardContent() {
                     <CardContent className="p-0">
                       <div className="px-6 py-4 bg-slate-50/50 border-b border-slate-200 space-y-4">
                         {/* Top Action Bar */}
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                          {/* Search */}
-                          <div className="relative flex-1 max-w-md">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                            <input
-                              type="text"
-                              placeholder="Search..."
-                              value={deptSearch}
-                              onChange={(e) => setDeptSearch(e.target.value)}
-                              className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm text-sm placeholder:text-slate-400 font-medium transition-all"
-                            />
-                          </div>
+                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
+                            {/* Search */}
+                            <div className="relative flex-1 max-w-md">
+                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                              <input
+                                type="text"
+                                placeholder="Quick search..."
+                                value={deptSearch}
+                                onChange={(e) => setDeptSearch(e.target.value)}
+                                className="w-full pl-9 pr-3.5 h-9 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-[11px] font-bold uppercase tracking-tight placeholder:normal-case placeholder:text-slate-400 shadow-sm"
+                              />
+                            </div>
 
                           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
                             {isSuperAdminUser &&
@@ -5569,9 +5572,9 @@ function DashboardContent() {
                                   size="sm"
                                   onClick={handleBulkDeleteDepartments}
                                   disabled={isDeleting}
-                                  className="h-10 text-[10px] font-black uppercase bg-red-600 hover:bg-red-700 text-white rounded-xl border border-red-700 shadow-sm transition-all px-4"
+                                  className="h-8 text-[10px] font-bold uppercase bg-red-600 hover:bg-red-700 text-white rounded-lg border border-red-700 shadow-sm transition-all px-3"
                                 >
-                                  <Trash2 className="w-3.5 h-3.5 mr-2" />
+                                  <Trash2 className="w-3 h-3 mr-1.5" />
                                   Delete ({selectedDepartments.size})
                                 </Button>
                               )}
@@ -5585,9 +5588,9 @@ function DashboardContent() {
                               <Button
                                 type="button"
                                 onClick={() => setShowDepartmentDialog(true)}
-                                className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-9 text-[10px] sm:text-[11px] font-black uppercase tracking-widest rounded-xl px-4 sm:px-6 shadow-md transition-all active:scale-95 whitespace-nowrap"
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-9 text-[11px] font-bold uppercase tracking-wide rounded-lg px-4 shadow-md transition-all active:scale-95 whitespace-nowrap"
                               >
-                                <Building className="w-4 h-4 mr-2" />
+                                <Building className="w-3.5 h-3.5 mr-1.5" />
                                 Add Department
                               </Button>
                             )}
@@ -5596,35 +5599,23 @@ function DashboardContent() {
                               isSubDepartmentAdminRole ||
                               isOperatorRole
                             ) && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                  setShowDepartmentFiltersOnMobile(
-                                    (prev) => !prev,
-                                  )
-                                }
-                                className="md:hidden border-slate-200 hover:bg-slate-50 rounded-xl whitespace-nowrap"
-                                title="Toggle filters"
-                              >
-                                <Filter className="w-4 h-4 mr-1.5" />
-                                Filters
-                              </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() =>
+                                    setShowDepartmentFiltersOnMobile(
+                                      (prev) => !prev,
+                                    )
+                                  }
+                                  className="md:hidden border-slate-200 hover:bg-slate-50 rounded-lg whitespace-nowrap h-8 text-[11px] font-bold uppercase tracking-tight"
+                                  title="Toggle filters"
+                                >
+                                  <Filter className="w-3.5 h-3.5 mr-1" />
+                                  Filters
+                                </Button>
                             )}
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => fetchDepartments(1, false)}
-                              disabled={isRefreshing}
-                              className="border-slate-200 hover:bg-slate-50 rounded-xl font-bold text-[11px] uppercase tracking-wider whitespace-nowrap"
-                              title="Refresh data"
-                            >
-                              <RefreshCw
-                                className={`w-3.5 h-3.5 mr-1.5 ${isRefreshing ? "animate-spin" : ""}`}
-                              />
-                              Refresh
-                            </Button>
-                            {isViewingCompany && (
+                           
+                            {/* {isViewingCompany && (
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -5641,17 +5632,16 @@ function DashboardContent() {
                                 <Download className="w-3.5 h-3.5 mr-1.5" />
                                 Export
                               </Button>
-                            )}
+                            )} */}
                           </div>
                         </div>
 
-                        {/* Filters Row */}
                         <div
                           className={cn(
-                            "gap-3 md:items-center",
+                            "items-center gap-2 flex-wrap",
                             showDepartmentFiltersOnMobile
-                              ? "flex flex-col space-y-2 p-3 bg-slate-50/50 rounded-2xl border border-slate-200/60 mt-1"
-                              : "hidden md:flex md:flex-row md:items-center md:flex-nowrap",
+                              ? "flex"
+                              : "hidden md:flex",
                           )}
                         >
                           {!(
@@ -5660,14 +5650,14 @@ function DashboardContent() {
                             isOperatorRole
                           ) && (
                             <>
-                              <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-slate-200">
-                                <Filter className="w-4 h-4 text-indigo-500" />
-                                <span className="text-sm font-semibold text-slate-700">
+                              <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-lg shadow-sm border border-slate-200 h-8">
+                                <Filter className="w-3.5 h-3.5 text-indigo-500" />
+                                <span className="text-[11px] font-bold text-slate-700 uppercase tracking-tight">
                                   Filters
                                 </span>
                               </div>
 
-                              <div className="flex w-full flex-col sm:flex-row sm:items-center gap-2 sm:flex-nowrap flex-1 pb-1 sm:pb-0">
+                              <div className="flex items-center gap-2 flex-wrap flex-1">
                                 <select
                                   value={deptFilters.type}
                                   onChange={(e) =>
@@ -5676,7 +5666,7 @@ function DashboardContent() {
                                       type: e.target.value,
                                     }))
                                   }
-                                  className="w-full md:w-auto text-xs px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer min-w-[130px] font-medium"
+                                  className="text-[11px] h-8 px-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer font-medium min-w-[100px] max-w-[120px]"
                                   title="Filter by department type"
                                 >
                                   <option value="">🏢 All Types</option>
@@ -5692,7 +5682,7 @@ function DashboardContent() {
                                       status: e.target.value,
                                     }))
                                   }
-                                  className="w-full md:w-auto text-xs px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer min-w-[130px] font-medium"
+                                  className="text-[11px] h-8 px-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer font-medium min-w-[100px] max-w-[120px]"
                                   title="Filter by status"
                                 >
                                   <option value="">📊 All Status</option>
@@ -5715,30 +5705,30 @@ function DashboardContent() {
                                   className="w-full md:w-auto"
                                 />
 
-                                {(deptFilters.type ||
-                                  deptFilters.status ||
-                                  deptFilters.mainDeptId ||
-                                  deptFilters.subDeptId ||
-                                  deptSearch.trim()) && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
-                                      setDeptSearch("");
-                                      setDeptFilters({
-                                        type: "",
-                                        status: "",
-                                        mainDeptId: "",
-                                        subDeptId: "",
-                                      });
-                                    }}
-                                    className="h-8 px-3 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl border border-red-200"
-                                    title="Clear all filters"
-                                  >
-                                    <X className="w-3.5 h-3.5 mr-1.5" />
-                                    Clear
-                                  </Button>
-                                )}
+                                  {(deptFilters.type ||
+                                    deptFilters.status ||
+                                    deptFilters.mainDeptId ||
+                                    deptFilters.subDeptId ||
+                                    deptSearch.trim()) && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        setDeptSearch("");
+                                        setDeptFilters({
+                                          type: "",
+                                          status: "",
+                                          mainDeptId: "",
+                                          subDeptId: "",
+                                        });
+                                      }}
+                                      className="h-8 px-2 text-[11px] text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg border border-red-200 font-medium"
+                                      title="Clear all filters"
+                                    >
+                                      <X className="w-3 h-3 mr-1" />
+                                      Clear
+                                    </Button>
+                                  )}
                                 {canToggleDepartmentPriorityColumn && (
                                   <div className="flex items-center gap-2 h-8 px-3 rounded-xl border border-slate-200 bg-white shadow-sm">
                                     <Settings className="w-3.5 h-3.5 text-slate-500" />
@@ -5774,7 +5764,7 @@ function DashboardContent() {
                                 }
                                 className="text-[10px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer p-0"
                               >
-                                {[10, 20, 25, 50, 100].map((l) => (
+                                {[10, 20, 25, 50, 100, 200, 250].map((l) => (
                                   <option key={l} value={l}>
                                     {l}
                                   </option>
@@ -6549,19 +6539,19 @@ function DashboardContent() {
                       <>
                         <div className="px-6 py-4 bg-slate-50/50 border-b border-slate-200 space-y-4">
                           {/* Top Action Bar */}
-                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                             {/* Search */}
                             <div className="relative flex-1 max-w-md">
-                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                               <input
                                 type="text"
-                                placeholder="Search..."
+                                placeholder="Quick search..."
                                 value={userSearch}
                                 onChange={(e) => {
                                   setUserSearch(e.target.value);
                                   setUserPage(1);
                                 }}
-                                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm text-sm placeholder:text-slate-400 font-medium transition-all"
+                                className="w-full pl-9 pr-3.5 h-9 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-[11px] font-bold uppercase tracking-tight placeholder:normal-case placeholder:text-slate-400 shadow-sm"
                               />
                             </div>
 
@@ -6572,9 +6562,9 @@ function DashboardContent() {
                                   size="sm"
                                   onClick={handleBulkDeleteUsers}
                                   disabled={isDeleting}
-                                  className="h-10 text-[10px] font-black uppercase bg-red-600 hover:bg-red-700 text-white rounded-xl border border-red-700 shadow-sm transition-all px-4"
+                                  className="h-8 text-[10px] font-bold uppercase bg-red-600 hover:bg-red-700 text-white rounded-lg border border-red-700 shadow-sm transition-all px-3"
                                 >
-                                  <Trash2 className="w-3.5 h-3.5 mr-2" />
+                                  <Trash2 className="w-3 h-3 mr-1.5" />
                                   Delete ({selectedUsers.size})
                                 </Button>
                               )}
@@ -6584,14 +6574,14 @@ function DashboardContent() {
                                   user,
                                   Permission.CREATE_USER,
                                 )) && (
-                                <Button
-                                  type="button"
-                                  onClick={() => setShowUserDialog(true)}
-                                  className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-9 text-[10px] sm:text-[11px] font-black uppercase tracking-widest rounded-xl px-4 sm:px-6 shadow-md transition-all active:scale-95 whitespace-nowrap"
-                                >
-                                  <UserPlus className="w-4 h-4 mr-2" />
-                                  Add User
-                                </Button>
+                              <Button
+                                type="button"
+                                onClick={() => setShowUserDialog(true)}
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-9 text-[11px] font-bold uppercase tracking-wide rounded-lg px-4 shadow-md transition-all active:scale-95 whitespace-nowrap"
+                              >
+                                <UserPlus className="w-3.5 h-3.5 mr-1.5" />
+                                Add User
+                              </Button>
                               )}
                               {!(
                                 isDepartmentAdminRole ||
@@ -6604,27 +6594,14 @@ function DashboardContent() {
                                   onClick={() =>
                                     setShowUserFiltersOnMobile((prev) => !prev)
                                   }
-                                  className="md:hidden border-slate-200 hover:bg-slate-50 rounded-xl whitespace-nowrap"
+                                  className="md:hidden border-slate-200 hover:bg-slate-50 rounded-lg whitespace-nowrap h-8 text-[11px] font-bold uppercase tracking-tight"
                                   title="Toggle filters"
                                 >
-                                  <Filter className="w-4 h-4 mr-1.5" />
+                                  <Filter className="w-3.5 h-3.5 mr-1" />
                                   Filters
                                 </Button>
                               )}
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => fetchUsers(1, false)}
-                                disabled={isRefreshing}
-                                className="border-slate-200 hover:bg-slate-50 rounded-xl font-bold text-[11px] uppercase tracking-wider whitespace-nowrap"
-                                title="Refresh data"
-                              >
-                                <RefreshCw
-                                  className={`w-3.5 h-3.5 mr-1.5 ${isRefreshing ? "animate-spin" : ""}`}
-                                />
-                                Refresh
-                              </Button>
-                              {isViewingCompany && (
+                              {/* {isViewingCompany && (
                                 <Button
                                   variant="outline"
                                   size="sm"
@@ -6637,33 +6614,32 @@ function DashboardContent() {
                                       { key: "role", label: "Role" },
                                     ])
                                   }
-                                  className="border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl font-bold text-[11px] uppercase tracking-wider whitespace-nowrap"
+                                  className="border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg font-bold h-8 text-[11px] uppercase tracking-tight whitespace-nowrap"
                                   title="Export to CSV"
                                 >
                                   <Download className="w-3.5 h-3.5 mr-1.5" />
                                   Export
                                 </Button>
-                              )}
+                              )} */}
                             </div>
                           </div>
 
-                          {/* Filters Row */}
                           <div
                             className={cn(
-                              "gap-4 md:items-center",
+                              "items-center gap-2 flex-wrap",
                               showUserFiltersOnMobile
-                                ? "flex flex-col space-y-3 p-4 bg-slate-100/50 rounded-2xl border border-slate-200/60 mt-2 shadow-inner"
-                                : "hidden md:flex md:flex-row md:flex-wrap",
+                                ? "flex"
+                                : "hidden md:flex",
                             )}
                           >
-                            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-slate-200">
-                              <Filter className="w-4 h-4 text-indigo-500" />
-                              <span className="text-sm font-semibold text-slate-700">
+                            <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-lg shadow-sm border border-slate-200 h-8">
+                              <Filter className="w-3.5 h-3.5 text-indigo-500" />
+                              <span className="text-[11px] font-bold text-slate-700 uppercase tracking-tight">
                                 Filters
                               </span>
                             </div>
 
-                            <div className="flex w-full flex-col md:flex-row md:items-center gap-3 flex-wrap flex-1 pb-1 md:pb-0">
+                            <div className="flex items-center gap-2 flex-wrap flex-1">
                               <select
                                 value={userFilters.role}
                                 onChange={(e) => {
@@ -6673,7 +6649,7 @@ function DashboardContent() {
                                   }));
                                   setUserPage(1);
                                 }}
-                                className="w-full md:w-auto text-xs px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer min-w-[130px] font-medium"
+                                className="text-[11px] h-8 px-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer font-medium min-w-[100px] max-w-[130px]"
                                 title="Filter by role"
                               >
                                 <option value="">👤 All Roles</option>
@@ -6701,7 +6677,7 @@ function DashboardContent() {
                                   }));
                                   setUserPage(1);
                                 }}
-                                className="w-full md:w-auto text-xs px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer min-w-[130px] font-medium"
+                                className="text-[11px] h-8 px-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer font-medium min-w-[100px] max-w-[120px]"
                                 title="Filter by status"
                               >
                                 <option value="">📊 All Status</option>
@@ -6742,10 +6718,10 @@ function DashboardContent() {
                                     });
                                     setUserPage(1);
                                   }}
-                                  className="h-8 px-3 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl border border-red-200"
+                                  className="h-8 px-2 text-[11px] text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg border border-red-200 font-medium"
                                   title="Clear all filters"
                                 >
-                                  <X className="w-3.5 h-3.5 mr-1.5" />
+                                  <X className="w-3 h-3 mr-1" />
                                   Clear
                                 </Button>
                               )}
@@ -7426,19 +7402,18 @@ function DashboardContent() {
 
                       {/* Grievance Filters */}
                       <div className="px-6 py-4 bg-slate-50/50 border-b border-slate-200">
-                        {/* Search and Actions Bar */}
                         <div className="flex items-center justify-between gap-4 mb-3">
                           <div className="relative flex-1 max-w-md">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                             <input
                               type="text"
-                              placeholder="Search..."
+                              placeholder="Quick search..."
                               value={grievanceSearch}
                               onChange={(e) => {
                                 setGrievanceSearch(e.target.value);
                                 setGrievancePage(1);
                               }}
-                              className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm text-sm placeholder:text-slate-400"
+                              className="w-full pl-9 pr-3.5 h-9 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-[11px] font-bold uppercase tracking-tight placeholder:normal-case placeholder:text-slate-400 shadow-sm"
                             />
                           </div>
                           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
@@ -7448,26 +7423,13 @@ function DashboardContent() {
                               onClick={() =>
                                 setShowGrievanceFiltersOnMobile((prev) => !prev)
                               }
-                              className="md:hidden border-slate-200 hover:bg-slate-50 rounded-xl whitespace-nowrap"
+                              className="md:hidden border-slate-200 hover:bg-slate-50 rounded-lg whitespace-nowrap h-8 text-[11px] font-bold uppercase tracking-tight"
                               title="Toggle filters"
                             >
-                              <Filter className="w-4 h-4 mr-1.5" />
+                              <Filter className="w-3.5 h-3.5 mr-1" />
                               Filters
                             </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={handleRefreshData}
-                              disabled={isRefreshing}
-                              className="border-slate-200 hover:bg-slate-50 rounded-xl whitespace-nowrap"
-                              title="Refresh data"
-                            >
-                              <RefreshCw
-                                className={`w-4 h-4 mr-1.5 ${isRefreshing ? "animate-spin" : ""}`}
-                              />
-                              Refresh
-                            </Button>
-                            {isViewingCompany && (
+                            {/* {isViewingCompany && (
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -7488,28 +7450,28 @@ function DashboardContent() {
                                     ],
                                   )
                                 }
-                                className="border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl whitespace-nowrap"
+                                className="border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg whitespace-nowrap h-8 text-[11px] font-bold uppercase tracking-tight"
                                 title="Export to CSV"
                               >
-                                <FileDown className="w-4 h-4 mr-1.5" />
+                                <FileDown className="w-3.5 h-3.5 mr-1" />
                                 Export
                               </Button>
-                            )}
+                            )} */}
                           </div>
                         </div>
 
                         {/* Filters Row */}
                         <div
                           className={cn(
-                            "items-center gap-3 flex-wrap",
+                            "items-center gap-2 flex-wrap",
                             showGrievanceFiltersOnMobile
                               ? "flex"
                               : "hidden md:flex",
                           )}
                         >
-                          <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-slate-200">
-                            <Filter className="w-4 h-4 text-indigo-500" />
-                            <span className="text-sm font-semibold text-slate-700">
+                          <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-lg shadow-sm border border-slate-200 h-8">
+                            <Filter className="w-3.5 h-3.5 text-indigo-500" />
+                            <span className="text-[11px] font-bold text-slate-700 uppercase tracking-tight">
                               Filters
                             </span>
                           </div>
@@ -7524,17 +7486,17 @@ function DashboardContent() {
                               }));
                               setGrievancePage(1);
                             }}
-                            className="text-xs px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer"
+                            className="text-[11px] h-8 px-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer font-medium max-w-[140px]"
                             title="Filter by grievance status"
                           >
-                            <option value="">📋 All Status</option>
+                            <option value="">📋 All Active Status</option>
+                            <option value="ALL">📑 Total (Inc. Resolved/Rejected)</option>
                             <option value="PENDING">🔸 Pending</option>
                             <option value="ASSIGNED">👤 Assigned</option>
                             <option value="RESOLVED">✅ Resolved</option>
                             <option value="REJECTED">❌ Rejected</option>
                             {isCompanyLevel && (
                               <>
-                                <option value="CLOSED">🔒 Closed</option>
                                 <option value="REVERTED">↩️ Reverted</option>
                               </>
                             )}
@@ -7566,7 +7528,7 @@ function DashboardContent() {
                               }));
                               setGrievancePage(1);
                             }}
-                            className="text-xs px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer"
+                            className="text-[11px] h-8 px-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer font-medium max-w-[130px]"
                             title="Filter by assignment status"
                           >
                             <option value="">👥 All Assignments</option>
@@ -7584,7 +7546,7 @@ function DashboardContent() {
                               }));
                               setGrievancePage(1);
                             }}
-                            className="text-xs px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer"
+                            className="text-[11px] h-8 px-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer font-medium max-w-[130px]"
                             title="Filter by overdue status"
                           >
                             <option value="">⏱️ All Overdue Status</option>
@@ -7602,7 +7564,7 @@ function DashboardContent() {
                               }));
                               setGrievancePage(1);
                             }}
-                            className="text-xs px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer"
+                            className="text-[11px] h-8 px-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer font-medium max-w-[110px]"
                             title="Filter by date range"
                           >
                             <option value="">📅 All Time</option>
@@ -8709,15 +8671,15 @@ function DashboardContent() {
                         {/* Search and Actions Bar */}
                         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
                           <div className="relative flex-1 max-w-md">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                             <input
                               type="text"
-                              placeholder="Search..."
+                              placeholder="Quick search..."
                               value={appointmentSearch}
                               onChange={(e) =>
                                 setAppointmentSearch(e.target.value)
                               }
-                              className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white shadow-sm text-sm placeholder:text-slate-400"
+                              className="w-full pl-9 pr-3.5 h-9 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all text-[11px] font-bold uppercase tracking-tight placeholder:normal-case placeholder:text-slate-400 shadow-sm"
                             />
                           </div>
                           <div className="flex items-center gap-2 flex-wrap md:flex-nowrap">
@@ -8729,10 +8691,10 @@ function DashboardContent() {
                                   (prev) => !prev,
                                 )
                               }
-                              className="md:hidden border-slate-200 hover:bg-slate-50 rounded-xl"
+                              className="md:hidden border-slate-200 hover:bg-slate-50 rounded-lg h-8 text-[11px] font-bold uppercase tracking-tight"
                               title="Toggle filters"
                             >
-                              <Filter className="w-4 h-4 mr-1.5" />
+                              <Filter className="w-3.5 h-3.5 mr-1" />
                               Filters
                             </Button>
                             <div className="flex items-center gap-2">
@@ -8762,7 +8724,7 @@ function DashboardContent() {
                               />
                               Refresh
                             </Button>
-                            {isViewingCompany && (
+                            {/* {isViewingCompany && (
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -8790,7 +8752,7 @@ function DashboardContent() {
                                 <FileDown className="w-4 h-4 mr-1.5" />
                                 Export
                               </Button>
-                            )}
+                            )} */}
                           </div>
                         </div>
 

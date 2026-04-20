@@ -41,7 +41,6 @@ router.get('/', requirePermission(Permission.READ_GRIEVANCE), async (req: Reques
       query.companyId = targetCompanyId;
       if (currentUser.isSuperAdmin) {
         if (departmentId) query.departmentId = departmentId;
-        if (status) query.status = status;
       } else if (currentUser.departmentId || (currentUser.departmentIds && currentUser.departmentIds.length > 0)) {
         const canAssign = req.checkPermission(Permission.ASSIGN_GRIEVANCE);
         if (!canAssign) {
@@ -67,7 +66,21 @@ router.get('/', requirePermission(Permission.READ_GRIEVANCE), async (req: Reques
       return res.status(403).json({ success: false, message: 'Unauthorized' });
     }
 
-    if (status && !query.status) query.status = status;
+    // 🛠️ Status Filtering & Default Scoping
+    if (status && status !== 'ALL') {
+      // Support comma-separated status lists (e.g. status=PENDING,ASSIGNED)
+      if (typeof status === 'string' && status.includes(',')) {
+        query.status = { $in: status.split(',').map(s => s.trim()) };
+      } else {
+        query.status = status;
+      }
+    } else if (!status && !search && !departmentId && !assignedTo && !priority) {
+      // 🛡️ DEFAULT VIEW: If no status, search, or metadata filters are applied,
+      // exclude RESOLVED and REJECTED to keep the main list actionable.
+      query.status = { $nin: [GrievanceStatus.RESOLVED, GrievanceStatus.REJECTED] };
+    }
+    // Note: If status === 'ALL', we skip both blocks and don't add status to query,
+    // which effectively shows everything.
     if (departmentId) {
       const { getDepartmentHierarchyIds } = await import('../utils/departmentUtils');
       const deptIds = await getDepartmentHierarchyIds(departmentId as string);
