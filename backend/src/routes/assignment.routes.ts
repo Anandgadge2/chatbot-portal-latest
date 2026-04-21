@@ -9,8 +9,7 @@ import User from '../models/User';
 import { logUserAction } from '../utils/auditLogger';
 import { AuditAction } from '../config/constants';
 import { 
-  triggerAdminTemplate,
-  formatTemplateDate
+  triggerAdminAssignmentNotification
 } from '../services/grievanceTemplateTriggerService';
 
 const router = express.Router();
@@ -209,29 +208,27 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
     await grievance.save();
 
     const isReassignment = Boolean(oldAssignedTo);
-    triggerAdminTemplate({
+    triggerAdminAssignmentNotification({
       event: isReassignment ? 'grievance_reassigned_admin_v1' : 'grievance_assigned_admin_v1',
       companyId: grievance.companyId,
-      language: grievance.language,
+      grievanceId: grievance.grievanceId,
+      citizenName: grievance.citizenName,
+      category: grievance.category || 'Collector & DM',
+      subDepartmentName: (await (await import('../models/Department')).default.findById(assignedUser.departmentId))?.name || 'N/A',
+      description: grievance.description,
       recipientPhones: assignedUser.phone ? [assignedUser.phone] : [],
-      citizenPhone: grievance.citizenPhone,
-      data: {
-        admin_name: assignedUser.getFullName(),
-        grievance_id: grievance.grievanceId,
-        citizen_name: grievance.citizenName,
-        department_name: grievance.category || 'Collector & DM',
-        office_name: (await (await import('../models/Department')).default.findById(assignedUser.departmentId))?.name || 'N/A',
-        description: grievance.description,
-        previous_admin: oldAssignedTo ? (await (await import('../models/User')).default.findById(oldAssignedTo))?.getFullName() || 'N/A' : 'N/A',
-        assigned_by: currentUser.getFullName(),
-        reassigned_by: currentUser.getFullName(),
-        submitted_on: formatTemplateDate(grievance.createdAt),
-        assigned_on: formatTemplateDate(),
-        reassigned_on: formatTemplateDate(),
-        reason: (req.body as any).reason || 'Administrative Reassignment',
-        remarks: (req.body as any).remarks || 'N/A',
-        priority: grievance.priority || 'MEDIUM'
-      }
+      language: grievance.language,
+      assignedByName: currentUser.getFullName(),
+      reassignedByName: currentUser.getFullName(),
+      remarks: (req.body as any).remarks || (req.body as any).reason || 'Administrative Reassignment',
+      originalDepartmentName: grievance.category || 'Collector & DM',
+      originalOfficeName: (await (await import('../models/Department')).default.findById(assignedUser.departmentId))?.name || 'N/A',
+      media: (grievance.media || []).map((file: any) => ({
+        url: file.url,
+        type: file.type,
+        caption: file.caption,
+        filename: file.filename
+      }))
     }).catch((err) => console.error('Failed to trigger admin assignment template:', err));
 
     // Notify assigned user (fire and forget - don't block response)
