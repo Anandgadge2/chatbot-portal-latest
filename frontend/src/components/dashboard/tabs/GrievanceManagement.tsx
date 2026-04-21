@@ -79,6 +79,8 @@ export default function GrievanceManagement() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "PENDING": return "bg-yellow-500/10 text-yellow-600 border-yellow-200";
+      case "ASSIGNED": return "bg-blue-500/10 text-blue-600 border-blue-200";
+      case "IN_PROGRESS": return "bg-indigo-500/10 text-indigo-600 border-indigo-200";
       case "RESOLVED": return "bg-emerald-500/10 text-emerald-600 border-emerald-200";
       case "REJECTED": return "bg-red-500/10 text-red-600 border-red-200";
       default: return "bg-indigo-500/10 text-indigo-600 border-indigo-200";
@@ -130,7 +132,7 @@ export default function GrievanceManagement() {
             
             <div className="flex items-center gap-3">
               <div className="flex bg-slate-50 p-1 rounded-2xl border border-slate-200">
-                {["all", "PENDING", "RESOLVED", "REJECTED"].map(s => (
+                {["all", "PENDING", "ASSIGNED", "IN_PROGRESS", "RESOLVED", "REJECTED"].map(s => (
                   <button
                     key={s}
                     onClick={() => setStatusFilter(s)}

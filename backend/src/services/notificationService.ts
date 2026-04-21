@@ -190,10 +190,10 @@ const UI_TEXT: Record<'en' | 'hi' | 'or' | 'mr', Record<string, string>> = {
 };
 
 const STATUS_TEXT: Record<'en' | 'hi' | 'or' | 'mr', Record<string, string>> = {
-  en: { ASSIGNED: 'Assigned', REASSIGNED: 'Reassigned', PENDING: 'Pending', RESOLVED: 'Resolved', REJECTED: 'Rejected', COMPLETED: 'Completed', CANCELLED: 'Cancelled', CONFIRMED: 'Confirmed', SCHEDULED: 'Scheduled', CREATED: 'Created' },
-  hi: { ASSIGNED: 'आवंटित', REASSIGNED: 'पुनः आवंटित', PENDING: 'लंबित', RESOLVED: 'समाधान किया गया', REJECTED: 'अस्वीकृत', COMPLETED: 'पूर्ण', CANCELLED: 'रद्द', CONFIRMED: 'पुष्ट', SCHEDULED: 'निर्धारित', CREATED: 'दर्ज' },
-  or: { ASSIGNED: 'ଅବଣ୍ଟନ ହୋଇଛି', REASSIGNED: 'ପୁନଃ ଅବଣ୍ଟନ ହୋଇଛି', PENDING: 'ବିଚାରାଧୀନ', RESOLVED: 'ସମାଧାନ ହୋଇଛି', REJECTED: 'ଖାରଜ ହୋଇଛି', COMPLETED: 'ସମାପ୍ତ', CANCELLED: 'ବାତିଲ୍', CONFIRMED: 'ନିଶ୍ଚିତ', SCHEDULED: 'ନିର୍ଦ୍ଧାରିତ', CREATED: 'ଦାଖଲ ହୋଇଛି' },
-  mr: { ASSIGNED: 'नियुक्त', REASSIGNED: 'पुन्हा नियुक्त', PENDING: 'प्रलंबित', RESOLVED: 'निकाली काढले', REJECTED: 'नाकारले', COMPLETED: 'पूर्ण', CANCELLED: 'रद्द', CONFIRMED: 'निश्चित', SCHEDULED: 'नियोजित', CREATED: 'नोंदवले' },
+  en: { ASSIGNED: 'Assigned', IN_PROGRESS: 'In Progress', REASSIGNED: 'Reassigned', PENDING: 'Pending', RESOLVED: 'Resolved', REJECTED: 'Rejected', COMPLETED: 'Completed', CANCELLED: 'Cancelled', CONFIRMED: 'Confirmed', SCHEDULED: 'Scheduled', CREATED: 'Created' },
+  hi: { ASSIGNED: 'आवंटित', IN_PROGRESS: 'प्रक्रिया में', REASSIGNED: 'पुनः आवंटित', PENDING: 'लंबित', RESOLVED: 'समाधान किया गया', REJECTED: 'अस्वीकृत', COMPLETED: 'पूर्ण', CANCELLED: 'रद्द', CONFIRMED: 'पुष्ट', SCHEDULED: 'निर्धारित', CREATED: 'दर्ज' },
+  or: { ASSIGNED: 'ଅବଣ୍ଟନ ହୋଇଛି', IN_PROGRESS: 'ପ୍ରକ୍ରିୟାରେ', REASSIGNED: 'ପୁନଃ ଅବଣ୍ଟନ ହୋଇଛି', PENDING: 'ବିଚାରାଧୀନ', RESOLVED: 'ସମାଧାନ ହୋଇଛି', REJECTED: 'ଖାରଜ ହୋଇଛି', COMPLETED: 'ସମାପ୍ତ', CANCELLED: 'ବାତିଲ୍', CONFIRMED: 'ନିଶ୍ଚିତ', SCHEDULED: 'ନିର୍ଦ୍ଧାରିତ', CREATED: 'ଦାଖଲ ହୋଇଛି' },
+  mr: { ASSIGNED: 'नियुक्त', IN_PROGRESS: 'प्रक्रियेत', REASSIGNED: 'पुन्हा नियुक्त', PENDING: 'प्रलंबित', RESOLVED: 'निकाली काढले', REJECTED: 'नाकारले', COMPLETED: 'पूर्ण', CANCELLED: 'रद्द', CONFIRMED: 'निश्चित', SCHEDULED: 'नियोजित', CREATED: 'नोंदवले' },
 };
 
 const localizeStatusValue = (value: unknown, lang: 'en' | 'hi' | 'or' | 'mr'): string => {
@@ -1391,7 +1391,7 @@ export async function notifyCitizenOnCreation(
 }
 
 /* ------------------------------------------------------------------ */
-/* Grievance status change notification (ASSIGNED, REJECTED, PENDING)  */
+/* Grievance status change notification (ASSIGNED, IN_PROGRESS, REJECTED, PENDING)  */
 /* ------------------------------------------------------------------ */
 
 export async function notifyCitizenOnGrievanceStatusChange(data: {

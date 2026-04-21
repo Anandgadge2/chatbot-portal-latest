@@ -1119,6 +1119,7 @@ export default function DepartmentDetail() {
                       <option value="all">📋 All Status</option>
                       <option value="PENDING">🔸 Pending</option>
                       <option value="ASSIGNED">👤 Assigned</option>
+                      <option value="IN_PROGRESS">🛠️ In Progress</option>
                       <option value="RESOLVED">✅ Resolved</option>
                       <option value="REJECTED">❌ Rejected</option>
                     </select>
