@@ -253,6 +253,19 @@ function DashboardContent() {
   const isOperatorRole = resolvedRoleLevel >= 4;
   const isLowerHierarchyRole =
     isDepartmentAdminRole || isSubDepartmentAdminRole || isOperatorRole;
+  const getRoleHierarchyLevel = useCallback((roleName: string): number => {
+    const normalized = (roleName || "").toLowerCase();
+    if (normalized.includes("super")) return 0;
+    if (normalized.includes("company")) return 1;
+    if (normalized.includes("department") && !normalized.includes("sub")) {
+      return 2;
+    }
+    if (normalized.includes("sub") && normalized.includes("department")) {
+      return 3;
+    }
+    if (normalized.includes("operator")) return 4;
+    return 5;
+  }, []);
   const hasMultiDepartmentMapping =
     Array.isArray(user?.departmentIds) && user.departmentIds.length > 1;
   const isCompanyLevel = user && !user.departmentId && !user.isSuperAdmin;
@@ -608,6 +621,14 @@ function DashboardContent() {
     return scopedCompanyId === COLLECTORATE_JHARSUGUDA_COMPANY_ID;
   }, [companyIdParam, company?._id, currentUserCompanyId]);
   const [roles, setRoles] = useState<Role[]>([]);
+  const filteredRolesByHierarchy = useMemo(
+    () =>
+      (roles || []).filter((role: Role) => {
+        const level = getRoleHierarchyLevel(role?.name || "");
+        return level > resolvedRoleLevel;
+      }),
+    [roles, getRoleHierarchyLevel, resolvedRoleLevel],
+  );
   const [showDepartmentDialog, setShowDepartmentDialog] = useState(false);
   const [showDeptUsersDialog, setShowDeptUsersDialog] = useState(false);
   const [selectedDeptForUsers, setSelectedDeptForUsers] = useState<{
@@ -805,6 +826,51 @@ function DashboardContent() {
         : dept.parentDepartmentId;
     return id || null;
   }, []);
+  const assignedDepartmentIds = useMemo(() => {
+    const ids = new Set<string>();
+    const pushId = (value: any) => {
+      if (!value) return;
+      const normalized =
+        typeof value === "object" && value !== null
+          ? value._id || value.toString?.()
+          : value;
+      if (normalized) ids.add(String(normalized));
+    };
+
+    pushId(user?.departmentId);
+    (user?.departmentIds || []).forEach((value: any) => pushId(value));
+
+    return Array.from(ids);
+  }, [user]);
+  const assignedMainDepartmentIds = useMemo(
+    () =>
+      assignedDepartmentIds.filter((id) => {
+        const department = allDepartments.find((d) => d._id === id);
+        return department ? !getParentDepartmentId(department) : false;
+      }),
+    [assignedDepartmentIds, allDepartments, getParentDepartmentId],
+  );
+  const scopedDepartmentsForFilters = useMemo(() => {
+    if (!isLowerHierarchyRole) return allDepartments;
+
+    if (isDepartmentAdminRole) {
+      return allDepartments.filter((department) => {
+        const parentId = getParentDepartmentId(department);
+        return parentId ? assignedMainDepartmentIds.includes(parentId) : false;
+      });
+    }
+
+    return allDepartments.filter((department) =>
+      assignedDepartmentIds.includes(department._id),
+    );
+  }, [
+    allDepartments,
+    isLowerHierarchyRole,
+    isDepartmentAdminRole,
+    assignedMainDepartmentIds,
+    assignedDepartmentIds,
+    getParentDepartmentId,
+  ]);
 
   // Search states
   const [grievanceSearch, setGrievanceSearch] = useState("");
@@ -1323,7 +1389,9 @@ function DashboardContent() {
     if (isSuperAdminUser && !companyIdParam) return;
     try {
       const deptId =
-        analyticsFilters.subDeptId || analyticsFilters.mainDeptId || "";
+        isSubDepartmentAdminRole || isOperatorRole
+          ? assignedDepartmentIds[0] || ""
+          : analyticsFilters.subDeptId || analyticsFilters.mainDeptId || "";
       const params = new URLSearchParams();
       if (companyIdParam) params.append("companyId", companyIdParam);
       if (deptId) params.append("departmentId", deptId);
@@ -1337,7 +1405,14 @@ function DashboardContent() {
     } catch (error: any) {
       console.error("Failed to fetch department data:", error);
     }
-  }, [companyIdParam, isSuperAdminUser, analyticsFilters]);
+  }, [
+    companyIdParam,
+    isSuperAdminUser,
+    analyticsFilters,
+    assignedDepartmentIds,
+    isSubDepartmentAdminRole,
+    isOperatorRole,
+  ]);
 
   const fetchRoles = useCallback(async () => {
     const cid = targetCompanyId;
@@ -1376,7 +1451,9 @@ function DashboardContent() {
           overrideFilters ||
           (activeTab === "analytics" ? analyticsFilters : overviewFilters);
         const deptId =
-          currentFilters?.subDeptId || currentFilters?.mainDeptId || "";
+          isSubDepartmentAdminRole || isOperatorRole
+            ? assignedDepartmentIds[0] || ""
+            : currentFilters?.subDeptId || currentFilters?.mainDeptId || "";
 
         const params = new URLSearchParams();
         if (companyIdParam) params.append("companyId", companyIdParam);
@@ -1405,6 +1482,9 @@ function DashboardContent() {
       activeTab,
       analyticsFilters,
       overviewFilters,
+      assignedDepartmentIds,
+      isSubDepartmentAdminRole,
+      isOperatorRole,
     ],
   );
 
@@ -1652,18 +1732,22 @@ function DashboardContent() {
       if (isSuperAdminUser && !companyIdParam) return;
       if (!isSilent) setLoadingUsers(true);
       try {
-        const selectedDepartmentId = userFilters.subDeptId
-          ? userFilters.subDeptId
-          : userFilters.mainDeptId
-            ? [
-                userFilters.mainDeptId,
-                ...allDepartmentsRef.current
-                  .filter(
-                    (d) => getParentDepartmentId(d) === userFilters.mainDeptId,
-                  )
-                  .map((d) => d._id),
-              ].join(",")
-            : undefined;
+        const selectedDepartmentId =
+          isSubDepartmentAdminRole || isOperatorRole
+            ? assignedDepartmentIds.join(",") || undefined
+            : userFilters.subDeptId
+              ? userFilters.subDeptId
+              : userFilters.mainDeptId
+                ? [
+                    userFilters.mainDeptId,
+                    ...allDepartmentsRef.current
+                      .filter(
+                        (d) =>
+                          getParentDepartmentId(d) === userFilters.mainDeptId,
+                      )
+                      .map((d) => d._id),
+                  ].join(",")
+                : undefined;
 
         // If it's a custom role ID, pass the ID directly.
         // Backend now handles both system role strings and customRoleId ObjectIds.
@@ -1702,6 +1786,9 @@ function DashboardContent() {
       userSearch,
       userFilters,
       getParentDepartmentId,
+      assignedDepartmentIds,
+      isSubDepartmentAdminRole,
+      isOperatorRole,
       isSuperAdminUser,
       companyIdParam,
     ],
@@ -1725,10 +1812,12 @@ function DashboardContent() {
           status: grievanceFilters.status || undefined,
           search: (grievanceSearch || "").trim(),
           departmentId:
-            grievanceFilters.subDeptId ||
-            grievanceFilters.mainDeptId ||
-            grievanceFilters.department ||
-            undefined,
+            isSubDepartmentAdminRole || isOperatorRole
+              ? assignedDepartmentIds[0] || undefined
+              : grievanceFilters.subDeptId ||
+                grievanceFilters.mainDeptId ||
+                grievanceFilters.department ||
+                undefined,
           assignedTo:
             grievanceFilters.assignmentStatus === "assigned"
               ? "ANY"
@@ -1762,6 +1851,9 @@ function DashboardContent() {
       hasModule,
       grievanceFilters,
       grievanceSearch,
+      assignedDepartmentIds,
+      isSubDepartmentAdminRole,
+      isOperatorRole,
       isSuperAdminUser,
       companyIdParam,
     ],
@@ -5701,20 +5793,26 @@ function DashboardContent() {
                                   <option value="inactive">Inactive</option>
                                 </select>
 
-                                <DashboardDepartmentFilters
-                                  allDepartments={allDepartments}
-                                  getParentDepartmentId={getParentDepartmentId}
-                                  onFiltersChange={(filters) => {
-                                    setDeptFilters((prev) => ({
-                                      ...prev,
-                                      mainDeptId: filters.mainDeptId,
-                                      subDeptId: filters.subDeptId,
-                                    }));
-                                    setDepartmentPage(1);
-                                  }}
-                                  currentFilters={deptFilters}
-                                  className="w-full md:w-auto"
-                                />
+                                {!isSubDepartmentAdminRole && !isOperatorRole && (
+                                  <DashboardDepartmentFilters
+                                    allDepartments={scopedDepartmentsForFilters}
+                                    getParentDepartmentId={getParentDepartmentId}
+                                    onFiltersChange={(filters) => {
+                                      setDeptFilters((prev) => ({
+                                        ...prev,
+                                        mainDeptId: filters.mainDeptId,
+                                        subDeptId: filters.subDeptId,
+                                      }));
+                                      setDepartmentPage(1);
+                                    }}
+                                    currentFilters={deptFilters}
+                                    showSubDepartmentSelect={!isDepartmentAdminRole}
+                                    showOnlySubDepartmentsInMainSelect={
+                                      isDepartmentAdminRole
+                                    }
+                                    className="w-full md:w-auto"
+                                  />
+                                )}
 
                                   {(deptFilters.type ||
                                     deptFilters.status ||
@@ -6642,7 +6740,7 @@ function DashboardContent() {
                                 title="Filter by role"
                               >
                                 <option value="">👤 All Roles</option>
-                                {roles.map((role: any) => (
+                                {filteredRolesByHierarchy.map((role: any) => (
                                   <option
                                     key={role._id}
                                     value={`CUSTOM:${role._id}`}
@@ -6674,20 +6772,26 @@ function DashboardContent() {
                                 <option value="inactive">Inactive</option>
                               </select>
 
-                              <DashboardDepartmentFilters
-                                allDepartments={allDepartments}
-                                getParentDepartmentId={getParentDepartmentId}
-                                onFiltersChange={(filters) => {
-                                  setUserFilters((prev) => ({
-                                    ...prev,
-                                    mainDeptId: filters.mainDeptId,
-                                    subDeptId: filters.subDeptId,
-                                  }));
-                                  setUserPage(1);
-                                }}
-                                currentFilters={userFilters}
-                                className="w-full md:w-auto"
-                              />
+                              {!isSubDepartmentAdminRole && !isOperatorRole && (
+                                <DashboardDepartmentFilters
+                                  allDepartments={scopedDepartmentsForFilters}
+                                  getParentDepartmentId={getParentDepartmentId}
+                                  onFiltersChange={(filters) => {
+                                    setUserFilters((prev) => ({
+                                      ...prev,
+                                      mainDeptId: filters.mainDeptId,
+                                      subDeptId: filters.subDeptId,
+                                    }));
+                                    setUserPage(1);
+                                  }}
+                                  currentFilters={userFilters}
+                                  showSubDepartmentSelect={!isDepartmentAdminRole}
+                                  showOnlySubDepartmentsInMainSelect={
+                                    isDepartmentAdminRole
+                                  }
+                                  className="w-full md:w-auto"
+                                />
+                              )}
 
                               {(userFilters.role ||
                                 userFilters.status ||
@@ -7464,21 +7568,27 @@ function DashboardContent() {
                             )}
                           </select>
 
-                          <DashboardDepartmentFilters
-                            allDepartments={allDepartments}
-                            getParentDepartmentId={getParentDepartmentId}
-                            onFiltersChange={(filters) => {
-                              setGrievanceFilters((prev) => ({
-                                ...prev,
-                                mainDeptId: filters.mainDeptId,
-                                subDeptId: filters.subDeptId,
-                                department: "", // reset old filter
-                              }));
-                              setGrievancePage(1);
-                            }}
-                            currentFilters={grievanceFilters}
-                            className="w-full md:w-auto"
-                          />
+                          {!isSubDepartmentAdminRole && !isOperatorRole && (
+                            <DashboardDepartmentFilters
+                              allDepartments={scopedDepartmentsForFilters}
+                              getParentDepartmentId={getParentDepartmentId}
+                              onFiltersChange={(filters) => {
+                                setGrievanceFilters((prev) => ({
+                                  ...prev,
+                                  mainDeptId: filters.mainDeptId,
+                                  subDeptId: filters.subDeptId,
+                                  department: "", // reset old filter
+                                }));
+                                setGrievancePage(1);
+                              }}
+                              currentFilters={grievanceFilters}
+                              showSubDepartmentSelect={!isDepartmentAdminRole}
+                              showOnlySubDepartmentsInMainSelect={
+                                isDepartmentAdminRole
+                              }
+                              className="w-full md:w-auto"
+                            />
+                          )}
 
                           {/* Assignment Status Filter */}
                           <select
