@@ -12,6 +12,9 @@ interface DepartmentFiltersProps {
   onFiltersChange: (filters: DepartmentFilters) => void;
   getParentDepartmentId: (d: any) => string | null;
   currentFilters: DepartmentFilters;
+  showSubDepartmentSelect?: boolean;
+  showOnlySubDepartmentsInMainSelect?: boolean;
+  allMainOptionLabel?: string;
   className?: string;
   mainPlaceholder?: string;
   subPlaceholder?: string;
@@ -22,14 +25,28 @@ export const DashboardDepartmentFilters: React.FC<DepartmentFiltersProps> = ({
   onFiltersChange,
   getParentDepartmentId,
   currentFilters,
+  showSubDepartmentSelect = true,
+  showOnlySubDepartmentsInMainSelect = false,
+  allMainOptionLabel,
   className = "",
   mainPlaceholder = "🏢 Main Depts",
   subPlaceholder = "📍 Sub Depts",
 }) => {
   const mainDeptOptions = [
-    { value: "", label: "🏢 All Main Depts" },
+    {
+      value: "",
+      label:
+        allMainOptionLabel ||
+        (showOnlySubDepartmentsInMainSelect
+          ? "📍 All Assigned Sub Depts"
+          : "🏢 All Main Depts"),
+    },
     ...allDepartments
-      .filter((d) => !getParentDepartmentId(d))
+      .filter((d) =>
+        showOnlySubDepartmentsInMainSelect
+          ? !!getParentDepartmentId(d)
+          : !getParentDepartmentId(d),
+      )
       .map((dept) => ({
         value: dept._id,
         label: dept.name,
@@ -60,19 +77,21 @@ export const DashboardDepartmentFilters: React.FC<DepartmentFiltersProps> = ({
           triggerClassName="h-8 px-3 group-hover:border-indigo-300 transition-all text-xs max-w-[150px] whitespace-normal break-words leading-tight flex items-center justify-between"
         />
       </div>
-      <div className="flex-1 min-w-0 sm:min-w-[140px] lg:min-w-[180px]">
-        <SearchableSelect
-          options={subDeptOptions}
-          value={currentFilters.subDeptId}
-          onValueChange={(val) =>
-            onFiltersChange({ ...currentFilters, subDeptId: val })
-          }
-          disabled={!currentFilters.mainDeptId}
-          placeholder={subPlaceholder}
-          className="w-full"
-          triggerClassName="h-8 px-3 group-hover:border-indigo-300 transition-all text-xs max-w-[150px] whitespace-normal break-words leading-tight flex items-center justify-between"
-        />
-      </div>
+      {showSubDepartmentSelect && (
+        <div className="flex-1 min-w-0 sm:min-w-[140px] lg:min-w-[180px]">
+          <SearchableSelect
+            options={subDeptOptions}
+            value={currentFilters.subDeptId}
+            onValueChange={(val) =>
+              onFiltersChange({ ...currentFilters, subDeptId: val })
+            }
+            disabled={!currentFilters.mainDeptId}
+            placeholder={subPlaceholder}
+            className="w-full"
+            triggerClassName="h-8 px-3 group-hover:border-indigo-300 transition-all text-xs max-w-[150px] whitespace-normal break-words leading-tight flex items-center justify-between"
+          />
+        </div>
+      )}
     </div>
   );
 };
