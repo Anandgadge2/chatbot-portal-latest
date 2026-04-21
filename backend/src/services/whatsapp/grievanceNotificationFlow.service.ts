@@ -15,6 +15,8 @@ interface TemplateBodyParameter {
 }
 
 interface CompanyWhatsAppContext {
+  phoneNumberId?: string;
+  accessToken?: string;
   whatsappConfig?: {
     phoneNumberId?: string;
     accessToken?: string;
@@ -25,8 +27,8 @@ const WHATSAPP_GRAPH_VERSION = 'v19.0';
 const MESSAGE_DELAY_MS = 500;
 
 function getCompanyCredentials(company: CompanyWhatsAppContext): { phoneNumberId: string; accessToken: string } {
-  const phoneNumberId = String(company?.whatsappConfig?.phoneNumberId || '').trim();
-  const accessToken = String(company?.whatsappConfig?.accessToken || '').trim();
+  const phoneNumberId = String(company?.phoneNumberId || company?.whatsappConfig?.phoneNumberId || '').trim();
+  const accessToken = String(company?.accessToken || company?.whatsappConfig?.accessToken || '').trim();
 
   if (!phoneNumberId || !accessToken) {
     throw new Error('Company WhatsApp credentials are missing (phoneNumberId/accessToken).');
@@ -65,79 +67,136 @@ async function postWhatsAppMessage(endpoint: string, headers: Record<string, str
   return axios.post(endpoint, payload, { headers });
 }
 
-export async function sendTemplateMessage(
-  company: CompanyWhatsAppContext,
-  adminPhone: string,
-  templateName: string,
-  bodyParameters: TemplateBodyParameter[],
-  languageCode = 'en'
-): Promise<void> {
-  const { phoneNumberId, accessToken } = getCompanyCredentials(company);
+export async function sendTemplateMessage(options: {
+  company: CompanyWhatsAppContext;
+  recipientPhone: string;
+  templateName: string;
+  bodyParameters: TemplateBodyParameter[];
+  languageCode?: string;
+  grievanceId?: string;
+}): Promise<void> {
+  const {
+    company,
+    recipientPhone,
+    templateName,
+    bodyParameters,
+    languageCode = 'en',
+    grievanceId
+  } = options;
 
-  await postWhatsAppMessage(
-    getMessagesEndpoint(phoneNumberId),
-    buildHeaders(accessToken),
-    {
-      messaging_product: 'whatsapp',
-      to: adminPhone,
-      type: 'template',
-      template: {
-        name: templateName,
-        language: { code: languageCode },
-        components: [
-          {
-            type: 'body',
-            parameters: bodyParameters
-          }
-        ]
+  try {
+    const { phoneNumberId, accessToken } = getCompanyCredentials(company);
+
+    await postWhatsAppMessage(
+      getMessagesEndpoint(phoneNumberId),
+      buildHeaders(accessToken),
+      {
+        messaging_product: 'whatsapp',
+        to: recipientPhone,
+        type: 'template',
+        template: {
+          name: templateName,
+          language: { code: languageCode },
+          components: [
+            {
+              type: 'body',
+              parameters: bodyParameters
+            }
+          ]
+        }
       }
-    }
-  );
+    );
+  } catch (error: any) {
+    console.error(
+      `❌ Failed to send template ${templateName} for grievance ${grievanceId || 'N/A'}:`,
+      error?.response?.data || error?.message || error
+    );
+    throw error;
+  }
 }
 
-export async function sendImageMessage(company: CompanyWhatsAppContext, adminPhone: string, file: WhatsAppAttachment): Promise<void> {
-  const { phoneNumberId, accessToken } = getCompanyCredentials(company);
-  await postWhatsAppMessage(getMessagesEndpoint(phoneNumberId), buildHeaders(accessToken), {
-    messaging_product: 'whatsapp',
-    to: adminPhone,
-    type: 'image',
-    image: {
-      link: file.url,
-      caption: file.caption || 'Grievance Image'
-    }
-  });
+export async function sendImageMessage(
+  company: CompanyWhatsAppContext,
+  recipientPhone: string,
+  file: WhatsAppAttachment,
+  grievanceId?: string
+): Promise<void> {
+  try {
+    const { phoneNumberId, accessToken } = getCompanyCredentials(company);
+    await postWhatsAppMessage(getMessagesEndpoint(phoneNumberId), buildHeaders(accessToken), {
+      messaging_product: 'whatsapp',
+      to: recipientPhone,
+      type: 'image',
+      image: {
+        link: file.url,
+        caption: file.caption || 'Grievance Image'
+      }
+    });
+  } catch (error: any) {
+    console.error(
+      `❌ Failed to send image attachment for grievance ${grievanceId || 'N/A'} (${file.url}):`,
+      error?.response?.data || error?.message || error
+    );
+    throw error;
+  }
 }
 
-export async function sendVideoMessage(company: CompanyWhatsAppContext, adminPhone: string, file: WhatsAppAttachment): Promise<void> {
-  const { phoneNumberId, accessToken } = getCompanyCredentials(company);
-  await postWhatsAppMessage(getMessagesEndpoint(phoneNumberId), buildHeaders(accessToken), {
-    messaging_product: 'whatsapp',
-    to: adminPhone,
-    type: 'video',
-    video: {
-      link: file.url,
-      caption: file.caption || 'Grievance Video'
-    }
-  });
+export async function sendVideoMessage(
+  company: CompanyWhatsAppContext,
+  recipientPhone: string,
+  file: WhatsAppAttachment,
+  grievanceId?: string
+): Promise<void> {
+  try {
+    const { phoneNumberId, accessToken } = getCompanyCredentials(company);
+    await postWhatsAppMessage(getMessagesEndpoint(phoneNumberId), buildHeaders(accessToken), {
+      messaging_product: 'whatsapp',
+      to: recipientPhone,
+      type: 'video',
+      video: {
+        link: file.url,
+        caption: file.caption || 'Grievance Video'
+      }
+    });
+  } catch (error: any) {
+    console.error(
+      `❌ Failed to send video attachment for grievance ${grievanceId || 'N/A'} (${file.url}):`,
+      error?.response?.data || error?.message || error
+    );
+    throw error;
+  }
 }
 
-export async function sendDocumentMessage(company: CompanyWhatsAppContext, adminPhone: string, file: WhatsAppAttachment): Promise<void> {
-  const { phoneNumberId, accessToken } = getCompanyCredentials(company);
-  await postWhatsAppMessage(getMessagesEndpoint(phoneNumberId), buildHeaders(accessToken), {
-    messaging_product: 'whatsapp',
-    to: adminPhone,
-    type: 'document',
-    document: {
-      link: file.url,
-      filename: file.filename || 'Attachment',
-      caption: file.caption || 'Supporting Document'
-    }
-  });
+export async function sendDocumentMessage(
+  company: CompanyWhatsAppContext,
+  recipientPhone: string,
+  file: WhatsAppAttachment,
+  grievanceId?: string
+): Promise<void> {
+  try {
+    const { phoneNumberId, accessToken } = getCompanyCredentials(company);
+    await postWhatsAppMessage(getMessagesEndpoint(phoneNumberId), buildHeaders(accessToken), {
+      messaging_product: 'whatsapp',
+      to: recipientPhone,
+      type: 'document',
+      document: {
+        link: file.url,
+        filename: file.filename || 'Attachment',
+        caption: file.caption || 'Supporting Document'
+      }
+    });
+  } catch (error: any) {
+    console.error(
+      `❌ Failed to send document attachment for grievance ${grievanceId || 'N/A'} (${file.url}):`,
+      error?.response?.data || error?.message || error
+    );
+    throw error;
+  }
 }
 
 /**
  * Reusable flow for grievance/admin (and future citizen status updates):
- * Template first, then attachments sequentially.
+ * template first, then attachments sequentially.
  */
 export async function sendTemplateAndAttachments(options: {
   recipientPhone: string;
@@ -158,12 +217,15 @@ export async function sendTemplateAndAttachments(options: {
     grievanceId
   } = options;
 
-  try {
-    await sendTemplateMessage(company, recipientPhone, templateName, bodyParameters, languageCode);
-  } catch (error: any) {
-    console.error(`❌ Failed to send template ${templateName} for grievance ${grievanceId || 'N/A'}:`, error?.response?.data || error?.message || error);
-    throw error;
-  }
+  // Always send template first.
+  await sendTemplateMessage({
+    company,
+    recipientPhone,
+    templateName,
+    bodyParameters,
+    languageCode,
+    grievanceId
+  });
 
   for (const file of attachments) {
     if (!file || !isHttpsUrl(file.url)) {
@@ -173,17 +235,14 @@ export async function sendTemplateAndAttachments(options: {
 
     try {
       if (file.type === 'image') {
-        await sendImageMessage(company, recipientPhone, file);
+        await sendImageMessage(company, recipientPhone, file, grievanceId);
       } else if (file.type === 'video') {
-        await sendVideoMessage(company, recipientPhone, file);
+        await sendVideoMessage(company, recipientPhone, file, grievanceId);
       } else if (file.type === 'document') {
-        await sendDocumentMessage(company, recipientPhone, file);
+        await sendDocumentMessage(company, recipientPhone, file, grievanceId);
       }
-    } catch (error: any) {
-      console.error(
-        `❌ Failed to send ${file.type} attachment for grievance ${grievanceId || 'N/A'} (${file.url}):`,
-        error?.response?.data || error?.message || error
-      );
+    } catch {
+      // Error already logged within send*Message. Continue sending remaining files.
     }
 
     await new Promise(resolve => setTimeout(resolve, MESSAGE_DELAY_MS));
@@ -212,6 +271,6 @@ export async function sendGrievanceToAdmin(
     bodyParameters: templateBodyParameters,
     attachments,
     company,
-    grievanceId: grievance?.referenceId || grievance?.grievanceId
+    grievanceId: grievance?.referenceId || grievance?.grievanceId || grievance?._id
   });
 }
