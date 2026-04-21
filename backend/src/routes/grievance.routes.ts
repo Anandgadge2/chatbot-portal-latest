@@ -15,7 +15,8 @@ import CitizenProfile from '../models/CitizenProfile';
 import { 
   triggerAdminTemplate,
   triggerAdminAssignmentNotification,
-  formatTemplateDate
+  formatTemplateDate,
+  getAdminRecipients
 } from '../services/grievanceTemplateTriggerService';
 import { sanitizeGrievanceDetails } from '../utils/sanitize';
 
@@ -495,22 +496,28 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
 
     await grievance.save();
 
-    await triggerAdminTemplate({
-      event: 'grievance_reverted_company_v1_',
+    const revertRecipients = await getAdminRecipients(grievance.companyId);
+    await triggerAdminAssignmentNotification({
+      event: 'grievance_reverted_company_v1',
       companyId: grievance.companyId,
+      grievanceId: grievance.grievanceId,
+      citizenName: grievance.citizenName,
+      category: previousDepartmentName,
+      subDepartmentName: previousSubDepartmentName,
+      description: grievance.description,
+      recipientPhones: revertRecipients,
       language: grievance.language,
-      citizenPhone: grievance.citizenPhone,
-      data: {
-        admin_name: 'Company Admin',
-        grievance_id: grievance.grievanceId,
-        citizen_name: grievance.citizenName,
-        department_name: previousDepartmentName,
-        office_name: previousSubDepartmentName,
-        reverted_by: currentUser.getFullName(),
-        remarks: remarks.trim(),
-        reverted_on: formatTemplateDate()
-      }
-    }).catch((err) => logger.error('Failed to trigger grievance_reverted_company_v1_ template', err));
+      revertedByName: currentUser.getFullName(),
+      remarks: remarks.trim(),
+      originalDepartmentName: previousDepartmentName,
+      originalOfficeName: previousSubDepartmentName,
+      media: (grievance.media || []).map((file: any) => ({
+        url: file.url,
+        type: file.type,
+        caption: file.caption,
+        filename: file.filename
+      }))
+    }).catch((err) => logger.error('Failed to trigger grievance_reverted_company_v1 template', err));
 
     const { notifyCompanyAdminsOnRevert } = await import('../services/notificationService');
     await notifyCompanyAdminsOnRevert({
@@ -999,28 +1006,27 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
     );
 
       if (assignedUser.phone) {
-        await triggerAdminTemplate({
+        await triggerAdminAssignmentNotification({
           event: isReassignment ? 'grievance_reassigned_admin_v1' : 'grievance_assigned_admin_v1',
           companyId: grievance.companyId,
-          language: grievance.language,
+          grievanceId: grievance.grievanceId,
+          citizenName: grievance.citizenName,
+          category: currentDepartmentName,
+          subDepartmentName: currentOfficeName,
+          description: grievance.description,
           recipientPhones: [assignedUser.phone],
-          citizenPhone: grievance.citizenPhone,
-          data: {
-            admin_name: assignedUser.getFullName(),
-            grievance_id: grievance.grievanceId,
-            citizen_name: grievance.citizenName,
-            department_name: currentDepartmentName,
-            office_name: currentOfficeName,
-            description: grievance.description,
-            assigned_by: req.user!.getFullName(),
-            reassigned_by: req.user!.getFullName(),
-            submitted_on: formatTemplateDate(grievance.createdAt),
-            assigned_on: formatTemplateDate(grievance.assignedAt || new Date()),
-            reassigned_on: formatTemplateDate(grievance.assignedAt || new Date()),
-            remarks: transferNote || 'Assigned for resolution.',
-            original_department: originalDepartmentName,
-            original_office: originalOfficeName
-          }
+          language: grievance.language,
+          assignedByName: req.user!.getFullName(),
+          reassignedByName: req.user!.getFullName(),
+          remarks: transferNote || 'Assigned for resolution.',
+          originalDepartmentName: originalDepartmentName,
+          originalOfficeName: originalOfficeName,
+          media: (grievance.media || []).map((file: any) => ({
+            url: file.url,
+            type: file.type,
+            caption: file.caption,
+            filename: file.filename
+          }))
         }).catch((err) => logger.error('Failed to trigger grievance assignment admin template', err));
       }
 

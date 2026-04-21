@@ -4,6 +4,7 @@ import CompanyWhatsAppConfig from '../models/CompanyWhatsAppConfig';
 import CitizenProfile from '../models/CitizenProfile';
 import Role from '../models/Role';
 import { sendWhatsAppTemplate, sendMediaSequentially } from './whatsappService';
+import { sendGrievanceToAdmin, sendTemplateAndAttachments, WhatsAppAttachment } from './whatsapp/grievanceNotificationFlow.service';
 import { buildCitizenMessage } from './citizenMessageBuilder';
 import { sanitizeGrievanceDetails, sanitizeNote, sanitizeRemarks, sanitizeText } from '../utils/sanitize';
 import { normalizeLanguage } from './templateValidationService';
@@ -62,7 +63,7 @@ async function getCompanyWithConfig(companyId: any): Promise<any> {
   };
 }
 
-async function getAdminRecipients(companyId: any): Promise<string[]> {
+export async function getAdminRecipients(companyId: any): Promise<string[]> {
   const companyAdminRoleIds = await Role.find({
     companyId,
     $or: [
@@ -97,7 +98,7 @@ export async function triggerAdminTemplate(options: {
     | 'grievance_pending_admin_v1'
     | 'grievance_assigned_admin_v1'
     | 'grievance_reassigned_admin_v1'
-    | 'grievance_reverted_company_v1_';
+    | 'grievance_reverted_company_v1';
   companyId: any;
   language?: string;
   values?: string[];
@@ -258,8 +259,14 @@ export async function triggerGrievanceNotifications(options: {
   const isAssigned = (options.status !== 'PENDING' && options.status !== 'UNASSIGNED') && (options.assignedAdmins || []).length > 0;
   const safeDescription = sanitizeGrievanceDetails(options.description || 'N/A');
   const company = await getCompanyWithConfig(options.companyId);
-  const language = normalizeLanguage(options.language);
-  const notifications = [];
+  const formattedDate = formatTemplateDate();
+  const attachments: WhatsAppAttachment[] = (options.media || []).map((file) => ({
+    url: file.url,
+    type: file.type,
+    caption: file.caption,
+    filename: file.filename
+  }));
+  const notifications: Promise<void>[] = [];
 
   if (isAssigned) {
     // 1. Send 'received' template to specifically assigned admins
@@ -272,19 +279,21 @@ export async function triggerGrievanceNotifications(options: {
 
       if (assignedRecipientPhones.length > 0) {
         notifications.push(
-          ...assignedRecipientPhones.map(to => 
-            sendWhatsAppTemplate(company, to, 'grievance_received_admin_v1', {
-              admin_name: 'Administrator', // Generic if name not available
-              grievance_id: sanitizeText(options.grievanceId, 30),
-              citizen_name: sanitizeText(options.citizenName, 60),
-              department_name: sanitizeText(options.category, 60),
-              office_name: sanitizeText(options.subDepartmentName || 'N/A', 60),
-              description: safeDescription,
-              received_on: formatTemplateDate(),
-            }, language, undefined, undefined, {
-              recipientType: 'ADMIN',
-              citizenPhone: options.citizenPhone
-            })
+          ...assignedRecipientPhones.map(async (to) =>
+            sendGrievanceToAdmin(
+              to,
+              {
+                adminName: 'Administrator',
+                referenceId: sanitizeText(options.grievanceId, 30),
+                citizenName: sanitizeText(options.citizenName, 60),
+                department: sanitizeText(options.category, 60),
+                office: sanitizeText(options.subDepartmentName || 'N/A', 60),
+                description: safeDescription,
+                createdAt: formattedDate
+              },
+              attachments,
+              company
+            )
           )
         );
       } else {
@@ -292,18 +301,22 @@ export async function triggerGrievanceNotifications(options: {
       // Send the pending template to company admins so the grievance is still visible.
         const fallbackPhones = await getAdminRecipients(options.companyId);
         notifications.push(
-          ...fallbackPhones.map((to) =>
-            sendWhatsAppTemplate(company, to, 'grievance_pending_admin_v1', {
-              admin_name: 'Administrator',
-              grievance_id: sanitizeText(options.grievanceId, 30),
-              citizen_name: sanitizeText(options.citizenName, 60),
-              department_name: sanitizeText(options.category, 60),
-              office_name: sanitizeText(options.subDepartmentName || 'N/A', 60),
-              description: safeDescription,
-              submitted_on: formatTemplateDate(),
-            }, language, undefined, undefined, {
-              recipientType: 'ADMIN',
-              citizenPhone: options.citizenPhone
+          ...fallbackPhones.map(async (to) =>
+            sendTemplateAndAttachments({
+              recipientPhone: to,
+              templateName: 'grievance_pending_admin_v1',
+              bodyParameters: [
+                { type: 'text', text: 'Administrator' },
+                { type: 'text', text: sanitizeText(options.grievanceId, 30) },
+                { type: 'text', text: sanitizeText(options.citizenName, 60) },
+                { type: 'text', text: sanitizeText(options.category, 60) },
+                { type: 'text', text: sanitizeText(options.subDepartmentName || 'N/A', 60) },
+                { type: 'text', text: safeDescription },
+                { type: 'text', text: formattedDate }
+              ],
+              attachments,
+              company,
+              grievanceId: options.grievanceId
             })
           )
         );
@@ -319,18 +332,22 @@ export async function triggerGrievanceNotifications(options: {
 
       if (departmentAdminPhones.length > 0) {
         notifications.push(
-          ...departmentAdminPhones.map(to => 
-            sendWhatsAppTemplate(company, to, 'grievance_pending_admin_v1', {
-              admin_name: 'Administrator',
-              grievance_id: sanitizeText(options.grievanceId, 30),
-              citizen_name: sanitizeText(options.citizenName, 60),
-              department_name: sanitizeText(options.category, 60),
-              office_name: sanitizeText(options.subDepartmentName || 'N/A', 60),
-              description: safeDescription,
-              submitted_on: formatTemplateDate(),
-            }, language, undefined, undefined, {
-              recipientType: 'ADMIN',
-              citizenPhone: options.citizenPhone
+          ...departmentAdminPhones.map(async (to) =>
+            sendTemplateAndAttachments({
+              recipientPhone: to,
+              templateName: 'grievance_pending_admin_v1',
+              bodyParameters: [
+                { type: 'text', text: 'Administrator' },
+                { type: 'text', text: sanitizeText(options.grievanceId, 30) },
+                { type: 'text', text: sanitizeText(options.citizenName, 60) },
+                { type: 'text', text: sanitizeText(options.category, 60) },
+                { type: 'text', text: sanitizeText(options.subDepartmentName || 'N/A', 60) },
+                { type: 'text', text: safeDescription },
+                { type: 'text', text: formattedDate }
+              ],
+              attachments,
+              company,
+              grievanceId: options.grievanceId
             })
           )
         );
@@ -338,30 +355,12 @@ export async function triggerGrievanceNotifications(options: {
   }
 
   const settled = await Promise.allSettled(notifications);
-  const failed = settled
-    .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
-    .filter((result: PromiseFulfilledResult<any>) => !result.value?.success);
+  const failed = settled.filter((result): result is PromiseRejectedResult => result.status === 'rejected');
   if (failed.length > 0) {
     console.error(
       `⚠️ triggerGrievanceNotifications: ${failed.length}/${notifications.length} sends failed for grievance ${options.grievanceId}`,
-      failed.map((item) => item.value?.error).filter(Boolean)
+      failed.map((item) => item.reason).filter(Boolean)
     );
-  }
-
-  // ✅ 3. Send Media Sequentially (Compliance: Template first, then media)
-  if (options.media && options.media.length > 0) {
-    const allRecipientPhones = Array.from(new Set([
-      ...(options.assignedAdmins || []).map(a => a.phone),
-      ...(options.companyAdmins || []).map(a => a.phone)
-    ].filter(Boolean).map(p => normalizePhoneNumber(p))));
-
-    for (const phone of allRecipientPhones) {
-      // Don't await the entire media loop for all admins in parallel to avoid blocking, 
-      // but each admin gets their media sequentially.
-      sendMediaSequentially(company, phone, options.media).catch(err => 
-        console.error(`❌ Sequential media delivery failed for admin ${phone}:`, err)
-      );
-    }
   }
 }
 
@@ -369,7 +368,7 @@ export async function triggerGrievanceNotifications(options: {
  * Trigger specific admin notifications for status/assignment changes
  */
 export async function triggerAdminAssignmentNotification(options: {
-  event: 'grievance_assigned_admin_v1' | 'grievance_reassigned_admin_v1' | 'grievance_reverted_company_v1_';
+  event: 'grievance_assigned_admin_v1' | 'grievance_reassigned_admin_v1' | 'grievance_reverted_company_v1';
   companyId: any;
   grievanceId: string;
   citizenName: string;
@@ -384,6 +383,7 @@ export async function triggerAdminAssignmentNotification(options: {
   remarks?: string;
   originalDepartmentName?: string;
   originalOfficeName?: string;
+  media?: Array<{ url: string; type: 'image' | 'video' | 'document'; caption?: string; filename?: string }>;
 }) {
   const company = await getCompanyWithConfig(options.companyId);
   const language = normalizeLanguage(options.language);
@@ -392,8 +392,8 @@ export async function triggerAdminAssignmentNotification(options: {
   const dateStr = formatTemplateDate();
 
   await Promise.allSettled(
-    options.recipientPhones.map(to => 
-      sendWhatsAppTemplate(company, to, options.event, {
+    options.recipientPhones.map(async (to) => {
+      await sendWhatsAppTemplate(company, to, options.event, {
         admin_name: 'Administrator',
         grievance_id: sanitizeText(options.grievanceId, 30),
         citizen_name: sanitizeText(options.citizenName, 60),
@@ -413,7 +413,11 @@ export async function triggerAdminAssignmentNotification(options: {
         original_office: sanitizeText(options.originalOfficeName || 'N/A', 60)
       }, language, undefined, undefined, {
         recipientType: 'ADMIN'
-      })
-    )
+      });
+
+      if (options.media?.length) {
+        await sendMediaSequentially(company, to, options.media);
+      }
+    })
   );
 }
