@@ -111,7 +111,7 @@ export default function GrievancesPage() {
 
     if (grievance.status === "PENDING") {
       return hoursDiff > 24; // PENDING should be assigned within 24h
-    } else if (grievance.status === "ASSIGNED") {
+    } else if (grievance.status === "ASSIGNED" || grievance.status === "IN_PROGRESS") {
       const assignedDate = grievance.assignedAt
         ? new Date(grievance.assignedAt)
         : createdDate;
@@ -185,6 +185,8 @@ export default function GrievancesPage() {
         return "bg-yellow-100 text-yellow-800 border-yellow-300";
       case "ASSIGNED":
         return "bg-blue-100 text-blue-800 border-blue-300";
+      case "IN_PROGRESS":
+        return "bg-indigo-100 text-indigo-800 border-indigo-300";
       case "RESOLVED":
         return "bg-green-100 text-green-800 border-green-300";
       default:
@@ -262,6 +264,7 @@ export default function GrievancesPage() {
               <option value="all">All Status</option>
               <option value="PENDING">🟡 Pending</option>
               <option value="ASSIGNED">🔵 Assigned</option>
+              <option value="IN_PROGRESS">🛠️ In Progress</option>
             </select>
 
             {/* Department */}

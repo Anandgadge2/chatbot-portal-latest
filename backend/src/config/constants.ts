@@ -50,6 +50,7 @@ export type ModuleType = typeof Module[keyof typeof Module] | string;
 export enum GrievanceStatus {
   PENDING = 'PENDING',
   ASSIGNED = 'ASSIGNED',
+  IN_PROGRESS = 'IN_PROGRESS',
   REVERTED = 'REVERTED',
   RESOLVED = 'RESOLVED',
   REJECTED = 'REJECTED'
@@ -116,6 +117,7 @@ export enum NotificationType {
 export const SLA_CONFIG = {
   [GrievanceStatus.PENDING]: 24, // Must be assigned within 24 hours
   [GrievanceStatus.ASSIGNED]: 120, // Must be resolved within 5 days
+  [GrievanceStatus.IN_PROGRESS]: 120, // Must be resolved within 5 days
 };
 
 // ================================

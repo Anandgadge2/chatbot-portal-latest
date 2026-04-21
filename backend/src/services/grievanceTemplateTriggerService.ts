@@ -93,7 +93,7 @@ export async function getAdminRecipients(companyId: any): Promise<string[]> {
     });
   }
 
-  return Array.from(unique.values());
+  return Array.from(unique.keys());
 }
 
 export async function triggerAdminTemplate(options: {
@@ -291,11 +291,11 @@ export async function triggerGrievanceNotifications(options: {
 
       if (assignedRecipients.length > 0) {
         notifications.push(
-          ...assignedRecipientPhones.map(async (to) =>
+          ...assignedRecipients.map(async (recipient: { phone: string; name: string }) =>
             sendGrievanceToAdmin(
-              to,
+              recipient.phone,
               {
-                adminName: 'Administrator',
+                adminName: recipient.name,
                 referenceId: sanitizeText(options.grievanceId, 30),
                 citizenName: sanitizeText(options.citizenName, 60),
                 department: sanitizeText(options.category, 60),

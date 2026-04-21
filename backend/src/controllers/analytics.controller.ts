@@ -154,7 +154,7 @@ export const dashboard = async (req: Request, res: Response) => {
       openGrievances,
       pendingGrievances,
       resolvedGrievances,
-      assignedGrievancesCount,
+      inProgressGrievancesCount,
       revertedGrievances,
       rejectedGrievances,
       totalAppointments,
@@ -190,10 +190,16 @@ export const dashboard = async (req: Request, res: Response) => {
       activeUsers,
     ] = await Promise.all([
       Grievance.countDocuments({ ...baseQuery }),
-      Grievance.countDocuments({ ...baseQuery, status: { $in: [GrievanceStatus.PENDING, GrievanceStatus.ASSIGNED, GrievanceStatus.REVERTED] } }),
-      Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.PENDING }),
+      Grievance.countDocuments({ ...baseQuery, status: { $in: [GrievanceStatus.PENDING, GrievanceStatus.ASSIGNED, GrievanceStatus.IN_PROGRESS, GrievanceStatus.REVERTED] } }),
+      Grievance.countDocuments({
+        ...baseQuery,
+        $or: [
+          { status: GrievanceStatus.PENDING },
+          { status: GrievanceStatus.ASSIGNED, assignedTo: { $ne: null } }
+        ]
+      }),
       Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.RESOLVED }),
-      Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.ASSIGNED }),
+      Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.IN_PROGRESS }),
       Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.REVERTED }),
       Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.REJECTED }),
       
@@ -224,7 +230,7 @@ export const dashboard = async (req: Request, res: Response) => {
       
       Promise.all([
         Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.PENDING, createdAt: { $lt: pendingSlaCutoff } }),
-        Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.ASSIGNED, $or: [{ assignedAt: { $exists: true, $lt: assignedSlaCutoff } }, { assignedAt: { $exists: false }, createdAt: { $lt: assignedSlaCutoff } }] })
+        Grievance.countDocuments({ ...baseQuery, status: { $in: [GrievanceStatus.ASSIGNED, GrievanceStatus.IN_PROGRESS] }, $or: [{ assignedAt: { $exists: true, $lt: assignedSlaCutoff } }, { assignedAt: { $exists: false }, createdAt: { $lt: assignedSlaCutoff } }] })
       ]).then(([p, a]) => ({ totalOverdueCount: p + a, pendingOverdueCount: p, assignedOverdueCount: a })),
 
       Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.ASSIGNED }),
@@ -244,7 +250,7 @@ export const dashboard = async (req: Request, res: Response) => {
       Grievance.aggregate([{ $match: { ...baseQuery, createdAt: { $gte: sixMonthsAgo } } }, { $group: { _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } }, count: { $sum: 1 }, resolved: { $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.RESOLVED] }, 1, 0] } } } }, { $sort: { _id: 1 } }]),
       Appointment.aggregate([{ $match: { ...baseQuery, createdAt: { $gte: sixMonthsAgo } } }, { $group: { _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } }, count: { $sum: 1 }, completed: { $sum: { $cond: [{ $eq: ['$status', AppointmentStatus.COMPLETED] }, 1, 0] } } } }, { $sort: { _id: 1 } }]),
       normalizedCompanyId ? User.aggregate([{ $match: { companyId: normalizedCompanyId, ...userScopeFilter } }, { $lookup: { from: 'roles', localField: 'customRoleId', foreignField: '_id', as: 'customRole' } }, { $unwind: { path: '$customRole', preserveNullAndEmptyArrays: true } }, { $group: { _id: { $ifNull: ['$customRole.name', 'Staff'] }, count: { $sum: 1 } } }, { $sort: { count: -1 } }]) : Promise.resolve([]),
-      Grievance.aggregate([{ $match: { ...baseQuery } }, { $group: { _id: { $ifNull: ['$subDepartmentId', '$departmentId'] }, total: { $sum: 1 }, pending: { $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.PENDING] }, 1, 0] } } } }, { $match: { _id: { $ne: null } } }, { $lookup: { from: 'departments', localField: '_id', foreignField: '_id', as: 'department' } }, { $unwind: { path: '$department', preserveNullAndEmptyArrays: true } }, { $project: { departmentId: '$_id', departmentName: { $ifNull: ['$department.name', 'Unknown Department'] }, total: 1, pending: 1 } }]),
+      Grievance.aggregate([{ $match: { ...baseQuery } }, { $group: { _id: { $ifNull: ['$subDepartmentId', '$departmentId'] }, total: { $sum: 1 }, pending: { $sum: { $cond: [{ $or: [{ $eq: ['$status', GrievanceStatus.PENDING] }, { $and: [{ $eq: ['$status', GrievanceStatus.ASSIGNED] }, { $ne: ['$assignedTo', null] }] }] }, 1, 0] } } } }, { $match: { _id: { $ne: null } } }, { $lookup: { from: 'departments', localField: '_id', foreignField: '_id', as: 'department' } }, { $unwind: { path: '$department', preserveNullAndEmptyArrays: true } }, { $project: { departmentId: '$_id', departmentName: { $ifNull: ['$department.name', 'Unknown Department'] }, total: 1, pending: 1 } }]),
       normalizedCompanyId ? User.countDocuments({ companyId: normalizedCompanyId, ...userScopeFilter, isActive: true }) : Promise.resolve(0)
     ]);
 
@@ -266,7 +272,7 @@ export const dashboard = async (req: Request, res: Response) => {
           assigned: assignedGrievances,
           reverted: revertedGrievances,
           rejected: rejectedGrievances,
-          inProgress: assignedGrievancesCount,
+          inProgress: inProgressGrievancesCount,
           resolved: resolvedGrievances,
           last7Days: grievancesLast7Days,
           last30Days: grievancesLast30Days,

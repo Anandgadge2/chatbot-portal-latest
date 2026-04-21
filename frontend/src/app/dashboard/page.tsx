@@ -2243,7 +2243,7 @@ function DashboardContent() {
           if (g.status === "PENDING") {
             slaHours = 24;
             isOverdue = hoursDiff > slaHours;
-          } else if (g.status === "ASSIGNED") {
+          } else if (g.status === "ASSIGNED" || g.status === "IN_PROGRESS") {
             slaHours = 120;
             const assignedDate = g.assignedAt
               ? new Date(g.assignedAt)
@@ -7454,6 +7454,7 @@ function DashboardContent() {
                             <option value="ALL">📑 Total (Inc. Resolved/Rejected)</option>
                             <option value="PENDING">🔸 Pending</option>
                             <option value="ASSIGNED">👤 Assigned</option>
+                            <option value="IN_PROGRESS">🛠️ In Progress</option>
                             <option value="RESOLVED">✅ Resolved</option>
                             <option value="REJECTED">❌ Rejected</option>
                             {isCompanyLevel && (
