@@ -16,7 +16,7 @@ export async function checkDailyLimit(options: {
     createdAt: { $gte: start, $lte: end }
   });
 
-  if (countToday >= 1) {
+  if (countToday >= 3) {
     return {
       allowed: false,
       countToday,
@@ -45,7 +45,7 @@ export async function enforceDailyLimitOrThrow(options: {
       countToday: result.countToday
     });
 
-    const error: any = new Error('Citizen can submit only one grievance per day (IST).');
+    const error: any = new Error('Citizen can submit up to 3 grievances per day (IST).');
     error.code = 'LIMIT_EXCEEDED';
     error.statusCode = 429;
     error.nextEligibleAt = result.nextEligibleAt;
