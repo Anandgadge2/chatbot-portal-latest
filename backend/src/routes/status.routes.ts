@@ -70,6 +70,7 @@ const getStatusMessage = (type: 'grievance' | 'appointment', id: string, status:
   const emoji = {
     PENDING: '⏳',
     ASSIGNED: '👤',
+    IN_PROGRESS: '🛠️',
     RESOLVED: '✅',
     SCHEDULED: '📅',
     COMPLETED: '🎉',
@@ -325,7 +326,7 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
         }
         
         // 3. Notify citizen for other status changes
-        if (oldStatus !== status && [GrievanceStatus.ASSIGNED, GrievanceStatus.REJECTED, GrievanceStatus.PENDING, GrievanceStatus.REVERTED].includes(status as any)) {
+        if (oldStatus !== status && [GrievanceStatus.ASSIGNED, GrievanceStatus.IN_PROGRESS, GrievanceStatus.REJECTED, GrievanceStatus.PENDING, GrievanceStatus.REVERTED].includes(status as any)) {
           notificationTasks.push(notifyCitizenOnGrievanceStatusChange({
             companyId: resolvedCompanyId,
             grievanceId: grievance.grievanceId,
