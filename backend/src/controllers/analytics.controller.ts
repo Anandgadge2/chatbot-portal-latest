@@ -103,27 +103,61 @@ export const dashboard = async (req: Request, res: Response) => {
 
     // 🔍 Extract authorized department IDs from user context for proper scoping of counts
     let authorizedMongoDeptIds: mongoose.Types.ObjectId[] = [];
+    let forceEmptyScope = false;
     const currentAssignedDeptIds = (currentUser.departmentIds && currentUser.departmentIds.length > 0)
       ? currentUser.departmentIds
       : (currentUser.departmentId ? [currentUser.departmentId] : []);
+    const currentAssignedDeptIdStrings = currentAssignedDeptIds.map((id: string | mongoose.Types.ObjectId) => id.toString());
     
     if (currentUser.isSuperAdmin) {
       if (departmentId) {
-        authorizedMongoDeptIds = [new mongoose.Types.ObjectId(departmentId.toString())];
+        const scopedIds = await getDepartmentHierarchyIds(departmentId.toString());
+        authorizedMongoDeptIds = scopedIds.map(id => new mongoose.Types.ObjectId(id));
       }
     } else if (currentUser.level === 1) { // Company Admin
       if (departmentId) {
-        authorizedMongoDeptIds = [new mongoose.Types.ObjectId(departmentId.toString())];
+        const scopedIds = await getDepartmentHierarchyIds(departmentId.toString());
+        authorizedMongoDeptIds = scopedIds.map(id => new mongoose.Types.ObjectId(id));
       }
-    // 🛡️ All other roles (Dept Admin, Sub Dept Admin, Operator) are scoped to their assigned departments
-      authorizedMongoDeptIds = currentAssignedDeptIds.map((id: string | mongoose.Types.ObjectId) => new mongoose.Types.ObjectId(id.toString()));
+      // no departmentId => full company visibility
+    } else if (currentUser.level === 2) { // Department Admin
+      const fullAuthorizedIds = await getDepartmentHierarchyIds(currentAssignedDeptIdStrings);
+      if (departmentId) {
+        const requestedId = departmentId.toString();
+        if (fullAuthorizedIds.includes(requestedId)) {
+          const scopedIds = await getDepartmentHierarchyIds(requestedId);
+          authorizedMongoDeptIds = scopedIds.map(id => new mongoose.Types.ObjectId(id));
+        } else {
+          forceEmptyScope = true;
+        }
+      } else {
+        authorizedMongoDeptIds = fullAuthorizedIds.map(id => new mongoose.Types.ObjectId(id));
+      }
+    } else if (currentUser.level === 3) { // Sub-Department Admin
+      const fullAuthorizedIds = [...currentAssignedDeptIdStrings];
+      if (departmentId) {
+        const requestedId = departmentId.toString();
+        if (fullAuthorizedIds.includes(requestedId)) {
+          authorizedMongoDeptIds = [new mongoose.Types.ObjectId(requestedId)];
+        } else {
+          forceEmptyScope = true;
+        }
+      } else {
+        authorizedMongoDeptIds = fullAuthorizedIds.map(id => new mongoose.Types.ObjectId(id));
+      }
+    } else if (currentUser.level !== undefined && currentUser.level >= 4) { // Operator
+      authorizedMongoDeptIds = currentAssignedDeptIdStrings.map(id => new mongoose.Types.ObjectId(id));
     }
 
-    const scopeFilter = authorizedMongoDeptIds.length > 0 
+    const scopeFilter = forceEmptyScope
+      ? { _id: { $in: [] as mongoose.Types.ObjectId[] } }
+      : authorizedMongoDeptIds.length > 0 
       ? { $or: [{ _id: { $in: authorizedMongoDeptIds } }, { parentDepartmentId: { $in: authorizedMongoDeptIds } }] }
       : {};
 
-    const userScopeFilter = (currentUser.level !== undefined && currentUser.level >= 4)
+    const userScopeFilter = forceEmptyScope
+      ? { _id: { $in: [] as mongoose.Types.ObjectId[] } }
+      : (currentUser.level !== undefined && currentUser.level >= 4)
       ? { _id: currentUser._id } // Operators only see themselves
       : authorizedMongoDeptIds.length > 0
         ? { $or: [{ departmentId: { $in: authorizedMongoDeptIds } }, { departmentIds: { $in: authorizedMongoDeptIds } }] }
