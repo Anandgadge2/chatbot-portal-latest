@@ -239,10 +239,14 @@ export const dashboard = async (req: Request, res: Response) => {
       Grievance.countDocuments({ ...baseQuery }),
       Grievance.countDocuments({ ...baseQuery, status: { $in: [GrievanceStatus.PENDING, GrievanceStatus.ASSIGNED, GrievanceStatus.IN_PROGRESS, GrievanceStatus.REVERTED] } }),
       Grievance.countDocuments({
-        ...baseQuery,
-        $or: [
-          { status: GrievanceStatus.PENDING },
-          { status: GrievanceStatus.ASSIGNED, assignedTo: { $ne: null } }
+        $and: [
+          baseQuery,
+          {
+            $or: [
+              { status: GrievanceStatus.PENDING },
+              { status: GrievanceStatus.ASSIGNED, assignedTo: { $ne: null } }
+            ]
+          }
         ]
       }),
       Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.RESOLVED }),
@@ -277,13 +281,29 @@ export const dashboard = async (req: Request, res: Response) => {
       
       Promise.all([
         Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.PENDING, createdAt: { $lt: pendingSlaCutoff } }),
-        Grievance.countDocuments({ ...baseQuery, status: { $in: [GrievanceStatus.ASSIGNED, GrievanceStatus.IN_PROGRESS] }, $or: [{ assignedAt: { $exists: true, $lt: assignedSlaCutoff } }, { assignedAt: { $exists: false }, createdAt: { $lt: assignedSlaCutoff } }] })
+        Grievance.countDocuments({
+          $and: [
+            baseQuery,
+            {
+              status: { $in: [GrievanceStatus.ASSIGNED, GrievanceStatus.IN_PROGRESS] },
+              $or: [
+                { assignedAt: { $exists: true, $lt: assignedSlaCutoff } },
+                { assignedAt: { $exists: false }, createdAt: { $lt: assignedSlaCutoff } }
+              ]
+            }
+          ]
+        })
       ]).then(([p, a]) => ({ totalOverdueCount: p + a, pendingOverdueCount: p, assignedOverdueCount: a })),
 
       Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.ASSIGNED }),
       Department.countDocuments({ companyId: targetCompanyId, ...scopeFilter }),
       User.countDocuments({ companyId: targetCompanyId, ...userScopeFilter }),
-      isHierarchicalEnabled ? Department.countDocuments({ companyId: targetCompanyId, ...scopeFilter, $or: [{ parentDepartmentId: null }, { parentDepartmentId: { $exists: false } }] }) : Promise.resolve(0),
+      isHierarchicalEnabled ? Department.countDocuments({
+        companyId: targetCompanyId,
+        ...(scopeFilter.$or
+          ? { $and: [scopeFilter, { $or: [{ parentDepartmentId: null }, { parentDepartmentId: { $exists: false } }] }] }
+          : { ...scopeFilter, $or: [{ parentDepartmentId: null }, { parentDepartmentId: { $exists: false } }] }),
+      }) : Promise.resolve(0),
       isHierarchicalEnabled ? Department.countDocuments({ companyId: targetCompanyId, ...scopeFilter, parentDepartmentId: { $ne: null } }) : Promise.resolve(0),
       Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.RESOLVED, resolvedAt: { $gte: new Date().setHours(0,0,0,0) } }),
       Grievance.countDocuments({ ...baseQuery, priority: 'HIGH', status: { $ne: GrievanceStatus.RESOLVED } }),
