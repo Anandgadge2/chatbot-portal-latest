@@ -64,11 +64,6 @@ async function getCompanyWithConfig(companyId: any): Promise<any> {
 }
 
 export async function getAdminRecipients(companyId: any): Promise<string[]> {
-  const profiles = await getAdminRecipientProfiles(companyId);
-  return Array.from(new Set(profiles.map((item) => item.phone).filter(Boolean)));
-}
-
-async function getAdminRecipientProfiles(companyId: any): Promise<Array<{ phone: string; name: string }>> {
   const companyAdminRoleIds = await Role.find({
     companyId,
     $or: [
@@ -296,11 +291,11 @@ export async function triggerGrievanceNotifications(options: {
 
       if (assignedRecipients.length > 0) {
         notifications.push(
-          ...assignedRecipients.map(async ({ phone, name }) =>
+          ...assignedRecipientPhones.map(async (to) =>
             sendGrievanceToAdmin(
-              phone,
+              to,
               {
-                adminName: name,
+                adminName: 'Administrator',
                 referenceId: sanitizeText(options.grievanceId, 30),
                 citizenName: sanitizeText(options.citizenName, 60),
                 department: sanitizeText(options.category, 60),
@@ -422,10 +417,8 @@ export async function triggerAdminAssignmentNotification(options: {
 
   await Promise.allSettled(
     options.recipientPhones.map(async (to) => {
-      const normalizedTo = normalizePhoneNumber(to);
-      const recipientName = nameByPhone.get(normalizedTo) || 'Administrator';
       await sendWhatsAppTemplate(company, to, options.event, {
-        admin_name: recipientName,
+        admin_name: 'Administrator',
         grievance_id: sanitizeText(options.grievanceId, 30),
         citizen_name: sanitizeText(options.citizenName, 60),
         department_name: sanitizeText(options.category, 60),
