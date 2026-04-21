@@ -22,8 +22,14 @@ describe('grievance daily limit service', () => {
     expect(result.allowed).toBe(true);
   });
 
-  it('blocks second grievance on same IST day', async () => {
-    mockedCount.mockResolvedValueOnce(1);
+  it('allows up to three grievances on the same IST day', async () => {
+    mockedCount.mockResolvedValueOnce(2);
+    const result = await checkDailyLimit({ companyId: 'c1' as any, phone_number: '919999999999' });
+    expect(result.allowed).toBe(true);
+  });
+
+  it('blocks the fourth grievance on same IST day', async () => {
+    mockedCount.mockResolvedValueOnce(3);
     const result = await checkDailyLimit({ companyId: 'c1' as any, phone_number: '919999999999' });
     expect(result.allowed).toBe(false);
   });
