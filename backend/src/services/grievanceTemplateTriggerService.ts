@@ -81,15 +81,19 @@ export async function getAdminRecipients(companyId: any): Promise<string[]> {
       { level: 1 },
       { customRoleId: { $in: companyAdminRoleIds } }
     ]
-  }).select('phone').lean();
+  }).select('phone firstName lastName').lean();
 
-  return Array.from(
-    new Set(
-      admins
-        .map((admin: any) => normalizePhoneNumber(admin.phone))
-        .filter(Boolean)
-    )
-  );
+  const unique = new Map<string, { phone: string; name: string }>();
+  for (const admin of admins as any[]) {
+    const phone = normalizePhoneNumber(admin.phone);
+    if (!phone) continue;
+    unique.set(phone, {
+      phone,
+      name: (typeof admin.getFullName === 'function' ? admin.getFullName() : `${admin.firstName || ''} ${admin.lastName || ''}`.trim()) || 'Administrator'
+    });
+  }
+
+  return Array.from(unique.keys());
 }
 
 export async function triggerAdminTemplate(options: {
@@ -109,14 +113,12 @@ export async function triggerAdminTemplate(options: {
   const company = await getCompanyWithConfig(options.companyId);
   const recipients = Array.from(
     new Set(
-        (options.recipientPhones?.length
-          ? options.recipientPhones
-          : await getAdminRecipients(options.companyId))
-          .map((phone) => normalizePhoneNumber(phone))
-          .filter((phone) => !options.citizenPhone || phone !== normalizePhoneNumber(options.citizenPhone))
-          .filter(Boolean)
-      )
-    );
+      (options.recipientPhones?.length ? options.recipientPhones : await getAdminRecipients(options.companyId))
+        .map((phone) => normalizePhoneNumber(phone))
+        .filter((phone) => !options.citizenPhone || phone !== normalizePhoneNumber(options.citizenPhone))
+        .filter(Boolean)
+    )
+  );
   const language = normalizeLanguage(options.language);
   const safeValues = options.values?.map((value) => sanitizeText(value, 100)) || [];
   const safeData = options.data
@@ -270,20 +272,30 @@ export async function triggerGrievanceNotifications(options: {
 
   if (isAssigned) {
     // 1. Send 'received' template to specifically assigned admins
-      const assignedRecipientPhones = Array.from(new Set((options.assignedAdmins || [])
-        .map(a => a.phone)
-        .filter(Boolean)
-        .map((phone) => normalizePhoneNumber(phone))
-        .filter((phone) => phone !== normalizePhoneNumber(options.citizenPhone))
-        .filter(Boolean)));
+      const assignedRecipients = Array.from(
+        new Map(
+          (options.assignedAdmins || [])
+            .map((admin: any) => {
+              const normalizedPhone = normalizePhoneNumber(admin?.phone);
+              if (!normalizedPhone) return null;
+              if (normalizedPhone === normalizePhoneNumber(options.citizenPhone)) return null;
+              const resolvedName =
+                (typeof admin?.getFullName === 'function' ? admin.getFullName() : `${admin?.firstName || ''} ${admin?.lastName || ''}`.trim()) ||
+                admin?.name ||
+                'Administrator';
+              return [normalizedPhone, { phone: normalizedPhone, name: resolvedName }];
+            })
+            .filter(Boolean) as Array<[string, { phone: string; name: string }]>
+        ).values()
+      );
 
-      if (assignedRecipientPhones.length > 0) {
+      if (assignedRecipients.length > 0) {
         notifications.push(
-          ...assignedRecipientPhones.map(async (to) =>
+          ...assignedRecipients.map(async (recipient: { phone: string; name: string }) =>
             sendGrievanceToAdmin(
-              to,
+              recipient.phone,
               {
-                adminName: 'Administrator',
+                adminName: recipient.name,
                 referenceId: sanitizeText(options.grievanceId, 30),
                 citizenName: sanitizeText(options.citizenName, 60),
                 department: sanitizeText(options.category, 60),
@@ -390,6 +402,18 @@ export async function triggerAdminAssignmentNotification(options: {
   const safeDescription = sanitizeGrievanceDetails(options.description || 'N/A');
   const safeRemarks = sanitizeRemarks(options.remarks || options.description || 'N/A');
   const dateStr = formatTemplateDate();
+
+  const recipientProfiles = await User.find({
+    companyId: options.companyId,
+    phone: { $in: options.recipientPhones }
+  }).select('phone firstName lastName').lean();
+  const nameByPhone = new Map<string, string>();
+  for (const profile of recipientProfiles as any[]) {
+    const normalized = normalizePhoneNumber(profile.phone);
+    if (!normalized) continue;
+    const fullName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
+    if (fullName) nameByPhone.set(normalized, fullName);
+  }
 
   await Promise.allSettled(
     options.recipientPhones.map(async (to) => {
