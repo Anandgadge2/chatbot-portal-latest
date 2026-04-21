@@ -8,6 +8,18 @@ import { getDepartmentHierarchyIds } from '../utils/departmentUtils';
 
 import { Permission, UserRole, GrievanceStatus, AppointmentStatus, Module, SLA_CONFIG } from '../config/constants';
 
+const resolveUserHierarchyLevel = (user: any): number => {
+  if (user?.isSuperAdmin) return 0;
+  if (typeof user?.level === 'number') return user.level;
+
+  const role = (user?.role || user?.roleName || '').toString().toLowerCase();
+  if (role.includes('company')) return 1;
+  if (role.includes('department') && !role.includes('sub')) return 2;
+  if (role.includes('sub') && role.includes('department')) return 3;
+  if (role.includes('operator')) return 4;
+  return 4;
+};
+
 const getAnalyticsBaseQuery = async (req: any, companyId?: any, departmentId?: any) => {
   const query: any = {};
   const currentUser = req.user;
@@ -33,7 +45,7 @@ const getAnalyticsBaseQuery = async (req: any, companyId?: any, departmentId?: a
   } else {
     query.companyId = currentUser.companyId;
 
-    const userLevel = currentUser.level !== undefined ? currentUser.level : 4;
+    const userLevel = resolveUserHierarchyLevel(currentUser);
     const assignedDeptIds = (currentUser.departmentIds && currentUser.departmentIds.length > 0)
       ? currentUser.departmentIds.map((id: string | mongoose.Types.ObjectId) => id.toString())
       : (currentUser.departmentId ? [currentUser.departmentId.toString()] : []);
@@ -97,6 +109,7 @@ const getAnalyticsBaseQuery = async (req: any, companyId?: any, departmentId?: a
 export const dashboard = async (req: Request, res: Response) => {
   try {
     const currentUser = req.user!;
+    const currentUserLevel = resolveUserHierarchyLevel(currentUser);
     const { companyId, departmentId } = req.query;
 
     const baseQuery = await getAnalyticsBaseQuery(req, companyId, departmentId);
@@ -114,13 +127,13 @@ export const dashboard = async (req: Request, res: Response) => {
         const scopedIds = await getDepartmentHierarchyIds(departmentId.toString());
         authorizedMongoDeptIds = scopedIds.map(id => new mongoose.Types.ObjectId(id));
       }
-    } else if (currentUser.level === 1) { // Company Admin
+    } else if (currentUserLevel === 1) { // Company Admin
       if (departmentId) {
         const scopedIds = await getDepartmentHierarchyIds(departmentId.toString());
         authorizedMongoDeptIds = scopedIds.map(id => new mongoose.Types.ObjectId(id));
       }
       // no departmentId => full company visibility
-    } else if (currentUser.level === 2) { // Department Admin
+    } else if (currentUserLevel === 2) { // Department Admin
       const fullAuthorizedIds = await getDepartmentHierarchyIds(currentAssignedDeptIdStrings);
       if (departmentId) {
         const requestedId = departmentId.toString();
@@ -133,7 +146,7 @@ export const dashboard = async (req: Request, res: Response) => {
       } else {
         authorizedMongoDeptIds = fullAuthorizedIds.map(id => new mongoose.Types.ObjectId(id));
       }
-    } else if (currentUser.level === 3) { // Sub-Department Admin
+    } else if (currentUserLevel === 3) { // Sub-Department Admin
       const fullAuthorizedIds = [...currentAssignedDeptIdStrings];
       if (departmentId) {
         const requestedId = departmentId.toString();
@@ -145,7 +158,7 @@ export const dashboard = async (req: Request, res: Response) => {
       } else {
         authorizedMongoDeptIds = fullAuthorizedIds.map(id => new mongoose.Types.ObjectId(id));
       }
-    } else if (currentUser.level !== undefined && currentUser.level >= 4) { // Operator
+    } else if (currentUserLevel >= 4) { // Operator
       authorizedMongoDeptIds = currentAssignedDeptIdStrings.map(id => new mongoose.Types.ObjectId(id));
     }
 
@@ -157,7 +170,7 @@ export const dashboard = async (req: Request, res: Response) => {
 
     const userScopeFilter = forceEmptyScope
       ? { _id: { $in: [] as mongoose.Types.ObjectId[] } }
-      : (currentUser.level !== undefined && currentUser.level >= 4)
+      : currentUserLevel >= 4
       ? { _id: currentUser._id } // Operators only see themselves
       : authorizedMongoDeptIds.length > 0
         ? { $or: [{ departmentId: { $in: authorizedMongoDeptIds } }, { departmentIds: { $in: authorizedMongoDeptIds } }] }
@@ -226,10 +239,14 @@ export const dashboard = async (req: Request, res: Response) => {
       Grievance.countDocuments({ ...baseQuery }),
       Grievance.countDocuments({ ...baseQuery, status: { $in: [GrievanceStatus.PENDING, GrievanceStatus.ASSIGNED, GrievanceStatus.IN_PROGRESS, GrievanceStatus.REVERTED] } }),
       Grievance.countDocuments({
-        ...baseQuery,
-        $or: [
-          { status: GrievanceStatus.PENDING },
-          { status: GrievanceStatus.ASSIGNED, assignedTo: { $ne: null } }
+        $and: [
+          baseQuery,
+          {
+            $or: [
+              { status: GrievanceStatus.PENDING },
+              { status: GrievanceStatus.ASSIGNED, assignedTo: { $ne: null } }
+            ]
+          }
         ]
       }),
       Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.RESOLVED }),
@@ -264,13 +281,29 @@ export const dashboard = async (req: Request, res: Response) => {
       
       Promise.all([
         Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.PENDING, createdAt: { $lt: pendingSlaCutoff } }),
-        Grievance.countDocuments({ ...baseQuery, status: { $in: [GrievanceStatus.ASSIGNED, GrievanceStatus.IN_PROGRESS] }, $or: [{ assignedAt: { $exists: true, $lt: assignedSlaCutoff } }, { assignedAt: { $exists: false }, createdAt: { $lt: assignedSlaCutoff } }] })
+        Grievance.countDocuments({
+          $and: [
+            baseQuery,
+            {
+              status: { $in: [GrievanceStatus.ASSIGNED, GrievanceStatus.IN_PROGRESS] },
+              $or: [
+                { assignedAt: { $exists: true, $lt: assignedSlaCutoff } },
+                { assignedAt: { $exists: false }, createdAt: { $lt: assignedSlaCutoff } }
+              ]
+            }
+          ]
+        })
       ]).then(([p, a]) => ({ totalOverdueCount: p + a, pendingOverdueCount: p, assignedOverdueCount: a })),
 
       Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.ASSIGNED }),
       Department.countDocuments({ companyId: targetCompanyId, ...scopeFilter }),
       User.countDocuments({ companyId: targetCompanyId, ...userScopeFilter }),
-      isHierarchicalEnabled ? Department.countDocuments({ companyId: targetCompanyId, ...scopeFilter, $or: [{ parentDepartmentId: null }, { parentDepartmentId: { $exists: false } }] }) : Promise.resolve(0),
+      isHierarchicalEnabled ? Department.countDocuments({
+        companyId: targetCompanyId,
+        ...(scopeFilter.$or
+          ? { $and: [scopeFilter, { $or: [{ parentDepartmentId: null }, { parentDepartmentId: { $exists: false } }] }] }
+          : { ...scopeFilter, $or: [{ parentDepartmentId: null }, { parentDepartmentId: { $exists: false } }] }),
+      }) : Promise.resolve(0),
       isHierarchicalEnabled ? Department.countDocuments({ companyId: targetCompanyId, ...scopeFilter, parentDepartmentId: { $ne: null } }) : Promise.resolve(0),
       Grievance.countDocuments({ ...baseQuery, status: GrievanceStatus.RESOLVED, resolvedAt: { $gte: new Date().setHours(0,0,0,0) } }),
       Grievance.countDocuments({ ...baseQuery, priority: 'HIGH', status: { $ne: GrievanceStatus.RESOLVED } }),
@@ -294,7 +327,7 @@ export const dashboard = async (req: Request, res: Response) => {
     const slaComplianceRate = totalGrievances > 0 ? (((totalGrievances - slaBreachedGrievances.totalOverdueCount) / totalGrievances) * 100).toFixed(1) : '100';
 
     // 🔒 SECURITY: Restrict appointments to Company Admin+
-    const canSeeAppointments = currentUser.isSuperAdmin || currentUser.level === 1;
+    const canSeeAppointments = currentUser.isSuperAdmin || currentUserLevel === 1;
 
     res.json({
       success: true,

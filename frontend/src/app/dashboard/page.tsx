@@ -253,6 +253,19 @@ function DashboardContent() {
   const isOperatorRole = resolvedRoleLevel >= 4;
   const isLowerHierarchyRole =
     isDepartmentAdminRole || isSubDepartmentAdminRole || isOperatorRole;
+  const getRoleHierarchyLevel = useCallback((roleName: string): number => {
+    const normalized = (roleName || "").toLowerCase();
+    if (normalized.includes("super")) return 0;
+    if (normalized.includes("company")) return 1;
+    if (normalized.includes("department") && !normalized.includes("sub")) {
+      return 2;
+    }
+    if (normalized.includes("sub") && normalized.includes("department")) {
+      return 3;
+    }
+    if (normalized.includes("operator")) return 4;
+    return 5;
+  }, []);
   const hasMultiDepartmentMapping =
     Array.isArray(user?.departmentIds) && user.departmentIds.length > 1;
   const isCompanyLevel = user && !user.departmentId && !user.isSuperAdmin;
@@ -608,6 +621,14 @@ function DashboardContent() {
     return scopedCompanyId === COLLECTORATE_JHARSUGUDA_COMPANY_ID;
   }, [companyIdParam, company?._id, currentUserCompanyId]);
   const [roles, setRoles] = useState<Role[]>([]);
+  const filteredRolesByHierarchy = useMemo(
+    () =>
+      (roles || []).filter((role: Role) => {
+        const level = getRoleHierarchyLevel(role?.name || "");
+        return level > resolvedRoleLevel;
+      }),
+    [roles, getRoleHierarchyLevel, resolvedRoleLevel],
+  );
   const [showDepartmentDialog, setShowDepartmentDialog] = useState(false);
   const [showDeptUsersDialog, setShowDeptUsersDialog] = useState(false);
   const [selectedDeptForUsers, setSelectedDeptForUsers] = useState<{
@@ -6719,7 +6740,7 @@ function DashboardContent() {
                                 title="Filter by role"
                               >
                                 <option value="">👤 All Roles</option>
-                                {roles.map((role: any) => (
+                                {filteredRolesByHierarchy.map((role: any) => (
                                   <option
                                     key={role._id}
                                     value={`CUSTOM:${role._id}`}
