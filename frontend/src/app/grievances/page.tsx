@@ -17,6 +17,7 @@ import {
   CheckCircle,
   ArrowLeft,
   BellRing,
+  MousePointerClick,
   X,
 } from "lucide-react";
 import Link from "next/link";
@@ -543,10 +544,11 @@ export default function GrievancesPage() {
                               <button
                                 onClick={() => openReminderDialog(grievance)}
                                 title="Open overdue reminder dialog"
-                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold border border-red-200 text-red-700 bg-red-50 hover:bg-red-100 w-fit"
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold border border-red-300 text-red-800 bg-red-50 hover:bg-red-100 hover:border-red-400 w-fit cursor-pointer"
                               >
                                 <BellRing className="w-3.5 h-3.5" />
-                                Overdue
+                                Overdue • Click here
+                                <MousePointerClick className="w-3.5 h-3.5" />
                               </button>
                             ) : (
                               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold border border-red-200 text-red-700 bg-red-50 w-fit">
