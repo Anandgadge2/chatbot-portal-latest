@@ -111,7 +111,7 @@ export default function GrievancesPage() {
   };
 
   const isJharsugudaCompany = companyId === JHARSUGUDA_COMPANY_ID;
-  const isCompanyAdminUser = isCompanyAdminOrHigher(user);
+  const isCompanyAdminUser = isCompanyAdminOrHigher(user) && !user?.departmentId;
 
   // Helper function to check if grievance is overdue
   const isOverdue = (grievance: Grievance) => {
