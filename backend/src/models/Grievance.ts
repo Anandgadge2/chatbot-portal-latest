@@ -42,6 +42,9 @@ export interface IGrievance extends Document {
   resolvedAt?: Date;
   closedAt?: Date;
   slaDueDate?: Date;
+  reminderCount?: number;
+  lastReminderAt?: Date;
+  lastReminderRemarks?: string;
   language: 'en' | 'hi' | 'mr' | 'or';
   timeline: Array<{
     action: string;
@@ -204,6 +207,16 @@ const GrievanceSchema: Schema = new Schema(
     },
     slaDueDate: {
       type: Date
+    },
+    reminderCount: {
+      type: Number,
+      default: 0
+    },
+    lastReminderAt: {
+      type: Date
+    },
+    lastReminderRemarks: {
+      type: String
     },
     language: {
       type: String,
