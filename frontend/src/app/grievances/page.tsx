@@ -16,6 +16,9 @@ import {
   UserPlus,
   CheckCircle,
   ArrowLeft,
+  BellRing,
+  MousePointerClick,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import toast from "react-hot-toast";
@@ -26,6 +29,8 @@ import { formatDate, formatDateTime, formatISTTime } from "../../lib/utils";
 import { isCompanyAdminOrHigher } from "@/lib/permissions";
 
 export default function GrievancesPage() {
+  const JHARSUGUDA_COMPANY_ID =
+    process.env.NEXT_PUBLIC_JHARSUGUDA_COMPANY_ID || "69ad4c6eb1ad8e405e6c0858";
   const { user } = useAuth();
   const router = useRouter();
   const [grievances, setGrievances] = useState<Grievance[]>([]);
@@ -47,6 +52,10 @@ export default function GrievancesPage() {
     overdue: "all", // all, overdue, ontrack
     search: "",
   });
+  const [reminderDialogOpen, setReminderDialogOpen] = useState(false);
+  const [grievanceForReminder, setGrievanceForReminder] = useState<Grievance | null>(null);
+  const [reminderRemarks, setReminderRemarks] = useState("");
+  const [sendingReminder, setSendingReminder] = useState(false);
 
   // Extract companyId from user
   const companyId =
@@ -101,6 +110,9 @@ export default function GrievancesPage() {
     setModalOpen(true);
   };
 
+  const isJharsugudaCompany = companyId === JHARSUGUDA_COMPANY_ID;
+  const isCompanyAdminUser = isCompanyAdminOrHigher(user) && !user?.departmentId;
+
   // Helper function to check if grievance is overdue
   const isOverdue = (grievance: Grievance) => {
     const createdDate = new Date(grievance.createdAt);
@@ -121,6 +133,60 @@ export default function GrievancesPage() {
       return hoursFromAssigned > 120; // ASSIGNED should be resolved within 5 days (120h)
     }
     return false;
+  };
+
+  const getOverdueDetails = (grievance: Grievance) => {
+    const createdDate = new Date(grievance.createdAt);
+    const now = new Date();
+    const assignedDate = grievance.assignedAt
+      ? new Date(grievance.assignedAt)
+      : createdDate;
+    const baseDate =
+      grievance.status === "PENDING" ? createdDate : assignedDate;
+    const daysPassed = Math.max(
+      1,
+      Math.floor((now.getTime() - baseDate.getTime()) / (1000 * 60 * 60 * 24)),
+    );
+    const assigneeName =
+      grievance.assignedTo && typeof grievance.assignedTo === "object"
+        ? `${grievance.assignedTo.firstName} ${grievance.assignedTo.lastName}`.trim()
+        : "Not assigned";
+    const departmentName =
+      typeof grievance.departmentId === "object"
+        ? grievance.departmentId.name
+        : "General Department";
+    const officeName =
+      typeof grievance.subDepartmentId === "object"
+        ? grievance.subDepartmentId.name
+        : "N/A";
+    return { createdDate, daysPassed, assigneeName, departmentName, officeName };
+  };
+
+  const openReminderDialog = (grievance: Grievance) => {
+    setGrievanceForReminder(grievance);
+    setReminderRemarks("");
+    setReminderDialogOpen(true);
+  };
+
+  const handleSendReminder = async () => {
+    if (!grievanceForReminder) return;
+    if (!reminderRemarks.trim()) {
+      toast.error("Please enter remarks before sending reminder");
+      return;
+    }
+    try {
+      setSendingReminder(true);
+      await grievanceAPI.sendReminder(grievanceForReminder._id, reminderRemarks.trim());
+      toast.success("Reminder sent successfully");
+      setReminderDialogOpen(false);
+      setGrievanceForReminder(null);
+      setReminderRemarks("");
+      await fetchGrievances();
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to send reminder");
+    } finally {
+      setSendingReminder(false);
+    }
   };
 
   const filteredGrievances = grievances
@@ -467,11 +533,30 @@ export default function GrievancesPage() {
                         )}
                       </td>
                       <td className="px-6 py-4">
-                        <span
-                          className={`px-3 py-1 rounded-full text-[11px] font-bold border uppercase tracking-wider ${getStatusColor(grievance.status)}`}
-                        >
-                          {grievance.status.replace("_", " ")}
-                        </span>
+                        <div className="flex flex-col gap-2">
+                          <span
+                            className={`px-3 py-1 rounded-full text-[11px] font-bold border uppercase tracking-wider w-fit ${getStatusColor(grievance.status)}`}
+                          >
+                            {grievance.status.replace("_", " ")}
+                          </span>
+                          {isOverdue(grievance) &&
+                            (isJharsugudaCompany && isCompanyAdminUser ? (
+                              <button
+                                onClick={() => openReminderDialog(grievance)}
+                                title="Open overdue reminder dialog"
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold border border-red-300 text-red-800 bg-red-50 hover:bg-red-100 hover:border-red-400 w-fit cursor-pointer"
+                              >
+                                <BellRing className="w-3.5 h-3.5" />
+                                Overdue • Click here
+                                <MousePointerClick className="w-3.5 h-3.5" />
+                              </button>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold border border-red-200 text-red-700 bg-red-50 w-fit">
+                                <BellRing className="w-3.5 h-3.5" />
+                                Overdue
+                              </span>
+                            ))}
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
@@ -556,6 +641,91 @@ export default function GrievancesPage() {
         }
         currentUserId={user?.id}
       />
+
+      {reminderDialogOpen && grievanceForReminder && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm p-4 flex items-center justify-center">
+          <div className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
+            <div className="px-5 py-4 bg-red-50 border-b border-red-100 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-red-900">
+                  Overdue Reminder - {grievanceForReminder.grievanceId}
+                </h3>
+                <p className="text-xs text-red-700">
+                  Template: <span className="font-semibold">reminder_admin_v1</span>
+                </p>
+              </div>
+              <button
+                onClick={() => setReminderDialogOpen(false)}
+                className="p-2 rounded-lg hover:bg-red-100 text-red-700"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {(() => {
+                const details = getOverdueDetails(grievanceForReminder);
+                return (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                    <div className="rounded-lg border p-3 bg-slate-50">
+                      <p className="text-slate-500 text-xs">Raised On</p>
+                      <p className="font-semibold text-slate-900">
+                        {formatDateTime(details.createdDate.toISOString())}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border p-3 bg-slate-50">
+                      <p className="text-slate-500 text-xs">Assigned To</p>
+                      <p className="font-semibold text-slate-900">{details.assigneeName}</p>
+                    </div>
+                    <div className="rounded-lg border p-3 bg-slate-50">
+                      <p className="text-slate-500 text-xs">Department / Office</p>
+                      <p className="font-semibold text-slate-900">
+                        {details.departmentName} / {details.officeName}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border p-3 bg-slate-50">
+                      <p className="text-slate-500 text-xs">Days Passed / Reminder Count</p>
+                      <p className="font-semibold text-slate-900">
+                        {details.daysPassed} days / {(grievanceForReminder.reminderCount || 0) + 1}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-800 mb-2">
+                  Remarks by Collector / Company Admin
+                </label>
+                <textarea
+                  value={reminderRemarks}
+                  onChange={(e) => setReminderRemarks(e.target.value)}
+                  rows={4}
+                  placeholder="Type reminder remarks to be sent with template..."
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                />
+              </div>
+            </div>
+
+            <div className="px-5 py-4 bg-slate-50 border-t flex items-center justify-end gap-3">
+              <button
+                onClick={() => setReminderDialogOpen(false)}
+                className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-white"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSendReminder}
+                disabled={sendingReminder}
+                className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-60 inline-flex items-center gap-2"
+              >
+                <BellRing className="w-4 h-4" />
+                {sendingReminder ? "Sending..." : "Send Reminder"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

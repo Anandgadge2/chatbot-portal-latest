@@ -23,8 +23,10 @@ import {
 import { sendMediaSequentially } from '../services/whatsappService';
 import { normalizePhoneNumber } from '../utils/phoneUtils';
 import { sanitizeGrievanceDetails } from '../utils/sanitize';
+import { getHierarchicalDepartmentAdmins } from '../services/notificationService';
 
 const router = express.Router();
+const JHARSUGUDA_COMPANY_ID = process.env.JHARSUGUDA_COMPANY_ID || '69ad4c6eb1ad8e405e6c0858';
 
 // All routes require database connection and authentication
 router.use(requireDatabaseConnection);
@@ -1147,6 +1149,157 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
     res.status(500).json({
       success: false,
       message: 'Failed to assign grievance',
+      error: error.message
+    });
+  }
+});
+
+// @route   POST /api/grievances/:id/reminder
+// @desc    Send overdue reminder to assigned/designated admin (Jharsuguda company admin only)
+// @access  Private
+router.post('/:id/reminder', requirePermission(Permission.UPDATE_GRIEVANCE), async (req: Request, res: Response) => {
+  try {
+    const currentUser = req.user!;
+    const { remarks } = req.body as { remarks?: string };
+    const trimmedRemarks = String(remarks || '').trim();
+
+    if (!trimmedRemarks) {
+      return res.status(400).json({ success: false, message: 'Remarks are required' });
+    }
+
+    if (!currentUser.companyId || currentUser.companyId.toString() !== JHARSUGUDA_COMPANY_ID) {
+      return res.status(403).json({ success: false, message: 'Reminder is enabled only for Collectorate Jharsuguda' });
+    }
+
+    const roleName = String((currentUser as any).roleName || '').toLowerCase();
+    const designation = String(currentUser.designation || '').toLowerCase();
+    const isCompanyAdmin =
+      !currentUser.departmentId &&
+      (currentUser.level === 1 ||
+        roleName.includes('company') ||
+        roleName.includes('collector') ||
+        designation.includes('collector') ||
+        designation.includes('company admin'));
+
+    if (!isCompanyAdmin) {
+      return res.status(403).json({ success: false, message: 'Only company admin can send reminders' });
+    }
+
+    const grievance = await Grievance.findById(req.params.id)
+      .populate('departmentId', 'name')
+      .populate('subDepartmentId', 'name')
+      .populate('assignedTo', 'firstName lastName phone');
+
+    if (!grievance) {
+      return res.status(404).json({ success: false, message: 'Grievance not found' });
+    }
+
+    if (grievance.companyId?.toString() !== currentUser.companyId.toString()) {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+
+    const now = new Date();
+    const createdDate = new Date(grievance.createdAt);
+    const assignedDate = grievance.assignedAt ? new Date(grievance.assignedAt) : createdDate;
+    const overdue = grievance.status === GrievanceStatus.PENDING
+      ? (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60) > 24
+      : [GrievanceStatus.ASSIGNED, GrievanceStatus.IN_PROGRESS].includes(grievance.status as GrievanceStatus)
+        ? (now.getTime() - assignedDate.getTime()) / (1000 * 60 * 60) > 120
+        : false;
+
+    if (!overdue) {
+      return res.status(400).json({ success: false, message: 'Reminder can only be sent for overdue grievances' });
+    }
+
+    const reminderCount = Number((grievance as any).reminderCount || 0) + 1;
+    (grievance as any).reminderCount = reminderCount;
+    (grievance as any).lastReminderAt = now;
+    (grievance as any).lastReminderRemarks = trimmedRemarks;
+    grievance.timeline.push({
+      action: 'REMINDER_SENT',
+      details: { remarks: trimmedRemarks, reminderCount },
+      performedBy: currentUser._id,
+      timestamp: now
+    });
+    await grievance.save();
+
+    const assignedUser = grievance.assignedTo && typeof grievance.assignedTo === 'object'
+      ? grievance.assignedTo as any
+      : null;
+    const hierarchyAdmins = await getHierarchicalDepartmentAdmins(grievance.subDepartmentId || grievance.departmentId);
+    const recipientPhones = Array.from(new Set([
+      normalizePhoneNumber(assignedUser?.phone),
+      ...hierarchyAdmins.map((admin: any) => normalizePhoneNumber(admin?.phone))
+    ].filter(Boolean) as string[]));
+
+    const departmentName = (grievance.departmentId as any)?.name || grievance.category || 'Collector & DM';
+    const officeName = (grievance.subDepartmentId as any)?.name || 'N/A';
+    const assigneeName = assignedUser
+      ? `${assignedUser.firstName || ''} ${assignedUser.lastName || ''}`.trim() || 'Assigned Officer'
+      : 'Department Admin';
+
+    if (recipientPhones.length > 0) {
+      await triggerAdminTemplate({
+        event: 'reminder_admin_v1',
+        companyId: grievance.companyId,
+        language: grievance.language,
+        recipientPhones,
+        citizenPhone: grievance.citizenPhone,
+        data: {
+          recipient_name: assigneeName,
+          grievance_id: grievance.grievanceId,
+          citizen_name: grievance.citizenName || 'N/A',
+          department_name: departmentName,
+          office_name: officeName,
+          grievance_details: grievance.description || 'N/A',
+          remarks_by_collector: trimmedRemarks,
+          submitted_date: formatTemplateDate(new Date(grievance.createdAt)),
+          days_passed: String(Math.max(1, Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24)))),
+          reminder_count: String(reminderCount)
+        }
+      });
+    }
+
+    const media = (grievance.media || []).map((file: any) => ({
+      url: file.url,
+      type: file.type,
+      caption: `Evidence for grievance ${grievance.grievanceId}`
+    }));
+    if (media.length > 0 && recipientPhones.length > 0) {
+      const config = await CompanyWhatsAppConfig.findOne({ companyId: grievance.companyId, isActive: true }).lean();
+      const company = await Company.findById(grievance.companyId).lean();
+      if (config && company) {
+        const companyPayload = {
+          ...company,
+          _id: grievance.companyId,
+          whatsappConfig: {
+            phoneNumberId: config.phoneNumberId,
+            accessToken: config.accessToken,
+            businessAccountId: config.businessAccountId,
+            rateLimits: config.rateLimits
+          }
+        };
+        await Promise.allSettled(recipientPhones.map((phone) => sendMediaSequentially(companyPayload, phone, media as any)));
+      }
+    }
+
+    await logUserAction(
+      req,
+      AuditAction.UPDATE,
+      'Grievance',
+      grievance._id.toString(),
+      { action: 'REMINDER_SENT', reminderCount, remarks: trimmedRemarks }
+    );
+
+    return res.json({
+      success: true,
+      message: 'Reminder sent successfully',
+      data: { grievance }
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to send reminder',
       error: error.message
     });
   }
