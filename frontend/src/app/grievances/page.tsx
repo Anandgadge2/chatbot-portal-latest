@@ -532,11 +532,29 @@ export default function GrievancesPage() {
                         )}
                       </td>
                       <td className="px-6 py-4">
-                        <span
-                          className={`px-3 py-1 rounded-full text-[11px] font-bold border uppercase tracking-wider ${getStatusColor(grievance.status)}`}
-                        >
-                          {grievance.status.replace("_", " ")}
-                        </span>
+                        <div className="flex flex-col gap-2">
+                          <span
+                            className={`px-3 py-1 rounded-full text-[11px] font-bold border uppercase tracking-wider w-fit ${getStatusColor(grievance.status)}`}
+                          >
+                            {grievance.status.replace("_", " ")}
+                          </span>
+                          {isOverdue(grievance) &&
+                            (isJharsugudaCompany && isCompanyAdminUser ? (
+                              <button
+                                onClick={() => openReminderDialog(grievance)}
+                                title="Open overdue reminder dialog"
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold border border-red-200 text-red-700 bg-red-50 hover:bg-red-100 w-fit"
+                              >
+                                <BellRing className="w-3.5 h-3.5" />
+                                Overdue
+                              </button>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold border border-red-200 text-red-700 bg-red-50 w-fit">
+                                <BellRing className="w-3.5 h-3.5" />
+                                Overdue
+                              </span>
+                            ))}
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
@@ -560,18 +578,6 @@ export default function GrievancesPage() {
                               <UserPlus className="w-5 h-5" />
                             </button>
                           )}
-                          {isJharsugudaCompany &&
-                            isCompanyAdminUser &&
-                            isOverdue(grievance) && (
-                              <button
-                                onClick={() => openReminderDialog(grievance)}
-                                title="Send Overdue Reminder"
-                                className="px-2.5 py-2 text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-200 inline-flex items-center gap-1"
-                              >
-                                <BellRing className="w-4 h-4" />
-                                Overdue
-                              </button>
-                            )}
                           <button
                             onClick={() => handleViewDetails(grievance)}
                             title="View Full Details"
