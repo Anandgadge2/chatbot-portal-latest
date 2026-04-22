@@ -436,7 +436,7 @@ export default function StatusUpdateForm({
         const formData = new FormData();
         formData.append('status', selectedStatus);
         if (remarks) formData.append('remarks', remarks);
-        if (['RESOLVED', 'REJECTED'].includes(selectedStatus) && documents.length > 0) {
+        if (['RESOLVED', 'IN_PROGRESS', 'REJECTED'].includes(selectedStatus) && documents.length > 0) {
           documents.forEach((file) => formData.append('documents', file));
         }
         response = await apiClient.put(
@@ -569,7 +569,7 @@ export default function StatusUpdateForm({
           />
         </div>
 
-        {itemType === 'grievance' && ['RESOLVED', 'REJECTED'].includes(selectedStatus) && (
+        {itemType === 'grievance' && ['RESOLVED', 'IN_PROGRESS', 'REJECTED'].includes(selectedStatus) && (
           <DocumentUploadZone
             documents={documents}
             onChange={setDocuments}

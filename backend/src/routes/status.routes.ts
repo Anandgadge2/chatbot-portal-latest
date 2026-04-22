@@ -210,7 +210,12 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
     }
 
     const uploadedDocumentUrls: string[] = [];
-    if (status === GrievanceStatus.RESOLVED && uploadedFiles.length > 0) {
+    const statusesAllowingProofUpload = [
+      GrievanceStatus.RESOLVED,
+      GrievanceStatus.IN_PROGRESS,
+      GrievanceStatus.REJECTED
+    ];
+    if (statusesAllowingProofUpload.includes(status as GrievanceStatus) && uploadedFiles.length > 0) {
       if (!Array.isArray(grievance.media)) {
         grievance.media = [] as any;
       }

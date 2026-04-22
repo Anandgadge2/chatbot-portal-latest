@@ -12,12 +12,16 @@ import { AuditAction, Permission, UserRole, GrievanceStatus } from '../config/co
 import { logger } from '../config/logger';
 import { enforceWhatsAppGrievanceCompliance } from '../middleware/whatsappGrievanceCompliance';
 import CitizenProfile from '../models/CitizenProfile';
+import Company from '../models/Company';
+import CompanyWhatsAppConfig from '../models/CompanyWhatsAppConfig';
 import { 
   triggerAdminTemplate,
   triggerAdminAssignmentNotification,
   formatTemplateDate,
   getAdminRecipients
 } from '../services/grievanceTemplateTriggerService';
+import { sendMediaSequentially } from '../services/whatsappService';
+import { normalizePhoneNumber } from '../utils/phoneUtils';
 import { sanitizeGrievanceDetails } from '../utils/sanitize';
 
 const router = express.Router();
@@ -265,6 +269,10 @@ router.post('/', enforceWhatsAppGrievanceCompliance, async (req: Request, res: R
       console.log(`🎯 Auto-assigned portal grievance ${grievance.grievanceId} to admin: ${targetAdmin.email}`);
     }
 
+    const templateRecipients = targetAdmin?.phone
+      ? [targetAdmin.phone]
+      : await getAdminRecipients(companyId);
+
     Promise.allSettled([
       targetAdmin?.phone
         ? triggerAdminTemplate({
@@ -299,6 +307,49 @@ router.post('/', enforceWhatsAppGrievanceCompliance, async (req: Request, res: R
             }
           }),
     ]);
+
+    const sanitizedMedia = Array.isArray(media)
+      ? media
+          .filter((item: any) => item?.url)
+          .map((item: any) => ({
+            url: String(item.url),
+            type: item.type === 'video' || item.type === 'document' ? item.type : 'image',
+            caption: item.caption ? String(item.caption) : undefined,
+            filename: item.filename ? String(item.filename) : undefined
+          }))
+      : [];
+
+    if (sanitizedMedia.length > 0 && templateRecipients.length > 0) {
+      const [company, config] = await Promise.all([
+        Company.findById(companyId).lean(),
+        CompanyWhatsAppConfig.findOne({ companyId, isActive: true }).lean()
+      ]);
+
+      if (company && config?.phoneNumberId && config?.accessToken) {
+        const companyWithWhatsAppConfig = {
+          ...company,
+          _id: companyId,
+          whatsappConfig: {
+            phoneNumberId: config.phoneNumberId,
+            accessToken: config.accessToken
+          }
+        };
+
+        const normalizedRecipients = Array.from(
+          new Set(
+            templateRecipients
+              .map((phone: string) => normalizePhoneNumber(phone))
+              .filter(Boolean)
+          )
+        );
+
+        Promise.allSettled(
+          normalizedRecipients.map((recipientPhone: string) =>
+            sendMediaSequentially(companyWithWhatsAppConfig, recipientPhone, sanitizedMedia)
+          )
+        );
+      }
+    }
 
 
 
