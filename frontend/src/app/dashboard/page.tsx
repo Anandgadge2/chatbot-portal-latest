@@ -730,6 +730,12 @@ function DashboardContent() {
     useState(false);
   const [selectedGrievanceForRevert, setSelectedGrievanceForRevert] =
     useState<Grievance | null>(null);
+  const [showOverdueReminderDialog, setShowOverdueReminderDialog] =
+    useState(false);
+  const [selectedGrievanceForReminder, setSelectedGrievanceForReminder] =
+    useState<Grievance | null>(null);
+  const [reminderRemarks, setReminderRemarks] = useState("");
+  const [sendingReminder, setSendingReminder] = useState(false);
   const [showAppointmentAssignment, setShowAppointmentAssignment] =
     useState(false);
   const [
@@ -1020,6 +1026,41 @@ function DashboardContent() {
       }
     } catch (error: any) {
       toast.error("Failed to load details");
+    }
+  };
+
+  const openOverdueReminderDialog = (grievance: Grievance) => {
+    setSelectedGrievanceForReminder(grievance);
+    setReminderRemarks("");
+    setShowOverdueReminderDialog(true);
+  };
+
+  const handleSendOverdueReminder = async () => {
+    if (!selectedGrievanceForReminder) return;
+    if (!reminderRemarks.trim()) {
+      toast.error("Please add remarks before sending reminder");
+      return;
+    }
+    try {
+      setSendingReminder(true);
+      await grievanceAPI.sendReminder(
+        selectedGrievanceForReminder._id,
+        reminderRemarks.trim(),
+      );
+      toast.success("Reminder sent successfully");
+      setShowOverdueReminderDialog(false);
+      setSelectedGrievanceForReminder(null);
+      setReminderRemarks("");
+      fetchGrievances(grievancePage, true);
+      fetchDashboardData(true);
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Failed to send reminder";
+      toast.error(message);
+    } finally {
+      setSendingReminder(false);
     }
   };
 
@@ -8113,9 +8154,17 @@ function DashboardContent() {
                                             }
 
                                             return isOverdue ? (
-                                              <span className="px-2 py-1 text-[10px] font-bold bg-red-100 text-red-700 rounded animate-pulse">
+                                              <button
+                                                onClick={() =>
+                                                  openOverdueReminderDialog(
+                                                    grievance,
+                                                  )
+                                                }
+                                                title="Click to open overdue reminder dialog"
+                                                className="px-2 py-1 text-[10px] font-bold bg-red-100 text-red-700 rounded animate-pulse border border-red-300 hover:bg-red-200 cursor-pointer"
+                                              >
                                                 OVERDUE
-                                              </span>
+                                              </button>
                                             ) : (
                                               <span className="px-2 py-1 text-[10px] font-bold bg-green-100 text-green-700 rounded">
                                                 ON TRACK
@@ -9373,6 +9422,81 @@ function DashboardContent() {
             fetchDashboardData(true);
           }}
         />
+
+        {showOverdueReminderDialog && selectedGrievanceForReminder && (
+          <div className="fixed inset-0 z-[120] bg-black/50 backdrop-blur-sm p-4 flex items-center justify-center">
+            <div className="w-full max-w-2xl bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden">
+              <div className="px-5 py-4 bg-red-50 border-b border-red-100 flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-red-900">
+                    Overdue Reminder - {selectedGrievanceForReminder.grievanceId}
+                  </h3>
+                  <p className="text-xs text-red-700">
+                    Fill remarks and click send reminder.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowOverdueReminderDialog(false)}
+                  className="h-8 w-8 rounded-lg hover:bg-red-100 text-red-700 inline-flex items-center justify-center"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-5 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                    <p className="text-slate-500 text-xs">Raised On</p>
+                    <p className="font-semibold text-slate-900">
+                      {new Date(
+                        selectedGrievanceForReminder.createdAt,
+                      ).toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                    <p className="text-slate-500 text-xs">Assigned To</p>
+                    <p className="font-semibold text-slate-900">
+                      {selectedGrievanceForReminder.assignedTo &&
+                      typeof selectedGrievanceForReminder.assignedTo === "object"
+                        ? `${selectedGrievanceForReminder.assignedTo.firstName} ${selectedGrievanceForReminder.assignedTo.lastName}`
+                        : "Not assigned"}
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-800 mb-2">
+                    Remarks by Collector / Admin
+                  </label>
+                  <textarea
+                    value={reminderRemarks}
+                    onChange={(e) => setReminderRemarks(e.target.value)}
+                    rows={4}
+                    placeholder="Type your reminder remarks..."
+                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  />
+                </div>
+              </div>
+
+              <div className="px-5 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-3">
+                <button
+                  onClick={() => setShowOverdueReminderDialog(false)}
+                  className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSendOverdueReminder}
+                  disabled={sendingReminder}
+                  className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-60 inline-flex items-center gap-2"
+                >
+                  <BellRing className="w-4 h-4" />
+                  {sendingReminder ? "Sending..." : "Send Reminder"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <AppointmentDetailDialog
           isOpen={showAppointmentDetail}
