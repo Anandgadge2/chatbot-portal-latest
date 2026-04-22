@@ -38,6 +38,9 @@ export interface Grievance {
   closedAt?: string;
   slaBreached?: boolean;
   slaDueDate?: string;
+  reminderCount?: number;
+  lastReminderAt?: string;
+  lastReminderRemarks?: string;
   language?: 'en' | 'hi' | 'mr';
   forest_range?: string;
   forest_beat?: string;
@@ -141,5 +144,9 @@ export const grievanceAPI = {
 
   revert: async (id: string, data: RevertGrievanceData): Promise<{ success: boolean; data: { grievance: Grievance }; message: string }> => {
     return apiClient.put(`/grievances/${id}/revert`, data);
+  },
+
+  sendReminder: async (id: string, remarks: string): Promise<{ success: boolean; data: { grievance: Grievance }; message: string }> => {
+    return apiClient.post(`/grievances/${id}/reminder`, { remarks });
   }
 };

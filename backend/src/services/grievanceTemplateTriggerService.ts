@@ -102,7 +102,8 @@ export async function triggerAdminTemplate(options: {
     | 'grievance_pending_admin_v1'
     | 'grievance_assigned_admin_v1'
     | 'grievance_reassigned_admin_v1'
-    | 'grievance_reverted_company_v1';
+    | 'grievance_reverted_company_v1'
+    | 'reminder_admin_v1';
   companyId: any;
   language?: string;
   values?: string[];
