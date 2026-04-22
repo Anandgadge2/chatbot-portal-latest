@@ -873,11 +873,6 @@ async function sendWhatsAppTemplateWithTextFallback(
     error: templateResult?.error
   });
 
-  // 3. Final fallback: If template failed and we haven't tried text yet (and it's not disabled)
-  if (options?.priority !== 'text' && allowTextFallback) {
-    return safeSendWhatsApp(company, to, fallbackMessage);
-  }
-
   return { success: false, error: templateResult?.error || 'Message delivery failed' };
 }
 
@@ -1769,6 +1764,5 @@ export async function notifyCitizenOnAppointmentStatusChange(data: {
     logger.error('❌ notifyCitizenOnAppointmentStatusChange failed:', error);
   }
 }
-
 
 

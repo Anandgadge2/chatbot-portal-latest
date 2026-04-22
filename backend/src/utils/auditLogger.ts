@@ -2,6 +2,7 @@ import AuditLog, { IAuditLog } from '../models/AuditLog';
 import { AuditAction } from '../config/constants';
 import { Request } from 'express';
 import { IUser } from '../models/User';
+import mongoose from 'mongoose';
 
 interface AuditLogData {
   userId?: string;
@@ -17,10 +18,44 @@ interface AuditLogData {
   userAgent?: string;
 }
 
+type ObjectIdLike = string | mongoose.Types.ObjectId | { _id?: any } | undefined | null;
+
+function normalizeObjectId(value: ObjectIdLike, fieldName: 'userId' | 'companyId' | 'departmentId'): mongoose.Types.ObjectId | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const candidate = typeof value === 'object' && '_id' in value ? (value as any)._id : value;
+
+  if (candidate instanceof mongoose.Types.ObjectId) {
+    return candidate;
+  }
+
+  const asString = String(candidate);
+  if (mongoose.Types.ObjectId.isValid(asString) && asString.length === 24) {
+    return new mongoose.Types.ObjectId(asString);
+  }
+
+  console.warn(`Skipping invalid ${fieldName} in audit log`, {
+    fieldName,
+    receivedType: typeof value,
+    preview: typeof asString === 'string' ? asString.slice(0, 80) : '[non-string]'
+  });
+
+  return undefined;
+}
+
 export const createAuditLog = async (data: AuditLogData): Promise<IAuditLog> => {
   try {
-    const auditLog = await AuditLog.create({
+    const normalizedData = {
       ...data,
+      userId: normalizeObjectId(data.userId as ObjectIdLike, 'userId'),
+      companyId: normalizeObjectId(data.companyId as ObjectIdLike, 'companyId'),
+      departmentId: normalizeObjectId(data.departmentId as ObjectIdLike, 'departmentId')
+    };
+
+    const auditLog = await AuditLog.create({
+      ...normalizedData,
       timestamp: new Date()
     });
 
