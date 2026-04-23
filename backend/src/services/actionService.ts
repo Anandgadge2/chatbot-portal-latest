@@ -376,17 +376,24 @@ export class ActionService {
 
 
 
-      const notificationResults = await Promise.allSettled(notifications);
-      const failedNotifications = notificationResults.filter(
-        (result) => result.status === 'rejected'
-      ) as PromiseRejectedResult[];
+      // Do not block grievance success step delivery to the citizen.
+      // Notifications are processed asynchronously so citizen confirmation is sent first.
+      Promise.allSettled(notifications)
+        .then((notificationResults) => {
+          const failedNotifications = notificationResults.filter(
+            (result) => result.status === 'rejected'
+          ) as PromiseRejectedResult[];
 
-      if (failedNotifications.length > 0) {
-        logger.error(
-          `⚠️ createGrievance completed but ${failedNotifications.length} notification task(s) failed.`,
-          failedNotifications.map((item) => item.reason)
-        );
-      }
+          if (failedNotifications.length > 0) {
+            logger.error(
+              `⚠️ createGrievance completed but ${failedNotifications.length} notification task(s) failed.`,
+              failedNotifications.map((item) => item.reason)
+            );
+          }
+        })
+        .catch((error) => {
+          logger.error('⚠️ createGrievance background notification error:', error);
+        });
     } catch (error) {
       logger.error('❌ Error in createGrievance action:', error);
       throw error;
