@@ -6,7 +6,7 @@ import Role from '../models/Role';
 import { sendWhatsAppTemplate, sendMediaSequentially } from './whatsappService';
 import { sendGrievanceToAdmin, sendTemplateAndAttachments, WhatsAppAttachment } from './whatsapp/grievanceNotificationFlow.service';
 import { buildCitizenMessage } from './citizenMessageBuilder';
-import { sanitizeGrievanceDetails, sanitizeNote, sanitizeRemarks, sanitizeText } from '../utils/sanitize';
+import { sanitizeGrievanceDetailsForTemplate, sanitizeNote, sanitizeRemarks, sanitizeText } from '../utils/sanitize';
 import { normalizeLanguage } from './templateValidationService';
 import { normalizePhoneNumber } from '../utils/phoneUtils';
 
@@ -124,7 +124,15 @@ export async function triggerAdminTemplate(options: {
   const safeValues = options.values?.map((value) => sanitizeText(value, 100)) || [];
   const safeData = options.data
     ? Object.fromEntries(
-        Object.entries(options.data).map(([key, value]) => [key, sanitizeText(String(value || ''), 100)])
+        Object.entries(options.data).map(([key, value]) => {
+          const rawValue = String(value || '');
+          const normalizedKey = key.toLowerCase();
+          const sanitizedValue =
+            normalizedKey.includes('description') || normalizedKey.includes('grievance_details')
+              ? sanitizeGrievanceDetailsForTemplate(rawValue, 300)
+              : sanitizeText(rawValue, 100);
+          return [key, sanitizedValue];
+        })
       )
     : undefined;
 
@@ -182,7 +190,15 @@ export async function triggerCitizenTemplate(options: {
   const safeValues = options.values?.map((value) => sanitizeText(value, 100)) || [];
   const safeData = options.data
     ? Object.fromEntries(
-        Object.entries(options.data).map(([key, value]) => [key, sanitizeText(String(value || ''), 100)])
+        Object.entries(options.data).map(([key, value]) => {
+          const rawValue = String(value || '');
+          const normalizedKey = key.toLowerCase();
+          const sanitizedValue =
+            normalizedKey.includes('description') || normalizedKey.includes('grievance_details')
+              ? sanitizeGrievanceDetailsForTemplate(rawValue, 300)
+              : sanitizeText(rawValue, 100);
+          return [key, sanitizedValue];
+        })
       )
     : undefined;
   await sendWhatsAppTemplate(company, normalizedPhone, options.template, safeData || safeValues, language, undefined, undefined, {
@@ -260,7 +276,7 @@ export async function triggerGrievanceNotifications(options: {
   media?: Array<{ url: string; type: 'image' | 'video' | 'document'; caption?: string; filename?: string }>;
 }) {
   const isAssigned = (options.status !== 'PENDING' && options.status !== 'UNASSIGNED') && (options.assignedAdmins || []).length > 0;
-  const safeDescription = sanitizeGrievanceDetails(options.description || 'N/A');
+  const safeDescription = sanitizeGrievanceDetailsForTemplate(options.description || 'N/A');
   const company = await getCompanyWithConfig(options.companyId);
   const formattedDate = formatTemplateDate();
   const attachments: WhatsAppAttachment[] = (options.media || []).map((file) => ({
@@ -400,7 +416,7 @@ export async function triggerAdminAssignmentNotification(options: {
 }) {
   const company = await getCompanyWithConfig(options.companyId);
   const language = normalizeLanguage(options.language);
-  const safeDescription = sanitizeGrievanceDetails(options.description || 'N/A');
+  const safeDescription = sanitizeGrievanceDetailsForTemplate(options.description || 'N/A');
   const safeRemarks = sanitizeRemarks(options.remarks || options.description || 'N/A');
   const dateStr = formatTemplateDate();
 

@@ -8,9 +8,33 @@ export const sanitizeText = (text: string = '', max = 80): string =>
     .substring(0, max)
     .trim();
 
+function redactAbusiveTerms(text: string): string {
+  return ABUSIVE_TERMS.reduce((acc, pattern) => acc.replace(pattern, '[redacted]'), text);
+}
+
+function stripUnsafeControlChars(text: string): string {
+  return text.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '');
+}
+
+export function sanitizeGrievanceDetailsForStorage(text: string = ''): string {
+  const cleaned = stripUnsafeControlChars(String(text || ''))
+    .replace(/\r\n/g, '\n')
+    .trim();
+
+  return redactAbusiveTerms(cleaned);
+}
+
+export function sanitizeGrievanceDetailsForTemplate(text: string = '', max = 300): string {
+  const cleaned = sanitizeGrievanceDetailsForStorage(text)
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!cleaned) return '';
+  return cleaned.substring(0, max).trim();
+}
+
 export function sanitizeGrievanceDetails(text: string = ''): string {
-  const cleaned = sanitizeText(text, 100);
-  return ABUSIVE_TERMS.reduce((acc, pattern) => acc.replace(pattern, '[redacted]'), cleaned);
+  return sanitizeGrievanceDetailsForTemplate(text, 300);
 }
 
 export function sanitizeRemarks(text: string = ''): string {

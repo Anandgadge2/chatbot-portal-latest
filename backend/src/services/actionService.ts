@@ -20,7 +20,7 @@ import { logger } from '../config/logger';
 import { ForestService } from './forestService';
 import CitizenProfile from '../models/CitizenProfile';
 import { enforceDailyLimitOrThrow } from './grievanceRateLimitService';
-import { sanitizeGrievanceDetails } from '../utils/sanitize';
+import { sanitizeGrievanceDetailsForStorage } from '../utils/sanitize';
 import {
   triggerAdminTemplate,
   triggerGrievanceNotifications,
@@ -139,7 +139,7 @@ export class ActionService {
       }
 
       const sanitizedMedia = [...mediaFromArray, ...extraMedia];
-      const safeDescription = sanitizeGrievanceDetails(session.data.description || '');
+      const storedDescription = sanitizeGrievanceDetailsForStorage(session.data.description || '');
       
       const grievanceData = {
         companyId: company._id,
@@ -149,8 +149,8 @@ export class ActionService {
         citizenPhone: userPhone,
         phone_number: userPhone,
         citizenWhatsApp: userPhone,
-        description: safeDescription,
-        message: safeDescription,
+        description: storedDescription,
+        message: storedDescription,
         category: session.data.category,
         media: sanitizedMedia,
         location: (session.data.latitude && session.data.longitude || session.data.locationAddress) ? {
@@ -261,7 +261,7 @@ export class ActionService {
       session.data['ଉପବିଭାଗନାମ'] = session.data.subDepartmentName;
       session.data['ବର୍ଣ୍ଣନା'] = session.data.description;
       // Build evidence URL string for success notification
-      const evidenceUrls = (session.data.media || []).map((m: any) => m.url).filter(Boolean);
+      const evidenceUrls = sanitizedMedia.map((media: any) => media.url).filter(Boolean);
       session.data.evidenceUrl = evidenceUrls.length > 0 ? evidenceUrls.join(', ') : '';
       
       await updateSession(session);
@@ -320,11 +320,11 @@ export class ActionService {
         departmentId: departmentId as any,
         subDepartmentId: subDepartmentId,
         companyId: company._id,
-        description: safeDescription || session.data.grievance_description || 'N/A',
+        description: storedDescription || session.data.grievance_description || 'N/A',
         category: session.data.category,
         departmentName: dept ? dept.name : session.data.category,
         subDepartmentName: subDept ? subDept.name : undefined,
-        evidenceUrls: (session.data.media || []).map((m: any) => m.url).filter(Boolean),
+        evidenceUrls: sanitizedMedia.map((media: any) => media.url).filter(Boolean),
         createdAt: grievance.createdAt,
         timeline: grievance.timeline,
         forest_range: session.data.forest_range,
@@ -366,7 +366,7 @@ export class ActionService {
           citizenPhone: userPhone,
           category: session.data.category || 'General',
           subDepartmentName: session.data.subDepartmentName || 'N/A',
-          description: safeDescription,
+          description: storedDescription,
           status: grievance.status,
           language: session.language || 'en',
           assignedAdmins,
