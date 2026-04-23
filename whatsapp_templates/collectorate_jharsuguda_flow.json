@@ -1164,7 +1164,7 @@
         "buttons": [
           {
             "id": "share_location_or",
-            "text": "📍 ଲୋକେସନ୍ ସେୟାର କରନ୍ତୁ",
+            "text": "📍 ଲୋକେସନ୍ ପଠାନ୍ତୁ",
             "type": "quick_reply"
           },
           {
