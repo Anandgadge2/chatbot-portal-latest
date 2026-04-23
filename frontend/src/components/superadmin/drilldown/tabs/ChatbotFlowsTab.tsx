@@ -50,10 +50,10 @@ export default function ChatbotFlowsTab({ companyId }: ChatbotFlowsTabProps) {
   const { data: cachedFlows, isLoading: flowsLoading } = useFlows(companyId);
   const { data: cachedWhatsappConfig } = useWhatsappConfig(companyId);
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cachedFlows);
   const [refreshing, setRefreshing] = useState(false);
-  const [flows, setFlows] = useState<any[]>([]);
-  const [whatsappConfig, setWhatsappConfig] = useState<any>(null);
+  const [flows, setFlows] = useState<any[]>(cachedFlows || []);
+  const [whatsappConfig, setWhatsappConfig] = useState<any>(cachedWhatsappConfig || null);
   const [hasDefaultFlows, setHasDefaultFlows] = useState<boolean>(false);
   const [checkingDefaults, setCheckingDefaults] = useState(false);
   const [activeTab, setActiveTab] = useState<"your-flows" | "templates">(
@@ -83,12 +83,13 @@ export default function ChatbotFlowsTab({ companyId }: ChatbotFlowsTabProps) {
     flow: null,
   });
 
+  // Sync with cache for instant loading
   useEffect(() => {
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [companyId]);
-
-
+    if (cachedFlows) {
+      setFlows(cachedFlows);
+      setLoading(false);
+    }
+  }, [cachedFlows]);
 
   useEffect(() => {
     if (cachedWhatsappConfig !== undefined) {
@@ -96,38 +97,53 @@ export default function ChatbotFlowsTab({ companyId }: ChatbotFlowsTabProps) {
     }
   }, [cachedWhatsappConfig]);
 
+  useEffect(() => {
+    // If we don't have cached flows, trigger a fetch
+    if (!cachedFlows) {
+      fetchData();
+    } else {
+      // Check defaults anyway in background
+      checkDefaults();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyId]);
+
+  const checkDefaults = async () => {
+    try {
+      const defaultsRes = await apiClient.get(
+        `/chatbot-flows/company/${companyId}/has-defaults`,
+      );
+      if (defaultsRes?.success) {
+        setHasDefaultFlows(defaultsRes.hasDefaults || false);
+      } else if (
+        defaultsRes &&
+        typeof (defaultsRes as any).hasDefaults === "boolean"
+      ) {
+        setHasDefaultFlows((defaultsRes as any).hasDefaults);
+      }
+    } catch (defaultsError: any) {
+      console.warn("⚠️ Failed to check default flows:", defaultsError);
+    }
+  };
+
   const fetchData = async (silent = false) => {
     try {
-      if (!silent) setLoading(true);
+      if (!silent && !cachedFlows) setLoading(true);
       const res = await chatbotFlowApi.getFlows(companyId as string);
       if (res.success) {
         setFlows(res.data);
       }
+      
       if (silent) {
         setRefreshing(true);
-      } else {
-        setLoading(true);
       }
+      
       // Check if default flows exist
-      try {
-        const defaultsRes = await apiClient.get(
-          `/chatbot-flows/company/${companyId}/has-defaults`,
-        );
-        if (defaultsRes?.success) {
-          setHasDefaultFlows(defaultsRes.hasDefaults || false);
-        } else if (
-          defaultsRes &&
-          typeof (defaultsRes as any).hasDefaults === "boolean"
-        ) {
-          setHasDefaultFlows((defaultsRes as any).hasDefaults);
-        }
-      } catch (defaultsError: any) {
-        console.warn("⚠️ Failed to check default flows:", defaultsError);
-      }
+      await checkDefaults();
     } catch (error: any) {
       console.error("Failed to load data:", error);
     } finally {
-      setLoading(flowsLoading);
+      setLoading(false);
       setRefreshing(false);
     }
   };

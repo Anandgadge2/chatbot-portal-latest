@@ -82,6 +82,7 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
     if (isActive !== undefined) query.isActive = isActive === 'true';
 
     const flows = await ChatbotFlow.find(query)
+      .select('-nodes -edges') // Exclude large architecture fields for list view
       .populate('companyId', 'name companyId')
       .populate('createdBy', 'name email')
       .sort({ createdAt: -1 });
