@@ -30,7 +30,7 @@ const TEMPLATE_DEFINITIONS: Record<string, TemplateDefinition> = {
       { key: 'citizen_name', aliases: ['citizen_name', 'citizenName'], maxLength: 60 },
       { key: 'department_name', aliases: ['department_name', 'departmentName', 'category'], maxLength: 60 },
       { key: 'office_name', aliases: ['office_name', 'officeName', 'sub_department_name', 'subDepartmentName'], maxLength: 60 },
-      { key: 'description', aliases: ['description', 'grievance_details', 'grievanceDetails'], maxLength: 100 },
+      { key: 'description', aliases: ['description', 'grievance_details', 'grievanceDetails'], maxLength: 300 },
       { key: 'received_on', aliases: ['received_on', 'receivedOn', 'submitted_on', 'submittedOn', 'formattedDate', 'formatted_date', 'date'], maxLength: 60 }
     ]
   },
@@ -42,7 +42,7 @@ const TEMPLATE_DEFINITIONS: Record<string, TemplateDefinition> = {
       { key: 'citizen_name', aliases: ['citizen_name', 'citizenName'], maxLength: 60 },
       { key: 'department_name', aliases: ['department_name', 'departmentName', 'category'], maxLength: 60 },
       { key: 'office_name', aliases: ['office_name', 'officeName', 'sub_department_name', 'subDepartmentName'], maxLength: 60 },
-      { key: 'description', aliases: ['description', 'grievance_details', 'grievanceDetails'], maxLength: 100 },
+      { key: 'description', aliases: ['description', 'grievance_details', 'grievanceDetails'], maxLength: 300 },
       { key: 'submitted_on', aliases: ['submitted_on', 'submittedOn', 'submittedDate', 'received_on', 'receivedOn', 'formattedDate', 'formatted_date', 'date'], maxLength: 60 }
     ]
   },
@@ -54,7 +54,7 @@ const TEMPLATE_DEFINITIONS: Record<string, TemplateDefinition> = {
       { key: 'citizen_name', aliases: ['citizen_name', 'citizenName'], maxLength: 60 },
       { key: 'department_name', aliases: ['department_name', 'departmentName', 'category'], maxLength: 60 },
       { key: 'office_name', aliases: ['office_name', 'officeName', 'sub_department_name', 'subDepartmentName'], maxLength: 60 },
-      { key: 'description', aliases: ['description', 'grievance_details', 'grievanceDetails'], maxLength: 100 },
+      { key: 'description', aliases: ['description', 'grievance_details', 'grievanceDetails'], maxLength: 300 },
       { key: 'assigned_by', aliases: ['assigned_by', 'assignedBy', 'assignedByName', 'reassigned_by', 'reassignedBy', 'reassignedByName'], maxLength: 60 },
       { key: 'assigned_on', aliases: ['assigned_on', 'assignedOn', 'assignedDate', 'formattedDate', 'formatted_date', 'date'], maxLength: 60 },
       { key: 'remarks', aliases: ['remarks', 'note', 'assignment_note', 'assignmentNote', 'reassignment_note', 'reassignmentNote', 'revert_note'], maxLength: 100 }
@@ -68,7 +68,7 @@ const TEMPLATE_DEFINITIONS: Record<string, TemplateDefinition> = {
       { key: 'citizen_name', aliases: ['citizen_name', 'citizenName'], maxLength: 60 },
       { key: 'department_name', aliases: ['department_name', 'departmentName', 'category'], maxLength: 60 },
       { key: 'office_name', aliases: ['office_name', 'officeName', 'sub_department_name', 'subDepartmentName'], maxLength: 60 },
-      { key: 'description', aliases: ['description', 'grievance_details', 'grievanceDetails'], maxLength: 100 },
+      { key: 'description', aliases: ['description', 'grievance_details', 'grievanceDetails'], maxLength: 300 },
       { key: 'submitted_on', aliases: ['submitted_on', 'submittedOn', 'submittedDate', 'formattedDate', 'formatted_date', 'date'], maxLength: 60 },
       { key: 'reassigned_by', aliases: ['reassigned_by', 'reassignedBy', 'reassignedByName', 'assigned_by', 'assignedBy', 'assignedByName'], maxLength: 60 },
       { key: 'remarks', aliases: ['remarks', 'note', 'assignment_note', 'reassignment_note', 'reassignmentNote', 'revert_note'], maxLength: 100 },
