@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { sendMediaSequentially } from '../whatsappService';
 
 export type WhatsAppMediaType = 'image' | 'video' | 'document';
 
@@ -227,26 +228,24 @@ export async function sendTemplateAndAttachments(options: {
     grievanceId
   });
 
-  for (const file of attachments) {
-    if (!file || !isHttpsUrl(file.url)) {
-      console.warn(`⚠️ Skipping invalid attachment URL for grievance ${grievanceId || 'N/A'}:`, file?.url);
-      continue;
-    }
-
-    try {
-      if (file.type === 'image') {
-        await sendImageMessage(company, recipientPhone, file, grievanceId);
-      } else if (file.type === 'video') {
-        await sendVideoMessage(company, recipientPhone, file, grievanceId);
-      } else if (file.type === 'document') {
-        await sendDocumentMessage(company, recipientPhone, file, grievanceId);
-      }
-    } catch {
-      // Error already logged within send*Message. Continue sending remaining files.
-    }
-
-    await new Promise(resolve => setTimeout(resolve, MESSAGE_DELAY_MS));
+  const validAttachments = attachments.filter((file) => file && isHttpsUrl(file.url));
+  const skippedCount = attachments.length - validAttachments.length;
+  if (skippedCount > 0) {
+    console.warn(`⚠️ Skipped ${skippedCount} invalid attachment(s) for grievance ${grievanceId || 'N/A'}.`);
   }
+
+  if (validAttachments.length === 0) return;
+
+  await sendMediaSequentially(
+    company,
+    recipientPhone,
+    validAttachments.map((file) => ({
+      url: file.url,
+      type: file.type || 'document',
+      caption: file.caption,
+      filename: file.filename
+    }))
+  );
 }
 
 export async function sendGrievanceToAdmin(

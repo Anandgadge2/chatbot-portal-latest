@@ -273,7 +273,10 @@ async function enforceMessagingPolicy(
     'grievance_reverted_company_v1',
     'admin_password_reset_otp',
     'grievance_submitted_citizen_v1',
-    'grievance_status_citizen_v1'
+    'grievance_status_citizen_v1',
+    'media_image_v1',
+    'media_video_v1',
+    'media_document_v1'
   ]);
 
   if ((!compliance.isSubscribed || compliance.optedOut) && !options?.allowUnsubscribed) {
@@ -1084,19 +1087,95 @@ export async function sendMediaSequentially(
 
   console.log(`🚀 Starting sequential media send to ${to} (${media.length} items)`);
 
+  const templateMap: Record<'image' | 'video' | 'document', string> = {
+    image: 'media_image_v1',
+    video: 'media_video_v1',
+    document: 'media_document_v1'
+  };
+  const detectType = (url: string): 'image' | 'video' | 'document' => {
+    const normalized = String(url || '').toLowerCase();
+    if (normalized.match(/\.(jpg|jpeg|png|webp)(\?.*)?$/)) return 'image';
+    if (normalized.match(/\.(mp4|mov|avi)(\?.*)?$/)) return 'video';
+    return 'document';
+  };
+
+  const sendMediaTemplate = async (item: { url: string; type: 'image' | 'video' | 'document' }, templateName: string) => {
+    const companyId = company?._id;
+    if (!companyId) throw new Error('Company ID missing for media template send.');
+    const normalizedTo = normalizePhoneNumber(to);
+    const resolvedTemplate = await resolveTemplateRecord({
+      companyId,
+      templateName,
+      requestedLanguage: 'en',
+      companyDefaultLanguage: company?.whatsappConfig?.chatbotSettings?.defaultLanguage
+    });
+    await assertTemplateApproved({
+      companyId,
+      templateName,
+      language: resolvedTemplate.resolvedLanguage
+    });
+    await enforceMessagingPolicy(company, normalizedTo, 'template', templateName);
+    await enforceRateLimit(company, normalizedTo);
+    const { url, headers } = getWhatsAppConfig(company);
+    const payload: any = {
+      messaging_product: 'whatsapp',
+      to: normalizedTo,
+      type: 'template',
+      template: {
+        name: templateName,
+        language: { code: resolvedTemplate.resolvedLanguage },
+        components: [
+          {
+            type: 'header',
+            parameters: [
+              {
+                type: item.type,
+                [item.type]: { link: item.url }
+              }
+            ]
+          }
+        ]
+      }
+    };
+
+    await sendTemplateRequest({
+      url,
+      headers,
+      payload,
+      retryCount: 1,
+      logContext: {
+        action: 'send_media_template',
+        templateName,
+        to: normalizedTo,
+        company: company?.name
+      }
+    });
+  };
+
   for (const item of media) {
     try {
       // Small safety delay (500ms) recommended to maintain order in WhatsApp UI
       await new Promise(resolve => setTimeout(resolve, 500));
-      
-      await sendWhatsAppMedia(
-        company, 
-        to, 
-        item.url, 
-        item.type, 
-        item.caption, 
-        item.filename
-      );
+
+      const detectedType = item.type || detectType(item.url);
+      const templateName = templateMap[detectedType];
+      if (!templateName) {
+        throw new Error(`No media template mapped for type ${detectedType}`);
+      }
+
+      try {
+        await sendMediaTemplate({ ...item, type: detectedType }, templateName);
+      } catch (templateErr: any) {
+        console.warn(`⚠️ Media template send failed for ${item.url}. Falling back to direct media.`, templateErr?.message || templateErr);
+        await sendWhatsAppMedia(
+          company,
+          to,
+          item.url,
+          detectedType,
+          item.caption,
+          item.filename
+        );
+      }
     } catch (err: any) {
       console.error(`❌ Sequential media send failed for ${item.url}:`, err.message);
       // We don't throw here to allow other items to attempt delivery
