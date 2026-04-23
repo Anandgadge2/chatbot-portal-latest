@@ -169,6 +169,9 @@ router.post('/', authenticate, requireSuperAdmin, async (req: Request, res: Resp
     
     logger.info('📝 Creating chatbot flow - Request received');
     logger.info('Request body keys:', Object.keys(req.body));
+    if (req.body.steps && req.body.steps.length > 0) {
+      logger.info('First step sample:', JSON.stringify(req.body.steps[0], null, 2));
+    }
     
     // Transform frontend data to match backend model
     const { 
@@ -230,20 +233,26 @@ router.post('/', authenticate, requireSuperAdmin, async (req: Request, res: Resp
     let transformedSteps = steps;
     if (!isPreTransformed && steps && Array.isArray(steps)) {
       transformedSteps = steps.map((step: any, index: number) => {
+      // 🕵️ Get stepId (support both 'stepId' and React Flow 'id')
+      const stepId = step.stepId || step.id;
+      
       // Validate step has required fields
-      if (!step.stepId || !step.stepId.toString().trim()) {
+      if (!stepId || !stepId.toString().trim()) {
         throw new Error(`Step ${index + 1} is missing or has empty stepId`);
       }
       
-      if (!step.type || !step.type.toString().trim()) {
-        throw new Error(`Step ${index + 1} (${step.stepId}) is missing or has empty type`);
+      // 🕵️ Get type (support both 'type' and 'stepType')
+      const type = step.type || step.stepType;
+      
+      if (!type || !type.toString().trim()) {
+        throw new Error(`Step ${index + 1} (${stepId}) is missing or has empty type`);
       }
       
       // Clean stepId
-      const cleanStepId = step.stepId.toString().trim();
+      const cleanStepId = stepId.toString().trim();
       
       // Map frontend step types to backend step types
-      let stepType = step.type.toString().trim();
+      let stepType = type.toString().trim();
       if (stepType === 'interactive_buttons' || stepType === 'buttonMessage') stepType = 'buttons';
       else if (stepType === 'interactive_list' || stepType === 'listMessage') stepType = 'list';
       else if (stepType === 'collect_input' || stepType === 'userInput') stepType = 'input';
@@ -604,16 +613,26 @@ router.put('/:id', authenticate, requireSuperAdmin, async (req: Request, res: Re
       transformedSteps = steps;
     } else if (steps && Array.isArray(steps) && steps.length > 0) {
       transformedSteps = steps.map((step: any, index: number) => {
+        // 🕵️ Get stepId (support both 'stepId' and React Flow 'id')
+        const stepId = step.stepId || step.id;
+
         // Validate step has required fields
-        if (!step.stepId || !step.stepId.toString().trim()) {
+        if (!stepId || !stepId.toString().trim()) {
           throw new Error(`Step ${index + 1} is missing or has empty stepId`);
         }
 
         // Clean stepId
-        const cleanStepId = step.stepId.toString().trim();
+        const cleanStepId = stepId.toString().trim();
         
+        // 🕵️ Get type (support both 'type' and 'stepType')
+        const type = step.type || step.stepType;
+        
+        if (!type || !type.toString().trim()) {
+          throw new Error(`Step ${index + 1} (${cleanStepId}) is missing or has empty type`);
+        }
+
         // Map frontend step types to backend step types (SAME AS POST ROUTE)
-        let stepType = step.type ? step.type.toString().trim() : 'message';
+        let stepType = type.toString().trim();
         if (stepType === 'interactive_buttons' || stepType === 'buttonMessage') stepType = 'buttons';
         else if (stepType === 'interactive_list' || stepType === 'listMessage') stepType = 'list';
         else if (stepType === 'collect_input' || stepType === 'userInput') stepType = 'input';

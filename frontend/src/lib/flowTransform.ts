@@ -203,7 +203,8 @@ export function transformToBackendFormat(flow: {
       enableReadReceipts: true,
       maxRetries: 3,
       errorFallbackMessage: "I'm sorry, I encountered an error. Please try again."
-    }
+    },
+    isPreTransformed: true
   };
 }
 

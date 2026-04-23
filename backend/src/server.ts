@@ -90,44 +90,34 @@ const corsOptions = {
         
         const normalized = normalizeOrigin(origin);
         
-        // Allow all Vercel preview deployments (*.vercel.app)
-        if (normalized.endsWith('.vercel.app')) {
-          cb(null, true);
-          return;
-        }
-        
-        // Allow explicitly configured origins from FRONTEND_URL env variable
-        if (frontendUrl) {
-          const allowedOrigins = frontendUrl.split(',').map(u => normalizeOrigin(u.trim())).filter(Boolean);
-          if (allowedOrigins.some(allowed => normalized === allowed || normalized.startsWith(allowed))) {
-            cb(null, true);
-            return;
-          }
-        }
-        
-        // Allow default frontend origin
-        if (normalized === normalizeOrigin(DEFAULT_FRONTEND_ORIGIN)) {
-          cb(null, true);
-          return;
-        }
-
-        // 🔗 PugArch Multi-tenant Support
-        const PUGARCH_ORIGINS = [
-          ...DEV_ORIGINS,
-          'https://connect-pugarch-backend.vercel.app',
+        // 🔗 PugArch Multi-tenant & Vercel Support
+        const ALLOWED_ORIGINS = [
           'https://connect.pugarch.in',
           'http://connect.pugarch.in',
           'https://sahaj.pugarch.in',
-          'http://sahaj.pugarch.in'
+          'http://sahaj.pugarch.in',
+          'https://connect-pugarch-backend.vercel.app'
         ];
-        if (PUGARCH_ORIGINS.some(allowed => normalized === normalizeOrigin(allowed)) || normalized.endsWith('.pugarch.in')) {
-          cb(null, true);
-          return;
-        }
+
+        // Check if explicitly allowed or matches environment variable
+        const isExplicitlyAllowed = ALLOWED_ORIGINS.some(allowed => normalized === normalizeOrigin(allowed));
         
-        // Reject all other origins
-        logger.warn(`CORS blocked origin: ${origin}`);
-        cb(null, false);
+        // Check environment variable
+        let isEnvAllowed = false;
+        if (frontendUrl) {
+          const envOrigins = frontendUrl.split(',').map(u => normalizeOrigin(u.trim())).filter(Boolean);
+          isEnvAllowed = envOrigins.some(allowed => normalized === allowed || normalized.startsWith(allowed));
+        }
+
+        // Check for Vercel preview or PugArch subdomains
+        const isSubdomainAllowed = normalized.endsWith('.vercel.app') || normalized.endsWith('.pugarch.in');
+
+        if (isExplicitlyAllowed || isEnvAllowed || isSubdomainAllowed) {
+          cb(null, true);
+        } else {
+          logger.warn(`CORS blocked origin: ${origin}`);
+          cb(null, false);
+        }
       },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
