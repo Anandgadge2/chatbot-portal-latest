@@ -31,6 +31,13 @@ import {
 } from "../config/constants";
 import { createAuditLog } from "../utils/auditLogger";
 import { getChatbotAvailabilityData } from "../routes/availability.routes";
+import {
+  META_GRIEVANCE_CMD_STOP,
+  META_GRIEVANCE_CMD_RESTART,
+  META_GRIEVANCE_CMD_MENU,
+  META_GRIEVANCE_CMD_BACK,
+  META_GRIEVANCE_CMD_RESPONSES
+} from "../constants/metaGrievanceTemplates";
 
 // ─── Message Interface ────────────────────────────────────────────────────────
 
@@ -116,10 +123,10 @@ async function handleFlowCommand(
 
   // Standard Action Map
   const ACTION_MAP: Record<string, string> = {
-    'cmd_stop': 'STOP',
-    'cmd_restart': 'RESTART',
-    'cmd_menu': 'MENU',
-    'cmd_back': 'BACK'
+    [META_GRIEVANCE_CMD_STOP]: 'STOP',
+    [META_GRIEVANCE_CMD_RESTART]: 'RESTART',
+    [META_GRIEVANCE_CMD_MENU]: 'MENU',
+    [META_GRIEVANCE_CMD_BACK]: 'BACK'
   };
 
   // Add DB templates to map
@@ -154,9 +161,10 @@ async function handleFlowCommand(
     ]);
 
     if (!commandConfigs[internalKey] || !commandConfigs[internalKey].keywords?.length) {
+      const defaultMsg = META_GRIEVANCE_CMD_RESPONSES[internalKey] || "";
       commandConfigs[internalKey] = {
         keywords: Array.from(keywords),
-        responses: config.responses || {},
+        responses: config.responses && Object.keys(config.responses).length > 0 ? config.responses : { [lang]: defaultMsg, en: defaultMsg },
         action: name.toUpperCase() // e.g. "stop" -> "STOP"
       };
     }

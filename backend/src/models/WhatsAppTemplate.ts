@@ -13,6 +13,7 @@ export interface IWhatsAppTemplate extends Document {
   header: {
     type: 'TEXT' | 'IMAGE' | 'VIDEO' | null;
     content: string;
+    sampleValues?: string[];
   };
   body: {
     text: string;
@@ -24,6 +25,8 @@ export interface IWhatsAppTemplate extends Document {
     type: string;
     text: string;
     value: string;
+    otp_type?: string;
+    autofill_text?: string;
   }>;
   isActive: boolean;
   lastSyncedAt: Date;
@@ -45,7 +48,8 @@ const WhatsAppTemplateSchema = new Schema<IWhatsAppTemplate>(
         enum: ['TEXT', 'IMAGE', 'VIDEO', null],
         default: null
       },
-      content: { type: String, default: '' }
+      content: { type: String, default: '' },
+      sampleValues: { type: [String], default: [] }
     },
     body: {
       text: { type: String, default: '' },
@@ -60,7 +64,9 @@ const WhatsAppTemplateSchema = new Schema<IWhatsAppTemplate>(
           required: true
         },
         text: { type: String, required: true },
-        value: { type: String, default: '' }
+        value: { type: String, default: '' },
+        otp_type: { type: String },
+        autofill_text: { type: String }
       }
     ],
     isActive: { type: Boolean, default: true, index: true },

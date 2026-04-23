@@ -89,7 +89,11 @@ export default function TemplateDrawer({
         </DialogHeader>
 
         <div className="space-y-4">
-          <TemplatePreview bodyText={template.body.text} />
+          <TemplatePreview 
+            header={template.header}
+            bodyText={template.body.text} 
+            footer={template.footer}
+          />
 
           <ParameterMapper
             templateName={template.name}
@@ -105,12 +109,21 @@ export default function TemplateDrawer({
 
           {template.buttons?.length > 0 && (
             <div className="rounded-xl border border-slate-200 p-4">
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Buttons</p>
-              <div className="space-y-2">
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Synced Buttons & Actions</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {template.buttons.map((button, index) => (
-                  <div key={`${button.text}-${index}`} className="flex items-center justify-between rounded-lg bg-slate-50 p-2 text-sm">
-                    <span>{button.text}</span>
-                    <span className="text-xs text-slate-500">{button.type}</span>
+                  <div key={`${button.text}-${index}`} className="flex flex-col rounded-lg bg-slate-50 p-3 border border-slate-100">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-bold text-sm text-slate-900">{button.text}</span>
+                      <span className="px-1.5 py-0.5 rounded bg-blue-100 text-[9px] font-bold text-blue-700 uppercase tracking-tighter">
+                        {button.type.replace(/_/g, ' ')}
+                      </span>
+                    </div>
+                    {button.value && (
+                      <span className="text-[10px] text-slate-400 truncate" title={button.value}>
+                        {button.value}
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>

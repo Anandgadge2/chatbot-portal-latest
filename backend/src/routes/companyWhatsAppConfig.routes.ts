@@ -4,51 +4,31 @@ import CompanyWhatsAppConfig from '../models/CompanyWhatsAppConfig';
 import CompanyWhatsAppTemplate from '../models/CompanyWhatsAppTemplate';
 import { authenticate } from '../middleware/auth';
 import { requireSuperAdmin } from '../middleware/rbac';
+import {
+  META_GRIEVANCE_CMD_STOP,
+  META_GRIEVANCE_CMD_RESTART,
+  META_GRIEVANCE_CMD_MENU,
+  META_GRIEVANCE_CMD_BACK,
+  ADMIN_TEMPLATE_NAMES,
+  CITIZEN_TEMPLATE_NAMES
+} from '../constants/metaGrievanceTemplates';
 
-const BUILTIN_TEMPLATE_KEYS = [
-  // Grievance Admin
-  { key: 'grievance_created_admin',    label: 'Grievance Received (Admin/Hierarchy)' },
-  { key: 'grievance_assigned_admin',   label: 'Grievance Assigned (Admin/Hierarchy)' },
-  { key: 'grievance_reassigned_admin', label: 'Grievance Reassigned (Admin/Hierarchy)' },
-  { key: 'grievance_resolved_admin',   label: 'Grievance Resolved (Admin/Hierarchy)' },
-  { key: 'grievance_rejected_admin',   label: 'Grievance Rejected (Admin/Hierarchy)' },
-
-  // Grievance Citizen
-  { key: 'grievance_confirmation',     label: 'Grievance Confirmation (Citizen)' },
-  { key: 'grievance_status_update',    label: 'Grievance Status Update (Citizen)' },
-  { key: 'grievance_resolved',         label: 'Grievance Resolved (Citizen)' },
-  { key: 'grievance_rejected',         label: 'Grievance Rejected (Citizen)' },
-
-  // Appointment Admin
-  { key: 'appointment_created_admin',   label: 'Appointment Received (Company Admin)' },
-  { key: 'appointment_confirmed_admin', label: 'Appointment Confirmed (Company Admin)' },
-  { key: 'appointment_cancelled_admin', label: 'Appointment Cancelled (Company Admin)' },
-  { key: 'appointment_completed_admin', label: 'Appointment Completed (Company Admin)' },
-
-  // Appointment Citizen
-  { key: 'appointment_confirmation',      label: 'Appointment Requested (Citizen)' },
-  { key: 'appointment_scheduled_update',  label: 'Appointment Scheduled (Citizen)' },
-  { key: 'appointment_cancelled_update',  label: 'Appointment Cancelled (Citizen)' },
-  { key: 'appointment_completed_update',  label: 'Appointment Completed (Citizen)' },
-
-  // Chatbot Commands
-  { key: 'cmd_stop',                 label: 'Stop / End Conversation' },
-  { key: 'cmd_restart',              label: 'Restart Conversation' },
-  { key: 'cmd_menu',                 label: 'Main Menu' },
-  { key: 'cmd_back',                 label: 'Go Back' },
-];
+// ─────────────────────────────────────────────────────────────────────────────
+// WhatsApp Template Utilities (In-lined to keep route self-contained)
+// ─────────────────────────────────────────────────────────────────────────────
 
 const SUPPORTED_TEMPLATE_LANGS = ['en', 'hi', 'or'] as const;
+type TemplateLanguage = typeof SUPPORTED_TEMPLATE_LANGS[number];
 
-const splitTemplateKey = (templateKey: string): { baseKey: string; lang: string | null } => {
+/**
+ * Splits a template key into its base key and language suffix
+ */
+const splitTemplateKey = (templateKey: string): { baseKey: string; lang: TemplateLanguage } => {
   const match = String(templateKey || '').match(/^(.*)_(en|hi|or)$/i);
-  if (!match) {
-    return { baseKey: templateKey, lang: null };
-  }
-
+  if (!match) return { baseKey: templateKey, lang: 'en' };
   return {
     baseKey: match[1],
-    lang: match[2].toLowerCase(),
+    lang: match[2].toLowerCase() as TemplateLanguage,
   };
 };
 
@@ -76,37 +56,28 @@ const STATUS_UPDATE_NOTICE_BY_LANG = {
   or: 'ଆପଣ ହ୍ୱାଟସଅ୍ୟାପ୍ ମାଧ୍ୟମରେ ପରବର୍ତ୍ତୀ ଅଦ୍ୟତନ ପାଇବେ।',
 } as const;
 
-const getTemplateFooterType = (templateKey: string) => {
-  if (templateKey.startsWith('appointment')) return 'appointment';
-  if (templateKey.startsWith('grievance')) return 'grievance';
+const getFooterType = (baseKey: string) => {
+  if (baseKey.startsWith('appointment')) return 'appointment';
+  if (baseKey.startsWith('grievance')) return 'grievance';
   return 'generic';
 };
 
-const normalizeTemplateMessage = (
-  templateKey: string,
-  lang: 'en' | 'hi' | 'or',
-  message: string,
-) => {
-  if (templateKey.startsWith('cmd_')) {
-    return String(message || '').trim();
-  }
-
+/**
+ * Normalizes a template message by adding standard footers if missing
+ */
+const normalizeTemplateMessage = (baseKey: string, lang: TemplateLanguage, message: string): string => {
+  if (baseKey.startsWith('cmd_')) return String(message || '').trim();
   const normalized = String(message || '').trim();
-  if (!normalized) {
-    return normalized;
-  }
+  if (!normalized) return normalized;
 
-  const footerType = getTemplateFooterType(templateKey);
+  const footerType = getFooterType(baseKey);
   const systemLine = TEMPLATE_FOOTER_BY_LANG[footerType][lang];
-  const statusNotice =
-    templateKey === 'grievance_status_update' ? STATUS_UPDATE_NOTICE_BY_LANG[lang] : '';
+  const statusNotice = baseKey === 'grievance_status_update' ? STATUS_UPDATE_NOTICE_BY_LANG[lang] : '';
 
   const hasNotice = !statusNotice || normalized.includes(statusNotice);
   const hasSystem = normalized.includes(systemLine);
 
-  if (hasNotice && hasSystem) {
-    return normalized;
-  }
+  if (hasNotice && hasSystem) return normalized;
 
   const divider = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
   const appendedParts = [
@@ -696,41 +667,17 @@ router.get('/company/:companyId/templates', authenticate, async (req: Request, r
       }
     });
 
-    // Start with the 6 built-in slots (always shown), then append any custom ones on top
-    const builtinKeys = BUILTIN_TEMPLATE_KEYS.map(({ key, label }) => ({
+    // Convert the merged template data to the final response format
+    const allTemplates = Object.entries(byKey).map(([key, data]) => ({
       templateKey: key,
-      label,
-      ...byKey[key],
+      label: data.label || key,
+      message: data.message,
+      messageTranslations: data.messageTranslations,
+      keywords: data.keywords,
+      isActive: data.isActive
     }));
 
-    // Any saved template not in the built-in list is a custom template
-    const customKeys = saved
-      .filter(t => !BUILTIN_TEMPLATE_KEYS.find(b => b.key === t.templateKey))
-      .filter(t => !splitTemplateKey(t.templateKey).lang)
-      .map(t => {
-        const merged = byKey[t.templateKey] || {
-          message: t.message,
-          messageTranslations: {
-            en: t.message || '',
-            hi: '',
-            or: '',
-          },
-          keywords: t.keywords || [],
-          isActive: t.isActive,
-          label: t.label || t.templateKey,
-        };
-
-        return {
-          templateKey: t.templateKey,
-          label: merged.label || t.templateKey,
-          message: merged.message,
-          messageTranslations: merged.messageTranslations,
-          keywords: merged.keywords || [],
-          isActive: merged.isActive,
-        };
-      });
-
-    res.json({ success: true, data: [...builtinKeys, ...customKeys] });
+    res.json({ success: true, data: allTemplates });
   } catch (error: any) {
     res.status(500).json({
       success: false,
@@ -774,8 +721,7 @@ router.put('/company/:companyId/templates', authenticate, requireSuperAdmin, asy
     for (const t of templates) {
       if (!t.templateKey || typeof t.templateKey !== 'string' || !t.templateKey.trim()) continue;
       const key = t.templateKey.trim().toLowerCase().replace(/\s+/g, '_');
-      const builtinEntry = BUILTIN_TEMPLATE_KEYS.find(b => b.key === key);
-      const translations = {
+      const translations: Record<string, string> = {
         en: normalizeTemplateMessage(key, 'en', t.messageTranslations?.en ?? t.message ?? ''),
         hi: normalizeTemplateMessage(key, 'hi', t.messageTranslations?.hi ?? ''),
         or: normalizeTemplateMessage(key, 'or', t.messageTranslations?.or ?? ''),
@@ -785,19 +731,19 @@ router.put('/company/:companyId/templates', authenticate, requireSuperAdmin, asy
         { companyId: cid, templateKey: key },
         { 
           message: translations.en, 
-          label: t.label ?? builtinEntry?.label ?? key, 
+          label: t.label ?? key, 
           keywords: Array.isArray(t.keywords) ? t.keywords : [],
           isActive: t.isActive !== false // Default to true if not provided
         },
         { upsert: true, new: true }
       );
 
-      for (const lang of SUPPORTED_TEMPLATE_LANGS.filter((code) => code !== 'en')) {
+      for (const lang of (SUPPORTED_TEMPLATE_LANGS as unknown as string[]).filter((code) => code !== 'en')) {
         await CompanyWhatsAppTemplate.findOneAndUpdate(
           { companyId: cid, templateKey: `${key}_${lang}` },
           {
             message: translations[lang] ?? '',
-            label: `${t.label ?? builtinEntry?.label ?? key} (${lang.toUpperCase()})`,
+            label: `${t.label ?? key} (${lang.toUpperCase()})`,
             keywords: [],
             isActive: t.isActive !== false,
           },
@@ -824,27 +770,8 @@ router.put('/company/:companyId/templates', authenticate, requireSuperAdmin, asy
 router.delete('/company/:companyId/templates/:templateKey', authenticate, requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const { companyId, templateKey } = req.params;
-    const builtinKeys = BUILTIN_TEMPLATE_KEYS.map(b => b.key);
-    if (builtinKeys.includes(templateKey)) {
-      // For built-in templates, just clear the message (don't delete the record)
-      let cid: mongoose.Types.ObjectId;
-      if (mongoose.Types.ObjectId.isValid(companyId)) {
-        cid = new mongoose.Types.ObjectId(companyId);
-      } else {
-        const Company = (await import('../models/Company')).default;
-        const company = await Company.findOne({ companyId });
-        if (!company) return res.status(404).json({ success: false, message: 'Company not found' });
-        cid = company._id;
-      }
-      await CompanyWhatsAppTemplate.findOneAndUpdate(
-        { companyId: cid, templateKey },
-        { message: '', isActive: false },
-        { upsert: false }
-      );
-      return res.json({ success: true, message: 'Built-in template cleared (will use system default)' });
-    }
-
-    // Custom template — fully delete it
+    
+    // All templates are treated as custom/removable now
     let cid: mongoose.Types.ObjectId;
     if (mongoose.Types.ObjectId.isValid(companyId)) {
       cid = new mongoose.Types.ObjectId(companyId);
@@ -854,9 +781,20 @@ router.delete('/company/:companyId/templates/:templateKey', authenticate, requir
       if (!company) return res.status(404).json({ success: false, message: 'Company not found' });
       cid = company._id;
     }
-    const result = await CompanyWhatsAppTemplate.findOneAndDelete({ companyId: cid, templateKey });
-    if (!result) return res.status(404).json({ success: false, message: 'Template not found' });
-    res.json({ success: true, message: 'Custom template deleted' });
+
+    // Also delete any language variations (e.g. key_hi, key_or)
+    const baseKey = templateKey.replace(/_(en|hi|or)$/i, '');
+    await CompanyWhatsAppTemplate.deleteMany({ 
+      companyId: cid, 
+      $or: [
+        { templateKey: baseKey },
+        { templateKey: `${baseKey}_en` },
+        { templateKey: `${baseKey}_hi` },
+        { templateKey: `${baseKey}_or` }
+      ]
+    });
+
+    res.json({ success: true, message: 'Template and its variations deleted successfully' });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'Failed to delete template', error: error.message });
   }

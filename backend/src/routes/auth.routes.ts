@@ -199,8 +199,8 @@ router.post('/login', async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: 'Phone number or email and password are required' });
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
+    if (password.length < 5) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 5 characters' });
     }
 
     let normalizedPhone = phone;
@@ -390,8 +390,8 @@ router.post('/reset-password', async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: 'Phone, OTP and password are required' });
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
+    if (password.length < 5) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 5 characters' });
     }
 
     const { validatePhoneNumber, normalizePhoneNumber } = await import('../utils/phoneUtils');
@@ -547,8 +547,8 @@ router.put('/profile', authenticate, async (req: Request, res: Response) => {
     
     // 4. Update password if provided
     if (password) {
-      if (password.length < 6) {
-        return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
+      if (password.length < 5) {
+        return res.status(400).json({ success: false, message: 'Password must be at least 5 characters' });
       }
       user.password = password; // Pre-save hook will hash this
     }

@@ -75,5 +75,5 @@ export function normalizeTelephone(phone: string): string {
  */
 export function validatePassword(password: string): boolean {
   if (!password) return false;
-  return password.length >= 6;
+  return password.length >= 5;
 }

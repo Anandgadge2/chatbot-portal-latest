@@ -78,6 +78,9 @@ router.get('/', requirePermission(Permission.READ_GRIEVANCE), async (req: Reques
       // Support comma-separated status lists (e.g. status=PENDING,ASSIGNED)
       if (typeof status === 'string' && status.includes(',')) {
         query.status = { $in: status.split(',').map(s => s.trim()) };
+      } else if (status === GrievanceStatus.PENDING) {
+        // 🔄 Merge PENDING and ASSIGNED for listing
+        query.status = { $in: [GrievanceStatus.PENDING, GrievanceStatus.ASSIGNED] };
       } else {
         query.status = status;
       }
@@ -265,7 +268,7 @@ router.post('/', enforceWhatsAppGrievanceCompliance, async (req: Request, res: R
     
     if (targetAdmin) {
       grievance.assignedTo = targetAdmin._id;
-      grievance.status = GrievanceStatus.ASSIGNED;
+      grievance.status = GrievanceStatus.PENDING;
       await grievance.save();
       
       console.log(`🎯 Auto-assigned portal grievance ${grievance.grievanceId} to admin: ${targetAdmin.email}`);
@@ -972,7 +975,7 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
         currentUser.isSuperAdmin
       );
     if (shouldMoveToAssignedStatus) {
-      grievance.status = GrievanceStatus.ASSIGNED;
+      grievance.status = GrievanceStatus.PENDING;
     }
 
     // Auto-update department/sub-department based on assigned user's mapped department
@@ -1029,7 +1032,7 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
         : `Assigned to user`;
     
     grievance.statusHistory.push({
-      status: shouldMoveToAssignedStatus ? GrievanceStatus.ASSIGNED : grievance.status,
+      status: shouldMoveToAssignedStatus ? GrievanceStatus.PENDING : grievance.status,
       changedBy: req.user!._id,
       changedAt: new Date(),
       remarks: shouldMoveToAssignedStatus
@@ -1120,7 +1123,7 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
           departmentId: grievance.departmentId,
           subDepartmentId: grievance.subDepartmentId,
           departmentName: dept ? dept.name : undefined,
-          newStatus: GrievanceStatus.ASSIGNED,
+          newStatus: GrievanceStatus.PENDING,
           remarks: `Your grievance has been assigned to ${assignedUser.getFullName()} for resolution.`,
           timeline: grievance.timeline
         });
@@ -1202,8 +1205,10 @@ router.post('/:id/reminder', requirePermission(Permission.UPDATE_GRIEVANCE), asy
     const createdDate = new Date(grievance.createdAt);
     const assignedDate = grievance.assignedAt ? new Date(grievance.assignedAt) : createdDate;
     const overdue = grievance.status === GrievanceStatus.PENDING
-      ? (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60) > 24
-      : [GrievanceStatus.ASSIGNED, GrievanceStatus.IN_PROGRESS].includes(grievance.status as GrievanceStatus)
+      ? !grievance.assignedTo
+        ? (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60) > 24
+        : (now.getTime() - assignedDate.getTime()) / (1000 * 60 * 60) > 120
+      : grievance.status === GrievanceStatus.IN_PROGRESS
         ? (now.getTime() - assignedDate.getTime()) / (1000 * 60 * 60) > 120
         : false;
 

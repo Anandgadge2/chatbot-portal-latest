@@ -7,7 +7,6 @@ import CompanyEmailTemplate from '../models/CompanyEmailTemplate';
 import Company from '../models/Company';
 import CompanyWhatsAppTemplate from '../models/CompanyWhatsAppTemplate';
 import ChatbotFlow from '../models/ChatbotFlow';
-import { DEFAULT_WA_MESSAGES } from '../constants/whatsappTemplates';
 
 const DEFAULT_WA_MESSAGE_OVERRIDES: Record<string, string> = {
   grievance_reassigned_admin: `*{localizedCompanyBrand}*
@@ -724,7 +723,7 @@ export async function getNotificationWhatsAppMessage(
 
   const resolveFromDefaults = (keys: string[], label: string) => {
     for (const key of keys) {
-      const templateMessage = DEFAULT_WA_MESSAGE_OVERRIDES[key] || DEFAULT_WA_MESSAGES[key];
+      const templateMessage = DEFAULT_WA_MESSAGE_OVERRIDES[key];
       if (templateMessage) {
         logger.info(
           `[WhatsApp Template] Using ${label} system default for key: ${key}`,
@@ -972,16 +971,16 @@ export function generateNotificationEmail(
     }
   `;
 
-  const dashboardLink = 'https://connect.pugarch.in/';
+  const dashboardLink = 'https://sahaj.pugarch.in/';
   const adminLinkHtml = isAdmin ? `
     <div class="admin-link-section">
-      <p style="margin: 0 0 15px 0; font-size: 14px; color: #475569; font-weight: 600;">🔐 ADMIN ACCESS ONLY</p>
+      <p style="margin: 0 0 15px 0; font-size: 14px; color: #475569; font-weight: 600;">🔐 ACCESS DASHBOARD</p>
       <a href="${dashboardLink}" class="action-button">Access Dashboard</a>
       <p style="margin: 10px 0 0 0; font-size: 11px; color: #64748b;">Click above to login and manage this record.</p>
     </div>
   ` : '';
 
-  const adminLinkText = isAdmin ? `\n\nACCESS DASHBOARD (ADMIN ONLY):\n${dashboardLink}\n` : '';
+  const adminLinkText = isAdmin ? `\n\nACCESS DASHBOARD:\n${dashboardLink}\n` : '';
 
   if (action === 'created' && type === 'grievance') {
     return {
@@ -1009,35 +1008,35 @@ export function generateNotificationEmail(
               
               <div class="detail-box">
                 <div class="detail-row">
-                  <span class="detail-label">Grievance ID:</span>
+                  <span class="detail-label">🎫 Grievance ID:</span>
                   <span class="detail-value"><strong style="color: #0f4c81;">${data.grievanceId}</strong></span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">Citizen Name:</span>
+                  <span class="detail-label">👤 Citizen Name:</span>
                   <span class="detail-value">${data.citizenName}</span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">Contact Number:</span>
+                  <span class="detail-label">📞 Contact Number:</span>
                   <span class="detail-value">${data.citizenPhone}</span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">Department:</span>
+                  <span class="detail-label">🏢 Department:</span>
                   <span class="detail-value"><strong>${data.departmentName}</strong></span>
                 </div>
                 ${data.category ? `
                 <div class="detail-row">
-                  <span class="detail-label">Category:</span>
+                  <span class="detail-label">📁 Category:</span>
                   <span class="detail-value">${data.category}</span>
                 </div>
                 ` : ''}
 
                 <div class="detail-row" style="align-items: flex-start;">
-                  <span class="detail-label">Description:</span>
+                  <span class="detail-label">📝 Description:</span>
                   <span class="detail-value" style="white-space: pre-wrap;">${data.description || 'No description provided'}</span>
                 </div>
                 ${data.createdAt ? `
                 <div class="detail-row">
-                  <span class="detail-label">Received On:</span>
+                  <span class="detail-label">📅 Received On:</span>
                   <span class="detail-value">${formatDateTime(data.createdAt)}</span>
                 </div>
                 ` : ''}
@@ -1098,40 +1097,40 @@ export function generateNotificationEmail(
               
               <div class="detail-box">
                 <div class="detail-row">
-                  <span class="detail-label">Appointment ID:</span>
+                  <span class="detail-label">🎫 Appointment ID:</span>
                   <span class="detail-value"><strong style="color: #0f4c81;">${data.appointmentId}</strong></span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">Citizen Name:</span>
+                  <span class="detail-label">👤 Citizen Name:</span>
                   <span class="detail-value">${data.citizenName}</span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">Contact Number:</span>
+                  <span class="detail-label">📞 Contact Number:</span>
                   <span class="detail-value">${data.citizenPhone}</span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">Department:</span>
+                  <span class="detail-label">🏢 Department:</span>
                   <span class="detail-value"><strong>${data.departmentName}</strong></span>
                 </div>
                 <div class="detail-row" style="align-items: flex-start;">
-                  <span class="detail-label">Purpose:</span>
+                  <span class="detail-label">📝 Purpose:</span>
                   <span class="detail-value" style="white-space: pre-wrap;">${data.purpose || 'No purpose specified'}</span>
                 </div>
                 ${data.appointmentDate ? `
                 <div class="detail-row">
-                  <span class="detail-label">Scheduled Date:</span>
+                  <span class="detail-label">📅 Scheduled Date:</span>
                   <span class="detail-value"><strong>${formatDate(data.appointmentDate)}</strong></span>
                 </div>
                 ` : ''}
                 ${data.appointmentTime ? `
                 <div class="detail-row">
-                  <span class="detail-label">Scheduled Time:</span>
+                  <span class="detail-label">⏰ Scheduled Time:</span>
                   <span class="detail-value"><strong>${data.appointmentTime}</strong></span>
                 </div>
                 ` : ''}
                 ${data.createdAt ? `
                 <div class="detail-row">
-                  <span class="detail-label">Booked On:</span>
+                  <span class="detail-label">📅 Booked On:</span>
                   <span class="detail-value">${formatDateTime(data.createdAt)}</span>
                 </div>
                 ` : ''}
@@ -1194,33 +1193,33 @@ export function generateNotificationEmail(
               
               <div class="detail-box">
                 <div class="detail-row">
-                  <span class="detail-label">Grievance ID:</span>
+                  <span class="detail-label">🎫 Grievance ID:</span>
                   <span class="detail-value"><strong style="color: #1a73e8;">${data.grievanceId}</strong></span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">Citizen Name:</span>
+                  <span class="detail-label">👤 Citizen Name:</span>
                   <span class="detail-value">${data.citizenName}</span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">Contact Number:</span>
+                  <span class="detail-label">📞 Contact Number:</span>
                   <span class="detail-value">${data.citizenPhone}</span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">Department:</span>
+                  <span class="detail-label">🏢 Department:</span>
                   <span class="detail-value"><strong>${data.departmentName}</strong></span>
                 </div>
 
                 <div class="detail-row" style="align-items: flex-start;">
-                  <span class="detail-label">Description:</span>
+                  <span class="detail-label">📝 Description:</span>
                   <span class="detail-value" style="white-space: pre-wrap;">${data.description || 'No description provided'}</span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">Assigned By:</span>
+                  <span class="detail-label">👨‍💼 Assigned By:</span>
                   <span class="detail-value">${assignedByName}</span>
                 </div>
                 ${data.assignedAt ? `
                 <div class="detail-row">
-                  <span class="detail-label">Assigned On:</span>
+                  <span class="detail-label">📅 Assigned On:</span>
                   <span class="detail-value">${formatDateTime(data.assignedAt)}</span>
                 </div>
                 ` : ''}
@@ -1283,44 +1282,44 @@ export function generateNotificationEmail(
               
               <div class="detail-box">
                 <div class="detail-row">
-                  <span class="detail-label">Appointment ID:</span>
+                  <span class="detail-label">🎫 Appointment ID:</span>
                   <span class="detail-value"><strong style="color: #1a73e8;">${data.appointmentId}</strong></span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">Citizen Name:</span>
+                  <span class="detail-label">👤 Citizen Name:</span>
                   <span class="detail-value">${data.citizenName}</span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">Contact Number:</span>
+                  <span class="detail-label">📞 Contact Number:</span>
                   <span class="detail-value">${data.citizenPhone}</span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">Department:</span>
+                  <span class="detail-label">🏢 Department:</span>
                   <span class="detail-value"><strong>${data.departmentName}</strong></span>
                 </div>
                 <div class="detail-row" style="align-items: flex-start;">
-                  <span class="detail-label">Purpose:</span>
+                  <span class="detail-label">📝 Purpose:</span>
                   <span class="detail-value" style="white-space: pre-wrap;">${data.purpose || 'No purpose specified'}</span>
                 </div>
                 ${data.appointmentDate ? `
                 <div class="detail-row">
-                  <span class="detail-label">Scheduled Date:</span>
+                  <span class="detail-label">📅 Scheduled Date:</span>
                   <span class="detail-value"><strong>${formatDate(data.appointmentDate)}</strong></span>
                 </div>
                 ` : ''}
                 ${data.appointmentTime ? `
                 <div class="detail-row">
-                  <span class="detail-label">Scheduled Time:</span>
+                  <span class="detail-label">⏰ Scheduled Time:</span>
                   <span class="detail-value"><strong>${data.appointmentTime}</strong></span>
                 </div>
                 ` : ''}
                 <div class="detail-row">
-                  <span class="detail-label">Assigned By:</span>
+                  <span class="detail-label">👨‍💼 Assigned By:</span>
                   <span class="detail-value">${assignedByName}</span>
                 </div>
                 ${data.assignedAt ? `
                 <div class="detail-row">
-                  <span class="detail-label">Assigned On:</span>
+                  <span class="detail-label">📅 Assigned On:</span>
                   <span class="detail-value">${formatDateTime(data.assignedAt)}</span>
                 </div>
                 ` : ''}
@@ -1405,42 +1404,42 @@ export function generateNotificationEmail(
               
               <div class="detail-box">
                 <div class="detail-row">
-                  <span class="detail-label">Grievance ID:</span>
+                  <span class="detail-label">🎫 Grievance ID:</span>
                   <span class="detail-value"><strong style="color: #28a745;">${data.grievanceId}</strong></span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">Citizen Name:</span>
+                  <span class="detail-label">👤 Citizen Name:</span>
                   <span class="detail-value">${data.citizenName}</span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">Contact Number:</span>
+                  <span class="detail-label">📞 Contact Number:</span>
                   <span class="detail-value">${data.citizenPhone}</span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">Department:</span>
+                  <span class="detail-label">🏢 Department:</span>
                   <span class="detail-value"><strong>${data.departmentName || 'N/A'}</strong></span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">Status:</span>
+                  <span class="detail-label">🔄 Status:</span>
                   <span class="detail-value"><strong style="color: #28a745;">RESOLVED</strong></span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">Resolved By:</span>
+                  <span class="detail-label">👨‍💼 Resolved By:</span>
                   <span class="detail-value"><strong>${resolvedByName}</strong></span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">Resolved On:</span>
+                  <span class="detail-label">📅 Resolved On:</span>
                   <span class="detail-value">${resolvedAtFormatted}</span>
                 </div>
                 ${resolutionTime ? `
                 <div class="detail-row">
-                  <span class="detail-label">Resolution Time:</span>
+                  <span class="detail-label">⏰ Resolution Time:</span>
                   <span class="detail-value"><strong>${resolutionTime}</strong></span>
                 </div>
                 ` : ''}
                 ${data.createdAt ? `
                 <div class="detail-row">
-                  <span class="detail-label">Received On:</span>
+                  <span class="detail-label">📅 Received On:</span>
                   <span class="detail-value">${createdAtFormatted}</span>
                 </div>
                 ` : ''}
@@ -1513,42 +1512,42 @@ export function generateNotificationEmail(
               
               <div class="detail-box">
                 <div class="detail-row">
-                  <span class="detail-label">Appointment ID:</span>
+                  <span class="detail-label">🎫 Appointment ID:</span>
                   <span class="detail-value"><strong style="color: #28a745;">${data.appointmentId}</strong></span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">Citizen Name:</span>
+                  <span class="detail-label">👤 Citizen Name:</span>
                   <span class="detail-value">${data.citizenName}</span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">Contact Number:</span>
+                  <span class="detail-label">📞 Contact Number:</span>
                   <span class="detail-value">${data.citizenPhone}</span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">Department:</span>
+                  <span class="detail-label">🏢 Department:</span>
                   <span class="detail-value"><strong>${data.departmentName || 'N/A'}</strong></span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">Status:</span>
+                  <span class="detail-label">🔄 Status:</span>
                   <span class="detail-value"><strong style="color: #28a745;">COMPLETED</strong></span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">Completed By:</span>
+                  <span class="detail-label">👨‍💼 Completed By:</span>
                   <span class="detail-value"><strong>${resolvedByName}</strong></span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">Completed On:</span>
+                  <span class="detail-label">📅 Completed On:</span>
                   <span class="detail-value">${resolvedAtFormatted}</span>
                 </div>
                 ${data.appointmentDate ? `
                 <div class="detail-row">
-                  <span class="detail-label">Scheduled Date:</span>
+                  <span class="detail-label">📅 Scheduled Date:</span>
                   <span class="detail-value">${formatDate(data.appointmentDate)}</span>
                 </div>
                 ` : ''}
                 ${data.appointmentTime ? `
                 <div class="detail-row">
-                  <span class="detail-label">Scheduled Time:</span>
+                  <span class="detail-label">⏰ Scheduled Time:</span>
                   <span class="detail-value">${data.appointmentTime}</span>
                 </div>
                 ` : ''}

@@ -624,27 +624,27 @@ export default function AppointmentsPage() {
         itemType="appointment"
         itemId={appointmentToAssign?._id || ""}
         companyId={companyId}
+        allDepartments={departments}
         currentAssignee={appointmentToAssign?.assignedTo}
         currentDepartmentId={
           appointmentToAssign?.departmentId &&
-          typeof appointmentToAssign.departmentId === 'object'
+          typeof appointmentToAssign.departmentId === "object"
             ? (appointmentToAssign.departmentId as any)._id
             : appointmentToAssign?.departmentId
         }
         currentSubDepartmentId={
           appointmentToAssign?.subDepartmentId &&
-          typeof appointmentToAssign.subDepartmentId === 'object'
+          typeof appointmentToAssign.subDepartmentId === "object"
             ? (appointmentToAssign.subDepartmentId as any)._id
             : appointmentToAssign?.subDepartmentId
         }
         userRole={user?.role}
         userDepartmentId={
-          user?.departmentId &&
-          typeof user.departmentId === 'object'
+          user?.departmentId && typeof user.departmentId === "object"
             ? (user.departmentId as any)._id
             : user?.departmentId
         }
-        currentUserId={user?.id}
+        currentUserId={(user as any)?._id || user?.id}
       />
     </div>
   );

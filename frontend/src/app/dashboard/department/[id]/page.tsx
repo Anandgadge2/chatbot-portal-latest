@@ -64,6 +64,7 @@ import { Pagination } from "@/components/ui/Pagination";
 import { TableSkeleton } from "@/components/ui/GeneralSkeleton";
 
 const COLORS = ["#6366f1", "#10b981", "#f59e0b", "#f43f5e"];
+const COLLECTORATE_JHARSUGUDA_COMPANY_ID = "69ad4c6eb1ad8e405e6c0858";
 
 export default function DepartmentDetail() {
   const { user } = useAuth();
@@ -139,6 +140,10 @@ export default function DepartmentDetail() {
       (department?.name?.toUpperCase().includes("DIVISION") && company?.name?.toUpperCase().includes("FOREST"))
     );
   }, [company, department]);
+
+  const isJharsugudaCompany = useMemo(() => {
+    return company?._id === COLLECTORATE_JHARSUGUDA_COMPANY_ID;
+  }, [company?._id]);
 
   const hasModule = useCallback(
     (module: Module) => {
@@ -1659,6 +1664,7 @@ export default function DepartmentDetail() {
       <RevertGrievanceDialog
         isOpen={showRevertDialog}
         grievanceId={selectedGrievanceForRevert?.grievanceId}
+        adminLabel={isJharsugudaCompany ? "Collector & DM" : "Company Admin"}
         onClose={() => {
           setShowRevertDialog(false);
           setSelectedGrievanceForRevert(null);
@@ -1666,7 +1672,11 @@ export default function DepartmentDetail() {
         onSubmit={async (payload) => {
           if (!selectedGrievanceForRevert) return;
           await grievanceAPI.revert(selectedGrievanceForRevert._id, payload);
-          toast.success('Grievance reverted to company admin for reassignment');
+          toast.success(
+            `Grievance reverted to ${
+              isJharsugudaCompany ? "Collector & DM" : "company admin"
+            } for reassignment`,
+          );
           await fetchData();
         }}
       />

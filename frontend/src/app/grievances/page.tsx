@@ -328,8 +328,7 @@ export default function GrievancesPage() {
               className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">All Status</option>
-              <option value="PENDING">🟡 Pending</option>
-              <option value="ASSIGNED">🔵 Assigned</option>
+              <option value="PENDING">🟡 Pending/Assigned</option>
               <option value="IN_PROGRESS">🛠️ In Progress</option>
             </select>
 
@@ -537,10 +536,17 @@ export default function GrievancesPage() {
                           <span
                             className={`px-3 py-1 rounded-full text-[11px] font-bold border uppercase tracking-wider w-fit ${getStatusColor(grievance.status)}`}
                           >
-                            {grievance.status.replace("_", " ")}
+                            {grievance.status === "PENDING" || grievance.status === "ASSIGNED" 
+                              ? "Pending/Assigned" 
+                              : grievance.status.replace("_", " ")}
                           </span>
-                          {isOverdue(grievance) &&
-                            (isJharsugudaCompany && isCompanyAdminUser ? (
+                          {grievance.status === "RESOLVED" || grievance.status === "CLOSED" ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold border border-green-200 text-green-700 bg-green-50 w-fit">
+                              <CheckCircle className="w-3.5 h-3.5" />
+                              Completed
+                            </span>
+                          ) : isOverdue(grievance) ? (
+                            isJharsugudaCompany && isCompanyAdminUser ? (
                               <button
                                 onClick={() => openReminderDialog(grievance)}
                                 title="Open overdue reminder dialog"
@@ -555,7 +561,13 @@ export default function GrievancesPage() {
                                 <BellRing className="w-3.5 h-3.5" />
                                 Overdue
                               </span>
-                            ))}
+                            )
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold border border-green-200 text-green-700 bg-green-50 w-fit">
+                              <CheckCircle className="w-3.5 h-3.5" />
+                              On track
+                            </span>
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -619,6 +631,7 @@ export default function GrievancesPage() {
         itemType="grievance"
         itemId={grievanceToAssign?._id || ""}
         companyId={companyId}
+        allDepartments={departments}
         currentAssignee={grievanceToAssign?.assignedTo}
         currentDepartmentId={
           grievanceToAssign?.departmentId &&
@@ -695,7 +708,7 @@ export default function GrievancesPage() {
 
               <div>
                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-                  Remarks by Collector / Company Admin
+                  {`Remarks by Collector / ${isJharsugudaCompany ? "Collector & DM" : "Company Admin"}`}
                 </label>
                 <textarea
                   value={reminderRemarks}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { userAPI, User } from '../../lib/api/user';
@@ -17,6 +17,7 @@ interface AssignmentDialogProps {
   itemType: 'grievance' | 'appointment';
   itemId: string; 
   companyId: string;
+  allDepartments?: Department[];
   currentAssignee?: string | { _id: string; firstName: string; lastName: string };
   currentDepartmentId?: string;
   currentSubDepartmentId?: string;
@@ -39,6 +40,7 @@ export default function AssignmentDialog({
   itemType,
   itemId,
   companyId,
+  allDepartments: initialDepartments = [],
   currentAssignee,
   currentDepartmentId,
   currentSubDepartmentId,
@@ -48,20 +50,29 @@ export default function AssignmentDialog({
   currentUserId
 }: AssignmentDialogProps) {
   const { user: authUser } = useAuth();
-  const [allDepartments, setAllDepartments] = useState<Department[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
+  const [allDepartments, setAllDepartments] = useState<Department[]>(initialDepartments);
+  
+  useEffect(() => {
+    if (initialDepartments && initialDepartments.length > 0) {
+      setAllDepartments(initialDepartments);
+    }
+  }, [initialDepartments]);
   const [selectedDepartment, setSelectedDepartment] = useState<string>('');
   const [selectedSubDepartment, setSelectedSubDepartment] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [assignmentNote, setAssignmentNote] = useState('');
-  const [loading, setLoading] = useState(false);
   const [loadingDepts, setLoadingDepts] = useState(false);
   const [assigningUserId, setAssigningUserId] = useState<string | null>(null);
   const [selectedUserProfile, setSelectedUserProfile] = useState<User | null>(null);
-  const [isUsingCompanyWideFallback, setIsUsingCompanyWideFallback] = useState(false);
+  const [allCompanyUsers, setAllCompanyUsers] = useState<User[]>([]);
+  const [loadingAllUsers, setLoadingAllUsers] = useState(false);
 
   // Determine the effective role for filtering
   const effectiveRole = userRole || authUser?.role || '';
+  const isTopLevelAdmin =
+    effectiveRole === 'COMPANY_ADMIN' ||
+    effectiveRole === 'SUPER_ADMIN' ||
+    !!authUser?.isSuperAdmin;
 
   // ──────────────────────────────────────────────────────────
   // Derived data from allDepartments based on role
@@ -69,113 +80,54 @@ export default function AssignmentDialog({
 
   /**
    * Top-level (parent) departments visible to the current user.
-   * - COMPANY_ADMIN: all departments with no parent
-   * - DEPARTMENT_ADMIN: only their own department (as the "top-level")
-   * - Others: the sub-department the user belongs to (treated as their scope)
    */
   const visibleTopDepts = useMemo(() => {
     if (!allDepartments.length) return [];
 
-    if (effectiveRole === 'COMPANY_ADMIN') {
-      // Show all departments that have no parent (true top-level departments)
-      return allDepartments.filter(d => {
-        const pId = typeof d.parentDepartmentId === 'object'
-          ? (d.parentDepartmentId as any)?._id
-          : d.parentDepartmentId;
-        return !pId;
-      });
-    }
-
-    if (effectiveRole === 'DEPARTMENT_ADMIN' && userDepartmentId) {
-      // Show only the department admin's own department as the sole "parent"
-      const myDept = allDepartments.find(d => d._id === userDepartmentId);
-      return myDept ? [myDept] : [];
-    }
-
-    // For operators and other roles - show the department the user belongs to
-    if (userDepartmentId) {
-      const myDept = allDepartments.find(d => d._id === userDepartmentId);
-      if (myDept) {
-        // Check if user's dept is a sub-department (has a parent)
-        const pId = typeof myDept.parentDepartmentId === 'object'
-          ? (myDept.parentDepartmentId as any)?._id
-          : myDept.parentDepartmentId;
-        if (pId) {
-          // User is in a sub-dept; show the parent department
-          const parentDept = allDepartments.find(d => d._id === pId);
-          return parentDept ? [parentDept] : [myDept];
-        }
-        return [myDept];
-      }
-    }
-
-    // Fallback: show all top-level
+    // Show all departments that have no parent (true top-level departments)
     return allDepartments.filter(d => {
-      const pId = typeof d.parentDepartmentId === 'object'
-        ? (d.parentDepartmentId as any)?._id
-        : d.parentDepartmentId;
+      const pId = typeof d?.parentDepartmentId === 'object'
+        ? (d?.parentDepartmentId as any)?._id
+        : d?.parentDepartmentId;
       return !pId;
     });
-  }, [allDepartments, effectiveRole, userDepartmentId]);
+  }, [allDepartments]);
 
   /**
    * Sub-departments under the currently selected top-level department.
-   * - COMPANY_ADMIN: all sub-departments of selected dept
-   * - DEPARTMENT_ADMIN: all sub-departments of their dept (selectedDept is locked to their dept)
-   * - Others: only sub-departments of the user's own sub-department scope
    */
   const visibleSubDepts = useMemo(() => {
     if (!selectedDepartment || !allDepartments.length) return [];
 
-    const allSubOfSelected = allDepartments.filter(d => {
-      const pId = typeof d.parentDepartmentId === 'object'
-        ? (d.parentDepartmentId as any)?._id
-        : d.parentDepartmentId;
+    return allDepartments.filter(d => {
+      const pId = typeof d?.parentDepartmentId === 'object'
+        ? (d?.parentDepartmentId as any)?._id
+        : d?.parentDepartmentId;
       return pId === selectedDepartment;
     });
-
-    if (effectiveRole === 'COMPANY_ADMIN' || effectiveRole === 'DEPARTMENT_ADMIN') {
-      return allSubOfSelected;
-    }
-
-    // For operators/others: if their assigned dept is a sub-dept within selectedDepartment,
-    // show only that sub-department (restrict to their own sub-dept)
-    if (userDepartmentId) {
-      const myDept = allDepartments.find(d => d._id === userDepartmentId);
-      if (myDept) {
-        const myParentId = typeof myDept.parentDepartmentId === 'object'
-          ? (myDept.parentDepartmentId as any)?._id
-          : myDept.parentDepartmentId;
-        if (myParentId === selectedDepartment) {
-          // User belongs to a sub-dept: only show their own sub-dept
-          return allSubOfSelected.filter(d => d._id === userDepartmentId);
-        }
-      }
-    }
-
-    return allSubOfSelected;
-  }, [selectedDepartment, allDepartments, effectiveRole, userDepartmentId]);
-
-  // ──────────────────────────────────────────────────────────
-  // Effects
-  // ──────────────────────────────────────────────────────────
+  }, [selectedDepartment, allDepartments]);
 
   // Reset on open/close
   useEffect(() => {
     if (isOpen) {
-      fetchAllDepartments();
+      if (!initialDepartments || initialDepartments.length === 0) {
+        fetchAllDepartments();
+      } else {
+        setAllDepartments(initialDepartments);
+      }
       setSearchQuery('');
     } else {
-      setUsers([]);
-      setAllDepartments([]);
+      // Only clear if we're not using props
+      if (!initialDepartments || initialDepartments.length === 0) {
+        setAllDepartments([]);
+      }
       setSelectedDepartment('');
       setSelectedSubDepartment('');
       setAssignmentNote('');
       setAssigningUserId(null);
-      setIsUsingCompanyWideFallback(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, companyId]);
+  }, [isOpen, initialDepartments, companyId]);
 
   // Auto-select department once departments are loaded
   useEffect(() => {
@@ -251,13 +203,6 @@ export default function AssignmentDialog({
     }
   }, [selectedDepartment, visibleSubDepts, selectedSubDepartment]);
 
-  // Fetch users when department/subdept selection changes
-  useEffect(() => {
-    if (isOpen && selectedDepartment) {
-      fetchUsers();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDepartment, selectedSubDepartment, isOpen]);
 
   // ──────────────────────────────────────────────────────────
   // API calls
@@ -299,71 +244,107 @@ export default function AssignmentDialog({
     }
   };
 
-  const fetchUsers = async () => {
-    // Use sub-department if selected, otherwise use the top-level department
-    const targetDeptId = selectedSubDepartment || selectedDepartment;
-    if (!targetDeptId) return;
-    
-    setLoading(true);
+  const fetchAllCompanyUsers = useCallback(async () => {
+    if (!companyId) return;
+    setLoadingAllUsers(true);
     try {
-      const usersRes = await userAPI.getAll({
+      const res = await userAPI.getAll({
         companyId,
-        departmentId: targetDeptId,
-        limit: 100
+        limit: 1000, 
       });
-
-      if (usersRes.success) {
-        const departmentScopedUsers = usersRes.data.users || [];
-        const currentAssigneeId = typeof currentAssignee === 'object' ? currentAssignee?._id : currentAssignee;
-        const hasAlternativeAssignee = departmentScopedUsers.some((user) => user._id !== currentAssigneeId);
-
-        // For company admins, if the selected scope has no alternative assignee,
-        // fallback to company-wide users so reassignment is always possible.
-        if (effectiveRole === 'COMPANY_ADMIN' && !hasAlternativeAssignee) {
-          const companyWideRes = await userAPI.getAll({
-            companyId,
-            limit: 200
-          });
-
-          if (companyWideRes.success) {
-            const mergedUsersMap = new Map<string, User>();
-            [...departmentScopedUsers, ...(companyWideRes.data.users || [])].forEach((user) => {
-              mergedUsersMap.set(user._id, user);
-            });
-            setUsers(Array.from(mergedUsersMap.values()));
-            setIsUsingCompanyWideFallback(true);
-            return;
-          }
-        }
-
-        setUsers(departmentScopedUsers);
-        setIsUsingCompanyWideFallback(false);
+      if (res.success) {
+        setAllCompanyUsers(res.data.users || []);
       }
     } catch (error) {
-      toast.error('Failed to load users');
-      console.error(error);
+      console.error('Failed to fetch all company users:', error);
     } finally {
-      setLoading(false);
+      setLoadingAllUsers(false);
     }
-  };
+  }, [companyId]);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchAllCompanyUsers();
+    }
+  }, [isOpen, fetchAllCompanyUsers]);
+
+  const { filteredUsers, isUsingCompanyWideFallback } = useMemo(() => {
+    const targetDeptId = selectedSubDepartment || selectedDepartment;
+    if (!targetDeptId) {
+      return {
+        filteredUsers: [],
+        isUsingCompanyWideFallback: false,
+      };
+    }
+
+    const departmentUsers = allCompanyUsers.filter(user => {
+      const primaryDeptId = typeof user.departmentId === 'object'
+        ? (user.departmentId as any)?._id
+        : user.departmentId;
+      const mappedDeptIds = (user.departmentIds || []).map((department) =>
+        typeof department === 'object' ? (department as any)?._id : department
+      );
+
+      return [primaryDeptId, ...mappedDeptIds]
+        .filter(Boolean)
+        .some((deptId) => deptId === targetDeptId);
+    });
+
+    const shouldUseCompanyWideFallback =
+      departmentUsers.length === 0 && isTopLevelAdmin;
+
+    const baseUsers = (shouldUseCompanyWideFallback ? allCompanyUsers : departmentUsers)
+      .filter(user => user._id !== currentUserId);
+
+    if (!searchQuery) {
+      return {
+        filteredUsers: baseUsers,
+        isUsingCompanyWideFallback: shouldUseCompanyWideFallback,
+      };
+    }
+
+    const query = searchQuery.toLowerCase();
+    return {
+      filteredUsers: baseUsers.filter(user => {
+      const fullName = `${user.firstName} ${user.lastName}`.toLowerCase();
+      const emailVal = (user.email || "").toLowerCase();
+      const userIdVal = (user.userId || "").toLowerCase();
+      return fullName.includes(query) || 
+             emailVal.includes(query) ||
+             userIdVal.includes(query);
+      }),
+      isUsingCompanyWideFallback: shouldUseCompanyWideFallback,
+    };
+  }, [
+    allCompanyUsers,
+    currentUserId,
+    isTopLevelAdmin,
+    searchQuery,
+    selectedDepartment,
+    selectedSubDepartment,
+  ]);
 
   const handleAssign = async (userId: string) => {
     setAssigningUserId(userId);
-    
-    const assignedUser = users.find(u => u._id === userId);
-    const userName = assignedUser ? `${assignedUser.firstName} ${assignedUser.lastName}` : 'officer';
-    
+
+    const assignedUser = allCompanyUsers.find((user) => user._id === userId);
+    const userName = assignedUser
+      ? `${assignedUser.firstName} ${assignedUser.lastName}`
+      : 'officer';
+
     const toastId = toast.loading(`Assigning to ${userName}...`);
-    
+
     try {
-      const userDeptId = assignedUser?.departmentId 
-        ? (typeof assignedUser.departmentId === 'object' ? assignedUser.departmentId._id : assignedUser.departmentId)
+      const userDeptId = assignedUser?.departmentId
+        ? typeof assignedUser.departmentId === 'object'
+          ? assignedUser.departmentId._id
+          : assignedUser.departmentId
         : undefined;
-      
+
       await onAssign(userId, userDeptId, assignmentNote.trim() || undefined);
-      
+
       if (userDeptId && currentDepartmentId && userDeptId !== currentDepartmentId) {
-        const newDept = allDepartments.find(d => d._id === userDeptId);
+        const newDept = allDepartments.find((department) => department._id === userDeptId);
         toast.success(
           `${itemType === 'grievance' ? 'Grievance' : 'Appointment'} assigned to ${userName} and transferred to ${newDept?.name || 'new department'}`,
           { id: toastId, duration: 1000 }
@@ -371,7 +352,7 @@ export default function AssignmentDialog({
       } else {
         toast.success(`Successfully assigned to ${userName}!`, { id: toastId });
       }
-      
+
       onClose();
     } catch (error: any) {
       const msg = error?.response?.data?.message || error?.message || 'Failed to assign';
@@ -383,34 +364,21 @@ export default function AssignmentDialog({
 
   const getCurrentAssigneeName = () => {
     if (!currentAssignee) return 'Unassigned';
+
     if (typeof currentAssignee === 'object') {
       return `${currentAssignee.firstName} ${currentAssignee.lastName}`;
     }
-    
-    const userInList = users.find(u => u._id === currentAssignee || u.userId === currentAssignee);
-    if (userInList) return `${userInList.firstName} ${userInList.lastName}`;
-    
+
+    const matchedUser = allCompanyUsers.find(
+      (user) => user._id === currentAssignee || user.userId === currentAssignee
+    );
+
+    if (matchedUser) {
+      return `${matchedUser.firstName} ${matchedUser.lastName}`;
+    }
+
     return currentAssignee;
   };
-
-  const filteredUsers = useMemo(() => {
-    let filtered = users;
-    if (currentUserId) {
-      filtered = filtered.filter(user => user._id !== currentUserId);
-    }
-    
-    if (!searchQuery) return filtered;
-    
-    const query = searchQuery.toLowerCase();
-    return filtered.filter(user => {
-      const fullName = `${user.firstName} ${user.lastName}`.toLowerCase();
-      const emailVal = (user.email || "").toLowerCase();
-      const userIdVal = (user.userId || "").toLowerCase();
-      return fullName.includes(query) || 
-             emailVal.includes(query) ||
-             userIdVal.includes(query);
-    });
-  }, [users, searchQuery, currentUserId]);
 
   const getRoleColor = (role: string) => {
     switch (role) {
@@ -424,10 +392,6 @@ export default function AssignmentDialog({
         return 'bg-gray-100 text-gray-700 border-gray-200';
     }
   };
-
-  // Whether the department dropdown should be disabled (locked)
-  const isDeptLocked = effectiveRole === 'DEPARTMENT_ADMIN' || 
-    (effectiveRole !== 'COMPANY_ADMIN' && effectiveRole !== 'SUPER_ADMIN' && !!userDepartmentId);
 
   const hasSubDepts = visibleSubDepts.length > 0;
 
@@ -490,21 +454,18 @@ export default function AssignmentDialog({
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1 flex items-center gap-1.5">
                   <Building2 className="w-3.5 h-3.5 text-indigo-400" />
                   Department
-                  {isDeptLocked && (
-                    <span className="text-[9px] bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded-full border">Locked</span>
-                  )}
                 </label>
                 <div className="relative group">
                   <Building2 className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4 group-focus-within:text-indigo-500 transition-colors" />
                   <SearchableSelect
-                    options={visibleTopDepts.map(d => ({ value: d._id, label: d.name }))}
+                    options={visibleTopDepts.filter(Boolean).map(d => ({ value: d!._id, label: d!.name }))}
                     value={selectedDepartment}
                     onValueChange={(value) => {
                         setSelectedDepartment(value);
                         setSelectedSubDepartment('');
                     }}
                     placeholder={loadingDepts ? 'Loading...' : 'Select Department'}
-                    disabled={isDeptLocked || loadingDepts}
+                    disabled={false}
                   />
                 </div>
               </div>
@@ -521,7 +482,7 @@ export default function AssignmentDialog({
                 <div className="relative group">
                   <Layers className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500 w-4 h-4 group-focus-within:text-slate-900 transition-colors" />
                   <SearchableSelect
-                    options={visibleSubDepts.map(d => ({ value: d._id, label: d.name }))}
+                    options={visibleSubDepts.filter(Boolean).map(d => ({ value: d!._id, label: d!.name }))}
                     value={selectedSubDepartment}
                     onValueChange={(value) => setSelectedSubDepartment(value)}
                     placeholder={!selectedDepartment 
@@ -529,7 +490,7 @@ export default function AssignmentDialog({
                         : !hasSubDepts 
                           ? 'No sub-departments' 
                           : 'All (show dept. users)'}
-                    disabled={!selectedDepartment || !hasSubDepts}
+                    disabled={!selectedDepartment}
                   />
                 </div>
               </div>
@@ -542,8 +503,8 @@ export default function AssignmentDialog({
                 <span>
                   Showing users from: <strong>
                     {selectedSubDepartment 
-                      ? visibleSubDepts.find(d => d._id === selectedSubDepartment)?.name 
-                      : visibleTopDepts.find(d => d._id === selectedDepartment)?.name}
+                      ? (visibleSubDepts as any[]).find(d => d?._id === selectedSubDepartment)?.name 
+                      : (visibleTopDepts as any[]).find(d => d?._id === selectedDepartment)?.name}
                   </strong>
                   {selectedSubDepartment && (
                     <span className="text-indigo-400"> (sub-department)</span>
@@ -551,7 +512,7 @@ export default function AssignmentDialog({
                 </span>
               </div>
             )}
-            {isUsingCompanyWideFallback && effectiveRole === 'COMPANY_ADMIN' && (
+            {isUsingCompanyWideFallback && isTopLevelAdmin && (
               <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-700 font-medium">
                 <Users className="w-3.5 h-3.5 flex-shrink-0" />
                 <span>
@@ -588,7 +549,7 @@ export default function AssignmentDialog({
                 <p className="text-slate-600 font-medium">Please select a department</p>
                 <p className="text-slate-400 text-sm mt-1">Choose a department to view available assignees</p>
               </div>
-            ) : loading ? (
+            ) : loadingAllUsers ? (
               <div className="p-10 text-center">
                 <LoadingSpinner text="Loading users..." />
               </div>
@@ -602,7 +563,7 @@ export default function AssignmentDialog({
               </div>
             ) : (
               <div className="divide-y divide-slate-100">
-                {filteredUsers.map((user, index) => {
+                {filteredUsers.map((user) => {
                   const userDept = typeof user.departmentId === 'object' 
                     ? user.departmentId 
                     : null;

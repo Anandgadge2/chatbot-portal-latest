@@ -313,7 +313,7 @@ export default function CreateUserDialog({
     }
 
     if (formData.password && !validatePassword(formData.password)) {
-      toast.error("Password must be between 6 and 8 characters");
+      toast.error("Password must be at least 5 characters");
       return;
     }
 
@@ -449,7 +449,7 @@ export default function CreateUserDialog({
               </div>
               <div>
                 <Label htmlFor="password">Password {editingUser ? "(Leave blank to keep current)" : "*"}</Label>
-                <Input id="password" name="password" type="password" minLength={6} maxLength={8} value={formData.password} onChange={handleChange} required={!editingUser} placeholder="6-8 characters" />
+                <Input id="password" name="password" type="password" minLength={5} value={formData.password} onChange={handleChange} required={!editingUser} placeholder=" " />
               </div>
             </div>
 

@@ -113,12 +113,14 @@ const corsOptions = {
 
         // 🔗 PugArch Multi-tenant Support
         const PUGARCH_ORIGINS = [
+          ...DEV_ORIGINS,
           'https://connect-pugarch-backend.vercel.app',
           'https://connect.pugarch.in',
           'http://connect.pugarch.in',
-          'https://sahaj.pugarch.in'
+          'https://sahaj.pugarch.in',
+          'http://sahaj.pugarch.in'
         ];
-        if (PUGARCH_ORIGINS.some(allowed => normalized === normalizeOrigin(allowed))) {
+        if (PUGARCH_ORIGINS.some(allowed => normalized === normalizeOrigin(allowed)) || normalized.endsWith('.pugarch.in')) {
           cb(null, true);
           return;
         }

@@ -412,7 +412,8 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
                     onChange={(e) =>
                       setFormData({ ...formData, password: e.target.value })
                     }
-                    placeholder="Enter new password (optional)"
+                    minLength={5}
+                    placeholder="Enter new password (min 5 characters)"
                     className="h-10 border-indigo-100 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-lg text-sm bg-indigo-50/30"
                   />
                   <p className="text-[8px] text-slate-400 font-bold uppercase tracking-tighter">Leave blank to keep existing</p>

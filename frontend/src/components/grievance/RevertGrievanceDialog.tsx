@@ -9,9 +9,16 @@ interface Props {
   grievanceId?: string;
   onClose: () => void;
   onSubmit: (payload: { remarks: string; suggestedDepartmentId?: string; suggestedSubDepartmentId?: string }) => Promise<void>;
+  adminLabel?: string;
 }
 
-export default function RevertGrievanceDialog({ isOpen, grievanceId, onClose, onSubmit }: Props) {
+export default function RevertGrievanceDialog({
+  isOpen,
+  grievanceId,
+  onClose,
+  onSubmit,
+  adminLabel = 'Company Admin',
+}: Props) {
   const [remarks, setRemarks] = useState('');
   const [submitting, setSubmitting] = useState(false);
   
@@ -66,7 +73,9 @@ export default function RevertGrievanceDialog({ isOpen, grievanceId, onClose, on
             </div>
             <div>
               <h3 className="text-white font-bold text-sm">Request Reassignment</h3>
-              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">Send request to company admin</p>
+              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">
+                {`Send request to ${adminLabel}`}
+              </p>
             </div>
           </div>
           <button onClick={onClose} className="text-white/80 hover:text-white transition-colors">

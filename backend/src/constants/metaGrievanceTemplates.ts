@@ -24,3 +24,16 @@ export const META_GRIEVANCE_TEMPLATE_VARIABLE_COUNT: Record<string, number> = {
 };
 
 export const DEFAULT_TEMPLATE_LANGUAGE = 'en';
+export const META_GRIEVANCE_CMD_START = 'cmd_start';
+export const META_GRIEVANCE_CMD_STOP = 'cmd_stop';
+export const META_GRIEVANCE_CMD_RESTART = 'cmd_restart';
+export const META_GRIEVANCE_CMD_MENU = 'cmd_menu';
+export const META_GRIEVANCE_CMD_BACK = 'cmd_back';
+export const META_GRIEVANCE_CMD_HELP = 'cmd_help';
+
+export const META_GRIEVANCE_CMD_RESPONSES: Record<string, string> = {
+  [META_GRIEVANCE_CMD_STOP]: "🛑 Conversation ended. Thank you for using our service. You can type 'hi' at any time to start again.",
+  [META_GRIEVANCE_CMD_RESTART]: "🔄 Restarting the conversation... please wait.",
+  [META_GRIEVANCE_CMD_MENU]: "🏠 Returning to the main menu.",
+  [META_GRIEVANCE_CMD_BACK]: "🔙 Going back to the previous step."
+};

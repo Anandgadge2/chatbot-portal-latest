@@ -11,17 +11,46 @@ export function buildCitizenMessage({
   formattedResolvedDate?: string;
   remarks?: string;
 }): string {
+
   const safeRemark = sanitizeText(remarks || '', 60);
   const safeResolvedBy = sanitizeText(resolvedByName || '', 40);
   const safeResolvedDate = sanitizeText(formattedResolvedDate || '', 30);
 
+  // ✅ RESOLVED
   if (status === 'RESOLVED') {
-    return `Resolved By: ${safeResolvedBy || 'N/A'}\nResolved On: ${safeResolvedDate || 'N/A'}\nThank you for your patience.`;
+    return [
+      `Resolved By: ${safeResolvedBy || 'N/A'}`,
+      `Resolved On: ${safeResolvedDate || 'N/A'}`,
+      `Thank you for your patience.`
+    ].join('\n');
   }
 
+  // ✅ REJECTED
   if (status === 'REJECTED') {
-    return `We regret to inform you that your grievance has been rejected.\n${safeRemark ? 'Note: ' + safeRemark : ''}`.trim();
+    return [
+      `Status Update: Grievance has been rejected.`,
+      safeRemark ? `Note: ${safeRemark}` : null
+    ]
+      .filter(Boolean)
+      .join('\n');
   }
 
-  return `Your grievance is being processed.\n${safeRemark ? 'Update: ' + safeRemark : ''}`.trim();
+  // ✅ IN PROGRESS (FIXED)
+  if (status === 'IN_PROGRESS') {
+    return [
+      `Status Update: Your grievance is under review.`,
+      safeRemark ? `Latest Update: ${safeRemark}` : null,
+      `We will notify you once action is completed.`
+    ]
+      .filter(Boolean)
+      .join('\n');
+  }
+
+  // ✅ FALLBACK (SAFE DEFAULT)
+  return [
+    `Status Update: Your grievance is being processed.`,
+    safeRemark ? `Update: ${safeRemark}` : null
+  ]
+    .filter(Boolean)
+    .join('\n');
 }

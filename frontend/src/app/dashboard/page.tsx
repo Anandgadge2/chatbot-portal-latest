@@ -605,7 +605,10 @@ function DashboardContent() {
     if (typeof fromStats === "boolean") return fromStats;
     return !!company?.enabledModules?.includes(Module.HIERARCHICAL_DEPARTMENTS);
   }, [stats?.isHierarchicalEnabled, company]);
-  const overdueGrievancesCount = stats?.grievances.pendingOverdue || 0;
+  const overdueGrievancesCount =
+    stats?.grievances?.slaBreached ?? stats?.grievances?.pendingOverdue ?? 0;
+  const totalRegisteredGrievances =
+    stats?.grievances?.registeredTotal ?? stats?.grievances?.total ?? 0;
   const isDFO = useMemo(() => {
     return (
       company?.name?.toUpperCase().includes("D.F.O.") ||
@@ -742,6 +745,7 @@ function DashboardContent() {
     selectedAppointmentForAssignment,
     setSelectedAppointmentForAssignment,
   ] = useState<Appointment | null>(null);
+  const dashboardStatsCacheRef = useRef<Map<string, DashboardStats>>(new Map());
   const [showAvailabilityCalendar, setShowAvailabilityCalendar] =
     useState(false);
 
@@ -1486,7 +1490,6 @@ function DashboardContent() {
       overrideFilters?: { mainDeptId?: string; subDeptId?: string },
     ) => {
       if (isSuperAdminUser && !companyIdParam) return;
-      if (!refresh) setLoadingStats(true);
       try {
         const currentFilters =
           overrideFilters ||
@@ -1499,6 +1502,17 @@ function DashboardContent() {
         const params = new URLSearchParams();
         if (companyIdParam) params.append("companyId", companyIdParam);
         if (deptId) params.append("departmentId", deptId);
+        const cacheKey = `${companyIdParam || currentUserCompanyId || "self"}::${deptId || "all"}`;
+
+        if (!refresh) {
+          const cachedStats = dashboardStatsCacheRef.current.get(cacheKey);
+          if (cachedStats) {
+            setStats(cachedStats);
+            setLoadingStats(false);
+            return;
+          }
+          setLoadingStats(true);
+        }
 
         const response = await apiClient.get<{
           success: boolean;
@@ -1506,6 +1520,7 @@ function DashboardContent() {
         }>(`/analytics/dashboard?${params.toString()}`);
 
         if (response.success) {
+          dashboardStatsCacheRef.current.set(cacheKey, response.data);
           setStats(response.data);
         }
       } catch (error: any) {
@@ -1526,6 +1541,7 @@ function DashboardContent() {
       assignedDepartmentIds,
       isSubDepartmentAdminRole,
       isOperatorRole,
+      currentUserCompanyId,
     ],
   );
 
@@ -2003,39 +2019,51 @@ function DashboardContent() {
     if (!mounted || !user) return;
     if (isSuperAdminUser && !companyIdParam) return;
 
-    const fetchInitialData = async () => {
-      const initialPromises: Promise<any>[] = [
-        fetchCompany(),
-        fetchRoles(),
-        fetchAllDepartments(),
-      ];
-
-      // Parallelize dashboard stats if on relevant tabs
-      if (activeTab === "overview" || activeTab === "analytics") {
-        if (
-          isSuperAdminUser ||
-          hasPermission(user, Permission.VIEW_ANALYTICS)
-        ) {
-          initialPromises.push(fetchDashboardData());
-        }
-      }
-
-      await Promise.all(initialPromises);
-    };
-
-    fetchInitialData();
+    void Promise.all([fetchCompany(), fetchRoles(), fetchAllDepartments()]);
   }, [
     mounted,
     user,
     companyIdParam,
-    activeTab,
     fetchCompany,
     fetchRoles,
     fetchAllDepartments,
+    isSuperAdminUser,
+  ]);
+
+  useEffect(() => {
+    if (!mounted || !user) return;
+    if (isSuperAdminUser && !companyIdParam) return;
+    if (activeTab !== "overview" && activeTab !== "analytics") return;
+    if (stats) return;
+
+    fetchDashboardData();
+  }, [
+    activeTab,
+    mounted,
+    user,
+    stats,
     fetchDashboardData,
     isSuperAdminUser,
-    overviewFilters,
-    analyticsFilters,
+    companyIdParam,
+  ]);
+
+  useEffect(() => {
+    if (!mounted || !user) return;
+    if (isSuperAdminUser && !companyIdParam) return;
+    if (activeTab !== "overview" && activeTab !== "grievances" && activeTab !== "reverted") return;
+    if (grievances.length > 0) return;
+    if (!(isSuperAdminUser || hasPermission(user, Permission.READ_GRIEVANCE))) return;
+
+    fetchGrievances(grievancePage, true);
+  }, [
+    activeTab,
+    mounted,
+    user,
+    grievances.length,
+    fetchGrievances,
+    grievancePage,
+    isSuperAdminUser,
+    companyIdParam,
   ]);
 
   // 3. Global Synchronization Listener
@@ -4087,242 +4115,217 @@ function DashboardContent() {
                     </div>
                   )}
 
-                  {/* KPI Cards - Refined Design */}
-                  <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4">
-                    {/* Analytics KPI Row - 6 Specific Cards */}
-                    {hasModule(Module.GRIEVANCE) && (
-                      <>
-                        {/* 1. Inbound Grievances */}
-                        <div
-                          onClick={() => setActiveTab("grievances")}
-                          className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-indigo-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden min-h-[7rem] sm:min-h-[9.5rem]"
-                        >
-                          <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-indigo-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
-                          <div className="relative">
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600 border border-indigo-100/50 shadow-sm group-hover:rotate-6 transition-transform">
-                                <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
-                              </div>
-                              <div className="text-right">
-                                <div className="text-[8px] sm:text-[9px] font-black text-indigo-600 bg-indigo-50/80 px-1.5 sm:px-2 py-1 rounded-lg uppercase tracking-tight border border-indigo-100/30">
-                                  {(
-                                    stats?.grievances.resolutionRate || 0
-                                  ).toFixed(1)}
-                                  %
-                                </div>
-                              </div>
-                            </div>
-                            <h4 className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                              Inbound Grievances
-                            </h4>
-                            <p className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter group-hover:text-indigo-600 transition-colors leading-none">
-                              {stats?.grievances.total || 0}
-                            </p>
+                  {/* KPI Cards */}
+                  {hasModule(Module.GRIEVANCE) && (
+                    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-2 sm:gap-4">
+                      <Card
+                        onClick={() => {
+                          setActiveTab("grievances");
+                          setGrievanceFilters((prev) => ({ ...prev, status: "PENDING" }));
+                        }}
+                        className="min-h-[6.5rem] sm:min-h-[8.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
+                      >
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-blue-500 bg-slate-50/50 px-3 py-2.5">
+                          <CardTitle className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-slate-400">
+                            Pending
+                          </CardTitle>
+                          <AlertCircle className="h-3 w-3 text-blue-500" />
+                        </CardHeader>
+                        <CardContent className="px-3 py-2.5">
+                          <div className="text-xl sm:text-2xl font-black text-blue-600 tabular-nums">
+                            {loadingStats ? <LoadingDots /> : (stats?.grievances.pending || 0)}
                           </div>
-                        </div>
+                          <p className="mt-1 text-[8px] font-bold uppercase text-slate-400">Waiting</p>
+                        </CardContent>
+                      </Card>
 
-                        {/* 2. Overdue Grievances */}
-                        <div
-                          onClick={() => {
-                            setActiveTab("grievances");
-                            setGrievanceFilters((prev) => ({
-                              ...prev,
-                              status: "PENDING",
-                              overdueStatus: "overdue",
-                            }));
-                          }}
-                          className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-amber-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden min-h-[7rem] sm:min-h-[9.5rem]"
-                        >
-                          <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-amber-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
-                          <div className="relative">
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-amber-50 rounded-lg flex items-center justify-center text-amber-600 border border-amber-100/50 shadow-sm group-hover:-rotate-6 transition-transform">
-                                <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
-                              </div>
-                              <span className="text-[8px] sm:text-[9px] font-black bg-rose-50 text-rose-600 px-1.5 sm:px-2 py-1 rounded-lg uppercase tracking-tight border border-rose-100/30">
-                                {stats?.highPriorityPending || 0} Urgent
-                              </span>
-                            </div>
-                            <h4 className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                              Overdue Grievances
-                            </h4>
-                            <p className="text-xl sm:text-2xl font-black text-amber-600 tracking-tighter leading-none">
-                              {overdueGrievancesCount}
-                            </p>
+                      <Card
+                        onClick={() => {
+                          setActiveTab("grievances");
+                          setGrievanceFilters((prev) => ({
+                            ...prev,
+                            status: "PENDING",
+                            overdueStatus: "overdue",
+                          }));
+                        }}
+                        className="min-h-[6.5rem] sm:min-h-[8.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
+                      >
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-amber-500 bg-slate-50/50 px-3 py-2.5">
+                          <CardTitle className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-slate-400">
+                            Overdue
+                          </CardTitle>
+                          <Clock className="h-3 w-3 text-amber-500" />
+                        </CardHeader>
+                        <CardContent className="px-3 py-2.5">
+                          <div className="text-xl sm:text-2xl font-black text-amber-600 tabular-nums">
+                            {loadingStats ? <LoadingDots /> : overdueGrievancesCount}
                           </div>
-                        </div>
+                          <p className="mt-1 text-[8px] font-bold uppercase text-slate-400">Delayed</p>
+                        </CardContent>
+                      </Card>
 
-                        {/* 3. Total Resolved */}
-                        <div
-                          onClick={() => {
-                            setActiveTab("grievances");
-                            setGrievanceFilters((prev) => ({
-                              ...prev,
-                              status: "RESOLVED",
-                            }));
-                          }}
-                          className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-emerald-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden min-h-[7rem] sm:min-h-[9.5rem]"
-                        >
-                          <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-emerald-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
-                          <div className="relative">
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600 border border-emerald-100/50 shadow-sm transition-all group-hover:bg-emerald-600 group-hover:text-white">
-                                <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
-                              </div>
-                              <div className="flex items-center gap-1 text-[8px] sm:text-[9px] font-black text-emerald-600 bg-emerald-50 px-1.5 sm:px-2 py-1 rounded-lg uppercase tracking-tight">
-                                Success
-                              </div>
-                            </div>
-                            <h4 className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                              Total Resolved
-                            </h4>
-                            <p className="text-xl sm:text-2xl font-black text-emerald-600 tracking-tighter leading-none">
-                              {stats?.grievances.resolved || 0}
-                            </p>
+                      <Card
+                        onClick={() => {
+                          setActiveTab("grievances");
+                          setGrievanceFilters((prev) => ({ ...prev, status: "REVERTED" }));
+                        }}
+                        className="min-h-[6.5rem] sm:min-h-[8.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
+                      >
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-sky-500 bg-slate-50/50 px-3 py-2.5">
+                          <CardTitle className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-slate-400">
+                            Reverted
+                          </CardTitle>
+                          <ArrowLeft className="h-3 w-3 text-sky-500" />
+                        </CardHeader>
+                        <CardContent className="px-3 py-2.5">
+                          <div className="text-xl sm:text-2xl font-black text-sky-600 tabular-nums">
+                            {loadingStats ? <LoadingDots /> : (stats?.grievances.reverted || 0)}
                           </div>
-                        </div>
+                          <p className="mt-1 text-[8px] font-bold uppercase text-slate-400">Reassigned</p>
+                        </CardContent>
+                      </Card>
 
-                        {/* 4. Rejected Grievances */}
-                        <div
-                          onClick={() => {
-                            setActiveTab("grievances");
-                            setGrievanceFilters((prev) => ({
-                              ...prev,
-                              status: "REJECTED",
-                            }));
-                          }}
-                          className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-rose-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden min-h-[7rem] sm:min-h-[9.5rem]"
-                        >
-                          <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-rose-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
-                          <div className="relative">
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-rose-50 rounded-lg flex items-center justify-center text-rose-600 border border-rose-100/50 shadow-sm transition-all group-hover:bg-rose-600 group-hover:text-white">
-                                <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-                              </div>
-                              <div className="flex items-center gap-1 text-[8px] sm:text-[9px] font-black text-rose-600 bg-rose-50 px-1.5 sm:px-2 py-1 rounded-lg uppercase tracking-tight">
-                                Declined
-                              </div>
-                            </div>
-                            <h4 className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                              Rejected Grievances
-                            </h4>
-                            <p className="text-xl sm:text-2xl font-black text-rose-600 tracking-tighter leading-none">
-                              {stats?.grievances.rejected || 0}
-                            </p>
+                      <Card
+                        onClick={() => {
+                          setActiveTab("grievances");
+                          setGrievanceFilters((prev) => ({ ...prev, status: "RESOLVED" }));
+                        }}
+                        className="min-h-[6.5rem] sm:min-h-[8.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
+                      >
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-emerald-500 bg-slate-50/50 px-3 py-2.5">
+                          <CardTitle className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-slate-400">
+                            Resolved
+                          </CardTitle>
+                          <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                        </CardHeader>
+                        <CardContent className="px-3 py-2.5">
+                          <div className="text-xl sm:text-2xl font-black text-emerald-600 tabular-nums">
+                            {loadingStats ? <LoadingDots /> : (stats?.grievances.resolved || 0)}
                           </div>
-                        </div>
+                          <p className="mt-1 text-[8px] font-bold uppercase text-slate-400">Completed</p>
+                        </CardContent>
+                      </Card>
 
-                        {isViewingCompany &&
-                          isCompanyAdminRole &&
-                          isCollectorateJharsuguda && (
-                            <div
-                              onClick={() => {
-                                setActiveTab("grievances");
-                                setGrievanceFilters((prev) => ({
-                                  ...prev,
-                                  status: "REVERTED",
-                                }));
-                              }}
-                              className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-sky-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden min-h-[7rem] sm:min-h-[9.5rem]"
-                            >
-                              <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-sky-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
-                              <div className="relative">
-                                <div className="flex items-center justify-between mb-2">
-                                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-sky-50 rounded-lg flex items-center justify-center text-sky-600 border border-sky-100/50 shadow-sm transition-all group-hover:bg-sky-600 group-hover:text-white">
-                                    <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-                                  </div>
-                                  <div className="flex items-center gap-1 text-[8px] sm:text-[9px] font-black text-sky-600 bg-sky-50 px-1.5 sm:px-2 py-1 rounded-lg uppercase tracking-tight">
-                                    Reassigned
-                                  </div>
-                                </div>
-                                <h4 className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                                  Reverted Grievances
-                                </h4>
-                                <p className="text-xl sm:text-2xl font-black text-sky-600 tracking-tighter leading-none">
-                                  {stats?.grievances.reverted || 0}
-                                </p>
-                              </div>
-                            </div>
-                          )}
-                      </>
-                    )}
-
-                    {canShowAppointmentsInView && isViewingCompany && (
-                      <>
-                        {/* 4. Total Appointments */}
-                        <div
-                          onClick={() => setActiveTab("appointments")}
-                          className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-purple-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden min-h-[7rem] sm:min-h-[9.5rem]"
-                        >
-                          <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-purple-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
-                          <div className="relative">
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-50 rounded-lg flex items-center justify-center text-purple-600 border border-purple-100/50 shadow-sm transition-all group-hover:rotate-12">
-                                <CalendarCheck className="w-4 h-4 sm:w-5 sm:h-5" />
-                              </div>
-                              <div className="text-[8px] sm:text-[9px] font-black text-purple-600 bg-purple-50 px-1.5 sm:px-2 py-1 rounded-lg uppercase tracking-tight">
-                                Total
-                              </div>
-                            </div>
-                            <h4 className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                              Total Appointments
-                            </h4>
-                            <p className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter leading-none">
-                              {stats?.appointments.total || 0}
-                            </p>
+                      <Card
+                        onClick={() => {
+                          setActiveTab("grievances");
+                          setGrievanceFilters((prev) => ({ ...prev, status: "REJECTED" }));
+                        }}
+                        className="min-h-[6.5rem] sm:min-h-[8.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
+                      >
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-rose-500 bg-slate-50/50 px-3 py-2.5">
+                          <CardTitle className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-slate-400">
+                            Rejected
+                          </CardTitle>
+                          <XCircle className="h-3 w-3 text-rose-500" />
+                        </CardHeader>
+                        <CardContent className="px-3 py-2.5">
+                          <div className="text-xl sm:text-2xl font-black text-rose-600 tabular-nums">
+                            {loadingStats ? <LoadingDots /> : (stats?.grievances.rejected || 0)}
                           </div>
-                        </div>
+                          <p className="mt-1 text-[8px] font-bold uppercase text-slate-400">Declined</p>
+                        </CardContent>
+                      </Card>
 
-                        {/* 5. Pending Appointments */}
-                        <div
-                          onClick={() => setActiveTab("appointments")}
-                          className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden min-h-[7rem] sm:min-h-[9.5rem]"
-                        >
-                          <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-blue-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
-                          <div className="relative">
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600 border border-blue-100/50 shadow-sm transition-all group-hover:rotate-6">
-                                <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
-                              </div>
-                              <div className="text-[8px] sm:text-[9px] font-black text-blue-600 bg-blue-50 px-1.5 sm:px-2 py-1 rounded-lg uppercase tracking-tight">
-                                Pending
-                              </div>
-                            </div>
-                            <h4 className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                              Pending Appointments
-                            </h4>
-                            <p className="text-xl sm:text-2xl font-black text-blue-600 tracking-tighter leading-none">
-                              {stats?.appointments.pending || 0}
-                            </p>
+                      <Card
+                        onClick={() => {
+                          setActiveTab("grievances");
+                          setGrievanceFilters((prev) => ({ ...prev, status: "ALL" }));
+                        }}
+                        className="min-h-[6.5rem] sm:min-h-[8.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
+                      >
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 border-t-[3px] border-indigo-500 bg-slate-50/50 px-3 py-2.5">
+                          <CardTitle className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-slate-400">
+                            Total Grievances
+                          </CardTitle>
+                          <FileText className="h-3 w-3 text-indigo-500" />
+                        </CardHeader>
+                        <CardContent className="px-3 py-2.5">
+                          <div className="text-xl sm:text-2xl font-black text-slate-800 tabular-nums">
+                            {loadingStats ? <LoadingDots /> : totalRegisteredGrievances}
                           </div>
-                        </div>
+                          <div className="mt-1 flex items-center gap-1">
+                            <span className="text-[8px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-full">
+                              {stats?.grievances.last7Days || 0} New
+                            </span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  )}
 
-                        {/* 6. Completed Appointments */}
-                        <div
-                          onClick={() => setActiveTab("appointments")}
-                          className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-emerald-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden min-h-[7rem] sm:min-h-[9.5rem]"
-                        >
-                          <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-emerald-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
-                          <div className="relative">
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600 border border-emerald-100/50 shadow-sm transition-all group-hover:rotate-6">
-                                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-                              </div>
-                              <div className="text-[8px] sm:text-[9px] font-black text-emerald-600 bg-emerald-50 px-1.5 sm:px-2 py-1 rounded-lg uppercase tracking-tight">
-                                Done
-                              </div>
+                  {canShowAppointmentsInView && isViewingCompany && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+                      <div
+                        onClick={() => setActiveTab("appointments")}
+                        className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-purple-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden min-h-[7rem] sm:min-h-[9.5rem]"
+                      >
+                        <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-purple-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
+                        <div className="relative">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-50 rounded-lg flex items-center justify-center text-purple-600 border border-purple-100/50 shadow-sm transition-all group-hover:rotate-12">
+                              <CalendarCheck className="w-4 h-4 sm:w-5 sm:h-5" />
                             </div>
-                            <h4 className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                              Completed Appointments
-                            </h4>
-                            <p className="text-xl sm:text-2xl font-black text-emerald-600 tracking-tighter leading-none">
-                              {stats?.appointments.completed || 0}
-                            </p>
+                            <div className="text-[8px] sm:text-[9px] font-black text-purple-600 bg-purple-50 px-1.5 sm:px-2 py-1 rounded-lg uppercase tracking-tight">
+                              Total
+                            </div>
                           </div>
+                          <h4 className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                            Total Appointments
+                          </h4>
+                          <p className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter leading-none">
+                            {stats?.appointments.total || 0}
+                          </p>
                         </div>
-                      </>
-                    )}
-                  </div>
+                      </div>
+
+                      <div
+                        onClick={() => setActiveTab("appointments")}
+                        className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden min-h-[7rem] sm:min-h-[9.5rem]"
+                      >
+                        <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-blue-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
+                        <div className="relative">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600 border border-blue-100/50 shadow-sm transition-all group-hover:rotate-6">
+                              <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
+                            </div>
+                            <div className="text-[8px] sm:text-[9px] font-black text-blue-600 bg-blue-50 px-1.5 sm:px-2 py-1 rounded-lg uppercase tracking-tight">
+                              Pending
+                            </div>
+                          </div>
+                          <h4 className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                            Pending Appointments
+                          </h4>
+                          <p className="text-xl sm:text-2xl font-black text-blue-600 tracking-tighter leading-none">
+                            {stats?.appointments.pending || 0}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div
+                        onClick={() => setActiveTab("appointments")}
+                        className="group relative bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 sm:p-4 transition-all duration-500 hover:shadow-xl hover:shadow-emerald-500/10 hover:-translate-y-1 cursor-pointer overflow-hidden min-h-[7rem] sm:min-h-[9.5rem]"
+                      >
+                        <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-emerald-500/10 to-transparent rounded-full transition-transform group-hover:scale-150 duration-700"></div>
+                        <div className="relative">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600 border border-emerald-100/50 shadow-sm transition-all group-hover:rotate-6">
+                              <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                            </div>
+                            <div className="text-[8px] sm:text-[9px] font-black text-emerald-600 bg-emerald-50 px-1.5 sm:px-2 py-1 rounded-lg uppercase tracking-tight">
+                              Done
+                            </div>
+                          </div>
+                          <h4 className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                            Completed Appointments
+                          </h4>
+                          <p className="text-xl sm:text-2xl font-black text-emerald-600 tracking-tighter leading-none">
+                            {stats?.appointments.completed || 0}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Charts Row */}
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -4518,7 +4521,7 @@ function DashboardContent() {
                                   </ResponsiveContainer>
                                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                                     <span className="text-xl font-black text-slate-900 tracking-tighter">
-                                      {stats?.grievances.total || 0}
+                                      {totalRegisteredGrievances}
                                     </span>
                                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-0.5">
                                       Total
@@ -7597,8 +7600,7 @@ function DashboardContent() {
                           >
                             <option value="">📋 All Active Status</option>
                             <option value="ALL">📑 Total (Inc. Resolved/Rejected)</option>
-                            <option value="PENDING">🔸 Pending</option>
-                            <option value="ASSIGNED">👤 Assigned</option>
+                            <option value="PENDING">🔸 Pending/Assigned</option>
                             <option value="IN_PROGRESS">🛠️ In Progress</option>
                             <option value="RESOLVED">✅ Resolved</option>
                             <option value="REJECTED">❌ Rejected</option>
@@ -8100,7 +8102,9 @@ function DashboardContent() {
                                                 : ""
                                             }`}
                                           >
-                                            {grievance.status}
+                                            {grievance.status === "PENDING" || grievance.status === "ASSIGNED"
+                                              ? "Pending/Assigned"
+                                              : grievance.status}
                                           </button>
                                         </td>
                                         <td className="px-4 py-4">
@@ -8144,11 +8148,12 @@ function DashboardContent() {
                                             }
 
                                             if (
-                                              grievance.status === "RESOLVED"
+                                              grievance.status === "RESOLVED" ||
+                                              grievance.status === "CLOSED"
                                             ) {
                                               return (
                                                 <span className="px-2 py-1 text-[10px] font-bold bg-green-100 text-green-700 rounded">
-                                                  COMPLETED
+                                                  Completed
                                                 </span>
                                               );
                                             }
@@ -8163,11 +8168,11 @@ function DashboardContent() {
                                                 title="Click to open overdue reminder dialog"
                                                 className="px-2 py-1 text-[10px] font-bold bg-red-100 text-red-700 rounded animate-pulse border border-red-300 hover:bg-red-200 cursor-pointer"
                                               >
-                                                OVERDUE
+                                                Overdue
                                               </button>
                                             ) : (
                                               <span className="px-2 py-1 text-[10px] font-bold bg-green-100 text-green-700 rounded">
-                                                ON TRACK
+                                                On Track
                                               </span>
                                             );
                                           })()}
@@ -9510,6 +9515,7 @@ function DashboardContent() {
         <RevertGrievanceDialog
           isOpen={showGrievanceRevertDialog}
           grievanceId={selectedGrievanceForRevert?.grievanceId}
+          adminLabel={isCollectorateJharsuguda ? "Collector & DM" : "Company Admin"}
           onClose={() => {
             setShowGrievanceRevertDialog(false);
             setSelectedGrievanceForRevert(null);
@@ -9523,7 +9529,11 @@ function DashboardContent() {
               );
               if (response.success) {
                 toast.success(
-                  "Grievance reverted to company admin for reassignment",
+                  `Grievance reverted to ${
+                    isCollectorateJharsuguda
+                      ? "Collector & DM"
+                      : "company admin"
+                  } for reassignment`,
                 );
                 fetchGrievances(grievancePage, true);
                 fetchDashboardData(true);
@@ -9576,42 +9586,34 @@ function DashboardContent() {
               if (selectedGrievanceForAssignment.status === "REVERTED") {
                 const revertEntry = selectedGrievanceForAssignment.timeline
                   ?.filter((t: any) => t.action === "REVERTED_TO_COMPANY_ADMIN")
-                  .sort(
-                    (a: any, b: any) =>
-                      new Date(b.timestamp).getTime() -
-                      new Date(a.timestamp).getTime(),
-                  )[0];
-
-                if (revertEntry?.details?.suggestedDepartmentId) {
-                  return revertEntry.details.suggestedDepartmentId;
-                }
+                  .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+                if (revertEntry?.details?.suggestedDepartmentId) return revertEntry.details.suggestedDepartmentId;
               }
-
+              if (selectedGrievanceForAssignment.status === "RESOLVED") {
+                const resolveEntry = selectedGrievanceForAssignment.timeline
+                  ?.filter((t: any) => t.action === "STATUS_UPDATED" && t.details?.newStatus === "RESOLVED")
+                  .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+                if (resolveEntry?.details?.departmentId) return resolveEntry.details.departmentId;
+              }
               const dept = selectedGrievanceForAssignment.departmentId;
-              return dept && typeof dept === "object"
-                ? (dept as any)._id
-                : dept;
+              return dept && typeof dept === "object" ? (dept as any)._id : dept;
             })()}
             currentSubDepartmentId={(() => {
               if (!selectedGrievanceForAssignment) return null;
               if (selectedGrievanceForAssignment.status === "REVERTED") {
                 const revertEntry = selectedGrievanceForAssignment.timeline
                   ?.filter((t: any) => t.action === "REVERTED_TO_COMPANY_ADMIN")
-                  .sort(
-                    (a: any, b: any) =>
-                      new Date(b.timestamp).getTime() -
-                      new Date(a.timestamp).getTime(),
-                  )[0];
-
-                if (revertEntry?.details?.suggestedSubDepartmentId) {
-                  return revertEntry.details.suggestedSubDepartmentId;
-                }
+                  .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+                if (revertEntry?.details?.suggestedSubDepartmentId) return revertEntry.details.suggestedSubDepartmentId;
               }
-
+              if (selectedGrievanceForAssignment.status === "RESOLVED") {
+                const resolveEntry = selectedGrievanceForAssignment.timeline
+                  ?.filter((t: any) => t.action === "STATUS_UPDATED" && t.details?.newStatus === "RESOLVED")
+                  .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+                if (resolveEntry?.details?.subDepartmentId) return resolveEntry.details.subDepartmentId;
+              }
               const subDept = selectedGrievanceForAssignment.subDepartmentId;
-              return subDept && typeof subDept === "object"
-                ? (subDept as any)._id
-                : subDept;
+              return subDept && typeof subDept === "object" ? (subDept as any)._id : subDept;
             })()}
             userRole={user.role}
             canReassignCurrent={isCompanyAdminRole}

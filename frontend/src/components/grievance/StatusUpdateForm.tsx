@@ -19,8 +19,7 @@ interface StatusUpdateFormProps {
 }
 
 const grievanceStatusesAll = [
-  { value: 'PENDING', label: 'Pending', iconBg: 'bg-amber-100', iconColor: 'text-amber-600', badge: 'bg-amber-50 border-amber-200 text-amber-700', activeBadge: 'bg-amber-500 text-white border-amber-500', Icon: Clock },
-  { value: 'ASSIGNED', label: 'Assigned', iconBg: 'bg-blue-100', iconColor: 'text-blue-600', badge: 'bg-blue-50 border-blue-200 text-blue-700', activeBadge: 'bg-blue-600 text-white border-blue-600', Icon: CheckCircle2 },
+  { value: 'PENDING', label: 'Pending/Assigned', iconBg: 'bg-amber-100', iconColor: 'text-amber-600', badge: 'bg-amber-50 border-amber-200 text-amber-700', activeBadge: 'bg-amber-500 text-white border-amber-500', Icon: Clock },
   { value: 'IN_PROGRESS', label: 'In Progress', iconBg: 'bg-indigo-100', iconColor: 'text-indigo-600', badge: 'bg-indigo-50 border-indigo-200 text-indigo-700', activeBadge: 'bg-indigo-600 text-white border-indigo-600', Icon: RefreshCw },
   { value: 'RESOLVED', label: 'Resolved', iconBg: 'bg-emerald-100', iconColor: 'text-emerald-600', badge: 'bg-emerald-50 border-emerald-200 text-emerald-700', activeBadge: 'bg-emerald-600 text-white border-emerald-600', Icon: CheckCircle2 },
   { value: 'REJECTED', label: 'Rejected', iconBg: 'bg-rose-100', iconColor: 'text-rose-600', badge: 'bg-rose-50 border-rose-200 text-rose-700', activeBadge: 'bg-rose-600 text-white border-rose-600', Icon: Ban },
@@ -425,7 +424,7 @@ export default function StatusUpdateForm({
     }
 
     if (!remarks.trim()) {
-      toast.error('Remarks / notes are compulsory for updating status.');
+      toast.error('Remarks / notes are mandatory for updating status.');
       return;
     }
 
@@ -471,7 +470,9 @@ export default function StatusUpdateForm({
     }
   };
 
-  const currentStatusInfo = statuses.find(s => s.value === currentStatus) || statuses[0];
+  const currentStatusInfo = statuses.find(s => 
+    s.value === currentStatus || (s.value === 'PENDING' && currentStatus === 'ASSIGNED')
+  ) || statuses[0];
   const typeLabel = itemType === 'grievance' ? 'Grievance' : 'Appointment';
   const isRemarksMissing = !remarks.trim();
   const isSubmitDisabled =
@@ -508,7 +509,7 @@ export default function StatusUpdateForm({
           <div className="grid grid-cols-2 gap-2">
             {statuses.map((status) => {
               const isSelected = selectedStatus === status.value;
-              const isCurrent = status.value === currentStatus;
+              const isCurrent = status.value === currentStatus || (status.value === 'PENDING' && currentStatus === 'ASSIGNED');
               return (
                 <button
                   key={status.value}
@@ -558,7 +559,7 @@ export default function StatusUpdateForm({
         {/* Remarks */}
         <div>
           <label className="block text-[11px] font-semibold text-slate-600 uppercase tracking-[0.08em] mb-2">
-            Remarks / Notes <span className="text-rose-500 font-normal normal-case">(compulsory)</span>
+            Remarks / Note <span className="text-rose-500 font-normal normal-case">(Mandatory)</span>
           </label>
           <textarea
             value={remarks}

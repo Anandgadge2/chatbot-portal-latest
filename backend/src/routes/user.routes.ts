@@ -237,10 +237,10 @@ router.post('/', requirePermission(Permission.CREATE_USER), async (req: Request,
     }
 
     // Validate password length
-    if (password.length < 6) {
+    if (password.length < 5) {
       return res.status(400).json({
         success: false,
-        message: 'Password must be at least 6 characters'
+        message: 'Password must be at least 5 characters'
       });
     }
 

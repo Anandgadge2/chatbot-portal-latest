@@ -14,11 +14,16 @@ export interface WhatsAppTemplate {
   language: string;
   category: TemplateCategory;
   status: TemplateStatus;
+  header?: {
+    type: string | null;
+    content: string;
+  };
   body: {
     text: string;
     variables: number;
     sampleValues?: string[];
   };
+  footer?: string;
   buttons: WhatsAppTemplateButton[];
   lastSyncedAt?: string;
   updatedAt?: string;

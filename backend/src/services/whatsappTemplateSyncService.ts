@@ -40,7 +40,8 @@ function normalizeTemplate(companyId: mongoose.Types.ObjectId, raw: any) {
     status: raw.status,
     header: {
       type: header?.format || null,
-      content: header?.text || ''
+      content: header?.text || header?.format || '',
+      sampleValues: header?.example?.header_text || header?.example?.header_handle || []
     },
     body: {
       text: body?.text || '',
@@ -51,7 +52,9 @@ function normalizeTemplate(companyId: mongoose.Types.ObjectId, raw: any) {
     buttons: (buttons?.buttons || []).map((button: any) => ({
       type: button.type,
       text: button.text || '',
-      value: button.url || button.phone_number || button.payload || ''
+      value: button.url || button.phone_number || button.payload || '',
+      otp_type: button.otp_type || undefined,
+      autofill_text: button.autofill_text || undefined
     })),
     isActive: true,
     lastSyncedAt: new Date()

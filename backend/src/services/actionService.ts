@@ -110,7 +110,7 @@ export class ActionService {
       }
 
       if (!departmentId && !subDepartmentId) {
-        throw new Error('Department selection is compulsory. Please select a department to proceed.');
+        throw new Error('Department selection is mandatory. Please select a department to proceed.');
       }
 
       // Collect media from session.data.media[] (array) AND any plain-string attachment fields.

@@ -194,7 +194,7 @@ export const create = async (req: Request, res: Response) => {
       if (!validatePassword(admin.password)) {
         return res.status(400).json({
           success: false,
-          message: 'Admin password must be at least 6 characters'
+          message: 'Admin password must be at least 5 characters'
         });
       }
     }
