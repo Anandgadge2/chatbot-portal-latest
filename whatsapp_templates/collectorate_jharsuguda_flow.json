@@ -905,7 +905,7 @@
       },
       "data": {
         "label": "Data Consent (EN)",
-        "messageText": "*Data Processing Consent*\n\nTo file your grievance, you must consent to the processing of the details you shared for grievance registration and resolution.\n\nThis is an official government assistance chatbot.\nType STOP to unsubscribe.\n\nPlease choose:",
+        "messageText": "*Data Processing Consent*\n\nTo file your grievance, you must consent to the processing of the details you shared for grievance registration and resolution.\n\nPlease choose:",
         "buttons": [
           {
             "id": "grv_consent_data_yes_en",
@@ -931,7 +931,7 @@
       },
       "data": {
         "label": "Notification Consent (EN)",
-        "messageText": "*WhatsApp Update Consent*\n\nWould you like to receive grievance status updates on WhatsApp using approved templates?\n\nThis is an official government assistance chatbot.\nType STOP to unsubscribe.\n\nPlease choose:",
+        "messageText": "*WhatsApp Update Consent*\n\nWould you like to receive grievance status updates on WhatsApp using approved templates?\n\nPlease choose:",
         "buttons": [
           {
             "id": "grv_consent_updates_yes_en",
@@ -957,7 +957,7 @@
       },
       "data": {
         "label": "Data Consent (HI)",
-        "messageText": "*डेटा प्रोसेसिंग सहमति*\n\nकृपया पुष्टि करें कि आप इस चैट में साझा किए गए विवरणों का उपयोग करके शिकायत पंजीकरण और समाधान की अनुमति देते हैं।\n\nयह एक आधिकारिक सरकारी सहायता चैटबॉट है।\nअनसब्सक्राइब करने के लिए STOP टाइप करें।\n\nकृपया चुनें:",
+        "messageText": "*डेटा प्रोसेसिंग सहमति*\n\nकृपया पुष्टि करें कि आप इस चैट में साझा किए गए विवरणों का उपयोग करके शिकायत पंजीकरण और समाधान की अनुमति देते हैं।\n\nकृपया चुनें:",
         "buttons": [
           {
             "id": "grv_consent_data_yes_hi",
@@ -983,7 +983,7 @@
       },
       "data": {
         "label": "Notification Consent (HI)",
-        "messageText": "*व्हाट्सएप अपडेट सहमति*\n\nक्या आप अनुमोदित टेम्प्लेट का उपयोग करके व्हाट्सएप पर शिकायत स्थिति अपडेट प्राप्त करना चाहेंगे?\n\nयह एक आधिकारिक सरकारी सहायता चैटबॉट है।\nअनसब्सक्राइब करने के लिए STOP टाइप करें।\n\nकृपया चुनें:",
+        "messageText": "*व्हाट्सएप अपडेट सहमति*\n\nक्या आप अनुमोदित टेम्प्लेट का उपयोग करके व्हाट्सएप पर शिकायत स्थिति अपडेट प्राप्त करना चाहेंगे?\n\nकृपया चुनें:",
         "buttons": [
           {
             "id": "grv_consent_updates_yes_hi",
@@ -1009,7 +1009,7 @@
       },
       "data": {
         "label": "Data Consent (OR)",
-        "messageText": "*ଡାଟା ପ୍ରୋସେସିଂ ସମ୍ମତି*\n\nଅଭିଯୋଗ ପଞ୍ଜିକରଣ ଏବଂ ସମାଧାନ ପାଇଁ ଏହି ଚାଟ୍‌ରେ ସେୟାର କରାଯାଇଥିବା ବିବରଣୀ ବ୍ୟବହାର କରିବାକୁ ଆପଣ ଅନୁମତି ଦେଉଛନ୍ତି ବୋଲି ଦୟାକରି ନିଶ୍ଚିତ କରନ୍ତୁ।\n\nଏହା ଏକ ସରକାରୀ ସହାୟତା ଚାଟବଟ୍।\nଅନସବସ୍କ୍ରାଇବ କରିବା ପାଇଁ STOP ଟାଇପ୍ କରନ୍ତୁ।\n\nଦୟାକରି ବାଛନ୍ତୁ:",
+        "messageText": "*ଡାଟା ପ୍ରୋସେସିଂ ସମ୍ମତି*\n\nଅଭିଯୋଗ ପଞ୍ଜିକରଣ ଏବଂ ସମାଧାନ ପାଇଁ ଏହି ଚାଟ୍‌ରେ ସେୟାର କରାଯାଇଥିବା ବିବରଣୀ ବ୍ୟବହାର କରିବାକୁ ଆପଣ ଅନୁମତି ଦେଉଛନ୍ତି ବୋଲି ଦୟାକରି ନିଶ୍ଚିତ କରନ୍ତୁ।\n\nଦୟାକରି ବାଛନ୍ତୁ:",
         "buttons": [
           {
             "id": "grv_consent_data_yes_or",
@@ -1035,7 +1035,7 @@
       },
       "data": {
         "label": "Notification Consent (OR)",
-        "messageText": "*ହ୍ୱାଟସ୍‌ଆପ୍ ଅପଡେଟ୍ ସମ୍ମତି*\n\nଆପଣ ଅନୁମୋଦିତ ଟେମ୍ପଲେଟ୍ ବ୍ୟବହାର କରି ହ୍ୱାଟସ୍‌ଆପ୍‌ରେ ଅଭିଯୋଗ ସ୍ଥିତି ଅପଡେଟ୍ ଗ୍ରହଣ କରିବାକୁ ଚାହାଁନ୍ତି କି?\n\nଏହା ଏକ ସରକାରୀ ସହାୟତା ଚାଟବଟ୍।\nଅନସବସ୍କ୍ରାଇବ କରିବା ପାଇଁ STOP ଟାଇପ୍ କରନ୍ତୁ।\n\nଦୟାକରି ବାଛନ୍ତୁ:",
+        "messageText": "*ହ୍ୱାଟସ୍‌ଆପ୍ ଅପଡେଟ୍ ସମ୍ମତି*\n\nଆପଣ ଅନୁମୋଦିତ ଟେମ୍ପଲେଟ୍ ବ୍ୟବହାର କରି ହ୍ୱାଟସ୍‌ଆପ୍‌ରେ ଅଭିଯୋଗ ସ୍ଥିତି ଅପଡେଟ୍ ଗ୍ରହଣ କରିବାକୁ ଚାହାଁନ୍ତି କି?\n\nଦୟାକରି ବାଛନ୍ତୁ:",
         "buttons": [
           {
             "id": "grv_consent_updates_yes_or",
@@ -1048,6 +1048,129 @@
             "text": "ଅପଡେଟ୍ ଦରକାର ନାହିଁ",
             "type": "quick_reply",
             "nextStepId": "grv_confirm_or"
+          }
+        ]
+      }
+    },
+    {
+      "id": "grv_location_en",
+      "type": "userInput",
+      "position": {
+        "x": 2400,
+        "y": -110
+      },
+      "data": {
+        "label": "Share Location (EN)",
+        "messageText": "📍 *Share Location*\n\nPlease share the exact location of the issue place.\n\n*How to share (short):*\n1) Tap attachment (📎)\n2) Select *Location*\n3) Send current/pin location",
+        "inputType": "location",
+        "saveToField": "locationAddress",
+        "validation": {
+          "required": false
+        }
+      }
+    },
+    {
+      "id": "grv_location_hi",
+      "type": "userInput",
+      "position": {
+        "x": 2400,
+        "y": 290
+      },
+      "data": {
+        "label": "Share Location (HI)",
+        "messageText": "📍 *लोकेशन साझा करें*\n\nकृपया समस्या वाली जगह की सटीक लोकेशन साझा करें।\n\n*कैसे साझा करें (संक्षेप में):*\n1) अटैचमेंट (📎) दबाएं\n2) *Location* चुनें\n3) Current/Pinned location भेजें",
+        "inputType": "location",
+        "saveToField": "locationAddress",
+        "validation": {
+          "required": false
+        }
+      }
+    },
+    {
+      "id": "grv_location_or",
+      "type": "userInput",
+      "position": {
+        "x": 2400,
+        "y": 690
+      },
+      "data": {
+        "label": "Share Location (OR)",
+        "messageText": "📍 *ଲୋକେସନ୍ ସେୟାର କରନ୍ତୁ*\n\nଦୟାକରି ସମସ୍ୟା ସ୍ଥାନର ସଠିକ୍ ଲୋକେସନ୍ ସେୟାର କରନ୍ତୁ।\n\n*କିପରି ସେୟାର କରିବେ (ଛୋଟରେ):*\n1) Attachment (📎) ଦବାନ୍ତୁ\n2) *Location* ବାଛନ୍ତୁ\n3) Current/Pinned location ପଠାନ୍ତୁ",
+        "inputType": "location",
+        "saveToField": "locationAddress",
+        "validation": {
+          "required": false
+        }
+      }
+    },
+    {
+      "id": "grv_location_choice_en",
+      "type": "buttonMessage",
+      "position": {
+        "x": 2280,
+        "y": -40
+      },
+      "data": {
+        "label": "Share Location Choice (EN)",
+        "messageText": "📍 *Share Location (Optional)*\n\nWould you like to share the location of the place?\n\nPlease choose:",
+        "buttons": [
+          {
+            "id": "share_location_en",
+            "text": "📍 Share Location",
+            "type": "quick_reply"
+          },
+          {
+            "id": "skip_location_en",
+            "text": "⏭️ Skip",
+            "type": "quick_reply"
+          }
+        ]
+      }
+    },
+    {
+      "id": "grv_location_choice_hi",
+      "type": "buttonMessage",
+      "position": {
+        "x": 2280,
+        "y": 360
+      },
+      "data": {
+        "label": "Share Location Choice (HI)",
+        "messageText": "📍 *लोकेशन साझा करें (वैकल्पिक)*\n\nक्या आप स्थान की लोकेशन साझा करना चाहेंगे?\n\nकृपया चुनें:",
+        "buttons": [
+          {
+            "id": "share_location_hi",
+            "text": "📍 लोकेशन साझा करें",
+            "type": "quick_reply"
+          },
+          {
+            "id": "skip_location_hi",
+            "text": "⏭️ छोड़ें",
+            "type": "quick_reply"
+          }
+        ]
+      }
+    },
+    {
+      "id": "grv_location_choice_or",
+      "type": "buttonMessage",
+      "position": {
+        "x": 2280,
+        "y": 760
+      },
+      "data": {
+        "label": "Share Location Choice (OR)",
+        "messageText": "📍 *ଲୋକେସନ୍ ସେୟାର କରନ୍ତୁ (ବୈକଳ୍ପିକ)*\n\nଆପଣ ସ୍ଥାନର ଲୋକେସନ୍ ସେୟାର କରିବାକୁ ଚାହାଁନ୍ତି କି?\n\nଦୟାକରି ବାଛନ୍ତୁ:",
+        "buttons": [
+          {
+            "id": "share_location_or",
+            "text": "📍 ଲୋକେସନ୍ ସେୟାର କରନ୍ତୁ",
+            "type": "quick_reply"
+          },
+          {
+            "id": "skip_location_or",
+            "text": "⏭️ ବାଦ୍ ଦିଅନ୍ତୁ",
+            "type": "quick_reply"
           }
         ]
       }
@@ -1111,14 +1234,14 @@
     {
       "id": "e_en_grv8",
       "source": "grv_evidence_en",
-      "target": "grv_consent_data_en",
+      "target": "grv_location_choice_en",
       "sourceHandle": "skip_evidence_en",
       "type": "smoothstep"
     },
     {
       "id": "e_en_grv9",
       "source": "grv_upload_en",
-      "target": "grv_consent_data_en",
+      "target": "grv_location_choice_en",
       "type": "smoothstep"
     },
     {
@@ -1157,14 +1280,14 @@
     {
       "id": "e_hi_grv8",
       "source": "grv_evidence_hi",
-      "target": "grv_consent_data_hi",
+      "target": "grv_location_choice_hi",
       "sourceHandle": "skip_evidence_hi",
       "type": "smoothstep"
     },
     {
       "id": "e_hi_grv9",
       "source": "grv_upload_hi",
-      "target": "grv_consent_data_hi",
+      "target": "grv_location_choice_hi",
       "type": "smoothstep"
     },
     {
@@ -1203,14 +1326,14 @@
     {
       "id": "e_or_grv8",
       "source": "grv_evidence_or",
-      "target": "grv_consent_data_or",
+      "target": "grv_location_choice_or",
       "sourceHandle": "skip_evidence_or",
       "type": "smoothstep"
     },
     {
       "id": "e_or_grv9",
       "source": "grv_upload_or",
-      "target": "grv_consent_data_or",
+      "target": "grv_location_choice_or",
       "type": "smoothstep"
     },
     {
@@ -1422,6 +1545,66 @@
       "source": "grv_consent_updates_or",
       "target": "grv_confirm_or",
       "sourceHandle": "grv_consent_updates_no_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_en_grv_loc2",
+      "source": "grv_location_en",
+      "target": "grv_consent_data_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_hi_grv_loc2",
+      "source": "grv_location_hi",
+      "target": "grv_consent_data_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_or_grv_loc2",
+      "source": "grv_location_or",
+      "target": "grv_consent_data_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_en_grv_loc_share",
+      "source": "grv_location_choice_en",
+      "target": "grv_location_en",
+      "sourceHandle": "share_location_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_en_grv_loc_skip",
+      "source": "grv_location_choice_en",
+      "target": "grv_consent_data_en",
+      "sourceHandle": "skip_location_en",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_hi_grv_loc_share",
+      "source": "grv_location_choice_hi",
+      "target": "grv_location_hi",
+      "sourceHandle": "share_location_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_hi_grv_loc_skip",
+      "source": "grv_location_choice_hi",
+      "target": "grv_consent_data_hi",
+      "sourceHandle": "skip_location_hi",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_or_grv_loc_share",
+      "source": "grv_location_choice_or",
+      "target": "grv_location_or",
+      "sourceHandle": "share_location_or",
+      "type": "smoothstep"
+    },
+    {
+      "id": "e_or_grv_loc_skip",
+      "source": "grv_location_choice_or",
+      "target": "grv_consent_data_or",
+      "sourceHandle": "skip_location_or",
       "type": "smoothstep"
     }
   ]

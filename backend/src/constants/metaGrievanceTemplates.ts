@@ -9,7 +9,10 @@ export const ADMIN_TEMPLATE_NAMES = [
 ] as const;
 
 export const CITIZEN_TEMPLATE_NAMES = [
-  'grievance_status_citizen_v1'
+  'grievance_status_citizen_v1',
+  'media_image_v1',
+  'media_video_v1',
+  'media_document_v1'
 ] as const;
 
 export const META_GRIEVANCE_TEMPLATE_VARIABLE_COUNT: Record<string, number> = {
@@ -20,7 +23,10 @@ export const META_GRIEVANCE_TEMPLATE_VARIABLE_COUNT: Record<string, number> = {
   grievance_reverted_company_v1: 8,
   reminder_admin_v1: 10,
   admin_password_reset_otp: 1,
-  grievance_status_citizen_v1: 6
+  grievance_status_citizen_v1: 6,
+  media_image_v1: 0,
+  media_video_v1: 0,
+  media_document_v1: 0
 };
 
 export const DEFAULT_TEMPLATE_LANGUAGE = 'en';

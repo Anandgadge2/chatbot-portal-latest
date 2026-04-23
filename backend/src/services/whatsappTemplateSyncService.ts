@@ -72,17 +72,22 @@ export async function syncTemplatesForCompany(companyId: mongoose.Types.ObjectId
   let deactivatedCount = 0;
 
   try {
-    const response = await axios.get(`https://graph.facebook.com/v18.0/${config.businessAccountId}/message_templates`, {
-      headers: {
-        Authorization: `Bearer ${config.accessToken}`
-      }
-    });
+    const headers = {
+      Authorization: `Bearer ${config.accessToken}`
+    };
+    const approvedTemplates: any[] = [];
+    let nextUrl: string | null = `https://graph.facebook.com/v19.0/${config.businessAccountId}/message_templates?limit=200`;
 
-    const data = response.data?.data || [];
-    fetchedCount = data.length;
+    while (nextUrl) {
+      const response: any = await axios.get(nextUrl, { headers });
+      const batch = response.data?.data || [];
+      fetchedCount += batch.length;
+      approvedTemplates.push(...batch.filter((template: any) => String(template?.status || '').toUpperCase() === 'APPROVED'));
+      nextUrl = response.data?.paging?.next || null;
+    }
 
     const incomingKeys = new Set<string>();
-    for (const rawTemplate of data) {
+    for (const rawTemplate of approvedTemplates) {
       const normalized = normalizeTemplate(companyId, rawTemplate);
       incomingKeys.add(`${normalized.name}::${normalized.language}`);
 
