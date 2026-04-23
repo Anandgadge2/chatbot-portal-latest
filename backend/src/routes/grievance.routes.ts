@@ -156,6 +156,7 @@ router.get('/', requirePermission(Permission.READ_GRIEVANCE), async (req: Reques
     }
 
     const grievances = await Grievance.find(query)
+      .select('-timeline -statusHistory -media')
       .populate('companyId', 'name companyId')
       .populate('departmentId', 'name departmentId')
       .populate('subDepartmentId', 'name departmentId')

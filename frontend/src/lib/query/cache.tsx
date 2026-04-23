@@ -62,7 +62,7 @@ export function useCachedQuery<T>({
   staleTime = 0,
   enabled = true,
 }: {
-  queryKey: (string | number | undefined | null)[];
+  queryKey: any[];
   queryFn: () => Promise<T>;
   staleTime?: number;
   enabled?: boolean;
@@ -150,5 +150,23 @@ export function useCachedQuery<T>({
     data,
     error,
     isLoading,
+    refetch: async () => {
+
+      setIsLoading(true);
+      try {
+        const result = await queryFnRef.current();
+        queryCache.set(key, {
+          data: result,
+          error: undefined,
+          updatedAt: Date.now(),
+        });
+        setData(result);
+        setError(undefined);
+      } catch (err) {
+        setError(err);
+      } finally {
+        setIsLoading(false);
+      }
+    },
   };
 }

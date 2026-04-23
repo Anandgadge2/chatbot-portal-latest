@@ -82,6 +82,11 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
 import { DashboardDepartmentFilters } from "@/components/dashboard/DashboardDepartmentFilters";
 import { formatTo10Digits, normalizePhoneNumber } from "@/lib/utils/phoneUtils";
+import { useGrievances } from "@/lib/query/useGrievances";
+import { useDashboardStats } from "@/lib/query/useDashboardStats";
+import { useDepartments } from "@/lib/query/useDepartments";
+import { useUsers } from "@/lib/query/useUsers";
+
 
 import {
   ArrowUpDown,
@@ -826,6 +831,7 @@ function DashboardContent() {
     assignmentStatus: "",
     overdueStatus: "",
     dateRange: "",
+    priority: "",
   });
 
   const getParentDepartmentId = useCallback((dept: any): string | null => {
@@ -884,6 +890,109 @@ function DashboardContent() {
 
   // Search states
   const [grievanceSearch, setGrievanceSearch] = useState("");
+
+  
+  // ⚡ Performance Optimized Data Fetching (Cache-First)
+  const { data: cachedGrievanceData, isLoading: isLoadingGrievancesFromHook, refetch: refetchGrievances } = useGrievances({
+    page: grievancePage,
+    limit: grievancePagination.limit,
+    status: grievanceFilters.status,
+    companyId: targetCompanyId,
+    departmentId: grievanceFilters.subDeptId || grievanceFilters.mainDeptId,
+    priority: grievanceFilters.priority,
+    search: grievanceSearch,
+    enabled: mounted && activeTab === "grievances",
+  });
+
+  const { data: cachedDashboardStats, isLoading: isLoadingStatsFromHook, refetch: refetchDashboardStats } = useDashboardStats({
+    companyId: targetCompanyId,
+    departmentId: isSubDepartmentAdminRole || isOperatorRole
+            ? assignedDepartmentIds[0] || ""
+            : (activeTab === "analytics" ? analyticsFilters : overviewFilters)?.subDeptId || (activeTab === "analytics" ? analyticsFilters : overviewFilters)?.mainDeptId || "",
+    enabled: mounted && (activeTab === "overview" || activeTab === "analytics"),
+  });
+
+  const { data: cachedDepartmentData, isLoading: isLoadingDeptsFromHook, refetch: refetchDepartmentsHook } = useDepartments({
+    page: departmentPage,
+    limit: departmentPagination.limit,
+    search: deptSearch,
+    companyId: targetCompanyId,
+    status: deptFilters.status,
+    mainDeptId: deptFilters.mainDeptId,
+    subDeptId: deptFilters.subDeptId,
+    enabled: mounted && (activeTab === "departments" || (activeTab === "overview" && isDepartmentLevel)),
+  });
+
+  const { data: cachedUserData, isLoading: isLoadingUsersFromHook, refetch: refetchUsersHook } = useUsers({
+    page: userPage,
+    limit: userPagination.limit,
+    search: userSearch,
+    companyId: targetCompanyId,
+    departmentId: userFilters.subDeptId || userFilters.mainDeptId,
+    role: userFilters.role,
+    status: userFilters.status,
+    enabled: mounted && activeTab === "users",
+  });
+
+  // 🔄 Background Synchronization for Cached Data
+  useEffect(() => {
+    if (cachedGrievanceData) {
+      setGrievances(cachedGrievanceData.grievances);
+      setGrievancePagination(prev => ({
+        ...prev,
+        total: cachedGrievanceData.pagination.total,
+        pages: cachedGrievanceData.pagination.pages,
+      }));
+    }
+  }, [cachedGrievanceData]);
+
+  useEffect(() => {
+    if (cachedDashboardStats) {
+      setStats(cachedDashboardStats);
+    }
+  }, [cachedDashboardStats]);
+
+  useEffect(() => {
+    if (cachedDepartmentData) {
+      setDepartments(cachedDepartmentData.departments);
+      setDepartmentPagination(prev => ({
+        ...prev,
+        total: cachedDepartmentData.pagination.total,
+        pages: cachedDepartmentData.pagination.pages,
+      }));
+    }
+  }, [cachedDepartmentData]);
+
+  useEffect(() => {
+    if (cachedUserData) {
+      setUsers(cachedUserData.users);
+      setUserPagination(prev => ({
+        ...prev,
+        total: cachedUserData.pagination.total,
+        pages: cachedUserData.pagination.pages,
+      }));
+    }
+  }, [cachedUserData]);
+
+
+
+  // Sync cached data to state to maintain compatibility with existing logic
+  useEffect(() => {
+    if (cachedGrievanceData) {
+      setGrievances(cachedGrievanceData.grievances);
+      setGrievancePagination((prev) => ({
+        ...prev,
+        total: cachedGrievanceData.pagination.total,
+        pages: cachedGrievanceData.pagination.pages,
+      }));
+    }
+  }, [cachedGrievanceData]);
+
+  // Handle loading state from hook
+  useEffect(() => {
+    setLoadingGrievances(isLoadingGrievancesFromHook && grievances.length === 0);
+  }, [isLoadingGrievancesFromHook, grievances.length]);
+
   const [appointmentSearch, setAppointmentSearch] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -1484,13 +1593,22 @@ function DashboardContent() {
     }
   }, [targetCompanyId]);
 
+  
   const fetchDashboardData = useCallback(
     async (
       refresh = false,
       overrideFilters?: { mainDeptId?: string; subDeptId?: string },
     ) => {
       if (isSuperAdminUser && !companyIdParam) return;
+      
+      // If we are in the relevant tab, use the hook's refetch for consistency
+      if (activeTab === "overview" || activeTab === "analytics") {
+        await refetchDashboardStats();
+        return;
+      }
+
       try {
+
         const currentFilters =
           overrideFilters ||
           (activeTab === "analytics" ? analyticsFilters : overviewFilters);
@@ -1542,6 +1660,7 @@ function DashboardContent() {
       isSubDepartmentAdminRole,
       isOperatorRole,
       currentUserCompanyId,
+      refetchDashboardStats,
     ],
   );
 
@@ -1577,6 +1696,13 @@ function DashboardContent() {
     async (page = departmentPage, isSilent = false) => {
       if (isSuperAdminUser && !companyIdParam) return;
       if (!isSilent) setLoadingDepartments(true);
+      
+      if (activeTab === "departments") {
+        await refetchDepartmentsHook();
+        if (!isSilent) setLoadingDepartments(false);
+        return;
+      }
+
       try {
         // For company admin, fetch ALL departments (no pagination limit)
         const fetchLimit =
@@ -1659,6 +1785,8 @@ function DashboardContent() {
       user,
       companyIdParam,
       getParentDepartmentId,
+      activeTab,
+      refetchDepartmentsHook,
     ],
   );
 
@@ -1788,6 +1916,13 @@ function DashboardContent() {
     async (page = userPage, isSilent = false) => {
       if (isSuperAdminUser && !companyIdParam) return;
       if (!isSilent) setLoadingUsers(true);
+
+      if (activeTab === "users") {
+        await refetchUsersHook();
+        if (!isSilent) setLoadingUsers(false);
+        return;
+      }
+
       try {
         const selectedDepartmentId =
           isSubDepartmentAdminRole || isOperatorRole
@@ -1848,6 +1983,8 @@ function DashboardContent() {
       isOperatorRole,
       isSuperAdminUser,
       companyIdParam,
+      activeTab,
+      refetchUsersHook,
     ],
   );
 
@@ -1861,7 +1998,12 @@ function DashboardContent() {
         return;
       }
 
+      if (activeTab === "grievances") {
+        await refetchGrievances();
+        return;
+      }
       if (!isSilent) setLoadingGrievances(true);
+
       try {
         const response = await grievanceAPI.getAll({
           page,
@@ -1913,6 +2055,8 @@ function DashboardContent() {
       isOperatorRole,
       isSuperAdminUser,
       companyIdParam,
+      activeTab,
+      refetchGrievances,
     ],
   );
 
@@ -2036,7 +2180,7 @@ function DashboardContent() {
     if (activeTab !== "overview" && activeTab !== "analytics") return;
     if (stats) return;
 
-    fetchDashboardData();
+    // fetchDashboardData(); // Replaced by useDashboardStats hook
   }, [
     activeTab,
     mounted,
@@ -2047,79 +2191,19 @@ function DashboardContent() {
     companyIdParam,
   ]);
 
-  useEffect(() => {
-    if (!mounted || !user) return;
-    if (isSuperAdminUser && !companyIdParam) return;
-    if (activeTab !== "overview" && activeTab !== "grievances" && activeTab !== "reverted") return;
-    if (grievances.length > 0) return;
-    if (!(isSuperAdminUser || hasPermission(user, Permission.READ_GRIEVANCE))) return;
-
-    fetchGrievances(grievancePage, true);
-  }, [
-    activeTab,
-    mounted,
-    user,
-    grievances.length,
-    fetchGrievances,
-    grievancePage,
-    isSuperAdminUser,
-    companyIdParam,
-  ]);
-
-  // 3. Global Synchronization Listener
-  useEffect(() => {
-    const handleGlobalRefresh = (e?: any) => {
-      const scope = e?.detail?.scope;
-      const isAll = !scope || scope === "ALL";
-      const scopes = Array.isArray(scope) ? scope : [scope];
-
-      if (isAll || scopes.includes("DASHBOARD")) fetchDashboardData(true);
-      if (isAll || scopes.includes("GRIEVANCES"))
-        fetchGrievances(grievancePage, true);
-      if (isAll || scopes.includes("APPOINTMENTS"))
-        fetchAppointments(appointmentPage, true);
-      if (isAll || scopes.includes("DEPARTMENTS")) {
-        fetchDepartments(departmentPage, true);
-        fetchAllDepartments(); // Update hierarchy data
-      }
-      if (isAll || scopes.includes("USERS")) fetchUsers(userPage, true);
-      if (isAll || scopes.includes("LEADS")) {
-        if (isSuperAdminUser || hasModule(Module.LEAD_CAPTURE)) {
-          fetchLeads();
-        }
-      }
-    };
-
-    window.addEventListener("REFRESH_PORTAL_DATA", handleGlobalRefresh);
-    return () =>
-      window.removeEventListener("REFRESH_PORTAL_DATA", handleGlobalRefresh);
-  }, [
-    fetchDashboardData,
-    fetchGrievances,
-    grievancePage,
-    fetchAppointments,
-    appointmentPage,
-    fetchDepartments,
-    departmentPage,
-    fetchAllDepartments,
-    fetchUsers,
-    userPage,
-    fetchLeads,
-    isSuperAdminUser,
-    hasModule,
-  ]);
-
   // 2. Specialized effects for each paginated module (Gated by activeTab for SPA performance)
   useEffect(() => {
     if (isSuperAdminUser && !companyIdParam) return;
 
     if (activeTab === "analytics" && mounted && user) {
+      fetchPerformanceData();
       fetchDepartmentData();
     }
   }, [
     activeTab,
     mounted,
     user,
+    fetchPerformanceData,
     fetchDepartmentData,
     isSuperAdminUser,
     companyIdParam,
@@ -2140,7 +2224,7 @@ function DashboardContent() {
         hasPermission(user, Permission.READ_DEPARTMENT) ||
         isDepartmentLevel)
     ) {
-      fetchDepartments(departmentPage);
+      // fetchDepartments(departmentPage); // Replaced by useDepartments hook
     }
   }, [
     activeTab,
@@ -2165,7 +2249,7 @@ function DashboardContent() {
       user &&
       (isSuperAdminUser || hasPermission(user, Permission.READ_USER))
     ) {
-      fetchUsers(userPage);
+      // fetchUsers(userPage); // Replaced by useUsers hook
     }
   }, [
     activeTab,
@@ -2179,6 +2263,8 @@ function DashboardContent() {
     userSearch,
   ]);
 
+  // Redundant now that useGrievances hook handles this automatically with caching
+  /*
   useEffect(() => {
     if (isSuperAdminUser && !companyIdParam) return;
 
@@ -2204,6 +2290,7 @@ function DashboardContent() {
     grievanceFilters,
     grievanceSearch,
   ]);
+  */
 
   useEffect(() => {
     if (isSuperAdminUser && !companyIdParam) return;
@@ -2247,6 +2334,51 @@ function DashboardContent() {
     isSuperAdminUser,
     companyIdParam,
   ]);
+
+  // 3. Global Synchronization Listener
+  useEffect(() => {
+    const handleGlobalRefresh = (e?: any) => {
+      const scope = e?.detail?.scope;
+
+      const isAll = !scope || scope === "ALL";
+      const scopes = Array.isArray(scope) ? scope : [scope];
+
+      if (isAll || scopes.includes("DASHBOARD")) fetchDashboardData(true);
+      if (isAll || scopes.includes("GRIEVANCES"))
+        fetchGrievances(grievancePage, true);
+      if (isAll || scopes.includes("APPOINTMENTS"))
+        fetchAppointments(appointmentPage, true);
+      if (isAll || scopes.includes("DEPARTMENTS")) {
+        fetchDepartments(departmentPage, true);
+        fetchAllDepartments(); // Update hierarchy data
+      }
+      if (isAll || scopes.includes("USERS")) fetchUsers(userPage, true);
+      if (isAll || scopes.includes("LEADS")) {
+        if (isSuperAdminUser || hasModule(Module.LEAD_CAPTURE)) {
+          fetchLeads();
+        }
+      }
+    };
+
+    window.addEventListener("REFRESH_PORTAL_DATA", handleGlobalRefresh);
+    return () =>
+      window.removeEventListener("REFRESH_PORTAL_DATA", handleGlobalRefresh);
+  }, [
+    fetchDashboardData,
+    fetchGrievances,
+    grievancePage,
+    fetchAppointments,
+    appointmentPage,
+    fetchDepartments,
+    departmentPage,
+    fetchAllDepartments,
+    fetchUsers,
+    userPage,
+    fetchLeads,
+    isSuperAdminUser,
+    hasModule,
+  ]);
+
 
   // 3. Polling isolated from initial load triggers
   useEffect(() => {
@@ -2302,12 +2434,7 @@ function DashboardContent() {
     isSuperAdminUser,
   ]);
 
-  useEffect(() => {
-    if (mounted && user && activeTab === "analytics") {
-      fetchPerformanceData();
-      fetchDepartmentData();
-    }
-  }, [mounted, user, activeTab, fetchPerformanceData, fetchDepartmentData]);
+
 
   const handleSort = (key: string, tab: string) => {
     let direction: "asc" | "desc" | null = "asc";
@@ -7598,8 +7725,8 @@ function DashboardContent() {
                             className="text-[11px] h-8 px-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer font-medium max-w-[140px]"
                             title="Filter by grievance status"
                           >
-                            <option value="">📋 All Active Status</option>
-                            <option value="ALL">📑 Total (Inc. Resolved/Rejected)</option>
+                            <option value="">📋 All Status</option>
+                            <option value="ALL">📑 Total(Inc. Resolved/Rejected)</option>
                             <option value="PENDING">🔸 Pending/Assigned</option>
                             <option value="IN_PROGRESS">🛠️ In Progress</option>
                             <option value="RESOLVED">✅ Resolved</option>
@@ -7646,7 +7773,7 @@ function DashboardContent() {
                             className="text-[11px] h-8 px-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer font-medium max-w-[130px]"
                             title="Filter by assignment status"
                           >
-                            <option value="">👥 All Assignments</option>
+                            <option value="">👥All Assignments</option>
                             <option value="assigned">✓ Assigned</option>
                             <option value="unassigned">○ Unassigned</option>
                           </select>
@@ -7664,7 +7791,7 @@ function DashboardContent() {
                             className="text-[11px] h-8 px-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer font-medium max-w-[130px]"
                             title="Filter by overdue status"
                           >
-                            <option value="">⏱️ All Overdue Status</option>
+                            <option value="">⏱️ Overdue Status</option>
                             <option value="overdue">🔴 Overdue</option>
                             <option value="ontrack">🟢 On Track</option>
                           </select>
@@ -7695,6 +7822,7 @@ function DashboardContent() {
                             grievanceFilters.subDeptId ||
                             grievanceFilters.assignmentStatus ||
                             grievanceFilters.overdueStatus ||
+                            grievanceFilters.priority ||
                             grievanceFilters.dateRange) && (
                             <Button
                               variant="ghost"
@@ -7708,6 +7836,7 @@ function DashboardContent() {
                                   assignmentStatus: "",
                                   overdueStatus: "",
                                   dateRange: "",
+                                  priority: "",
                                 })
                               }
                               className="text-[11px] h-8 px-3 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg border border-red-200 font-medium"
@@ -8456,6 +8585,7 @@ function DashboardContent() {
                                   mainDeptId: "",
                                   subDeptId: "",
                                   dateRange: "",
+                                  priority: "",
                                 }));
                               }}
                               className="text-xs h-8 px-3 text-red-600 hover:bg-red-50 rounded-xl border border-red-100"
