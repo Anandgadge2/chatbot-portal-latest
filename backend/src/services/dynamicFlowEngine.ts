@@ -3375,7 +3375,13 @@ export async function processWhatsAppMessage(
   // Only the explicit greeting branch above is allowed to start/restart the flow.
   if (session.step === "start" && !session.data?.flowId) {
     console.log(`ℹ️ Sessionless message from ${from}: "${rawInput.substring(0, 80)}"`);
-    if (rawInput && !isGreeting && !buttonId) {
+    const hasUserInteraction = Boolean(
+      buttonId ||
+      rawInput ||
+      ["image", "video", "audio", "voice", "document", "location", "contacts", "sticker", "interactive", "button"].includes(messageType)
+    );
+
+    if (hasUserInteraction && !isGreeting) {
       await sendWhatsAppMessage(company, from, ui("session_expired", session.language || "en", null));
     }
     return;
