@@ -77,6 +77,23 @@ const getDocumentLabel = (media: { url: string; type?: string }) => {
   return media.type === "document" ? "Document" : "File";
 };
 
+const getLatLongFromCoordinates = (coordinates?: [number, number]) => {
+  if (!coordinates || coordinates.length < 2) return null;
+  const first = Number(coordinates[0]);
+  const second = Number(coordinates[1]);
+  if (!Number.isFinite(first) || !Number.isFinite(second)) return null;
+
+  // Expected storage is [longitude, latitude].
+  if (Math.abs(first) <= 180 && Math.abs(second) <= 90) {
+    return { lat: second, lng: first };
+  }
+  // Fallback for previously swapped data [latitude, longitude].
+  if (Math.abs(first) <= 90 && Math.abs(second) <= 180) {
+    return { lat: first, lng: second };
+  }
+  return null;
+};
+
 interface GrievanceDetailDialogProps {
   isOpen: boolean;
   grievance: Grievance | null;
@@ -101,6 +118,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
   const [activeTab, setActiveTab] = useState("overview");
 
   if (!isOpen || !grievance) return null;
+  const grievanceLatLng = getLatLongFromCoordinates(grievance.location?.coordinates);
 
   const getStatusConfig = (status: string) => {
     switch (status) {
@@ -470,14 +488,14 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                           {grievance.location.address ||
                             "Coordinate-only location provided by device"}
                         </p>
-                        {grievance.location.coordinates && (
+                        {grievanceLatLng && (
                           <div className="flex items-center gap-3">
                             <code className="text-[10px] text-indigo-400 bg-indigo-950/50 px-2 py-0.5 rounded border border-indigo-900/50 font-mono">
-                              {grievance.location.coordinates[1]?.toFixed(6)},{" "}
-                              {grievance.location.coordinates[0]?.toFixed(6)}
+                              {grievanceLatLng.lat.toFixed(6)},{" "}
+                              {grievanceLatLng.lng.toFixed(6)}
                             </code>
                             <a
-                              href={`https://www.google.com/maps?q=${grievance.location.coordinates[1]},${grievance.location.coordinates[0]}`}
+                              href={`https://www.google.com/maps?q=${grievanceLatLng.lat},${grievanceLatLng.lng}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-[10px] font-black text-white bg-slate-800 hover:bg-slate-900 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all shadow-lg ring-1 ring-blue-500/50 active:scale-95"

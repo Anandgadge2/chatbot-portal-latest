@@ -1224,9 +1224,17 @@ export class DynamicFlowEngine {
       this.session.data.longitude = locationData.long;
       if (locationData.address) this.session.data.locationAddress = locationData.address;
       
-      // If we are currently in a generic "location" field step, save that too
+      // If we are currently in a generic location field step, save a human-readable value
+      // without overriding the canonical address field.
       if (step.inputConfig.saveToField) {
-        this.session.data[step.inputConfig.saveToField] = `Lat: ${locationData.lat}, Long: ${locationData.long}`;
+        if (step.inputConfig.saveToField === "locationAddress") {
+          this.session.data[step.inputConfig.saveToField] =
+            locationData.address ||
+            `Lat: ${locationData.lat}, Long: ${locationData.long}`;
+        } else {
+          this.session.data[step.inputConfig.saveToField] =
+            `Lat: ${locationData.lat}, Long: ${locationData.long}`;
+        }
       }
 
       delete this.session.data.awaitingInput;

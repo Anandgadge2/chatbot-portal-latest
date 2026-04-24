@@ -140,6 +140,13 @@ export class ActionService {
 
       const sanitizedMedia = [...mediaFromArray, ...extraMedia];
       const storedDescription = sanitizeGrievanceDetailsForStorage(session.data.description || '');
+      const parsedLatitude = Number(session.data.latitude);
+      const parsedLongitude = Number(session.data.longitude);
+      const hasValidCoordinates =
+        Number.isFinite(parsedLatitude) &&
+        Number.isFinite(parsedLongitude) &&
+        Math.abs(parsedLatitude) <= 90 &&
+        Math.abs(parsedLongitude) <= 180;
       
       const grievanceData = {
         companyId: company._id,
@@ -153,11 +160,11 @@ export class ActionService {
         message: storedDescription,
         category: session.data.category,
         media: sanitizedMedia,
-        location: (session.data.latitude && session.data.longitude || session.data.locationAddress) ? {
+        location: (hasValidCoordinates || session.data.locationAddress) ? {
           type: 'Point',
-          coordinates: (session.data.latitude && session.data.longitude) 
-            ? [Number(session.data.longitude), Number(session.data.latitude)] 
-            : [0, 0], // Placeholder if only address is provided
+          ...(hasValidCoordinates
+            ? { coordinates: [parsedLongitude, parsedLatitude] as [number, number] }
+            : {}),
           address: session.data.locationAddress || ''
         } : undefined,
         status: GrievanceStatus.PENDING,
@@ -170,13 +177,14 @@ export class ActionService {
       
       // 🌲 Forest-Specific Logic: Auto-Lookup Area and Officer
       let forestArea = null;
-      const hasCoords = session.data.latitude && session.data.longitude && 
-                       Number(session.data.latitude) !== 0 && Number(session.data.longitude) !== 0;
+      const hasCoords = hasValidCoordinates &&
+                       parsedLatitude !== 0 &&
+                       parsedLongitude !== 0;
 
       if (hasCoords) {
         forestArea = await ForestService.findAreaByLocation(
-          Number(session.data.longitude),
-          Number(session.data.latitude),
+          parsedLongitude,
+          parsedLatitude,
           company._id
         );
         if (forestArea) {
