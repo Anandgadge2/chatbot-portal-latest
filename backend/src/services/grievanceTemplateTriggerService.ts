@@ -103,7 +103,7 @@ export async function triggerAdminTemplate(options: {
     | 'grievance_assigned_admin_v1'
     | 'grievance_reassigned_admin_v1'
     | 'grievance_reverted_company_v1'
-    | 'reminder_admin_v1';
+    | 'grievance_reminder_admin_v1';
   companyId: any;
   language?: string;
   values?: string[];
@@ -206,8 +206,6 @@ export async function triggerCitizenTemplate(options: {
   });
 }
 
-
-
 export async function triggerCitizenStatusTemplate(options: {
   companyId: any;
   citizenPhone: string;
@@ -245,22 +243,32 @@ export async function triggerCitizenStatusTemplate(options: {
     }
   });
 
-  // ✅ 2. Send Media Sequentially (Compliance: Template first, then media)
+  // ✅ 2. Send Media Templates Sequentially (Template first, then media templates)
   if (options.media && options.media.length > 0) {
     const company = await getCompanyWithConfig(options.companyId);
     const normalizedPhone = normalizePhoneNumber(options.citizenPhone);
-    
-    // Don't block the response, but ensure sequential delivery
-    sendMediaSequentially(company, normalizedPhone, options.media).catch(err => 
-      console.error(`❌ Sequential media delivery failed for citizen ${normalizedPhone}:`, err)
-    );
+    const language = normalizeLanguage(options.language);
+
+    // Use specialized media templates instead of raw media
+    for (const item of options.media) {
+      const templateName = 
+        item.type === 'video' ? 'media_video_v1' :
+        item.type === 'document' ? 'media_document_v1' :
+        'media_image_v1';
+        
+      // Each media template has 1 variable (recipient_name) and a media header
+      await sendWhatsAppTemplate(
+        company, 
+        normalizedPhone, 
+        templateName, 
+        [sanitizeText(options.citizenName, 60)], 
+        language,
+        item.url // headerParam (media link)
+      ).catch(err => console.error(`❌ Media template delivery failed (${templateName}) for citizen ${normalizedPhone}:`, err));
+    }
   }
 }
 
-/**
- * Higher-level helper to decide which admin template to shoot based on assignment status.
- * Used in ActionService after grievance creation.
- */
 export async function triggerGrievanceNotifications(options: {
   companyId: any;
   grievanceId: string;
@@ -393,9 +401,6 @@ export async function triggerGrievanceNotifications(options: {
   }
 }
 
-/**
- * Trigger specific admin notifications for status/assignment changes
- */
 export async function triggerAdminAssignmentNotification(options: {
   event: 'grievance_assigned_admin_v1' | 'grievance_reassigned_admin_v1' | 'grievance_reverted_company_v1';
   companyId: any;

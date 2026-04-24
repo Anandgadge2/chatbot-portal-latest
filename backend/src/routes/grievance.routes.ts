@@ -1246,7 +1246,7 @@ router.post('/:id/reminder', requirePermission(Permission.UPDATE_GRIEVANCE), asy
 
     if (recipientPhones.length > 0) {
       await triggerAdminTemplate({
-        event: 'reminder_admin_v1',
+        event: 'grievance_reminder_admin_v1',
         companyId: grievance.companyId,
         language: grievance.language,
         recipientPhones,
