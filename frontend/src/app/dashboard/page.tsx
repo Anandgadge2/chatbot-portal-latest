@@ -7607,7 +7607,7 @@ function DashboardContent() {
                               </table>
                             </div>
 
-                            <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/30 flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                            <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/30 flex items-center justify-end text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                               {isSuperAdminUser && selectedUsers.size > 0 && (
                                 <Button
                                   variant="destructive"
@@ -7620,14 +7620,6 @@ function DashboardContent() {
                                   Delete ({selectedUsers.size})
                                 </Button>
                               )}
-
-                              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-lg whitespace-nowrap">
-                                Showing{" "}
-                                <span className="text-indigo-600">
-                                  {getSortedData(users, "users").length}
-                                </span>{" "}
-                                Records
-                              </span>
                             </div>
 
                             <Pagination

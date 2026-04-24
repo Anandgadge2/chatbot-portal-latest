@@ -488,9 +488,10 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                       Description
                     </span>
                   </div>
-                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 shadow-inner">
-                    <p className="text-xs sm:text-sm text-slate-600 leading-relaxed whitespace-pre-wrap font-medium">
-                      {grievance.description ||
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 shadow-inner overflow-visible">
+                    <p className="text-xs sm:text-sm text-slate-600 leading-relaxed whitespace-pre-wrap break-words font-medium">
+                      {(grievance as any).grievanceSummary ||
+                        grievance.description ||
                         "The reporter provided no written description for this incident."}
                     </p>
                   </div>
