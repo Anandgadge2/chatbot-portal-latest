@@ -179,6 +179,15 @@ function safeText(text: string, limit = 4000): string {
   return text.length > limit ? text.substring(0, limit - 10) + '…' : text;
 }
 
+function sanitizeButtonReplyId(rawId: string, fallbackIndex: number): string {
+  const normalized = String(rawId || '')
+    .trim()
+    .replace(/\s+/g, '_')
+    .replace(/[^A-Za-z0-9_.:-]/g, '');
+  const candidate = normalized || `btn_${fallbackIndex + 1}`;
+  return candidate.slice(0, 256);
+}
+
 function buildComplianceFooter(): string {
   return [
     'This is an official government assistance chatbot.',
@@ -821,6 +830,21 @@ export async function sendWhatsAppButtons(
 
     const composedMessage = applyComplianceFooter(message, options?.includeComplianceFooter);
     const normalizedTo = normalizePhoneNumber(to);
+    const sanitizedButtons = (buttons || [])
+      .slice(0, WHATSAPP_LIMITS_BUTTONS.MAX_BUTTONS_PER_MESSAGE)
+      .map((btn, index) => ({
+        type: 'reply',
+        reply: {
+          id: sanitizeButtonReplyId(btn?.id || btn?.title || '', index),
+          title: safeText((btn?.title || '').trim(), WHATSAPP_LIMITS_BUTTONS.BUTTON_TITLE_MAX_LENGTH)
+        }
+      }))
+      .filter((btn) => Boolean(btn.reply.title));
+
+    if (sanitizedButtons.length === 0) {
+      return sendWhatsAppMessage(company, to, applyComplianceFooter(message, options?.includeComplianceFooter));
+    }
+
     const payload = {
       messaging_product: 'whatsapp',
       to: normalizedTo,
@@ -828,18 +852,11 @@ export async function sendWhatsAppButtons(
       interactive: {
         type: 'button',
         body: {
-          text: safeText(composedMessage)
+          // Meta interactive button body text supports up to 1024 chars.
+          text: safeText(composedMessage, 1024)
         },
         action: {
-          buttons: buttons
-            .slice(0, WHATSAPP_LIMITS_BUTTONS.MAX_BUTTONS_PER_MESSAGE)
-            .map(btn => ({
-              type: 'reply',
-              reply: {
-                id: btn.id,
-                title: (btn.title || '').slice(0, WHATSAPP_LIMITS_BUTTONS.BUTTON_TITLE_MAX_LENGTH)
-              }
-            }))
+          buttons: sanitizedButtons
         }
       }
     };

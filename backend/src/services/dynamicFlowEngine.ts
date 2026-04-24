@@ -73,6 +73,20 @@ function getLocalText(step: IFlowStep, lang: string): string {
   return step.messageText || "";
 }
 
+function resolveValidationText(
+  value: unknown,
+  lang: string,
+  fallback: string,
+): string {
+  if (typeof value === "string" && value.trim()) return value;
+  if (value && typeof value === "object") {
+    const map = value as Record<string, string>;
+    if (typeof map[lang] === "string" && map[lang].trim()) return map[lang];
+    if (typeof map.en === "string" && map.en.trim()) return map.en;
+  }
+  return fallback;
+}
+
 /**
  * Routing constants — greetings trigger a clean restart of the flow.
  * NOTE: 'menu', 'restart', 'stop', 'back' are NOT here anymore — they are
@@ -1345,19 +1359,29 @@ export class DynamicFlowEngine {
       }
 
       if (validation.minLength && userInput.length < validation.minLength) {
+        const lang = this.session.language || "en";
         await sendWhatsAppMessage(
           this.company,
           this.userPhone,
-          `Input must be at least ${validation.minLength} characters.`,
+          resolveValidationText(
+            (validation as any).minLengthMessage,
+            lang,
+            `Input must be at least ${validation.minLength} characters.`,
+          ),
         );
         return;
       }
 
       if (validation.maxLength && userInput.length > validation.maxLength) {
+        const lang = this.session.language || "en";
         await sendWhatsAppMessage(
           this.company,
           this.userPhone,
-          `Input must not exceed ${validation.maxLength} characters.`,
+          resolveValidationText(
+            (validation as any).maxLengthMessage,
+            lang,
+            `Input must not exceed ${validation.maxLength} characters.`,
+          ),
         );
         return;
       }
@@ -2399,11 +2423,12 @@ export class DynamicFlowEngine {
               await updateSession(this.session);
             }
           } catch (error: any) {
-            console.error(`❌ Error creating grievance:`, error);
             if (error.code === "LIMIT_EXCEEDED") {
+              console.warn(`⚠️ Grievance submission limit reached for ${this.userPhone}: ${error.message}`);
               await sendWhatsAppMessage(this.company, this.userPhone, `⚠️ *Submission Limit Reached*\n\n${error.message}`);
               return;
             }
+            console.error(`❌ Error creating grievance:`, error);
             throw error;
           }
           return;
@@ -2547,11 +2572,12 @@ export class DynamicFlowEngine {
             { sendCitizenConfirmation: false }
           );
         } catch (error: any) {
-          console.error(`❌ Error creating grievance (mapped):`, error);
           if (error.code === "LIMIT_EXCEEDED") {
+            console.warn(`⚠️ Grievance submission limit reached for ${this.userPhone}: ${error.message}`);
             await sendWhatsAppMessage(this.company, this.userPhone, `⚠️ *Submission Limit Reached*\n\n${error.message}`);
             return;
           }
+          console.error(`❌ Error creating grievance (mapped):`, error);
           throw error;
         }
       } else if (bmIsAptConfirm && bmIsAptSuccess && bmIsSubmit) {
@@ -2644,11 +2670,12 @@ export class DynamicFlowEngine {
             { sendCitizenConfirmation: false }
           );
         } catch (error: any) {
-          console.error(`❌ Error creating grievance (default path):`, error);
           if (error.code === "LIMIT_EXCEEDED") {
+            console.warn(`⚠️ Grievance submission limit reached for ${this.userPhone}: ${error.message}`);
             await sendWhatsAppMessage(this.company, this.userPhone, `⚠️ *Submission Limit Reached*\n\n${error.message}`);
             return;
           }
+          console.error(`❌ Error creating grievance (default path):`, error);
           throw error;
         }
       } else {
