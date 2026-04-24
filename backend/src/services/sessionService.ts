@@ -14,10 +14,10 @@ export interface UserSession {
   hasConsent?: boolean | null;
 }
 
-const SESSION_TTL = 60 * 60; // 60 minutes in seconds
+const SESSION_TTL = 24 * 60 * 60; // 24 hours in seconds
 const LOCK_TTL = 10; // Reduced from 30s to 10s for faster recovery
 const LOCK_RETRIES = 5; // Allow more retries
-const FALLBACK_TTL = 30 * 60 * 1000; // 30 minutes in milliseconds for in-memory fallback
+const FALLBACK_TTL = 24 * 60 * 60 * 1000; // 24 hours in milliseconds for in-memory fallback
 
 // In-memory fallback if Redis is not available
 const memorySessions: Map<string, { session: UserSession; expiresAt: number }> = new Map();
