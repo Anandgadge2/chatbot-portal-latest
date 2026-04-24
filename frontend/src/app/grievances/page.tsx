@@ -383,7 +383,7 @@ export default function GrievancesPage() {
               }
               className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              <option value="all">All SLA Status</option>
+              <option value="all">SLA Status</option>
               <option value="overdue">🔴 Overdue</option>
               <option value="ontrack">🟢 On Track</option>
             </select>
@@ -434,7 +434,7 @@ export default function GrievancesPage() {
                       Citizen Information
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide">
-                      Department & Category
+                      Department & Sub-Department
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide">
                       Issue Description
