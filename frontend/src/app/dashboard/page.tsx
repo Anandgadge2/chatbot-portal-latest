@@ -84,6 +84,7 @@ import { DashboardDepartmentFilters } from "@/components/dashboard/DashboardDepa
 import { formatTo10Digits, normalizePhoneNumber } from "@/lib/utils/phoneUtils";
 import { useGrievances } from "@/lib/query/useGrievances";
 import { useDashboardStats } from "@/lib/query/useDashboardStats";
+import { useDashboardKpis } from "@/lib/query/useDashboardKpis";
 import { useDepartments } from "@/lib/query/useDepartments";
 import { useUsers } from "@/lib/query/useUsers";
 
@@ -911,6 +912,15 @@ function DashboardContent() {
             : (activeTab === "analytics" ? analyticsFilters : overviewFilters)?.subDeptId || (activeTab === "analytics" ? analyticsFilters : overviewFilters)?.mainDeptId || "",
     enabled: mounted && (activeTab === "overview" || activeTab === "analytics"),
   });
+  const { data: cachedDashboardKpis, isLoading: isLoadingKpisFromHook } = useDashboardKpis({
+    companyId: targetCompanyId,
+    departmentId: isSubDepartmentAdminRole || isOperatorRole
+      ? assignedDepartmentIds[0] || ""
+      : (activeTab === "analytics" ? analyticsFilters : overviewFilters)?.subDeptId ||
+        (activeTab === "analytics" ? analyticsFilters : overviewFilters)?.mainDeptId ||
+        "",
+    enabled: mounted && (activeTab === "overview" || activeTab === "analytics"),
+  });
 
   const { data: cachedDepartmentData, isLoading: isLoadingDeptsFromHook, refetch: refetchDepartmentsHook } = useDepartments({
     page: departmentPage,
@@ -953,6 +963,10 @@ function DashboardContent() {
   }, [cachedDashboardStats]);
 
   useEffect(() => {
+    setLoadingStats(isLoadingStatsFromHook && !cachedDashboardStats);
+  }, [isLoadingStatsFromHook, cachedDashboardStats]);
+
+  useEffect(() => {
     if (cachedDepartmentData) {
       setDepartments(cachedDepartmentData.departments);
       setDepartmentPagination(prev => ({
@@ -973,6 +987,17 @@ function DashboardContent() {
       }));
     }
   }, [cachedUserData]);
+
+  const kpiSource = cachedDashboardKpis?.grievances ? cachedDashboardKpis : stats;
+  const pendingKpiCount = kpiSource?.grievances?.pending || 0;
+  const revertedKpiCount = kpiSource?.grievances?.reverted || 0;
+  const resolvedKpiCount = kpiSource?.grievances?.resolved || 0;
+  const rejectedKpiCount = kpiSource?.grievances?.rejected || 0;
+  const overdueKpiCount =
+    kpiSource?.grievances?.slaBreached ?? kpiSource?.grievances?.pendingOverdue ?? overdueGrievancesCount;
+  const totalGrievancesKpiCount =
+    kpiSource?.grievances?.registeredTotal ?? kpiSource?.grievances?.total ?? totalRegisteredGrievances;
+  const loadingKpiTiles = isLoadingKpisFromHook && !kpiSource;
 
 
 
@@ -3665,7 +3690,7 @@ function DashboardContent() {
                       </CardHeader>
                       <CardContent className="px-3 py-2.5">
                         <div className="text-xl sm:text-2xl font-black text-blue-600 tabular-nums">
-                          {loadingStats ? <LoadingDots /> : (stats?.grievances.pending || 0)}
+                          {loadingKpiTiles ? <LoadingDots /> : pendingKpiCount}
                         </div>
                         <p className="mt-1 text-[8px] font-bold uppercase text-slate-400">Waiting</p>
                       </CardContent>
@@ -3695,7 +3720,7 @@ function DashboardContent() {
                       </CardHeader>
                       <CardContent className="px-3 py-2.5">
                         <div className="text-xl sm:text-2xl font-black text-amber-600 tabular-nums">
-                          {loadingStats ? <LoadingDots /> : overdueGrievancesCount}
+                          {loadingKpiTiles ? <LoadingDots /> : overdueKpiCount}
                         </div>
                         <p className="mt-1 text-[8px] font-bold uppercase text-slate-400">Delayed</p>
                       </CardContent>
@@ -3721,7 +3746,7 @@ function DashboardContent() {
                       </CardHeader>
                       <CardContent className="px-3 py-2.5">
                         <div className="text-xl sm:text-2xl font-black text-sky-600 tabular-nums">
-                          {loadingStats ? <LoadingDots /> : (stats?.grievances.reverted || 0)}
+                          {loadingKpiTiles ? <LoadingDots /> : revertedKpiCount}
                         </div>
                         <p className="mt-1 text-[8px] font-bold uppercase text-slate-400">Reassigned</p>
                       </CardContent>
@@ -3745,7 +3770,7 @@ function DashboardContent() {
                       </CardHeader>
                       <CardContent className="px-3 py-2.5">
                         <div className="text-xl sm:text-2xl font-black text-emerald-600 tabular-nums">
-                          {loadingStats ? <LoadingDots /> : (stats?.grievances.resolved || 0)}
+                          {loadingKpiTiles ? <LoadingDots /> : resolvedKpiCount}
                         </div>
                         <p className="mt-1 text-[8px] font-bold uppercase text-slate-400">Completed</p>
                       </CardContent>
@@ -3769,7 +3794,7 @@ function DashboardContent() {
                       </CardHeader>
                       <CardContent className="px-3 py-2.5">
                         <div className="text-xl sm:text-2xl font-black text-rose-600 tabular-nums">
-                          {loadingStats ? <LoadingDots /> : (stats?.grievances.rejected || 0)}
+                          {loadingKpiTiles ? <LoadingDots /> : rejectedKpiCount}
                         </div>
                         <p className="mt-1 text-[8px] font-bold uppercase text-slate-400">Declined</p>
                       </CardContent>
@@ -3793,7 +3818,7 @@ function DashboardContent() {
                       </CardHeader>
                       <CardContent className="px-3 py-2.5">
                         <div className="text-xl sm:text-2xl font-black text-slate-800 tabular-nums">
-                          {loadingStats ? <LoadingDots /> : (stats?.grievances.registeredTotal || 0)}
+                          {loadingKpiTiles ? <LoadingDots /> : totalGrievancesKpiCount}
                         </div>
                         <div className="mt-1 flex items-center gap-1">
                           <span className="text-[8px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-full">
@@ -4260,7 +4285,7 @@ function DashboardContent() {
                         </CardHeader>
                         <CardContent className="px-3 py-2.5">
                           <div className="text-xl sm:text-2xl font-black text-blue-600 tabular-nums">
-                            {loadingStats ? <LoadingDots /> : (stats?.grievances.pending || 0)}
+                            {loadingKpiTiles ? <LoadingDots /> : pendingKpiCount}
                           </div>
                           <p className="mt-1 text-[8px] font-bold uppercase text-slate-400">Waiting</p>
                         </CardContent>
@@ -4285,7 +4310,7 @@ function DashboardContent() {
                         </CardHeader>
                         <CardContent className="px-3 py-2.5">
                           <div className="text-xl sm:text-2xl font-black text-amber-600 tabular-nums">
-                            {loadingStats ? <LoadingDots /> : overdueGrievancesCount}
+                            {loadingKpiTiles ? <LoadingDots /> : overdueKpiCount}
                           </div>
                           <p className="mt-1 text-[8px] font-bold uppercase text-slate-400">Delayed</p>
                         </CardContent>
@@ -4306,7 +4331,7 @@ function DashboardContent() {
                         </CardHeader>
                         <CardContent className="px-3 py-2.5">
                           <div className="text-xl sm:text-2xl font-black text-sky-600 tabular-nums">
-                            {loadingStats ? <LoadingDots /> : (stats?.grievances.reverted || 0)}
+                            {loadingKpiTiles ? <LoadingDots /> : revertedKpiCount}
                           </div>
                           <p className="mt-1 text-[8px] font-bold uppercase text-slate-400">Reassigned</p>
                         </CardContent>
@@ -4327,7 +4352,7 @@ function DashboardContent() {
                         </CardHeader>
                         <CardContent className="px-3 py-2.5">
                           <div className="text-xl sm:text-2xl font-black text-emerald-600 tabular-nums">
-                            {loadingStats ? <LoadingDots /> : (stats?.grievances.resolved || 0)}
+                            {loadingKpiTiles ? <LoadingDots /> : resolvedKpiCount}
                           </div>
                           <p className="mt-1 text-[8px] font-bold uppercase text-slate-400">Completed</p>
                         </CardContent>
@@ -4348,7 +4373,7 @@ function DashboardContent() {
                         </CardHeader>
                         <CardContent className="px-3 py-2.5">
                           <div className="text-xl sm:text-2xl font-black text-rose-600 tabular-nums">
-                            {loadingStats ? <LoadingDots /> : (stats?.grievances.rejected || 0)}
+                            {loadingKpiTiles ? <LoadingDots /> : rejectedKpiCount}
                           </div>
                           <p className="mt-1 text-[8px] font-bold uppercase text-slate-400">Declined</p>
                         </CardContent>
@@ -4369,7 +4394,7 @@ function DashboardContent() {
                         </CardHeader>
                         <CardContent className="px-3 py-2.5">
                           <div className="text-xl sm:text-2xl font-black text-slate-800 tabular-nums">
-                            {loadingStats ? <LoadingDots /> : totalRegisteredGrievances}
+                            {loadingKpiTiles ? <LoadingDots /> : totalGrievancesKpiCount}
                           </div>
                           <div className="mt-1 flex items-center gap-1">
                             <span className="text-[8px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-full">

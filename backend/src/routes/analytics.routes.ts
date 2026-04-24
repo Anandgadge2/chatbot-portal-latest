@@ -15,6 +15,7 @@ router.use(authenticate);
 // @desc    Get dashboard statistics
 // @access  Private
 router.get('/dashboard', requirePermission(Permission.VIEW_ANALYTICS), analyticsController.dashboard);
+router.get('/dashboard/kpis', requirePermission(Permission.VIEW_ANALYTICS), analyticsController.dashboardKpis);
 router.get('/grievances/by-department', requirePermission(Permission.VIEW_ANALYTICS), analyticsController.grievancesByDepartment);
 router.get('/grievances/by-status', requirePermission(Permission.VIEW_ANALYTICS), analyticsController.grievancesByStatus);
 router.get('/grievances/trends', requirePermission(Permission.VIEW_ANALYTICS), analyticsController.grievancesTrends);

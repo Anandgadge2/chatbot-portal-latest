@@ -14,8 +14,11 @@ type DashboardCacheEntry = {
 };
 
 const DASHBOARD_CACHE_TTL_MS = 30 * 1000; // 30s hot cache for landing-page KPIs
+const DASHBOARD_KPI_CACHE_TTL_MS = 15 * 1000;
 const dashboardResponseCache = new Map<string, DashboardCacheEntry>();
 const dashboardInFlight = new Map<string, Promise<any>>();
+const dashboardKpiResponseCache = new Map<string, DashboardCacheEntry>();
+const dashboardKpiInFlight = new Map<string, Promise<any>>();
 
 const buildDashboardCacheKey = (req: Request, companyId?: any, departmentId?: any) => {
   const user = req.user as any;
@@ -563,6 +566,112 @@ export const dashboard = async (req: Request, res: Response) => {
     const { companyId, departmentId } = req.query;
     const cacheKey = buildDashboardCacheKey(req, companyId, departmentId);
     dashboardInFlight.delete(cacheKey);
+  }
+};
+
+export const dashboardKpis = async (req: Request, res: Response) => {
+  try {
+    const { companyId, departmentId } = req.query;
+    const cacheKey = buildDashboardCacheKey(req, companyId, departmentId);
+
+    const cachedEntry = dashboardKpiResponseCache.get(cacheKey);
+    if (cachedEntry && cachedEntry.expiresAt > Date.now()) {
+      return res.json({
+        success: true,
+        data: cachedEntry.payload,
+        meta: { cache: 'HIT', ttlMs: DASHBOARD_KPI_CACHE_TTL_MS }
+      });
+    }
+
+    const existingInFlight = dashboardKpiInFlight.get(cacheKey);
+    if (existingInFlight) {
+      const payload = await existingInFlight;
+      return res.json({
+        success: true,
+        data: payload,
+        meta: { cache: 'HIT_INFLIGHT', ttlMs: DASHBOARD_KPI_CACHE_TTL_MS }
+      });
+    }
+
+    const payloadPromise = (async () => {
+      const baseQuery = await getAnalyticsBaseQuery(req, companyId, departmentId);
+      const pendingSlaCutoff = new Date(Date.now() - SLA_CONFIG[GrievanceStatus.PENDING] * 60 * 60 * 1000);
+      const assignedSlaCutoff = new Date(Date.now() - SLA_CONFIG[GrievanceStatus.ASSIGNED] * 60 * 60 * 1000);
+
+      const [counts] = await Grievance.aggregate([
+        { $match: baseQuery },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: 1 },
+            open: { $sum: { $cond: [{ $in: ['$status', [GrievanceStatus.PENDING, GrievanceStatus.ASSIGNED, GrievanceStatus.IN_PROGRESS, GrievanceStatus.REVERTED]] }, 1, 0] } },
+            pending: { $sum: { $cond: [{ $in: ['$status', [GrievanceStatus.PENDING, GrievanceStatus.ASSIGNED]] }, 1, 0] } },
+            reverted: { $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.REVERTED] }, 1, 0] } },
+            resolved: { $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.RESOLVED] }, 1, 0] } },
+            rejected: { $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.REJECTED] }, 1, 0] } },
+            pendingOverdue: {
+              $sum: {
+                $cond: [
+                  { $and: [{ $eq: ['$status', GrievanceStatus.PENDING] }, { $lt: ['$createdAt', pendingSlaCutoff] }] },
+                  1,
+                  0
+                ]
+              }
+            },
+            assignedOverdue: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      { $in: ['$status', [GrievanceStatus.ASSIGNED, GrievanceStatus.IN_PROGRESS]] },
+                      {
+                        $or: [
+                          { $and: [{ $ne: [{ $type: '$assignedAt' }, 'missing'] }, { $lt: ['$assignedAt', assignedSlaCutoff] }] },
+                          { $and: [{ $eq: [{ $type: '$assignedAt' }, 'missing'] }, { $lt: ['$createdAt', assignedSlaCutoff] }] }
+                        ]
+                      }
+                    ]
+                  },
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      ]);
+
+      const g = counts || {};
+      const payload = {
+        grievances: {
+          total: g.open || 0,
+          registeredTotal: g.total || 0,
+          pending: g.pending || 0,
+          reverted: g.reverted || 0,
+          resolved: g.resolved || 0,
+          rejected: g.rejected || 0,
+          pendingOverdue: g.pendingOverdue || 0,
+          slaBreached: (g.pendingOverdue || 0) + (g.assignedOverdue || 0),
+        }
+      };
+
+      dashboardKpiResponseCache.set(cacheKey, {
+        payload,
+        expiresAt: Date.now() + DASHBOARD_KPI_CACHE_TTL_MS,
+      });
+      return payload;
+    })();
+
+    dashboardKpiInFlight.set(cacheKey, payloadPromise);
+    const payload = await payloadPromise;
+
+    res.json({ success: true, data: payload, meta: { cache: 'MISS', ttlMs: DASHBOARD_KPI_CACHE_TTL_MS } });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to fetch dashboard KPI statistics', error: error.message });
+  } finally {
+    const { companyId, departmentId } = req.query;
+    const cacheKey = buildDashboardCacheKey(req, companyId, departmentId);
+    dashboardKpiInFlight.delete(cacheKey);
   }
 };
 
