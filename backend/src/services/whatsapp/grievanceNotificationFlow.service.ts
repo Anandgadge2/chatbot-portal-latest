@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { sendMediaSequentially } from '../whatsappService';
+import { sendMediaSequentially, sendWhatsAppTemplate } from '../whatsappService';
 
 export type WhatsAppMediaType = 'image' | 'video' | 'document';
 
@@ -86,27 +86,21 @@ export async function sendTemplateMessage(options: {
   } = options;
 
   try {
-    const { phoneNumberId, accessToken } = getCompanyCredentials(company);
-
-    await postWhatsAppMessage(
-      getMessagesEndpoint(phoneNumberId),
-      buildHeaders(accessToken),
-      {
-        messaging_product: 'whatsapp',
-        to: recipientPhone,
-        type: 'template',
-        template: {
-          name: templateName,
-          language: { code: languageCode },
-          components: [
-            {
-              type: 'body',
-              parameters: bodyParameters
-            }
-          ]
-        }
-      }
+    const rawParameters = bodyParameters.map((parameter) => asText(parameter?.text));
+    const result = await sendWhatsAppTemplate(
+      company as any,
+      recipientPhone,
+      templateName,
+      rawParameters,
+      languageCode,
+      undefined,
+      undefined,
+      { recipientType: 'ADMIN' }
     );
+
+    if (!result?.success) {
+      throw new Error(result?.error || 'Failed to send WhatsApp template');
+    }
   } catch (error: any) {
     console.error(
       `❌ Failed to send template ${templateName} for grievance ${grievanceId || 'N/A'}:`,
