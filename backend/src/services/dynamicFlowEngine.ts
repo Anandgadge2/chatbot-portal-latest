@@ -2399,11 +2399,12 @@ export class DynamicFlowEngine {
               await updateSession(this.session);
             }
           } catch (error: any) {
-            console.error(`❌ Error creating grievance:`, error);
             if (error.code === "LIMIT_EXCEEDED") {
+              console.warn(`⚠️ Grievance submission limit reached for ${this.userPhone}: ${error.message}`);
               await sendWhatsAppMessage(this.company, this.userPhone, `⚠️ *Submission Limit Reached*\n\n${error.message}`);
               return;
             }
+            console.error(`❌ Error creating grievance:`, error);
             throw error;
           }
           return;
@@ -2547,11 +2548,12 @@ export class DynamicFlowEngine {
             { sendCitizenConfirmation: false }
           );
         } catch (error: any) {
-          console.error(`❌ Error creating grievance (mapped):`, error);
           if (error.code === "LIMIT_EXCEEDED") {
+            console.warn(`⚠️ Grievance submission limit reached for ${this.userPhone}: ${error.message}`);
             await sendWhatsAppMessage(this.company, this.userPhone, `⚠️ *Submission Limit Reached*\n\n${error.message}`);
             return;
           }
+          console.error(`❌ Error creating grievance (mapped):`, error);
           throw error;
         }
       } else if (bmIsAptConfirm && bmIsAptSuccess && bmIsSubmit) {
@@ -2644,11 +2646,12 @@ export class DynamicFlowEngine {
             { sendCitizenConfirmation: false }
           );
         } catch (error: any) {
-          console.error(`❌ Error creating grievance (default path):`, error);
           if (error.code === "LIMIT_EXCEEDED") {
+            console.warn(`⚠️ Grievance submission limit reached for ${this.userPhone}: ${error.message}`);
             await sendWhatsAppMessage(this.company, this.userPhone, `⚠️ *Submission Limit Reached*\n\n${error.message}`);
             return;
           }
+          console.error(`❌ Error creating grievance (default path):`, error);
           throw error;
         }
       } else {

@@ -1478,8 +1478,8 @@ export async function notifyCitizenOnGrievanceStatusChange(data: {
     }
 
     if (!message) {
-      logger.error(`❌ Still no message found for grievance status update even with defaults.`);
-      return;
+      logger.warn(`⚠️ No WhatsApp text body found for grievance status update. Proceeding with media template fallback only.`);
+      message = `Your grievance ${fullData.grievanceId || data.grievanceId} status is now ${fullData.newStatus || data.newStatus}.`;
     }
 
     const templateParams = [
@@ -1500,7 +1500,7 @@ export async function notifyCitizenOnGrievanceStatusChange(data: {
       {
         language: getNotificationLanguage({ ...fullData, language: data.language }),
         contextLabel: 'grievance_status_update_citizen',
-        disableTextFallback: true
+        disableTextFallback: false
       }
     );
 
@@ -1818,5 +1818,4 @@ export async function notifyCitizenOnAppointmentStatusChange(data: {
     logger.error('❌ notifyCitizenOnAppointmentStatusChange failed:', error);
   }
 }
-
 
