@@ -761,6 +761,41 @@ async function hasCitizenNotificationConsent(companyId: any, rawPhone: string | 
   return Boolean(profile?.notification_consent ?? profile?.notificationConsent);
 }
 
+/**
+ * Sends multiple media URLs using specialized media templates (image, video, document)
+ */
+async function sendMediaTemplatesToCitizen(
+  company: any,
+  to: string | undefined,
+  citizenName: string,
+  urls: string[],
+  language: string
+) {
+  if (!to || !urls || urls.length === 0) return;
+  const normalizedTo = normalizePhoneNumber(to);
+  
+  for (const url of urls) {
+    try {
+      const ext = url.split('.').pop()?.toLowerCase() || '';
+      const isImage = ['jpg', 'jpeg', 'png', 'webp'].includes(ext);
+      const isVideo = ['mp4', 'mov', 'avi'].includes(ext);
+      
+      const templateName = isVideo ? 'media_video_v1' : isImage ? 'media_image_v1' : 'media_document_v1';
+      
+      await sendWhatsAppTemplate(
+        company,
+        normalizedTo,
+        templateName,
+        [citizenName.substring(0, 60)],
+        language,
+        url // headerParam
+      );
+    } catch (err) {
+      logger.error(`❌ Error sending media template (${url}):`, err);
+    }
+  }
+}
+
 async function safeSendWhatsApp(
   company: any,
   rawPhone: string | undefined,
@@ -1315,7 +1350,15 @@ export async function notifyCitizenOnResolution(
     } else {
       await safeSendWhatsApp(company, data.citizenWhatsApp || data.citizenPhone, message);
     }
-    if (data.type !== 'grievance' && data.evidenceUrls && data.evidenceUrls.length > 0) {
+    if (data.type === 'grievance' && data.evidenceUrls && data.evidenceUrls.length > 0) {
+      await sendMediaTemplatesToCitizen(
+        company,
+        data.citizenWhatsApp || data.citizenPhone,
+        fullData.citizenName || 'Citizen',
+        data.evidenceUrls,
+        getNotificationLanguage({ ...fullData, language: data.language })
+      );
+    } else if (data.type !== 'grievance' && data.evidenceUrls && data.evidenceUrls.length > 0) {
       await sendMediaIfAvailable(company, data.citizenWhatsApp || data.citizenPhone, data.evidenceUrls, 'Resolution Support Documents');
     }
 
@@ -1480,6 +1523,17 @@ export async function notifyCitizenOnGrievanceStatusChange(data: {
       } catch (err) {
         logger.error(`❌ Error sending status email to citizen:`, err);
       }
+    }
+
+    // ✅ WhatsApp Media (Template-based)
+    if (data.evidenceUrls && data.evidenceUrls.length > 0) {
+      await sendMediaTemplatesToCitizen(
+        company,
+        data.citizenWhatsApp || data.citizenPhone,
+        fullData.citizenName || 'Citizen',
+        data.evidenceUrls,
+        getNotificationLanguage({ ...fullData, language: data.language })
+      );
     }
   } catch (error) {
     logger.error('❌ notifyCitizenOnGrievanceStatusChange failed:', error);

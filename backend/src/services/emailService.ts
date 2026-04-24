@@ -32,7 +32,17 @@ Details:
 
 Please review and take necessary action.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Digital Grievance Redressal System`
+Digital Grievance Redressal System`,
+  grievance_status_update: `*{localizedCompanyBrand}*
+Your grievance {grievanceId} status has been updated to {newStatus}.`,
+  grievance_status_assigned: `*{localizedCompanyBrand}*
+Your grievance {grievanceId} has been assigned for resolution.`,
+  grievance_status_in_progress: `*{localizedCompanyBrand}*
+Work on your grievance {grievanceId} is now in progress.`,
+  grievance_status_resolved: `*{localizedCompanyBrand}*
+Your grievance {grievanceId} has been resolved.`,
+  grievance_status_rejected: `*{localizedCompanyBrand}*
+Your grievance {grievanceId} has been rejected. Details: {remarks}`
 };
 
 /**
