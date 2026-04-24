@@ -55,6 +55,7 @@ export interface ChatbotMessage {
     long: number;
     address?: string;
   };
+  messageTimestamp?: number;
 }
 
 /**
@@ -78,6 +79,14 @@ function getLocalText(step: IFlowStep, lang: string): string {
  * handled dynamically by handleFlowCommand() reading from the flow JSON,
  * so different companies can configure different keywords.
  */
+const STALE_MESSAGE_THRESHOLD_SECONDS = 10 * 60; // 10 minutes
+
+function isStaleInboundMessage(messageTimestamp?: number): boolean {
+  if (!messageTimestamp || !Number.isFinite(messageTimestamp)) return false;
+  const nowInSeconds = Math.floor(Date.now() / 1000);
+  return nowInSeconds - messageTimestamp > STALE_MESSAGE_THRESHOLD_SECONDS;
+}
+
 const GREETINGS = new Set([
   'hi', 'hii', 'hello', 'start', 'namaste', 'नमस्ते',
   'ନମସ୍କାର', 'helo', 'hey', 'begin', 'restart', 'restrt', 'menu', 'main menu'
@@ -3281,6 +3290,7 @@ export async function processWhatsAppMessage(
   const mediaUrl = message.mediaUrl;
   const companyId = message.companyId;
   const buttonId = message.buttonId?.trim();
+  const incomingMessageTimestamp = message.messageTimestamp;
   const userInput = (message.messageText || "").trim().toLowerCase();
   const rawInput = (message.messageText || "").trim();
   const locationData = message.locationData;
@@ -3325,7 +3335,18 @@ export async function processWhatsAppMessage(
   // (if session is active, handleFlowCommand inside continueFlow handles them dynamically)
   const isGreeting = isGreetingTrigger(userInput);
   const isNoSessionCommand = !session.data?.flowId && (userInput === 'menu' || userInput === 'restart' || userInput === 'start again');
+  const isStaleMessage = isStaleInboundMessage(incomingMessageTimestamp);
+
+  if (isStaleMessage && !session.data?.flowId) {
+    console.log(`⏭️ Ignoring stale inbound message from ${from} (timestamp=${incomingMessageTimestamp}) to avoid delayed auto-restart`);
+    return;
+  }
+
   if (!buttonId && (isGreeting || isNoSessionCommand)) {
+    if (isStaleMessage) {
+      console.log(`⏭️ Ignoring stale greeting from ${from} to prevent unintended flow restart`);
+      return;
+    }
     await handleGreeting(from, companyId, 'hi', company, message);
     return;
   }
@@ -3353,7 +3374,16 @@ export async function processWhatsAppMessage(
   // ── 5. Do not auto-start a fresh flow implicitly ─────────────────────────
   // Only the explicit greeting branch above is allowed to start/restart the flow.
   if (session.step === "start" && !session.data?.flowId) {
-    console.log(`ℹ️ Ignoring sessionless message from ${from}: "${rawInput.substring(0, 80)}"`);
+    console.log(`ℹ️ Sessionless message from ${from}: "${rawInput.substring(0, 80)}"`);
+    const hasUserInteraction = Boolean(
+      buttonId ||
+      rawInput ||
+      ["image", "video", "audio", "voice", "document", "location", "contacts", "sticker", "interactive", "button"].includes(messageType)
+    );
+
+    if (hasUserInteraction && !isGreeting) {
+      await sendWhatsAppMessage(company, from, ui("session_expired", session.language || "en", null));
+    }
     return;
   }
 

@@ -10,6 +10,7 @@ import { logger } from '../config/logger';
 import { sendWhatsAppMessage, sendWhatsAppTemplate } from '../services/whatsappService';
 import { verifyWebhookSignature as verifyWebhookSignatureDigest } from '../utils/verifyWebhookSignature';
 import { authenticate } from '../middleware/auth';
+import ProcessedWhatsAppMessage from '../models/ProcessedWhatsAppMessage';
 
 const router = express.Router();
 type WebhookRequest = Request & { rawBody?: Buffer };
@@ -358,7 +359,8 @@ async function handleIncomingMessage(message: any, metadata: any, resolvedCompan
       messageId,
       mediaUrl,
       metadata,
-      buttonId
+      buttonId,
+      messageTimestamp: Number(message.timestamp)
     });
 
     return response;
@@ -538,7 +540,8 @@ async function handleInteractiveMessage(message: any, metadata: any, resolvedCom
       messageType: 'interactive',
       messageId,
       metadata,
-      buttonId
+      buttonId,
+      messageTimestamp: Number(message.timestamp)
     });
 
     return response;
@@ -599,36 +602,57 @@ function shouldProcessInboundMessage(message: any): boolean {
  * Prevents duplicate processing of the same WhatsApp message
  */
 const MESSAGE_TTL = 48 * 60 * 60; // 48 hours in seconds
+const MESSAGE_TTL_MS = MESSAGE_TTL * 1000;
 
 async function isMessageProcessed(messageId: string): Promise<boolean> {
   const redis = getRedisClient();
-  if (!redis || !isRedisConnected()) {
-    // If Redis unavailable, we can't check idempotency
-    // In production, you might want to use MongoDB as fallback
-    return false;
+  if (redis && isRedisConnected()) {
+    try {
+      const key = `processed_message:${messageId}`;
+      const exists = await redis.exists(key);
+      if (exists === 1) return true;
+    } catch (error) {
+      console.error('❌ Error checking Redis message idempotency:', error);
+    }
   }
 
   try {
-    const key = `processed_message:${messageId}`;
-    const exists = await redis.exists(key);
-    return exists === 1;
+    const existing = await ProcessedWhatsAppMessage.findOne({ messageId }).select('_id').lean();
+    return Boolean(existing);
   } catch (error) {
-    console.error('❌ Error checking message idempotency:', error);
+    console.error('❌ Error checking Mongo message idempotency:', error);
     return false; // Allow processing if check fails
   }
 }
 
 async function markMessageAsProcessed(messageId: string): Promise<void> {
   const redis = getRedisClient();
-  if (!redis || !isRedisConnected()) {
-    return;
+  if (redis && isRedisConnected()) {
+    try {
+      const key = `processed_message:${messageId}`;
+      await redis.setex(key, MESSAGE_TTL, '1');
+    } catch (error) {
+      console.error('❌ Error marking Redis message idempotency:', error);
+    }
   }
 
   try {
-    const key = `processed_message:${messageId}`;
-    await redis.setex(key, MESSAGE_TTL, '1');
-  } catch (error) {
-    console.error('❌ Error marking message as processed:', error);
+    const expireAt = new Date(Date.now() + MESSAGE_TTL_MS);
+    await ProcessedWhatsAppMessage.updateOne(
+      { messageId },
+      {
+        $setOnInsert: {
+          messageId,
+          processedAt: new Date(),
+          expireAt
+        }
+      },
+      { upsert: true }
+    );
+  } catch (error: any) {
+    if (error?.code !== 11000) {
+      console.error('❌ Error marking Mongo message idempotency:', error);
+    }
   }
 }
 
