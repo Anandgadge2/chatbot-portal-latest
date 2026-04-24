@@ -230,6 +230,8 @@ async function handleFlowCommand(
         session.data.currentStepId = undefined;
         session.data.awaitingInput = undefined;
         session.data.awaitingMedia = undefined;
+        delete session.data.stepHistory;
+        delete session.data.isNavigatingBack;
         session.data.buttonMapping = {};
         session.data.listMapping = {};
         session.data.fallbackAttempts = 0;
@@ -240,19 +242,30 @@ async function handleFlowCommand(
 
       case 'BACK':
         const currentId = session.data.currentStepId;
-        const prevId = session.data.previousStepId;
-        
-        // If we have a previous step that isn't the current one, go there.
-        // Otherwise, if we're stuck, go to the start of the flow.
-        const targetId = (prevId && prevId !== currentId) ? prevId : flow.startStepId;
-        
-        console.log(`🔙 Back command: current=${currentId}, prev=${prevId} -> Target=${targetId}`);
+        const history = Array.isArray(session.data.stepHistory)
+          ? [...session.data.stepHistory]
+          : [];
+
+        let targetId = flow.startStepId;
+        while (history.length > 0) {
+          const candidate = history.pop();
+          if (candidate && candidate !== currentId) {
+            targetId = candidate;
+            break;
+          }
+        }
+
+        console.log(
+          `🔙 Back command: current=${currentId}, target=${targetId}, remainingHistory=${history.length}`,
+        );
         
         session.data.awaitingInput = undefined;
         session.data.awaitingMedia = undefined;
         session.data.buttonMapping = {};
         session.data.listMapping = {};
         session.data.fallbackAttempts = 0;
+        session.data.stepHistory = history;
+        session.data.isNavigatingBack = true;
         
         // Important: clear currentStepId so executeStep doesn't think it's a repeat
         session.data.currentStepId = undefined;
@@ -468,14 +481,28 @@ export class DynamicFlowEngine {
       return;
     }
 
-    // SESSION TRACKING: Update previousStepId before changing currentStepId
-    // Only track steps that require user interaction so "back" returns to a useful state
+    // SESSION TRACKING: keep interactive step history for multi-level "back" command
     const oldStepId = this.session.data.currentStepId;
     const oldStep = oldStepId ? this.flow.steps.find(s => s.stepId === oldStepId) : null;
     const isOldStepInteractive = oldStep && ["buttons", "list", "input", "media"].includes(oldStep.stepType);
+    const isNavigatingBack = this.session.data.isNavigatingBack === true;
+    const existingHistory = Array.isArray(this.session.data.stepHistory)
+      ? this.session.data.stepHistory
+      : [];
 
-    if (oldStepId && oldStepId !== stepId && isOldStepInteractive) {
-      this.session.data.previousStepId = oldStepId;
+    if (oldStepId && oldStepId !== stepId && isOldStepInteractive && !isNavigatingBack) {
+      const trimmedHistory = existingHistory.slice(-24);
+      const lastHistoryStep = trimmedHistory[trimmedHistory.length - 1];
+      if (lastHistoryStep !== oldStepId) {
+        trimmedHistory.push(oldStepId);
+      }
+      this.session.data.stepHistory = trimmedHistory;
+    } else if (!Array.isArray(this.session.data.stepHistory)) {
+      this.session.data.stepHistory = existingHistory;
+    }
+
+    if (isNavigatingBack) {
+      delete this.session.data.isNavigatingBack;
     }
 
     // FIX: Force stepType for misconfigured nodes (e.g. start nodes saved as message by old builder versions)
