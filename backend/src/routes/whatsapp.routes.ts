@@ -359,7 +359,8 @@ async function handleIncomingMessage(message: any, metadata: any, resolvedCompan
       messageId,
       mediaUrl,
       metadata,
-      buttonId
+      buttonId,
+      messageTimestamp: Number(message.timestamp)
     });
 
     return response;
@@ -539,7 +540,8 @@ async function handleInteractiveMessage(message: any, metadata: any, resolvedCom
       messageType: 'interactive',
       messageId,
       metadata,
-      buttonId
+      buttonId,
+      messageTimestamp: Number(message.timestamp)
     });
 
     return response;
