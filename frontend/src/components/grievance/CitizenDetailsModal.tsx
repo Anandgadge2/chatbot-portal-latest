@@ -71,10 +71,16 @@ export default function CitizenDetailsModal({
     const loc = grievance?.location;
     if (!loc) return null;
     
+    // Check if coordinates exist and are not [0, 0]
     if (Array.isArray(loc.coordinates) && loc.coordinates.length >= 2) {
-      return { lat: loc.coordinates[1], lng: loc.coordinates[0] };
+      const lat = loc.coordinates[1];
+      const lng = loc.coordinates[0];
+      if (lat !== 0 || lng !== 0) {
+        return { lat, lng };
+      }
     }
     
+    // Fallback to parsing from address string if coordinates are missing or [0, 0]
     if (typeof loc.address === "string") {
       const latMatch = loc.address.match(/Lat:\s*([0-9.-]+)/i);
       const lngMatch = loc.address.match(/Long:\s*([0-9.-]+)/i);

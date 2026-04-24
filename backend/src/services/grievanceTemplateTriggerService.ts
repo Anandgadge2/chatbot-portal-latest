@@ -237,7 +237,7 @@ export async function triggerCitizenStatusTemplate(options: {
       citizen_name: sanitizeText(options.citizenName, 60),
       grievance_id: sanitizeText(options.grievanceId, 30),
       department_name: sanitizeText(options.departmentName, 60),
-      office_name: sanitizeText(options.subDepartmentName || 'N/A', 60),
+      sub_department_name: sanitizeText(options.subDepartmentName || 'N/A', 60),
       status: sanitizeText(options.status, 30),
       remarks: sanitizeNote(extraMessage)
     }
@@ -245,27 +245,12 @@ export async function triggerCitizenStatusTemplate(options: {
 
   // ✅ 2. Send Media Templates Sequentially (Template first, then media templates)
   if (options.media && options.media.length > 0) {
-    const company = await getCompanyWithConfig(options.companyId);
-    const normalizedPhone = normalizePhoneNumber(options.citizenPhone);
-    const language = normalizeLanguage(options.language);
-
-    // Use specialized media templates instead of raw media
-    for (const item of options.media) {
-      const templateName = 
-        item.type === 'video' ? 'media_video_v1' :
-        item.type === 'document' ? 'media_document_v1' :
-        'media_image_v1';
-        
-      // Each media template has 1 variable (recipient_name) and a media header
-      await sendWhatsAppTemplate(
-        company, 
-        normalizedPhone, 
-        templateName, 
-        [sanitizeText(options.citizenName, 60)], 
-        language,
-        item.url // headerParam (media link)
-      ).catch(err => console.error(`❌ Media template delivery failed (${templateName}) for citizen ${normalizedPhone}:`, err));
-    }
+    await sendMediaSequentially(
+      await getCompanyWithConfig(options.companyId),
+      options.citizenPhone,
+      options.media,
+      options.citizenName
+    );
   }
 }
 
@@ -439,8 +424,11 @@ export async function triggerAdminAssignmentNotification(options: {
 
   await Promise.allSettled(
     options.recipientPhones.map(async (to) => {
+      const normalizedTo = normalizePhoneNumber(to);
+      const recipientName = (normalizedTo && nameByPhone.get(normalizedTo)) || 'Administrator';
+
       await sendWhatsAppTemplate(company, to, options.event, {
-        admin_name: 'Administrator',
+        admin_name: sanitizeText(recipientName, 60),
         grievance_id: sanitizeText(options.grievanceId, 30),
         citizen_name: sanitizeText(options.citizenName, 60),
         department_name: sanitizeText(options.category, 60),
@@ -461,8 +449,9 @@ export async function triggerAdminAssignmentNotification(options: {
         recipientType: 'ADMIN'
       });
 
-      if (options.media?.length) {
-        await sendMediaSequentially(company, to, options.media);
+      // ✅ Send Media Templates (Image/Video/Document) instead of raw media
+      if (options.media && options.media.length > 0) {
+        await sendMediaSequentially(company, to, options.media, recipientName);
       }
     })
   );

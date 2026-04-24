@@ -16,6 +16,7 @@ import { resolveTemplateAudience, resolveTemplateRecord, TemplateAudience } from
 import { validateTemplate } from './whatsapp/validator.service';
 import { isWithin24Hours, parseWhatsAppApiError, sendTemplateRequest } from './whatsapp/whatsapp.service';
 import { syncTemplatesForCompany } from './whatsappTemplateSyncService';
+import { sanitizeText } from '../utils/sanitize';
 
 /**
  * WhatsApp Business API limits are enforced here and in flow builder.
@@ -1136,7 +1137,8 @@ export async function sendWhatsAppMedia(
 export async function sendMediaSequentially(
   company: any,
   to: string,
-  media: Array<{ url: string; type: 'image' | 'video' | 'document'; caption?: string; filename?: string }>
+  media: Array<{ url: string; type: 'image' | 'video' | 'document'; caption?: string; filename?: string }>,
+  recipientName: string = 'Citizen'
 ): Promise<void> {
   if (!media || !media.length) return;
 
@@ -1176,21 +1178,30 @@ export async function sendMediaSequentially(
       messaging_product: 'whatsapp',
       to: normalizedTo,
       type: 'template',
-      template: {
-        name: templateName,
-        language: { code: resolvedTemplate.resolvedLanguage },
-        components: [
-          {
-            type: 'header',
-            parameters: [
-              {
-                type: item.type,
-                [item.type]: { link: item.url }
-              }
-            ]
-          }
-        ]
-      }
+        template: {
+          name: templateName,
+          language: { code: resolvedTemplate.resolvedLanguage },
+          components: [
+            {
+              type: 'header',
+              parameters: [
+                {
+                  type: item.type,
+                  [item.type]: { link: item.url }
+                }
+              ]
+            },
+            {
+              type: 'body',
+              parameters: [
+                {
+                  type: 'text',
+                  text: sanitizeText(recipientName, 60)
+                }
+              ]
+            }
+          ]
+        }
     };
 
     await sendTemplateRequest({

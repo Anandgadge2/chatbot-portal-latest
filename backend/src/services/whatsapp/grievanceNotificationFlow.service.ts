@@ -195,6 +195,7 @@ export async function sendDocumentMessage(
  */
 export async function sendTemplateAndAttachments(options: {
   recipientPhone: string;
+  recipientName?: string;
   templateName: string;
   languageCode?: string;
   bodyParameters: TemplateBodyParameter[];
@@ -231,14 +232,15 @@ export async function sendTemplateAndAttachments(options: {
   if (validAttachments.length === 0) return;
 
   await sendMediaSequentially(
-    company,
+    company as any,
     recipientPhone,
     validAttachments.map((file) => ({
       url: file.url,
       type: file.type || 'document',
       caption: file.caption,
       filename: file.filename
-    }))
+    })),
+    options.recipientName || 'Administrator'
   );
 }
 
@@ -260,6 +262,7 @@ export async function sendGrievanceToAdmin(
 
   await sendTemplateAndAttachments({
     recipientPhone: adminPhone,
+    recipientName: asText(grievance?.adminName) || 'Administrator',
     templateName: 'grievance_received_admin_v1',
     bodyParameters: templateBodyParameters,
     attachments,
