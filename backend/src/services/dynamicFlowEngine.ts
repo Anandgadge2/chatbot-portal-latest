@@ -73,6 +73,20 @@ function getLocalText(step: IFlowStep, lang: string): string {
   return step.messageText || "";
 }
 
+function resolveValidationText(
+  value: unknown,
+  lang: string,
+  fallback: string,
+): string {
+  if (typeof value === "string" && value.trim()) return value;
+  if (value && typeof value === "object") {
+    const map = value as Record<string, string>;
+    if (typeof map[lang] === "string" && map[lang].trim()) return map[lang];
+    if (typeof map.en === "string" && map.en.trim()) return map.en;
+  }
+  return fallback;
+}
+
 /**
  * Routing constants — greetings trigger a clean restart of the flow.
  * NOTE: 'menu', 'restart', 'stop', 'back' are NOT here anymore — they are
@@ -1345,19 +1359,29 @@ export class DynamicFlowEngine {
       }
 
       if (validation.minLength && userInput.length < validation.minLength) {
+        const lang = this.session.language || "en";
         await sendWhatsAppMessage(
           this.company,
           this.userPhone,
-          `Input must be at least ${validation.minLength} characters.`,
+          resolveValidationText(
+            (validation as any).minLengthMessage,
+            lang,
+            `Input must be at least ${validation.minLength} characters.`,
+          ),
         );
         return;
       }
 
       if (validation.maxLength && userInput.length > validation.maxLength) {
+        const lang = this.session.language || "en";
         await sendWhatsAppMessage(
           this.company,
           this.userPhone,
-          `Input must not exceed ${validation.maxLength} characters.`,
+          resolveValidationText(
+            (validation as any).maxLengthMessage,
+            lang,
+            `Input must not exceed ${validation.maxLength} characters.`,
+          ),
         );
         return;
       }

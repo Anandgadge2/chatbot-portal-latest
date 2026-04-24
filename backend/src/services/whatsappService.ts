@@ -852,7 +852,8 @@ export async function sendWhatsAppButtons(
       interactive: {
         type: 'button',
         body: {
-          text: safeText(composedMessage)
+          // Meta interactive button body text supports up to 1024 chars.
+          text: safeText(composedMessage, 1024)
         },
         action: {
           buttons: sanitizedButtons
