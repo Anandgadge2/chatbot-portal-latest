@@ -2223,6 +2223,71 @@ export class DynamicFlowEngine {
       .toLowerCase()
       .replace(/\s+/g, "_");
 
+    // Capture dynamic department selections from button clicks as well.
+    // Some flows encode department choices as quick-reply buttons (grv_dept_<id>)
+    // instead of interactive list rows; without this, createGrievance can fail
+    // due to a missing session.data.departmentId at submit time.
+    const deptMatch = String(buttonId || "").match(/^([a-z]+)_dept_(.+)$/);
+    if (deptMatch && !String(buttonId || "").includes("_sub_dept_")) {
+      const deptId = deptMatch[2];
+      if (mongoose.Types.ObjectId.isValid(deptId)) {
+        const dept = await Department.findById(deptId)
+          .select("name nameHi nameOr nameMr")
+          .lean();
+        if (dept) {
+          const lang = this.session.language || "en";
+          const localizedName =
+            lang === "hi" && (dept as any).nameHi
+              ? (dept as any).nameHi
+              : lang === "or" && (dept as any).nameOr
+                ? (dept as any).nameOr
+                : lang === "mr" && (dept as any).nameMr
+                  ? (dept as any).nameMr
+                  : (dept as any).name;
+          this.session.data.departmentId = deptId;
+          this.session.data.lastParentDeptId = deptId;
+          this.session.data.departmentName = localizedName;
+          this.session.data.category =
+            (dept as any).name || this.session.data.category;
+          delete this.session.data.subDepartmentId;
+          delete this.session.data.subDepartmentName;
+          await updateSession(this.session);
+          console.log(
+            `✅ Department saved from button click: ${localizedName} (${deptId})`,
+          );
+        }
+      }
+    }
+
+    const subDeptMatch = String(buttonId || "").match(/^([a-z]+)_sub_dept_(.+)$/);
+    if (subDeptMatch) {
+      const subDeptId = subDeptMatch[2];
+      if (mongoose.Types.ObjectId.isValid(subDeptId)) {
+        const subDept = await Department.findById(subDeptId)
+          .select("name nameHi nameOr nameMr")
+          .lean();
+        if (subDept) {
+          const lang = this.session.language || "en";
+          const localizedSubName =
+            lang === "hi" && (subDept as any).nameHi
+              ? (subDept as any).nameHi
+              : lang === "or" && (subDept as any).nameOr
+                ? (subDept as any).nameOr
+                : lang === "mr" && (subDept as any).nameMr
+                  ? (subDept as any).nameMr
+                  : (subDept as any).name;
+          this.session.data.subDepartmentId = subDeptId;
+          this.session.data.subDepartmentName = localizedSubName;
+          this.session.data.category =
+            (subDept as any).name || this.session.data.category;
+          await updateSession(this.session);
+          console.log(
+            `✅ Sub-department saved from button click: ${localizedSubName} (${subDeptId})`,
+          );
+        }
+      }
+    }
+
     // ✅ FIRST: Check expectedResponses for button_click type
     if (
       currentStep.expectedResponses &&

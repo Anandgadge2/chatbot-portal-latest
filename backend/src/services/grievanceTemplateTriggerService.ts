@@ -280,6 +280,31 @@ export async function triggerGrievanceNotifications(options: {
   }));
   const notifications: Promise<void>[] = [];
 
+  // Citizen submission acknowledgement template + media templates
+  // (previously only admin templates were sent from this path).
+  notifications.push(
+    (async () => {
+      await triggerCitizenTemplate({
+        template: 'grievance_submitted_citizen_v1',
+        companyId: options.companyId,
+        citizenPhone: options.citizenPhone,
+        language: options.language,
+        data: {
+          citizen_name: sanitizeText(options.citizenName, 60),
+          grievance_id: sanitizeText(options.grievanceId, 30),
+          department_name: sanitizeText(options.category, 60),
+          sub_department_name: sanitizeText(options.subDepartmentName || 'N/A', 60),
+          grievance_details: safeDescription,
+          submitted_on: formattedDate
+        }
+      });
+
+      if (attachments.length > 0) {
+        await sendMediaSequentially(company, options.citizenPhone, attachments, options.citizenName);
+      }
+    })()
+  );
+
   if (isAssigned) {
     // 1. Send 'received' template to specifically assigned admins
       const assignedRecipients = Array.from(
