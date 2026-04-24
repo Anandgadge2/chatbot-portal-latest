@@ -38,6 +38,27 @@ interface CreateActionOptions {
  * appointments, and leads. Keeps DynamicFlowEngine lean.
  */
 export class ActionService {
+  private static resolveGrievanceDescription(sessionData: Record<string, any>): string {
+    const descriptionCandidates = [
+      sessionData?.description,
+      sessionData?.grievance_description,
+      sessionData?.grievanceDetails,
+      sessionData?.issueDescription,
+      sessionData?.details,
+      sessionData?.message,
+      sessionData?.complaint,
+      sessionData?.['ବର୍ଣ୍ଣନା'],
+    ];
+
+    for (const candidate of descriptionCandidates) {
+      if (typeof candidate !== 'string') continue;
+      const trimmed = candidate.trim();
+      if (trimmed) return trimmed;
+    }
+
+    return '';
+  }
+
   private static toObjectId(value: any): mongoose.Types.ObjectId | undefined {
     if (!value) return undefined;
     if (value instanceof mongoose.Types.ObjectId) return value;
@@ -139,7 +160,22 @@ export class ActionService {
       }
 
       const sanitizedMedia = [...mediaFromArray, ...extraMedia];
-      const storedDescription = sanitizeGrievanceDetailsForStorage(session.data.description || '');
+      const resolvedDescription = ActionService.resolveGrievanceDescription(session.data);
+      const hasExplicitDescription = resolvedDescription.length > 0;
+      const fallbackDescription = `Citizen reported a grievance via WhatsApp (${new Date().toISOString()})`;
+      const finalDescription = hasExplicitDescription ? resolvedDescription : fallbackDescription;
+      const storedDescription = sanitizeGrievanceDetailsForStorage(finalDescription);
+
+      if (!hasExplicitDescription) {
+        logger.warn(
+          `⚠️ Missing grievance description in session. Applied fallback text to avoid validation failure. Phone: ${userPhone}, Flow: ${session?.data?.flowId || 'unknown'}`
+        );
+      }
+
+      // Keep canonical key for downstream placeholders/templates.
+      if (!session.data.description || !String(session.data.description).trim()) {
+        session.data.description = finalDescription;
+      }
       const parsedLatitude = Number(session.data.latitude);
       const parsedLongitude = Number(session.data.longitude);
       const hasValidCoordinates =

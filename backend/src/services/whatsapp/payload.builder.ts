@@ -1,4 +1,5 @@
 import { sanitizeText } from '../../utils/sanitize';
+import { prepareSummaryText, truncateText } from '../../utils/truncateText';
 import { TemplateAudience } from './template.service';
 
 type TemplateInputData = Record<string, string | number | null | undefined>;
@@ -7,6 +8,7 @@ type ParameterSpec = {
   key: string;
   aliases: string[];
   maxLength?: number;
+  mode?: 'summary';
 };
 
 type TemplateDefinition = {
@@ -30,7 +32,7 @@ const TEMPLATE_DEFINITIONS: Record<string, TemplateDefinition> = {
       { key: 'citizen_name', aliases: ['citizen_name', 'citizenName'], maxLength: 60 },
       { key: 'department_name', aliases: ['department_name', 'departmentName', 'category'], maxLength: 60 },
       { key: 'office_name', aliases: ['office_name', 'officeName', 'sub_department_name', 'subDepartmentName'], maxLength: 60 },
-      { key: 'description', aliases: ['description', 'grievance_details', 'grievanceDetails'], maxLength: 300 },
+      { key: 'description', aliases: ['description', 'grievance_details', 'grievanceDetails'], maxLength: 400, mode: 'summary' },
       { key: 'received_on', aliases: ['received_on', 'receivedOn', 'submitted_on', 'submittedOn', 'formattedDate', 'formatted_date', 'date'], maxLength: 60 }
     ]
   },
@@ -42,7 +44,7 @@ const TEMPLATE_DEFINITIONS: Record<string, TemplateDefinition> = {
       { key: 'citizen_name', aliases: ['citizen_name', 'citizenName'], maxLength: 60 },
       { key: 'department_name', aliases: ['department_name', 'departmentName', 'category'], maxLength: 60 },
       { key: 'office_name', aliases: ['office_name', 'officeName', 'sub_department_name', 'subDepartmentName'], maxLength: 60 },
-      { key: 'description', aliases: ['description', 'grievance_details', 'grievanceDetails'], maxLength: 300 },
+      { key: 'description', aliases: ['description', 'grievance_details', 'grievanceDetails'], maxLength: 400, mode: 'summary' },
       { key: 'submitted_on', aliases: ['submitted_on', 'submittedOn', 'submittedDate', 'received_on', 'receivedOn', 'formattedDate', 'formatted_date', 'date'], maxLength: 60 }
     ]
   },
@@ -54,7 +56,7 @@ const TEMPLATE_DEFINITIONS: Record<string, TemplateDefinition> = {
       { key: 'citizen_name', aliases: ['citizen_name', 'citizenName'], maxLength: 60 },
       { key: 'department_name', aliases: ['department_name', 'departmentName', 'category'], maxLength: 60 },
       { key: 'office_name', aliases: ['office_name', 'officeName', 'sub_department_name', 'subDepartmentName'], maxLength: 60 },
-      { key: 'description', aliases: ['description', 'grievance_details', 'grievanceDetails'], maxLength: 300 },
+      { key: 'description', aliases: ['description', 'grievance_details', 'grievanceDetails'], maxLength: 400, mode: 'summary' },
       { key: 'assigned_by', aliases: ['assigned_by', 'assignedBy', 'assignedByName', 'reassigned_by', 'reassignedBy', 'reassignedByName'], maxLength: 60 },
       { key: 'assigned_on', aliases: ['assigned_on', 'assignedOn', 'assignedDate', 'formattedDate', 'formatted_date', 'date'], maxLength: 60 },
       { key: 'remarks', aliases: ['remarks', 'note', 'assignment_note', 'assignmentNote', 'reassignment_note', 'reassignmentNote', 'revert_note'], maxLength: 100 }
@@ -68,7 +70,7 @@ const TEMPLATE_DEFINITIONS: Record<string, TemplateDefinition> = {
       { key: 'citizen_name', aliases: ['citizen_name', 'citizenName'], maxLength: 60 },
       { key: 'department_name', aliases: ['department_name', 'departmentName', 'category'], maxLength: 60 },
       { key: 'office_name', aliases: ['office_name', 'officeName', 'sub_department_name', 'subDepartmentName'], maxLength: 60 },
-      { key: 'description', aliases: ['description', 'grievance_details', 'grievanceDetails'], maxLength: 300 },
+      { key: 'description', aliases: ['description', 'grievance_details', 'grievanceDetails'], maxLength: 400, mode: 'summary' },
       { key: 'submitted_on', aliases: ['submitted_on', 'submittedOn', 'submittedDate', 'formattedDate', 'formatted_date', 'date'], maxLength: 60 },
       { key: 'reassigned_by', aliases: ['reassigned_by', 'reassignedBy', 'reassignedByName', 'assigned_by', 'assignedBy', 'assignedByName'], maxLength: 60 },
       { key: 'remarks', aliases: ['remarks', 'note', 'assignment_note', 'reassignment_note', 'reassignmentNote', 'revert_note'], maxLength: 100 },
@@ -110,12 +112,23 @@ const TEMPLATE_DEFINITIONS: Record<string, TemplateDefinition> = {
   }
 };
 
+const BODY_TOTAL_LIMIT = 1024;
+
 function resolveValue(data: TemplateInputData, spec: ParameterSpec): { value: string; alias: string } {
   for (const alias of spec.aliases) {
     const current = data[alias];
     if (current === undefined || current === null) continue;
 
-    const normalized = sanitizeText(String(current), spec.maxLength || 100);
+    const sanitized = sanitizeText(String(current), 2000).trim();
+    if (!sanitized) continue;
+
+    let normalized = sanitized;
+    if (spec.mode === 'summary') {
+      normalized = prepareSummaryText(sanitized, Math.min(spec.maxLength || 400, 400));
+    } else {
+      normalized = truncateText(sanitized, spec.maxLength || 100);
+    }
+
     if (normalized.trim()) {
       return { value: normalized, alias };
     }
@@ -124,6 +137,46 @@ function resolveValue(data: TemplateInputData, spec: ParameterSpec): { value: st
   const error: any = new Error(`Missing required template parameter: ${spec.key}`);
   error.code = 'TEMPLATE_INVALID';
   throw error;
+}
+
+function enforceBodyCharacterLimit(
+  entries: Array<{ spec: ParameterSpec; value: string }>
+): Array<{ spec: ParameterSpec; value: string }> {
+  let totalLength = entries.reduce((sum, entry) => sum + entry.value.length, 0);
+  if (totalLength <= BODY_TOTAL_LIMIT) return entries;
+
+  let overflow = totalLength - BODY_TOTAL_LIMIT;
+
+  const shrink = (index: number, minLength: number) => {
+    if (overflow <= 0) return;
+    const currentValue = entries[index].value;
+    if (currentValue.length <= minLength) return;
+
+    const reducible = currentValue.length - minLength;
+    const reduceBy = Math.min(reducible, overflow);
+    const targetLength = currentValue.length - reduceBy;
+    entries[index].value = truncateText(currentValue, targetLength);
+    overflow -= reduceBy;
+  };
+
+  entries.forEach((entry, index) => {
+    if (entry.spec.mode === 'summary') {
+      shrink(index, 80);
+    }
+  });
+
+  entries.forEach((_entry, index) => {
+    shrink(index, 20);
+  });
+
+  totalLength = entries.reduce((sum, entry) => sum + entry.value.length, 0);
+  if (totalLength > BODY_TOTAL_LIMIT) {
+    const finalOverflow = totalLength - BODY_TOTAL_LIMIT;
+    const lastIndex = entries.length - 1;
+    entries[lastIndex].value = truncateText(entries[lastIndex].value, Math.max(1, entries[lastIndex].value.length - finalOverflow));
+  }
+
+  return entries;
 }
 
 export function buildTemplatePayload(templateName: string, data: TemplateInputData): BuiltTemplatePayload {
@@ -135,11 +188,13 @@ export function buildTemplatePayload(templateName: string, data: TemplateInputDa
   }
 
   const consumedKeys = new Set<string>();
-  const bodyParameters = definition.body.map((spec) => {
+  const bodyEntries = definition.body.map((spec) => {
     const { value, alias } = resolveValue(data, spec);
     consumedKeys.add(alias);
-    return { type: 'text', text: value };
+    return { spec, value };
   });
+  const limitedBodyEntries = enforceBodyCharacterLimit(bodyEntries);
+  const bodyParameters = limitedBodyEntries.map((entry) => ({ type: 'text', text: entry.value }));
 
   const components: any[] = [];
   const headerValue = data.header_text ?? data.headerText;
