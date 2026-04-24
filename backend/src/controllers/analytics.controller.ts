@@ -8,6 +8,41 @@ import { getDepartmentHierarchyIds } from '../utils/departmentUtils';
 
 import { Permission, UserRole, GrievanceStatus, AppointmentStatus, Module, SLA_CONFIG } from '../config/constants';
 
+type DashboardCacheEntry = {
+  expiresAt: number;
+  payload: any;
+};
+
+const DASHBOARD_CACHE_TTL_MS = 30 * 1000; // 30s hot cache for landing-page KPIs
+const dashboardResponseCache = new Map<string, DashboardCacheEntry>();
+const dashboardInFlight = new Map<string, Promise<any>>();
+
+const buildDashboardCacheKey = (req: Request, companyId?: any, departmentId?: any) => {
+  const user = req.user as any;
+  const userId = user?._id?.toString?.() || 'anonymous';
+  const companyScope = companyId?.toString?.() || user?.companyId?.toString?.() || 'self';
+  const departmentScope = departmentId?.toString?.() || 'all';
+  const roleScope = user?.isSuperAdmin ? 'superadmin' : (resolveUserHierarchyLevel(user) || 0).toString();
+  return `${userId}::${roleScope}::${companyScope}::${departmentScope}`;
+};
+
+const getCachedDashboardPayload = (key: string) => {
+  const cached = dashboardResponseCache.get(key);
+  if (!cached) return null;
+  if (cached.expiresAt <= Date.now()) {
+    dashboardResponseCache.delete(key);
+    return null;
+  }
+  return cached.payload;
+};
+
+const setCachedDashboardPayload = (key: string, payload: any) => {
+  dashboardResponseCache.set(key, {
+    payload,
+    expiresAt: Date.now() + DASHBOARD_CACHE_TTL_MS,
+  });
+};
+
 const resolveUserHierarchyLevel = (user: any): number => {
   if (user?.isSuperAdmin) return 0;
   if (typeof user?.level === 'number') return user.level;
@@ -111,6 +146,28 @@ export const dashboard = async (req: Request, res: Response) => {
     const currentUser = req.user!;
     const currentUserLevel = resolveUserHierarchyLevel(currentUser);
     const { companyId, departmentId } = req.query;
+    const cacheKey = buildDashboardCacheKey(req, companyId, departmentId);
+
+    const cachedPayload = getCachedDashboardPayload(cacheKey);
+    if (cachedPayload) {
+      return res.json({
+        success: true,
+        data: cachedPayload,
+        meta: { cache: 'HIT', ttlMs: DASHBOARD_CACHE_TTL_MS }
+      });
+    }
+
+    const existingInFlight = dashboardInFlight.get(cacheKey);
+    if (existingInFlight) {
+      const payload = await existingInFlight;
+      return res.json({
+        success: true,
+        data: payload,
+        meta: { cache: 'HIT_INFLIGHT', ttlMs: DASHBOARD_CACHE_TTL_MS }
+      });
+    }
+
+    const payloadPromise = (async () => {
 
     const baseQuery = await getAnalyticsBaseQuery(req, companyId, departmentId);
 
@@ -415,9 +472,7 @@ export const dashboard = async (req: Request, res: Response) => {
     // 🔒 SECURITY: Restrict appointments to Company Admin+
     const canSeeAppointments = currentUser.isSuperAdmin || currentUserLevel === 1;
 
-    res.json({
-      success: true,
-      data: {
+    const payload = {
         grievances: {
           total: openGrievances,
           registeredTotal: totalGrievances,
@@ -489,10 +544,25 @@ export const dashboard = async (req: Request, res: Response) => {
           if (existing) { existing.count += current.count; } else { acc.push({ name, count: current.count }); }
           return acc;
         }, []).sort((a: any, b: any) => b.count - a.count)
-      }
+      };
+    setCachedDashboardPayload(cacheKey, payload);
+    return payload;
+    })();
+
+    dashboardInFlight.set(cacheKey, payloadPromise);
+    const payload = await payloadPromise;
+
+    res.json({
+      success: true,
+      data: payload,
+      meta: { cache: 'MISS', ttlMs: DASHBOARD_CACHE_TTL_MS }
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'Failed to fetch dashboard statistics', error: error.message });
+  } finally {
+    const { companyId, departmentId } = req.query;
+    const cacheKey = buildDashboardCacheKey(req, companyId, departmentId);
+    dashboardInFlight.delete(cacheKey);
   }
 };
 
