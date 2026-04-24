@@ -15,6 +15,7 @@ import { buildTemplatePayload } from './whatsapp/payload.builder';
 import { resolveTemplateAudience, resolveTemplateRecord, TemplateAudience } from './whatsapp/template.service';
 import { validateTemplate } from './whatsapp/validator.service';
 import { isWithin24Hours, parseWhatsAppApiError, sendTemplateRequest } from './whatsapp/whatsapp.service';
+import { syncTemplatesForCompany } from './whatsappTemplateSyncService';
 
 /**
  * WhatsApp Business API limits are enforced here and in flow builder.
@@ -150,11 +151,15 @@ async function enforceRateLimit(company: any, to: string): Promise<void> {
 
 async function logOutgoingMessage(company: any, to: string, message: string, type: string, templateName?: string) {
   try {
+    const rawCompanyId = company?._id || company?.companyId || company?.whatsappConfig?.companyId;
+    const normalizedCompanyId = rawCompanyId && typeof rawCompanyId === 'object' && rawCompanyId._id
+      ? String(rawCompanyId._id)
+      : (rawCompanyId ? String(rawCompanyId) : undefined);
     await createAuditLog({
       action: AuditAction.WHATSAPP_MSG,
       resource: 'OUTGOING',
       resourceId: to,
-      companyId: company._id?.toString(),
+      companyId: normalizedCompanyId,
       details: {
         to,
         message: message.substring(0, 1000), // Cap length
@@ -302,12 +307,15 @@ async function enforceMessagingPolicy(
 
 function logMetaError(error: any, context: Record<string, any>) {
   const metaError = error?.response?.data?.error;
+  const hasMetaPayload = Boolean(metaError);
 
-  console.error('❌ WhatsApp API Error', {
+  console.error(hasMetaPayload ? '❌ WhatsApp API Error' : '❌ WhatsApp Error', {
     ...context,
     metaCode: metaError?.code,
     metaMessage: metaError?.message,
-    fbtraceId: metaError?.fbtrace_id
+    fbtraceId: metaError?.fbtrace_id,
+    message: hasMetaPayload ? undefined : error?.message,
+    code: hasMetaPayload ? undefined : error?.code
   });
 }
 
@@ -641,12 +649,32 @@ export async function sendWhatsAppTemplate(
       });
     }
 
-    const resolvedTemplate = await resolveTemplateRecord({
-      companyId,
-      templateName,
-      requestedLanguage: normalizeLanguage(language),
-      companyDefaultLanguage: company?.whatsappConfig?.chatbotSettings?.defaultLanguage
-    });
+    const normalizedLanguage = normalizeLanguage(language);
+    let resolvedTemplate: any;
+    try {
+      resolvedTemplate = await resolveTemplateRecord({
+        companyId,
+        templateName,
+        requestedLanguage: normalizedLanguage,
+        companyDefaultLanguage: company?.whatsappConfig?.chatbotSettings?.defaultLanguage
+      });
+    } catch (resolveErr: any) {
+      if (resolveErr?.code === 'TEMPLATE_INVALID') {
+        try {
+          await syncTemplatesForCompany(companyId);
+          resolvedTemplate = await resolveTemplateRecord({
+            companyId,
+            templateName,
+            requestedLanguage: normalizedLanguage,
+            companyDefaultLanguage: company?.whatsappConfig?.chatbotSettings?.defaultLanguage
+          });
+        } catch {
+          throw resolveErr;
+        }
+      } else {
+        throw resolveErr;
+      }
+    }
 
     let components: any[] = [];
     const expectedVariableCount = Number(resolvedTemplate.template?.body?.variables || 0);
@@ -1066,9 +1094,20 @@ export async function sendWhatsAppMedia(
       company: company?.name
     });
 
-    // Fallback? Media cannot easily fallback to text without the file itself being visible.
-    // However, we can send a text message with the link as a fallback.
-    return sendWhatsAppMessage(company, to, `${caption ? caption + '\n\n' : ''}🔗 Attachment: ${mediaUrl}`);
+    // Fallback to text only if free-form is actually allowed for this recipient.
+    try {
+      const compliance = await getSessionComplianceContext(company, to);
+      if (compliance.within24hWindow) {
+        return sendWhatsAppMessage(company, to, `${caption ? caption + '\n\n' : ''}🔗 Attachment: ${mediaUrl}`);
+      }
+    } catch {
+      // swallow fallback policy-check errors and return original failure below
+    }
+
+    return {
+      success: false,
+      error: error?.response?.data?.error?.message || error?.message || 'Media message failed'
+    };
   }
 }
 /**
@@ -1166,15 +1205,18 @@ export async function sendMediaSequentially(
       try {
         await sendMediaTemplate({ ...item, type: detectedType }, templateName);
       } catch (templateErr: any) {
+        const compliance = await getSessionComplianceContext(company, to);
+        if (!compliance.within24hWindow) {
+          console.warn(
+            `⚠️ Media template send failed for ${item.url}. ` +
+            `Skipping free-form fallback outside 24-hour window.`,
+            templateErr?.message || templateErr
+          );
+          continue;
+        }
+
         console.warn(`⚠️ Media template send failed for ${item.url}. Falling back to direct media.`, templateErr?.message || templateErr);
-        await sendWhatsAppMedia(
-          company,
-          to,
-          item.url,
-          detectedType,
-          item.caption,
-          item.filename
-        );
+        await sendWhatsAppMedia(company, to, item.url, detectedType, item.caption, item.filename);
       }
     } catch (err: any) {
       console.error(`❌ Sequential media send failed for ${item.url}:`, err.message);
