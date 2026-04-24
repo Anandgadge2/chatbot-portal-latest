@@ -70,12 +70,12 @@ export async function resolveTemplateRecord(options: {
   const templates = await WhatsAppTemplate.find({
     companyId: options.companyId,
     name: options.templateName,
-    status: 'APPROVED',
+    status: { $in: ['APPROVED', 'PENDING'] },
     isActive: true
   }).lean();
 
   if (!templates.length) {
-    const error: any = new Error(`Template ${options.templateName} is not approved/active for this company.`);
+    const error: any = new Error(`Template ${options.templateName} is not approved/active (or status is not yet synced) for this company.`);
     error.code = 'TEMPLATE_INVALID';
     throw error;
   }

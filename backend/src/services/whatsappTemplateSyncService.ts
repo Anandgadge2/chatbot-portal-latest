@@ -75,19 +75,31 @@ export async function syncTemplatesForCompany(companyId: mongoose.Types.ObjectId
     const headers = {
       Authorization: `Bearer ${config.accessToken}`
     };
-    const approvedTemplates: any[] = [];
+    const validTemplates: any[] = [];
     let nextUrl: string | null = `https://graph.facebook.com/v19.0/${config.businessAccountId}/message_templates?limit=200`;
 
     while (nextUrl) {
       const response: any = await axios.get(nextUrl, { headers });
       const batch = response.data?.data || [];
       fetchedCount += batch.length;
-      approvedTemplates.push(...batch.filter((template: any) => String(template?.status || '').toUpperCase() === 'APPROVED'));
+      // Log all templates from Meta for debugging
+      batch.forEach((t: any) => {
+        console.log(`- [Meta] ${t.name} (${t.status})`);
+      });
+
+      // Include APPROVED, PENDING, and other active states.
+      // Meta API statuses: APPROVED, PENDING, REJECTED, PAUSED, DISABLED, IN_APPEAL
+      const batchFiltered = batch.filter((template: any) => {
+        const status = String(template?.status || '').toUpperCase();
+        return status === 'APPROVED' || status === 'PENDING' || status === 'IN_APPEAL' || status === 'PAUSED';
+      });
+      
+      validTemplates.push(...batchFiltered);
       nextUrl = response.data?.paging?.next || null;
     }
 
     const incomingKeys = new Set<string>();
-    for (const rawTemplate of approvedTemplates) {
+    for (const rawTemplate of validTemplates) {
       const normalized = normalizeTemplate(companyId, rawTemplate);
       incomingKeys.add(`${normalized.name}::${normalized.language}`);
 

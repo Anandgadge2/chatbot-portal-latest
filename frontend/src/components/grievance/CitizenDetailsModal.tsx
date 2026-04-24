@@ -19,6 +19,12 @@ import {
 import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
 import { formatDate, formatDateTime, formatISTTime } from "@/lib/utils";
+import dynamic from "next/dynamic";
+
+const GrievanceMapDialog = dynamic(() => import("./GrievanceMapDialog"), {
+  ssr: false,
+  loading: () => <div className="h-[400px] w-full bg-slate-900 animate-pulse flex items-center justify-center text-slate-500 font-bold uppercase tracking-widest text-xs">Loading Map...</div>
+});
 
 const isImageMedia = (media: { type?: string; url?: string }) =>
   media.type === "image" ||
@@ -50,6 +56,7 @@ export default function CitizenDetailsModal({
     url: string;
     alt?: string;
   } | null>(null);
+  const [isMapOpen, setIsMapOpen] = useState(false);
 
   if (!isOpen || (!grievance && !appointment)) return null;
 
@@ -58,6 +65,27 @@ export default function CitizenDetailsModal({
   const createdDate = new Date(data?.createdAt || "");
   const timeAgo = formatDistanceToNow(createdDate, { addSuffix: true });
   const id = grievance?.grievanceId || appointment?.appointmentId;
+  
+  // Parse coordinates from GeoJSON or address string (fallback)
+  const parsedLatLng = (() => {
+    const loc = grievance?.location;
+    if (!loc) return null;
+    
+    if (Array.isArray(loc.coordinates) && loc.coordinates.length >= 2) {
+      return { lat: loc.coordinates[1], lng: loc.coordinates[0] };
+    }
+    
+    if (typeof loc.address === "string") {
+      const latMatch = loc.address.match(/Lat:\s*([0-9.-]+)/i);
+      const lngMatch = loc.address.match(/Long:\s*([0-9.-]+)/i);
+      if (latMatch && lngMatch) {
+        const lat = parseFloat(latMatch[1]);
+        const lng = parseFloat(lngMatch[1]);
+        if (!isNaN(lat) && !isNaN(lng)) return { lat, lng };
+      }
+    }
+    return null;
+  })();
 
   // Get status config for header gradient
   const getStatusConfig = () => {
@@ -364,49 +392,62 @@ export default function CitizenDetailsModal({
           </div>
 
           {/* Location Information */}
-          {/* {(grievance?.location || appointment?.location) && (
-            <div className="bg-gradient-to-br from-green-50 to-white border border-green-200 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <MapPin className="w-5 h-5 mr-2 text-green-600" />
-                Location Details
-              </h3>
-              <div className="space-y-3">
-                {grievance?.location && (
-                  <>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-sm font-medium text-gray-500">Latitude</label>
-                        <p className="text-gray-900 font-mono">{grievance.location.coordinates?.[1] || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-500">Longitude</label>
-                        <p className="text-gray-900 font-mono">{grievance.location.coordinates?.[0] || 'N/A'}</p>
-                      </div>
-                    </div>
-                    {grievance.location.coordinates && (
-                      <div className="mt-4">
-                        <a
-                          href={`https://www.google.com/maps?q=${grievance.location.coordinates[1]},${grievance.location.coordinates[0]}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-                        >
-                          <MapPin className="w-4 h-4 mr-2" />
-                          View on Google Maps
-                        </a>
-                      </div>
-                    )}
-                  </>
-                )}
-                {grievance?.location?.address && (
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Address</label>
-                    <p className="text-gray-900 mt-1">{grievance.location.address}</p>
-                  </div>
-                )}
+          {grievance?.location && (grievance.location.address || grievance.location.coordinates) && (
+            <div className="bg-gradient-to-br from-[#00AEEF] to-[#0096ce] border border-white/20 rounded-2xl p-6 shadow-xl relative overflow-hidden group">
+              {/* Background Decoration */}
+              <div className="absolute -right-4 -top-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
+                <MapPin className="w-24 h-24 text-white" />
               </div>
+
+              <div className="flex items-start gap-4 relative z-10">
+                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center border border-white/30 flex-shrink-0 backdrop-blur-sm">
+                  <MapPin className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-black text-white/80 uppercase tracking-widest mb-1.5 flex items-center gap-2">
+                    Geospatial context
+                  </p>
+                  <p className="text-sm font-bold text-white mb-4 tracking-tight leading-relaxed">
+                    {grievance.location.address || "Coordinate-only location provided by device"}
+                  </p>
+                  
+                  {parsedLatLng && (
+                    <div className="flex flex-wrap items-center gap-4">
+                      <div className="flex items-center gap-2 px-3 py-1.5 bg-black/20 rounded-lg border border-white/10 backdrop-blur-sm">
+                        <span className="text-[10px] font-bold text-white/90">
+                          Lat: {parsedLatLng.lat.toFixed(7)}
+                        </span>
+                        <span className="w-px h-3 bg-white/20"></span>
+                        <span className="text-[10px] font-bold text-white/90">
+                          Long: {parsedLatLng.lng.toFixed(7)}
+                        </span>
+                      </div>
+                      
+                      <button
+                        onClick={() => setIsMapOpen(true)}
+                        className="px-4 py-2 bg-white text-[#00AEEF] text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-slate-50 transition-all shadow-lg active:scale-95 flex items-center gap-2"
+                      >
+                        <MapPin className="w-3.5 h-3.5" />
+                        View Map
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Map Dialog */}
+              {parsedLatLng && (
+                <GrievanceMapDialog
+                  isOpen={isMapOpen}
+                  onClose={() => setIsMapOpen(false)}
+                  lat={parsedLatLng.lat}
+                  lng={parsedLatLng.lng}
+                  address={grievance.location.address}
+                  grievanceId={grievance.grievanceId}
+                />
+              )}
             </div>
-          )} */}
+          )}
 
           {/* Media/Photos */}
           {grievance?.media && grievance.media.length > 0 && (

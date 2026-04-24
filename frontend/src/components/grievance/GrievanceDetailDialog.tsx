@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import {
   Card,
@@ -42,6 +43,11 @@ import {
 } from "@/lib/permissions";
 import StatusUpdateForm from "./StatusUpdateForm";
 
+const GrievanceMapDialog = dynamic(() => import("./GrievanceMapDialog"), {
+  ssr: false,
+  loading: () => <div className="h-[60vh] w-full bg-slate-900 animate-pulse flex items-center justify-center text-slate-500 font-bold uppercase tracking-widest text-xs">Loading Map...</div>
+});
+
 // Helper: treat as image if type is image or URL looks like an image
 // Cloudinary image URLs contain /image/upload/ in the path
 const isImageMedia = (media: { type?: string; url?: string }) => {
@@ -77,20 +83,34 @@ const getDocumentLabel = (media: { url: string; type?: string }) => {
   return media.type === "document" ? "Document" : "File";
 };
 
-const getLatLongFromCoordinates = (coordinates?: [number, number]) => {
-  if (!coordinates || coordinates.length < 2) return null;
-  const first = Number(coordinates[0]);
-  const second = Number(coordinates[1]);
-  if (!Number.isFinite(first) || !Number.isFinite(second)) return null;
+const getLatLongFromCoordinates = (coordinates?: any, address?: string) => {
+  // Try standard GeoJSON [lng, lat] array
+  if (Array.isArray(coordinates) && coordinates.length >= 2) {
+    const first = Number(coordinates[0]);
+    const second = Number(coordinates[1]);
+    if (Number.isFinite(first) && Number.isFinite(second)) {
+      if (Math.abs(first) <= 180 && Math.abs(second) <= 90) {
+        return { lat: second, lng: first };
+      }
+      if (Math.abs(first) <= 90 && Math.abs(second) <= 180) {
+        return { lat: first, lng: second };
+      }
+    }
+  }
 
-  // Expected storage is [longitude, latitude].
-  if (Math.abs(first) <= 180 && Math.abs(second) <= 90) {
-    return { lat: second, lng: first };
+  // Fallback: Parse from address string if it contains "Lat: ..., Long: ..."
+  if (typeof address === "string") {
+    const latMatch = address.match(/Lat:\s*([0-9.-]+)/i);
+    const lngMatch = address.match(/Long:\s*([0-9.-]+)/i);
+    if (latMatch && lngMatch) {
+      const lat = parseFloat(latMatch[1]);
+      const lng = parseFloat(lngMatch[1]);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        return { lat, lng };
+      }
+    }
   }
-  // Fallback for previously swapped data [latitude, longitude].
-  if (Math.abs(first) <= 90 && Math.abs(second) <= 180) {
-    return { lat: first, lng: second };
-  }
+
   return null;
 };
 
@@ -116,9 +136,13 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
   } | null>(null);
 
   const [activeTab, setActiveTab] = useState("overview");
+  const [isMapOpen, setIsMapOpen] = useState(false);
 
   if (!isOpen || !grievance) return null;
-  const grievanceLatLng = getLatLongFromCoordinates(grievance.location?.coordinates);
+  const grievanceLatLng = getLatLongFromCoordinates(
+    grievance.location?.coordinates,
+    grievance.location?.address
+  );
 
   const getStatusConfig = (status: string) => {
     switch (status) {
@@ -472,40 +496,64 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                   </div>
                 </div>
 
-                {/* Location Block (Condensed) */}
+                {/* Location Block (Enhanced) */}
                 {grievance.location &&
                   (grievance.location.address ||
                     grievance.location.coordinates) && (
-                    <div className="flex items-start gap-4 p-4 bg-slate-900 rounded-xl border border-slate-800 shadow-lg ring-1 ring-blue-500/30">
-                      <div className="w-10 h-10 bg-slate-800/50 rounded-lg flex items-center justify-center border border-slate-700/50 flex-shrink-0">
-                        <MapPin className="w-5 h-5 text-blue-400" />
+                    <div className="flex flex-col gap-4 p-5 bg-[#00AEEF] rounded-2xl border border-[#0096ce] shadow-xl relative overflow-hidden group">
+                      {/* Background Decoration */}
+                      <div className="absolute -right-4 -top-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
+                        <MapPin className="w-24 h-24 text-white" />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-2">
-                          Geospatial context
-                        </p>
-                        <p className="text-[11px] font-bold text-white mb-3 tracking-tight leading-snug">
-                          {grievance.location.address ||
-                            "Coordinate-only location provided by device"}
-                        </p>
-                        {grievanceLatLng && (
-                          <div className="flex items-center gap-3">
-                            <code className="text-[10px] text-indigo-400 bg-indigo-950/50 px-2 py-0.5 rounded border border-indigo-900/50 font-mono">
-                              {grievanceLatLng.lat.toFixed(6)},{" "}
-                              {grievanceLatLng.lng.toFixed(6)}
-                            </code>
-                            <a
-                              href={`https://www.google.com/maps?q=${grievanceLatLng.lat},${grievanceLatLng.lng}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-[10px] font-black text-white bg-slate-800 hover:bg-slate-900 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all shadow-lg ring-1 ring-blue-500/50 active:scale-95"
-                            >
-                              <ExternalLink className="w-3 h-3" />
-                              Inspect on Maps
-                            </a>
-                          </div>
-                        )}
+                      
+                      <div className="flex items-start gap-4 relative z-10">
+                        <div className="w-12 h-12 bg-[#004a66]/30 rounded-xl flex items-center justify-center border border-white/20 flex-shrink-0 backdrop-blur-sm">
+                          <MapPin className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[10px] font-black text-white/80 uppercase tracking-[0.2em] mb-1.5 flex items-center gap-2">
+                            Geospatial context
+                          </p>
+                          <p className="text-[13px] font-black text-white mb-3 tracking-tight leading-snug">
+                            {grievance.location.address ||
+                              "Coordinate-only location provided by device"}
+                          </p>
+                          
+                          {grievanceLatLng && (
+                            <div className="flex flex-wrap items-center gap-4">
+                              <div className="flex items-center gap-2 px-3 py-1.5 bg-black/20 rounded-lg border border-white/10 backdrop-blur-sm">
+                                <span className="text-[10px] font-bold text-white/90">
+                                  Lat: {grievanceLatLng.lat.toFixed(7)}
+                                </span>
+                                <span className="w-px h-3 bg-white/20"></span>
+                                <span className="text-[10px] font-bold text-white/90">
+                                  Long: {grievanceLatLng.lng.toFixed(7)}
+                                </span>
+                              </div>
+                              
+                              <button
+                                onClick={() => setIsMapOpen(true)}
+                                className="text-[10px] font-black text-[#00AEEF] bg-white hover:bg-slate-50 px-4 py-2 rounded-xl flex items-center gap-2 transition-all shadow-lg active:scale-95 uppercase tracking-widest"
+                              >
+                                <ExternalLink className="w-3 h-3" />
+                                View Map
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
+
+                      {/* Map Modal Integration */}
+                      {grievanceLatLng && (
+                        <GrievanceMapDialog
+                          isOpen={isMapOpen}
+                          onClose={() => setIsMapOpen(false)}
+                          lat={grievanceLatLng.lat}
+                          lng={grievanceLatLng.lng}
+                          address={grievance.location.address}
+                          grievanceId={grievance.grievanceId}
+                        />
+                      )}
                     </div>
                   )}
               </div>

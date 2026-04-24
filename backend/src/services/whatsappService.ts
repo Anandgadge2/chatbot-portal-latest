@@ -340,11 +340,7 @@ function buildTemplateButtonComponent(options: {
   const runtimeValue = safeText(options.buttonParam || options.fallbackParam || '', 255);
 
   if (buttonType === 'COPY_CODE' || buttonType === 'OTP') {
-    if (!runtimeValue) {
-      const error: any = new Error(`Template ${options.templateName} requires an OTP button value.`);
-      error.code = 'TEMPLATE_INVALID';
-      throw error;
-    }
+    if (!runtimeValue) return null; // Avoid throwing, just skip button if value missing
 
     return {
       type: 'button',
@@ -355,11 +351,12 @@ function buildTemplateButtonComponent(options: {
   }
 
   if (buttonType === 'URL') {
-    if (!runtimeValue) {
-      const error: any = new Error(`Template ${options.templateName} requires a URL button parameter.`);
-      error.code = 'TEMPLATE_INVALID';
-      throw error;
-    }
+    // Only add parameter if the button text contains {{1}}
+    // Meta returns url as 'https://example.com/{{1}}'
+    const isDynamicUrl = String(firstButton.value || '').includes('{{1}}');
+    if (!isDynamicUrl) return null;
+
+    if (!runtimeValue) return null;
 
     return {
       type: 'button',
@@ -383,15 +380,34 @@ function buildArrayTemplateComponents(options: {
   const expectedBodyVariables = Number(options.template?.body?.variables || 0);
   const components: any[] = [];
 
-  if (options.headerParam) {
+  // 1. Handle Header (TEXT, IMAGE, VIDEO, DOCUMENT)
+  const headerType = options.template?.header?.type;
+  if (headerType === 'TEXT' && options.headerParam) {
     components.push({
       type: 'header',
       parameters: [{ type: 'text', text: safeText(options.headerParam, 60) }]
     });
+  } else if (['IMAGE', 'VIDEO', 'DOCUMENT'].includes(headerType)) {
+    // For media templates, the first parameter is usually the media URL if not explicitly provided as headerParam
+    const mediaUrl = options.headerParam || sanitizedParams[0];
+    if (mediaUrl && mediaUrl.startsWith('http')) {
+      components.push({
+        type: 'header',
+        parameters: [{
+          type: headerType.toLowerCase(),
+          [headerType.toLowerCase()]: { link: mediaUrl }
+        }]
+      });
+    }
   }
 
+  // 2. Handle Body Variables
   if (expectedBodyVariables > 0) {
     validateTemplateVariables(options.templateName, sanitizedParams);
+    
+    // If we used the first param for the media header, we might need to shift parameters
+    // but usually whitelisted templates have specific mappings. 
+    // Here we just take the first N params.
     components.push({
       type: 'body',
       parameters: sanitizedParams.slice(0, expectedBodyVariables).map((param) => ({
