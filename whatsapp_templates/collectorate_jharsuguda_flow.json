@@ -937,7 +937,7 @@
       },
       "data": {
         "label": "Notification Consent (EN)",
-        "messageText": "*WhatsApp Update Consent*\n\nWould you like to receive grievance status updates on WhatsApp using approved templates?\n\nThis is an official government assistance chatbot.\nType STOP to unsubscribe.\n\nPlease choose:",
+        "messageText": "*WhatsApp Update Consent*\n\nWould you like to receive grievance status updates on WhatsApp using approved templates?\nPlease choose:",
         "buttons": [
           {
             "id": "grv_consent_updates_yes_en",
@@ -989,7 +989,7 @@
       },
       "data": {
         "label": "Notification Consent (HI)",
-        "messageText": "*व्हाट्सएप अपडेट सहमति*\n\nक्या आप अनुमोदित टेम्प्लेट का उपयोग करके व्हाट्सएप पर शिकायत स्थिति अपडेट प्राप्त करना चाहेंगे?\n\nयह एक आधिकारिक सरकारी सहायता चैटबॉट है।\nअनसब्सक्राइब करने के लिए STOP टाइप करें।\n\nकृपया चुनें:",
+        "messageText": "*व्हाट्सएप अपडेट सहमति*\n\nक्या आप अनुमोदित टेम्प्लेट का उपयोग करके व्हाट्सएप पर शिकायत स्थिति अपडेट प्राप्त करना चाहेंगे?\nकृपया चुनें:",
         "buttons": [
           {
             "id": "grv_consent_updates_yes_hi",
@@ -1041,7 +1041,7 @@
       },
       "data": {
         "label": "Notification Consent (OR)",
-        "messageText": "*ହ୍ୱାଟସ୍‌ଆପ୍ ଅପଡେଟ୍ ସମ୍ମତି*\n\nଆପଣ ଅନୁମୋଦିତ ଟେମ୍ପଲେଟ୍ ବ୍ୟବହାର କରି ହ୍ୱାଟସ୍‌ଆପ୍‌ରେ ଅଭିଯୋଗ ସ୍ଥିତି ଅପଡେଟ୍ ଗ୍ରହଣ କରିବାକୁ ଚାହାଁନ୍ତି କି?\n\nଏହା ଏକ ସରକାରୀ ସହାୟତା ଚାଟବଟ୍।\nଅନସବସ୍କ୍ରାଇବ କରିବା ପାଇଁ STOP ଟାଇପ୍ କରନ୍ତୁ।\n\nଦୟାକରି ବାଛନ୍ତୁ:",
+        "messageText": "*ହ୍ୱାଟସ୍‌ଆପ୍ ଅପଡେଟ୍ ସମ୍ମତି*\n\nଆପଣ ଅନୁମୋଦିତ ଟେମ୍ପଲେଟ୍ ବ୍ୟବହାର କରି ହ୍ୱାଟସ୍‌ଆପ୍‌ରେ ଅଭିଯୋଗ ସ୍ଥିତି ଅପଡେଟ୍ ଗ୍ରହଣ କରିବାକୁ ଚାହାଁନ୍ତି କି?\nଦୟାକରି ବାଛନ୍ତୁ:",
         "buttons": [
           {
             "id": "grv_consent_updates_yes_or",

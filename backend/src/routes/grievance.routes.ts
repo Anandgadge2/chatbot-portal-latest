@@ -17,6 +17,7 @@ import CompanyWhatsAppConfig from '../models/CompanyWhatsAppConfig';
 import { 
   triggerAdminTemplate,
   triggerAdminAssignmentNotification,
+  triggerGrievanceNotifications,
   formatTemplateDate,
   getAdminRecipients
 } from '../services/grievanceTemplateTriggerService';
@@ -275,45 +276,6 @@ router.post('/', enforceWhatsAppGrievanceCompliance, async (req: Request, res: R
       console.log(`🎯 Auto-assigned portal grievance ${grievance.grievanceId} to admin: ${targetAdmin.email}`);
     }
 
-    const templateRecipients = targetAdmin?.phone
-      ? [targetAdmin.phone]
-      : await getAdminRecipients(companyId);
-
-    Promise.allSettled([
-      targetAdmin?.phone
-        ? triggerAdminTemplate({
-            event: 'grievance_received_admin_v1',
-            companyId,
-            language: grievance.language,
-            recipientPhones: [targetAdmin.phone],
-            citizenPhone: grievance.citizenPhone,
-            data: {
-              admin_name: targetAdmin.getFullName(),
-              grievance_id: grievance.grievanceId,
-              citizen_name: grievance.citizenName,
-              department_name: grievance.category || 'Collector & DM',
-              office_name: (grievance as any).subDepartmentId ? (await Department.findById((grievance as any).subDepartmentId))?.name || 'N/A' : 'N/A',
-              description: safeDescription,
-              received_on: formatTemplateDate()
-            }
-          })
-        : triggerAdminTemplate({
-            event: 'grievance_received_admin_v1',
-            companyId,
-            language: grievance.language,
-            citizenPhone: grievance.citizenPhone,
-            data: {
-              admin_name: 'Administrator',
-              grievance_id: grievance.grievanceId,
-              citizen_name: grievance.citizenName,
-              department_name: grievance.category || 'Collector & DM',
-              office_name: 'N/A',
-              description: safeDescription,
-              received_on: formatTemplateDate()
-            }
-          }),
-    ]);
-
     const sanitizedMedia = Array.isArray(media)
       ? media
           .filter((item: any) => item?.url)
@@ -324,38 +286,6 @@ router.post('/', enforceWhatsAppGrievanceCompliance, async (req: Request, res: R
             filename: item.filename ? String(item.filename) : undefined
           }))
       : [];
-
-    if (sanitizedMedia.length > 0 && templateRecipients.length > 0) {
-      const [company, config] = await Promise.all([
-        Company.findById(companyId).lean(),
-        CompanyWhatsAppConfig.findOne({ companyId, isActive: true }).lean()
-      ]);
-
-      if (company && config?.phoneNumberId && config?.accessToken) {
-        const companyWithWhatsAppConfig = {
-          ...company,
-          _id: companyId,
-          whatsappConfig: {
-            phoneNumberId: config.phoneNumberId,
-            accessToken: config.accessToken
-          }
-        };
-
-        const normalizedRecipients = Array.from(
-          new Set(
-            templateRecipients
-              .map((phone: string) => normalizePhoneNumber(phone))
-              .filter(Boolean)
-          )
-        );
-
-        Promise.allSettled(
-          normalizedRecipients.map((recipientPhone: string) =>
-            sendMediaSequentially(companyWithWhatsAppConfig, recipientPhone, sanitizedMedia)
-          )
-        );
-      }
-    }
 
 
 
@@ -381,6 +311,21 @@ router.post('/', enforceWhatsAppGrievanceCompliance, async (req: Request, res: R
 
     // ✅ EXECUTE NOTIFICATIONS IN PARALLEL
     Promise.allSettled([
+      triggerGrievanceNotifications({
+        companyId,
+        grievanceId: grievance.grievanceId,
+        citizenName: grievance.citizenName,
+        citizenPhone: grievance.citizenPhone,
+        category: grievance.category || 'Collector & DM',
+        description: grievance.description,
+        status: grievance.status,
+        subDepartmentName: (grievance as any).subDepartmentId
+          ? (await Department.findById((grievance as any).subDepartmentId).select('name'))?.name || 'N/A'
+          : 'N/A',
+        language: grievance.language,
+        assignedAdmins: targetAdmin ? [targetAdmin] : [],
+        media: sanitizedMedia
+      }).catch(err => console.error('Grievance template flow failed:', err)),
       notifyDepartmentAdminOnCreation(notificationPayload).catch(err => console.error('❌ Admin Notification failed:', err)),
       // 📢 Send confirmation to citizen
       notifyCitizenOnCreation({
@@ -1089,7 +1034,7 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
 
     // Send notifications as best-effort. Assignment success must not fail due to downstream notification issues.
     try {
-      const { notifyUserOnAssignment, notifyCitizenOnGrievanceStatusChange } = await import('../services/notificationService');
+      const { notifyUserOnAssignment } = await import('../services/notificationService');
       await notifyUserOnAssignment({
         type: 'grievance',
         action: 'assigned',
@@ -1111,24 +1056,6 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
         timeline: grievance.timeline
       });
 
-      if (shouldMoveToAssignedStatus) {
-        const dept = grievance.departmentId ? await Department.findById(grievance.departmentId).select('name') : null;
-        await notifyCitizenOnGrievanceStatusChange({
-          companyId: grievance.companyId,
-          grievanceId: grievance.grievanceId,
-          citizenName: grievance.citizenName,
-          citizenPhone: grievance.citizenPhone,
-          citizenWhatsApp: grievance.citizenWhatsApp,
-          language: grievance.language,
-          description: grievance.description,
-          departmentId: grievance.departmentId,
-          subDepartmentId: grievance.subDepartmentId,
-          departmentName: dept ? dept.name : undefined,
-          newStatus: GrievanceStatus.PENDING,
-          remarks: `Your grievance has been assigned to ${assignedUser.getFullName()} for resolution.`,
-          timeline: grievance.timeline
-        });
-      }
     } catch (notificationError: any) {
       logger.error('Grievance assigned but notification dispatch failed', {
         grievanceId: grievance._id?.toString(),

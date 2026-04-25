@@ -232,7 +232,7 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
     }).catch((err) => console.error('Failed to trigger admin assignment template:', err));
 
     // Notify assigned user (fire and forget - don't block response)
-    import('../services/notificationService').then(({ notifyUserOnAssignment, notifyCitizenOnGrievanceStatusChange }) => {
+    import('../services/notificationService').then(({ notifyUserOnAssignment }) => {
       notifyUserOnAssignment({
         type: 'grievance',
         action: 'assigned',
@@ -254,21 +254,6 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
         timeline: grievance.timeline
       }).catch(err => console.error('Failed to send assignment notification:', err));
 
-      notifyCitizenOnGrievanceStatusChange({
-        companyId: grievance.companyId,
-        grievanceId: grievance.grievanceId,
-        citizenName: grievance.citizenName,
-        citizenPhone: grievance.citizenPhone,
-        citizenWhatsApp: grievance.citizenWhatsApp,
-        language: grievance.language,
-        description: grievance.description,
-        departmentId: grievance.departmentId,
-        subDepartmentId: grievance.subDepartmentId,
-        newStatus: 'ASSIGNED',
-        remarks: `Your grievance has been assigned to ${assignedUser.getFullName()} for resolution.`,
-        createdAt: grievance.createdAt,
-        timeline: grievance.timeline
-      }).catch(err => console.error('Failed to send citizen assignment status notification:', err));
     });
 
     // Log action (fire and forget - don't block response)
