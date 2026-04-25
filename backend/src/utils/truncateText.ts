@@ -1,3 +1,6 @@
+export const GRIEVANCE_DESCRIPTION_CONTINUATION_TEXT =
+  'To see the full grievance description, go to the dashboard portal.';
+
 export function truncateText(text: string, maxLength: number): string {
   if (!text) return '';
 
@@ -23,7 +26,7 @@ export function truncateText(text: string, maxLength: number): string {
 export function prepareSummaryText(
   summary: string,
   summaryLimit = 400,
-  continuationText = 'Read more in dashboard.'
+  continuationText = GRIEVANCE_DESCRIPTION_CONTINUATION_TEXT
 ): string {
   const normalized = (summary || '').trim();
   if (!normalized) return '';
