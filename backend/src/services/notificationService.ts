@@ -1327,10 +1327,7 @@ export async function notifyCitizenOnResolution(
           formattedResolvedDate: fullData.formattedResolvedDate || '',
           remarks: fullData.remarks || data.remarks || ''
         }),
-        updated_on:
-          fullData.formattedResolvedDate ||
-          fullData.formattedDate ||
-          formatTemplateDateTime(new Date(data.createdAt || new Date()), 'en-IN')
+        updated_on: fullData.formattedResolvedDate || fullData.formattedDate || data.createdAt || new Date().toISOString()
       };
 
       await sendWhatsAppTemplateWithTextFallback(
@@ -1492,10 +1489,7 @@ export async function notifyCitizenOnGrievanceStatusChange(data: {
         formattedResolvedDate: fullData.formattedResolvedDate || '',
         remarks: fullData.remarks || data.remarks || ''
       }),
-      updated_on:
-        fullData.formattedResolvedDate ||
-        fullData.formattedDate ||
-        formatTemplateDateTime(new Date(data.createdAt || new Date()), 'en-IN')
+      updated_on: fullData.formattedResolvedDate || fullData.formattedDate || data.createdAt || new Date().toISOString()
     };
 
     await sendWhatsAppTemplateWithTextFallback(
