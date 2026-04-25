@@ -223,7 +223,8 @@ export async function triggerCitizenStatusTemplate(options: {
       grievance_summary: sanitizeGrievanceDetailsForTemplate(options.grievanceSummary || options.remarks || 'N/A', 400),
       status: sanitizeText(options.status, 30),
       dynamic_message: sanitizeNote(extraMessage),
-      remarks: sanitizeNote(extraMessage)
+      remarks: sanitizeNote(extraMessage),
+      updated_on: sanitizeText(options.formattedResolvedDate || new Date().toISOString(), 60)
     },
     requireNotificationConsent: true
   });
