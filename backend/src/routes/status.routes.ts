@@ -343,6 +343,7 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
               language: grievance.language,
               departmentName,
               subDepartmentName: (grievance.subDepartmentId as any)?.name || 'N/A',
+              grievanceSummary: grievance.description,
               status,
               remarks: remarks || undefined,
               resolvedByName: currentUser.getFullName(),

@@ -440,6 +440,36 @@ function buildArrayTemplateComponents(options: {
   return components;
 }
 
+function buildCitizenStatusTemplateParameters(options: {
+  expectedVariableCount: number;
+  data: Record<string, string>;
+}): string[] {
+  const citizenName = sanitizeText(String(options.data.citizen_name || options.data.citizenName || ''), 60) || 'Citizen';
+  const grievanceId = sanitizeText(String(options.data.grievance_id || options.data.grievanceId || ''), 30) || 'N/A';
+  const departmentName = sanitizeText(String(options.data.department_name || options.data.departmentName || ''), 60) || 'N/A';
+  const officeName = sanitizeText(String(options.data.sub_department_name || options.data.subDepartmentName || ''), 60) || 'N/A';
+  const grievanceSummary = sanitizeText(
+    String(options.data.grievance_summary || options.data.grievanceSummary || options.data.description || options.data.grievance_details || ''),
+    400
+  ) || 'N/A';
+  const status = sanitizeText(String(options.data.status || options.data.newStatus || ''), 30) || 'N/A';
+  const dynamicMessage = sanitizeText(
+    String(options.data.dynamic_message || options.data.dynamicMessage || options.data.remarks || options.data.message || ''),
+    1000
+  ) || '-';
+
+  if (options.expectedVariableCount >= 7) {
+    return [citizenName, grievanceId, departmentName, officeName, grievanceSummary, status, dynamicMessage];
+  }
+
+  if (options.expectedVariableCount === 6) {
+    const combinedMessage = [status, dynamicMessage].filter(Boolean).join('\n');
+    return [citizenName, grievanceId, departmentName, officeName, grievanceSummary, combinedMessage || status];
+  }
+
+  return [citizenName, grievanceId, departmentName, officeName, grievanceSummary].slice(0, options.expectedVariableCount);
+}
+
 async function buildMappedComponentsFromSavedTemplateMapping(options: {
   companyId: any;
   templateName: string;
@@ -717,15 +747,35 @@ export async function sendWhatsAppTemplate(
         buttonParam
       });
     } else {
-      const mappedComponents = await buildMappedComponentsFromSavedTemplateMapping({
-        companyId,
-        templateName,
-        expectedVariableCount,
-        data: Object.fromEntries(
-          Object.entries(parameters || {}).map(([key, value]) => [key, String(value ?? '')])
-        )
-      });
-      components = mappedComponents || buildTemplatePayload(templateName, parameters).components;
+      const normalizedData = Object.fromEntries(
+        Object.entries(parameters || {}).map(([key, value]) => [key, String(value ?? '')])
+      );
+
+      if (templateName === 'grievance_status_citizen_v1') {
+        await assertTemplateApproved({
+          companyId,
+          templateName,
+          language: resolvedTemplate.resolvedLanguage
+        });
+        components = buildArrayTemplateComponents({
+          templateName,
+          template: resolvedTemplate.template,
+          parameters: buildCitizenStatusTemplateParameters({
+            expectedVariableCount,
+            data: normalizedData
+          }),
+          headerParam,
+          buttonParam
+        });
+      } else {
+        const mappedComponents = await buildMappedComponentsFromSavedTemplateMapping({
+          companyId,
+          templateName,
+          expectedVariableCount,
+          data: normalizedData
+        });
+        components = mappedComponents || buildTemplatePayload(templateName, parameters).components;
+      }
     }
 
     validateTemplate({

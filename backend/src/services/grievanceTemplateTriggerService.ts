@@ -191,6 +191,7 @@ export async function triggerCitizenStatusTemplate(options: {
   grievanceId: string;
   departmentName: string;
   subDepartmentName?: string;
+  grievanceSummary?: string;
   status: string;
   resolvedByName?: string;
   formattedResolvedDate?: string;
@@ -215,9 +216,11 @@ export async function triggerCitizenStatusTemplate(options: {
       citizen_name: sanitizeText(options.citizenName, 60),
       grievance_id: sanitizeText(options.grievanceId, 30),
       department_name: sanitizeText(options.departmentName, 60),
-        sub_department_name: sanitizeText(options.subDepartmentName || 'N/A', 60),
-        status: sanitizeText(options.status, 30),
-        remarks: sanitizeNote(extraMessage)
+      sub_department_name: sanitizeText(options.subDepartmentName || 'N/A', 60),
+      grievance_summary: sanitizeGrievanceDetailsForTemplate(options.grievanceSummary || options.remarks || 'N/A', 400),
+      status: sanitizeText(options.status, 30),
+      dynamic_message: sanitizeNote(extraMessage),
+      remarks: sanitizeNote(extraMessage)
     },
     requireNotificationConsent: true
   });

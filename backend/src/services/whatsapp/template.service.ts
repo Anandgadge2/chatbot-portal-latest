@@ -52,6 +52,14 @@ function isExplicitUsEnglish(value?: string): boolean {
   return comparableLanguage(value) === 'en-us';
 }
 
+function findUsEnglishTemplate(templates: any[]): any | undefined {
+  return templates.find((template: any) => comparableLanguage(template.language) === 'en-us');
+}
+
+function findPlainEnglishTemplate(templates: any[]): any | undefined {
+  return templates.find((template: any) => comparableLanguage(template.language) === 'en');
+}
+
 export function resolveTemplateAudience(templateName: string): TemplateAudience {
   if ((ADMIN_TEMPLATE_NAMES as readonly string[]).includes(templateName)) return 'ADMIN';
   if ((CITIZEN_TEMPLATE_NAMES as readonly string[]).includes(templateName)) return 'CITIZEN';
@@ -104,7 +112,10 @@ export async function resolveTemplateRecord(options: {
     };
   }
 
-  const englishTemplate = templates.find((template: any) => comparableLanguage(template.language) === 'en')
+  const usEnglishTemplate = findUsEnglishTemplate(templates);
+  const plainEnglishTemplate = findPlainEnglishTemplate(templates);
+  const englishTemplate = usEnglishTemplate
+    || plainEnglishTemplate
     || templates.find((template: any) => matchesEnglish(template.language));
 
   if (englishTemplate) {
@@ -117,7 +128,6 @@ export async function resolveTemplateRecord(options: {
   }
 
   if (isExplicitUsEnglish(requestedLanguage) || isExplicitUsEnglish(companyDefaultLanguage)) {
-    const usEnglishTemplate = templates.find((template: any) => comparableLanguage(template.language) === 'en-us');
     if (usEnglishTemplate) {
       return {
         template: usEnglishTemplate,
