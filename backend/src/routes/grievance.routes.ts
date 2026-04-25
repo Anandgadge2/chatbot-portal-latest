@@ -1168,6 +1168,7 @@ router.post('/:id/reminder', requirePermission(Permission.UPDATE_GRIEVANCE), asy
 
     const departmentName = (grievance.departmentId as any)?.name || grievance.category || 'Collector & DM';
     const officeName = (grievance.subDepartmentId as any)?.name || 'N/A';
+    const dashboardUrl = process.env.FRONTEND_URL || 'https://connect.pugarch.in/';
     const assigneeName = assignedUser
       ? `${assignedUser.firstName || ''} ${assignedUser.lastName || ''}`.trim() || 'Assigned Officer'
       : 'Department Admin';
@@ -1186,10 +1187,10 @@ router.post('/:id/reminder', requirePermission(Permission.UPDATE_GRIEVANCE), asy
           department_name: departmentName,
           office_name: officeName,
           grievance_details: grievance.description || 'N/A',
-          remarks_by_collector: trimmedRemarks,
-          submitted_date: formatTemplateDate(new Date(grievance.createdAt)),
-          days_passed: String(Math.max(1, Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24)))),
-          reminder_count: String(reminderCount)
+          submitted_on: formatTemplateDate(new Date(grievance.createdAt)),
+          assigned_on: formatTemplateDate(assignedDate),
+          reminder_remarks: trimmedRemarks,
+          dashboard_url: dashboardUrl
         }
       });
     }

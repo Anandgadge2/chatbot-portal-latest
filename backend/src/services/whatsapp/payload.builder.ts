@@ -111,9 +111,9 @@ export const TEMPLATE_DEFINITIONS: Record<string, TemplateDefinition> = {
       { key: 'department_name', aliases: ['department_name', 'departmentName', 'category'], maxLength: 60 },
       { key: 'office_name', aliases: ['office_name', 'officeName', 'sub_department_name', 'subDepartmentName'], maxLength: 60 },
       { key: 'description', aliases: ['description', 'grievance_details', 'grievanceDetails'], maxLength: 400, mode: 'summary' },
-      { key: 'submitted_on', aliases: ['submitted_on', 'submittedOn', 'submittedDate', 'received_on', 'receivedOn', 'formattedDate', 'formatted_date', 'date'], maxLength: 60 },
+      { key: 'submitted_on', aliases: ['submitted_on', 'submittedOn', 'submittedDate', 'submitted_date', 'received_on', 'receivedOn', 'formattedDate', 'formatted_date', 'date'], maxLength: 60 },
       { key: 'assigned_on', aliases: ['assigned_on', 'assignedOn', 'assignedDate', 'formattedDate', 'formatted_date'], maxLength: 60 },
-      { key: 'reminder_remarks', aliases: ['reminder_remarks', 'remarks', 'note'], maxLength: 100 },
+      { key: 'reminder_remarks', aliases: ['reminder_remarks', 'remarks', 'note', 'remarks_by_collector'], maxLength: 100 },
       { key: 'dashboard_url', aliases: ['dashboard_url', 'dashboardUrl', 'url'], maxLength: 255 }
     ]
   },
@@ -125,8 +125,8 @@ export const TEMPLATE_DEFINITIONS: Record<string, TemplateDefinition> = {
       { key: 'grievance_id', aliases: ['grievance_id', 'grievanceId', 'reference_id'], maxLength: 30 },
       { key: 'department_name', aliases: ['department_name', 'departmentName'], maxLength: 60 },
       { key: 'sub_department_name', aliases: ['sub_department_name', 'subDepartmentName'], maxLength: 60 },
-      { key: 'status', aliases: ['status', 'newStatus'], maxLength: 30 },
-      { key: 'remarks', aliases: ['remarks', 'message', 'extra_message', 'extraMessage'], maxLength: 100 }
+      { key: 'grievance_summary', aliases: ['grievance_summary', 'grievanceSummary', 'description', 'grievance_details', 'grievanceDetails'], maxLength: 400, mode: 'summary' },
+      { key: 'dynamic_message', aliases: ['dynamic_message', 'dynamicMessage', 'remarks', 'message', 'extra_message', 'extraMessage', 'status', 'newStatus'], maxLength: 100 }
     ]
   }
 };

@@ -51,4 +51,20 @@ describe('template safety and builder', () => {
     expect(body.parameters[8].text).toBe('Please prioritize');
     expect(body.parameters[9].text).toBe('2026-04-02 11:00');
   });
+
+  it('builds citizen status template using summary and dynamic message values', () => {
+    const payload = buildTemplatePayload('grievance_status_citizen_v1', {
+      citizen_name: 'Anand',
+      grievance_id: 'GRV-2001',
+      department_name: 'Water',
+      sub_department_name: 'Zone A',
+      grievance_summary: 'No water supply for three days',
+      dynamic_message: 'Status Update: Your grievance is under review.'
+    });
+
+    const body = payload.components.find((component) => component.type === 'body');
+    expect(body.parameters).toHaveLength(6);
+    expect(body.parameters[4].text).toBe('No water supply for three days');
+    expect(body.parameters[5].text).toBe('Status Update: Your grievance is under review.');
+  });
 });

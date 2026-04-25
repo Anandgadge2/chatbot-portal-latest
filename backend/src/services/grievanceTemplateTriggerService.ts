@@ -15,6 +15,19 @@ export function formatTemplateDate(date: Date = new Date()): string {
   return formatTemplateDateTime(date, 'en-IN');
 }
 
+function sanitizeTemplateDataValue(key: string, value: string): string {
+  const normalizedKey = key.toLowerCase();
+  if (normalizedKey.includes('description') || normalizedKey.includes('grievance_details') || normalizedKey.includes('grievance_summary')) {
+    return sanitizeGrievanceDetailsForTemplate(value, 1000);
+  }
+
+  if (normalizedKey.includes('url')) {
+    return String(value || '').trim().substring(0, 255);
+  }
+
+  return sanitizeText(value, 100);
+}
+
 async function getCompanyWithConfig(companyId: any): Promise<any> {
   const [company, cfg] = await Promise.all([
     Company.findById(companyId).lean(),
@@ -100,12 +113,7 @@ export async function triggerAdminTemplate(options: {
     ? Object.fromEntries(
         Object.entries(options.data).map(([key, value]) => {
           const rawValue = String(value || '');
-          const normalizedKey = key.toLowerCase();
-          const sanitizedValue =
-            normalizedKey.includes('description') || normalizedKey.includes('grievance_details')
-              ? sanitizeGrievanceDetailsForTemplate(rawValue, 1000)
-              : sanitizeText(rawValue, 100);
-          return [key, sanitizedValue];
+          return [key, sanitizeTemplateDataValue(key, rawValue)];
         })
       )
     : undefined;
@@ -170,12 +178,7 @@ export async function triggerCitizenTemplate(options: {
     ? Object.fromEntries(
         Object.entries(options.data).map(([key, value]) => {
           const rawValue = String(value || '');
-          const normalizedKey = key.toLowerCase();
-          const sanitizedValue =
-            normalizedKey.includes('description') || normalizedKey.includes('grievance_details')
-              ? sanitizeGrievanceDetailsForTemplate(rawValue, 1000)
-              : sanitizeText(rawValue, 100);
-          return [key, sanitizedValue];
+          return [key, sanitizeTemplateDataValue(key, rawValue)];
         })
       )
     : undefined;

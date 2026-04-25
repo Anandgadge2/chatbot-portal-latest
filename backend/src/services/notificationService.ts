@@ -9,6 +9,7 @@ import { sendWhatsAppMessage, sendWhatsAppMedia, sendWhatsAppTemplate } from './
 import { 
   triggerAdminTemplate
 } from './grievanceTemplateTriggerService';
+import { buildCitizenMessage } from './citizenMessageBuilder';
 import { normalizePhoneNumber } from '../utils/phoneUtils';
 import { logger } from '../config/logger';
 import { UserRole } from '../config/constants';
@@ -836,7 +837,7 @@ async function sendWhatsAppTemplateWithTextFallback(
   company: any,
   to: string | undefined,
   templateName: string,
-  parameters: string[],
+  parameters: string[] | Record<string, string>,
   fallbackMessage: string,
   options?: {
     language?: 'en' | 'hi' | 'or' | 'mr';
@@ -852,7 +853,11 @@ async function sendWhatsAppTemplateWithTextFallback(
 
   const language = options?.language || GRIEVANCE_TEMPLATE_LANGUAGE;
   const contextLabel = options?.contextLabel || templateName;
-  const safeParams = parameters.map(p => (p ?? '').toString());
+  const safeParams = Array.isArray(parameters)
+    ? parameters.map((p) => (p ?? '').toString())
+    : Object.fromEntries(
+        Object.entries(parameters || {}).map(([key, value]) => [key, String(value ?? '')])
+      );
   const allowTextFallback = options?.disableTextFallback !== true;
 
   // 1. If priority is 'text', try sending regular message first
@@ -1310,15 +1315,19 @@ export async function notifyCitizenOnResolution(
         return;
       }
 
-      const templateParams = [
-        fullData.citizenName || '',
-        fullData.grievanceId || '',
-        fullData.departmentName || '',
-        fullData.subDepartmentName || 'N/A',
-        'RESOLVED',
-
-        fullData.remarks || '-'
-      ];
+      const templateParams = {
+        citizen_name: fullData.citizenName || '',
+        grievance_id: fullData.grievanceId || '',
+        department_name: fullData.departmentName || '',
+        sub_department_name: fullData.subDepartmentName || 'N/A',
+        grievance_summary: fullData.description || data.description || fullData.remarks || 'N/A',
+        dynamic_message: buildCitizenMessage({
+          status: 'RESOLVED',
+          resolvedByName: fullData.resolvedByName || data.resolvedByName,
+          formattedResolvedDate: fullData.formattedResolvedDate || '',
+          remarks: fullData.remarks || data.remarks || ''
+        })
+      };
 
       await sendWhatsAppTemplateWithTextFallback(
         company,
@@ -1467,14 +1476,19 @@ export async function notifyCitizenOnGrievanceStatusChange(data: {
       message = `Your grievance ${fullData.grievanceId || data.grievanceId} status is now ${fullData.newStatus || data.newStatus}.`;
     }
 
-    const templateParams = [
-      fullData.citizenName || '',
-      fullData.grievanceId || '',
-      fullData.departmentName || '',
-      fullData.subDepartmentName || 'N/A',
-      fullData.newStatus || data.newStatus || '',
-      fullData.remarks || '-'
-    ];
+    const templateParams = {
+      citizen_name: fullData.citizenName || '',
+      grievance_id: fullData.grievanceId || '',
+      department_name: fullData.departmentName || '',
+      sub_department_name: fullData.subDepartmentName || 'N/A',
+      grievance_summary: fullData.description || data.description || fullData.remarks || 'N/A',
+      dynamic_message: buildCitizenMessage({
+        status: fullData.newStatus || data.newStatus || '',
+        resolvedByName: fullData.resolvedByName,
+        formattedResolvedDate: fullData.formattedResolvedDate || '',
+        remarks: fullData.remarks || data.remarks || ''
+      })
+    };
 
     await sendWhatsAppTemplateWithTextFallback(
       company,
