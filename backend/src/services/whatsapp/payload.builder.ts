@@ -75,10 +75,10 @@ export const TEMPLATE_DEFINITIONS: Record<string, TemplateDefinition> = {
       { key: 'department_name', aliases: ['department_name', 'departmentName', 'category'], maxLength: 60 },
       { key: 'office_name', aliases: ['office_name', 'officeName', 'sub_department_name', 'subDepartmentName'], maxLength: 60 },
       { key: 'description', aliases: ['description', 'grievance_details', 'grievanceDetails'], maxLength: 400, mode: 'summary' },
-      { key: 'submitted_on', aliases: ['submitted_on', 'submittedOn', 'submittedDate', 'formattedDate', 'formatted_date', 'date'], maxLength: 60 },
+      { key: 'submitted_on', aliases: ['submitted_on', 'submittedOn', 'submittedDate', 'created_on', 'createdOn', 'created_at', 'createdAt'], maxLength: 60 },
       { key: 'reassigned_by', aliases: ['reassigned_by', 'reassignedBy', 'reassignedByName', 'assigned_by', 'assignedBy', 'assignedByName'], maxLength: 60 },
       { key: 'remarks', aliases: ['remarks', 'note', 'assignment_note', 'reassignment_note', 'reassignmentNote', 'revert_note'], maxLength: 100 },
-      { key: 'reassigned_on', aliases: ['reassigned_on', 'reassignedOn', 'reassignedDate', 'assigned_on', 'assignedOn', 'assignedDate', 'formattedDate', 'formatted_date'], maxLength: 60 },
+      { key: 'reassigned_on', aliases: ['reassigned_on', 'reassignedOn', 'reassignedDate'], maxLength: 60 },
       { key: 'original_department', aliases: ['original_department', 'originalDepartment'], maxLength: 60 },
       { key: 'original_office', aliases: ['original_office', 'originalOffice'], maxLength: 60 }
     ]
@@ -91,6 +91,7 @@ export const TEMPLATE_DEFINITIONS: Record<string, TemplateDefinition> = {
       { key: 'citizen_name', aliases: ['citizen_name', 'citizenName'], maxLength: 60 },
       { key: 'department_name', aliases: ['department_name', 'departmentName', 'category'], maxLength: 60 },
       { key: 'office_name', aliases: ['office_name', 'officeName', 'sub_department_name', 'subDepartmentName'], maxLength: 60 },
+      { key: 'description', aliases: ['description', 'grievance_details', 'grievanceDetails'], maxLength: 400, mode: 'summary' },
       { key: 'reverted_by', aliases: ['reverted_by', 'revertedBy', 'revertedByName'], maxLength: 60 },
       { key: 'remarks', aliases: ['remarks', 'note', 'revert_reason', 'revert_note'], maxLength: 100 },
       { key: 'reverted_on', aliases: ['reverted_on', 'revertedOn', 'revertedDate', 'formattedDate', 'formatted_date', 'date'], maxLength: 60 }

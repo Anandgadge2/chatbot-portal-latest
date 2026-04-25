@@ -288,6 +288,7 @@ function DashboardContent() {
   const isJharsugudaCompany = Boolean(
     currentUserCompanyId === COLLECTORATE_JHARSUGUDA_COMPANY_ID,
   );
+  const canSendOverdueReminder = isJharsugudaCompany && isCompanyAdminRole;
   const dashboardBrandTitle = isJharsugudaCompany ? "SAHAJ" : "Control Panel";
   const dashboardBrandSubtitle = isJharsugudaCompany
     ? "Centralised Grivences Command center"
@@ -1168,12 +1169,20 @@ function DashboardContent() {
   };
 
   const openOverdueReminderDialog = (grievance: Grievance) => {
+    if (!canSendOverdueReminder) {
+      toast.error("Only company admin can send overdue reminders.");
+      return;
+    }
     setSelectedGrievanceForReminder(grievance);
     setReminderRemarks("");
     setShowOverdueReminderDialog(true);
   };
 
   const handleSendOverdueReminder = async () => {
+    if (!canSendOverdueReminder) {
+      toast.error("Only company admin can send overdue reminders.");
+      return;
+    }
     if (!selectedGrievanceForReminder) return;
     if (!reminderRemarks.trim()) {
       toast.error("Please add remarks before sending reminder");
@@ -8305,17 +8314,23 @@ function DashboardContent() {
                                             }
 
                                             return isOverdue ? (
-                                              <button
-                                                onClick={() =>
-                                                  openOverdueReminderDialog(
-                                                    grievance,
-                                                  )
-                                                }
-                                                title="Click to open overdue reminder dialog"
-                                                className="px-2 py-1 text-[10px] font-bold bg-red-100 text-red-700 rounded animate-pulse border border-red-300 hover:bg-red-200 cursor-pointer"
-                                              >
-                                                Overdue
-                                              </button>
+                                              canSendOverdueReminder ? (
+                                                <button
+                                                  onClick={() =>
+                                                    openOverdueReminderDialog(
+                                                      grievance,
+                                                    )
+                                                  }
+                                                  title="Click to open overdue reminder dialog"
+                                                  className="px-2 py-1 text-[10px] font-bold bg-red-100 text-red-700 rounded animate-pulse border border-red-300 hover:bg-red-200 cursor-pointer"
+                                                >
+                                                  Overdue
+                                                </button>
+                                              ) : (
+                                                <span className="px-2 py-1 text-[10px] font-bold bg-red-100 text-red-700 rounded border border-red-200">
+                                                  Overdue
+                                                </span>
+                                              )
                                             ) : (
                                               <span className="px-2 py-1 text-[10px] font-bold bg-green-100 text-green-700 rounded">
                                                 On Track
@@ -9612,6 +9627,13 @@ function DashboardContent() {
                       typeof selectedGrievanceForReminder.assignedTo === "object"
                         ? `${selectedGrievanceForReminder.assignedTo.firstName} ${selectedGrievanceForReminder.assignedTo.lastName}`
                         : "Not assigned"}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 sm:col-span-2">
+                    <p className="text-slate-500 text-xs">Reminder Count</p>
+                    <p className="font-semibold text-slate-900">
+                      Sent: {selectedGrievanceForReminder.reminderCount || 0} • Next send:{" "}
+                      {(selectedGrievanceForReminder.reminderCount || 0) + 1}
                     </p>
                   </div>
                 </div>

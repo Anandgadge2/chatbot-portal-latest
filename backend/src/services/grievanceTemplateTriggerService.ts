@@ -352,6 +352,8 @@ export async function triggerAdminAssignmentNotification(options: {
   reassignedByName?: string;
   revertedByName?: string;
   remarks?: string;
+  submittedOn?: Date | string;
+  reassignedOn?: Date | string;
   originalDepartmentName?: string;
   originalOfficeName?: string;
   media?: Array<{ url: string; type: 'image' | 'video' | 'document'; caption?: string; filename?: string }>;
@@ -361,6 +363,10 @@ export async function triggerAdminAssignmentNotification(options: {
   const safeDescription = sanitizeGrievanceDetailsForTemplate(options.description || 'N/A');
   const safeRemarks = sanitizeRemarks(options.remarks || options.description || 'N/A');
   const dateStr = formatTemplateDate();
+  const submittedOnDate = options.submittedOn ? new Date(options.submittedOn) : new Date();
+  const reassignedOnDate = options.reassignedOn ? new Date(options.reassignedOn) : new Date();
+  const submittedOnStr = formatTemplateDate(submittedOnDate);
+  const reassignedOnStr = formatTemplateDate(reassignedOnDate);
 
   const recipientProfiles = await User.find({
     companyId: options.companyId,
@@ -390,11 +396,11 @@ export async function triggerAdminAssignmentNotification(options: {
         assigned_by: sanitizeText(options.assignedByName || 'Admin', 60),
         assigned_on: dateStr,
         reassigned_by: sanitizeText(options.reassignedByName || options.assignedByName || 'Admin', 60),
-        reassigned_on: dateStr,
+        reassigned_on: reassignedOnStr,
         reverted_by: sanitizeText(options.revertedByName || 'Admin', 60),
         reverted_on: dateStr,
         remarks: safeRemarks,
-        submitted_on: dateStr,
+        submitted_on: submittedOnStr,
         original_department: sanitizeText(options.originalDepartmentName || 'N/A', 60),
         original_office: sanitizeText(options.originalOfficeName || 'N/A', 60)
       }, language, undefined, undefined, {

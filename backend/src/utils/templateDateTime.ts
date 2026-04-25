@@ -26,7 +26,7 @@ export function formatTemplateDateTime(
     const hour = (p.hour || '').padStart(2, '0');
     const minute = (p.minute || '').padStart(2, '0');
     const second = (p.second || '').padStart(2, '0');
-    const dayPeriod = String(p.dayPeriod || p.ampm || '').toUpperCase();
+    const dayPeriod = String(p.dayPeriod || p.ampm || '').toLowerCase();
 
     return `${day} ${month} ${year} at ${hour}:${minute}:${second} ${dayPeriod}`
       .trim()
