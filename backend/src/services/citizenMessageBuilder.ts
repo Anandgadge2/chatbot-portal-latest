@@ -12,9 +12,9 @@ export function buildCitizenMessage({
   remarks?: string;
 }): string {
 
-  const safeRemark = sanitizeText(remarks || '', 60);
-  const safeResolvedBy = sanitizeText(resolvedByName || '', 40);
-  const safeResolvedDate = sanitizeText(formattedResolvedDate || '', 30);
+  const safeRemark = sanitizeText(remarks || '', 400);
+  const safeResolvedBy = sanitizeText(resolvedByName || '', 60);
+  const safeResolvedDate = sanitizeText(formattedResolvedDate || '', 60);
 
   // ✅ RESOLVED
   if (status === 'RESOLVED') {

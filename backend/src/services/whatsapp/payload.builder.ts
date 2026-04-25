@@ -27,7 +27,7 @@ export interface BuiltTemplatePayload {
   consumedKeys: string[];
 }
 
-const TEMPLATE_DEFINITIONS: Record<string, TemplateDefinition> = {
+export const TEMPLATE_DEFINITIONS: Record<string, TemplateDefinition> = {
   grievance_received_admin_v1: {
     audience: 'ADMIN',
     body: [
@@ -100,6 +100,21 @@ const TEMPLATE_DEFINITIONS: Record<string, TemplateDefinition> = {
     audience: 'ADMIN',
     body: [
       { key: 'otp', aliases: ['otp', 'code', 'verification_code', 'verificationCode'], maxLength: 20 }
+    ]
+  },
+  grievance_reminder_admin_v1: {
+    audience: 'ADMIN',
+    body: [
+      { key: 'admin_name', aliases: ['admin_name', 'adminName', 'recipient_name', 'recipientName', 'recepientName', 'recipient'], maxLength: 60 },
+      { key: 'grievance_id', aliases: ['grievance_id', 'grievanceId', 'reference_id'], maxLength: 30 },
+      { key: 'citizen_name', aliases: ['citizen_name', 'citizenName'], maxLength: 60 },
+      { key: 'department_name', aliases: ['department_name', 'departmentName', 'category'], maxLength: 60 },
+      { key: 'office_name', aliases: ['office_name', 'officeName', 'sub_department_name', 'subDepartmentName'], maxLength: 60 },
+      { key: 'description', aliases: ['description', 'grievance_details', 'grievanceDetails'], maxLength: 400, mode: 'summary' },
+      { key: 'submitted_on', aliases: ['submitted_on', 'submittedOn', 'submittedDate', 'received_on', 'receivedOn', 'formattedDate', 'formatted_date', 'date'], maxLength: 60 },
+      { key: 'assigned_on', aliases: ['assigned_on', 'assignedOn', 'assignedDate', 'formattedDate', 'formatted_date'], maxLength: 60 },
+      { key: 'reminder_remarks', aliases: ['reminder_remarks', 'remarks', 'note'], maxLength: 100 },
+      { key: 'dashboard_url', aliases: ['dashboard_url', 'dashboardUrl', 'url'], maxLength: 255 }
     ]
   },
 

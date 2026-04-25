@@ -11,7 +11,7 @@ import WhatsAppSession from '../models/WhatsAppSession';
 import CitizenProfile from '../models/CitizenProfile';
 import CompanyTemplateMapping from '../models/CompanyTemplateMapping';
 import { assertTemplateApproved, normalizeLanguage, sanitizeTemplateVariables, validateTemplateVariables } from './templateValidationService';
-import { buildTemplatePayload } from './whatsapp/payload.builder';
+import { buildTemplatePayload, TEMPLATE_DEFINITIONS } from './whatsapp/payload.builder';
 import { resolveTemplateAudience, resolveTemplateRecord, TemplateAudience } from './whatsapp/template.service';
 import { validateTemplate } from './whatsapp/validator.service';
 import { isWithin24Hours, parseWhatsAppApiError, sendTemplateRequest } from './whatsapp/whatsapp.service';
@@ -767,7 +767,13 @@ export async function sendWhatsAppTemplate(
           headerParam,
           buttonParam
         });
+      } else if (TEMPLATE_DEFINITIONS[templateName]) {
+        // ✅ PRIORITIZE CODE-BASED PAYLOAD BUILDER:
+        // For whitelisted whitelisted templates, use the logic defined in payload.builder.ts
+        // which uses whitelisted keys and aliases to find the real live values from the code.
+        components = buildTemplatePayload(templateName, parameters).components;
       } else {
+        // Fallback to database-managed mappings for custom/unknown templates
         const mappedComponents = await buildMappedComponentsFromSavedTemplateMapping({
           companyId,
           templateName,

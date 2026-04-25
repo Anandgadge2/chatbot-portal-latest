@@ -1,10 +1,11 @@
 const URL_REGEX = /(https?:\/\/|www\.)\S+/gi;
 const ABUSIVE_TERMS = [/\b(abuse|hate|kill|terror|bomb)\b/i];
 
-export const sanitizeText = (text: string = '', max = 80): string =>
-  text
-    ?.replace(URL_REGEX, '')
-    .replace(/[^a-zA-Z0-9 .,-]/g, '')
+export const sanitizeText = (text: string = '', max = 100): string =>
+  String(text || '')
+    .replace(URL_REGEX, '')
+    // Allow alphanumeric characters from all languages, plus common punctuation
+    .replace(/[^\p{L}\p{N} .,?!\-()]/gu, '')
     .substring(0, max)
     .trim();
 
@@ -38,9 +39,9 @@ export function sanitizeGrievanceDetails(text: string = ''): string {
 }
 
 export function sanitizeRemarks(text: string = ''): string {
-  return sanitizeText(text, 80);
+  return sanitizeText(text, 400);
 }
 
 export function sanitizeNote(text: string = ''): string {
-  return sanitizeText(text, 80);
+  return sanitizeText(text, 400);
 }
