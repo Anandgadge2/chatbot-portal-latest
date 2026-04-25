@@ -1,5 +1,9 @@
 import { sanitizeText } from '../../utils/sanitize';
-import { prepareSummaryText, truncateText } from '../../utils/truncateText';
+import {
+  GRIEVANCE_DESCRIPTION_CONTINUATION_TEXT,
+  prepareSummaryText,
+  truncateText
+} from '../../utils/truncateText';
 import { TemplateAudience } from './template.service';
 
 type TemplateInputData = Record<string, string | number | null | undefined>;
@@ -113,6 +117,12 @@ const TEMPLATE_DEFINITIONS: Record<string, TemplateDefinition> = {
 };
 
 const BODY_TOTAL_LIMIT = 1024;
+const SUMMARY_CONTINUATION_SUFFIX = `\n\n${GRIEVANCE_DESCRIPTION_CONTINUATION_TEXT}`;
+
+function removeSummaryContinuationSuffix(value: string): string {
+  if (!value.endsWith(SUMMARY_CONTINUATION_SUFFIX)) return value;
+  return value.slice(0, -SUMMARY_CONTINUATION_SUFFIX.length).trimEnd();
+}
 
 function resolveValue(data: TemplateInputData, spec: ParameterSpec): { value: string; alias: string } {
   for (const alias of spec.aliases) {
@@ -124,7 +134,11 @@ function resolveValue(data: TemplateInputData, spec: ParameterSpec): { value: st
 
     let normalized = sanitized;
     if (spec.mode === 'summary') {
-      normalized = prepareSummaryText(sanitized, Math.min(spec.maxLength || 400, 400));
+      normalized = prepareSummaryText(
+        sanitized,
+        Math.min(spec.maxLength || 400, 400),
+        GRIEVANCE_DESCRIPTION_CONTINUATION_TEXT
+      );
     } else {
       normalized = truncateText(sanitized, spec.maxLength || 100);
     }
@@ -155,7 +169,16 @@ function enforceBodyCharacterLimit(
     const reducible = currentValue.length - minLength;
     const reduceBy = Math.min(reducible, overflow);
     const targetLength = currentValue.length - reduceBy;
-    entries[index].value = truncateText(currentValue, targetLength);
+    if (entries[index].spec.mode === 'summary') {
+      const baseSummary = removeSummaryContinuationSuffix(currentValue);
+      entries[index].value = prepareSummaryText(
+        baseSummary,
+        targetLength,
+        GRIEVANCE_DESCRIPTION_CONTINUATION_TEXT
+      );
+    } else {
+      entries[index].value = truncateText(currentValue, targetLength);
+    }
     overflow -= reduceBy;
   };
 
@@ -165,7 +188,11 @@ function enforceBodyCharacterLimit(
     }
   });
 
-  entries.forEach((_entry, index) => {
+  entries.forEach((entry, index) => {
+    if (entry.spec.mode === 'summary') {
+      shrink(index, SUMMARY_CONTINUATION_SUFFIX.length + 20);
+      return;
+    }
     shrink(index, 20);
   });
 
@@ -173,7 +200,18 @@ function enforceBodyCharacterLimit(
   if (totalLength > BODY_TOTAL_LIMIT) {
     const finalOverflow = totalLength - BODY_TOTAL_LIMIT;
     const lastIndex = entries.length - 1;
-    entries[lastIndex].value = truncateText(entries[lastIndex].value, Math.max(1, entries[lastIndex].value.length - finalOverflow));
+    const lastEntry = entries[lastIndex];
+    const targetLength = Math.max(1, lastEntry.value.length - finalOverflow);
+    if (lastEntry.spec.mode === 'summary') {
+      const baseSummary = removeSummaryContinuationSuffix(lastEntry.value);
+      entries[lastIndex].value = prepareSummaryText(
+        baseSummary,
+        targetLength,
+        GRIEVANCE_DESCRIPTION_CONTINUATION_TEXT
+      );
+    } else {
+      entries[lastIndex].value = truncateText(lastEntry.value, targetLength);
+    }
   }
 
   return entries;

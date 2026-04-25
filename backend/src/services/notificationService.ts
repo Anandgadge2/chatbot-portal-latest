@@ -7,12 +7,12 @@ import CitizenProfile from '../models/CitizenProfile';
 import { sendEmail, getNotificationEmailContent, getNotificationWhatsAppMessage } from './emailService';
 import { sendWhatsAppMessage, sendWhatsAppMedia, sendWhatsAppTemplate } from './whatsappService';
 import { 
-  triggerAdminTemplate,
-  formatTemplateDate
+  triggerAdminTemplate
 } from './grievanceTemplateTriggerService';
 import { normalizePhoneNumber } from '../utils/phoneUtils';
 import { logger } from '../config/logger';
 import { UserRole } from '../config/constants';
+import { formatTemplateDateTime } from '../utils/templateDateTime';
 
 /**
  * Notification Service
@@ -261,22 +261,7 @@ async function populateNotificationData(data: NotificationData): Promise<Record<
     finalDept = await findDepartmentByIdOrCustomId(finalDept.parentDepartmentId);
   }
 
-  const formatFn = (d: Date) => {
-    try {
-      const formatter = new Intl.DateTimeFormat(locale, {
-        day: 'numeric', month: 'long', year: 'numeric',
-        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true,
-        timeZone: 'Asia/Kolkata'
-      });
-      const parts = formatter.formatToParts(d);
-      const p: Record<string, string> = {};
-      parts.forEach(part => { p[part.type] = part.value; });
-      const dayPeriod = (p.dayPeriod || p.ampm || '').toLowerCase();
-      return `${p.day} ${p.month} ${p.year} at ${p.hour}:${p.minute}:${p.second} ${dayPeriod}`.trim().replace(/\s+/g, ' ');
-    } catch (e) {
-      return d.toLocaleString(locale, { timeZone: 'Asia/Kolkata' });
-    }
-  };
+  const formatFn = (d: Date) => formatTemplateDateTime(d, locale);
 
   const createdAt = data.createdAt || new Date();
   const formattedDate = formatFn(new Date(createdAt));
@@ -1818,4 +1803,3 @@ export async function notifyCitizenOnAppointmentStatusChange(data: {
     logger.error('❌ notifyCitizenOnAppointmentStatusChange failed:', error);
   }
 }
-

@@ -9,36 +9,10 @@ import { buildCitizenMessage } from './citizenMessageBuilder';
 import { sanitizeGrievanceDetailsForTemplate, sanitizeNote, sanitizeRemarks, sanitizeText } from '../utils/sanitize';
 import { normalizeLanguage } from './templateValidationService';
 import { normalizePhoneNumber } from '../utils/phoneUtils';
+import { formatTemplateDateTime } from '../utils/templateDateTime';
 
 export function formatTemplateDate(date: Date = new Date()): string {
-  try {
-    const formatter = new Intl.DateTimeFormat('en-IN', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true,
-      timeZone: 'Asia/Kolkata'
-    });
-
-    const parts = formatter.formatToParts(date);
-    const p: Record<string, string> = {};
-    parts.forEach(part => { p[part.type] = part.value; });
-
-    const day = p.day;
-    const month = p.month;
-    const year = p.year;
-    const hour = p.hour;
-    const minute = p.minute;
-    const second = p.second;
-    const dayPeriod = (p.dayPeriod || p.ampm || '').toLowerCase();
-
-    return `${day} ${month} ${year} at ${hour}:${minute}:${second} ${dayPeriod}`;
-  } catch (e) {
-    return date.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
-  }
+  return formatTemplateDateTime(date, 'en-IN');
 }
 
 async function getCompanyWithConfig(companyId: any): Promise<any> {
@@ -129,7 +103,7 @@ export async function triggerAdminTemplate(options: {
           const normalizedKey = key.toLowerCase();
           const sanitizedValue =
             normalizedKey.includes('description') || normalizedKey.includes('grievance_details')
-              ? sanitizeGrievanceDetailsForTemplate(rawValue, 300)
+              ? sanitizeGrievanceDetailsForTemplate(rawValue, 1000)
               : sanitizeText(rawValue, 100);
           return [key, sanitizedValue];
         })
@@ -195,7 +169,7 @@ export async function triggerCitizenTemplate(options: {
           const normalizedKey = key.toLowerCase();
           const sanitizedValue =
             normalizedKey.includes('description') || normalizedKey.includes('grievance_details')
-              ? sanitizeGrievanceDetailsForTemplate(rawValue, 300)
+              ? sanitizeGrievanceDetailsForTemplate(rawValue, 1000)
               : sanitizeText(rawValue, 100);
           return [key, sanitizedValue];
         })

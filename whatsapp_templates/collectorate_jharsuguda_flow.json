@@ -361,14 +361,14 @@
       },
       "data": {
         "label": "Grievance Details (EN)",
-        "messageText": "✍️ *Grievance Details*\n\nPlease type a detailed description of your issue *(max 300 characters)*.\n\n*Suggestion:* Include dates, location and specific details for faster resolution.",
+        "messageText": "✍️ *Grievance Details*\n\nPlease type a detailed description of your issue *(max 1000 characters)*.\n\n*Suggestion:* Include dates, location and specific details for faster resolution.",
         "inputType": "text",
         "saveToField": "description",
         "validation": {
           "required": true,
           "minLength": 15,
-          "maxLength": 300,
-          "maxLengthMessage": "⚠️ Your grievance details are too long. Please keep it within 300 characters and send again."
+          "maxLength": 1000,
+          "maxLengthMessage": "⚠️ Your grievance details are too long. Please keep it within 1000 characters and send again."
         }
       }
     },
@@ -487,14 +487,14 @@
       },
       "data": {
         "label": "Grievance Details (HI)",
-        "messageText": "✍️ *शिकायत विवरण*\n\nकृपया अपनी समस्या का विस्तृत विवरण लिखें *(अधिकतम 300 अक्षर)*।\n\n*सुझाव:* तेजी से समाधान के लिए तारीखें, स्थान और विशिष्ट विवरण शामिल करें।",
+        "messageText": "✍️ *शिकायत विवरण*\n\nकृपया अपनी समस्या का विस्तृत विवरण लिखें *(अधिकतम 1000 अक्षर)*।\n\n*सुझाव:* तेजी से समाधान के लिए तारीखें, स्थान और विशिष्ट विवरण शामिल करें।",
         "inputType": "text",
         "saveToField": "description",
         "validation": {
           "required": true,
           "minLength": 15,
-          "maxLength": 300,
-          "maxLengthMessage": "⚠️ आपका शिकायत विवरण बहुत लंबा है। कृपया इसे 300 अक्षरों के भीतर रखें और फिर से भेजें।"
+          "maxLength": 1000,
+          "maxLengthMessage": "⚠️ आपका शिकायत विवरण बहुत लंबा है। कृपया इसे 1000 अक्षरों के भीतर रखें और फिर से भेजें।"
         }
       }
     },
@@ -613,14 +613,14 @@
       },
       "data": {
         "label": "Grievance Details (OR)",
-        "messageText": "✍ *ଅଭିଯୋଗ ବିବରଣୀ*\n\nଦୟାକରି ଆପଣଙ୍କ ସମସ୍ୟାର ବିସ୍ତୃତ ବିବରଣୀ ଟାଇପ୍ କରନ୍ତୁ *(ସର୍ବାଧିକ 300 ଅକ୍ଷର)*।\n\n*ପରାମର୍ଶ:* ଶୀଘ୍ର ସମାଧାନ ପାଇଁ ତାରିଖ, ସ୍ଥାନ ଏବଂ ନିର୍ଦ୍ଦିଷ୍ଟ ବିବରଣୀ ଅନ୍ତର୍ଭୁକ୍ତ କରନ୍ତୁ।",
+        "messageText": "✍ *ଅଭିଯୋଗ ବିବରଣୀ*\n\nଦୟାକରି ଆପଣଙ୍କ ସମସ୍ୟାର ବିସ୍ତୃତ ବିବରଣୀ ଟାଇପ୍ କରନ୍ତୁ *(ସର୍ବାଧିକ 1000 ଅକ୍ଷର)*।\n\n*ପରାମର୍ଶ:* ଶୀଘ୍ର ସମାଧାନ ପାଇଁ ତାରିଖ, ସ୍ଥାନ ଏବଂ ନିର୍ଦ୍ଦିଷ୍ଟ ବିବରଣୀ ଅନ୍ତର୍ଭୁକ୍ତ କରନ୍ତୁ।",
         "inputType": "text",
         "saveToField": "description",
         "validation": {
           "required": true,
           "minLength": 15,
-          "maxLength": 300,
-          "maxLengthMessage": "⚠️ ଆପଣଙ୍କ ଅଭିଯୋଗ ବିବରଣୀ ବହୁତ ଦୀର୍ଘ ଅଟେ। ଦୟାକରି 300 ଅକ୍ଷର ମଧ୍ୟରେ ରଖି ପୁନର୍ବାର ପଠାନ୍ତୁ।"
+          "maxLength": 1000,
+          "maxLengthMessage": "⚠️ ଆପଣଙ୍କ ଅଭିଯୋଗ ବିବରଣୀ ବହୁତ ଦୀର୍ଘ ଅଟେ। ଦୟାକରି 1000 ଅକ୍ଷର ମଧ୍ୟରେ ରଖି ପୁନର୍ବାର ପଠାନ୍ତୁ।"
         }
       }
     },

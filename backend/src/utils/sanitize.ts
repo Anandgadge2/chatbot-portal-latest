@@ -24,7 +24,7 @@ export function sanitizeGrievanceDetailsForStorage(text: string = ''): string {
   return redactAbusiveTerms(cleaned);
 }
 
-export function sanitizeGrievanceDetailsForTemplate(text: string = '', max = 300): string {
+export function sanitizeGrievanceDetailsForTemplate(text: string = '', max = 1000): string {
   const cleaned = sanitizeGrievanceDetailsForStorage(text)
     .replace(/\s+/g, ' ')
     .trim();
@@ -34,7 +34,7 @@ export function sanitizeGrievanceDetailsForTemplate(text: string = '', max = 300
 }
 
 export function sanitizeGrievanceDetails(text: string = ''): string {
-  return sanitizeGrievanceDetailsForTemplate(text, 300);
+  return sanitizeGrievanceDetailsForTemplate(text, 1000);
 }
 
 export function sanitizeRemarks(text: string = ''): string {
