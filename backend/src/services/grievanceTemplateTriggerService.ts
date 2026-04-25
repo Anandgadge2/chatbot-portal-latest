@@ -132,12 +132,13 @@ export async function triggerAdminTemplate(options: {
 }
 
 export async function triggerCitizenTemplate(options: {
-  template: 'grievance_submitted_citizen_v1' | 'grievance_status_citizen_v1';
+  template: 'grievance_status_citizen_v1';
   companyId: any;
   citizenPhone: string;
   language?: string;
   values?: string[];
   data?: Record<string, string>;
+  requireNotificationConsent?: boolean;
 }) {
   const normalizedPhone = normalizePhoneNumber(options.citizenPhone);
   const rawPhone = String(options.citizenPhone || '').trim();
@@ -155,8 +156,11 @@ export async function triggerCitizenTemplate(options: {
     citizenProfile?.notification_consent ?? citizenProfile?.notificationConsent
   );
 
-  if (options.template === 'grievance_status_citizen_v1' && !hasNotificationConsent) {
-    return;
+  if (options.requireNotificationConsent && !hasNotificationConsent) {
+    return {
+      success: false,
+      error: 'Citizen notification consent missing.'
+    };
   }
 
   const company = await getCompanyWithConfig(options.companyId);
@@ -175,7 +179,7 @@ export async function triggerCitizenTemplate(options: {
         })
       )
     : undefined;
-  await sendWhatsAppTemplate(company, normalizedPhone, options.template, safeData || safeValues, language, undefined, undefined, {
+  return sendWhatsAppTemplate(company, normalizedPhone, options.template, safeData || safeValues, language, undefined, undefined, {
     recipientType: 'CITIZEN'
   });
 }
@@ -202,7 +206,7 @@ export async function triggerCitizenStatusTemplate(options: {
   });
 
   // Use the unified grievance_status_citizen_v1 template for all status changes
-  await triggerCitizenTemplate({
+  const citizenTemplateResult = await triggerCitizenTemplate({
     template: 'grievance_status_citizen_v1',
     companyId: options.companyId,
     citizenPhone: options.citizenPhone,
@@ -211,14 +215,15 @@ export async function triggerCitizenStatusTemplate(options: {
       citizen_name: sanitizeText(options.citizenName, 60),
       grievance_id: sanitizeText(options.grievanceId, 30),
       department_name: sanitizeText(options.departmentName, 60),
-      sub_department_name: sanitizeText(options.subDepartmentName || 'N/A', 60),
-      status: sanitizeText(options.status, 30),
-      remarks: sanitizeNote(extraMessage)
-    }
+        sub_department_name: sanitizeText(options.subDepartmentName || 'N/A', 60),
+        status: sanitizeText(options.status, 30),
+        remarks: sanitizeNote(extraMessage)
+    },
+    requireNotificationConsent: true
   });
 
   // ✅ 2. Send Media Templates Sequentially (Template first, then media templates)
-  if (options.media && options.media.length > 0) {
+  if (citizenTemplateResult?.success && options.media && options.media.length > 0) {
     await sendMediaSequentially(
       await getCompanyWithConfig(options.companyId),
       options.citizenPhone,
@@ -242,7 +247,6 @@ export async function triggerGrievanceNotifications(options: {
   companyAdmins?: any[];
   media?: Array<{ url: string; type: 'image' | 'video' | 'document'; caption?: string; filename?: string }>;
 }) {
-  const isAssigned = (options.status !== 'PENDING' && options.status !== 'UNASSIGNED') && (options.assignedAdmins || []).length > 0;
   const safeDescription = sanitizeGrievanceDetailsForTemplate(options.description || 'N/A');
   const company = await getCompanyWithConfig(options.companyId);
   const formattedDate = formatTemplateDate();
@@ -258,8 +262,8 @@ export async function triggerGrievanceNotifications(options: {
   // (previously only admin templates were sent from this path).
   notifications.push(
     (async () => {
-      await triggerCitizenTemplate({
-        template: 'grievance_submitted_citizen_v1',
+      const citizenTemplateResult = await triggerCitizenTemplate({
+        template: 'grievance_status_citizen_v1',
         companyId: options.companyId,
         citizenPhone: options.citizenPhone,
         language: options.language,
@@ -268,111 +272,79 @@ export async function triggerGrievanceNotifications(options: {
           grievance_id: sanitizeText(options.grievanceId, 30),
           department_name: sanitizeText(options.category, 60),
           sub_department_name: sanitizeText(options.subDepartmentName || 'N/A', 60),
-          grievance_details: safeDescription,
-          submitted_on: formattedDate
-        }
+          status: 'SUBMITTED',
+          remarks: sanitizeNote(`Your grievance has been submitted on ${formattedDate}.`)
+        },
+        requireNotificationConsent: false
       });
 
-      if (attachments.length > 0) {
+      if (citizenTemplateResult?.success && attachments.length > 0) {
         await sendMediaSequentially(company, options.citizenPhone, attachments, options.citizenName);
       }
     })()
   );
 
-  if (isAssigned) {
-    // 1. Send 'received' template to specifically assigned admins
-      const assignedRecipients = Array.from(
-        new Map(
-          (options.assignedAdmins || [])
-            .map((admin: any) => {
-              const normalizedPhone = normalizePhoneNumber(admin?.phone);
-              if (!normalizedPhone) return null;
-              if (normalizedPhone === normalizePhoneNumber(options.citizenPhone)) return null;
-              const resolvedName =
-                (typeof admin?.getFullName === 'function' ? admin.getFullName() : `${admin?.firstName || ''} ${admin?.lastName || ''}`.trim()) ||
-                admin?.name ||
-                'Administrator';
-              return [normalizedPhone, { phone: normalizedPhone, name: resolvedName }];
-            })
-            .filter(Boolean) as Array<[string, { phone: string; name: string }]>
-        ).values()
-      );
+  const adminRecipients = Array.from(
+    new Map(
+      (options.assignedAdmins || [])
+        .map((admin: any) => {
+          const normalizedPhone = normalizePhoneNumber(admin?.phone);
+          if (!normalizedPhone) return null;
+          if (normalizedPhone === normalizePhoneNumber(options.citizenPhone)) return null;
+          const resolvedName =
+            (typeof admin?.getFullName === 'function' ? admin.getFullName() : `${admin?.firstName || ''} ${admin?.lastName || ''}`.trim()) ||
+            admin?.name ||
+            'Administrator';
+          return [normalizedPhone, { phone: normalizedPhone, name: resolvedName }];
+        })
+        .filter(Boolean) as Array<[string, { phone: string; name: string }]>
+    ).values()
+  );
 
-      if (assignedRecipients.length > 0) {
-        notifications.push(
-          ...assignedRecipients.map(async (recipient: { phone: string; name: string }) =>
-            sendGrievanceToAdmin(
-              recipient.phone,
-              {
-                adminName: recipient.name,
-                referenceId: sanitizeText(options.grievanceId, 30),
-                citizenName: sanitizeText(options.citizenName, 60),
-                department: sanitizeText(options.category, 60),
-                office: sanitizeText(options.subDepartmentName || 'N/A', 60),
-                description: safeDescription,
-                createdAt: formattedDate
-              },
-              attachments,
-              company
-            )
-          )
-        );
-      } else {
-      // Defensive fallback: grievance is assigned but target admin users have no valid phones.
-      // Send the pending template to company admins so the grievance is still visible.
-        const fallbackPhones = await getAdminRecipients(options.companyId);
-        notifications.push(
-          ...fallbackPhones.map(async (to) =>
-            sendTemplateAndAttachments({
-              recipientPhone: to,
-              templateName: 'grievance_pending_admin_v1',
-              bodyParameters: [
-                { type: 'text', text: 'Administrator' },
-                { type: 'text', text: sanitizeText(options.grievanceId, 30) },
-                { type: 'text', text: sanitizeText(options.citizenName, 60) },
-                { type: 'text', text: sanitizeText(options.category, 60) },
-                { type: 'text', text: sanitizeText(options.subDepartmentName || 'N/A', 60) },
-                { type: 'text', text: safeDescription },
-                { type: 'text', text: formattedDate }
-              ],
-              attachments,
-              company,
-              grievanceId: options.grievanceId
-            })
-          )
-        );
-      }
+  if (adminRecipients.length > 0) {
+    notifications.push(
+      ...adminRecipients.map(async (recipient: { phone: string; name: string }) =>
+        sendGrievanceToAdmin(
+          recipient.phone,
+          {
+            adminName: recipient.name,
+            referenceId: sanitizeText(options.grievanceId, 30),
+            citizenName: sanitizeText(options.citizenName, 60),
+            department: sanitizeText(options.category, 60),
+            office: sanitizeText(options.subDepartmentName || 'N/A', 60),
+            description: safeDescription,
+            createdAt: formattedDate
+          },
+          attachments,
+          company
+        )
+      )
+    );
   } else {
-    // 2. Send 'pending' template only to selected department admins (no company-wide fallback).
-    const departmentAdminPhones = Array.from(new Set((options.assignedAdmins || [])
-      .map(a => a.phone)
-      .filter(Boolean)
-      .map((phone) => normalizePhoneNumber(phone))
-      .filter((phone) => phone !== normalizePhoneNumber(options.citizenPhone))
-      .filter(Boolean)));
-
-      if (departmentAdminPhones.length > 0) {
-        notifications.push(
-          ...departmentAdminPhones.map(async (to) =>
-            sendTemplateAndAttachments({
-              recipientPhone: to,
-              templateName: 'grievance_pending_admin_v1',
-              bodyParameters: [
-                { type: 'text', text: 'Administrator' },
-                { type: 'text', text: sanitizeText(options.grievanceId, 30) },
-                { type: 'text', text: sanitizeText(options.citizenName, 60) },
-                { type: 'text', text: sanitizeText(options.category, 60) },
-                { type: 'text', text: sanitizeText(options.subDepartmentName || 'N/A', 60) },
-                { type: 'text', text: safeDescription },
-                { type: 'text', text: formattedDate }
-              ],
-              attachments,
-              company,
-              grievanceId: options.grievanceId
-            })
-          )
-        );
-      }
+    const fallbackAdminPhones = await getAdminRecipients(options.companyId);
+    if (fallbackAdminPhones.length > 0) {
+      notifications.push(
+        ...fallbackAdminPhones.map(async (recipientPhone) =>
+          sendTemplateAndAttachments({
+            recipientPhone,
+            recipientName: 'Administrator',
+            templateName: 'grievance_pending_admin_v1',
+            bodyParameters: [
+              { type: 'text', text: 'Administrator' },
+              { type: 'text', text: sanitizeText(options.grievanceId, 30) },
+              { type: 'text', text: sanitizeText(options.citizenName, 60) },
+              { type: 'text', text: sanitizeText(options.category, 60) },
+              { type: 'text', text: sanitizeText(options.subDepartmentName || 'N/A', 60) },
+              { type: 'text', text: safeDescription },
+              { type: 'text', text: formattedDate }
+            ],
+            attachments,
+            company,
+            grievanceId: options.grievanceId
+          })
+        )
+      );
+    }
   }
 
   const settled = await Promise.allSettled(notifications);

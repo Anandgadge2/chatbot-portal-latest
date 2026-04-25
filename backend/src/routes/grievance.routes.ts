@@ -298,7 +298,7 @@ router.post('/', enforceWhatsAppGrievanceCompliance, async (req: Request, res: R
             }
           })
         : triggerAdminTemplate({
-            event: 'grievance_pending_admin_v1',
+            event: 'grievance_received_admin_v1',
             companyId,
             language: grievance.language,
             citizenPhone: grievance.citizenPhone,
@@ -309,7 +309,7 @@ router.post('/', enforceWhatsAppGrievanceCompliance, async (req: Request, res: R
               department_name: grievance.category || 'Collector & DM',
               office_name: 'N/A',
               description: safeDescription,
-              submitted_on: formatTemplateDate()
+              received_on: formatTemplateDate()
             }
           }),
     ]);

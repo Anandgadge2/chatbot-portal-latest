@@ -38,8 +38,8 @@ export const META_GRIEVANCE_CMD_BACK = 'cmd_back';
 export const META_GRIEVANCE_CMD_HELP = 'cmd_help';
 
 export const META_GRIEVANCE_CMD_RESPONSES: Record<string, string> = {
-  [META_GRIEVANCE_CMD_STOP]: "🛑 Conversation ended. Thank you for using our service. You can type 'hi' at any time to start again.",
-  [META_GRIEVANCE_CMD_RESTART]: "🔄 Restarting the conversation... please wait.",
-  [META_GRIEVANCE_CMD_MENU]: "🏠 Returning to the main menu.",
-  [META_GRIEVANCE_CMD_BACK]: "🔙 Going back to the previous step."
+  [META_GRIEVANCE_CMD_STOP]: "ðŸ›‘ Conversation ended. Thank you for using our service. You can type 'hi' at any time to start again.",
+  [META_GRIEVANCE_CMD_RESTART]: "ðŸ”„ Restarting the conversation... please wait.",
+  [META_GRIEVANCE_CMD_MENU]: "ðŸ  Returning to the main menu.",
+  [META_GRIEVANCE_CMD_BACK]: "ðŸ”™ Going back to the previous step."
 };

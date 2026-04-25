@@ -274,9 +274,11 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
       try {
         const { 
           notifyCitizenOnResolution, 
-          notifyHierarchyOnStatusChange, 
-          notifyCitizenOnGrievanceStatusChange 
+          notifyHierarchyOnStatusChange
         } = await import('../services/notificationService');
+        const {
+          triggerCitizenStatusTemplate
+        } = await import('../services/grievanceTemplateTriggerService');
 
         const resolvedCompanyId = (grievance.companyId as any)?._id || grievance.companyId;
         const resolvedDeptId = (grievance.departmentId as any)?._id || grievance.departmentId;
@@ -332,20 +334,30 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
         
         // 3. Notify citizen for other status changes
         if (oldStatus !== status && [GrievanceStatus.ASSIGNED, GrievanceStatus.IN_PROGRESS, GrievanceStatus.REJECTED, GrievanceStatus.PENDING, GrievanceStatus.REVERTED].includes(status as any)) {
-          notificationTasks.push(notifyCitizenOnGrievanceStatusChange({
-            companyId: resolvedCompanyId,
-            grievanceId: grievance.grievanceId,
-            citizenName: grievance.citizenName,
-            citizenPhone: grievance.citizenPhone,
-            citizenWhatsApp: grievance.citizenWhatsApp,
-            language: grievance.language,
-            departmentId: resolvedDeptId,
-            subDepartmentId: resolvedSubDeptId,
-            departmentName,
-            newStatus: status,
-            remarks: remarks || undefined,
-            evidenceUrls: uploadedDocumentUrls,
-          }));
+          notificationTasks.push(
+            triggerCitizenStatusTemplate({
+              companyId: resolvedCompanyId,
+              grievanceId: grievance.grievanceId,
+              citizenName: grievance.citizenName,
+              citizenPhone: grievance.citizenPhone,
+              language: grievance.language,
+              departmentName,
+              subDepartmentName: (grievance.subDepartmentId as any)?.name || 'N/A',
+              status,
+              remarks: remarks || undefined,
+              resolvedByName: currentUser.getFullName(),
+              formattedResolvedDate: new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }),
+              media: uploadedDocumentUrls.map((url: string) => {
+                const normalized = String(url || '').toLowerCase();
+                const type = normalized.match(/\.(jpg|jpeg|png|webp)(\?.*)?$/)
+                  ? 'image'
+                  : normalized.match(/\.(mp4|mov|avi)(\?.*)?$/)
+                    ? 'video'
+                    : 'document';
+                return { url, type: type as 'image' | 'video' | 'document' };
+              })
+            })
+          );
         }
 
         await Promise.allSettled(notificationTasks);
