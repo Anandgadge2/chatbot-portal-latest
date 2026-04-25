@@ -511,6 +511,7 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
       language: grievance.language,
       revertedByName: currentUser.getFullName(),
       remarks: remarks.trim(),
+      submittedOn: grievance.createdAt,
       originalDepartmentName: previousDepartmentName,
       originalOfficeName: previousSubDepartmentName,
       media: (grievance.media || []).map((file: any) => ({
@@ -1022,6 +1023,8 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
           assignedByName: req.user!.getFullName(),
           reassignedByName: req.user!.getFullName(),
           remarks: transferNote || 'Assigned for resolution.',
+          submittedOn: grievance.createdAt,
+          reassignedOn: new Date(),
           originalDepartmentName: originalDepartmentName,
           originalOfficeName: originalOfficeName,
           media: (grievance.media || []).map((file: any) => ({

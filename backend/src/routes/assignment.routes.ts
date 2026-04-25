@@ -221,6 +221,8 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
       assignedByName: currentUser.getFullName(),
       reassignedByName: currentUser.getFullName(),
       remarks: (req.body as any).remarks || (req.body as any).reason || 'Administrative Reassignment',
+      submittedOn: grievance.createdAt,
+      reassignedOn: new Date(),
       originalDepartmentName: grievance.category || 'Collector & DM',
       originalOfficeName: (await (await import('../models/Department')).default.findById(assignedUser.departmentId))?.name || 'N/A',
       media: (grievance.media || []).map((file: any) => ({

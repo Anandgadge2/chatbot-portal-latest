@@ -111,7 +111,25 @@ export default function GrievancesPage() {
   };
 
   const isJharsugudaCompany = companyId === JHARSUGUDA_COMPANY_ID;
-  const isCompanyAdminUser = isCompanyAdminOrHigher(user) && !user?.departmentId;
+  const roleName = (user?.role || "").toString().toLowerCase();
+  const explicitLevel =
+    typeof (user as any)?.level === "number"
+      ? ((user as any).level as number)
+      : undefined;
+  const resolvedRoleLevel = user?.isSuperAdmin
+    ? 0
+    : explicitLevel !== undefined
+      ? explicitLevel
+      : roleName.includes("company")
+        ? 1
+        : roleName.includes("department") && !roleName.includes("sub")
+          ? 2
+          : roleName.includes("sub") && roleName.includes("department")
+            ? 3
+            : roleName.includes("operator")
+              ? 4
+              : 5;
+  const isCompanyAdminUser = resolvedRoleLevel === 1;
 
   // Helper function to check if grievance is overdue
   const isOverdue = (grievance: Grievance) => {
