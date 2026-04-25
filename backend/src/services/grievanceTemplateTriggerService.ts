@@ -258,32 +258,6 @@ export async function triggerGrievanceNotifications(options: {
   }));
   const notifications: Promise<void>[] = [];
 
-  // Citizen submission acknowledgement template + media templates
-  // (previously only admin templates were sent from this path).
-  notifications.push(
-    (async () => {
-      const citizenTemplateResult = await triggerCitizenTemplate({
-        template: 'grievance_status_citizen_v1',
-        companyId: options.companyId,
-        citizenPhone: options.citizenPhone,
-        language: options.language,
-        data: {
-          citizen_name: sanitizeText(options.citizenName, 60),
-          grievance_id: sanitizeText(options.grievanceId, 30),
-          department_name: sanitizeText(options.category, 60),
-          sub_department_name: sanitizeText(options.subDepartmentName || 'N/A', 60),
-          status: 'SUBMITTED',
-          remarks: sanitizeNote(`Your grievance has been submitted on ${formattedDate}.`)
-        },
-        requireNotificationConsent: false
-      });
-
-      if (citizenTemplateResult?.success && attachments.length > 0) {
-        await sendMediaSequentially(company, options.citizenPhone, attachments, options.citizenName);
-      }
-    })()
-  );
-
   const adminRecipients = Array.from(
     new Map(
       (options.assignedAdmins || [])

@@ -5,7 +5,7 @@ import { resolveTemplateAudience, resolveTemplateRecord } from './whatsapp/templ
 export function normalizeLanguage(language?: string): string {
   const value = String(language || DEFAULT_TEMPLATE_LANGUAGE).trim().toLowerCase().replace('-', '_');
   const map: Record<string, string> = {
-    en: 'en',
+    en: 'en_US',
     en_us: 'en_US',
     hi: 'hi_IN',
     hi_in: 'hi_IN',
