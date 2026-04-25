@@ -126,7 +126,8 @@ export const TEMPLATE_DEFINITIONS: Record<string, TemplateDefinition> = {
       { key: 'department_name', aliases: ['department_name', 'departmentName'], maxLength: 60 },
       { key: 'sub_department_name', aliases: ['sub_department_name', 'subDepartmentName'], maxLength: 60 },
       { key: 'grievance_summary', aliases: ['grievance_summary', 'grievanceSummary', 'description', 'grievance_details', 'grievanceDetails'], maxLength: 400, mode: 'summary' },
-      { key: 'dynamic_message', aliases: ['dynamic_message', 'dynamicMessage', 'remarks', 'message', 'extra_message', 'extraMessage', 'status', 'newStatus'], maxLength: 100 }
+      { key: 'dynamic_message', aliases: ['dynamic_message', 'dynamicMessage', 'remarks', 'message', 'extra_message', 'extraMessage', 'status', 'newStatus'], maxLength: 100 },
+      { key: 'updated_on', aliases: ['updated_on', 'updatedOn', 'status_updated_on', 'statusUpdatedOn', 'formattedStatusDate', 'formatted_status_date', 'formattedResolvedDate', 'formatted_resolved_date', 'formattedDate', 'formatted_date', 'date'], maxLength: 60 }
     ]
   }
 };
