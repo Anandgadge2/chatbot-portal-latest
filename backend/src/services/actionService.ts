@@ -38,6 +38,35 @@ interface CreateActionOptions {
  * appointments, and leads. Keeps DynamicFlowEngine lean.
  */
 export class ActionService {
+  private static resolveCitizenName(sessionData: Record<string, any>, citizenProfile?: any): string {
+    const nameCandidates = [
+      sessionData?.citizenName,
+      sessionData?.citizen_name,
+      sessionData?.name,
+      sessionData?.fullName,
+      sessionData?.full_name,
+      sessionData?.applicantName,
+      sessionData?.applicant_name,
+      sessionData?.complainantName,
+      sessionData?.complainant_name,
+      sessionData?.userName,
+      sessionData?.user_name,
+      sessionData?.fullData?.citizenName,
+      sessionData?.fullData?.citizen_name,
+      sessionData?.fullData?.name,
+      sessionData?.fullData?.fullName,
+      citizenProfile?.name,
+    ];
+
+    for (const candidate of nameCandidates) {
+      if (typeof candidate !== 'string') continue;
+      const trimmed = candidate.trim();
+      if (trimmed) return trimmed;
+    }
+
+    return 'WhatsApp User';
+  }
+
   private static resolveGrievanceDescription(sessionData: Record<string, any>): string {
     const descriptionCandidates = [
       sessionData?.description,
@@ -109,6 +138,14 @@ export class ActionService {
       
       if (!hasConsent && !session?.data?.flowId) {
         throw new Error('Citizen consent is required before grievance creation');
+      }
+
+      const citizenName = ActionService.resolveCitizenName(session.data, citizenProfile);
+      if (!session.data.citizenName || !String(session.data.citizenName).trim()) {
+        session.data.citizenName = citizenName;
+        logger.warn(
+          `⚠️ Missing citizenName in grievance session. Applied fallback "${citizenName}". Phone: ${userPhone}, Flow: ${session?.data?.flowId || 'unknown'}`
+        );
       }
 
       await enforceDailyLimitOrThrow({
@@ -188,7 +225,7 @@ export class ActionService {
         companyId: company._id,
         departmentId: departmentId || undefined,
         subDepartmentId: subDepartmentId || undefined,
-        citizenName: session.data.citizenName,
+        citizenName,
         citizenPhone: userPhone,
         phone_number: userPhone,
         citizenWhatsApp: userPhone,
@@ -262,7 +299,7 @@ export class ActionService {
           $set: {
             lastGrievanceDate: new Date(),
             phoneNumber: userPhone,
-            name: session.data.citizenName || '',
+            name: citizenName,
             citizen_consent: true,
             consentGiven: true,
             citizen_consent_timestamp: new Date(),
@@ -357,7 +394,7 @@ export class ActionService {
       logger.info(`🔍 [ActionService] Creating Grievance ${grievance.grievanceId}. Session Desc: "${session.data.description || ''}", Flow Prop: "${session.data.grievance_description || ''}"`);
       const notificationData = {
         grievanceId: grievance.grievanceId,
-        citizenName: session.data.citizenName,
+        citizenName,
         citizenPhone: userPhone,
         citizenWhatsApp: userPhone,
         language: session.language || 'en',
@@ -406,7 +443,7 @@ export class ActionService {
         triggerGrievanceNotifications({
           companyId: company._id,
           grievanceId: grievance.grievanceId,
-          citizenName: session.data.citizenName || '',
+          citizenName,
           citizenPhone: userPhone,
           category: session.data.category || 'General',
           subDepartmentName: session.data.subDepartmentName || 'N/A',

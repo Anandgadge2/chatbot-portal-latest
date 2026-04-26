@@ -13,43 +13,25 @@ export function buildCitizenMessage({
 }): string {
 
   const safeRemark = sanitizeText(remarks || '', 400);
-  const safeResolvedBy = sanitizeText(resolvedByName || '', 60);
-  const safeResolvedDate = sanitizeText(formattedResolvedDate || '', 60);
+  const safeAdminName = sanitizeText(resolvedByName || '', 60);
+  const safeDate = sanitizeText(formattedResolvedDate || '', 60);
 
-  // ✅ RESOLVED
-  if (status === 'RESOLVED') {
-    return [
-      `Resolved By: ${safeResolvedBy || 'N/A'}`,
-      `Resolved On: ${safeResolvedDate || 'N/A'}`,
-      `Thank you for your patience.`
-    ].join('\n');
-  }
+  // Mapping internal status to display text
+  const statusDisplay: Record<string, string> = {
+    'RESOLVED': 'Resolved',
+    'REJECTED': 'Rejected',
+    'IN_PROGRESS': 'In Progress',
+    'ASSIGNED': 'Assigned'
+  };
 
-  // ✅ REJECTED
-  if (status === 'REJECTED') {
-    return [
-      `Status Update: Grievance has been rejected.`,
-      safeRemark ? `Note: ${safeRemark}` : null
-    ]
-      .filter(Boolean)
-      .join('\n');
-  }
+  const currentStatusLabel = statusDisplay[status] || status;
+  const actionLabel = currentStatusLabel;
 
-  // ✅ IN PROGRESS (FIXED)
-  if (status === 'IN_PROGRESS') {
-    return [
-      `Status Update: Your grievance is under review.`,
-      safeRemark ? `Latest Update: ${safeRemark}` : null,
-      `We will notify you once action is completed.`
-    ]
-      .filter(Boolean)
-      .join('\n');
-  }
-
-  // ✅ FALLBACK (SAFE DEFAULT)
   return [
-    `Status Update: Your grievance is being processed.`,
-    safeRemark ? `Update: ${safeRemark}` : null
+    `Status: ${currentStatusLabel}`,
+    `${actionLabel} By: ${safeAdminName || 'N/A'}`,
+    `${actionLabel} On: ${safeDate || 'N/A'}`,
+    safeRemark ? `Note: ${safeRemark}` : null
   ]
     .filter(Boolean)
     .join('\n');
