@@ -12,7 +12,6 @@ const ProcessedWhatsAppMessageSchema = new Schema<IProcessedWhatsAppMessage>(
       type: String,
       required: true,
       unique: true,
-      index: true,
       trim: true
     },
     processedAt: {
@@ -31,8 +30,6 @@ const ProcessedWhatsAppMessageSchema = new Schema<IProcessedWhatsAppMessage>(
     versionKey: false
   }
 );
-
-ProcessedWhatsAppMessageSchema.index({ messageId: 1 }, { unique: true });
 
 export default mongoose.models.ProcessedWhatsAppMessage ||
   mongoose.model<IProcessedWhatsAppMessage>('ProcessedWhatsAppMessage', ProcessedWhatsAppMessageSchema);
