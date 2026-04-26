@@ -1,5 +1,5 @@
 import { buildCitizenMessage } from '../services/citizenMessageBuilder';
-import { sanitizeText, sanitizeGrievanceDetails } from '../utils/sanitize';
+import { sanitizeText, sanitizeGrievanceDetails, sanitizeNote } from '../utils/sanitize';
 import { validateTemplateVariables } from '../services/templateValidationService';
 import { buildTemplatePayload } from '../services/whatsapp/payload.builder';
 
@@ -18,12 +18,31 @@ describe('template safety and builder', () => {
     const msg = buildCitizenMessage({
       status: 'RESOLVED',
       resolvedByName: 'Officer One',
-      formattedResolvedDate: '16-04-2026',
+      formattedResolvedDate: '26 April 2026 at 11:43:20 pm',
       remarks: 'done'
     });
     expect(msg).toContain('Resolved By: Officer One');
-    expect(msg).toContain('Resolved On: 16-04-2026');
+    expect(msg).toContain('Resolved On: 26 April 2026 at 11:43:20 pm');
     expect(msg).not.toContain('Status: Resolved');
+  });
+
+
+  it('preserves separators and spacing in dynamic status note blocks', () => {
+    const note = sanitizeNote('Resolved By: ANAND Gadge\n\nResolved On: 26 April 2026 at 11:43:20 pm\n\nNote: rrrrrrrr');
+    expect(note).toBe('Resolved By: ANAND Gadge\n\nResolved On: 26 April 2026 at 11:43:20 pm\n\nNote: rrrrrrrr');
+  });
+
+
+  it('uses a live formatted timestamp when no status date is provided', () => {
+    const msg = buildCitizenMessage({
+      status: 'IN_PROGRESS',
+      resolvedByName: 'Officer One',
+      remarks: 'working'
+    });
+
+    expect(msg).toContain('In Progress By: Officer One');
+    expect(msg).toMatch(/In Progress On: .* at \d{2}:\d{2}:\d{2} (am|pm)/i);
+    expect(msg).not.toContain('In Progress On: N/A');
   });
 
   it('fails when template variables are missing', () => {
