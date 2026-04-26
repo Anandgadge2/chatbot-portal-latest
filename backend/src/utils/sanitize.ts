@@ -43,5 +43,11 @@ export function sanitizeRemarks(text: string = ''): string {
 }
 
 export function sanitizeNote(text: string = ''): string {
-  return sanitizeText(text, 400);
+  return String(text || '')
+    .replace(URL_REGEX, '')
+    .replace(/[^\p{L}\p{N} .,?!:\-()\n]/gu, '')
+    .replace(/\r\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .substring(0, 400)
+    .trim();
 }
