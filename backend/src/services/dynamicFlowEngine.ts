@@ -22,6 +22,7 @@ import {
 } from "./sessionService";
 import { uploadWhatsAppMediaToCloudinary } from "./mediaService";
 import { ActionService } from "./actionService";
+import { checkDailyLimit } from "./grievanceRateLimitService";
 import { findDepartmentByCategory } from "./departmentMapper";
 import {
   GrievanceStatus,
@@ -340,6 +341,22 @@ function ui(key: string, lang: string, flow?: IChatbotFlow | null): string {
   const translations = UI_STRINGS[key];
   if (!translations) return key;
   return translations[lang] || translations["en"] || key;
+}
+
+function getSubmissionLimitReachedMessage(): string {
+  return [
+    "⚠️ *Submission Limit Reached*",
+    "",
+    "Citizen can submit up to 3 grievances per day (IST). You have reached the daily submission limit. Please try again tomorrow.",
+    "",
+    "⚠️ *सबमिशन सीमा पूरी हो गई*",
+    "",
+    "नागरिक प्रतिदिन (IST) अधिकतम 3 शिकायतें दर्ज कर सकते हैं। आपने आज की दैनिक सीमा पूरी कर ली है। कृपया कल फिर प्रयास करें।",
+    "",
+    "⚠️ *ଦାଖଲ ସୀମା ପୂର୍ଣ୍ଣ ହୋଇଛି*",
+    "",
+    "ନାଗରିକ ପ୍ରତିଦିନ (IST) ସର୍ବାଧିକ 3ଟି ଅଭିଯୋଗ ଦାଖଲ କରିପାରିବେ। ଆପଣ ଆଜିର ଦୈନିକ ସୀମାକୁ ପହଞ୍ଚିଛନ୍ତି। ଦୟାକରି ଆସନ୍ତାକାଲି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।",
+  ].join("\n");
 }
 
 /**
@@ -2425,7 +2442,7 @@ export class DynamicFlowEngine {
           } catch (error: any) {
             if (error.code === "LIMIT_EXCEEDED") {
               console.warn(`⚠️ Grievance submission limit reached for ${this.userPhone}: ${error.message}`);
-              await sendWhatsAppMessage(this.company, this.userPhone, `⚠️ *Submission Limit Reached*\n\n${error.message}`);
+              await sendWhatsAppMessage(this.company, this.userPhone, getSubmissionLimitReachedMessage());
               return;
             }
             console.error(`❌ Error creating grievance:`, error);
@@ -2450,7 +2467,7 @@ export class DynamicFlowEngine {
           } catch (error: any) {
             console.error(`❌ Error creating appointment:`, error);
             if (error.code === "LIMIT_EXCEEDED") {
-              await sendWhatsAppMessage(this.company, this.userPhone, `⚠️ *Submission Limit Reached*\n\n${error.message}`);
+              await sendWhatsAppMessage(this.company, this.userPhone, getSubmissionLimitReachedMessage());
               return;
             }
             throw error;
@@ -2574,7 +2591,7 @@ export class DynamicFlowEngine {
         } catch (error: any) {
           if (error.code === "LIMIT_EXCEEDED") {
             console.warn(`⚠️ Grievance submission limit reached for ${this.userPhone}: ${error.message}`);
-            await sendWhatsAppMessage(this.company, this.userPhone, `⚠️ *Submission Limit Reached*\n\n${error.message}`);
+            await sendWhatsAppMessage(this.company, this.userPhone, getSubmissionLimitReachedMessage());
             return;
           }
           console.error(`❌ Error creating grievance (mapped):`, error);
@@ -2594,7 +2611,7 @@ export class DynamicFlowEngine {
         } catch (error: any) {
           console.error(`❌ Error creating appointment (mapped):`, error);
           if (error.code === "LIMIT_EXCEEDED") {
-            await sendWhatsAppMessage(this.company, this.userPhone, `⚠️ *Submission Limit Reached*\n\n${error.message}`);
+            await sendWhatsAppMessage(this.company, this.userPhone, getSubmissionLimitReachedMessage());
             return;
           }
           throw error;
@@ -2672,7 +2689,7 @@ export class DynamicFlowEngine {
         } catch (error: any) {
           if (error.code === "LIMIT_EXCEEDED") {
             console.warn(`⚠️ Grievance submission limit reached for ${this.userPhone}: ${error.message}`);
-            await sendWhatsAppMessage(this.company, this.userPhone, `⚠️ *Submission Limit Reached*\n\n${error.message}`);
+            await sendWhatsAppMessage(this.company, this.userPhone, getSubmissionLimitReachedMessage());
             return;
           }
           console.error(`❌ Error creating grievance (default path):`, error);
@@ -2702,7 +2719,7 @@ export class DynamicFlowEngine {
           } catch (error: any) {
             console.error(`❌ Error creating appointment (default path):`, error);
             if (error.code === "LIMIT_EXCEEDED") {
-              await sendWhatsAppMessage(this.company, this.userPhone, `⚠️ *Submission Limit Reached*\n\n${error.message}`);
+              await sendWhatsAppMessage(this.company, this.userPhone, getSubmissionLimitReachedMessage());
               return;
             }
             throw error;
@@ -3474,7 +3491,7 @@ export async function processWhatsAppMessage(
       console.log(`⏭️ Ignoring stale greeting from ${from} to prevent unintended flow restart`);
       return;
     }
-    await handleGreeting(from, companyId, 'hi', company, message);
+    await handleGreeting(from, companyId, 'hi', company, message, session);
     return;
   }
 
@@ -3580,15 +3597,24 @@ async function handleGreeting(
   trigger: string,
   company: any,
   message: ChatbotMessage,
+  session: UserSession,
 ): Promise<void> {
   console.log(`🔄 Greeting received: "${trigger}" → restarting flow`);
+  const dailyLimit = await checkDailyLimit({
+    companyId: company._id,
+    phone_number: from,
+  });
+  if (!dailyLimit.allowed) {
+    console.warn(`⚠️ Blocking flow start due to daily grievance limit for ${from}`);
+    await sendWhatsAppMessage(company, from, getSubmissionLimitReachedMessage());
+    return;
+  }
 
   const flow = await loadFlowForTrigger(companyId, trigger);
   if (!flow || !flow.isActive) {
     // Try the generic "hi" trigger as fallback
     const fallback = await loadFlowForTrigger(companyId, "hi");
     if (!fallback || !fallback.isActive) {
-      const session = await getSession(from, companyId);
       await sendWhatsAppMessage(
         company,
         from,

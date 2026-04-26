@@ -219,20 +219,29 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
       if (!Array.isArray(grievance.media)) {
         grievance.media = [] as any;
       }
-      for (const file of uploadedFiles) {
-        const cloudUrl = await uploadBufferToCloudinary(
-          file,
-          String(grievance.companyId._id || grievance.companyId),
-        );
-        if (cloudUrl) {
-          uploadedDocumentUrls.push(cloudUrl);
-          grievance.media.push({
-            url: cloudUrl,
-            type: file.mimetype.startsWith('image/') ? 'image' : 'document',
-            uploadedAt: new Date(),
-            uploadedBy: currentUser._id
-          } as any);
-        }
+      const uploadResults = await Promise.all(
+        uploadedFiles.map(async (file) => {
+          const cloudUrl = await uploadBufferToCloudinary(
+            file,
+            String(grievance.companyId._id || grievance.companyId),
+          );
+          if (!cloudUrl) return null;
+          return {
+            cloudUrl,
+            mediaEntry: {
+              url: cloudUrl,
+              type: file.mimetype.startsWith('image/') ? 'image' : 'document',
+              uploadedAt: new Date(),
+              uploadedBy: currentUser._id
+            } as any
+          };
+        })
+      );
+
+      for (const result of uploadResults) {
+        if (!result) continue;
+        uploadedDocumentUrls.push(result.cloudUrl);
+        grievance.media.push(result.mediaEntry);
       }
     }
 
@@ -273,7 +282,6 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
     (async () => {
       try {
         const { 
-          notifyCitizenOnResolution, 
           notifyHierarchyOnStatusChange
         } = await import('../services/notificationService');
         const {
@@ -287,30 +295,7 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
 
         const notificationTasks: Promise<any>[] = [];
 
-        // 1. Notify citizen if status changed to RESOLVED
-        if (oldStatus !== GrievanceStatus.RESOLVED && status === GrievanceStatus.RESOLVED) {
-          notificationTasks.push(notifyCitizenOnResolution({
-            type: 'grievance',
-            action: 'resolved',
-            grievanceId: grievance.grievanceId,
-            citizenName: grievance.citizenName,
-            citizenPhone: grievance.citizenPhone,
-            citizenWhatsApp: grievance.citizenWhatsApp,
-            language: grievance.language,
-            departmentId: resolvedDeptId,
-            subDepartmentId: resolvedSubDeptId,
-            companyId: resolvedCompanyId,
-            remarks: remarks,
-            evidenceUrls: uploadedDocumentUrls,
-            resolvedBy: currentUser._id,
-            resolvedAt: grievance.resolvedAt,
-            createdAt: grievance.createdAt,
-            assignedAt: grievance.assignedAt,
-            timeline: grievance.timeline
-          }));
-        }
-
-        // 2. Notify hierarchy about status change for ALL grievance updates
+        // 1. Notify hierarchy about status change for ALL grievance updates
         if (oldStatus !== status) {
           notificationTasks.push(notifyHierarchyOnStatusChange({
             type: 'grievance',
@@ -332,8 +317,8 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
           }, oldStatus, status));
         }
         
-        // 3. Notify citizen for other status changes
-        if (oldStatus !== status && [GrievanceStatus.ASSIGNED, GrievanceStatus.IN_PROGRESS, GrievanceStatus.REJECTED, GrievanceStatus.PENDING, GrievanceStatus.REVERTED].includes(status as any)) {
+        // 2. Notify citizen for all status changes using Meta-approved template
+        if (oldStatus !== status) {
           notificationTasks.push(
             triggerCitizenStatusTemplate({
               companyId: resolvedCompanyId,
