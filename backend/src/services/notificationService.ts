@@ -9,7 +9,7 @@ import { sendWhatsAppMessage, sendWhatsAppMedia, sendWhatsAppTemplate } from './
 import { 
   triggerAdminTemplate
 } from './grievanceTemplateTriggerService';
-import { buildCitizenMessage } from './citizenMessageBuilder';
+import { buildCitizenMessage, getCitizenStatusLabel } from './citizenMessageBuilder';
 import { normalizePhoneNumber } from '../utils/phoneUtils';
 import { logger } from '../config/logger';
 import { UserRole } from '../config/constants';
@@ -1321,13 +1321,13 @@ export async function notifyCitizenOnResolution(
         department_name: fullData.departmentName || '',
         sub_department_name: fullData.subDepartmentName || 'N/A',
         grievance_summary: fullData.description || data.description || fullData.remarks || 'N/A',
+        status: getCitizenStatusLabel('RESOLVED'),
         dynamic_message: buildCitizenMessage({
           status: 'RESOLVED',
           resolvedByName: fullData.resolvedByName || data.resolvedByName,
           formattedResolvedDate: fullData.formattedResolvedDate || '',
           remarks: fullData.remarks || data.remarks || ''
-        }),
-        updated_on: fullData.formattedResolvedDate || fullData.formattedDate || data.createdAt || new Date().toISOString()
+        })
       };
 
       await sendWhatsAppTemplateWithTextFallback(
@@ -1483,13 +1483,13 @@ export async function notifyCitizenOnGrievanceStatusChange(data: {
       department_name: fullData.departmentName || '',
       sub_department_name: fullData.subDepartmentName || 'N/A',
       grievance_summary: fullData.description || data.description || fullData.remarks || 'N/A',
+      status: getCitizenStatusLabel(fullData.newStatus || data.newStatus || ''),
       dynamic_message: buildCitizenMessage({
         status: fullData.newStatus || data.newStatus || '',
         resolvedByName: fullData.resolvedByName,
         formattedResolvedDate: fullData.formattedResolvedDate || '',
         remarks: fullData.remarks || data.remarks || ''
-      }),
-      updated_on: fullData.formattedResolvedDate || fullData.formattedDate || data.createdAt || new Date().toISOString()
+      })
     };
 
     await sendWhatsAppTemplateWithTextFallback(

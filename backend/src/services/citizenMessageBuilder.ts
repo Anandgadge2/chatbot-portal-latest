@@ -1,5 +1,22 @@
 import { sanitizeText } from '../utils/sanitize';
 
+export function getCitizenStatusLabel(status: string): string {
+  const normalizedStatus = String(status || '').trim();
+  const statusKey = normalizedStatus.toUpperCase().replace(/[\s-]+/g, '_');
+
+  const statusDisplay: Record<string, string> = {
+    RESOLVED: 'Resolved',
+    REJECTED: 'Rejected',
+    IN_PROGRESS: 'In Progress',
+    ASSIGNED: 'Assigned',
+    PENDING: 'Pending',
+    CLOSED: 'Closed',
+    OPEN: 'Open'
+  };
+
+  return statusDisplay[statusKey] || normalizedStatus;
+}
+
 export function buildCitizenMessage({
   status,
   resolvedByName,
@@ -16,23 +33,14 @@ export function buildCitizenMessage({
   const safeAdminName = sanitizeText(resolvedByName || '', 60);
   const safeDate = sanitizeText(formattedResolvedDate || '', 60);
 
-  // Mapping internal status to display text
-  const statusDisplay: Record<string, string> = {
-    'RESOLVED': 'Resolved',
-    'REJECTED': 'Rejected',
-    'IN_PROGRESS': 'In Progress',
-    'ASSIGNED': 'Assigned'
-  };
-
-  const currentStatusLabel = statusDisplay[status] || status;
+  const currentStatusLabel = getCitizenStatusLabel(status);
   const actionLabel = currentStatusLabel;
 
   return [
-    `Status: ${currentStatusLabel}`,
     `${actionLabel} By: ${safeAdminName || 'N/A'}`,
     `${actionLabel} On: ${safeDate || 'N/A'}`,
     safeRemark ? `Note: ${safeRemark}` : null
   ]
     .filter(Boolean)
-    .join('\n');
+    .join('\n\n');
 }

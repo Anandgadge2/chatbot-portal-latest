@@ -11,6 +11,7 @@ import { logUserAction } from '../utils/auditLogger';
 import { AuditAction } from '../config/constants';
 import { sendWhatsAppMessage } from '../services/whatsappService';
 import { cloudinary } from '../config/cloudinary';
+import { formatTemplateDate } from '../services/grievanceTemplateTriggerService';
 
 const router = express.Router();
 const upload = multer({
@@ -332,7 +333,7 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
               status,
               remarks: remarks || undefined,
               resolvedByName: currentUser.getFullName(),
-              formattedResolvedDate: new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }),
+              formattedResolvedDate: formatTemplateDate(),
               media: uploadedDocumentUrls.map((url: string) => {
                 const normalized = String(url || '').toLowerCase();
                 const type = normalized.match(/\.(jpg|jpeg|png|webp)(\?.*)?$/)

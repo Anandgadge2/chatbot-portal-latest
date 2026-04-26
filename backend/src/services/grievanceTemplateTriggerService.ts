@@ -5,7 +5,7 @@ import CitizenProfile from '../models/CitizenProfile';
 import Role from '../models/Role';
 import { sendWhatsAppTemplate, sendMediaSequentially } from './whatsappService';
 import { sendGrievanceToAdmin, sendTemplateAndAttachments, WhatsAppAttachment } from './whatsapp/grievanceNotificationFlow.service';
-import { buildCitizenMessage } from './citizenMessageBuilder';
+import { buildCitizenMessage, getCitizenStatusLabel } from './citizenMessageBuilder';
 import { sanitizeGrievanceDetailsForTemplate, sanitizeNote, sanitizeRemarks, sanitizeText } from '../utils/sanitize';
 import { normalizeLanguage } from './templateValidationService';
 import { normalizePhoneNumber } from '../utils/phoneUtils';
@@ -208,6 +208,7 @@ export async function triggerCitizenStatusTemplate(options: {
     formattedResolvedDate: options.formattedResolvedDate,
     remarks: sanitizeRemarks(options.remarks || '')
   });
+  const statusLabel = getCitizenStatusLabel(options.status);
 
   // Use the unified grievance_status_citizen_v1 template for all status changes
   const citizenTemplateResult = await triggerCitizenTemplate({
@@ -221,10 +222,9 @@ export async function triggerCitizenStatusTemplate(options: {
       department_name: sanitizeText(options.departmentName, 60),
       sub_department_name: sanitizeText(options.subDepartmentName || 'N/A', 60),
       grievance_summary: sanitizeGrievanceDetailsForTemplate(options.grievanceSummary || options.remarks || 'N/A', 400),
-      status: sanitizeText(options.status, 30),
+      status: sanitizeText(statusLabel, 30),
       dynamic_message: sanitizeNote(extraMessage),
-      remarks: sanitizeNote(extraMessage),
-      updated_on: sanitizeText(options.formattedResolvedDate || new Date().toISOString(), 60)
+      remarks: sanitizeNote(extraMessage)
     },
     requireNotificationConsent: true
   });
