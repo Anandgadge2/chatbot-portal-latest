@@ -1,4 +1,4 @@
-import { sanitizeText } from '../../utils/sanitize';
+import { sanitizeText, sanitizeNote, sanitizeDateTimeText } from '../../utils/sanitize';
 import {
   GRIEVANCE_DESCRIPTION_CONTINUATION_TEXT,
   prepareSummaryText,
@@ -146,8 +146,14 @@ function resolveValue(data: TemplateInputData, spec: ParameterSpec): { value: st
     const current = data[alias];
     if (current === undefined || current === null) continue;
 
-    const sanitized = sanitizeText(String(current), 2000).trim();
-    if (!sanitized) continue;
+    const rawValue = String(current);
+    const lowerKey = spec.key.toLowerCase();
+    const sanitized = lowerKey === 'dynamic_message'
+      ? sanitizeNote(rawValue)
+      : (lowerKey.endsWith('_on') || lowerKey.includes('date')
+        ? sanitizeDateTimeText(rawValue, 2000)
+        : sanitizeText(rawValue, 2000));
+    if (!sanitized.trim()) continue;
 
     let normalized = sanitized;
     if (spec.mode === 'summary') {
