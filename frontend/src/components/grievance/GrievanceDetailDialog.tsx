@@ -334,10 +334,10 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
           ))}
         </div>
 
-        {/* Main Content Area */}
-        <div className="overflow-y-auto flex-1 custom-scrollbar">
+        {/* Main Content Area — Fixed height to prevent dialog jitter */}
+        <div className="overflow-y-auto h-[500px] custom-scrollbar">
           {activeTab === "overview" && (
-            <div className="p-6 space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div className="p-4 space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
               {/* Resolution Summary (Pinned if exists) */}
               {grievance.resolution && (
                 <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-2xl p-5 shadow-lg shadow-emerald-500/10 border border-emerald-400/20 relative overflow-hidden">
@@ -357,7 +357,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
               )}
 
               {latestTransferNote && (
-                <div className="rounded-2xl border border-sky-200 bg-gradient-to-r from-sky-50 to-cyan-50 p-5 shadow-sm">
+                <div className="rounded-2xl border border-sky-200 bg-gradient-to-r from-sky-50 to-cyan-50 p-3.5 shadow-sm">
                   <div className="flex items-start gap-3">
                     <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-sky-100 text-sky-700">
                       <ArrowRight className="h-4 w-4" />
@@ -366,10 +366,10 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                       <h3 className="text-[10px] font-black uppercase tracking-widest text-sky-700">
                         Transfer Context
                       </h3>
-                      <p className="mt-2 whitespace-pre-wrap text-sm font-medium leading-relaxed text-slate-700">
+                      <p className="mt-1 whitespace-pre-wrap text-sm font-medium leading-relaxed text-slate-700">
                         {latestTransferNote}
                       </p>
-                      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-semibold text-slate-500">
+                      <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-semibold text-slate-500">
                         {latestTransferActor && (
                           <span>Shared by {latestTransferActor}</span>
                         )}
@@ -390,9 +390,9 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
               )}
 
               {/* Data Grid: Citizen & Dept (Redesigned for density) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                 {/* Citizen Information Group */}
-                <div className="space-y-4">
+                <div className="space-y-2">
                   <div className="flex items-center gap-2 text-slate-400">
                     <User className="w-3.5 h-3.5" />
                     <span className="text-[10px] font-black uppercase tracking-widest">
@@ -401,7 +401,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                     <div className="flex-1 h-px bg-slate-100"></div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-y-3">
+                  <div className="grid grid-cols-1 gap-y-2">
                     <div className="flex flex-col">
                       <span className="text-[9px] font-bold text-slate-400 tracking-wider uppercase mb-0.5">
                         Full Name
@@ -430,7 +430,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                 </div>
 
                 {/* Assignment Group */}
-                <div className="space-y-4">
+                <div className="space-y-2">
                   <div className="flex items-center gap-2 text-slate-400">
                     <Building className="w-3.5 h-3.5" />
                     <span className="text-[10px] font-black uppercase tracking-widest">
@@ -439,7 +439,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                     <div className="flex-1 h-px bg-slate-100"></div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-y-3">
+                  <div className="grid grid-cols-1 gap-y-2">
                     <div className="flex flex-col">
                       <span className="text-[9px] font-bold text-slate-400 tracking-wider uppercase mb-0.5">
                         Assigned Department
@@ -479,9 +479,9 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
               </div>
 
               {/* Full Width Info: Description & Location */}
-              <div className="space-y-6 pt-2 border-t border-slate-100">
+              <div className="space-y-4 pt-2 border-t border-slate-100">
                 {/* Description Block */}
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <div className="flex items-center gap-2 text-slate-400">
                     <Tag className="w-3.5 h-3.5" />
                     <span className="text-[10px] font-black uppercase tracking-widest">

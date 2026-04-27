@@ -8,22 +8,23 @@ import {
   Phone,
   Shield,
   Building,
-  Calendar,
-  CheckCircle,
-  CheckCircle2,
-  XCircle,
   Clock,
+  ExternalLink,
+  CheckCircle,
+  XCircle
 } from "lucide-react";
-import { formatDate, formatDateTime } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { formatTo10Digits } from "@/lib/utils/phoneUtils";
 import { getUserRoleLabel } from "@/lib/utils/userUtils";
+import { Button } from "../ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 
 interface UserDetailsDialogProps {
   isOpen: boolean;
   onClose: () => void;
   user: User | null;
-  /** If provided, replaces the Close button with Submit & Notify */
+  /** If provided, replaces the Close button with Select & Proceed */
   onAssign?: (user: User) => void;
   isAssigning?: boolean;
 }
@@ -35,7 +36,7 @@ export default function UserDetailsDialog({
   onAssign,
   isAssigning
 }: UserDetailsDialogProps) {
-  if (!isOpen || !user) return null;
+  if (!user) return null;
 
   const createdDate = user?.createdAt || "";
   let timeAgo = "Unknown";
@@ -50,57 +51,31 @@ export default function UserDetailsDialog({
     console.error("Error formatting date:", e);
   }
   const updatedDate = user?.updatedAt || null;
-
-  // Get role color
-  // Get role color
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case "SUPER_ADMIN":
-        return "from-red-500 to-rose-600";
-      default:
-        return "from-slate-500 to-slate-600";
-    }
-  };
-
   const roleName = getUserRoleLabel(user);
-  const roleGradient = getRoleColor(user.isSuperAdmin ? "SUPER_ADMIN" : "CUSTOM");
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-2 sm:p-4">
-      <div className="w-full max-w-4xl max-h-[92vh] sm:max-h-[90vh] overflow-hidden rounded-xl sm:rounded-2xl shadow-2xl bg-white animate-in fade-in zoom-in duration-200 flex flex-col">
-        {/* Header — matching the new overview theme */}
-        <div className="bg-slate-900 p-3 sm:p-5 relative overflow-hidden flex-shrink-0 border-b border-slate-800">
-          {/* Subtle Background Pattern */}
-          <div className="absolute inset-0 bg-white bg-opacity-5">
-            <div
-              className="absolute inset-0 opacity-[0.05]"
-              style={{
-                backgroundImage:
-                  "radial-gradient(#ffffff 1px, transparent 1px)",
-                backgroundSize: "24px 24px",
-              }}
-            ></div>
-          </div>
-
-          <div className="relative">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-center gap-3 min-w-0 flex-1">
-                <div className="w-9 h-9 sm:w-12 sm:h-12 bg-white bg-opacity-10 rounded-lg sm:rounded-xl flex items-center justify-center backdrop-blur-sm border border-white border-opacity-10 shadow-lg flex-shrink-0">
-                  <UserIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent hideClose className="w-[96vw] max-w-xl max-h-[92vh] sm:max-h-[85vh] overflow-hidden flex flex-col p-0 gap-0 rounded-2xl sm:rounded-[1.5rem] border-0 shadow-2xl bg-white">
+        {/* Header — Matching AssignmentDialog Theme but More Compact */}
+        <DialogHeader className="relative space-y-0 border-b-0 p-0 text-left">
+          <div className="relative overflow-hidden rounded-t-2xl sm:rounded-t-[1.5rem] bg-gradient-to-r from-[#1aa6ea] via-[#0d9ee3] to-[#2bb4ef] px-5 py-4">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.2),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.16),transparent_28%)]" />
+            
+            <div className="relative flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/30 bg-white/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.25)] backdrop-blur-md">
+                  <UserIcon className="h-5 w-5 text-white" />
                 </div>
                 <div className="min-w-0">
-                  <h2 className="text-sm sm:text-lg font-bold text-white uppercase tracking-tight">
-                    User Profile Details
-                  </h2>
-                  <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    <span className="px-2 py-0.5 bg-indigo-500 bg-opacity-20 rounded-md text-[10px] font-black text-indigo-300 border border-indigo-500 border-opacity-20 uppercase tracking-widest">
-                      {user.userId ||
-                        `USER${user._id.substring(0, 8).toUpperCase()}`}
+                  <DialogTitle className="text-lg font-black tracking-tight text-white uppercase leading-tight">
+                    User Profile
+                  </DialogTitle>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="px-1.5 py-px bg-white/16 rounded-md text-[9px] font-black text-white border border-white/35 backdrop-blur-sm uppercase tracking-wider">
+                      {user.userId || `USER${user._id.substring(0, 8).toUpperCase()}`}
                     </span>
-                    <span className="text-slate-400 text-xs font-bold uppercase tracking-tighter">
-                      •
-                    </span>
-                    <span className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">
+                    <span className="text-white/60 text-[10px] font-bold">•</span>
+                    <span className="text-white/80 text-[9px] font-bold uppercase tracking-widest">
                       {timeAgo}
                     </span>
                   </div>
@@ -108,299 +83,196 @@ export default function UserDetailsDialog({
               </div>
               <button
                 onClick={onClose}
-                className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-white bg-opacity-10 hover:bg-opacity-20 flex items-center justify-center transition-all border border-white border-opacity-10 backdrop-blur-sm flex-shrink-0"
+                className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/35 bg-white/12 transition-all duration-200 hover:bg-white/20"
               >
-                <X className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                <X className="h-3.5 w-3.5 text-white" />
               </button>
             </div>
           </div>
-        </div>
+        </DialogHeader>
 
-        {/* Scrollable Content */}
-        <div className="overflow-y-auto flex-1 p-3 sm:p-5 space-y-3 sm:space-y-5 custom-scrollbar">
-          {/* Quick Info Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg sm:rounded-xl p-2.5 sm:p-4 border border-blue-100">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <UserIcon className="w-4 h-4 text-blue-600" />
+        {/* Content Area — More Compact Grid */}
+        <div className="flex-1 overflow-y-auto bg-slate-50 p-4 custom-scrollbar">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Identity Column */}
+            <div className="space-y-4">
+              <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
+                <h3 className="text-[9px] font-black text-slate-400 uppercase tracking-[0.15em] mb-3 flex items-center gap-2">
+                  <UserIcon className="w-3 h-3 text-indigo-500" />
+                  Identity Details
+                </h3>
+                
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Full Name</p>
+                    <p className="text-[13px] font-bold text-slate-800 flex items-center gap-1.5">
+                      {user.firstName} {user.lastName}
+                      {user.isActive ? (
+                        <CheckCircle className="w-3 h-3 text-emerald-500" />
+                      ) : (
+                        <XCircle className="w-3 h-3 text-red-500" />
+                      )}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Contact Channels</p>
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2 text-indigo-600">
+                        <Mail className="w-3 h-3" />
+                        <p className="text-xs font-bold break-all">{user.email}</p>
+                      </div>
+                      <div className="flex items-center gap-2 text-slate-700">
+                        <Phone className="w-3 h-3 text-slate-400" />
+                        <p className="text-xs font-bold">{formatTo10Digits(user.phone || "") || "No Phone"}</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <span className="text-[10px] sm:text-xs font-bold text-blue-600 uppercase">
-                  Name
-                </span>
               </div>
-              <p
-                className="text-xs sm:text-base font-bold text-gray-900 break-words whitespace-normal"
-                title={`${user.firstName} ${user.lastName}`}
-              >
-                {user.firstName} {user.lastName}
-              </p>
-            </div>
 
-            <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg sm:rounded-xl p-2.5 sm:p-4 border border-purple-100">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Shield className="w-4 h-4 text-purple-600" />
-                </div>
-                <span className="text-[10px] sm:text-xs font-bold text-purple-600 uppercase">
-                  Role
-                </span>
-              </div>
-              <p
-                className="text-xs sm:text-base font-bold text-gray-900 break-words whitespace-normal"
-                title={roleName}
-              >
-                {roleName}
-              </p>
-            </div>
-
-            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg sm:rounded-xl p-2.5 sm:p-4 border border-green-100">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Calendar className="w-4 h-4 text-green-600" />
-                </div>
-                <span className="text-xs font-bold text-green-600 uppercase">
-                  Created
-                </span>
-              </div>
-              <p className="text-xs sm:text-base font-bold text-gray-900 break-words">
-                {formatDate(createdDate)}
-              </p>
-            </div>
-
-            <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg sm:rounded-xl p-2.5 sm:p-4 border border-amber-100">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  {user.isActive ? (
-                    <CheckCircle className="w-4 h-4 text-amber-600" />
-                  ) : (
-                    <XCircle className="w-4 h-4 text-amber-600" />
+              <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
+                <h3 className="text-[9px] font-black text-slate-400 uppercase tracking-[0.15em] mb-3 flex items-center gap-2">
+                  <Clock className="w-3 h-3 text-amber-500" />
+                  Account Timeline
+                </h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Member Since</p>
+                    <p className="text-[11px] font-bold text-slate-700">{formatDate(createdDate)}</p>
+                  </div>
+                  {updatedDate && (
+                    <div>
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Last Activity</p>
+                      <p className="text-[11px] font-bold text-slate-700">{formatDate(updatedDate)}</p>
+                    </div>
                   )}
                 </div>
-                <span className="text-xs font-bold text-amber-600 uppercase">
-                  Status
-                </span>
               </div>
-              <p className="text-xs sm:text-base font-bold text-gray-900 break-words">
-                {user.isActive ? "Active" : "Inactive"}
-              </p>
             </div>
-          </div>
 
-          {/* User Information Section */}
-          <div className="bg-gradient-to-br from-slate-50 to-white rounded-xl p-5 border border-slate-200">
-            <h3 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
-              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                <UserIcon className="w-4 h-4 text-blue-600" />
-              </div>
-              User Information
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-white rounded-lg p-4 border border-slate-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <UserIcon className="w-4 h-4 text-slate-500" />
-                  <span className="text-xs font-semibold text-slate-500 uppercase">
-                    Full Name
-                  </span>
-                </div>
-                <p className="text-sm font-bold text-gray-900 break-words whitespace-normal">
-                  {user.firstName} {user.lastName}
-                </p>
-              </div>
+            {/* Role & Access Column */}
+            <div className="space-y-4">
+              <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 h-full flex flex-col">
+                <h3 className="text-[9px] font-black text-slate-400 uppercase tracking-[0.15em] mb-3 flex items-center gap-2">
+                  <Shield className="w-3 h-3 text-purple-500" />
+                  Role & Mapping
+                </h3>
 
-              <div className="bg-white rounded-lg p-4 border border-slate-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <Mail className="w-4 h-4 text-slate-500" />
-                  <span className="text-xs font-semibold text-slate-500 uppercase">
-                    Email Address
-                  </span>
-                </div>
-                <p className="text-sm font-bold text-gray-900 break-all">
-                  {user.email}
-                </p>
-              </div>
-
-              <div className="bg-white rounded-lg p-4 border border-slate-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <Phone className="w-4 h-4 text-slate-500" />
-                  <span className="text-xs font-semibold text-slate-500 uppercase">
-                    Phone Number
-                  </span>
-                </div>
-                <p className="text-sm font-bold text-gray-900 break-all">{formatTo10Digits(user.phone || "")}</p>
-              </div>
-
-              <div className="bg-white rounded-lg p-4 border border-slate-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <Shield className="w-4 h-4 text-slate-500" />
-                  <span className="text-xs font-semibold text-slate-500 uppercase">
-                    Designation(s)
-                  </span>
-                </div>
-                        <div className="flex flex-wrap gap-2">
-                          {(() => {
-                            const uniqueDesignations = new Set<string>();
-                            if (user.designation) uniqueDesignations.add(user.designation);
-                            user.designations?.forEach(d => uniqueDesignations.add(d));
-                            
-                            const list = Array.from(uniqueDesignations);
-                            if (list.length === 0) return <span className="text-xs text-slate-400 italic font-medium">No designations assigned</span>;
-                            
-                            return list.map((d, index) => (
-                              <span 
-                                key={index} 
-                                className={`px-2.5 py-1 text-[10px] font-bold rounded-lg uppercase tracking-wider border shadow-sm transition-all ${
-                                  d === user.designation 
-                                    ? "bg-slate-100 text-slate-700 border-slate-300 ring-1 ring-slate-200" 
-                                    : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"
-                                }`}
-                              >
-                                {d}
-                              </span>
-                            ));
-                          })()}
-                        </div>
-              </div>
-
-
-              <div className="bg-white rounded-lg p-4 border border-slate-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <Shield className="w-4 h-4 text-slate-500" />
-                  <span className="text-xs font-semibold text-slate-500 uppercase">
-                    Role & Permissions
-                  </span>
-                </div>
-                <p className="text-sm font-bold text-gray-900 break-words whitespace-normal">{roleName}</p>
-              </div>
-
-              <div className="bg-white rounded-lg p-4 border border-slate-200 col-span-1 md:col-span-2">
-                <div className="flex items-center gap-2 mb-3">
-                  <Building className="w-4 h-4 text-indigo-500" />
-                  <span className="text-xs font-black text-slate-500 uppercase tracking-widest">
-                    Mapped Organizational Units
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {(() => {
-                    const uniqueDepts = new Map();
-                    // Add primary
-                    if (user.departmentId) {
-                      const id = typeof user.departmentId === 'object' ? user.departmentId._id : user.departmentId;
-                      const name = typeof user.departmentId === 'object' ? user.departmentId.name : (user.departmentId as any).name || id;
-                      uniqueDepts.set(id, { name, isPrimary: true });
-                    }
-                    // Add multiples
-                    user.departmentIds?.forEach(dept => {
-                      const id = typeof dept === 'object' ? dept._id : dept;
-                      if (!uniqueDepts.has(id)) {
-                        const name = typeof dept === 'object' ? dept.name : (dept as any).name || id;
-                        uniqueDepts.set(id, { name, isPrimary: false });
-                      }
-                    });
-
-                    const deptList = Array.from(uniqueDepts.values());
-                    if (deptList.length === 0) return <span className="text-xs text-slate-400 italic">No departments mapped</span>;
-
-                    return deptList.map((dept, idx) => (
-                      <div key={idx} className={`px-3 py-1.5 border rounded-lg flex flex-col ${dept.isPrimary ? "bg-slate-900 border-slate-800 shadow-sm ring-1 ring-blue-500/30" : "bg-white border-slate-200"}`}>
-                        <span className={`text-sm font-bold ${dept.isPrimary ? "text-white" : "text-slate-800"}`}>
-                          {dept.name}
-                        </span>
-                        <span className={`text-[8px] font-black uppercase tracking-widest mt-0.5 ${dept.isPrimary ? "text-slate-300" : "text-slate-400"}`}>
-                          {dept.isPrimary ? "Primary Unit" : "Secondary Mapping"}
-                        </span>
-                      </div>
-                    ));
-                  })()}
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg p-4 border border-slate-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <Clock className="w-4 h-4 text-slate-500" />
-                  <span className="text-xs font-semibold text-slate-500 uppercase">
-                    Created At
-                  </span>
-                </div>
-                <p className="text-sm font-bold text-gray-900">
-                  {formatDateTime(createdDate)}
-                </p>
-              </div>
-
-              {updatedDate && (
-                <div className="bg-white rounded-lg p-4 border border-slate-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Clock className="w-4 h-4 text-slate-500" />
-                    <span className="text-xs font-semibold text-slate-500 uppercase">
-                      Last Updated
+                <div className="space-y-4 flex-1">
+                  <div>
+                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Primary Role</p>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-purple-50 text-purple-700 border border-purple-100 rounded-full text-[9px] font-black uppercase tracking-wider shadow-sm">
+                      <Shield className="w-2.5 h-2.5" />
+                      {roleName}
                     </span>
                   </div>
-                  <p className="text-sm font-bold text-gray-900">
-                    {formatDateTime(updatedDate)}
-                  </p>
-                </div>
-              )}
 
-              <div className="bg-white rounded-lg p-4 border border-slate-200">
-                <div className="flex items-center gap-2 mb-2">
-                  {user.isActive ? (
-                    <CheckCircle className="w-4 h-4 text-emerald-500" />
-                  ) : (
-                    <XCircle className="w-4 h-4 text-red-500" />
-                  )}
-                  <span className="text-xs font-semibold text-slate-500 uppercase">
-                    Account Status
-                  </span>
+                  <div>
+                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Designations</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(() => {
+                        const uniqueDesignations = new Set<string>();
+                        if (user.designation) uniqueDesignations.add(user.designation);
+                        user.designations?.forEach(d => uniqueDesignations.add(d));
+                        
+                        const list = Array.from(uniqueDesignations);
+                        if (list.length === 0) return <span className="text-[9px] text-slate-400 font-bold uppercase italic">None Assigned</span>;
+                        
+                        return list.map((d, index) => (
+                          <span key={index} className="px-2 py-0.5 bg-slate-50 text-slate-600 border border-slate-200 rounded-md text-[8.5px] font-bold uppercase tracking-tight">
+                            {d}
+                          </span>
+                        ));
+                      })()}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Organizational Units</p>
+                    <div className="space-y-1.5">
+                      {(() => {
+                        const uniqueDepts = new Map();
+                        if (user.departmentId) {
+                          const id = typeof user.departmentId === 'object' ? user.departmentId._id : user.departmentId;
+                          const name = typeof user.departmentId === 'object' ? user.departmentId.name : (user.departmentId as any).name || id;
+                          uniqueDepts.set(id, { name, isPrimary: true });
+                        }
+                        user.departmentIds?.forEach(dept => {
+                          const id = typeof dept === 'object' ? dept._id : dept;
+                          if (!uniqueDepts.has(id)) {
+                            const name = typeof dept === 'object' ? dept.name : (dept as any).name || id;
+                            uniqueDepts.set(id, { name, isPrimary: false });
+                          }
+                        });
+
+                        const deptList = Array.from(uniqueDepts.values());
+                        if (deptList.length === 0) return <p className="text-[9px] text-slate-400 font-bold uppercase italic">No units mapped</p>;
+
+                        return deptList.map((dept, idx) => (
+                          <div key={idx} className={`p-2 rounded-lg border flex items-center justify-between group transition-all ${dept.isPrimary ? "bg-indigo-50/50 border-indigo-100 ring-1 ring-indigo-500/10" : "bg-white border-slate-200"}`}>
+                            <div className="flex items-center gap-2 min-w-0">
+                              <Building className={`w-3 h-3 flex-shrink-0 ${dept.isPrimary ? "text-indigo-500" : "text-slate-400"}`} />
+                              <span className={`text-[10px] font-bold truncate ${dept.isPrimary ? "text-indigo-900" : "text-slate-700"}`}>
+                                {dept.name}
+                              </span>
+                            </div>
+                            {dept.isPrimary && (
+                              <span className="text-[7px] font-black uppercase text-indigo-500 bg-indigo-100 px-1 py-0.5 rounded-md flex-shrink-0 ml-2">Primary</span>
+                            )}
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  </div>
                 </div>
-                <p
-                  className={`text-sm font-bold ${user.isActive ? "text-emerald-600" : "text-red-600"}`}
-                >
-                  {user.isActive ? "Active" : "Inactive"}
-                </p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="flex-shrink-0 px-5 py-4 bg-gradient-to-r from-slate-50 to-white border-t border-slate-200">
-          {onAssign ? (
-            <div className="flex gap-3">
-              <button
+        {/* Footer — Matching AssignmentDialog styling */}
+        <div className="px-5 py-3 bg-white border-t border-slate-100 flex items-center justify-between gap-3">
+          <div className="hidden sm:block">
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+              Status: <span className={user.isActive ? "text-emerald-500" : "text-red-500"}>{user.isActive ? "Active" : "Inactive"}</span>
+            </p>
+          </div>
+          <div className="flex gap-2.5 flex-1 sm:flex-initial min-w-[180px]">
+            {onAssign ? (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={onClose}
+                  disabled={isAssigning}
+                  className="flex-1 h-9 rounded-xl border-slate-200 text-slate-600 font-bold uppercase text-[9px] tracking-widest transition-all hover:bg-slate-50"
+                >
+                  Back
+                </Button>
+                <Button
+                  onClick={() => onAssign(user)}
+                  disabled={isAssigning}
+                  className="flex-[2] h-9 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black rounded-xl shadow-lg shadow-indigo-200 uppercase text-[9px] tracking-widest active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                >
+                  {isAssigning ? (
+                    <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <ExternalLink className="w-3 h-3" />
+                  )}
+                  {isAssigning ? "Wait..." : "Select User"}
+                </Button>
+              </>
+            ) : (
+              <Button
                 onClick={onClose}
-                disabled={isAssigning}
-                className="flex-1 py-3 px-4 bg-white hover:bg-slate-50 text-slate-600 font-bold border border-slate-200 rounded-xl transition-all uppercase text-[10px] tracking-widest disabled:opacity-50"
+                className="w-full h-9 bg-slate-900 hover:bg-slate-800 text-white font-black rounded-xl uppercase text-[10px] tracking-widest transition-all active:scale-[0.98] shadow-lg shadow-slate-200"
               >
-                Cancel
-              </button>
-              <button
-                onClick={() => onAssign(user)}
-                disabled={isAssigning}
-                className="flex-[2] py-3 px-4 bg-slate-800 hover:bg-slate-900 text-white font-black rounded-xl transition-all duration-200 shadow-lg shadow-slate-900/40 ring-1 ring-blue-500/50 uppercase text-[10px] tracking-widest active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {isAssigning ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Processing...</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>Submit & Notify</span>
-                  </>
-                )}
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={onClose}
-              className="w-full py-3.5 px-4 bg-slate-800 hover:bg-slate-900 text-white font-black rounded-xl transition-all duration-200 shadow-lg shadow-slate-900/40 ring-1 ring-blue-500/50 uppercase text-xs tracking-widest active:scale-95"
-            >
-              Close
-            </button>
-          )}
+                Close Profile
+              </Button>
+            )}
+          </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

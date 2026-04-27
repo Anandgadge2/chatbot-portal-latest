@@ -87,10 +87,13 @@ import { useDashboardStats } from "@/lib/query/useDashboardStats";
 import { useDashboardKpis } from "@/lib/query/useDashboardKpis";
 import { useDepartments } from "@/lib/query/useDepartments";
 import { useUsers } from "@/lib/query/useUsers";
+import { getUserRoleLabel } from "@/lib/utils/userUtils";
 
 
 import {
   ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
   ArrowLeft,
   ArrowRight,
   Phone,
@@ -237,6 +240,17 @@ const LoadingDots = () => (
 );
 
 const COLLECTORATE_JHARSUGUDA_COMPANY_ID = "69ad4c6eb1ad8e405e6c0858";
+
+const SortIcon = ({ sortConfig, columnKey }: { sortConfig: any, columnKey: string }) => {
+  if (sortConfig.key !== columnKey || !sortConfig.direction) {
+    return <ArrowUpDown className="w-3 h-3 text-slate-300 group-hover:text-slate-400 transition-colors" />;
+  }
+  return sortConfig.direction === "asc" ? (
+    <ArrowUp className="w-3 h-3 text-indigo-600 transition-all duration-200" />
+  ) : (
+    <ArrowDown className="w-3 h-3 text-indigo-600 transition-all duration-200" />
+  );
+};
 
 function DashboardContent() {
   const { user: authUser, loading, logout, refreshUser } = useAuth();
@@ -785,6 +799,10 @@ function DashboardContent() {
     limit: 20,
   });
 
+  // High Grievance Departments Chart Filters
+  const [highGrievanceMainDept, setHighGrievanceMainDept] = useState("");
+  const [highGrievanceSubDept, setHighGrievanceSubDept] = useState("");
+
   // Sorting State
   const [sortConfig, setSortConfig] = useState<{
     key: string;
@@ -931,6 +949,8 @@ function DashboardContent() {
     status: deptFilters.status,
     mainDeptId: deptFilters.mainDeptId,
     subDeptId: deptFilters.subDeptId,
+    sortBy: sortConfig.tab === "departments" ? sortConfig.key : undefined,
+    sortOrder: sortConfig.tab === "departments" ? (sortConfig.direction || undefined) : undefined,
     enabled: mounted && (activeTab === "departments" || (activeTab === "overview" && isDepartmentLevel)),
   });
 
@@ -942,6 +962,8 @@ function DashboardContent() {
     departmentId: userFilters.subDeptId || userFilters.mainDeptId,
     role: userFilters.role,
     status: userFilters.status,
+    sortBy: sortConfig.tab === "users" ? sortConfig.key : undefined,
+    sortOrder: sortConfig.tab === "users" ? (sortConfig.direction || undefined) : undefined,
     enabled: mounted && activeTab === "users",
   });
 
@@ -1002,17 +1024,6 @@ function DashboardContent() {
 
 
 
-  // Sync cached data to state to maintain compatibility with existing logic
-  useEffect(() => {
-    if (cachedGrievanceData) {
-      setGrievances(cachedGrievanceData.grievances);
-      setGrievancePagination((prev) => ({
-        ...prev,
-        total: cachedGrievanceData.pagination.total,
-        pages: cachedGrievanceData.pagination.pages,
-      }));
-    }
-  }, [cachedGrievanceData]);
 
   // Handle loading state from hook
   useEffect(() => {
@@ -1589,10 +1600,13 @@ function DashboardContent() {
   const fetchDepartmentData = useCallback(async () => {
     if (isSuperAdminUser && !companyIdParam) return;
     try {
+      // Fetch all departments the user has access to, ignoring global analytics filters 
+      // to allow independent filtering within the chart section.
       const deptId =
         isSubDepartmentAdminRole || isOperatorRole
           ? assignedDepartmentIds[0] || ""
-          : analyticsFilters.subDeptId || analyticsFilters.mainDeptId || "";
+          : ""; // Fetch all for company admin/super admin
+      
       const params = new URLSearchParams();
       if (companyIdParam) params.append("companyId", companyIdParam);
       if (deptId) params.append("departmentId", deptId);
@@ -1609,7 +1623,6 @@ function DashboardContent() {
   }, [
     companyIdParam,
     isSuperAdminUser,
-    analyticsFilters,
     assignedDepartmentIds,
     isSubDepartmentAdminRole,
     isOperatorRole,
@@ -2003,6 +2016,8 @@ function DashboardContent() {
           departmentId: selectedDepartmentId,
           companyId:
             isSuperAdminUser && companyIdParam ? companyIdParam : undefined,
+          sortBy: sortConfig.tab === "users" ? sortConfig.key : undefined,
+          sortOrder: sortConfig.tab === "users" ? (sortConfig.direction || undefined) : undefined,
         });
         if (response.success) {
           setUsers(response.data.users);
@@ -2031,6 +2046,9 @@ function DashboardContent() {
       isSuperAdminUser,
       companyIdParam,
       activeTab,
+      sortConfig.direction,
+      sortConfig.key,
+      sortConfig.tab,
       refetchUsersHook,
     ],
   );
@@ -2491,10 +2509,21 @@ function DashboardContent() {
       direction = null;
     }
     setSortConfig({ key, direction, tab });
+    
+    // Reset page when sorting changes
+    if (tab === "users") setUserPage(1);
+    if (tab === "departments") setDepartmentPage(1);
+    if (tab === "grievances") setGrievancePage(1);
   };
 
   const getSortedData = (data: any[], tab: string) => {
     let filteredData = data;
+
+    // ⚡ PERFORMANCE OPTIMIZATION: For Users and Departments, the backend now handles ALL filtering and sorting.
+    // Client-side processing is redundant and slow. We bypass it here.
+    if (tab === "users" || tab === "departments") {
+      return data;
+    }
 
     // For lower level users (Operators, Sub-Department etc.), only show items assigned to them
     if (user && !isDepartmentAdminOrHigher(user) && user.id) {
@@ -2575,22 +2604,21 @@ function DashboardContent() {
           let isOverdue = false;
           let slaHours = 0;
 
-          if (g.status === "PENDING") {
-            slaHours = 24;
-            isOverdue = hoursDiff > slaHours;
-          } else if (g.status === "ASSIGNED" || g.status === "IN_PROGRESS") {
+          if (g.assignedTo) {
             slaHours = 120;
-            const assignedDate = g.assignedAt
-              ? new Date(g.assignedAt)
-              : createdDate;
+            const assignedDate = g.assignedAt ? new Date(g.assignedAt) : createdDate;
             const hoursFromAssigned = Math.floor(
               (now.getTime() - assignedDate.getTime()) / (1000 * 60 * 60),
             );
             isOverdue = hoursFromAssigned > slaHours;
+          } else {
+            slaHours = 24;
+            isOverdue = hoursDiff > slaHours;
           }
 
           if (
             g.status === "RESOLVED" ||
+            g.status === "CLOSED" ||
             g.status === "REJECTED"
           ) {
             isOverdue = false;
@@ -2877,21 +2905,64 @@ function DashboardContent() {
     }
 
     return [...filteredData].sort((a, b) => {
-      let aValue: any = a[sortConfig.key];
-      let bValue: any = b[sortConfig.key];
+      let aValue: any;
+      let bValue: any;
 
-      // Handle nested objects (like department name)
-      if (sortConfig.key.includes(".")) {
-        const parts = sortConfig.key.split(".");
-        aValue = parts.reduce((obj, key) => obj?.[key], a);
-        bValue = parts.reduce((obj, key) => obj?.[key], b);
+      // Special handling for Users tab
+      if (tab === "users") {
+        if (sortConfig.key === "firstName") {
+          // Sort by Full Name
+          aValue = `${a.firstName || ""} ${a.lastName || ""}`.trim().toLowerCase();
+          bValue = `${b.firstName || ""} ${b.lastName || ""}`.trim().toLowerCase();
+        } else if (sortConfig.key === "role") {
+          // Sort by Role Label
+          aValue = getUserRoleLabel(a).toLowerCase();
+          bValue = getUserRoleLabel(b).toLowerCase();
+        } else {
+          aValue = a[sortConfig.key];
+          bValue = b[sortConfig.key];
+        }
+      } else if (sortConfig.key === "slaStatus") {
+        const getSLAScore = (g: any) => {
+          if (g.status === "RESOLVED" || g.status === "CLOSED" || g.status === "REJECTED") return 2;
+          const createdDate = new Date(g.createdAt);
+          const now = new Date();
+          const hoursDiff = Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60));
+          let isOverdue = false;
+          
+          if (g.assignedTo) {
+            const assignedDate = g.assignedAt ? new Date(g.assignedAt) : createdDate;
+            const hoursFromAssigned = Math.floor((now.getTime() - assignedDate.getTime()) / (1000 * 60 * 60));
+            isOverdue = hoursFromAssigned > 120;
+          } else {
+            isOverdue = hoursDiff > 24;
+          }
+          
+          return isOverdue ? 0 : 1;
+        };
+        aValue = getSLAScore(a);
+        bValue = getSLAScore(b);
+      } else {
+        aValue = a[sortConfig.key];
+        bValue = b[sortConfig.key];
+
+        // Handle nested objects (like department name)
+        if (sortConfig.key.includes(".")) {
+          const parts = sortConfig.key.split(".");
+          aValue = parts.reduce((obj, key) => obj?.[key], a);
+          bValue = parts.reduce((obj, key) => obj?.[key], b);
+        }
       }
 
-      // String comparison
-      if (typeof aValue === "string") {
+      // Handle null/undefined values
+      if (aValue === null || aValue === undefined) aValue = "";
+      if (bValue === null || bValue === undefined) bValue = "";
+
+      // String comparison (Case-insensitive)
+      if (typeof aValue === "string" && typeof bValue === "string") {
         return sortConfig.direction === "asc"
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue);
+          ? aValue.localeCompare(bValue, undefined, { sensitivity: 'base' })
+          : bValue.localeCompare(aValue, undefined, { sensitivity: 'base' });
       }
 
       // Date or number comparison
@@ -4759,28 +4830,6 @@ function DashboardContent() {
                                       </div>
                                     </div>
                                   ))}
-                                  {/* Rows per page Selector - Moved here */}
-                                  <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border border-slate-200 shadow-sm h-8 ml-auto">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                      Rows:
-                                    </span>
-                                    <select
-                                      value={departmentPagination.limit}
-                                      onChange={(e) =>
-                                        setDepartmentPagination((prev) => ({
-                                          ...prev,
-                                          limit: Number(e.target.value),
-                                        }))
-                                      }
-                                      className="text-[10px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer p-0 h-auto"
-                                    >
-                                      {[10, 20, 25, 50, 100, 200, 250].map((l) => (
-                                        <option key={l} value={l}>
-                                          {l}
-                                        </option>
-                                      ))}
-                                    </select>
-                                  </div>
                                 </div>
                               </>
                             ) : (
@@ -4812,86 +4861,151 @@ function DashboardContent() {
                               </p>
                             </div>
                           </div>
-                        </div>
-                        <div className="p-4 flex-1">
-                          <ResponsiveContainer width="100%" height={240}>
-                            <BarChart
-                              data={departmentData
-                                .filter(
-                                  (d: any) =>
-                                    d.departmentName &&
-                                    d.departmentName.trim() !== "" &&
-                                    d.departmentName !== "Unnamed Department",
-                                )
-                                .slice(0, 5)}
-                              layout="vertical"
-                              margin={{
-                                left: 20,
-                                right: 40,
-                                top: 10,
-                                bottom: 10,
+                          <div className="flex items-center gap-2">
+                            <select
+                              value={highGrievanceMainDept}
+                              onChange={(e) => {
+                                setHighGrievanceMainDept(e.target.value);
+                                setHighGrievanceSubDept(""); // Reset sub-dept on main-dept change
                               }}
+                              className="text-[10px] h-7 px-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-rose-500 bg-white font-bold text-slate-700 max-w-[120px]"
                             >
-                              <CartesianGrid
-                                strokeDasharray="3 3"
-                                stroke="#f1f5f9"
-                                horizontal={false}
-                              />
-                              <XAxis type="number" hide />
-                              <YAxis
-                                dataKey="departmentName"
-                                type="category"
-                                interval={0}
-                                tick={{
-                                  fontSize: 9,
-                                  fontWeight: "bold",
-                                  fill: "#64748b",
-                                }}
-                                width={140}
-                              />
-                              <Tooltip
-                                cursor={{ fill: "#f8fafc" }}
-                                contentStyle={{
-                                  borderRadius: "12px",
-                                  border: "none",
-                                  boxShadow:
-                                    "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
-                                  fontSize: "10px",
-                                }}
-                              />
-                              <Bar
-                                dataKey="count"
-                                fill="#ef4444"
-                                radius={[0, 4, 4, 0]}
-                                barSize={16}
-                                name="Total Grievances"
-                                className="cursor-pointer"
-                                onClick={(data: any) => {
-                                  const departmentId = data?.departmentId || data?._id || "";
-                                  const parentId = data?.parentDepartmentId || "";
-                                  
-                                  const filters: Partial<typeof grievanceFilters> = {
-                                    status: "",
-                                  };
+                              <option value="">🏢 All Main Depts</option>
+                              {allDepartments
+                                .filter((d) => !d.parentDepartmentId)
+                                .map((d) => (
+                                  <option key={d._id} value={d._id}>
+                                    {d.name}
+                                  </option>
+                                ))}
+                            </select>
+                            {highGrievanceMainDept && (
+                              <select
+                                value={highGrievanceSubDept}
+                                onChange={(e) => setHighGrievanceSubDept(e.target.value)}
+                                className="text-[10px] h-7 px-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-rose-500 bg-white font-bold text-slate-700 max-w-[120px]"
+                              >
+                                <option value="">🏢 All Sub Depts</option>
+                                {allDepartments
+                                  .filter((d) => {
+                                    const parentId = typeof d.parentDepartmentId === 'object' 
+                                      ? (d.parentDepartmentId as any)?._id 
+                                      : d.parentDepartmentId;
+                                    return parentId === highGrievanceMainDept;
+                                  })
+                                  .map((d) => (
+                                    <option key={d._id} value={d._id}>
+                                      {d.name}
+                                    </option>
+                                  ))}
+                              </select>
+                            )}
+                          </div>
+                        </div>
+                        <div className="p-4 flex-1 overflow-hidden">
+                          {(() => {
+                            // Logic for filtering chart data
+                            const filteredData = departmentData.filter((d: any) => {
+                              const deptId = d.departmentId || d._id || "";
+                              const parentId = d.parentDepartmentId || "";
+                              
+                              // Basic cleanup
+                              if (!d.departmentName || d.departmentName.trim() === "" || d.departmentName === "Unnamed Department") {
+                                return false;
+                              }
 
-                                  if (departmentId) {
-                                    if (parentId) {
-                                      // 🏢 Sub-Department: Filter by parent AND self
-                                      filters.mainDeptId = parentId;
-                                      filters.subDeptId = departmentId;
-                                    } else {
-                                      // 🏢 Main Department: Filter by self only
-                                      filters.mainDeptId = departmentId;
-                                      filters.subDeptId = "";
-                                    }
-                                    filters.department = "";
-                                  }
+                              // If a sub-department is selected, show only that
+                              if (highGrievanceSubDept) {
+                                return deptId === highGrievanceSubDept;
+                              }
 
-                                  navigateToGrievances(filters);
-                                }}
-                              />
-                            </BarChart>
-                          </ResponsiveContainer>
+                              // If a main department is selected, show only its sub-departments
+                              if (highGrievanceMainDept) {
+                                return parentId === highGrievanceMainDept;
+                              }
+
+                              // By default, show only main departments
+                              return !parentId;
+                            }).sort((a, b) => b.count - a.count);
+
+                            const chartHeight = Math.max(240, filteredData.length * 45);
+
+                            return (
+                              <div className="h-[280px] overflow-y-auto pr-2 custom-scrollbar">
+                                <ResponsiveContainer width="100%" height={chartHeight}>
+                                  <BarChart
+                                    data={filteredData}
+                                    layout="vertical"
+                                    margin={{
+                                      left: 20,
+                                      right: 40,
+                                      top: 10,
+                                      bottom: 10,
+                                    }}
+                                  >
+                                    <CartesianGrid
+                                      strokeDasharray="3 3"
+                                      stroke="#f1f5f9"
+                                      horizontal={false}
+                                    />
+                                    <XAxis type="number" hide />
+                                    <YAxis
+                                      dataKey="departmentName"
+                                      type="category"
+                                      interval={0}
+                                      tick={{
+                                        fontSize: 9,
+                                        fontWeight: "bold",
+                                        fill: "#64748b",
+                                      }}
+                                      width={140}
+                                    />
+                                    <Tooltip
+                                      cursor={{ fill: "#f8fafc" }}
+                                      contentStyle={{
+                                        borderRadius: "12px",
+                                        border: "none",
+                                        boxShadow:
+                                          "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+                                        fontSize: "10px",
+                                      }}
+                                    />
+                                    <Bar
+                                      dataKey="count"
+                                      fill="#ef4444"
+                                      radius={[0, 4, 4, 0]}
+                                      barSize={16}
+                                      name="Total Grievances"
+                                      className="cursor-pointer"
+                                      onClick={(data: any) => {
+                                        const departmentId = data?.departmentId || data?._id || "";
+                                        const parentId = data?.parentDepartmentId || "";
+                                        
+                                        const filters: Partial<typeof grievanceFilters> = {
+                                          status: "",
+                                        };
+
+                                        if (departmentId) {
+                                          if (parentId) {
+                                            // 🏢 Sub-Department: Filter by parent AND self
+                                            filters.mainDeptId = parentId;
+                                            filters.subDeptId = departmentId;
+                                          } else {
+                                            // 🏢 Main Department: Filter by self only
+                                            filters.mainDeptId = departmentId;
+                                            filters.subDeptId = "";
+                                          }
+                                          filters.department = "";
+                                        }
+
+                                        navigateToGrievances(filters);
+                                      }}
+                                    />
+                                  </BarChart>
+                                </ResponsiveContainer>
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
                     )}
@@ -5454,127 +5568,6 @@ function DashboardContent() {
                     </div>
                   )}
 
-                  {/* Department Table - Company Admin only */}
-                  {/*   {isCompanyLevel && departments.length > 0 && (
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                  <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-teal-50 rounded-lg flex items-center justify-center">
-                        <Building className="w-4 h-4 text-teal-600" />
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-bold text-slate-800">
-                          Department Health Monitor
-                        </h3>
-                        <p className="text-[10px] text-slate-400">
-                          Per-department status and metrics
-                        </p>
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-bold bg-teal-50 text-teal-600 px-2 py-1 rounded-lg">
-                      {departments.length} departments
-                    </span>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-slate-50 border-b border-slate-100">
-                        <tr>
-                          <th className="px-4 py-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                            Department
-                          </th>
-                          <th className="px-4 py-3 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                            Status
-                          </th>
-                          <th className="px-4 py-3 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                            Staff
-                          </th>
-                          <th className="px-4 py-3 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                            Type
-                          </th>
-                          <th className="px-4 py-3 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                            Action
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {departments.map((dept, i) => {
-                          const deptUsers = users.filter((u) => {
-                            const uDeptId =
-                              typeof u.departmentId === "object" &&
-                              u.departmentId
-                                ? (u.departmentId as any)._id
-                                : u.departmentId;
-                            return uDeptId === dept._id;
-                          });
-                          return (
-                            <tr
-                              key={dept._id}
-                              className="hover:bg-slate-50/70 transition-colors"
-                            >
-                              <td className="px-4 py-3">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center text-indigo-600 font-bold text-sm flex-shrink-0">
-                                    {dept.name[0]}
-                                  </div>
-                                  <div>
-                                    <p className="text-sm font-bold text-slate-800">
-                                      {dept.name}
-                                    </p>
-                                    <p className="text-[10px] text-slate-400 font-mono">
-                                      {dept.departmentId}
-                                    </p>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="px-4 py-3 text-center">
-                                <span
-                                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${dept.isActive !== false ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}
-                                >
-                                  <span
-                                    className={`w-1.5 h-1.5 rounded-full ${dept.isActive !== false ? "bg-emerald-500" : "bg-red-500"}`}
-                                  ></span>
-                                  {dept.isActive !== false
-                                    ? "Active"
-                                    : "Inactive"}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3 text-center">
-                                <span className="text-sm font-black text-slate-800">
-                                  {deptUsers.length}
-                                </span>
-                                <span className="text-[10px] text-slate-400 ml-1">
-                                  staff
-                                </span>
-                              </td>
-                              <td className="px-4 py-3 text-center">
-                                <span
-                                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${dept.parentDepartmentId ? "bg-purple-50 text-purple-600" : "bg-blue-50 text-blue-600"}`}
-                                >
-                                  {dept.parentDepartmentId
-                                    ? "Sub-dept"
-                                    : "Main"}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3 text-right">
-                                <button
-                                  onClick={() =>
-                                    router.push(
-                                      `/dashboard/department/${dept._id}`,
-                                    )
-                                  }
-                                  className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3 py-1 rounded-lg transition-all"
-                                >
-                                  View →
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )} */}
                 </TabsContent>
               )}
 
@@ -5854,32 +5847,6 @@ function DashboardContent() {
               {canSeeDepartmentsTab && (
                 <TabsContent value="departments" className="space-y-4">
                   <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
-                    {/* Header */}
-                    {/* <CardHeader className="bg-slate-900 px-4 sm:px-6 py-2">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
-                        <Building className="w-4 h-4 text-indigo-400" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-base font-bold text-white flex items-center gap-2 flex-wrap">
-                          {isDFO ? "Forest Ranges" : "Departments"}
-                          <span className="text-[10px] font-black bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full ml-2">
-                            {departmentPagination.total} total
-                          </span>
-                        </CardTitle>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-                          Manage all departments in your company
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                    </div>
-
-                  </div>
-                </CardHeader> */}
-
                     <CardContent className="p-0">
                       <div className="px-6 py-4 bg-slate-50/50 border-b border-slate-200 space-y-4">
                         {/* Top Action Bar */}
@@ -5896,65 +5863,91 @@ function DashboardContent() {
                               />
                             </div>
 
-                          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-                            {isSuperAdminUser &&
-                              selectedDepartments.size > 0 && (
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                              {isSuperAdminUser &&
+                                selectedDepartments.size > 0 && (
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={handleBulkDeleteDepartments}
+                                    disabled={isDeleting}
+                                    className="h-8 text-[10px] font-bold uppercase bg-red-600 hover:bg-red-700 text-white rounded-lg border border-red-700 shadow-sm transition-all px-3"
+                                  >
+                                    <Trash2 className="w-3 h-3 mr-1.5" />
+                                    Delete ({selectedDepartments.size})
+                                  </Button>
+                                )}
+                              {(isSuperAdminUser ||
+                                (hasPermission(
+                                  user,
+                                  Permission.CREATE_DEPARTMENT,
+                                ) &&
+                                  !isSubDepartmentAdminRole &&
+                                  !isOperatorRole)) && (
                                 <Button
-                                  variant="destructive"
-                                  size="sm"
-                                  onClick={handleBulkDeleteDepartments}
-                                  disabled={isDeleting}
-                                  className="h-8 text-[10px] font-bold uppercase bg-red-600 hover:bg-red-700 text-white rounded-lg border border-red-700 shadow-sm transition-all px-3"
+                                  type="button"
+                                  onClick={() => setShowDepartmentDialog(true)}
+                                  className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-9 text-[11px] font-bold uppercase tracking-wide rounded-lg px-4 shadow-md transition-all active:scale-95 whitespace-nowrap"
                                 >
-                                  <Trash2 className="w-3 h-3 mr-1.5" />
-                                  Delete ({selectedDepartments.size})
+                                  <Building className="w-3.5 h-3.5 mr-1.5" />
+                                  Add Department
                                 </Button>
                               )}
-                            {(isSuperAdminUser ||
-                              (hasPermission(
-                                user,
-                                Permission.CREATE_DEPARTMENT,
-                              ) &&
-                                !isSubDepartmentAdminRole &&
-                                !isOperatorRole)) && (
-                              <Button
-                                type="button"
-                                onClick={() => setShowDepartmentDialog(true)}
-                                className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-9 text-[11px] font-bold uppercase tracking-wide rounded-lg px-4 shadow-md transition-all active:scale-95 whitespace-nowrap"
-                              >
-                                <Building className="w-3.5 h-3.5 mr-1.5" />
-                                Add Department
-                              </Button>
-                            )}
-                            {!(
-                              isDepartmentAdminRole ||
-                              isSubDepartmentAdminRole ||
-                              isOperatorRole
-                            ) && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() =>
-                                    setShowDepartmentFiltersOnMobile(
-                                      (prev) => !prev,
-                                    )
+                              {!(
+                                isDepartmentAdminRole ||
+                                isSubDepartmentAdminRole ||
+                                isOperatorRole
+                              ) && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() =>
+                                      setShowDepartmentFiltersOnMobile(
+                                        (prev) => !prev,
+                                      )
+                                    }
+                                    className="md:hidden border-slate-200 hover:bg-slate-50 rounded-lg whitespace-nowrap h-8 text-[11px] font-bold uppercase tracking-tight"
+                                    title="Toggle filters"
+                                  >
+                                    <Filter className="w-3.5 h-3.5 mr-1" />
+                                    Filters
+                                  </Button>
+                              )}
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-bold text-slate-700 bg-white px-2 py-1 rounded-lg shadow-sm border border-slate-200 whitespace-nowrap h-8 flex items-center">
+                                Showing{" "}
+                                <span className="text-indigo-600 font-black px-1">
+                                  {departments.length}
+                                </span>{" "}
+                                of {departmentPagination.total}
+                              </span>
+
+                              <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border border-slate-200 shadow-sm h-8">
+                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                  Rows:
+                                </span>
+                                <select
+                                  value={departmentPagination.limit}
+                                  onChange={(e) =>
+                                    setDepartmentPagination((prev) => ({
+                                      ...prev,
+                                      limit: Number(e.target.value),
+                                    }))
                                   }
-                                  className="md:hidden border-slate-200 hover:bg-slate-50 rounded-lg whitespace-nowrap h-8 text-[11px] font-bold uppercase tracking-tight"
-                                  title="Toggle filters"
+                                  className="text-[10px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer p-0 h-auto"
                                 >
-                                  <Filter className="w-3.5 h-3.5 mr-1" />
-                                  Filters
-                                </Button>
-                            )}
+                                  {[10, 20, 25, 50, 100, 200, 250].map((l) => (
+                                    <option key={l} value={l}>
+                                      {l}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
                           </div>
-                          
-                          <span className="text-[10px] font-bold text-slate-700 bg-white px-2 py-1 rounded-lg shadow-sm border border-slate-200 whitespace-nowrap">
-                            Showing{" "}
-                            <span className="text-indigo-600 font-black">
-                              {departments.length}
-                            </span>{" "}
-                            of {departmentPagination.total}
-                          </span>
                         </div>
 
                         <div
@@ -6074,28 +6067,7 @@ function DashboardContent() {
                               </div>
                             </>
                           )}
-                          {/* Rows per page Selector - Moved here */}
-                          <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border border-slate-200 shadow-sm h-8 ml-auto">
-                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                              Rows:
-                            </span>
-                            <select
-                              value={departmentPagination.limit}
-                              onChange={(e) =>
-                                setDepartmentPagination((prev) => ({
-                                  ...prev,
-                                  limit: Number(e.target.value),
-                                }))
-                              }
-                              className="text-[10px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer p-0 h-auto"
-                            >
-                              {[10, 20, 25, 50, 100, 200, 250].map((l) => (
-                                <option key={l} value={l}>
-                                  {l}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
+
                         </div>
                       </div>
                       <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/20">
@@ -6186,19 +6158,30 @@ function DashboardContent() {
                                       className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                                     >
                                       <span>Department Name</span>
-                                      <ArrowUpDown
-                                        className={`w-3 h-3 transition-colors ${sortConfig.key === "name" ? "text-indigo-500" : "text-slate-300 group-hover:text-slate-400"}`}
-                                      />
+                                      <SortIcon sortConfig={sortConfig} columnKey="name" />
                                     </button>
                                   </th>
-                                  {/* <th className="px-4 py-3 text-left border-b border-slate-100 text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                    Dept ID
-                                  </th> */}
-                                  <th className="px-4 py-3 text-center border-b border-slate-100 text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                    Type
+                                  <th className="px-4 py-3 text-center border-b border-slate-100">
+                                    <button
+                                      onClick={() =>
+                                        handleSort("type", "departments")
+                                      }
+                                      className="group flex items-center justify-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors mx-auto"
+                                    >
+                                      <span>Type</span>
+                                      <SortIcon sortConfig={sortConfig} columnKey="type" />
+                                    </button>
                                   </th>
-                                  <th className="px-4 py-3 text-center border-b border-slate-100 text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                    Users
+                                  <th className="px-4 py-3 text-center border-b border-slate-100">
+                                    <button
+                                      onClick={() =>
+                                        handleSort("userCount", "departments")
+                                      }
+                                      className="group flex items-center justify-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors mx-auto"
+                                    >
+                                      <span>Users</span>
+                                      <SortIcon sortConfig={sortConfig} columnKey="userCount" />
+                                    </button>
                                   </th>
                                   {showDepartmentPriorityColumn && (
                                     <th className="px-4 py-3 text-center border-b border-slate-100 text-[9px] font-black text-slate-400 uppercase tracking-widest">
@@ -6208,8 +6191,16 @@ function DashboardContent() {
                                   <th className="px-4 py-3 text-left border-b border-slate-100 text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                     Head / Contact
                                   </th>
-                                  <th className="px-4 py-3 text-center border-b border-slate-100 text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                    Status
+                                  <th className="px-4 py-3 text-center border-b border-slate-100">
+                                    <button
+                                      onClick={() =>
+                                        handleSort("status", "departments")
+                                      }
+                                      className="group flex items-center justify-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors mx-auto"
+                                    >
+                                      <span>Status</span>
+                                      <SortIcon sortConfig={sortConfig} columnKey="status" />
+                                    </button>
                                   </th>
                                   <th className="px-4 py-3 text-right border-b border-slate-100 text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                     Actions
@@ -6217,7 +6208,7 @@ function DashboardContent() {
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-slate-100 bg-white">
-                                {getSortedData(departments, "departments").map(
+                                {departments.map(
                                   (dept, index) => {
                                     const isMain = !dept.parentDepartmentId;
                                     const userCount =
@@ -6305,13 +6296,6 @@ function DashboardContent() {
                                             </div>
                                           </div>
                                         </td>
-
-                                        {/* Dept ID */}
-                                        {/* <td className="px-4 py-4 whitespace-nowrap">
-                                          <span className="inline-flex items-center text-[10px] font-bold bg-slate-50 text-slate-600 px-2 py-0.5 rounded border border-slate-200 uppercase tracking-tighter shadow-sm">
-                                            {dept.departmentId}
-                                          </span>
-                                        </td> */}
 
                                         {/* Type */}
                                         <td className="px-4 py-4 text-center whitespace-normal">
@@ -6446,7 +6430,7 @@ function DashboardContent() {
                                             <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5 uppercase tracking-tight">
                                               <UserIcon className="w-3 h-3 text-slate-400 shrink-0" />
                                               {dept.head ||
-                                                (dept as any).headName ||
+                                                dept.headName ||
                                                 dept.contactPerson || (
                                                   <span className="text-slate-300 font-medium">
                                                     Not assigned
@@ -6828,30 +6812,6 @@ function DashboardContent() {
               {canSeeUsersTab && (
                 <TabsContent value="users" className="space-y-6">
                   <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
-                    {/* <CardHeader className="bg-slate-900 px-4 sm:px-6 py-2">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
-                        <Users className="w-4 h-4 text-indigo-400" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-base font-bold text-white flex flex-wrap items-center gap-2">
-                          User Management
-                          <span className="text-[10px] font-black bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full ml-2">
-                            {userPagination.total} total
-                          </span>
-                        </CardTitle>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-                          {isViewingCompany
-                            ? "Manage users in your company"
-                            : "Manage users in your department"}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                    </div>
-                  </div>
-                </CardHeader> */}
                     <CardContent className="p-0">
                       <>
                         <div className="px-6 py-4 bg-slate-50/50 border-b border-slate-200 space-y-4">
@@ -6872,196 +6832,200 @@ function DashboardContent() {
                               />
                             </div>
 
-                             <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-                               {isSuperAdminUser && selectedUsers.size > 0 && (
-                                 <Button
-                                   variant="destructive"
-                                   size="sm"
-                                   onClick={handleBulkDeleteUsers}
-                                   disabled={isDeleting}
-                                   className="h-8 text-[10px] font-bold uppercase bg-red-600 hover:bg-red-700 text-white rounded-lg border border-red-700 shadow-sm transition-all px-3"
-                                 >
-                                   <Trash2 className="w-3 h-3 mr-1.5" />
-                                   Delete ({selectedUsers.size})
-                                 </Button>
-                               )}
+                             <div className="flex items-center gap-3">
+                               <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                                 {isSuperAdminUser && selectedUsers.size > 0 && (
+                                   <Button
+                                     variant="destructive"
+                                     size="sm"
+                                     onClick={handleBulkDeleteUsers}
+                                     disabled={isDeleting}
+                                     className="h-8 text-[10px] font-bold uppercase bg-red-600 hover:bg-red-700 text-white rounded-lg border border-red-700 shadow-sm transition-all px-3"
+                                   >
+                                     <Trash2 className="w-3 h-3 mr-1.5" />
+                                     Delete ({selectedUsers.size})
+                                   </Button>
+                                 )}
 
-                               {(isSuperAdminUser ||
-                                 hasPermission(
-                                   user,
-                                   Permission.CREATE_USER,
-                                 )) && (
-                               <Button
-                                 type="button"
-                                 onClick={() => setShowUserDialog(true)}
-                                 className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-9 text-[11px] font-bold uppercase tracking-wide rounded-lg px-4 shadow-md transition-all active:scale-95 whitespace-nowrap"
-                               >
-                                 <UserPlus className="w-3.5 h-3.5 mr-1.5" />
-                                 Add User
-                               </Button>
-                               )}
-                               {!(
-                                 isDepartmentAdminRole ||
-                                 isSubDepartmentAdminRole ||
-                                 isOperatorRole
-                               ) && (
+                                 {(isSuperAdminUser ||
+                                   hasPermission(
+                                     user,
+                                     Permission.CREATE_USER,
+                                   )) && (
                                  <Button
-                                   variant="outline"
-                                   size="sm"
-                                   onClick={() =>
-                                     setShowUserFiltersOnMobile((prev) => !prev)
-                                   }
-                                   className="md:hidden border-slate-200 hover:bg-slate-50 rounded-lg whitespace-nowrap h-8 text-[11px] font-bold uppercase tracking-tight"
-                                   title="Toggle filters"
+                                   type="button"
+                                   onClick={() => setShowUserDialog(true)}
+                                   className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-9 text-[11px] font-bold uppercase tracking-wide rounded-lg px-4 shadow-md transition-all active:scale-95 whitespace-nowrap"
                                  >
-                                   <Filter className="w-3.5 h-3.5 mr-1" />
-                                   Filters
+                                   <UserPlus className="w-3.5 h-3.5 mr-1.5" />
+                                   Add User
                                  </Button>
-                               )}
+                                 )}
+                                 {!(
+                                   isDepartmentAdminRole ||
+                                   isSubDepartmentAdminRole ||
+                                   isOperatorRole
+                                 ) && (
+                                   <Button
+                                     variant="outline"
+                                     size="sm"
+                                     onClick={() =>
+                                       setShowUserFiltersOnMobile((prev) => !prev)
+                                     }
+                                     className="md:hidden border-slate-200 hover:bg-slate-50 rounded-lg whitespace-nowrap h-8 text-[11px] font-bold uppercase tracking-tight"
+                                     title="Toggle filters"
+                                   >
+                                     <Filter className="w-3.5 h-3.5 mr-1" />
+                                     Filters
+                                   </Button>
+                                 )}
+                               </div>
+
+                               <div className="flex items-center gap-2">
+                                 <span className="text-[10px] font-bold text-slate-700 bg-white px-2 py-1 rounded-lg shadow-sm border border-slate-200 whitespace-nowrap h-8 flex items-center">
+                                   Showing{" "}
+                                   <span className="text-indigo-600 font-black px-1">
+                                     {users.length}
+                                   </span>{" "}
+                                   of {userPagination.total}
+                                 </span>
+
+                                 <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border border-slate-200 shadow-sm h-8">
+                                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                     Rows:
+                                   </span>
+                                   <select
+                                     value={userPagination.limit}
+                                     onChange={(e) =>
+                                       setUserPagination((prev) => ({
+                                         ...prev,
+                                         limit: Number(e.target.value),
+                                       }))
+                                     }
+                                     className="text-[10px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer p-0 h-auto"
+                                   >
+                                     {[10, 20, 25, 50, 100, 200, 250].map((l) => (
+                                       <option key={l} value={l}>
+                                         {l}
+                                       </option>
+                                     ))}
+                                   </select>
+                                 </div>
+                               </div>
                              </div>
-
-                             <span className="text-[10px] font-bold text-slate-700 bg-white px-2 py-1 rounded-lg shadow-sm border border-slate-200 whitespace-nowrap">
-                               Showing{" "}
-                               <span className="text-indigo-600 font-black">
-                                 {users.length}
-                               </span>{" "}
-                               of {userPagination.total}
-                             </span>
                            </div>
 
-                          <div
-                            className={cn(
-                              "items-center gap-2 flex-wrap",
-                              showUserFiltersOnMobile
-                                ? "flex"
-                                : "hidden md:flex",
-                            )}
-                          >
-                            <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-lg shadow-sm border border-slate-200 h-8">
-                              <Filter className="w-3.5 h-3.5 text-indigo-500" />
-                              <span className="text-[11px] font-bold text-slate-700 uppercase tracking-tight">
-                                Filters
-                              </span>
-                            </div>
+                          {!(isSubDepartmentAdminRole || isOperatorRole) && (
+                            <div
+                              className={cn(
+                                "items-center gap-2 flex-wrap",
+                                showUserFiltersOnMobile
+                                  ? "flex"
+                                  : "hidden md:flex",
+                              )}
+                            >
+                              <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-lg shadow-sm border border-slate-200 h-8">
+                                <Filter className="w-3.5 h-3.5 text-indigo-500" />
+                                <span className="text-[11px] font-bold text-slate-700 uppercase tracking-tight">
+                                  Filters
+                                </span>
+                              </div>
 
-                            <div className="flex items-center gap-2 flex-wrap flex-1">
-                              <select
-                                value={userFilters.role}
-                                onChange={(e) => {
-                                  setUserFilters((prev) => ({
-                                    ...prev,
-                                    role: e.target.value,
-                                  }));
-                                  setUserPage(1);
-                                }}
-                                className="text-[11px] h-8 px-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer font-medium min-w-[100px] max-w-[130px]"
-                                title="Filter by role"
-                              >
-                                <option value="">👤 All Roles</option>
-                                {filteredRolesByHierarchy.map((role: any) => (
-                                  <option
-                                    key={role._id}
-                                    value={`CUSTOM:${role._id}`}
-                                  >
-                                    {role.name}
-                                  </option>
-                                ))}
-                                {isSuperAdminUser && (
-                                  <option value="SUPER_ADMIN">
-                                    Super Admin
-                                  </option>
-                                )}
-                              </select>
-
-                              <select
-                                value={userFilters.status}
-                                onChange={(e) => {
-                                  setUserFilters((prev) => ({
-                                    ...prev,
-                                    status: e.target.value,
-                                  }));
-                                  setUserPage(1);
-                                }}
-                                className="text-[11px] h-8 px-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer font-medium min-w-[100px] max-w-[120px]"
-                                title="Filter by status"
-                              >
-                                <option value="">📊 All Status</option>
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                              </select>
-
-                              {!isSubDepartmentAdminRole && !isOperatorRole && (
-                                <DashboardDepartmentFilters
-                                  allDepartments={scopedDepartmentsForFilters}
-                                  getParentDepartmentId={getParentDepartmentId}
-                                  onFiltersChange={(filters) => {
+                              <div className="flex items-center gap-2 flex-wrap flex-1">
+                                <select
+                                  value={userFilters.role}
+                                  onChange={(e) => {
                                     setUserFilters((prev) => ({
                                       ...prev,
-                                      mainDeptId: filters.mainDeptId,
-                                      subDeptId: filters.subDeptId,
+                                      role: e.target.value,
                                     }));
                                     setUserPage(1);
                                   }}
-                                  currentFilters={userFilters}
-                                  showSubDepartmentSelect={!isDepartmentAdminRole}
-                                  showOnlySubDepartmentsInMainSelect={
-                                    isDepartmentAdminRole
-                                  }
-                                  className="w-full md:w-auto"
-                                />
-                              )}
-
-                              {(userFilters.role ||
-                                userFilters.status ||
-                                userFilters.mainDeptId ||
-                                userFilters.subDeptId ||
-                                userSearch.trim()) && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    setUserSearch("");
-                                    setUserFilters({
-                                      role: "",
-                                      status: "",
-                                      mainDeptId: "",
-                                      subDeptId: "",
-                                    });
-                                    setUserPage(1);
-                                  }}
-                                  className="h-8 px-3 text-[11px] text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg border border-red-200 font-medium"
-                                  title="Clear all filters"
+                                  className="text-[11px] h-8 px-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer font-medium min-w-[100px] max-w-[130px]"
+                                  title="Filter by role"
                                 >
-                                  <X className="w-3 h-3 mr-1" />
-                                  Clear
-                                </Button>
-                              )}
-
-                              {/* Rows per page Selector - Moved here */}
-                              <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border border-slate-200 shadow-sm h-8 ml-auto">
-                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                  Rows:
-                                </span>
-                                <select
-                                  value={userPagination.limit}
-                                  onChange={(e) =>
-                                    setUserPagination((prev) => ({
-                                      ...prev,
-                                      limit: Number(e.target.value),
-                                    }))
-                                  }
-                                  className="text-[10px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer p-0 h-auto"
-                                >
-                                  {[10, 20, 25, 50, 100, 200, 250].map((l) => (
-                                    <option key={l} value={l}>
-                                      {l}
+                                  <option value="">👤 All Roles</option>
+                                  {filteredRolesByHierarchy.map((role: any) => (
+                                    <option
+                                      key={role._id}
+                                      value={`CUSTOM:${role._id}`}
+                                    >
+                                      {role.name}
                                     </option>
                                   ))}
+                                  {isSuperAdminUser && (
+                                    <option value="SUPER_ADMIN">
+                                      Super Admin
+                                    </option>
+                                  )}
                                 </select>
+
+                                <select
+                                  value={userFilters.status}
+                                  onChange={(e) => {
+                                    setUserFilters((prev) => ({
+                                      ...prev,
+                                      status: e.target.value,
+                                    }));
+                                    setUserPage(1);
+                                  }}
+                                  className="text-[11px] h-8 px-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer font-medium min-w-[100px] max-w-[120px]"
+                                  title="Filter by status"
+                                >
+                                  <option value="">📊 All Status</option>
+                                  <option value="active">Active</option>
+                                  <option value="inactive">Inactive</option>
+                                </select>
+
+                                {!isSubDepartmentAdminRole && !isOperatorRole && (
+                                  <DashboardDepartmentFilters
+                                    allDepartments={scopedDepartmentsForFilters}
+                                    getParentDepartmentId={getParentDepartmentId}
+                                    onFiltersChange={(filters) => {
+                                      setUserFilters((prev) => ({
+                                        ...prev,
+                                        mainDeptId: filters.mainDeptId,
+                                        subDeptId: filters.subDeptId,
+                                      }));
+                                      setUserPage(1);
+                                    }}
+                                    currentFilters={userFilters}
+                                    showSubDepartmentSelect={!isDepartmentAdminRole}
+                                    showOnlySubDepartmentsInMainSelect={
+                                      isDepartmentAdminRole
+                                    }
+                                    className="w-full md:w-auto"
+                                  />
+                                )}
+
+                                {(userFilters.role ||
+                                  userFilters.status ||
+                                  userFilters.mainDeptId ||
+                                  userFilters.subDeptId ||
+                                  userSearch.trim()) && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      setUserSearch("");
+                                      setUserFilters({
+                                        role: "",
+                                        status: "",
+                                        mainDeptId: "",
+                                        subDeptId: "",
+                                      });
+                                      setUserPage(1);
+                                    }}
+                                    className="h-8 px-3 text-[11px] text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg border border-red-200 font-medium"
+                                    title="Clear all filters"
+                                  >
+                                    <X className="w-3 h-3 mr-1" />
+                                    Clear
+                                  </Button>
+                                )}
                               </div>
                             </div>
-
-                          </div>
+                          )}
                         </div>
 
                         {loadingUsers ? (
@@ -7094,17 +7058,13 @@ function DashboardContent() {
                                           checked={
                                             selectedUsers.size > 0 &&
                                             selectedUsers.size ===
-                                              getSortedData(users, "users")
-                                                .length
+                                              users.length
                                           }
                                           onChange={(e) => {
                                             if (e.target.checked) {
                                               setSelectedUsers(
                                                 new Set(
-                                                  getSortedData(
-                                                    users,
-                                                    "users",
-                                                  ).map((u) => u._id),
+                                                  users.map((u) => u._id),
                                                 ),
                                               );
                                             } else {
@@ -7126,9 +7086,7 @@ function DashboardContent() {
                                         className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                                       >
                                         <span>User Info</span>
-                                        <ArrowUpDown
-                                          className={`w-3 h-3 transition-colors ${sortConfig.key === "firstName" ? "text-indigo-500" : "text-slate-300 group-hover:text-slate-400"}`}
-                                        />
+                                        <SortIcon sortConfig={sortConfig} columnKey="firstName" />
                                       </button>
                                     </th>
                                     <th className="px-5 py-3 text-left">
@@ -7139,9 +7097,7 @@ function DashboardContent() {
                                         className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                                       >
                                         <span>Contact Information</span>
-                                        <ArrowUpDown
-                                          className={`w-3 h-3 transition-colors ${sortConfig.key === "email" ? "text-indigo-500" : "text-slate-300 group-hover:text-slate-400"}`}
-                                        />
+                                        <SortIcon sortConfig={sortConfig} columnKey="email" />
                                       </button>
                                     </th>
                                     <th className="px-6 py-3 text-left">
@@ -7152,9 +7108,7 @@ function DashboardContent() {
                                         className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                                       >
                                         <span>Role &amp; Dept</span>
-                                        <ArrowUpDown
-                                          className={`w-3 h-3 transition-colors ${sortConfig.key === "role" ? "text-indigo-500" : "text-slate-300 group-hover:text-slate-400"}`}
-                                        />
+                                        <SortIcon sortConfig={sortConfig} columnKey="role" />
                                       </button>
                                     </th>
                                     <th className="px-6 py-3 text-left">
@@ -7165,9 +7119,7 @@ function DashboardContent() {
                                         className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                                       >
                                         <span>Status &amp; Access</span>
-                                        <ArrowUpDown
-                                          className={`w-3 h-3 transition-colors ${sortConfig.key === "isActive" ? "text-indigo-500" : "text-slate-300 group-hover:text-slate-400"}`}
-                                        />
+                                        <SortIcon sortConfig={sortConfig} columnKey="isActive" />
                                       </button>
                                     </th>
                                     <th className="px-6 py-3 text-right text-[9px] font-black text-slate-400 border-b border-slate-100 uppercase tracking-widest">
@@ -7176,7 +7128,7 @@ function DashboardContent() {
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100 bg-white">
-                                  {getSortedData(users, "users").map(
+                                  {users.map(
                                     (u: User, index: number) => (
                                       <tr
                                         key={u._id}
@@ -7646,36 +7598,6 @@ function DashboardContent() {
                 (isViewingCompany || isDepartmentLevel) && (
                   <TabsContent value="grievances" className="space-y-4">
                     <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
-                      {/* <CardHeader className="bg-slate-900 px-6 py-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
-                          <FileText className="w-5 h-5 text-indigo-400" />
-                        </div>
-                        <div>
-                          <CardTitle className="text-base font-bold text-white">
-                            {grievanceFilters.status === "REJECTED"
-                              ? "Rejected Grievances"
-                              : grievanceFilters.status === "CLOSED"
-                                ? "Closed Grievances"
-                                : grievanceFilters.status === "REVERTED"
-                                  ? "Reverted Grievances"
-                                  : "Active Grievances"}
-                          </CardTitle>
-                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-                            {grievanceFilters.status === "REJECTED"
-                              ? "View all rejected grievances"
-                              : grievanceFilters.status === "CLOSED"
-                                ? "View all closed grievances"
-                                : grievanceFilters.status === "REVERTED"
-                                  ? "Reverted by departments and pending reassignment"
-                                  : "View and manage grievances"}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </CardHeader> */}
-
                       {/* Grievance Filters */}
                       <div className="px-6 py-4 bg-slate-50/50 border-b border-slate-200">
                         <div className="flex items-center justify-between gap-4 mb-3">
@@ -7692,28 +7614,69 @@ function DashboardContent() {
                               className="w-full pl-9 pr-3.5 h-9 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-[11px] font-bold uppercase tracking-tight placeholder:normal-case placeholder:text-slate-400 shadow-sm"
                             />
                           </div>
-                          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                setShowGrievanceFiltersOnMobile((prev) => !prev)
-                              }
-                              className="md:hidden border-slate-200 hover:bg-slate-50 rounded-lg whitespace-nowrap h-8 text-[11px] font-bold uppercase tracking-tight"
-                              title="Toggle filters"
-                            >
-                              <Filter className="w-3.5 h-3.5 mr-1" />
-                              Filters
-                            </Button>
-                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  setShowGrievanceFiltersOnMobile((prev) => !prev)
+                                }
+                                className="md:hidden border-slate-200 hover:bg-slate-50 rounded-lg whitespace-nowrap h-8 text-[11px] font-bold uppercase tracking-tight"
+                                title="Toggle filters"
+                              >
+                                <Filter className="w-3.5 h-3.5 mr-1" />
+                                Filters
+                              </Button>
 
-                          <span className="text-[10px] font-bold text-slate-700 bg-white px-2 py-1 rounded-lg shadow-sm border border-slate-200 whitespace-nowrap">
-                            Showing{" "}
-                            <span className="text-indigo-600 font-black">
-                              {getSortedData(grievances, "grievances").length}
-                            </span>{" "}
-                            of {grievancePagination.total}
-                          </span>
+                              {isSuperAdminDrilldown &&
+                                selectedGrievances.size > 0 && (
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={handleBulkDeleteGrievances}
+                                    disabled={isDeleting}
+                                    className="text-xs h-8 px-4 bg-red-600 hover:bg-red-700 text-white rounded-xl border border-red-700 shadow-sm"
+                                    title={`Delete ${selectedGrievances.size} selected grievance(s)`}
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                                    Delete ({selectedGrievances.size})
+                                  </Button>
+                                )}
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-bold text-slate-700 bg-white px-2 py-1 rounded-lg shadow-sm border border-slate-200 whitespace-nowrap h-8 flex items-center">
+                                Showing{" "}
+                                <span className="text-indigo-600 font-black px-1">
+                                  {getSortedData(grievances, "grievances").length}
+                                </span>{" "}
+                                of {grievancePagination.total}
+                              </span>
+
+                              <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border border-slate-200 shadow-sm h-8">
+                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                  Rows:
+                                </span>
+                                <select
+                                  value={grievancePagination.limit}
+                                  onChange={(e) =>
+                                    setGrievancePagination((prev) => ({
+                                      ...prev,
+                                      limit: Number(e.target.value),
+                                    }))
+                                  }
+                                  className="text-[10px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer p-0 h-auto"
+                                >
+                                  {[10, 20, 25, 50, 100, 200, 250].map((l) => (
+                                    <option key={l} value={l}>
+                                      {l}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                          </div>
                         </div>
 
                         {/* Filters Row */}
@@ -7867,43 +7830,7 @@ function DashboardContent() {
                             </Button>
                           )}
 
-                          {isSuperAdminDrilldown &&
-                            selectedGrievances.size > 0 && (
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={handleBulkDeleteGrievances}
-                                disabled={isDeleting}
-                                className="text-xs h-8 px-4 bg-red-600 hover:bg-red-700 text-white rounded-xl border border-red-700 shadow-sm"
-                                title={`Delete ${selectedGrievances.size} selected grievance(s)`}
-                              >
-                                <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                                Delete ({selectedGrievances.size})
-                              </Button>
-                            )}
 
-                          {/* Rows per page Selector - Moved here */}
-                          <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border border-slate-200 shadow-sm h-8 ml-auto">
-                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                              Rows:
-                            </span>
-                            <select
-                              value={grievancePagination.limit}
-                              onChange={(e) =>
-                                setGrievancePagination((prev) => ({
-                                  ...prev,
-                                  limit: Number(e.target.value),
-                                }))
-                              }
-                              className="text-[10px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer p-0 h-auto"
-                            >
-                              {[10, 20, 25, 50, 100, 200, 250].map((l) => (
-                                <option key={l} value={l}>
-                                  {l}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
                         </div>
                       </div>
 
@@ -7947,19 +7874,13 @@ function DashboardContent() {
                                           checked={
                                             selectedGrievances.size > 0 &&
                                             selectedGrievances.size ===
-                                              getSortedData(
-                                                grievances,
-                                                "grievances",
-                                              ).length
+                                              grievances.length
                                           }
                                           onChange={(e) => {
                                             if (e.target.checked) {
                                               setSelectedGrievances(
                                                 new Set(
-                                                  getSortedData(
-                                                    grievances,
-                                                    "grievances",
-                                                  ).map((g) => g._id),
+                                                  grievances.map((g) => g._id),
                                                 ),
                                               );
                                             } else {
@@ -7985,9 +7906,7 @@ function DashboardContent() {
                                         className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                                       >
                                         <span>Grievance No</span>
-                                        <ArrowUpDown
-                                          className={`w-3 h-3 transition-colors ${sortConfig.key === "grievanceId" ? "text-indigo-500" : "text-slate-300 group-hover:text-slate-400"}`}
-                                        />
+                                        <SortIcon sortConfig={sortConfig} columnKey="grievanceId" />
                                       </button>
                                     </th>
                                     <th className="px-4 py-3 text-left">
@@ -8001,9 +7920,7 @@ function DashboardContent() {
                                         className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                                       >
                                         <span>Citizen</span>
-                                        <ArrowUpDown
-                                          className={`w-3 h-3 transition-colors ${sortConfig.key === "citizenName" ? "text-indigo-500" : "text-slate-300 group-hover:text-slate-400"}`}
-                                        />
+                                        <SortIcon sortConfig={sortConfig} columnKey="citizenName" />
                                       </button>
                                     </th>
                                     <th className="px-4 py-3 text-left">
@@ -8014,9 +7931,7 @@ function DashboardContent() {
                                         className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                                       >
                                         <span>Dept &amp; Category</span>
-                                        <ArrowUpDown
-                                          className={`w-3 h-3 transition-colors ${sortConfig.key === "category" ? "text-indigo-500" : "text-slate-300 group-hover:text-slate-400"}`}
-                                        />
+                                        <SortIcon sortConfig={sortConfig} columnKey="category" />
                                       </button>
                                     </th>
                                     <th className="px-4 py-3 text-left">
@@ -8027,9 +7942,7 @@ function DashboardContent() {
                                         className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                                       >
                                         <span>Assigned Official</span>
-                                        <ArrowUpDown
-                                          className={`w-3 h-3 transition-colors ${sortConfig.key === "assignedTo" ? "text-indigo-500" : "text-slate-300 group-hover:text-slate-400"}`}
-                                        />
+                                        <SortIcon sortConfig={sortConfig} columnKey="assignedTo" />
                                       </button>
                                     </th>
                                     <th className="px-4 py-3 text-left">
@@ -8040,13 +7953,19 @@ function DashboardContent() {
                                         className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                                       >
                                         <span>Status</span>
-                                        <ArrowUpDown
-                                          className={`w-3 h-3 transition-colors ${sortConfig.key === "status" ? "text-indigo-500" : "text-slate-300 group-hover:text-slate-400"}`}
-                                        />
+                                        <SortIcon sortConfig={sortConfig} columnKey="status" />
                                       </button>
                                     </th>
-                                    <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                      SLA Status
+                                    <th className="px-4 py-3 text-left">
+                                      <button
+                                        onClick={() =>
+                                          handleSort("slaStatus", "grievances")
+                                        }
+                                        className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
+                                      >
+                                        <span>SLA Status</span>
+                                        <SortIcon sortConfig={sortConfig} columnKey="slaStatus" />
+                                      </button>
                                     </th>
                                     <th className="px-4 py-3 text-left">
                                       <button
@@ -8056,9 +7975,7 @@ function DashboardContent() {
                                         className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                                       >
                                         <span>Raised On</span>
-                                        <ArrowUpDown
-                                          className={`w-3 h-3 transition-colors ${sortConfig.key === "createdAt" ? "text-indigo-500" : "text-slate-300 group-hover:text-slate-400"}`}
-                                        />
+                                        <SortIcon sortConfig={sortConfig} columnKey="createdAt" />
                                       </button>
                                     </th>
                                     <th className="px-4 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">
@@ -8295,33 +8212,28 @@ function DashboardContent() {
                                             let slaHours = 0;
 
                                             if (
-                                              grievance.status === "PENDING"
+                                              grievance.status === "PENDING" || 
+                                              grievance.status === "ASSIGNED" ||
+                                              grievance.status === "IN_PROGRESS"
                                             ) {
-                                              slaHours = 24;
-                                              isOverdue = hoursDiff > slaHours;
-                                            } else if (
-                                              grievance.status === "ASSIGNED"
-                                            ) {
-                                              slaHours = 120;
-                                              const assignedDate =
-                                                grievance.assignedAt
-                                                  ? new Date(
-                                                      grievance.assignedAt,
-                                                    )
+                                              if (grievance.assignedTo) {
+                                                slaHours = 120;
+                                                const assignedDate = grievance.assignedAt 
+                                                  ? new Date(grievance.assignedAt) 
                                                   : createdDate;
-                                              const hoursFromAssigned =
-                                                Math.floor(
-                                                  (now.getTime() -
-                                                    assignedDate.getTime()) /
-                                                    (1000 * 60 * 60),
+                                                const hoursFromAssigned = Math.floor(
+                                                  (now.getTime() - assignedDate.getTime()) / (1000 * 60 * 60)
                                                 );
-                                              isOverdue =
-                                                hoursFromAssigned > slaHours;
+                                                isOverdue = hoursFromAssigned > slaHours;
+                                              } else {
+                                                slaHours = 24;
+                                                isOverdue = hoursDiff > slaHours;
+                                              }
                                             }
-
                                             if (
                                               grievance.status === "RESOLVED" ||
-                                              grievance.status === "CLOSED"
+                                              grievance.status === "CLOSED" ||
+                                              grievance.status === "REJECTED"
                                             ) {
                                               return (
                                                 <span className="px-2 py-1 text-[10px] font-bold bg-green-100 text-green-700 rounded">
@@ -8673,7 +8585,7 @@ function DashboardContent() {
                                 <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
                                   Dept & Category
                                 </th>
-                                <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking_widest">
+                                <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
                                   Status
                                 </th>
                                 <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">
@@ -8941,25 +8853,6 @@ function DashboardContent() {
                 (isViewingCompany || isDepartmentLevel) && (
                   <TabsContent value="appointments" className="space-y-4">
                     <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
-                      {/* <CardHeader className="bg-slate-900 px-6 py-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
-                          <Calendar className="w-5 h-5 text-indigo-400" />
-                        </div>
-                        <div>
-                          <CardTitle className="text-base font-bold text-white">
-                            Appointments
-                          </CardTitle>
-                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-                            View and manage all scheduled appointments
-                          </p>
-                        </div>
-                      </div>
-                      
-                    </div>
-                  </CardHeader> */}
-
                       {/* Appointment Filters */}
                       <div className="px-6 py-4 bg-gradient-to-r from-slate-50 to-purple-50/30 border-b border-slate-200">
                         {/* Search and Actions Bar */}
@@ -8976,58 +8869,99 @@ function DashboardContent() {
                               className="w-full pl-9 pr-3.5 h-9 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-[11px] font-bold uppercase tracking-tight placeholder:normal-case placeholder:text-slate-400 shadow-sm"
                             />
                           </div>
-                           <div className="flex items-center gap-2 flex-wrap md:flex-nowrap">
-                             <Button
-                               variant="outline"
-                               size="sm"
-                               onClick={() =>
-                                 setShowAppointmentFiltersOnMobile(
-                                   (prev) => !prev,
-                                 )
-                               }
-                               className="md:hidden border-slate-200 hover:bg-slate-50 rounded-lg h-8 text-[11px] font-bold uppercase tracking-tight"
-                               title="Toggle filters"
-                             >
-                               <Filter className="w-3.5 h-3.5 mr-1" />
-                               Filters
-                             </Button>
-                             <div className="flex items-center gap-2">
-                               {(isViewingCompany || isDepartmentLevel) && (
-                                 <Button
-                                   onClick={() =>
-                                     setShowAvailabilityCalendar(true)
-                                   }
-                                   className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-9 text-[10px] font-bold uppercase tracking-widest rounded-lg px-4 shadow-md whitespace-nowrap"
-                                   title="Configure when appointments can be scheduled"
-                                 >
-                                   <CalendarClock className="w-3.5 h-3.5 mr-1.5" />
-                                   Availability
-                                 </Button>
-                               )}
-                             </div>
-                             <Button
-                               variant="outline"
-                               size="sm"
-                               onClick={handleRefreshData}
-                               disabled={isRefreshing}
-                               className="border-slate-200 hover:bg-slate-50 rounded-lg whitespace-nowrap h-9 text-[11px] font-bold uppercase tracking-tight"
-                               title="Refresh data"
-                             >
-                               <RefreshCw
-                                 className={`w-4 h-4 mr-1.5 ${isRefreshing ? "animate-spin" : ""}`}
-                               />
-                               Refresh
-                             </Button>
-                           </div>
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2 flex-wrap md:flex-nowrap">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  setShowAppointmentFiltersOnMobile(
+                                    (prev) => !prev,
+                                  )
+                                }
+                                className="md:hidden border-slate-200 hover:bg-slate-50 rounded-lg h-8 text-[11px] font-bold uppercase tracking-tight"
+                                title="Toggle filters"
+                              >
+                                <Filter className="w-3.5 h-3.5 mr-1" />
+                                Filters
+                              </Button>
+                              <div className="flex items-center gap-2">
+                                {(isViewingCompany || isDepartmentLevel) && (
+                                  <Button
+                                    onClick={() =>
+                                      setShowAvailabilityCalendar(true)
+                                    }
+                                    className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-9 text-[10px] font-bold uppercase tracking-widest rounded-lg px-4 shadow-md whitespace-nowrap"
+                                    title="Configure when appointments can be scheduled"
+                                  >
+                                    <CalendarClock className="w-3.5 h-3.5 mr-1.5" />
+                                    Availability
+                                  </Button>
+                                )}
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleRefreshData}
+                                disabled={isRefreshing}
+                                className="border-slate-200 hover:bg-slate-50 rounded-lg whitespace-nowrap h-9 text-[11px] font-bold uppercase tracking-tight"
+                                title="Refresh data"
+                              >
+                                <RefreshCw
+                                  className={`w-4 h-4 mr-1.5 ${isRefreshing ? "animate-spin" : ""}`}
+                                />
+                                Refresh
+                              </Button>
 
-                            <span className="text-[10px] font-bold text-slate-700 bg-white px-2 py-1 rounded-lg shadow-sm border border-slate-200 whitespace-nowrap">
-                              Showing{" "}
-                              <span className="text-indigo-600 font-black">
-                                {getSortedData(appointments, "appointments").length}
-                              </span>{" "}
-                              of {appointmentPagination.total}
-                            </span>
-                         </div>
+                              {isSuperAdminUser &&
+                                selectedAppointments.size > 0 && (
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={handleBulkDeleteAppointments}
+                                    disabled={isDeleting}
+                                    className="text-[10px] font-bold uppercase bg-red-600 hover:bg-red-700 text-white rounded-lg border border-red-700 shadow-sm transition-all px-3 h-9"
+                                    title={`Delete ${selectedAppointments.size} selected appointment(s)`}
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                                    Delete ({selectedAppointments.size})
+                                  </Button>
+                                )}
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-bold text-slate-700 bg-white px-2 py-1 rounded-lg shadow-sm border border-slate-200 whitespace-nowrap h-9 flex items-center">
+                                Showing{" "}
+                                <span className="text-indigo-600 font-black px-1">
+                                  {getSortedData(appointments, "appointments").length}
+                                </span>{" "}
+                                of {appointmentPagination.total}
+                              </span>
+
+                              <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border border-slate-200 shadow-sm h-9">
+                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                  Rows:
+                                </span>
+                                <select
+                                  value={appointmentPagination.limit}
+                                  onChange={(e) =>
+                                    setAppointmentPagination((prev) => ({
+                                      ...prev,
+                                      limit: Number(e.target.value),
+                                    }))
+                                  }
+                                  className="text-[10px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer p-0 h-auto"
+                                >
+                                  {[10, 20, 25, 50, 100, 200, 250].map((l) => (
+                                    <option key={l} value={l}>
+                                      {l}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
 
                         {/* Filters Row */}
                         <div
@@ -9063,9 +8997,6 @@ function DashboardContent() {
                             <option value="COMPLETED">✅ Completed</option>
                             <option value="CANCELLED">❌ Cancelled</option>
                           </select>
-
-                          {/* Department Filter - Removed (Appointments are CEO-only, no departments) */}
-                          {/* Assignment Status Filter - Removed (Appointments are CEO-only, no assignment needed) */}
 
                           {/* Date Filter */}
                           <select
@@ -9107,44 +9038,6 @@ function DashboardContent() {
                                 Clear
                               </Button>
                           )}
-
-                          {isSuperAdminUser &&
-                            selectedAppointments.size > 0 && (
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={handleBulkDeleteAppointments}
-                                disabled={isDeleting}
-                                                                 className="text-[10px] font-bold uppercase bg-red-600 hover:bg-red-700 text-white rounded-lg border border-red-700 shadow-sm transition-all px-3 h-8"
-                                title={`Delete ${selectedAppointments.size} selected appointment(s)`}
-                              >
-                                <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                               Delete ({selectedAppointments.size})
-                             </Button>
-                           )}
-
-                          {/* Rows per page Selector - Moved here */}
-                          <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border border-slate-200 shadow-sm h-8 ml-auto">
-                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                              Rows:
-                            </span>
-                            <select
-                              value={appointmentPagination.limit}
-                              onChange={(e) =>
-                                setAppointmentPagination((prev) => ({
-                                  ...prev,
-                                  limit: Number(e.target.value),
-                                }))
-                              }
-                              className="text-[10px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer p-0 h-auto"
-                            >
-                              {[10, 20, 25, 50, 100, 200, 250].map((l) => (
-                                <option key={l} value={l}>
-                                  {l}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
                         </div>
                       </div>
 
@@ -9657,7 +9550,7 @@ function DashboardContent() {
 
                 <div>
                   <label className="block text-sm font-semibold text-slate-800 mb-2">
-                    Remarks by Collector / Admin
+                    Remarks by Collector & DM
                   </label>
                   <textarea
                     value={reminderRemarks}
@@ -9766,6 +9659,7 @@ function DashboardContent() {
                 ? user.companyId._id
                 : user.companyId || ""
             }
+            displayId={selectedGrievanceForAssignment?.grievanceId}
             currentAssignee={selectedGrievanceForAssignment?.assignedTo}
             currentDepartmentId={(() => {
               if (!selectedGrievanceForAssignment) return null;
@@ -9811,6 +9705,10 @@ function DashboardContent() {
             }
             currentUserId={user.id}
             allDepartments={allDepartments}
+            onSuccess={() => {
+              fetchGrievances(grievancePage, true);
+              fetchDashboardData(true);
+            }}
           />
         )}
 
@@ -9841,6 +9739,7 @@ function DashboardContent() {
                 ? user.companyId._id
                 : user.companyId || ""
             }
+            displayId={selectedAppointmentForAssignment?.appointmentId}
             currentAssignee={selectedAppointmentForAssignment.assignedTo}
             currentDepartmentId={
               selectedAppointmentForAssignment.departmentId &&
@@ -9857,6 +9756,10 @@ function DashboardContent() {
             }
             currentUserId={user.id}
             allDepartments={allDepartments}
+            onSuccess={() => {
+              fetchAppointments(appointmentPage, true);
+              fetchDashboardData(true);
+            }}
           />
         )}
 

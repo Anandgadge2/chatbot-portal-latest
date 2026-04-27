@@ -12,6 +12,8 @@ interface UseDepartmentsParams {
   mainDeptId?: string;
   subDeptId?: string;
   type?: string;
+  sortBy?: string;
+  sortOrder?: string;
   enabled?: boolean;
 }
 
@@ -19,7 +21,7 @@ export function useDepartments(params: UseDepartmentsParams) {
   const { enabled = true, ...queryParam } = params;
 
   return useCachedQuery({
-    queryKey: ["departments", params.page, params.limit, params.search, params.companyId, params.status, params.mainDeptId, params.subDeptId, params.type],
+    queryKey: ["departments", params.page, params.limit, params.search, params.companyId, params.status, params.mainDeptId, params.subDeptId, params.type, params.sortBy, params.sortOrder],
     queryFn: async () => {
       const queryParams = new URLSearchParams();
       Object.entries(queryParam).forEach(([key, value]) => {

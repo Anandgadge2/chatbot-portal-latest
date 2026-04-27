@@ -24,6 +24,9 @@ export interface Department {
   displayOrder?: number;
   userCount?: number; // 🏢 Dynamic user count from backend
   head?: string; // 🏢 Department head name from backend
+  headName?: string; // 🏢 Department head full name from backend
+  headEmail?: string; // 🏢 Department head email from backend
+  headPhone?: string; // 🏢 Department head phone from backend
   createdAt: string;
   updatedAt: string;
 }

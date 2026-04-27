@@ -3,7 +3,7 @@ import { logger } from './logger';
 
 let connectionPromise: Promise<void> | null = null;
 
-export const connectDatabase = async (): Promise<void> => {
+export const connectDatabase = async (retryCount = 1): Promise<void> => {
   try {
     const mongoUri = process.env.MONGODB_URI;
 
@@ -27,17 +27,17 @@ export const connectDatabase = async (): Promise<void> => {
     // 3. Start a new connection
     const options = {
       maxPoolSize: 10,
-      serverSelectionTimeoutMS: 5000, // Reduced for serverless (Hobby limit is 10s)
-      socketTimeoutMS: 15000,
-      connectTimeoutMS: 5000, // Reduced for serverless
+      serverSelectionTimeoutMS: 15000, // Increased for more reliability during cold starts
+      socketTimeoutMS: 45000,
+      connectTimeoutMS: 15000, // Increased to allow more time for handshake
       autoIndex: true,
-      family: 4 // Force IPv4 (can help with some DNS resolution issues on Vercel)
+      family: 4 // Force IPv4 to prevent resolution issues
     };
 
     logger.info(`🔌 Connecting to MongoDB (v${mongoose.version})...`);
     
     // Set global buffer timeout shorter for serverless
-    mongoose.set('bufferTimeoutMS', 5000);
+    mongoose.set('bufferTimeoutMS', 10000);
 
     connectionPromise = mongoose.connect(mongoUri, options).then(() => {
       logger.info('✅ MongoDB connected successfully');
@@ -48,14 +48,21 @@ export const connectDatabase = async (): Promise<void> => {
 
   } catch (error: any) {
     connectionPromise = null;
+    
+    if (retryCount > 0) {
+      logger.warn(`⚠️ MongoDB connection attempt failed. Retrying in 2 seconds... (${retryCount} retries left)`);
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      return connectDatabase(retryCount - 1);
+    }
+
     logger.error('❌ Failed to connect to MongoDB:', error.message);
     
     if (error.reason) {
-      logger.error('🔍 Server Selection Reason:', error.reason);
+      logger.error('🔍 Server Selection Reason:', JSON.stringify(error.reason, null, 2));
     }
 
-    if (error.message.includes('IP') || error.message.includes('whitelist')) {
-      logger.error('💡 IP Whitelist issue. Ensure 0.0.0.0/0 is added to MongoDB Atlas.');
+    if (error.message.includes('IP') || error.message.includes('whitelist') || error.message.includes('selection')) {
+      logger.error('💡 Connection Issue: If this persists, verify your MongoDB Atlas IP Whitelist (0.0.0.0/0 recommended for dynamic IPs).');
     }
     
     throw error;

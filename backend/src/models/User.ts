@@ -99,7 +99,16 @@ const UserSchema: Schema = new Schema(
     },
     isActive: {
       type: Boolean,
-      default: true
+      default: true,
+      index: true
+    },
+    role: {
+      type: String,
+      index: true
+    },
+    level: {
+      type: Number,
+      index: true
     },
     rawPassword: {
       type: String,

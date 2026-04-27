@@ -11,6 +11,7 @@ import { AuditAction } from '../config/constants';
 import { 
   triggerAdminAssignmentNotification
 } from '../services/grievanceTemplateTriggerService';
+import { GrievanceStatus } from '../config/constants';
 
 const router = express.Router();
 const COLLECTORATE_JHARSUGUDA_COMPANY_ID = '69ad4c6eb1ad8e405e6c0858';
@@ -149,6 +150,7 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
     // Update grievance
     grievance.assignedTo = assignedUser._id;
     grievance.assignedAt = new Date();
+    grievance.status = GrievanceStatus.ASSIGNED;
     
     // Auto-update department/sub-department based on assigned user's mapped department
     if (assignedUser.departmentId) {

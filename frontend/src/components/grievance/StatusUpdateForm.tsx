@@ -19,13 +19,14 @@ interface StatusUpdateFormProps {
 }
 
 const grievanceStatusesAll = [
-  { value: 'PENDING', label: 'Pending/Assigned', iconBg: 'bg-amber-100', iconColor: 'text-amber-600', badge: 'bg-amber-50 border-amber-200 text-amber-700', activeBadge: 'bg-amber-500 text-white border-amber-500', Icon: Clock },
+  { value: 'PENDING', label: 'Pending', iconBg: 'bg-amber-100', iconColor: 'text-amber-600', badge: 'bg-amber-50 border-amber-200 text-amber-700', activeBadge: 'bg-amber-500 text-white border-amber-500', Icon: Clock },
   { value: 'IN_PROGRESS', label: 'In Progress', iconBg: 'bg-indigo-100', iconColor: 'text-indigo-600', badge: 'bg-indigo-50 border-indigo-200 text-indigo-700', activeBadge: 'bg-indigo-600 text-white border-indigo-600', Icon: RefreshCw },
   { value: 'RESOLVED', label: 'Resolved', iconBg: 'bg-emerald-100', iconColor: 'text-emerald-600', badge: 'bg-emerald-50 border-emerald-200 text-emerald-700', activeBadge: 'bg-emerald-600 text-white border-emerald-600', Icon: CheckCircle2 },
   { value: 'REJECTED', label: 'Rejected', iconBg: 'bg-rose-100', iconColor: 'text-rose-600', badge: 'bg-rose-50 border-rose-200 text-rose-700', activeBadge: 'bg-rose-600 text-white border-rose-600', Icon: Ban },
 ];
 
 const grievanceStatusesOperator = [
+  { value: 'IN_PROGRESS', label: 'In Progress', iconBg: 'bg-indigo-100', iconColor: 'text-indigo-600', badge: 'bg-indigo-50 border-indigo-200 text-indigo-700', activeBadge: 'bg-indigo-600 text-white border-indigo-600', Icon: RefreshCw },
   { value: 'RESOLVED', label: 'Resolved', iconBg: 'bg-emerald-100', iconColor: 'text-emerald-600', badge: 'bg-emerald-50 border-emerald-200 text-emerald-700', activeBadge: 'bg-emerald-600 text-white border-emerald-600', Icon: CheckCircle2 },
   { value: 'REJECTED', label: 'Rejected', iconBg: 'bg-rose-100', iconColor: 'text-rose-600', badge: 'bg-rose-50 border-rose-200 text-rose-700', activeBadge: 'bg-rose-600 text-white border-rose-600', Icon: Ban },
 ];
@@ -464,7 +465,13 @@ export default function StatusUpdateForm({
         onSuccess();
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to update status');
+      const msg = error?.response?.data?.message || error?.message || 'Failed to update';
+      if (msg.toLowerCase().includes('access denied')) {
+        toast.error("Access Denied: This item may have been moved or your permissions changed. Refreshing list...", { duration: 4000 });
+        onSuccess();
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -485,9 +492,9 @@ export default function StatusUpdateForm({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 p-5 space-y-5 overflow-y-auto custom-scrollbar">
+      <div className="flex-1 p-4 space-y-4 overflow-y-auto custom-scrollbar">
         {/* Current Status */}
-        <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+        <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
           <p className="text-[11px] font-semibold text-slate-600 uppercase tracking-[0.08em] mb-2">Current Status</p>
           {currentStatusInfo && (
             <div className="flex items-center gap-2">
@@ -503,7 +510,7 @@ export default function StatusUpdateForm({
 
         {/* Status Selection */}
         <div>
-          <p className="text-[11px] font-semibold text-slate-600 uppercase tracking-[0.08em] mb-3">
+          <p className="text-[11px] font-semibold text-slate-600 uppercase tracking-[0.08em] mb-2">
             Select New Status <span className="text-rose-500">*</span>
           </p>
           <div className="grid grid-cols-2 gap-2">
@@ -516,7 +523,7 @@ export default function StatusUpdateForm({
                   onClick={() => !isCurrent && setSelectedStatus(status.value)}
                   disabled={isCurrent}
                   className={`
-                    flex items-center gap-2.5 px-4 py-3 rounded-xl border-2 font-bold text-xs uppercase tracking-wider transition-all duration-150
+                    flex items-center gap-2.5 px-4 py-2 rounded-xl border-2 font-bold text-xs uppercase tracking-wider transition-all duration-150
                     ${isSelected
                       ? `${status.activeBadge} shadow-md ring-2 ring-offset-2 ring-slate-200`
                       : isCurrent
@@ -558,13 +565,13 @@ export default function StatusUpdateForm({
 
         {/* Remarks */}
         <div>
-          <label className="block text-[11px] font-semibold text-slate-600 uppercase tracking-[0.08em] mb-2">
+          <label className="block text-[11px] font-semibold text-slate-600 uppercase tracking-[0.08em] mb-1.5">
             Remarks / Note <span className="text-rose-500 font-normal normal-case">(Mandatory)</span>
           </label>
           <textarea
             value={remarks}
             onChange={(e) => setRemarks(e.target.value)}
-            rows={4}
+            rows={3}
             className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 resize-none transition-all bg-white text-sm placeholder:text-slate-400"
             placeholder="Add notes, comments, or instructions about this status change. These will be sent to the citizen via WhatsApp..."
           />
@@ -578,7 +585,7 @@ export default function StatusUpdateForm({
         )}
 
         {/* WhatsApp Notice */}
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 flex items-start gap-3">
+        {/* <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 flex items-start gap-3">
           <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
             <MessageSquare className="w-4 h-4 text-amber-600" />
           </div>
@@ -588,7 +595,7 @@ export default function StatusUpdateForm({
               The citizen will automatically receive a WhatsApp message with the new status and your remarks.
             </p>
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* Footer */}

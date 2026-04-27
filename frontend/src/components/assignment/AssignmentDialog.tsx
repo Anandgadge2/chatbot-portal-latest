@@ -25,6 +25,8 @@ interface AssignmentDialogProps {
   canReassignCurrent?: boolean;
   userDepartmentId?: string;
   currentUserId?: string; // Current logged-in user ID to filter out from assignee list
+  displayId?: string; // Human readable ID like JSG0001
+  onSuccess?: () => void;
 }
 
 /**
@@ -47,7 +49,9 @@ export default function AssignmentDialog({
   userRole,
   canReassignCurrent = false,
   userDepartmentId,
-  currentUserId
+  currentUserId,
+  displayId,
+  onSuccess
 }: AssignmentDialogProps) {
   const { user: authUser } = useAuth();
   const [allDepartments, setAllDepartments] = useState<Department[]>(initialDepartments);
@@ -68,11 +72,20 @@ export default function AssignmentDialog({
   const [loadingAllUsers, setLoadingAllUsers] = useState(false);
 
   // Determine the effective role for filtering
-  const effectiveRole = (userRole || authUser?.role || '').toString().toUpperCase();
+  const getRoleString = (r: any): string => {
+    if (!r) return '';
+    if (typeof r === 'string') return r.toUpperCase();
+    if (typeof r === 'object' && r.name) return r.name.toUpperCase();
+    return '';
+  };
+
+  const effectiveRole = getRoleString(userRole || authUser?.role);
+  
   const isTopLevelAdmin =
     effectiveRole.includes('COMPANY') ||
     effectiveRole.includes('SUPER') ||
-    !!authUser?.isSuperAdmin;
+    !!authUser?.isSuperAdmin ||
+    (authUser?.level !== undefined && authUser.level <= 1);
 
   // ──────────────────────────────────────────────────────────
   // Derived data from allDepartments based on role
@@ -431,7 +444,13 @@ export default function AssignmentDialog({
       onClose();
     } catch (error: any) {
       const msg = error?.response?.data?.message || error?.message || 'Failed to assign';
-      toast.error(msg, { id: toastId });
+      if (msg.toLowerCase().includes('access denied')) {
+        toast.error("Access Denied: This grievance may have been moved. Refreshing list...", { id: toastId, duration: 4000 });
+        onClose();
+        if (onSuccess) onSuccess();
+      } else {
+        toast.error(msg, { id: toastId });
+      }
     } finally {
       setAssigningUserId(null);
     }
@@ -482,8 +501,13 @@ export default function AssignmentDialog({
                   <UserCheck className="h-5 w-5 text-white" />
                 </div>
                 <div className="min-w-0">
-                  <DialogTitle className="truncate text-xl font-black tracking-tight text-white sm:text-2xl">
+                  <DialogTitle className="flex items-center gap-2 truncate text-xl font-black tracking-tight text-white sm:text-2xl">
                     Assign {itemType === 'grievance' ? 'Grievance' : 'Appointment'}
+                    {displayId && (
+                      <span className="text-xs font-black text-white/60 bg-black/10 px-1.5 py-0.5 rounded-md border border-white/10 font-mono tracking-widest mt-1">
+                        #{displayId}
+                      </span>
+                    )}
                   </DialogTitle>
                   <div className="mt-1.5 flex flex-wrap items-center gap-2">
                     <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-cyan-50/90">
@@ -510,17 +534,6 @@ export default function AssignmentDialog({
         <div className="flex flex-col bg-slate-50 p-4">
           {/* Filters */}
           <div className="flex flex-col space-y-2">
-
-
-
-
-
-
-
-
-
-
-
 
             {/* Department & Sub-Department Dropdowns - Always shown */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -612,6 +625,18 @@ export default function AssignmentDialog({
                 />
               </div>
             )}
+          </div>
+
+          {/* User Search */}
+          <div className="mt-3 relative group">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+            <input
+              type="text"
+              placeholder="Search assignees by name or ID..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-11 pr-4 py-3 rounded-2xl border border-slate-200 bg-white text-sm font-medium text-slate-700 shadow-sm outline-none transition-all placeholder:text-slate-400 focus:border-transparent focus:ring-2 focus:ring-indigo-500 hover:border-slate-300"
+            />
           </div>
 
           {/* Users List */}

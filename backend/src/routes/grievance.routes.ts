@@ -1021,71 +1021,70 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
       grievance.timeline?.some((entry: any) => entry.action === 'REVERTED_TO_COMPANY_ADMIN')
     );
 
-      if (assignedUser.phone) {
-        await triggerAdminAssignmentNotification({
-          event: isReassignment ? 'grievance_reassigned_admin_v1' : 'grievance_assigned_admin_v1',
-          companyId: grievance.companyId,
+    // 🚀 BACKGROUND NOTIFICATIONS: Fire and forget to keep UI responsive
+    (async () => {
+      try {
+        if (assignedUser.phone) {
+          const { triggerAdminAssignmentNotification } = await import('../services/grievanceTemplateTriggerService');
+          await triggerAdminAssignmentNotification({
+            event: isReassignment ? 'grievance_reassigned_admin_v1' : 'grievance_assigned_admin_v1',
+            companyId: grievance.companyId,
+            grievanceId: grievance.grievanceId,
+            citizenName: grievance.citizenName,
+            category: currentDepartmentName,
+            subDepartmentName: currentOfficeName,
+            description: grievance.description,
+            recipientPhones: [assignedUser.phone],
+            language: grievance.language,
+            assignedByName: req.user!.getFullName(),
+            reassignedByName: req.user!.getFullName(),
+            remarks: transferNote || 'Assigned for resolution.',
+            submittedOn: grievance.createdAt,
+            reassignedOn: new Date(),
+            originalDepartmentName: originalDepartmentName,
+            originalOfficeName: originalOfficeName,
+            media: (grievance.media || []).map((file: any) => ({
+              url: file.url,
+              type: file.type,
+              caption: file.caption,
+              filename: file.filename
+            }))
+          });
+        }
+
+        const { notifyUserOnAssignment } = await import('../services/notificationService');
+        await notifyUserOnAssignment({
+          type: 'grievance',
+          action: 'assigned',
           grievanceId: grievance.grievanceId,
           citizenName: grievance.citizenName,
-          category: currentDepartmentName,
-          subDepartmentName: currentOfficeName,
+          citizenPhone: grievance.citizenPhone,
+          citizenWhatsApp: grievance.citizenWhatsApp,
+          departmentId: grievance.departmentId,
+          subDepartmentId: grievance.subDepartmentId,
+          companyId: grievance.companyId,
           description: grievance.description,
-          recipientPhones: [assignedUser.phone],
-          language: grievance.language,
+          category: grievance.category,
+          assignedTo: assignedUser._id,
           assignedByName: req.user!.getFullName(),
-          reassignedByName: req.user!.getFullName(),
-          remarks: transferNote || 'Assigned for resolution.',
-          submittedOn: grievance.createdAt,
-          reassignedOn: new Date(),
-          originalDepartmentName: originalDepartmentName,
-          originalOfficeName: originalOfficeName,
-          media: (grievance.media || []).map((file: any) => ({
-            url: file.url,
-            type: file.type,
-            caption: file.caption,
-            filename: file.filename
-          }))
-        }).catch((err) => logger.error('Failed to trigger grievance assignment admin template', err));
+          assignedAt: grievance.assignedAt,
+          createdAt: grievance.createdAt,
+          language: grievance.language,
+          remarks: transferNote,
+          timeline: grievance.timeline
+        });
+      } catch (err: any) {
+        logger.error('[GrievanceAssignment] Background notification error:', err?.message || err);
       }
+    })();
 
-    // Send notifications as best-effort. Assignment success must not fail due to downstream notification issues.
-    try {
-      const { notifyUserOnAssignment } = await import('../services/notificationService');
-      await notifyUserOnAssignment({
-        type: 'grievance',
-        action: 'assigned',
-        grievanceId: grievance.grievanceId,
-        citizenName: grievance.citizenName,
-        citizenPhone: grievance.citizenPhone,
-        citizenWhatsApp: grievance.citizenWhatsApp,
-        departmentId: grievance.departmentId,
-        subDepartmentId: grievance.subDepartmentId,
-        companyId: grievance.companyId,
-        description: grievance.description,
-        category: grievance.category,
-        assignedTo: assignedUser._id,
-        assignedByName: req.user!.getFullName(),
-        assignedAt: grievance.assignedAt,
-        createdAt: grievance.createdAt,
-        language: grievance.language,
-        remarks: transferNote,
-        timeline: grievance.timeline
-      });
-
-    } catch (notificationError: any) {
-      logger.error('Grievance assigned but notification dispatch failed', {
-        grievanceId: grievance._id?.toString(),
-        error: notificationError?.message || String(notificationError)
-      });
-    }
-
-    await logUserAction(
+    logUserAction(
       req,
       AuditAction.ASSIGN,
       'Grievance',
       grievance._id.toString(),
       { assignedTo, departmentId }
-    );
+    ).catch(err => logger.error('[Assignment] Audit log failed:', err));
 
     res.json({
       success: true,
@@ -1306,13 +1305,13 @@ router.put('/:id', requirePermission(Permission.UPDATE_GRIEVANCE), async (req: R
       { new: true, runValidators: true }
     );
 
-    await logUserAction(
+    logUserAction(
       req,
       AuditAction.UPDATE,
       'Grievance',
       updatedGrievance!._id.toString(),
       { updates: req.body }
-    );
+    ).catch(err => logger.error('[Update] Audit log failed:', err));
 
     res.json({
       success: true,

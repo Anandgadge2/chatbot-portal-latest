@@ -11,6 +11,8 @@ interface UseUsersParams {
   departmentId?: string;
   role?: string;
   status?: string;
+  sortBy?: string;
+  sortOrder?: string;
   enabled?: boolean;
 }
 
@@ -18,7 +20,7 @@ export function useUsers(params: UseUsersParams) {
   const { enabled = true, ...queryParam } = params;
 
   return useCachedQuery({
-    queryKey: ["users", params.page, params.limit, params.search, params.companyId, params.departmentId, params.role, params.status],
+    queryKey: ["users", params.page, params.limit, params.search, params.companyId, params.departmentId, params.role, params.status, params.sortBy, params.sortOrder],
     queryFn: async () => {
       const queryParams = new URLSearchParams();
       Object.entries(queryParam).forEach(([key, value]) => {

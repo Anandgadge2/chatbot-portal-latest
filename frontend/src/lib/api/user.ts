@@ -99,6 +99,8 @@ export const userAPI = {
     status?: 'active' | 'inactive';
     companyId?: string;
     departmentId?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
   }): Promise<UsersResponse> => {
     const queryParams = new URLSearchParams();
     if (params?.page) queryParams.append('page', params.page.toString());
@@ -108,6 +110,8 @@ export const userAPI = {
     if (params?.status) queryParams.append('status', params.status);
     if (params?.companyId) queryParams.append('companyId', params.companyId);
     if (params?.departmentId) queryParams.append('departmentId', params.departmentId);
+    if (params?.sortBy) queryParams.append('sortBy', params.sortBy);
+    if (params?.sortOrder) queryParams.append('sortOrder', params.sortOrder);
     
     return apiClient.get(`/users?${queryParams.toString()}`);
   },

@@ -119,7 +119,6 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
     }
 
     // Restricted Update: If user has 'change status' but NOT full 'update' permission, limit fields
-    // This replaces the old hardcoded 'OPERATOR' check.
     if (!req.checkPermission(Permission.UPDATE_GRIEVANCE)) {
       const allowedFields = ['status', 'remarks'];
       const providedFields = Object.keys(req.body);
@@ -145,8 +144,7 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
       });
     }
 
-    // Prevent updates to resolved/rejected grievances (frozen),
-    // except for super admin and Collectorate Jharsuguda company admin override.
+    // Prevent updates to resolved/rejected grievances (frozen)
     const oldStatus = grievance.status;
     const canOverrideFrozenGrievance = canJharsugudaCompanyAdminOverrideFrozenGrievance(currentUser, grievance);
     if ((oldStatus === GrievanceStatus.RESOLVED || oldStatus === GrievanceStatus.REJECTED) && !canOverrideFrozenGrievance) {
@@ -156,7 +154,6 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
       });
     }
 
-    // Permission checks
     // Permission checks
     if (!currentUser.isSuperAdmin) {
       if (grievance.companyId._id.toString() !== currentUser.companyId?.toString()) {
@@ -177,11 +174,9 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
       }
     }
 
-    // oldStatus is already declared above for freeze check
     grievance.status = status;
 
-    // Collectorate Jharsuguda requirement:
-    // When changing status of an already resolved grievance, reassign back to the officer who resolved it.
+    // Reassignment logic for resolved grievances
     if (
       oldStatus === GrievanceStatus.RESOLVED &&
       status !== GrievanceStatus.RESOLVED &&
@@ -195,9 +190,7 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
         grievance.assignedTo = lastResolver.changedBy;
         grievance.assignedAt = new Date();
 
-        if (!grievance.timeline) {
-          grievance.timeline = [];
-        }
+        if (!grievance.timeline) grievance.timeline = [];
         grievance.timeline.push({
           action: 'ASSIGNED',
           details: {
@@ -217,9 +210,7 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
       GrievanceStatus.REJECTED
     ];
     if (statusesAllowingProofUpload.includes(status as GrievanceStatus) && uploadedFiles.length > 0) {
-      if (!Array.isArray(grievance.media)) {
-        grievance.media = [] as any;
-      }
+      if (!Array.isArray(grievance.media)) grievance.media = [] as any;
       const uploadResults = await Promise.all(
         uploadedFiles.map(async (file) => {
           const cloudUrl = await uploadBufferToCloudinary(
@@ -247,9 +238,7 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
     }
 
     // Add to status history
-    if (!grievance.statusHistory) {
-      grievance.statusHistory = [];
-    }
+    if (!grievance.statusHistory) grievance.statusHistory = [];
     grievance.statusHistory.push({
       status,
       remarks,
@@ -257,37 +246,27 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
       changedAt: new Date()
     });
 
-    // Update timestamps based on status
+    // Update timestamps
     if (status === GrievanceStatus.RESOLVED && !grievance.resolvedAt) {
       grievance.resolvedAt = new Date();
     }
 
     // Add to timeline
-    if (!grievance.timeline) {
-      grievance.timeline = [];
-    }
+    if (!grievance.timeline) grievance.timeline = [];
     grievance.timeline.push({
       action: 'STATUS_UPDATED',
-      details: {
-        fromStatus: oldStatus,
-        toStatus: status,
-        remarks
-      },
+      details: { fromStatus: oldStatus, toStatus: status, remarks },
       performedBy: currentUser._id,
       timestamp: new Date()
     });
 
     await grievance.save();
 
-    // 🚀 BACKGROUND NOTIFICATIONS: Fire and forget to keep UI responsive
+    // 🚀 BACKGROUND NOTIFICATIONS
     (async () => {
       try {
-        const { 
-          notifyHierarchyOnStatusChange
-        } = await import('../services/notificationService');
-        const {
-          triggerCitizenStatusTemplate
-        } = await import('../services/grievanceTemplateTriggerService');
+        const { notifyHierarchyOnStatusChange } = await import('../services/notificationService');
+        const { triggerCitizenStatusTemplate } = await import('../services/grievanceTemplateTriggerService');
 
         const resolvedCompanyId = (grievance.companyId as any)?._id || grievance.companyId;
         const resolvedDeptId = (grievance.departmentId as any)?._id || grievance.departmentId;
@@ -296,7 +275,6 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
 
         const notificationTasks: Promise<any>[] = [];
 
-        // 1. Notify hierarchy about status change for ALL grievance updates
         if (oldStatus !== status) {
           notificationTasks.push(notifyHierarchyOnStatusChange({
             type: 'grievance',
@@ -308,7 +286,7 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
             subDepartmentId: resolvedSubDeptId,
             companyId: resolvedCompanyId,
             assignedTo: grievance.assignedTo,
-            remarks: remarks,
+            remarks,
             evidenceUrls: uploadedDocumentUrls,
             resolvedBy: currentUser._id,
             resolvedAt: grievance.resolvedAt,
@@ -316,45 +294,36 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
             assignedAt: grievance.assignedAt,
             timeline: grievance.timeline
           }, oldStatus, status));
-        }
-        
-        // 2. Notify citizen for all status changes using Meta-approved template
-        if (oldStatus !== status) {
-          notificationTasks.push(
-            triggerCitizenStatusTemplate({
-              companyId: resolvedCompanyId,
-              grievanceId: grievance.grievanceId,
-              citizenName: grievance.citizenName,
-              citizenPhone: grievance.citizenPhone,
-              language: grievance.language,
-              departmentName,
-              subDepartmentName: (grievance.subDepartmentId as any)?.name || 'N/A',
-              grievanceSummary: grievance.description,
-              status,
-              remarks: remarks || undefined,
-              resolvedByName: currentUser.getFullName(),
-              formattedResolvedDate: formatTemplateDate(),
-              media: uploadedDocumentUrls.map((url: string) => {
-                const normalized = String(url || '').toLowerCase();
-                const type = normalized.match(/\.(jpg|jpeg|png|webp)(\?.*)?$/)
-                  ? 'image'
-                  : normalized.match(/\.(mp4|mov|avi)(\?.*)?$/)
-                    ? 'video'
-                    : 'document';
-                return { url, type: type as 'image' | 'video' | 'document' };
-              })
+
+          notificationTasks.push(triggerCitizenStatusTemplate({
+            companyId: resolvedCompanyId,
+            grievanceId: grievance.grievanceId,
+            citizenName: grievance.citizenName,
+            citizenPhone: grievance.citizenPhone,
+            language: grievance.language,
+            departmentName,
+            subDepartmentName: (grievance.subDepartmentId as any)?.name || 'N/A',
+            grievanceSummary: grievance.description,
+            status,
+            remarks: remarks || undefined,
+            resolvedByName: currentUser.getFullName(),
+            formattedResolvedDate: formatTemplateDate(),
+            media: uploadedDocumentUrls.map((url) => {
+              const normalized = String(url || '').toLowerCase();
+              const type = normalized.match(/\.(jpg|jpeg|png|webp)(\?.*)?$/) ? 'image' : normalized.match(/\.(mp4|mov|avi)(\?.*)?$/) ? 'video' : 'document';
+              return { url, type: type as 'image' | 'video' | 'document' };
             })
-          );
+          }));
         }
 
         await Promise.allSettled(notificationTasks);
-        console.log(`[StatusUpdate] ✅ Background notifications completed for grievance ${grievance.grievanceId}`);
       } catch (err) {
         console.error(`[StatusUpdate] ❌ Background notification error for grievance ${grievance?.grievanceId}:`, err);
       }
     })();
 
-    await logUserAction(
+    // 🚀 BACKGROUND AUDIT LOGGING
+    logUserAction(
       req,
       AuditAction.UPDATE,
       'Grievance',
@@ -367,7 +336,7 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
         uploadedDocumentUrls,
         grievanceId: grievance.grievanceId
       }
-    );
+    ).catch(err => console.error('[StatusUpdate] Audit log failed:', err));
 
     res.json({
       success: true,
@@ -384,46 +353,23 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
 });
 
 // @route   PUT /api/status/appointment/:id
-// @desc    Update appointment status and notify citizen via WhatsApp
-// @access  DepartmentAdmin, Operator, CompanyAdmin
 router.put('/appointment/:id', requirePermission(Permission.STATUS_CHANGE_APPOINTMENT, Permission.UPDATE_APPOINTMENT), async (req: Request, res: Response) => {
   try {
     const currentUser = req.user!;
     const { status, remarks, appointmentDate, appointmentTime, description } = req.body;
 
-    if (!status) {
-      return res.status(400).json({
-        success: false,
-        message: 'Status is required'
-      });
-    }
+    if (!status) return res.status(400).json({ success: false, message: 'Status is required' });
 
     const validStatuses = Object.values(AppointmentStatus);
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid status value'
-      });
-    }
+    if (!validStatuses.includes(status)) return res.status(400).json({ success: false, message: 'Invalid status value' });
 
-    const appointment = await Appointment.findById(req.params.id)
-      .populate('companyId')
-      .populate('departmentId');
+    const appointment = await Appointment.findById(req.params.id).populate('companyId').populate('departmentId');
+    if (!appointment) return res.status(404).json({ success: false, message: 'Appointment not found' });
 
-    if (!appointment) {
-      return res.status(404).json({
-        success: false,
-        message: 'Appointment not found'
-      });
-    }
-
-    // Permission checks
-    // Permission checks
     if (!currentUser.isSuperAdmin) {
       if (appointment.companyId._id.toString() !== currentUser.companyId?.toString()) {
         return res.status(403).json({ success: false, message: 'Access denied to this company' });
       }
-
       if (currentUser.departmentId) {
         if (appointment.departmentId?._id.toString() !== currentUser.departmentId?.toString()) {
           return res.status(403).json({ success: false, message: 'Access denied to this department' });
@@ -435,61 +381,37 @@ router.put('/appointment/:id', requirePermission(Permission.STATUS_CHANGE_APPOIN
     appointment.status = status;
 
     if (status === AppointmentStatus.CONFIRMED) {
-      if (!appointmentDate || !appointmentTime) {
-        return res.status(400).json({ success: false, message: 'Appointment date and time are required when confirming appointment' });
-      }
+      if (!appointmentDate || !appointmentTime) return res.status(400).json({ success: false, message: 'Appointment date and time are required when confirming appointment' });
       appointment.appointmentDate = new Date(appointmentDate);
       appointment.appointmentTime = appointmentTime;
-      if (description) {
-        appointment.notes = description;
-      }
+      if (description) appointment.notes = description;
     }
 
-    // Add to status history
-    if (!appointment.statusHistory) {
-      appointment.statusHistory = [];
-    }
-    appointment.statusHistory.push({
-      status,
-      remarks,
-      changedBy: currentUser._id,
-      changedAt: new Date()
-    });
+    if (!appointment.statusHistory) appointment.statusHistory = [];
+    appointment.statusHistory.push({ status, remarks, changedBy: currentUser._id, changedAt: new Date() });
 
-    // Update timestamps
     if (status === AppointmentStatus.COMPLETED && !appointment.completedAt) {
       appointment.completedAt = new Date();
     } else if (status === AppointmentStatus.CANCELLED && !appointment.cancelledAt) {
       appointment.cancelledAt = new Date();
     }
 
-    // Add to timeline
-    if (!appointment.timeline) {
-      appointment.timeline = [];
-    }
+    if (!appointment.timeline) appointment.timeline = [];
     appointment.timeline.push({
       action: 'STATUS_UPDATED',
-      details: {
-        fromStatus: oldStatus,
-        toStatus: status,
-        remarks
-      },
+      details: { fromStatus: oldStatus, toStatus: status, remarks },
       performedBy: currentUser._id,
       timestamp: new Date()
     });
 
     await appointment.save();
 
-    // 🚀 BACKGROUND NOTIFICATIONS: Fire and forget to keep UI responsive
+    // 🚀 BACKGROUND NOTIFICATIONS
     (async () => {
       try {
-        const { 
-          notifyCitizenOnAppointmentStatusChange, 
-          notifyHierarchyOnStatusChange 
-        } = await import('../services/notificationService');
-
+        const { notifyCitizenOnAppointmentStatusChange, notifyHierarchyOnStatusChange } = await import('../services/notificationService');
         if (oldStatus !== status) {
-          const notificationTasks = [
+          await Promise.allSettled([
             notifyCitizenOnAppointmentStatusChange({
               appointmentId: appointment.appointmentId,
               citizenName: appointment.citizenName,
@@ -519,16 +441,15 @@ router.put('/appointment/:id', requirePermission(Permission.STATUS_CHANGE_APPOIN
               appointmentTime: appointment.appointmentTime,
               timeline: appointment.timeline
             }, oldStatus, status)
-          ];
-          await Promise.allSettled(notificationTasks);
-          console.log(`[StatusUpdate] ✅ Background notifications completed for appointment ${appointment.appointmentId}`);
+          ]);
         }
       } catch (err) {
         console.error(`[StatusUpdate] ❌ Background notification error for appointment ${appointment?.appointmentId}:`, err);
       }
     })();
 
-    await logUserAction(
+    // 🚀 BACKGROUND AUDIT LOGGING
+    logUserAction(
       req,
       AuditAction.UPDATE,
       'Appointment',
@@ -540,7 +461,7 @@ router.put('/appointment/:id', requirePermission(Permission.STATUS_CHANGE_APPOIN
         remarks,
         appointmentId: appointment.appointmentId
       }
-    );
+    ).catch(err => console.error('[AppointmentStatusUpdate] Audit log failed:', err));
 
     res.json({
       success: true,
@@ -548,11 +469,7 @@ router.put('/appointment/:id', requirePermission(Permission.STATUS_CHANGE_APPOIN
       data: { appointment }
     });
   } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update appointment status',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Failed to update appointment status', error: error.message });
   }
 });
 

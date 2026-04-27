@@ -19,7 +19,7 @@ router.use(authenticate);
 // @access  Private
 router.get('/', requirePermission(Permission.READ_USER), async (req: Request, res: Response) => {
   try {
-    const { page = 1, limit = 20, search, role, companyId, departmentId, status } = req.query;
+    const { page = 1, limit = 20, search, role, companyId, departmentId, status, sortBy, sortOrder } = req.query;
     const currentUser = req.user!;
 
     const query: any = {};
@@ -169,15 +169,31 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
       query.isActive = false;
     }
 
-    const users = await User.find(query)
-      .populate('companyId', 'name companyId')
-      .populate('departmentIds', 'name departmentId') // Populate multiple departments
-      .populate('customRoleId', 'name')
-      .limit(Number(limit))
-      .skip((Number(page) - 1) * Number(limit))
-      .sort({ createdAt: -1 });
+    // Build dynamic sort object
+    let sortObj: any = { createdAt: -1 };
+    if (sortBy) {
+      const order = sortOrder === 'asc' ? 1 : -1;
+      
+      // Map frontend keys to backend fields
+      if (sortBy === 'firstName') {
+        sortObj = { firstName: order, lastName: order };
+      } else if (sortBy === 'role') {
+        sortObj = { customRoleId: order };
+      } else {
+        sortObj = { [sortBy as string]: order };
+      }
+    }
 
-    const total = await User.countDocuments(query);
+    const [users, total] = await Promise.all([
+      User.find(query)
+        .populate('companyId', 'name companyId')
+        .populate('departmentIds', 'name departmentId') // Populate multiple departments
+        .populate('customRoleId', 'name')
+        .limit(Number(limit))
+        .skip((Number(page) - 1) * Number(limit))
+        .sort(sortObj),
+      User.countDocuments(query)
+    ]);
 
     res.json({
       success: true,
