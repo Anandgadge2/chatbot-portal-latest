@@ -42,6 +42,32 @@ export function sanitizeRemarks(text: string = ''): string {
   return sanitizeText(text, 400);
 }
 
+
+export function sanitizeDateTimeText(text: string = '', max = 80): string {
+  return String(text || '')
+    .replace(URL_REGEX, '')
+    .replace(/[^\p{L}\p{N} :\-]/gu, '')
+    .substring(0, max)
+    .trim();
+}
+
+
+export function sanitizeTemplateParamText(text: string = '', max = 500): string {
+  return String(text || '')
+    .replace(URL_REGEX, '')
+    .replace(/[\t\r\n]+/g, ' ')
+    .replace(/[^\p{L}\p{N} .,?!:;|\-()]/gu, '')
+    .replace(/\s{2,}/g, ' ')
+    .substring(0, max)
+    .trim();
+}
+
 export function sanitizeNote(text: string = ''): string {
-  return sanitizeText(text, 400);
+  return String(text || '')
+    .replace(URL_REGEX, '')
+    .replace(/[^\p{L}\p{N} .,?!:\-()\n]/gu, '')
+    .replace(/\r\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .substring(0, 400)
+    .trim();
 }

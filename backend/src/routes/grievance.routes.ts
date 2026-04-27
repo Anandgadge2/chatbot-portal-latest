@@ -1136,12 +1136,14 @@ router.post('/:id/reminder', requirePermission(Permission.UPDATE_GRIEVANCE), asy
     const now = new Date();
     const createdDate = new Date(grievance.createdAt);
     const assignedDate = grievance.assignedAt ? new Date(grievance.assignedAt) : createdDate;
+    const hoursSinceCreated = (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60);
+    const hoursSinceAssigned = (now.getTime() - assignedDate.getTime()) / (1000 * 60 * 60);
     const overdue = grievance.status === GrievanceStatus.PENDING
       ? !grievance.assignedTo
-        ? (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60) > 24
-        : (now.getTime() - assignedDate.getTime()) / (1000 * 60 * 60) > 120
-      : grievance.status === GrievanceStatus.IN_PROGRESS
-        ? (now.getTime() - assignedDate.getTime()) / (1000 * 60 * 60) > 120
+        ? hoursSinceCreated >= 24
+        : hoursSinceAssigned >= 120
+      : (grievance.status === GrievanceStatus.IN_PROGRESS || grievance.status === GrievanceStatus.ASSIGNED)
+        ? hoursSinceAssigned >= 120
         : false;
 
     if (!overdue) {
