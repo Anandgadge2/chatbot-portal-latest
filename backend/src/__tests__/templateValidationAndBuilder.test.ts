@@ -92,6 +92,26 @@ describe('template safety and builder', () => {
     expect(body.parameters[8].text).toBe('2026-04-25 12:00');
   });
 
+
+  it('preserves HH:MM:SS colon formatting in admin template date fields', () => {
+    const payload = buildTemplatePayload('grievance_reminder_admin_v1', {
+      admin_name: 'Collector',
+      grievance_id: 'GRV-9001',
+      citizen_name: 'Anand',
+      department_name: 'Water',
+      office_name: 'Zone A',
+      description: 'No water supply',
+      submitted_on: '26 April 2026 at 11:43:20 pm',
+      assigned_on: '26 April 2026 at 12:01:09 pm',
+      reminder_remarks: 'Please resolve soon',
+      dashboard_url: 'https://connect.pugarch.in/'
+    });
+
+    const body = payload.components.find((component) => component.type === 'body');
+    expect(body.parameters[6].text).toBe('26 April 2026 at 11:43:20 pm');
+    expect(body.parameters[7].text).toBe('26 April 2026 at 12:01:09 pm');
+  });
+
   it('builds citizen status template using summary and dynamic message values', () => {
     const payload = buildTemplatePayload('grievance_status_citizen_v1', {
       citizen_name: 'Anand',
