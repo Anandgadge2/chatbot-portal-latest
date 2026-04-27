@@ -27,8 +27,12 @@ export interface IUser extends Document {
   role?: string; // 👑 Dynamic role string (e.g. 'SUPER_ADMIN', 'COMPANY_ADMIN')
   level?: number; // 👑 Authorization level (0 = platform, 1 = company, etc)
   notificationSettings?: {
+    hasOverride: boolean;
     email: boolean;
     whatsapp: boolean;
+    actions?: {
+      [action: string]: { email: boolean, whatsapp: boolean };
+    };
   };
   responsibleAreas?: string[]; // 🌲 Added for Forest FSM Module (e.g. ['COMP_12', 'BEAT_WEST'])
   createdAt: Date;
@@ -147,6 +151,18 @@ const UserSchema: Schema = new Schema(
           whatsapp: { type: Boolean, default: true }
         },
         grievance_resolved: {
+          email: { type: Boolean, default: true },
+          whatsapp: { type: Boolean, default: true }
+        },
+        grievance_status_update: {
+          email: { type: Boolean, default: true },
+          whatsapp: { type: Boolean, default: true }
+        },
+        grievance_reminder: {
+          email: { type: Boolean, default: true },
+          whatsapp: { type: Boolean, default: true }
+        },
+        grievance_reverted: {
           email: { type: Boolean, default: true },
           whatsapp: { type: Boolean, default: true }
         },

@@ -644,7 +644,7 @@ export default function AppointmentsPage() {
             ? (user.departmentId as any)._id
             : user?.departmentId
         }
-        currentUserId={(user as any)?._id || user?.id}
+        currentUserId={user?.id}
       />
     </div>
   );

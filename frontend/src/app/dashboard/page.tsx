@@ -1168,6 +1168,19 @@ function DashboardContent() {
     }
   };
 
+  const openUserDetail = async (userId: string) => {
+    if (!userId) return;
+    try {
+      const response = await userAPI.getById(userId);
+      if (response.success) {
+        setSelectedUserForDetails(response.data.user);
+        setShowUserDetailsDialog(true);
+      }
+    } catch (error: any) {
+      toast.error("Failed to load user details");
+    }
+  };
+
   const openOverdueReminderDialog = (grievance: Grievance) => {
     if (!canSendOverdueReminder) {
       toast.error("Only company admin can send overdue reminders.");
@@ -7211,26 +7224,7 @@ function DashboardContent() {
                                             </div>
                                             <div className="ml-3 min-w-0">
                                               <button
-                                                onClick={async () => {
-                                                  try {
-                                                    const response =
-                                                      await userAPI.getById(
-                                                        u._id,
-                                                      );
-                                                    if (response.success) {
-                                                      setSelectedUserForDetails(
-                                                        response.data.user,
-                                                      );
-                                                      setShowUserDetailsDialog(
-                                                        true,
-                                                      );
-                                                    }
-                                                  } catch (error: any) {
-                                                    toast.error(
-                                                      "Failed to load user details",
-                                                    );
-                                                  }
-                                                }}
+                                                onClick={() => openUserDetail(u._id)}
                                                 className="text-sm font-bold text-slate-900 leading-snug hover:text-blue-600 hover:underline text-left whitespace-normal block w-full"
                                               >
                                                 {u.firstName} {u.lastName}
@@ -8171,7 +8165,30 @@ function DashboardContent() {
                                             {grievance.assignedTo ? (
                                               <>
                                                 <div className="flex items-center gap-1.5 mb-0.5">
-                                                  <span className="text-xs font-semibold text-indigo-700">
+                                                  <button
+                                                    onClick={() => {
+                                                      const assignedUserId =
+                                                        typeof grievance.assignedTo ===
+                                                          "object" &&
+                                                        grievance.assignedTo !==
+                                                          null
+                                                          ? (
+                                                              grievance.assignedTo as any
+                                                            )._id
+                                                          : users.find(
+                                                              (u) =>
+                                                                u._id ===
+                                                                  grievance.assignedTo ||
+                                                                u.userId ===
+                                                                  grievance.assignedTo,
+                                                            )?._id ||
+                                                            grievance.assignedTo;
+                                                      openUserDetail(
+                                                        assignedUserId,
+                                                      );
+                                                    }}
+                                                    className="text-xs font-semibold text-indigo-700 hover:text-indigo-900 hover:underline text-left transition-colors"
+                                                  >
                                                     {typeof grievance.assignedTo ===
                                                       "object" &&
                                                     grievance.assignedTo !==
@@ -8196,7 +8213,7 @@ function DashboardContent() {
                                                             return `${found?.firstName} ${found?.lastName}`;
                                                           })()
                                                         : grievance.assignedTo}
-                                                  </span>
+                                                  </button>
                                                   {typeof grievance.assignedTo ===
                                                     "object" &&
                                                     (
@@ -9793,6 +9810,7 @@ function DashboardContent() {
                 : user.departmentId
             }
             currentUserId={user.id}
+            allDepartments={allDepartments}
           />
         )}
 
@@ -9838,6 +9856,7 @@ function DashboardContent() {
                 : user.departmentId
             }
             currentUserId={user.id}
+            allDepartments={allDepartments}
           />
         )}
 

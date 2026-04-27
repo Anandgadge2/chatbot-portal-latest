@@ -27,11 +27,12 @@ export interface ICompany extends Document {
       [role: string]: {
         email: boolean;
         whatsapp: boolean;
+        actions?: {
+          [action: string]: { email: boolean, whatsapp: boolean };
+        };
       };
     };
   };
-  // Note: whatsappConfig moved to CompanyWhatsAppConfig model
-  // Note: chatbotConfig moved to ChatbotFlow model
   isActive: boolean;
   isSuspended: boolean;
   permissionsVersion: number;
@@ -117,6 +118,18 @@ const CompanySchema: Schema = new Schema(
               email: { type: Boolean, default: true },
               whatsapp: { type: Boolean, default: true }
             },
+            grievance_status_update: {
+              email: { type: Boolean, default: true },
+              whatsapp: { type: Boolean, default: true }
+            },
+            grievance_reminder: {
+              email: { type: Boolean, default: true },
+              whatsapp: { type: Boolean, default: true }
+            },
+            grievance_reverted: {
+              email: { type: Boolean, default: true },
+              whatsapp: { type: Boolean, default: true }
+            },
             appointment_created: {
               email: { type: Boolean, default: true },
               whatsapp: { type: Boolean, default: true }
@@ -130,8 +143,6 @@ const CompanySchema: Schema = new Schema(
         default: {}
       }
     },
-    // Removed: whatsappConfig - now in CompanyWhatsAppConfig model
-    // Removed: chatbotConfig - now in ChatbotFlow model
     isActive: {
       type: Boolean,
       default: true
