@@ -33,19 +33,6 @@ describe('template safety and builder', () => {
   });
 
 
-
-  it('builds dynamic citizen message as single-line WhatsApp template-safe text', () => {
-    const msg = buildCitizenMessage({
-      status: 'RESOLVED',
-      resolvedByName: 'Officer One',
-      formattedResolvedDate: '26 April 2026 at 11:43:20 pm',
-      remarks: 'done'
-    });
-
-    expect(msg).toContain('Resolved By: Officer One | Resolved On: 26 April 2026 at 11:43:20 pm | Note: done');
-    expect(msg).not.toMatch(/[\n\t]/);
-  });
-
   it('uses a live formatted timestamp when no status date is provided', () => {
     const msg = buildCitizenMessage({
       status: 'IN_PROGRESS',

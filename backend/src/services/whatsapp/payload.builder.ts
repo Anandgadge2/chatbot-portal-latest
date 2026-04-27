@@ -1,4 +1,4 @@
-import { sanitizeText, sanitizeDateTimeText, sanitizeTemplateParamText } from '../../utils/sanitize';
+import { sanitizeText, sanitizeNote, sanitizeDateTimeText } from '../../utils/sanitize';
 import {
   GRIEVANCE_DESCRIPTION_CONTINUATION_TEXT,
   prepareSummaryText,
@@ -149,7 +149,7 @@ function resolveValue(data: TemplateInputData, spec: ParameterSpec): { value: st
     const rawValue = String(current);
     const lowerKey = spec.key.toLowerCase();
     const sanitized = lowerKey === 'dynamic_message'
-      ? sanitizeTemplateParamText(rawValue, 2000)
+      ? sanitizeNote(rawValue)
       : (lowerKey.endsWith('_on') || lowerKey.includes('date')
         ? sanitizeDateTimeText(rawValue, 2000)
         : sanitizeText(rawValue, 2000));

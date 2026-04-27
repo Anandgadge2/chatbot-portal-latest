@@ -51,17 +51,6 @@ export function sanitizeDateTimeText(text: string = '', max = 80): string {
     .trim();
 }
 
-
-export function sanitizeTemplateParamText(text: string = '', max = 500): string {
-  return String(text || '')
-    .replace(URL_REGEX, '')
-    .replace(/[\t\r\n]+/g, ' ')
-    .replace(/[^\p{L}\p{N} .,?!:;|\-()]/gu, '')
-    .replace(/\s{2,}/g, ' ')
-    .substring(0, max)
-    .trim();
-}
-
 export function sanitizeNote(text: string = ''): string {
   return String(text || '')
     .replace(URL_REGEX, '')
