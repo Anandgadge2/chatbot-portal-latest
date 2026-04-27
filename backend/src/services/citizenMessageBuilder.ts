@@ -47,5 +47,5 @@ export function buildCitizenMessage({
     safeRemark ? `Note: ${safeRemark}` : null
   ]
     .filter(Boolean)
-    .join('\n\n');
+    .join(' | ');
 }

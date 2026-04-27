@@ -120,13 +120,13 @@ describe('template safety and builder', () => {
       sub_department_name: 'Zone A',
       grievance_summary: 'No water supply for three days',
       status: 'In Progress',
-      dynamic_message: 'In Progress By: Officer One\n\nIn Progress On: 2026-04-25 11:45'
+      dynamic_message: 'In Progress By: Officer One	\n\nIn Progress On: 2026-04-25 11:45'
     });
 
     const body = payload.components.find((component) => component.type === 'body');
     expect(body.parameters).toHaveLength(7);
     expect(body.parameters[4].text).toBe('No water supply for three days');
     expect(body.parameters[5].text).toBe('In Progress');
-    expect(body.parameters[6].text).toBe('In Progress By: Officer One\n\nIn Progress On: 2026-04-25 11:45');
+    expect(body.parameters[6].text).toBe('In Progress By: Officer One In Progress On: 2026-04-25 11:45');
   });
 });
