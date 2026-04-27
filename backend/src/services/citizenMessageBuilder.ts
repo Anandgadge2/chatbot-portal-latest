@@ -1,4 +1,4 @@
-import { sanitizeDateTimeText, sanitizeText } from '../utils/sanitize';
+import { sanitizeText } from '../utils/sanitize';
 import { formatTemplateDateTime } from '../utils/templateDateTime';
 
 export function getCitizenStatusLabel(status: string): string {
@@ -32,7 +32,11 @@ export function buildCitizenMessage({
 
   const safeRemark = sanitizeText(remarks || '', 400);
   const safeAdminName = sanitizeText(resolvedByName || '', 60);
-  const safeDate = sanitizeDateTimeText(formattedResolvedDate || '', 60) || formatTemplateDateTime(new Date(), 'en-IN');
+  const safeDate = String(formattedResolvedDate || '')
+    .replace(/(https?:\/\/|www\.)\S+/gi, '')
+    .replace(/[^\p{L}\p{N} :\-]/gu, '')
+    .substring(0, 60)
+    .trim() || formatTemplateDateTime(new Date(), 'en-IN');
 
   const currentStatusLabel = getCitizenStatusLabel(status);
   const actionLabel = currentStatusLabel;
