@@ -68,10 +68,10 @@ export default function AssignmentDialog({
   const [loadingAllUsers, setLoadingAllUsers] = useState(false);
 
   // Determine the effective role for filtering
-  const effectiveRole = userRole || authUser?.role || '';
+  const effectiveRole = (userRole || authUser?.role || '').toString().toUpperCase();
   const isTopLevelAdmin =
-    effectiveRole === 'COMPANY_ADMIN' ||
-    effectiveRole === 'SUPER_ADMIN' ||
+    effectiveRole.includes('COMPANY') ||
+    effectiveRole.includes('SUPER') ||
     !!authUser?.isSuperAdmin;
 
   // ──────────────────────────────────────────────────────────
@@ -82,16 +82,65 @@ export default function AssignmentDialog({
    * Top-level (parent) departments visible to the current user.
    */
   const visibleTopDepts = useMemo(() => {
+    // If no departments loaded yet, return empty
     if (!allDepartments.length) return [];
 
-    // Show all departments that have no parent (true top-level departments)
-    return allDepartments.filter(d => {
-      const pId = typeof d?.parentDepartmentId === 'object'
-        ? (d?.parentDepartmentId as any)?._id
-        : d?.parentDepartmentId;
-      return !pId;
+    const getParentId = (d: Department) => {
+      if (!d?.parentDepartmentId) return null;
+      const pId = typeof d.parentDepartmentId === 'object'
+        ? (d.parentDepartmentId as any)?._id?.toString()
+        : d.parentDepartmentId.toString();
+      return pId === 'null' || pId === 'undefined' || !pId ? null : pId;
+    };
+
+    const allIds = new Set(allDepartments.map(d => d._id?.toString()).filter(Boolean));
+    
+    // A department is "top-level" if it has no parentId, OR if its parentId is not in our current company list
+    const topLevelDepts = allDepartments.filter(d => {
+      const pId = getParentId(d);
+      return !pId || !allIds.has(pId);
     });
-  }, [allDepartments]);
+
+    // 🏆 UNRESTRICTED ADMIN ACCESS
+    // If you are an admin, you MUST see departments. 
+    // If our strict hierarchical filter (topLevelDepts) returns nothing for some reason, 
+    // but the company has departments, we show ALL departments to the admin.
+    if (isTopLevelAdmin) {
+      return topLevelDepts.length > 0 ? topLevelDepts : allDepartments;
+    }
+
+    // Get user's mapped IDs (handling potential object vs string mismatch)
+    const userMappedIds = new Set((authUser?.departmentIds || []).map(id => {
+      if (!id) return '';
+      const stringId = (typeof id === 'object') ? (id as any)?._id?.toString() : id.toString();
+      return stringId;
+    }).filter(Boolean));
+
+    const allowedTopDeptIds = new Set<string>();
+
+    allDepartments.forEach(d => {
+      const dId = d._id?.toString();
+      if (dId && userMappedIds.has(dId)) {
+        const pId = getParentId(d);
+        if (!pId || !allIds.has(pId)) {
+          // Mapped to a top-level dept
+          allowedTopDeptIds.add(dId);
+        } else {
+          // Mapped to a sub-dept, allow its parent
+          allowedTopDeptIds.add(pId);
+        }
+      }
+    });
+
+    const filtered = topLevelDepts.filter(d => allowedTopDeptIds.has(d._id?.toString() || ''));
+    
+    // Safety fallback for mapped users: If filtered list is empty but user has mappings, show those mappings directly
+    if (filtered.length === 0 && userMappedIds.size > 0) {
+      return allDepartments.filter(d => userMappedIds.has(d._id?.toString() || ''));
+    }
+
+    return filtered;
+  }, [allDepartments, isTopLevelAdmin, authUser?.departmentIds]);
 
   /**
    * Sub-departments under the currently selected top-level department.
@@ -99,13 +148,32 @@ export default function AssignmentDialog({
   const visibleSubDepts = useMemo(() => {
     if (!selectedDepartment || !allDepartments.length) return [];
 
-    return allDepartments.filter(d => {
-      const pId = typeof d?.parentDepartmentId === 'object'
-        ? (d?.parentDepartmentId as any)?._id
-        : d?.parentDepartmentId;
-      return pId === selectedDepartment;
-    });
-  }, [selectedDepartment, allDepartments]);
+    const getParentId = (d: Department) => {
+      if (!d?.parentDepartmentId) return null;
+      return typeof d.parentDepartmentId === 'object'
+        ? (d.parentDepartmentId as any)?._id?.toString()
+        : d.parentDepartmentId.toString();
+    };
+
+    const subDeptsOfParent = allDepartments.filter(d => getParentId(d) === selectedDepartment);
+
+    if (isTopLevelAdmin) {
+      return subDeptsOfParent;
+    }
+
+    const userMappedIds = new Set((authUser?.departmentIds || []).map(id => {
+      if (!id) return '';
+      return (typeof id === 'object') ? (id as any)?._id?.toString() : id.toString();
+    }).filter(Boolean));
+
+    // If user is mapped to the parent itself, grant access to all children
+    if (userMappedIds.has(selectedDepartment)) {
+      return subDeptsOfParent;
+    }
+
+    // Otherwise, filter to only those sub-depts they are specifically mapped to
+    return subDeptsOfParent.filter(d => userMappedIds.has(d._id?.toString() || ''));
+  }, [selectedDepartment, allDepartments, isTopLevelAdmin, authUser?.departmentIds]);
 
   // Reset on open/close
   useEffect(() => {
@@ -170,20 +238,27 @@ export default function AssignmentDialog({
     }
 
     // Default: lock to user's dept if DEPARTMENT_ADMIN or operator
-    if ((effectiveRole === 'DEPARTMENT_ADMIN' || effectiveRole === 'OPERATOR') && userDepartmentId) {
-      const myDept = allDepartments.find(d => d._id === userDepartmentId);
-      if (myDept) {
-        const parentId = typeof myDept.parentDepartmentId === 'object'
-          ? (myDept.parentDepartmentId as any)?._id
-          : myDept.parentDepartmentId;
-        if (parentId) {
-          setSelectedDepartment(parentId);
-          setSelectedSubDepartment(userDepartmentId);
-        } else {
-          setSelectedDepartment(userDepartmentId);
+    if (!isTopLevelAdmin && (authUser?.departmentIds?.length || 0) > 0) {
+      // Use visibleTopDepts which is already filtered by role/mapping
+      if (visibleTopDepts.length > 0) {
+        setSelectedDepartment(visibleTopDepts[0]._id);
+        
+        // If it's a sub-dept admin, they might have only one sub-dept in this parent
+        const subDepts = allDepartments.filter(d => {
+          const pId = typeof d?.parentDepartmentId === 'object'
+            ? (d?.parentDepartmentId as any)?._id
+            : d?.parentDepartmentId;
+          return pId === visibleTopDepts[0]._id;
+        });
+
+        const userMappedIds = new Set((authUser?.departmentIds || []).map(id => id.toString()));
+        const mySubDepts = subDepts.filter(d => userMappedIds.has(d._id.toString()));
+        
+        if (mySubDepts.length === 1 && effectiveRole !== 'DEPARTMENT_ADMIN') {
+          setSelectedSubDepartment(mySubDepts[0]._id);
         }
-        return;
       }
+      return;
     }
 
     // Fallback: select first visible top-level dept

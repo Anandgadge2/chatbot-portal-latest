@@ -130,6 +130,42 @@ export const TEMPLATE_DEFINITIONS: Record<string, TemplateDefinition> = {
       { key: 'status', aliases: ['status', 'status_label', 'statusLabel', 'newStatus', 'new_status'], maxLength: 30 },
       { key: 'dynamic_message', aliases: ['dynamic_message', 'dynamicMessage', 'remarks', 'message', 'extra_message', 'extraMessage'], maxLength: 500 }
     ]
+  },
+  grievance_status_resolved_citizen_v1: {
+    audience: 'CITIZEN',
+    body: [
+      { key: 'citizen_name', aliases: ['citizen_name', 'citizenName'], maxLength: 60 },
+      { key: 'grievance_id', aliases: ['grievance_id', 'grievanceId', 'reference_id'], maxLength: 30 },
+      { key: 'department_name', aliases: ['department_name', 'departmentName'], maxLength: 60 },
+      { key: 'sub_department_name', aliases: ['sub_department_name', 'subDepartmentName'], maxLength: 60 },
+      { key: 'grievance_summary', aliases: ['grievance_summary', 'grievanceSummary', 'description', 'grievance_details', 'grievanceDetails'], maxLength: 200, mode: 'summary' },
+      { key: 'status', aliases: ['status', 'status_label', 'statusLabel', 'newStatus', 'new_status'], maxLength: 30 },
+      { key: 'dynamic_message', aliases: ['dynamic_message', 'dynamicMessage', 'remarks', 'message', 'extra_message', 'extraMessage'], maxLength: 500 }
+    ]
+  },
+  grievance_status_rejected_citizen_v1: {
+    audience: 'CITIZEN',
+    body: [
+      { key: 'citizen_name', aliases: ['citizen_name', 'citizenName'], maxLength: 60 },
+      { key: 'grievance_id', aliases: ['grievance_id', 'grievanceId', 'reference_id'], maxLength: 30 },
+      { key: 'department_name', aliases: ['department_name', 'departmentName'], maxLength: 60 },
+      { key: 'sub_department_name', aliases: ['sub_department_name', 'subDepartmentName'], maxLength: 60 },
+      { key: 'grievance_summary', aliases: ['grievance_summary', 'grievanceSummary', 'description', 'grievance_details', 'grievanceDetails'], maxLength: 200, mode: 'summary' },
+      { key: 'status', aliases: ['status', 'status_label', 'statusLabel', 'newStatus', 'new_status'], maxLength: 30 },
+      { key: 'dynamic_message', aliases: ['dynamic_message', 'dynamicMessage', 'remarks', 'message', 'extra_message', 'extraMessage'], maxLength: 500 }
+    ]
+  },
+  grievance_status_inprogress_citizen_v1: {
+    audience: 'CITIZEN',
+    body: [
+      { key: 'citizen_name', aliases: ['citizen_name', 'citizenName'], maxLength: 60 },
+      { key: 'grievance_id', aliases: ['grievance_id', 'grievanceId', 'reference_id'], maxLength: 30 },
+      { key: 'department_name', aliases: ['department_name', 'departmentName'], maxLength: 60 },
+      { key: 'sub_department_name', aliases: ['sub_department_name', 'subDepartmentName'], maxLength: 60 },
+      { key: 'grievance_summary', aliases: ['grievance_summary', 'grievanceSummary', 'description', 'grievance_details', 'grievanceDetails'], maxLength: 200, mode: 'summary' },
+      { key: 'status', aliases: ['status', 'status_label', 'statusLabel', 'newStatus', 'new_status'], maxLength: 30 },
+      { key: 'dynamic_message', aliases: ['dynamic_message', 'dynamicMessage', 'remarks', 'message', 'extra_message', 'extraMessage'], maxLength: 500 }
+    ]
   }
 };
 

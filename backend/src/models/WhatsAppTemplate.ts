@@ -6,6 +6,7 @@ export type TemplateStatus = 'APPROVED' | 'PENDING' | 'REJECTED';
 export interface IWhatsAppTemplate extends Document {
   companyId: mongoose.Types.ObjectId;
   metaTemplateId?: string;
+  businessAccountId?: string;
   name: string;
   language: string;
   category: TemplateCategory;
@@ -38,6 +39,7 @@ const WhatsAppTemplateSchema = new Schema<IWhatsAppTemplate>(
   {
     companyId: { type: Schema.Types.ObjectId, ref: 'Company', required: true, index: true },
     metaTemplateId: { type: String, index: true },
+    businessAccountId: { type: String, index: true },
     name: { type: String, required: true, trim: true },
     language: { type: String, required: true, trim: true, default: 'en_US' },
     category: { type: String, enum: ['UTILITY', 'AUTHENTICATION', 'MARKETING'], required: true },
@@ -75,7 +77,7 @@ const WhatsAppTemplateSchema = new Schema<IWhatsAppTemplate>(
   { timestamps: true }
 );
 
-WhatsAppTemplateSchema.index({ companyId: 1, name: 1, language: 1 }, { unique: true });
+WhatsAppTemplateSchema.index({ companyId: 1, name: 1, language: 1, businessAccountId: 1 }, { unique: true });
 
 const WhatsAppTemplate: Model<IWhatsAppTemplate> = mongoose.model<IWhatsAppTemplate>('WhatsAppTemplate', WhatsAppTemplateSchema);
 

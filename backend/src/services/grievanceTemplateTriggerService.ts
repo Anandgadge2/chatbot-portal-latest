@@ -3,6 +3,7 @@ import Company from '../models/Company';
 import CompanyWhatsAppConfig from '../models/CompanyWhatsAppConfig';
 import CitizenProfile from '../models/CitizenProfile';
 import Role from '../models/Role';
+import WhatsAppTemplate from '../models/WhatsAppTemplate';
 import { sendWhatsAppTemplate, sendMediaSequentially } from './whatsappService';
 import { sendGrievanceToAdmin, sendTemplateAndAttachments, WhatsAppAttachment } from './whatsapp/grievanceNotificationFlow.service';
 import { buildCitizenMessage, getCitizenStatusLabel } from './citizenMessageBuilder';
@@ -140,7 +141,7 @@ export async function triggerAdminTemplate(options: {
 }
 
 export async function triggerCitizenTemplate(options: {
-  template: 'grievance_status_citizen_v1';
+  template: string;
   companyId: any;
   citizenPhone: string;
   language?: string;
@@ -210,9 +211,35 @@ export async function triggerCitizenStatusTemplate(options: {
   });
   const statusLabel = getCitizenStatusLabel(options.status);
 
-  // Use the unified grievance_status_citizen_v1 template for all status changes
+  // 1. Determine the best template to use
+  const statusToTemplate: Record<string, string> = {
+    RESOLVED: 'grievance_status_resolved_citizen_v1',
+    REJECTED: 'grievance_status_rejected_citizen_v1',
+    IN_PROGRESS: 'grievance_status_inprogress_citizen_v1'
+  };
+
+  const specificTemplateName = statusToTemplate[options.status.toUpperCase().replace(/[\s-]+/g, '_')];
+  let finalTemplate = 'grievance_status_citizen_v1';
+
+  if (specificTemplateName) {
+    // Check if the specific template exists and is approved for THIS company's current WABA
+    const config = await CompanyWhatsAppConfig.findOne({ companyId: options.companyId, isActive: true }).lean();
+    
+    const templateDoc = await WhatsAppTemplate.findOne({
+      companyId: options.companyId,
+      name: specificTemplateName,
+      status: 'APPROVED',
+      isActive: true,
+      ...(config?.businessAccountId ? { businessAccountId: config.businessAccountId } : {})
+    }).lean();
+
+    if (templateDoc) {
+      finalTemplate = specificTemplateName;
+    }
+  }
+
   const citizenTemplateResult = await triggerCitizenTemplate({
-    template: 'grievance_status_citizen_v1',
+    template: finalTemplate,
     companyId: options.companyId,
     citizenPhone: options.citizenPhone,
     language: options.language,

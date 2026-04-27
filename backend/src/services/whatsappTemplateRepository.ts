@@ -6,7 +6,16 @@ export async function upsertNormalizedTemplate(
   template: any
 ): Promise<void> {
   await WhatsAppTemplate.findOneAndUpdate(
-    { companyId, name: template.name, language: template.language },
+    { 
+      companyId, 
+      name: template.name, 
+      language: template.language,
+      $or: [
+        { businessAccountId: template.businessAccountId },
+        { businessAccountId: { $exists: false } },
+        { businessAccountId: null }
+      ]
+    },
     { $set: template },
     { upsert: true, new: true }
   );
@@ -14,9 +23,14 @@ export async function upsertNormalizedTemplate(
 
 export async function deactivateMissingTemplates(
   companyId: mongoose.Types.ObjectId,
+  businessAccountId: string,
   activeTemplateKeys: Set<string>
 ): Promise<number> {
-  const activeTemplates = await WhatsAppTemplate.find({ companyId, isActive: true }).select('_id name language');
+  const activeTemplates = await WhatsAppTemplate.find({ 
+    companyId, 
+    businessAccountId,
+    isActive: true 
+  }).select('_id name language');
   const outdatedIds = activeTemplates
     .filter((template) => !activeTemplateKeys.has(`${template.name}::${template.language}`))
     .map((template) => template._id);

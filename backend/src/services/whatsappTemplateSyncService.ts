@@ -1,6 +1,7 @@
 import axios from 'axios';
 import mongoose from 'mongoose';
 import CompanyWhatsAppConfig from '../models/CompanyWhatsAppConfig';
+import WhatsAppTemplate from '../models/WhatsAppTemplate';
 import WhatsAppTemplateSyncLog from '../models/WhatsAppTemplateSyncLog';
 import { logger } from '../config/logger';
 import { deactivateMissingTemplates, upsertNormalizedTemplate } from './whatsappTemplateRepository';
@@ -24,7 +25,7 @@ function extractBodySampleValues(rawBodyComponent: any): string[] {
     .filter((value: string) => value.length > 0);
 }
 
-function normalizeTemplate(companyId: mongoose.Types.ObjectId, raw: any) {
+function normalizeTemplate(companyId: mongoose.Types.ObjectId, businessAccountId: string, raw: any) {
   const components = raw.components || [];
   const header = components.find((c: any) => c.type === 'HEADER');
   const body = components.find((c: any) => c.type === 'BODY');
@@ -34,6 +35,7 @@ function normalizeTemplate(companyId: mongoose.Types.ObjectId, raw: any) {
   return {
     companyId,
     metaTemplateId: raw.id,
+    businessAccountId,
     name: raw.name,
     language: raw.language,
     category: raw.category,
@@ -75,6 +77,18 @@ export async function syncTemplatesForCompany(companyId: mongoose.Types.ObjectId
     const headers = {
       Authorization: `Bearer ${config.accessToken}`
     };
+
+    // 🔄 Cleanup: Deactivate templates that don't match the current businessAccountId
+    // This ensures only templates for the active WABA are visible.
+    // They will be reactivated by the sync loop if they are present in the current account.
+    await WhatsAppTemplate.updateMany(
+      { 
+        companyId, 
+        businessAccountId: { $ne: config.businessAccountId }
+      },
+      { $set: { isActive: false } }
+    );
+
     const validTemplates: any[] = [];
     let nextUrl: string | null = `https://graph.facebook.com/v19.0/${config.businessAccountId}/message_templates?limit=200`;
 
@@ -100,13 +114,13 @@ export async function syncTemplatesForCompany(companyId: mongoose.Types.ObjectId
 
     const incomingKeys = new Set<string>();
     for (const rawTemplate of validTemplates) {
-      const normalized = normalizeTemplate(companyId, rawTemplate);
+      const normalized = normalizeTemplate(companyId, config.businessAccountId, rawTemplate);
       incomingKeys.add(`${normalized.name}::${normalized.language}`);
 
       await upsertNormalizedTemplate(companyId, normalized);
       upsertedCount += 1;
     }
-    deactivatedCount = await deactivateMissingTemplates(companyId, incomingKeys);
+    deactivatedCount = await deactivateMissingTemplates(companyId, config.businessAccountId, incomingKeys);
 
     await WhatsAppTemplateSyncLog.create({
       companyId,

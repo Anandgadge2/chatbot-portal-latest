@@ -4,6 +4,7 @@ import { requireDatabaseConnection } from '../middleware/dbConnection';
 import WhatsAppTemplate from '../models/WhatsAppTemplate';
 import WhatsAppTemplateSyncLog from '../models/WhatsAppTemplateSyncLog';
 import CompanyTemplateMapping from '../models/CompanyTemplateMapping';
+import CompanyWhatsAppConfig from '../models/CompanyWhatsAppConfig';
 import { syncTemplatesForCompany } from '../services/whatsappTemplateSyncService';
 import { UserRole } from '../config/constants';
 
@@ -22,8 +23,15 @@ router.get('/', async (req: Request, res: Response) => {
   try {
     const { page = 1, limit = 20, status, language, category, companyId, search, approvedOnly } = req.query as any;
 
-    const query: any = {};
-    if (companyId) query.companyId = companyId;
+    const query: any = { isActive: true };
+    if (companyId) {
+      query.companyId = companyId;
+      // Filter by current WABA if companyId is provided
+      const config = await CompanyWhatsAppConfig.findOne({ companyId, isActive: true }).lean();
+      if (config?.businessAccountId) {
+        query.businessAccountId = config.businessAccountId;
+      }
+    }
     if (status) query.status = status;
     if (approvedOnly === 'true') query.status = 'APPROVED';
     if (language) query.language = language;
