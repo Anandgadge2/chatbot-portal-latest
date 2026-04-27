@@ -208,13 +208,22 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
     await grievance.save();
 
     const isReassignment = Boolean(oldAssignedTo);
+    
+    // Fetch names for notification to ensure "live" values are used
+    const [finalDept, finalSubDept] = await Promise.all([
+      (await import('../models/Department')).default.findById(grievance.departmentId).select('name'),
+      grievance.subDepartmentId 
+        ? (await import('../models/Department')).default.findById(grievance.subDepartmentId).select('name')
+        : Promise.resolve(null)
+    ]);
+
     triggerAdminAssignmentNotification({
       event: isReassignment ? 'grievance_reassigned_admin_v1' : 'grievance_assigned_admin_v1',
       companyId: grievance.companyId,
       grievanceId: grievance.grievanceId,
       citizenName: grievance.citizenName,
-      category: grievance.category || 'Collector & DM',
-      subDepartmentName: (await (await import('../models/Department')).default.findById(assignedUser.departmentId))?.name || 'N/A',
+      category: finalDept?.name || grievance.category || 'Collector & DM',
+      subDepartmentName: finalSubDept?.name || 'N/A',
       description: grievance.description,
       recipientPhones: assignedUser.phone ? [assignedUser.phone] : [],
       language: grievance.language,
@@ -223,8 +232,8 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
       remarks: (req.body as any).remarks || (req.body as any).reason || 'Administrative Reassignment',
       submittedOn: grievance.createdAt,
       reassignedOn: new Date(),
-      originalDepartmentName: grievance.category || 'Collector & DM',
-      originalOfficeName: (await (await import('../models/Department')).default.findById(assignedUser.departmentId))?.name || 'N/A',
+      originalDepartmentName: finalDept?.name || grievance.category || 'Collector & DM',
+      originalOfficeName: finalSubDept?.name || 'N/A',
       media: (grievance.media || []).map((file: any) => ({
         url: file.url,
         type: file.type,

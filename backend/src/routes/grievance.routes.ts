@@ -316,7 +316,7 @@ router.post('/', enforceWhatsAppGrievanceCompliance, async (req: Request, res: R
         grievanceId: grievance.grievanceId,
         citizenName: grievance.citizenName,
         citizenPhone: grievance.citizenPhone,
-        category: grievance.category || 'Collector & DM',
+        category: (await Department.findById(departmentId).select('name'))?.name || category || 'Collector & DM',
         description: grievance.description,
         status: grievance.status,
         subDepartmentName: (grievance as any).subDepartmentId
@@ -499,21 +499,27 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
     await grievance.save();
 
     const revertRecipients = await getAdminRecipients(grievance.companyId);
+    // Fetch names for Revert notification
+    const [prevDept, prevSubDept] = await Promise.all([
+      Department.findById(previousDepartmentId).select('name'),
+      previousSubDepartmentId ? Department.findById(previousSubDepartmentId).select('name') : Promise.resolve(null)
+    ]);
+
     await triggerAdminAssignmentNotification({
       event: 'grievance_reverted_company_v1',
       companyId: grievance.companyId,
       grievanceId: grievance.grievanceId,
       citizenName: grievance.citizenName,
-      category: previousDepartmentName,
-      subDepartmentName: previousSubDepartmentName,
+      category: prevDept?.name || previousDepartmentName,
+      subDepartmentName: prevSubDept?.name || 'N/A',
       description: grievance.description,
       recipientPhones: revertRecipients,
       language: grievance.language,
       revertedByName: currentUser.getFullName(),
       remarks: remarks.trim(),
       submittedOn: grievance.createdAt,
-      originalDepartmentName: previousDepartmentName,
-      originalOfficeName: previousSubDepartmentName,
+      originalDepartmentName: prevDept?.name || previousDepartmentName,
+      originalOfficeName: prevSubDept?.name || 'N/A',
       media: (grievance.media || []).map((file: any) => ({
         url: file.url,
         type: file.type,
@@ -778,13 +784,19 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_GRIEVANCE, 
         triggerCitizenStatusTemplate
       } = await import('../services/grievanceTemplateTriggerService');
 
+      // Fetch live names for citizen notification
+      const [currDept, currSubDept] = await Promise.all([
+        Department.findById(grievance.departmentId).select('name'),
+        grievance.subDepartmentId ? Department.findById(grievance.subDepartmentId).select('name') : Promise.resolve(null)
+      ]);
+
       await triggerCitizenStatusTemplate({
         companyId: grievance.companyId,
         citizenPhone: grievance.citizenPhone,
         citizenName: grievance.citizenName,
         grievanceId: grievance.grievanceId,
-        departmentName: (grievance.departmentId as any)?.name || grievance.category || 'Collector & DM',
-        subDepartmentName: (grievance.subDepartmentId as any)?.name || 'N/A',
+        departmentName: currDept?.name || grievance.category || 'Collector & DM',
+        subDepartmentName: currSubDept?.name || 'N/A',
         grievanceSummary: grievance.description,
         status,
         remarks,
