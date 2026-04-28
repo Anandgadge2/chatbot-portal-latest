@@ -25,6 +25,7 @@ import { sendMediaSequentially } from '../services/whatsappService';
 import { normalizePhoneNumber } from '../utils/phoneUtils';
 import { sanitizeGrievanceDetails } from '../utils/sanitize';
 import { getHierarchicalDepartmentAdmins } from '../services/notificationService';
+import { notifyCompanyAdmins } from '../services/inAppNotificationService';
 
 const router = express.Router();
 const JHARSUGUDA_COMPANY_ID = process.env.JHARSUGUDA_COMPANY_ID || '69ad4c6eb1ad8e405e6c0858';
@@ -310,6 +311,20 @@ router.post('/', enforceWhatsAppGrievanceCompliance, async (req: Request, res: R
     };
 
     // ✅ EXECUTE NOTIFICATIONS IN PARALLEL
+    await notifyCompanyAdmins({
+      companyId,
+      eventType: 'GRIEVANCE_RECEIVED',
+      title: 'New Grievance Received',
+      message: `Grievance ${grievance.grievanceId} received from ${grievance.citizenName || 'Citizen'}.`,
+      grievanceId: grievance.grievanceId,
+      grievanceObjectId: grievance._id,
+      meta: {
+        citizenName: grievance.citizenName,
+        category: grievance.category,
+        priority: grievance.priority,
+      },
+    });
+
     Promise.allSettled([
       triggerGrievanceNotifications({
         companyId,
@@ -497,6 +512,16 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
     });
 
     await grievance.save();
+
+    await notifyCompanyAdmins({
+      companyId: grievance.companyId,
+      eventType: 'GRIEVANCE_REVERTED',
+      title: 'Grievance Reverted',
+      message: `Grievance ${grievance.grievanceId} was reverted to company admin for reassignment.`,
+      grievanceId: grievance.grievanceId,
+      grievanceObjectId: grievance._id,
+      meta: { remarks: remarks.trim() },
+    });
 
     const revertRecipients = await getAdminRecipients(grievance.companyId);
     // Fetch names for Revert notification
@@ -1172,6 +1197,16 @@ router.post('/:id/reminder', requirePermission(Permission.UPDATE_GRIEVANCE), asy
       timestamp: now
     });
     await grievance.save();
+
+    await notifyCompanyAdmins({
+      companyId: grievance.companyId,
+      eventType: 'GRIEVANCE_REMINDER',
+      title: 'Overdue Reminder Sent',
+      message: `Reminder #${reminderCount} sent for grievance ${grievance.grievanceId}.`,
+      grievanceId: grievance.grievanceId,
+      grievanceObjectId: grievance._id,
+      meta: { reminderCount, remarks: trimmedRemarks },
+    });
 
     const assignedUser = grievance.assignedTo && typeof grievance.assignedTo === 'object'
       ? grievance.assignedTo as any

@@ -27,6 +27,7 @@ import { companyAPI, Company } from "@/lib/api/company";
 import { departmentAPI, Department } from "@/lib/api/department";
 import { userAPI, User } from "@/lib/api/user";
 import { grievanceAPI, Grievance } from "@/lib/api/grievance";
+import { notificationAPI, InAppNotification } from "@/lib/api/notification";
 import { appointmentAPI, Appointment } from "@/lib/api/appointment";
 import { leadAPI, Lead } from "@/lib/api/lead";
 import { roleAPI, Role } from "@/lib/api/role";
@@ -457,6 +458,10 @@ function DashboardContent() {
   const [grievances, setGrievances] = useState<Grievance[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [inAppNotifications, setInAppNotifications] = useState<InAppNotification[]>([]);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const notificationDropdownRef = useRef<HTMLDivElement | null>(null);
 
   // Profile Form States
   const [profileForm, setProfileForm] = useState({
@@ -1511,6 +1516,27 @@ function DashboardContent() {
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    fetchNotifications();
+    const timer = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const onClickOutside = (event: MouseEvent) => {
+      if (
+        notificationDropdownRef.current &&
+        !notificationDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsNotificationOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, []);
+
   // Track previous counts for real-time notifications
   const [prevGrievanceCount, setPrevGrievanceCount] = useState<number | null>(
     null,
@@ -2185,6 +2211,49 @@ function DashboardContent() {
       setLoadingLeads(false);
     }
   }, [targetCompanyId]);
+
+  const fetchNotifications = async () => {
+    try {
+      const [listRes, countRes] = await Promise.all([
+        notificationAPI.getAll({ page: 1, limit: 12 }),
+        notificationAPI.getUnreadCount(),
+      ]);
+      if (listRes?.success) {
+        setInAppNotifications(listRes.data.notifications || []);
+      }
+      if (countRes?.success) {
+        setUnreadNotificationCount(countRes.data.unreadCount || 0);
+      }
+    } catch (error) {
+      console.error("Failed to fetch notifications", error);
+    }
+  };
+
+  const markNotificationRead = async (id: string) => {
+    try {
+      await notificationAPI.markRead(id);
+      setInAppNotifications((prev) =>
+        prev.map((item) =>
+          item._id === id ? { ...item, isRead: true, readAt: new Date().toISOString() } : item,
+        ),
+      );
+      setUnreadNotificationCount((prev) => Math.max(0, prev - 1));
+    } catch (error) {
+      toast.error("Failed to mark notification as read");
+    }
+  };
+
+  const markAllNotificationsRead = async () => {
+    try {
+      await notificationAPI.markAllRead();
+      setInAppNotifications((prev) =>
+        prev.map((item) => ({ ...item, isRead: true, readAt: new Date().toISOString() })),
+      );
+      setUnreadNotificationCount(0);
+    } catch (error) {
+      toast.error("Failed to mark all notifications as read");
+    }
+  };
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -3252,14 +3321,59 @@ function DashboardContent() {
                     className={cn("w-4.5 h-4.5 sm:w-5 sm:h-5", refreshing && "animate-spin")}
                   />
                 </Button>
-                <Button
-                  onClick={logout}
-                  variant="ghost"
-                  className="h-9 w-9 sm:h-10 sm:w-10 p-0 text-rose-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all duration-300 border border-transparent hover:border-rose-500/20 flex items-center justify-center"
-                  title="Logout Account"
-                >
-                  <Power className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
-                </Button>
+                <div className="relative" ref={notificationDropdownRef}>
+                  <Button
+                    onClick={() => {
+                      setIsNotificationOpen((prev) => !prev);
+                      if (!isNotificationOpen) {
+                        fetchNotifications();
+                      }
+                    }}
+                    variant="ghost"
+                    className="h-9 w-9 sm:h-10 sm:w-10 p-0 text-slate-300 hover:text-white hover:bg-white/10 rounded-xl transition-all duration-300 border border-transparent hover:border-white/20 flex items-center justify-center relative"
+                    title="Notifications"
+                  >
+                    <Bell className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
+                    {unreadNotificationCount > 0 && (
+                      <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-[10px] leading-[18px] text-white font-black text-center">
+                        {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
+                      </span>
+                    )}
+                  </Button>
+                  {isNotificationOpen && (
+                    <div className="absolute right-0 mt-2 w-[320px] max-w-[90vw] bg-slate-950 border border-slate-800 rounded-xl shadow-2xl z-[80] overflow-hidden">
+                      <div className="flex items-center justify-between px-3 py-2 border-b border-slate-800">
+                        <p className="text-xs font-black uppercase tracking-wide text-white">Notifications</p>
+                        <button
+                          onClick={markAllNotificationsRead}
+                          className="text-[10px] font-bold text-cyan-300 hover:text-cyan-200"
+                        >
+                          Mark all read
+                        </button>
+                      </div>
+                      <div className="max-h-80 overflow-y-auto">
+                        {inAppNotifications.length === 0 ? (
+                          <p className="text-xs text-slate-400 p-4">No notifications yet.</p>
+                        ) : (
+                          inAppNotifications.map((item) => (
+                            <button
+                              key={item._id}
+                              onClick={() => markNotificationRead(item._id)}
+                              className={cn(
+                                "w-full text-left p-3 border-b border-slate-800/70 hover:bg-slate-900 transition-colors",
+                                !item.isRead && "bg-cyan-500/10",
+                              )}
+                            >
+                              <p className="text-xs font-bold text-white">{item.title}</p>
+                              <p className="text-[11px] text-slate-300 mt-1">{item.message}</p>
+                              <p className="text-[10px] text-slate-500 mt-1">{new Date(item.createdAt).toLocaleString()}</p>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
                 {/* Profile Button - Optimized for Visibility */}
                 <button
                   onClick={() => handleTabChange("profile")}
