@@ -3348,6 +3348,15 @@ function DashboardContent() {
                     className={cn("w-4.5 h-4.5 sm:w-5 sm:h-5", refreshing && "animate-spin")}
                   />
                 </Button>
+                <Button
+                  onClick={logout}
+                  variant="ghost"
+                  className="hidden md:flex h-9 px-3 items-center gap-2 text-rose-300 hover:text-rose-100 hover:bg-rose-500/20 rounded-xl transition-all duration-300 border border-rose-300/30 hover:border-rose-300/50"
+                  title="Logout"
+                >
+                  <Power className="w-4 h-4" />
+                  <span className="text-[10px] font-bold uppercase tracking-wide">Logout</span>
+                </Button>
                 <div className="relative" ref={notificationDropdownRef}>
                   <Button
                     onClick={() => {
