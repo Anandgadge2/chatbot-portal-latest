@@ -219,24 +219,9 @@ export async function triggerCitizenStatusTemplate(options: {
   };
 
   const specificTemplateName = statusToTemplate[options.status.toUpperCase().replace(/[\s-]+/g, '_')];
-  let finalTemplate = 'grievance_status_citizen_v1';
-
-  if (specificTemplateName) {
-    // Check if the specific template exists and is approved for THIS company's current WABA
-    const config = await CompanyWhatsAppConfig.findOne({ companyId: options.companyId, isActive: true }).lean();
-    
-    const templateDoc = await WhatsAppTemplate.findOne({
-      companyId: options.companyId,
-      name: specificTemplateName,
-      status: 'APPROVED',
-      isActive: true,
-      ...(config?.businessAccountId ? { businessAccountId: config.businessAccountId } : {})
-    }).lean();
-
-    if (templateDoc) {
-      finalTemplate = specificTemplateName;
-    }
-  }
+  // Use verified, status-specific citizen templates for admin status changes.
+  // Fallback remains the generic status template for any non-mapped status.
+  const finalTemplate = specificTemplateName || 'grievance_status_citizen_v1';
 
   const citizenTemplateResult = await triggerCitizenTemplate({
     template: finalTemplate,
