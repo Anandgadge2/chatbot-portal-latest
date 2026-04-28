@@ -3215,7 +3215,7 @@ function DashboardContent() {
   return (
     <div key="final-dashboard-root-v4" className="min-h-screen bg-white">
       {/* Premium Admin Header */}
-      <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 transition-all duration-300 shadow-2xl overflow-hidden">
+      <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 transition-all duration-300 shadow-2xl overflow-visible">
         {/* Removed blue pattern backdrop */}
 
         <div className="max-w-[1600px] mx-auto px-4 lg:px-6 relative z-10">
@@ -3330,10 +3330,10 @@ function DashboardContent() {
                       }
                     }}
                     variant="ghost"
-                    className="h-9 w-9 sm:h-10 sm:w-10 p-0 text-slate-300 hover:text-white hover:bg-white/10 rounded-xl transition-all duration-300 border border-transparent hover:border-white/20 flex items-center justify-center relative"
+                    className="h-9 w-9 sm:h-10 sm:w-10 p-0 text-cyan-100 hover:text-white bg-white/10 hover:bg-white/20 rounded-xl transition-all duration-300 border border-white/20 hover:border-white/40 flex items-center justify-center relative shadow-sm"
                     title="Notifications"
                   >
-                    <Bell className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
+                    <Bell className="w-4.5 h-4.5 sm:w-5 sm:h-5 stroke-[2.2]" />
                     {unreadNotificationCount > 0 && (
                       <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-[10px] leading-[18px] text-white font-black text-center">
                         {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
@@ -3341,7 +3341,7 @@ function DashboardContent() {
                     )}
                   </Button>
                   {isNotificationOpen && (
-                    <div className="absolute right-0 mt-2 w-[320px] max-w-[90vw] bg-slate-950 border border-slate-800 rounded-xl shadow-2xl z-[80] overflow-hidden">
+                    <div className="fixed top-16 right-3 left-3 sm:absolute sm:top-full sm:mt-2 sm:right-0 sm:left-auto w-auto sm:w-[360px] max-w-[95vw] bg-slate-950 border border-slate-800 rounded-xl shadow-2xl z-[120] overflow-hidden">
                       <div className="flex items-center justify-between px-3 py-2 border-b border-slate-800">
                         <p className="text-xs font-black uppercase tracking-wide text-white">Notifications</p>
                         <button
