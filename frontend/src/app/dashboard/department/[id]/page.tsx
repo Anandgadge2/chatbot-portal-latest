@@ -239,7 +239,7 @@ export default function DepartmentDetail() {
           );
           fetchGrievances(grievancePage, grievancePagination.limit);
         } else {
-          toast.error("Failed to delete grievance");
+          toast.error(response.message || "Failed to delete grievance");
         }
       } catch (error: any) {
         toast.error(
