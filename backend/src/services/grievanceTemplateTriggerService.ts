@@ -219,8 +219,8 @@ export async function triggerCitizenStatusTemplate(options: {
   };
 
   const specificTemplateName = statusToTemplate[options.status.toUpperCase().replace(/[\s-]+/g, '_')];
-  // Default to the generic status template if no specific status match, 
-  // but trust specificTemplateName if it exists since user confirmed they are approved.
+  // Use verified, status-specific citizen templates for admin status changes.
+  // Fallback remains the generic status template for any non-mapped status.
   const finalTemplate = specificTemplateName || 'grievance_status_inprogress_citizen_v2';
 
   const citizenTemplateResult = await triggerCitizenTemplate({
@@ -235,18 +235,14 @@ export async function triggerCitizenStatusTemplate(options: {
       sub_department_name: sanitizeText(options.subDepartmentName || 'N/A', 60),
       grievance_summary: sanitizeGrievanceDetailsForTemplate(options.grievanceSummary || options.remarks || 'N/A', 400),
       status: sanitizeText(statusLabel, 30),
-      action_by: sanitizeText(options.resolvedByName || 'Administrator', 60),
-      action_on: sanitizeText(options.formattedResolvedDate || formatTemplateDate(), 60),
       dynamic_message: sanitizeNote(extraMessage),
-      remarks: sanitizeRemarks(options.remarks || 'N/A')
+      remarks: sanitizeNote(extraMessage)
     },
     requireNotificationConsent: true
   });
 
-  // ✅ 2. Send Media Templates Sequentially (Text template first, then media templates)
-  // We send media even if the text template fails in some cases, but usually we want success first.
-  // Here we follow the user's "Text then Media" sequence.
-  if (options.media && options.media.length > 0) {
+  // ✅ 2. Send Media Templates Sequentially (Template first, then media templates)
+  if (citizenTemplateResult?.success && options.media && options.media.length > 0) {
     await sendMediaSequentially(
       await getCompanyWithConfig(options.companyId),
       options.citizenPhone,
