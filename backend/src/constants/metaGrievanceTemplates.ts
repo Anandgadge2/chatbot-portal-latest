@@ -1,29 +1,31 @@
 export const ADMIN_TEMPLATE_NAMES = [
-  'grievance_received_admin_v1',
-  'grievance_pending_admin_v1',
-  'grievance_assigned_admin_v1',
-  'grievance_reassigned_admin_v1',
-  'grievance_reverted_company_v1',
-  'grievance_reminder_admin_v1',
-  'admin_password_reset_otp'
+  'grievance_received_admin_v2',
+  'grievance_assigned_admin_v2',
+  'grievance_reassigned_admin_v2',
+  'grievance_reverted_company_v2',
+  'grievance_reminder_admin_v2',
+  'number_admin_v1_'
 ] as const;
 
 export const CITIZEN_TEMPLATE_NAMES = [
-  'grievance_status_citizen_v1',
+  'grievance_status_inprogress_citizen_v2',
+  'grievance_status_resolved_citizen_v2',
+  'grievance_status_rejected_citizen_v2',
   'media_image_v1',
   'media_video_v1',
   'media_document_v1'
 ] as const;
 
 export const META_GRIEVANCE_TEMPLATE_VARIABLE_COUNT: Record<string, number> = {
-  grievance_received_admin_v1: 7,
-  grievance_pending_admin_v1: 7,
-  grievance_assigned_admin_v1: 9,
-  grievance_reassigned_admin_v1: 12,
-  grievance_reverted_company_v1: 9,
-  grievance_reminder_admin_v1: 10,
-  admin_password_reset_otp: 1,
-  grievance_status_citizen_v1: 7,
+  grievance_received_admin_v2: 7,
+  grievance_assigned_admin_v2: 9,
+  grievance_reassigned_admin_v2: 12,
+  grievance_reverted_company_v2: 9,
+  grievance_reminder_admin_v2: 10,
+  number_admin_v1_: 1,
+  grievance_status_inprogress_citizen_v2: 8,
+  grievance_status_resolved_citizen_v2: 8,
+  grievance_status_rejected_citizen_v2: 8,
   media_image_v1: 1,
   media_video_v1: 1,
   media_document_v1: 1

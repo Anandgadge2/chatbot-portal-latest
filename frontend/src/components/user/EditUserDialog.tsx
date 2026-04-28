@@ -288,7 +288,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent hideClose className="sm:max-w-[650px] max-h-[90vh] overflow-hidden rounded-2xl shadow-2xl bg-white p-0 border-0 flex flex-col">
-        <div className="bg-slate-900 px-6 py-5 relative overflow-hidden flex-shrink-0 border-b border-slate-800">
+        <div className="bg-slate-900 px-5 py-3.5 relative overflow-hidden flex-shrink-0 border-b border-slate-800">
           <div
             className="absolute inset-0 opacity-[0.03] pointer-events-none"
             style={{
@@ -297,9 +297,9 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
           ></div>
           <div className="relative flex items-center justify-between">
             <DialogHeader className="relative">
-              <DialogTitle className="text-base font-bold text-white flex items-center gap-3 uppercase tracking-tight">
-                <div className="w-10 h-10 bg-indigo-500/30 rounded-xl flex items-center justify-center border border-indigo-500/50 shadow-inner backdrop-blur-sm">
-                  <UserIcon className="w-5 h-5 text-indigo-50" />
+              <DialogTitle className="text-[15px] font-bold text-white flex items-center gap-2.5 uppercase tracking-tight">
+                <div className="w-9 h-9 bg-indigo-500/30 rounded-xl flex items-center justify-center border border-indigo-500/50 shadow-inner backdrop-blur-sm">
+                  <UserIcon className="w-4.5 h-4.5 text-indigo-50" />
                 </div>
                 Edit User
               </DialogTitle>
@@ -309,16 +309,16 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
             </DialogHeader>
             <button
               onClick={onClose}
-              className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all duration-300 border border-white/10 group cursor-pointer"
+              className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all duration-300 border border-white/10 group cursor-pointer"
             >
-              <X className="w-5 h-5 text-slate-400 group-hover:text-white transition-colors" />
+              <X className="w-4.5 h-4.5 text-slate-400 group-hover:text-white transition-colors" />
             </button>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-          <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5 custom-scrollbar">
-            <div className="grid grid-cols-2 gap-4">
+          <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4 custom-scrollbar">
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label
                   htmlFor="firstName"

@@ -408,6 +408,11 @@ export default function StatusUpdateForm({
   }, [currentStatus, initialDate, initialTime]);
 
   const handleUpdate = async () => {
+    if (remarks.length > 100) {
+      toast.error('Remarks exceed 100 character limit');
+      return;
+    }
+
     if (selectedStatus === currentStatus) {
       toast.error('Please select a different status');
       return;
@@ -565,16 +570,24 @@ export default function StatusUpdateForm({
 
         {/* Remarks */}
         <div>
-          <label className="block text-[11px] font-semibold text-slate-600 uppercase tracking-[0.08em] mb-1.5">
-            Remarks / Note <span className="text-rose-500 font-normal normal-case">(Mandatory)</span>
+          <label className="block text-[11px] font-semibold text-slate-600 uppercase tracking-[0.08em] mb-1.5 flex justify-between items-center">
+            <span>Remarks / Note <span className="text-rose-500 font-normal normal-case">(Mandatory)</span></span>
+            <span className={`text-[10px] font-bold ${remarks.length > 100 ? 'text-rose-500' : 'text-slate-400'}`}>
+              {remarks.length}/100
+            </span>
           </label>
           <textarea
             value={remarks}
             onChange={(e) => setRemarks(e.target.value)}
             rows={3}
-            className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 resize-none transition-all bg-white text-sm placeholder:text-slate-400"
+            className={`w-full px-4 py-3 border ${remarks.length > 100 ? 'border-rose-500 ring-1 ring-rose-500/20' : 'border-slate-200'} rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 resize-none transition-all bg-white text-sm placeholder:text-slate-400`}
             placeholder="Add notes, comments, or instructions about this status change. These will be sent to the citizen via WhatsApp..."
           />
+          {remarks.length > 100 && (
+            <p className="mt-1 text-[10px] font-bold text-rose-500 uppercase tracking-tight px-1">
+              Character limit exceeded by {remarks.length - 100} characters
+            </p>
+          )}
         </div>
 
         {itemType === 'grievance' && ['RESOLVED', 'IN_PROGRESS', 'REJECTED'].includes(selectedStatus) && (
@@ -612,7 +625,8 @@ export default function StatusUpdateForm({
         <button
           onClick={handleUpdate}
           disabled={isSubmitDisabled}
-          className="px-5 py-2.5 bg-[#029fe7] hover:bg-[#028fcf] text-white rounded-lg text-xs font-bold uppercase tracking-[0.08em] shadow-lg shadow-cyan-700/30 ring-1 ring-cyan-300/60 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          title={remarks.length > 100 ? `Remarks exceed 100 characters (currently ${remarks.length})` : ''}
+          className={`px-5 py-2.5 bg-[#029fe7] hover:bg-[#028fcf] text-white rounded-lg text-xs font-bold uppercase tracking-[0.08em] shadow-lg shadow-cyan-700/30 ring-1 ring-cyan-300/60 transition-all flex items-center gap-2 ${isSubmitDisabled || remarks.length > 100 ? 'opacity-50 cursor-not-allowed' : 'active:scale-95'}`}
         >
           {submitting ? (
             <>

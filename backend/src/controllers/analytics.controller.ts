@@ -15,6 +15,7 @@ type DashboardCacheEntry = {
 
 const DASHBOARD_CACHE_TTL_MS = 30 * 1000; // 30s hot cache for landing-page KPIs
 const DASHBOARD_KPI_CACHE_TTL_MS = 15 * 1000;
+const ANALYTICS_MAX_TIME_MS = 12000;
 const dashboardResponseCache = new Map<string, DashboardCacheEntry>();
 const dashboardInFlight = new Map<string, Promise<any>>();
 const dashboardKpiResponseCache = new Map<string, DashboardCacheEntry>();
@@ -361,7 +362,7 @@ export const dashboard = async (req: Request, res: Response) => {
             ]
           }
         }
-      ]),
+      ]).option({ maxTimeMS: ANALYTICS_MAX_TIME_MS }),
 
       // 2. Comprehensive Appointment Analytics
       Appointment.aggregate([
@@ -402,7 +403,7 @@ export const dashboard = async (req: Request, res: Response) => {
             ]
           }
         }
-      ]),
+      ]).option({ maxTimeMS: ANALYTICS_MAX_TIME_MS }),
 
       // 3. User & Role Distribution
       normalizedCompanyId ? User.aggregate([
@@ -419,18 +420,18 @@ export const dashboard = async (req: Request, res: Response) => {
             active: [{ $match: { isActive: true } }, { $count: 'count' }]
           }
         }
-      ]) : Promise.resolve([{ byRole: [], total: [{count:0}], active: [{count:0}] }]),
+      ]).option({ maxTimeMS: ANALYTICS_MAX_TIME_MS }) : Promise.resolve([{ byRole: [], total: [{count:0}], active: [{count:0}] }]),
 
       // 4. Existing scoping counts & Hierarchical counts
-      targetCompanyId ? User.aggregate([{ $match: { companyId: new mongoose.Types.ObjectId(targetCompanyId.toString()), ...userScopeFilter } }, { $unwind: { path: "$departmentIds", preserveNullAndEmptyArrays: true } }, { $group: { _id: { $ifNull: ["$departmentIds", "$departmentId"] }, count: { $sum: 1 } } }]) : Promise.resolve([]),
-      Department.countDocuments({ companyId: targetCompanyId, ...scopeFilter }),
+      targetCompanyId ? User.aggregate([{ $match: { companyId: new mongoose.Types.ObjectId(targetCompanyId.toString()), ...userScopeFilter } }, { $unwind: { path: "$departmentIds", preserveNullAndEmptyArrays: true } }, { $group: { _id: { $ifNull: ["$departmentIds", "$departmentId"] }, count: { $sum: 1 } } }]).option({ maxTimeMS: ANALYTICS_MAX_TIME_MS }) : Promise.resolve([]),
+      Department.countDocuments({ companyId: targetCompanyId, ...scopeFilter }).maxTimeMS(ANALYTICS_MAX_TIME_MS),
       isHierarchicalEnabled ? Department.countDocuments({
         companyId: targetCompanyId,
         ...(scopeFilter.$or
           ? { $and: [scopeFilter, { $or: [{ parentDepartmentId: null }, { parentDepartmentId: { $exists: false } }] }] }
           : { ...scopeFilter, $or: [{ parentDepartmentId: null }, { parentDepartmentId: { $exists: false } }] }),
-      }) : Promise.resolve(0),
-      isHierarchicalEnabled ? Department.countDocuments({ companyId: targetCompanyId, ...scopeFilter, parentDepartmentId: { $ne: null } }) : Promise.resolve(0),
+      }).maxTimeMS(ANALYTICS_MAX_TIME_MS) : Promise.resolve(0),
+      isHierarchicalEnabled ? Department.countDocuments({ companyId: targetCompanyId, ...scopeFilter, parentDepartmentId: { $ne: null } }).maxTimeMS(ANALYTICS_MAX_TIME_MS) : Promise.resolve(0),
     ]);
 
     // Parse Aggregation Results
@@ -639,7 +640,7 @@ export const dashboardKpis = async (req: Request, res: Response) => {
             }
           }
         }
-      ]);
+      ]).option({ maxTimeMS: ANALYTICS_MAX_TIME_MS });
 
       const g = counts || {};
       const payload = {

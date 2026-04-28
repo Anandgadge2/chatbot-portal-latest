@@ -1,6 +1,13 @@
 export const GRIEVANCE_DESCRIPTION_CONTINUATION_TEXT =
   'To see the full grievance description, go to the dashboard portal.';
 
+function normalizeTemplateParameterWhitespace(text: string): string {
+  return String(text || '')
+    .replace(/[\t\r\n]+/g, ' ')
+    .replace(/ {2,}/g, ' ')
+    .trim();
+}
+
 export function truncateText(text: string, maxLength: number): string {
   if (!text) return '';
 
@@ -28,15 +35,15 @@ export function prepareSummaryText(
   summaryLimit = 400,
   continuationText = GRIEVANCE_DESCRIPTION_CONTINUATION_TEXT
 ): string {
-  const normalized = (summary || '').trim();
+  const normalized = normalizeTemplateParameterWhitespace(summary);
   if (!normalized) return '';
 
   if (normalized.length <= summaryLimit) {
     return normalized;
   }
 
-  const continuationSuffix = `\n\n${continuationText}`;
+  const continuationSuffix = ` ${normalizeTemplateParameterWhitespace(continuationText)}`;
   const maxCoreLength = Math.max(0, summaryLimit - continuationSuffix.length);
   const core = truncateText(normalized, maxCoreLength);
-  return `${core}${continuationSuffix}`;
+  return normalizeTemplateParameterWhitespace(`${core}${continuationSuffix}`);
 }

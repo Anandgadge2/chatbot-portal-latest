@@ -97,9 +97,9 @@ const getLocaleForLanguage = (lang: 'en' | 'hi' | 'or' | 'mr'): string => {
 };
 
 const GRIEVANCE_CREATED_ADMIN_TEMPLATE_NAME =
-  process.env.WHATSAPP_GRIEVANCE_CREATED_ADMIN_TEMPLATE || 'grievance_received_admin_v1';
+  process.env.WHATSAPP_GRIEVANCE_CREATED_ADMIN_TEMPLATE || 'grievance_received_admin_v2';
 const GRIEVANCE_CITIZEN_STATUS_TEMPLATE_NAME =
-  process.env.WHATSAPP_GRIEVANCE_CITIZEN_STATUS_TEMPLATE || 'grievance_status_citizen_v1';
+  process.env.WHATSAPP_GRIEVANCE_CITIZEN_STATUS_TEMPLATE || 'grievance_status_inprogress_citizen_v2';
 const GRIEVANCE_TEMPLATE_LANGUAGE =
   (process.env.WHATSAPP_GRIEVANCE_TEMPLATE_LANGUAGE || 'en') as 'en' | 'hi' | 'or' | 'mr';
 

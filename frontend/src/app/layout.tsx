@@ -1,27 +1,7 @@
-import type { Metadata } from 'next'
-import { Poppins } from 'next/font/google'
 import './globals.css'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from '@/contexts/AuthContext'
-import { SpeedInsights } from '@vercel/speed-insights/next'
 import { QueryProvider } from '@/lib/query/cache'
-
-const poppins = Poppins({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  display: 'swap',
-  variable: '--font-theme',
-})
-
-export const metadata: Metadata = {
-  title: 'PugArch Connect Portal',
-  description: 'PugArch Connect Portal',
-  icons: {
-    icon: '/icon.svg',
-    shortcut: '/icon.svg',
-    apple: '/icon.svg',
-  },
-}
 
 export default function RootLayout({
   children,
@@ -30,12 +10,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${poppins.variable} antialiased`}>
+      <body className="antialiased">
         <QueryProvider>
           <AuthProvider>
             {children}
-            <Toaster 
-              position="top-right" 
+            <Toaster
+              position="top-right"
               toastOptions={{
                 duration: 1000,
                 success: {
@@ -48,7 +28,6 @@ export default function RootLayout({
             />
           </AuthProvider>
         </QueryProvider>
-        <SpeedInsights />
       </body>
     </html>
   )

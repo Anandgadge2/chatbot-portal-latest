@@ -31,7 +31,6 @@ export interface IGrievance extends Document {
     coordinates: [number, number]; // [longitude, latitude]
     address?: string;
   };
-  forestAreaId?: string; // 🌲 Reference to ForestArea model's areaId
   media: Array<{
     url: string;
     type: 'image' | 'document' | 'video';
@@ -167,10 +166,6 @@ const GrievanceSchema: Schema = new Schema(
         index: '2dsphere'
       },
       address: String
-    },
-    forestAreaId: {
-      type: String,
-      index: true
     },
     media: [{
       url: {

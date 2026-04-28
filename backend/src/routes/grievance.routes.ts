@@ -157,7 +157,7 @@ router.get('/', requirePermission(Permission.READ_GRIEVANCE), async (req: Reques
     }
 
     const grievances = await Grievance.find(query)
-      .select('-timeline -statusHistory -media')
+      .select('-statusHistory -media')
       .populate('companyId', 'name companyId')
       .populate('departmentId', 'name departmentId')
       .populate('subDepartmentId', 'name departmentId')
@@ -304,7 +304,6 @@ router.post('/', enforceWhatsAppGrievanceCompliance, async (req: Request, res: R
       companyId: companyId as any,
       description: grievance.description,
       category: grievance.category,
-      departmentName: 'Portal Submission',
       createdAt: grievance.createdAt,
       timeline: grievance.timeline
     };
@@ -506,7 +505,7 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
     ]);
 
     await triggerAdminAssignmentNotification({
-      event: 'grievance_reverted_company_v1',
+      event: 'grievance_reverted_company_v2',
       companyId: grievance.companyId,
       grievanceId: grievance.grievanceId,
       citizenName: grievance.citizenName,
@@ -526,7 +525,7 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
         caption: file.caption,
         filename: file.filename
       }))
-    }).catch((err) => logger.error('Failed to trigger grievance_reverted_company_v1 template', err));
+    }).catch((err) => logger.error('Failed to trigger grievance_reverted_company_v2 template', err));
 
     const { notifyCompanyAdminsOnRevert } = await import('../services/notificationService');
     await notifyCompanyAdminsOnRevert({
@@ -1020,6 +1019,9 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
       oldAssignedTo ||
       grievance.timeline?.some((entry: any) => entry.action === 'REVERTED_TO_COMPANY_ADMIN')
     );
+    // Use reassigned template only when company admin / super admin is acting (cross-dept)
+    // Dept admin assigning to sub-dept → use assigned template
+    const useReassignedTemplate = isReassignment && (currentUser.isSuperAdmin || isCompanyAdmin);
 
     // 🚀 BACKGROUND NOTIFICATIONS: Fire and forget to keep UI responsive
     (async () => {
@@ -1027,10 +1029,13 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
         if (assignedUser.phone) {
           const { triggerAdminAssignmentNotification } = await import('../services/grievanceTemplateTriggerService');
           await triggerAdminAssignmentNotification({
-            event: isReassignment ? 'grievance_reassigned_admin_v1' : 'grievance_assigned_admin_v1',
+            // useReassignedTemplate: company admin / super admin cross-dept reassignment
+            // grievance_assigned_admin_v2: dept admin delegating within dept
+            event: useReassignedTemplate ? 'grievance_reassigned_admin_v2' : 'grievance_assigned_admin_v2',
             companyId: grievance.companyId,
             grievanceId: grievance.grievanceId,
             citizenName: grievance.citizenName,
+            // New destination dept (where it's going NOW)
             category: currentDepartmentName,
             subDepartmentName: currentOfficeName,
             description: grievance.description,
@@ -1041,6 +1046,7 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
             remarks: transferNote || 'Assigned for resolution.',
             submittedOn: grievance.createdAt,
             reassignedOn: new Date(),
+            // Previously assigned dept (where it was BEFORE this action)
             originalDepartmentName: originalDepartmentName,
             originalOfficeName: originalOfficeName,
             media: (grievance.media || []).map((file: any) => ({
@@ -1191,7 +1197,7 @@ router.post('/:id/reminder', requirePermission(Permission.UPDATE_GRIEVANCE), asy
 
     if (recipientPhones.length > 0) {
       await triggerAdminTemplate({
-        event: 'grievance_reminder_admin_v1',
+        event: 'grievance_reminder_admin_v2',
         companyId: grievance.companyId,
         language: grievance.language,
         recipientPhones,

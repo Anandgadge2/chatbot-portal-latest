@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { X, Undo2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { departmentAPI, Department } from '@/lib/api/department';
 import { SearchableSelect } from '../ui/SearchableSelect';
 
@@ -117,14 +118,24 @@ export default function RevertGrievanceDialog({
           </div>
 
           <div>
-            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-2">Reason for Reassignment *</label>
+            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-2 flex justify-between items-center">
+              <span>Reason for Reassignment *</span>
+              <span className={`text-[10px] font-bold ${remarks.length > 100 ? 'text-rose-500' : 'text-slate-400'}`}>
+                {remarks.length}/100
+              </span>
+            </label>
             <textarea
               value={remarks}
               onChange={(e) => setRemarks(e.target.value)}
               rows={4}
               placeholder="Explain why this grievance should be reassigned and which department/sub-department should handle it."
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500/50 transition-all resize-none"
+              className={`w-full bg-slate-50 border ${remarks.length > 100 ? 'border-rose-500 ring-1 ring-rose-500/20' : 'border-slate-200'} rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500/50 transition-all resize-none`}
             />
+            {remarks.length > 100 && (
+              <p className="mt-1 text-[10px] font-bold text-rose-500 uppercase tracking-tight px-1 text-right">
+                Character limit exceeded by {remarks.length - 100} characters
+              </p>
+            )}
           </div>
         </div>
 
@@ -137,7 +148,12 @@ export default function RevertGrievanceDialog({
           </button>
           <button
             disabled={!remarks.trim() || submitting}
+            title={remarks.length > 100 ? `Reason exceeds 100 characters (currently ${remarks.length})` : ''}
             onClick={async () => {
+              if (remarks.length > 100) {
+                toast.error('Reason exceeds 100 character limit');
+                return;
+              }
               setSubmitting(true);
               try {
                 await onSubmit({ 
@@ -150,7 +166,7 @@ export default function RevertGrievanceDialog({
                 setSubmitting(false);
               }
             }}
-            className="px-6 py-2 text-xs font-black bg-amber-600 text-white rounded-xl shadow-lg shadow-amber-600/20 hover:bg-amber-700 active:scale-95 transition-all disabled:opacity-50 disabled:pointer-events-none"
+            className={`px-6 py-2 text-xs font-black bg-amber-600 text-white rounded-xl shadow-lg shadow-amber-600/20 hover:bg-amber-700 transition-all flex items-center justify-center ${(!remarks.trim() || submitting || remarks.length > 100) ? 'opacity-50 cursor-not-allowed' : 'active:scale-95'}`}
           >
             {submitting ? 'Submitting...' : 'Submit Request'}
           </button>

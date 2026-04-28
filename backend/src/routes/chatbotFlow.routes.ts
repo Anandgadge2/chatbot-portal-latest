@@ -957,6 +957,66 @@ router.delete('/:id', authenticate, requireSuperAdmin, async (req: Request, res:
 });
 
 /**
+ * @route   POST /api/chatbot-flows/bulk-delete
+ * @desc    Bulk delete chatbot flows (superadmin only)
+ * @access  Private/SuperAdmin
+ */
+router.post('/bulk-delete', authenticate, requireSuperAdmin, async (req: Request, res: Response) => {
+  try {
+    const { ids } = req.body;
+    
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide an array of flow IDs to delete'
+      });
+    }
+
+    logger.info(`🗑️ Bulk deleting ${ids.length} chatbot flows`);
+
+    // Filter valid ObjectIds
+    const validIds = ids.filter(id => mongoose.Types.ObjectId.isValid(id));
+    
+    if (validIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No valid flow IDs provided'
+      });
+    }
+
+    // Also remove from WhatsApp config activeFlows if assigned
+    try {
+      const CompanyWhatsAppConfig = (await import('../models/CompanyWhatsAppConfig')).default;
+      await CompanyWhatsAppConfig.updateMany(
+        {},
+        { $pull: { activeFlows: { flowId: { $in: validIds.map(id => new mongoose.Types.ObjectId(id)) } } } }
+      );
+      logger.info(`✅ Removed ${validIds.length} flows from all WhatsApp configs`);
+    } catch (configError: any) {
+      logger.warn(`⚠️ Could not remove flows from WhatsApp configs: ${configError.message}`);
+    }
+
+    // Bulk delete from database
+    const result = await ChatbotFlow.deleteMany({ _id: { $in: validIds } });
+
+    logger.info(`✅ ${result.deletedCount} flows permanently deleted`);
+
+    res.json({
+      success: true,
+      message: `${result.deletedCount} chatbot flow(s) deleted successfully`,
+      data: { deletedCount: result.deletedCount }
+    });
+  } catch (error: any) {
+    logger.error('❌ Error bulk deleting chatbot flows:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to bulk delete chatbot flows',
+      error: error.message
+    });
+  }
+});
+
+/**
  * @route   POST /api/chatbot-flows/:id/duplicate
  * @desc    Duplicate a chatbot flow (superadmin only)
  * @access  Private/SuperAdmin

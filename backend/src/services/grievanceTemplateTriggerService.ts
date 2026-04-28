@@ -86,12 +86,12 @@ export async function getAdminRecipients(companyId: any): Promise<string[]> {
 
 export async function triggerAdminTemplate(options: {
   event:
-    | 'grievance_received_admin_v1'
-    | 'grievance_pending_admin_v1'
-    | 'grievance_assigned_admin_v1'
-    | 'grievance_reassigned_admin_v1'
-    | 'grievance_reverted_company_v1'
-    | 'grievance_reminder_admin_v1';
+    | 'grievance_received_admin_v2'
+    | 'grievance_received_admin_v2'
+    | 'grievance_assigned_admin_v2'
+    | 'grievance_reassigned_admin_v2'
+    | 'grievance_reverted_company_v2'
+    | 'grievance_reminder_admin_v2';
   companyId: any;
   language?: string;
   values?: string[];
@@ -213,30 +213,15 @@ export async function triggerCitizenStatusTemplate(options: {
 
   // 1. Determine the best template to use
   const statusToTemplate: Record<string, string> = {
-    RESOLVED: 'grievance_status_resolved_citizen_v1',
-    REJECTED: 'grievance_status_rejected_citizen_v1',
-    IN_PROGRESS: 'grievance_status_inprogress_citizen_v1'
+    RESOLVED: 'grievance_status_resolved_citizen_v2',
+    REJECTED: 'grievance_status_rejected_citizen_v2',
+    IN_PROGRESS: 'grievance_status_inprogress_citizen_v2'
   };
 
   const specificTemplateName = statusToTemplate[options.status.toUpperCase().replace(/[\s-]+/g, '_')];
-  let finalTemplate = 'grievance_status_citizen_v1';
-
-  if (specificTemplateName) {
-    // Check if the specific template exists and is approved for THIS company's current WABA
-    const config = await CompanyWhatsAppConfig.findOne({ companyId: options.companyId, isActive: true }).lean();
-    
-    const templateDoc = await WhatsAppTemplate.findOne({
-      companyId: options.companyId,
-      name: specificTemplateName,
-      status: 'APPROVED',
-      isActive: true,
-      ...(config?.businessAccountId ? { businessAccountId: config.businessAccountId } : {})
-    }).lean();
-
-    if (templateDoc) {
-      finalTemplate = specificTemplateName;
-    }
-  }
+  // Default to the generic status template if no specific status match, 
+  // but trust specificTemplateName if it exists since user confirmed they are approved.
+  const finalTemplate = specificTemplateName || 'grievance_status_inprogress_citizen_v2';
 
   const citizenTemplateResult = await triggerCitizenTemplate({
     template: finalTemplate,
@@ -250,14 +235,18 @@ export async function triggerCitizenStatusTemplate(options: {
       sub_department_name: sanitizeText(options.subDepartmentName || 'N/A', 60),
       grievance_summary: sanitizeGrievanceDetailsForTemplate(options.grievanceSummary || options.remarks || 'N/A', 400),
       status: sanitizeText(statusLabel, 30),
+      action_by: sanitizeText(options.resolvedByName || 'Administrator', 60),
+      action_on: sanitizeText(options.formattedResolvedDate || formatTemplateDate(), 60),
       dynamic_message: sanitizeNote(extraMessage),
-      remarks: sanitizeNote(extraMessage)
+      remarks: sanitizeRemarks(options.remarks || 'N/A')
     },
     requireNotificationConsent: true
   });
 
-  // ✅ 2. Send Media Templates Sequentially (Template first, then media templates)
-  if (citizenTemplateResult?.success && options.media && options.media.length > 0) {
+  // ✅ 2. Send Media Templates Sequentially (Text template first, then media templates)
+  // We send media even if the text template fails in some cases, but usually we want success first.
+  // Here we follow the user's "Text then Media" sequence.
+  if (options.media && options.media.length > 0) {
     await sendMediaSequentially(
       await getCompanyWithConfig(options.companyId),
       options.citizenPhone,
@@ -336,7 +325,7 @@ export async function triggerGrievanceNotifications(options: {
           sendTemplateAndAttachments({
             recipientPhone,
             recipientName: 'Administrator',
-            templateName: 'grievance_pending_admin_v1',
+            templateName: 'grievance_received_admin_v2',
             bodyParameters: [
               { type: 'text', text: 'Administrator' },
               { type: 'text', text: sanitizeText(options.grievanceId, 30) },
@@ -366,7 +355,7 @@ export async function triggerGrievanceNotifications(options: {
 }
 
 export async function triggerAdminAssignmentNotification(options: {
-  event: 'grievance_assigned_admin_v1' | 'grievance_reassigned_admin_v1' | 'grievance_reverted_company_v1';
+  event: 'grievance_assigned_admin_v2' | 'grievance_reassigned_admin_v2' | 'grievance_reverted_company_v2';
   companyId: any;
   grievanceId: string;
   citizenName: string;

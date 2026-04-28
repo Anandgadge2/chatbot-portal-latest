@@ -9,6 +9,7 @@ import { normalizePhoneNumber } from '../utils/phoneUtils';
 import { getRedisClient, isRedisConnected } from '../config/redis';
 import WhatsAppSession from '../models/WhatsAppSession';
 import CitizenProfile from '../models/CitizenProfile';
+import User from '../models/User';
 import CompanyTemplateMapping from '../models/CompanyTemplateMapping';
 import { assertTemplateApproved, normalizeLanguage, sanitizeTemplateVariables, validateTemplateVariables } from './templateValidationService';
 import { buildTemplatePayload, TEMPLATE_DEFINITIONS } from './whatsapp/payload.builder';
@@ -215,7 +216,7 @@ function applyComplianceFooter(message: string, includeFooter: boolean = false, 
   return safeText(`${base}\n\n${footer}`, limit);
 }
 
-async function getSessionComplianceContext(
+export async function getSessionComplianceContext(
   company: any,
   to: string
 ): Promise<{ optedOut: boolean; within24hWindow: boolean; consentGiven: boolean; isSubscribed: boolean }> {
@@ -225,13 +226,38 @@ async function getSessionComplianceContext(
   }
 
   const normalizedTo = normalizePhoneNumber(to);
+
+  // 👑 Priority 1: Check if this is an internal User (Admin/Staff)
+  // Internal users are considered to have given consent if they are active and haven't disabled WhatsApp.
+  const internalUser = await User.findOne({
+    companyId,
+    phone: normalizedTo,
+    isActive: true
+  }).select('notificationSettings').lean();
+
+  if (internalUser) {
+    const whatsappEnabled = internalUser.notificationSettings?.whatsapp !== false;
+    return {
+      optedOut: !whatsappEnabled,
+      within24hWindow: true, // Internal system alerts are always permitted
+      consentGiven: whatsappEnabled,
+      isSubscribed: whatsappEnabled
+    };
+  }
+
+  // 👥 Priority 2: Check for Citizen Profile
   const citizen = await CitizenProfile.findOne({
     companyId,
     phone_number: normalizedTo
   }).select('opt_out isSubscribed citizen_consent consentGiven lastUserInteractionAt').lean();
 
   if (citizen?.opt_out || citizen?.isSubscribed === false) {
-    return { optedOut: true, within24hWindow: false, consentGiven: Boolean(citizen?.citizen_consent || citizen?.consentGiven), isSubscribed: false };
+    return { 
+      optedOut: true, 
+      within24hWindow: false, 
+      consentGiven: Boolean(citizen?.citizen_consent || citizen?.consentGiven), 
+      isSubscribed: false 
+    };
   }
 
   if (citizen?.lastUserInteractionAt) {
@@ -281,13 +307,14 @@ async function enforceMessagingPolicy(
   const requireConsent = options?.requireConsent !== false;
   const optInTemplates = new Set<string>();
   const approvedOutsideWindowTemplates = new Set([
-    'grievance_received_admin_v1',
-    'grievance_pending_admin_v1',
-    'grievance_assigned_admin_v1',
-    'grievance_reassigned_admin_v1',
-    'grievance_reverted_company_v1',
-    'admin_password_reset_otp',
-    'grievance_status_citizen_v1',
+    'grievance_received_admin_v2',
+    'grievance_assigned_admin_v2',
+    'grievance_reassigned_admin_v2',
+    'grievance_reverted_company_v2',
+    'number_admin_v1_',
+    'grievance_status_inprogress_citizen_v2',
+    'grievance_status_resolved_citizen_v2',
+    'grievance_status_rejected_citizen_v2',
     'media_image_v1',
     'media_video_v1',
     'media_document_v1'

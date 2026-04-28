@@ -14,7 +14,7 @@ import { sendWhatsAppTemplate } from '../services/whatsappService';
 
 const router = express.Router();
 
-const PASSWORD_RESET_OTP_TEMPLATE_NAME = process.env.WHATSAPP_PASSWORD_RESET_OTP_TEMPLATE || 'admin_password_reset_otp';
+const PASSWORD_RESET_OTP_TEMPLATE_NAME = process.env.WHATSAPP_PASSWORD_RESET_OTP_TEMPLATE || 'number_admin_v1_';
 const PASSWORD_RESET_OTP_TEMPLATE_LANGUAGE = (process.env.WHATSAPP_PASSWORD_RESET_OTP_TEMPLATE_LANGUAGE || 'en') as 'en' | 'hi' | 'mr' | 'or';
 
 const buildPhoneLookupQuery = (rawPhone: string) => {

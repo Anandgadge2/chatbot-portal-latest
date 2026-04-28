@@ -38,6 +38,37 @@ export default function UserDetailsDialog({
 }: UserDetailsDialogProps) {
   if (!user) return null;
 
+  const designationList = [
+    ...(user.designation ? [user.designation] : []),
+    ...(user.designations || []),
+  ].filter((value, index, list) => value && list.indexOf(value) === index);
+
+  const departmentList = (() => {
+    const uniqueDepts = new Map<string, { name: string; isPrimary: boolean }>();
+
+    if (user.departmentId) {
+      const id =
+        typeof user.departmentId === "object"
+          ? user.departmentId._id
+          : String(user.departmentId);
+      const name =
+        typeof user.departmentId === "object"
+          ? user.departmentId.name
+          : String(user.departmentId);
+      uniqueDepts.set(id, { name, isPrimary: true });
+    }
+
+    user.departmentIds?.forEach((dept) => {
+      const id = typeof dept === "object" ? dept._id : String(dept);
+      const name = typeof dept === "object" ? dept.name : String(dept);
+      if (!uniqueDepts.has(id)) {
+        uniqueDepts.set(id, { name, isPrimary: false });
+      }
+    });
+
+    return Array.from(uniqueDepts.values());
+  })();
+
   const createdDate = user?.createdAt || "";
   let timeAgo = "Unknown";
   try {
@@ -58,7 +89,7 @@ export default function UserDetailsDialog({
       <DialogContent hideClose className="w-[96vw] max-w-xl max-h-[92vh] sm:max-h-[85vh] overflow-hidden flex flex-col p-0 gap-0 rounded-2xl sm:rounded-[1.5rem] border-0 shadow-2xl bg-white">
         {/* Header — Matching AssignmentDialog Theme but More Compact */}
         <DialogHeader className="relative space-y-0 border-b-0 p-0 text-left">
-          <div className="relative overflow-hidden rounded-t-2xl sm:rounded-t-[1.5rem] bg-gradient-to-r from-[#1aa6ea] via-[#0d9ee3] to-[#2bb4ef] px-5 py-4">
+          <div className="relative overflow-hidden rounded-t-2xl sm:rounded-t-[1.5rem] bg-gradient-to-r from-[#1aa6ea] via-[#0d9ee3] to-[#2bb4ef] px-4 py-3 sm:px-5 sm:py-4">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.2),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.16),transparent_28%)]" />
             
             <div className="relative flex items-center justify-between gap-3">
@@ -67,10 +98,10 @@ export default function UserDetailsDialog({
                   <UserIcon className="h-5 w-5 text-white" />
                 </div>
                 <div className="min-w-0">
-                  <DialogTitle className="text-lg font-black tracking-tight text-white uppercase leading-tight">
+                  <DialogTitle className="text-base font-black tracking-tight text-white uppercase leading-tight sm:text-lg">
                     User Profile
                   </DialogTitle>
-                  <div className="flex items-center gap-1.5 mt-0.5">
+                  <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
                     <span className="px-1.5 py-px bg-white/16 rounded-md text-[9px] font-black text-white border border-white/35 backdrop-blur-sm uppercase tracking-wider">
                       {user.userId || `USER${user._id.substring(0, 8).toUpperCase()}`}
                     </span>
@@ -92,7 +123,7 @@ export default function UserDetailsDialog({
         </DialogHeader>
 
         {/* Content Area — More Compact Grid */}
-        <div className="flex-1 overflow-y-auto bg-slate-50 p-4 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto bg-slate-50 p-3 sm:p-4 custom-scrollbar">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Identity Column */}
             <div className="space-y-4">
@@ -172,14 +203,9 @@ export default function UserDetailsDialog({
                     <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Designations</p>
                     <div className="flex flex-wrap gap-1.5">
                       {(() => {
-                        const uniqueDesignations = new Set<string>();
-                        if (user.designation) uniqueDesignations.add(user.designation);
-                        user.designations?.forEach(d => uniqueDesignations.add(d));
+                        if (designationList.length === 0) return <span className="text-[9px] text-slate-400 font-bold uppercase italic">None Assigned</span>;
                         
-                        const list = Array.from(uniqueDesignations);
-                        if (list.length === 0) return <span className="text-[9px] text-slate-400 font-bold uppercase italic">None Assigned</span>;
-                        
-                        return list.map((d, index) => (
+                        return designationList.map((d, index) => (
                           <span key={index} className="px-2 py-0.5 bg-slate-50 text-slate-600 border border-slate-200 rounded-md text-[8.5px] font-bold uppercase tracking-tight">
                             {d}
                           </span>
@@ -192,28 +218,13 @@ export default function UserDetailsDialog({
                     <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Organizational Units</p>
                     <div className="space-y-1.5">
                       {(() => {
-                        const uniqueDepts = new Map();
-                        if (user.departmentId) {
-                          const id = typeof user.departmentId === 'object' ? user.departmentId._id : user.departmentId;
-                          const name = typeof user.departmentId === 'object' ? user.departmentId.name : (user.departmentId as any).name || id;
-                          uniqueDepts.set(id, { name, isPrimary: true });
-                        }
-                        user.departmentIds?.forEach(dept => {
-                          const id = typeof dept === 'object' ? dept._id : dept;
-                          if (!uniqueDepts.has(id)) {
-                            const name = typeof dept === 'object' ? dept.name : (dept as any).name || id;
-                            uniqueDepts.set(id, { name, isPrimary: false });
-                          }
-                        });
+                        if (departmentList.length === 0) return <p className="text-[9px] text-slate-400 font-bold uppercase italic">No units mapped</p>;
 
-                        const deptList = Array.from(uniqueDepts.values());
-                        if (deptList.length === 0) return <p className="text-[9px] text-slate-400 font-bold uppercase italic">No units mapped</p>;
-
-                        return deptList.map((dept, idx) => (
+                        return departmentList.map((dept, idx) => (
                           <div key={idx} className={`p-2 rounded-lg border flex items-center justify-between group transition-all ${dept.isPrimary ? "bg-indigo-50/50 border-indigo-100 ring-1 ring-indigo-500/10" : "bg-white border-slate-200"}`}>
                             <div className="flex items-center gap-2 min-w-0">
                               <Building className={`w-3 h-3 flex-shrink-0 ${dept.isPrimary ? "text-indigo-500" : "text-slate-400"}`} />
-                              <span className={`text-[10px] font-bold truncate ${dept.isPrimary ? "text-indigo-900" : "text-slate-700"}`}>
+                              <span className={`text-[10px] font-bold break-words whitespace-normal ${dept.isPrimary ? "text-indigo-900" : "text-slate-700"}`}>
                                 {dept.name}
                               </span>
                             </div>

@@ -23,7 +23,6 @@ import {
   Lock as LockIcon,
   Phone,
   ArrowRight,
-  CheckCircle,
   AlertCircle,
   MessageCircle,
 } from "lucide-react";
@@ -98,12 +97,9 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen w-full flex flex-col lg:flex-row overflow-hidden bg-slate-50">
-      {/* ── LEFT PANEL — Branding ── */}
       <div className="hidden lg:flex lg:w-1/2 flex-col relative bg-[#0b1120] overflow-hidden">
-        {/* Radial gradient overlays */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,rgba(2,175,241,0.25)_0%,transparent_55%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_70%_75%,rgba(14,165,233,0.18)_0%,transparent_55%)]" />
-        {/* Grid / dot pattern */}
         <div
           className="absolute inset-0 opacity-[0.04]"
           style={{
@@ -114,12 +110,20 @@ export default function LoginPage() {
         />
 
         <div className="relative z-10 flex flex-col h-full p-12 xl:p-20">
-          {/* Logo */}
           <div className="flex items-center gap-4 group">
             <div className="w-14 h-14 bg-gradient-to-br from-sky-500 to-cyan-500 rounded-2xl flex items-center justify-center shadow-2xl shadow-sky-500/30 transition-all group-hover:scale-110 duration-500 group-hover:rotate-3">
-              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              <svg
+                className="w-8 h-8 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                />
               </svg>
             </div>
             <div>
@@ -132,7 +136,6 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Hero Copy */}
           <div className="mt-auto mb-12">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-sky-500/10 border border-sky-500/20 mb-8 backdrop-blur-sm">
               <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
@@ -152,7 +155,6 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {/* Feature Cards - Interactive Grid */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-12">
             {[
               {
@@ -163,7 +165,8 @@ export default function LoginPage() {
               },
               {
                 icon: <TrendingUp className="w-4 h-4" />,
-                color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+                color:
+                  "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
                 title: "Insight Analytics",
                 sub: "Real-time monitoring",
               },
@@ -172,36 +175,42 @@ export default function LoginPage() {
                 key={i}
                 className="flex items-center gap-4 p-5 rounded-2xl bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.08] transition-all duration-300 backdrop-blur-sm group cursor-pointer hover:border-white/10"
               >
-                <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${item.color} group-hover:scale-110 transition-transform`}>
+                <div
+                  className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${item.color} group-hover:scale-110 transition-transform`}
+                >
                   {item.icon}
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-white uppercase tracking-tight">{item.title}</p>
-                  <p className="text-[11px] text-slate-500 font-medium mt-1 uppercase tracking-tighter">{item.sub}</p>
+                  <p className="text-xs font-bold text-white uppercase tracking-tight">
+                    {item.title}
+                  </p>
+                  <p className="text-[11px] text-slate-500 font-medium mt-1 uppercase tracking-tighter">
+                    {item.sub}
+                  </p>
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Footer */}
           <div className="pt-8 border-t border-white/[0.06] flex items-center justify-between text-[10px] font-black text-slate-600 uppercase tracking-[0.2em]">
-            <span>Build Version 1.2.0</span>
+              <span>Build Version 1.2.0</span>
             <div className="flex items-center gap-4">
-              <span className="flex items-center gap-1.5"><LockIcon className="w-3 h-3" /> Encrypted</span>
-              <span className="flex items-center gap-1.5"><ShieldCheckIcon className="w-3 h-3" /> Certified</span>
+              <span className="flex items-center gap-1.5">
+                <LockIcon className="w-3 h-3" /> Encrypted
+              </span>
+              <span className="flex items-center gap-1.5">
+                <ShieldCheckIcon className="w-3 h-3" /> Certified
+              </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── RIGHT PANEL — Login Form ── */}
       <div className="flex-1 flex flex-col justify-center items-center p-6 sm:p-12 relative z-10 overflow-y-auto min-h-screen">
-        {/* Subtle background flourishes */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-sky-100/30 blur-[120px] rounded-full pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-sky-100/30 blur-[100px] rounded-full pointer-events-none" />
-        
+
         <div className="w-full max-w-[460px] animate-in fade-in slide-in-from-bottom-4 duration-700">
-          {/* Mobile Heading */}
           <div className="lg:hidden flex flex-col items-center gap-4 mb-10 text-center">
             <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-sky-500 to-cyan-500 flex items-center justify-center shadow-[0_14px_30px_-10px_rgba(14,165,233,0.65)] ring-1 ring-sky-300/60">
               <MessageCircle className="h-8 w-8 text-white" strokeWidth={2.1} />
@@ -226,16 +235,15 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {/* Login Card */}
           <div className="relative group">
-            {/* Soft shadow glow */}
             <div className="absolute -inset-1 bg-gradient-to-r from-sky-500 to-cyan-500 rounded-[32px] blur-xl opacity-20 group-hover:opacity-30 transition-all duration-1000" />
-            
+
             <div className="relative bg-white border border-slate-200 rounded-[32px] shadow-[0_32px_80px_-16px_rgba(0,0,0,0.1)] overflow-hidden">
-              {/* Card Title Tab */}
               <div className="absolute top-0 left-0 bg-slate-900 px-6 py-2 rounded-br-2xl flex items-center gap-2">
                 <div className="w-1.5 h-1.5 bg-sky-500 rounded-full animate-pulse" />
-                <span className="text-[9px] font-black text-white uppercase tracking-widest whitespace-nowrap">Secure Gateway</span>
+                <span className="text-[9px] font-black text-white uppercase tracking-widest whitespace-nowrap">
+                  Secure Gateway
+                </span>
               </div>
 
               <form onSubmit={handleSubmit} className="p-10 pt-16 space-y-7">
@@ -246,13 +254,17 @@ export default function LoginPage() {
                   </div>
                 )}
 
-                {/* Phone Number Field */}
                 <div className="space-y-3">
                   <div className="flex justify-between items-end px-1">
-                    <Label htmlFor="phone" className="text-slate-900 font-black text-[10px] uppercase tracking-widest leading-none">
+                    <Label
+                      htmlFor="phone"
+                      className="text-slate-900 font-black text-[10px] uppercase tracking-widest leading-none"
+                    >
                       Phone Number
                     </Label>
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Required</span>
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
+                      Required
+                    </span>
                   </div>
                   <div className="relative group/input">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -265,7 +277,9 @@ export default function LoginPage() {
                       type="tel"
                       placeholder="Enter mobile number"
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 12))}
+                      onChange={(e) =>
+                        setPhone(e.target.value.replace(/\D/g, "").slice(0, 12))
+                      }
                       maxLength={12}
                       required
                       className="pl-16 h-14 border-slate-200 focus:border-sky-600 focus:ring-0 bg-slate-50/50 rounded-2xl text-slate-900 placeholder:text-slate-400 font-black text-sm tracking-widest transition-all"
@@ -273,13 +287,18 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                {/* Password Field */}
                 <div className="space-y-3">
                   <div className="flex justify-between items-end px-1">
-                    <Label htmlFor="password" className="text-slate-900 font-black text-[10px] uppercase tracking-widest leading-none">
+                    <Label
+                      htmlFor="password"
+                      className="text-slate-900 font-black text-[10px] uppercase tracking-widest leading-none"
+                    >
                       Password Key
                     </Label>
-                    <Link href="/auth/forgot-password" className="text-[9px] font-black text-sky-600 hover:text-sky-700 uppercase tracking-widest transition-colors">
+                    <Link
+                      href="/auth/forgot-password"
+                      className="text-[9px] font-black text-sky-600 hover:text-sky-700 uppercase tracking-widest transition-colors"
+                    >
                       Forget Password?
                     </Link>
                   </div>
@@ -292,7 +311,7 @@ export default function LoginPage() {
                     <Input
                       id="password"
                       type={showPassword ? "text" : "password"}
-                      placeholder="••••••••"
+                      placeholder="********"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       minLength={6}
@@ -305,7 +324,11 @@ export default function LoginPage() {
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-sky-600 transition-colors"
                     >
-                      {showPassword ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+                      {showPassword ? (
+                        <EyeOffIcon className="h-5 w-5" />
+                      ) : (
+                        <EyeIcon className="h-5 w-5" />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -330,16 +353,19 @@ export default function LoginPage() {
                   </Button>
                 </div>
 
-                {/* Trust Badges */}
                 <div className="flex items-center justify-center gap-6 pt-4 grayscale opacity-40 hover:grayscale-0 hover:opacity-100 transition-all duration-500">
-                   <div className="flex flex-col items-center gap-1">
-                      <ShieldCheckIcon className="w-5 h-5 text-sky-600" />
-                      <span className="text-[8px] font-black uppercase tracking-tighter">Verified</span>
-                   </div>
-                   <div className="flex flex-col items-center gap-1">
-                      <ZapIcon className="w-5 h-5 text-sky-500" />
-                      <span className="text-[8px] font-black uppercase tracking-tighter">Fast v1.2</span>
-                   </div>
+                  <div className="flex flex-col items-center gap-1">
+                    <ShieldCheckIcon className="w-5 h-5 text-sky-600" />
+                    <span className="text-[8px] font-black uppercase tracking-tighter">
+                      Verified
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-center gap-1">
+                    <ZapIcon className="w-5 h-5 text-sky-500" />
+                    <span className="text-[8px] font-black uppercase tracking-tighter">
+                      Fast v1.2
+                    </span>
+                  </div>
                 </div>
               </form>
             </div>

@@ -4,8 +4,8 @@ const ABUSIVE_TERMS = [/\b(abuse|hate|kill|terror|bomb)\b/i];
 export const sanitizeText = (text: string = '', max = 100): string =>
   String(text || '')
     .replace(URL_REGEX, '')
-    // Allow alphanumeric characters from all languages, plus common punctuation
-    .replace(/[^\p{L}\p{N} .,?!\-()]/gu, '')
+    // Allow alphanumeric characters from all languages, plus common punctuation (including colons for time)
+    .replace(/[^\p{L}\p{N} .,?!:\-()]/gu, '')
     .substring(0, max)
     .trim();
 

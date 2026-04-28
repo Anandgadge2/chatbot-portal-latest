@@ -1,0 +1,193 @@
+"use client";
+
+import type { ReactNode } from "react";
+import {
+  AlertCircle,
+  ArrowLeft,
+  CheckCircle2,
+  Clock,
+  FileText,
+  XCircle,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { LoadingDots } from "@/components/dashboard/DashboardPrimitives";
+
+type OverviewGrievanceKpisProps = {
+  canReadGrievance: boolean;
+  loading: boolean;
+  pendingCount: number;
+  overdueCount: number;
+  revertedCount: number;
+  resolvedCount: number;
+  rejectedCount: number;
+  totalCount: number;
+  last7DaysCount: number;
+  onPendingClick: () => void;
+  onOverdueClick: () => void;
+  onRevertedClick: () => void;
+  onResolvedClick: () => void;
+  onRejectedClick: () => void;
+  onTotalClick: () => void;
+};
+
+type KpiCardProps = {
+  title: string;
+  value: number;
+  colorClass: string;
+  borderClass: string;
+  footer: ReactNode;
+  icon: ReactNode;
+  onClick: () => void;
+  loading: boolean;
+};
+
+function KpiCard({
+  title,
+  value,
+  colorClass,
+  borderClass,
+  footer,
+  icon,
+  onClick,
+  loading,
+}: KpiCardProps) {
+  return (
+    <Card
+      onClick={onClick}
+      className="min-h-[6.5rem] sm:min-h-[8.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
+    >
+      <CardHeader
+        className={`flex flex-row items-center justify-between space-y-0 border-t-[3px] bg-slate-50/50 px-3 py-2.5 ${borderClass}`}
+      >
+        <CardTitle className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-slate-400">
+          {title}
+        </CardTitle>
+        {icon}
+      </CardHeader>
+      <CardContent className="px-3 py-2.5">
+        <div className={`text-xl sm:text-2xl font-black tabular-nums ${colorClass}`}>
+          {loading ? <LoadingDots /> : value}
+        </div>
+        {footer}
+      </CardContent>
+    </Card>
+  );
+}
+
+export function OverviewGrievanceKpis({
+  canReadGrievance,
+  loading,
+  pendingCount,
+  overdueCount,
+  revertedCount,
+  resolvedCount,
+  rejectedCount,
+  totalCount,
+  last7DaysCount,
+  onPendingClick,
+  onOverdueClick,
+  onRevertedClick,
+  onResolvedClick,
+  onRejectedClick,
+  onTotalClick,
+}: OverviewGrievanceKpisProps) {
+  if (!canReadGrievance) {
+    return null;
+  }
+
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-2 sm:gap-4">
+      <KpiCard
+        title="Pending"
+        value={pendingCount}
+        colorClass="text-blue-600"
+        borderClass="border-blue-500"
+        icon={<AlertCircle className="h-3 w-3 text-blue-500" />}
+        onClick={onPendingClick}
+        loading={loading}
+        footer={
+          <p className="mt-1 text-[8px] font-bold uppercase text-slate-400">
+            Waiting
+          </p>
+        }
+      />
+
+      <KpiCard
+        title="Overdue"
+        value={overdueCount}
+        colorClass="text-amber-600"
+        borderClass="border-amber-500"
+        icon={<Clock className="h-3 w-3 text-amber-500" />}
+        onClick={onOverdueClick}
+        loading={loading}
+        footer={
+          <p className="mt-1 text-[8px] font-bold uppercase text-slate-400">
+            Delayed
+          </p>
+        }
+      />
+
+      <KpiCard
+        title="Reverted"
+        value={revertedCount}
+        colorClass="text-sky-600"
+        borderClass="border-sky-500"
+        icon={<ArrowLeft className="h-3 w-3 text-sky-500" />}
+        onClick={onRevertedClick}
+        loading={loading}
+        footer={
+          <p className="mt-1 text-[8px] font-bold uppercase text-slate-400">
+            Reassigned
+          </p>
+        }
+      />
+
+      <KpiCard
+        title="Resolved"
+        value={resolvedCount}
+        colorClass="text-emerald-600"
+        borderClass="border-emerald-500"
+        icon={<CheckCircle2 className="h-3 w-3 text-emerald-500" />}
+        onClick={onResolvedClick}
+        loading={loading}
+        footer={
+          <p className="mt-1 text-[8px] font-bold uppercase text-slate-400">
+            Completed
+          </p>
+        }
+      />
+
+      <KpiCard
+        title="Rejected"
+        value={rejectedCount}
+        colorClass="text-rose-600"
+        borderClass="border-rose-500"
+        icon={<XCircle className="h-3 w-3 text-rose-500" />}
+        onClick={onRejectedClick}
+        loading={loading}
+        footer={
+          <p className="mt-1 text-[8px] font-bold uppercase text-slate-400">
+            Declined
+          </p>
+        }
+      />
+
+      <KpiCard
+        title="Total Grievances"
+        value={totalCount}
+        colorClass="text-slate-800"
+        borderClass="border-indigo-500"
+        icon={<FileText className="h-3 w-3 text-indigo-500" />}
+        onClick={onTotalClick}
+        loading={loading}
+        footer={
+          <div className="mt-1 flex items-center gap-1">
+            <span className="text-[8px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-full">
+              {last7DaysCount} New
+            </span>
+          </div>
+        }
+      />
+    </div>
+  );
+}
