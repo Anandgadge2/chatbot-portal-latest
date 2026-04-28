@@ -180,6 +180,14 @@ export default function GrievancesPage() {
     return { createdDate, daysPassed, assigneeName, departmentName, officeName };
   };
 
+  const getDeptCategoryLabel = (grievance: Grievance) => {
+    if (isJharsugudaCompany && grievance.status === "REVERTED" && !grievance.category) {
+      return "Collector & DM";
+    }
+
+    return grievance.category || "General";
+  };
+
   const openReminderDialog = (grievance: Grievance) => {
     setGrievanceForReminder(grievance);
     setReminderRemarks("");
@@ -549,7 +557,7 @@ export default function GrievancesPage() {
                             : "General Department"}
                         </p>
                         <span className="inline-flex items-center mt-2 px-2 py-0.5 rounded text-[11px] font-medium bg-blue-50 text-blue-600 border border-blue-100 w-fit">
-                          {grievance.category || "General"}
+                          {getDeptCategoryLabel(grievance)}
                         </span>
                       </div>
 
@@ -703,7 +711,7 @@ export default function GrievancesPage() {
                               : "General Department"}
                           </span>
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-blue-50 text-blue-600 border border-blue-100 w-fit">
-                            {grievance.category || "General"}
+                            {getDeptCategoryLabel(grievance)}
                           </span>
                         </div>
                       </td>
