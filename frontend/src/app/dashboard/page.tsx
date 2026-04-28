@@ -461,6 +461,7 @@ function DashboardContent() {
   const [inAppNotifications, setInAppNotifications] = useState<InAppNotification[]>([]);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [notificationsSupported, setNotificationsSupported] = useState(true);
   const notificationDropdownRef = useRef<HTMLDivElement | null>(null);
 
   // Profile Form States
@@ -1517,11 +1518,12 @@ function DashboardContent() {
   }, []);
 
   useEffect(() => {
+    if (!notificationsSupported) return;
     fetchNotifications();
     const timer = setInterval(fetchNotifications, 30000);
     return () => clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [notificationsSupported]);
 
   useEffect(() => {
     const onClickOutside = (event: MouseEvent) => {
@@ -2218,6 +2220,20 @@ function DashboardContent() {
         notificationAPI.getAll({ page: 1, limit: 12 }),
         notificationAPI.getUnreadCount(),
       ]);
+      if (listRes?.meta && !listRes.meta.supported) {
+        setNotificationsSupported(false);
+        setInAppNotifications([]);
+        setUnreadNotificationCount(0);
+        setIsNotificationOpen(false);
+        return;
+      }
+      if (countRes?.meta && !countRes.meta.supported) {
+        setNotificationsSupported(false);
+        setInAppNotifications([]);
+        setUnreadNotificationCount(0);
+        setIsNotificationOpen(false);
+        return;
+      }
       if (listRes?.success) {
         setInAppNotifications(listRes.data.notifications || []);
       }
@@ -3324,6 +3340,10 @@ function DashboardContent() {
                 <div className="relative" ref={notificationDropdownRef}>
                   <Button
                     onClick={() => {
+                      if (!notificationsSupported) {
+                        toast.error("Notification API is not available in this deployment");
+                        return;
+                      }
                       setIsNotificationOpen((prev) => !prev);
                       if (!isNotificationOpen) {
                         fetchNotifications();
