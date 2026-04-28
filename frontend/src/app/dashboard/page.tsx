@@ -3228,6 +3228,17 @@ function DashboardContent() {
     setIsMobileTabMenuOpen(false);
   };
 
+  const handleProfileToggle = () => {
+    if (activeTab === "profile") {
+      const fallbackTab = allowedTabs.has(previousTab) && previousTab !== "profile"
+        ? previousTab
+        : "overview";
+      handleTabChange(fallbackTab);
+      return;
+    }
+    handleTabChange("profile");
+  };
+
   return (
     <div key="final-dashboard-root-v4" className="min-h-screen bg-white">
       {/* Premium Admin Header */}
@@ -3340,10 +3351,7 @@ function DashboardContent() {
                 <div className="relative" ref={notificationDropdownRef}>
                   <Button
                     onClick={() => {
-                      if (!notificationsSupported) {
-                        toast.error("Notification API is not available in this deployment");
-                        return;
-                      }
+                      if (!notificationsSupported) return;
                       setIsNotificationOpen((prev) => !prev);
                       if (!isNotificationOpen) {
                         fetchNotifications();
@@ -3396,7 +3404,7 @@ function DashboardContent() {
                 </div>
                 {/* Profile Button - Optimized for Visibility */}
                 <button
-                  onClick={() => handleTabChange("profile")}
+                  onClick={handleProfileToggle}
                   className="flex h-9 w-9 sm:h-10 sm:w-10 bg-white/20 rounded-xl items-center justify-center border border-white/50 shadow-[0_0_15px_rgba(255,255,255,0.1)] group hover:bg-white/30 transition-all duration-300 active:scale-95"
                   title="Profile"
                 >
@@ -3630,7 +3638,7 @@ function DashboardContent() {
                       <div className="flex items-center gap-4">
                         <button
                           onClick={() => {
-                            handleTabChange("profile");
+                            handleProfileToggle();
                             setIsMobileTabMenuOpen(false);
                           }}
                           className="h-12 w-12 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-2xl flex items-center justify-center text-white text-lg font-bold border-2 border-slate-800 shadow-xl hover:scale-105 transition-transform"
