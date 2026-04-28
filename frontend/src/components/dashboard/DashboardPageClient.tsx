@@ -1342,7 +1342,7 @@ function DashboardPageClientContent() {
         fetchGrievances(grievancePage, true);
         fetchDashboardData(true);
       } else {
-        toast.error("Failed to delete grievances");
+        toast.error(response.message || "Failed to delete grievances");
       }
     } catch (error: any) {
       toast.error(
@@ -1383,7 +1383,7 @@ function DashboardPageClientContent() {
         fetchGrievances(grievancePage, true);
         fetchDashboardData(true);
       } else {
-        toast.error("Failed to delete grievance");
+        toast.error(response.message || "Failed to delete grievance");
       }
     } catch (error: any) {
       toast.error(
