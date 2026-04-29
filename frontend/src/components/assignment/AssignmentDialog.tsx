@@ -14,7 +14,7 @@ import { getUserRoleLabel } from '@/lib/utils/userUtils';
 interface AssignmentDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onAssign: (userId: string, departmentId?: string, note?: string) => Promise<void>;
+  onAssign: (userId: string, departmentId?: string, note?: string, additionalDepartmentIds?: string[]) => Promise<void>;
   itemType: 'grievance' | 'appointment';
   itemId: string; 
   companyId: string;
@@ -70,6 +70,7 @@ export default function AssignmentDialog({
   const [selectedSubDepartment, setSelectedSubDepartment] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [assignmentNote, setAssignmentNote] = useState('');
+  const [additionalDepartmentIds, setAdditionalDepartmentIds] = useState<string[]>([]);
   const [loadingDepts, setLoadingDepts] = useState(false);
   const [assigningUserId, setAssigningUserId] = useState<string | null>(null);
   const [selectedUserProfile, setSelectedUserProfile] = useState<User | null>(null);
@@ -210,6 +211,7 @@ export default function AssignmentDialog({
       setSelectedDepartment('');
       setSelectedSubDepartment('');
       setAssignmentNote('');
+      setAdditionalDepartmentIds([]);
       setAssigningUserId(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -448,7 +450,12 @@ export default function AssignmentDialog({
           : assignedUser.departmentId
         : undefined;
 
-      await onAssign(userId, userDeptId, assignmentNote.trim() || undefined);
+      await onAssign(
+        userId,
+        userDeptId,
+        assignmentNote.trim() || undefined,
+        itemType === 'grievance' && isTopLevelAdmin ? additionalDepartmentIds : undefined
+      );
 
       if (userDeptId && currentDepartmentId && userDeptId !== currentDepartmentId) {
         const newDept = allDepartments.find((department) => department._id === userDeptId);
@@ -654,6 +661,44 @@ export default function AssignmentDialog({
                   <p className="mt-1 text-[10px] font-bold text-rose-500 uppercase tracking-tight px-1">
                     Character limit exceeded by {assignmentNote.length - 100} characters
                   </p>
+                )}
+              </div>
+            )}
+
+            {itemType === 'grievance' && isTopLevelAdmin && (
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1">
+                  Additional Departments (Company Admin only)
+                </label>
+                <SearchableSelect
+                  options={visibleTopDepts
+                    .filter((department) => department._id !== selectedDepartment)
+                    .map((department) => ({ value: department._id, label: department.name }))}
+                  value=""
+                  onValueChange={(value) => {
+                    if (!value || additionalDepartmentIds.includes(value)) return;
+                    setAdditionalDepartmentIds((previous) => [...previous, value]);
+                  }}
+                  placeholder="Add extra departments to notify/assign"
+                  disabled={!selectedDepartment}
+                />
+                {additionalDepartmentIds.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {additionalDepartmentIds.map((departmentId) => {
+                      const label = visibleTopDepts.find((dept) => dept._id === departmentId)?.name || departmentId;
+                      return (
+                        <button
+                          key={departmentId}
+                          type="button"
+                          onClick={() => setAdditionalDepartmentIds((previous) => previous.filter((id) => id !== departmentId))}
+                          className="inline-flex items-center gap-1 rounded-full bg-indigo-100 text-indigo-700 px-2 py-0.5 text-[10px] font-bold border border-indigo-200"
+                        >
+                          {label}
+                          <X className="w-3 h-3" />
+                        </button>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
             )}

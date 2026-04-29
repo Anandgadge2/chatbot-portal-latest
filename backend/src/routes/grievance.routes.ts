@@ -920,7 +920,7 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_GRIEVANCE, 
 // @access  Private
 router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async (req: Request, res: Response) => {
   try {
-    const { assignedTo, departmentId, note, description } = req.body;
+    const { assignedTo, departmentId, note, description, additionalDepartmentIds } = req.body;
 
     if (!assignedTo) {
       res.status(400).json({
@@ -977,6 +977,36 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
     }
 
     const transferNote = String(note || description || '').trim();
+    const normalizedAdditionalDepartmentIds = Array.isArray(additionalDepartmentIds)
+      ? Array.from(new Set(additionalDepartmentIds.map((id: any) => String(id)).filter(Boolean)))
+      : [];
+
+    if (normalizedAdditionalDepartmentIds.length > 0 && !(isCompanyAdmin || currentUser.isSuperAdmin)) {
+      res.status(403).json({
+        success: false,
+        message: 'Only company admin can assign grievance to multiple departments'
+      });
+      return;
+    }
+
+    if (normalizedAdditionalDepartmentIds.length > 0) {
+      const additionalDepartments = await Department.find({
+        _id: { $in: normalizedAdditionalDepartmentIds },
+        ...(currentUser.isSuperAdmin ? {} : { companyId: currentUser.companyId })
+      }).select('_id');
+
+      if (additionalDepartments.length !== normalizedAdditionalDepartmentIds.length) {
+        res.status(400).json({
+          success: false,
+          message: 'One or more additional departments are invalid for this company'
+        });
+        return;
+      }
+
+      grievance.additionalDepartmentIds = additionalDepartments.map((department) => department._id) as any;
+    } else {
+      grievance.additionalDepartmentIds = [];
+    }
     const oldAssignedTo = grievance.assignedTo;
     const oldStatus = grievance.status;
     const oldDepartmentId = grievance.departmentId;
@@ -1081,6 +1111,19 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
     });
 
     await grievance.save();
+
+    if (normalizedAdditionalDepartmentIds.length > 0) {
+      grievance.timeline.push({
+        action: 'MULTI_DEPARTMENT_ASSIGNMENT',
+        details: {
+          grievanceId: grievance.grievanceId,
+          departmentIds: normalizedAdditionalDepartmentIds
+        },
+        performedBy: req.user!._id,
+        timestamp: new Date()
+      });
+      await grievance.save();
+    }
 
     const isReassignment = Boolean(
       oldAssignedTo ||
