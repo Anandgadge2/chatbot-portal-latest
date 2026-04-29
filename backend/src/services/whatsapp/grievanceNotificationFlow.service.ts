@@ -263,7 +263,7 @@ export async function sendGrievanceToAdmin(
   await sendTemplateAndAttachments({
     recipientPhone: adminPhone,
     recipientName: asText(grievance?.adminName) || 'Administrator',
-    templateName: 'grievance_received_admin_v1',
+    templateName: 'grievance_received_admin_v2',
     bodyParameters: templateBodyParameters,
     attachments,
     company,

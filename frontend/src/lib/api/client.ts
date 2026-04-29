@@ -1,15 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
-const resolveApiUrl = (): string => {
-  const fromEnv = (process.env.NEXT_PUBLIC_API_URL || '').trim();
-  if (fromEnv) return fromEnv.replace(/\/+$/, '');
-
-  if (typeof window !== 'undefined') {
-    return `${window.location.origin}/api`;
-  }
-
-  return 'http://localhost:5000/api';
-};
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const API_TIMEOUT_MS = 15000;
 
 class APIClient {
   private client: AxiosInstance;
@@ -18,7 +10,8 @@ class APIClient {
 
   constructor() {
     this.client = axios.create({
-      baseURL: resolveApiUrl(),
+      baseURL: API_URL,
+      timeout: API_TIMEOUT_MS,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -69,11 +62,15 @@ class APIClient {
         const status = error.response?.status || 'ERR';
         const method = error.config?.method?.toUpperCase() || '???';
         const url = error.config?.url || '???';
+        const isTimeout = error.code === 'ECONNABORTED';
+        const errorMessage = isTimeout
+          ? `Request timed out after ${API_TIMEOUT_MS / 1000}s`
+          : (error.response?.data?.message || error.message);
 
         this.emitLog({
           type: 'error',
           source: 'API_RES',
-          message: `${method} ${url} ${status} - ${error.response?.data?.message || error.message}`,
+          message: `${method} ${url} ${status} - ${errorMessage}`,
           timestamp: new Date().toISOString()
         });
 

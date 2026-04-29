@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { FlowNode, FlowEdge } from "@/types/flowTypes";
 import { Button } from "@/components/ui/button";
+import { departmentAPI, Department } from "@/lib/api/department";
 import {
   X,
   Send,
@@ -21,6 +22,7 @@ interface FlowSimulatorProps {
   nodes: FlowNode[];
   edges: FlowEdge[];
   flowName: string;
+  companyId?: string;
   onClose: () => void;
 }
 
@@ -60,6 +62,7 @@ export default function FlowSimulator({
   nodes,
   edges,
   flowName,
+  companyId,
   onClose,
 }: FlowSimulatorProps) {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -72,6 +75,7 @@ export default function FlowSimulator({
     buttonText: string;
     sections: any[];
   } | null>(null);
+  const [companyDepartments, setCompanyDepartments] = useState<Department[]>([]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -90,6 +94,116 @@ export default function FlowSimulator({
     }
     return nodeData[field] || "";
   };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadCompanyDepartments = async () => {
+      if (!companyId) {
+        setCompanyDepartments([]);
+        return;
+      }
+
+      try {
+        const response = await departmentAPI.getAll({
+          companyId,
+          listAll: true,
+          status: "active",
+        });
+
+        if (!cancelled) {
+          setCompanyDepartments(response?.data?.departments || []);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setCompanyDepartments([]);
+        }
+      }
+    };
+
+    loadCompanyDepartments();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [companyId]);
+
+  const visibleDepartments = useMemo(() => {
+    const activeDepartments = (companyDepartments || []).filter(
+      (department) => department.isActive !== false,
+    );
+    const topLevelDepartments = activeDepartments.filter(
+      (department) => !department.parentDepartmentId,
+    );
+
+    const departmentsToShow =
+      topLevelDepartments.length > 0 ? topLevelDepartments : activeDepartments;
+
+    return [...departmentsToShow].sort((a, b) => {
+      const orderA = typeof a.displayOrder === "number" ? a.displayOrder : 999;
+      const orderB = typeof b.displayOrder === "number" ? b.displayOrder : 999;
+      if (orderA !== orderB) return orderA - orderB;
+      return (a.name || "").localeCompare(b.name || "");
+    });
+  }, [companyDepartments]);
+
+  const getLocalizedDepartmentName = useCallback(
+    (department: Department) => {
+      if (language === "hi" && department.nameHi?.trim()) return department.nameHi.trim();
+      if (language === "or" && department.nameOr?.trim()) return department.nameOr.trim();
+      if (language === "mr" && department.nameMr?.trim()) return department.nameMr.trim();
+      return department.name;
+    },
+    [language],
+  );
+
+  const getLocalizedDepartmentDescription = useCallback(
+    (department: Department) => {
+      if (language === "hi" && department.descriptionHi?.trim()) {
+        return department.descriptionHi.trim();
+      }
+      if (language === "or" && department.descriptionOr?.trim()) {
+        return department.descriptionOr.trim();
+      }
+      if (language === "mr" && department.descriptionMr?.trim()) {
+        return department.descriptionMr.trim();
+      }
+      return department.description?.trim() || department.departmentId || "";
+    },
+    [language],
+  );
+
+  const buildDynamicDepartmentSections = useCallback(() => {
+    if (visibleDepartments.length === 0) {
+      return [
+        {
+          title: "Departments",
+          rows: [
+            {
+              id: "no-departments",
+              title: "No active departments",
+              description: "No live department data is available for this company.",
+            },
+          ],
+        },
+      ];
+    }
+
+    return [
+      {
+        title: "Departments",
+        rows: visibleDepartments.map((department) => ({
+          id: department._id,
+          title: getLocalizedDepartmentName(department),
+          description: getLocalizedDepartmentDescription(department),
+        })),
+      },
+    ];
+  }, [
+    getLocalizedDepartmentDescription,
+    getLocalizedDepartmentName,
+    visibleDepartments,
+  ]);
 
   const addMessage = useCallback(
     (
@@ -190,8 +304,14 @@ export default function FlowSimulator({
           getLocalText(listData, "messageText") ||
           "Please select from the list:";
         const buttonText = getLocalText(listData, "buttonText") || "View Menu";
+        const usesDynamicDepartments =
+          listData.isDynamic === true ||
+          listData.dynamicSource === "departments" ||
+          listData.listSource === "departments";
 
-        let sections = (node.data as any).sections || [];
+        const sections = usesDynamicDepartments
+          ? buildDynamicDepartmentSections()
+          : (node.data as any).sections || [];
 
         addMessage(
           "bot",

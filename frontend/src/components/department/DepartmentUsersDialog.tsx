@@ -144,7 +144,7 @@ export default function DepartmentUsersDialog({
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm sm:p-4 p-2">
       <div className="w-full max-w-4xl h-full sm:h-[90vh] overflow-hidden sm:rounded-3xl rounded-2xl shadow-2xl bg-white animate-in fade-in zoom-in duration-200 flex flex-col border border-slate-200 overflow-y-auto sm:overflow-hidden">
         {/* Header */}
-        <div className="bg-slate-900 px-6 py-5 relative overflow-hidden flex-shrink-0">
+        <div className="relative overflow-hidden bg-slate-900 px-4 py-3 sm:px-6 sm:py-4 flex-shrink-0">
           <div className="absolute inset-0 bg-white/5 opacity-5 pointer-events-none">
             <div
               className="absolute inset-0"
@@ -155,19 +155,21 @@ export default function DepartmentUsersDialog({
             ></div>
           </div>
 
-          <div className="relative flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-emerald-500/30 rounded-xl sm:rounded-2xl flex items-center justify-center border border-emerald-400/40 shadow-lg shrink-0">
-                <Users className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+          <div className="relative flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 bg-emerald-500/30 rounded-xl flex items-center justify-center border border-emerald-400/40 shadow-lg shrink-0">
+                <Users className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-white" />
               </div>
               <div className="min-w-0">
-                <h2 className="text-lg sm:text-xl font-black text-white tracking-tight truncate">
+                <h2 className="text-base sm:text-lg font-black text-white tracking-tight">
                   Department People
                 </h2>
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
-                  <span className="text-[9px] sm:text-[10px] font-bold text-slate-200/80 uppercase tracking-widest flex items-center gap-1.5 truncate max-w-[120px] sm:max-w-none">
+                  <span className="text-[9px] sm:text-[10px] font-bold text-slate-200/80 uppercase tracking-widest flex items-center gap-1.5 max-w-full">
                     <Building className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-emerald-400" />
-                   {departmentName || "General"}
+                    <span className="whitespace-normal break-words">
+                      {departmentName || "General"}
+                    </span>
                   </span>
                   <span className="text-slate-600 font-bold hidden sm:inline">•</span>
                   <span className="px-1.5 py-0.5 bg-emerald-500/10 rounded-full text-[8px] sm:text-[10px] font-black text-emerald-400 border border-emerald-500/20 uppercase tracking-widest whitespace-nowrap">
@@ -180,7 +182,7 @@ export default function DepartmentUsersDialog({
               <div className="flex items-center bg-white/10 rounded-xl p-0.5 sm:p-1 border border-white/10">
                 <button
                   onClick={() => setShowAddExisting(!showAddExisting)}
-                  className={`px-2 sm:px-3 py-1.5 rounded-lg text-[9px] sm:text-[10px] font-black uppercase tracking-tight transition-all flex items-center gap-1 sm:gap-1.5 ${
+                  className={`px-2 sm:px-3 py-1.25 rounded-lg text-[9px] sm:text-[10px] font-black uppercase tracking-tight transition-all flex items-center gap-1 sm:gap-1.5 ${
                     showAddExisting
                       ? "bg-emerald-500 text-white shadow-lg"
                       : "text-slate-300 hover:text-white hover:bg-white/5"
@@ -194,7 +196,7 @@ export default function DepartmentUsersDialog({
                 <div className="w-px h-3 bg-white/10 mx-0.5" />
                 <button
                   onClick={onCreateNewUser}
-                  className="px-2 sm:px-3 py-1.5 rounded-lg text-[9px] sm:text-[10px] font-black uppercase tracking-tight text-slate-300 hover:text-emerald-400 hover:bg-white/5 transition-all flex items-center gap-1 sm:gap-1.5"
+                  className="px-2 sm:px-3 py-1.25 rounded-lg text-[9px] sm:text-[10px] font-black uppercase tracking-tight text-slate-300 hover:text-emerald-400 hover:bg-white/5 transition-all flex items-center gap-1 sm:gap-1.5"
                   title="Create new user"
                 >
                   <Plus className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
@@ -204,7 +206,7 @@ export default function DepartmentUsersDialog({
               </div>
               <button
                 onClick={onClose}
-                className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all border border-white/10 group shrnik-0"
+                className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all border border-white/10 group shrnik-0"
               >
                 <X className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400 group-hover:text-white transition-colors" />
               </button>
@@ -214,7 +216,7 @@ export default function DepartmentUsersDialog({
 
         {/* Add User Dropdown (Conditional) */}
         {showAddExisting && (
-          <div className="px-6 py-4 bg-indigo-50 border-b border-indigo-100 animate-in slide-in-from-top duration-300">
+          <div className="px-5 sm:px-6 py-3 bg-indigo-50 border-b border-indigo-100 animate-in slide-in-from-top duration-300">
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-black text-indigo-900 uppercase tracking-widest">
@@ -274,7 +276,7 @@ export default function DepartmentUsersDialog({
         )}
 
         {/* Search */}
-        <div className="px-4 sm:px-6 py-3 sm:py-4 bg-slate-50 border-b border-slate-200 flex-shrink-0">
+        <div className="px-4 sm:px-6 py-2 sm:py-3 bg-slate-50 border-b border-slate-200 flex-shrink-0">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
@@ -288,7 +290,7 @@ export default function DepartmentUsersDialog({
         </div>
 
         {/* User List */}
-        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5 custom-scrollbar">
           {loading ? (
             <div className="h-48 flex flex-col items-center justify-center gap-4">
               <LoadingSpinner />
@@ -309,21 +311,21 @@ export default function DepartmentUsersDialog({
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {filteredUsers.map((user) => (
                 <div
                   key={user._id}
                   onClick={() => onUserClick(user)}
-                  className="p-4 bg-white border border-slate-200 rounded-2xl hover:border-indigo-200 hover:shadow-md transition-all group cursor-pointer"
+                  className="p-3.5 bg-white border border-slate-200 rounded-2xl hover:border-indigo-200 hover:shadow-md transition-all group cursor-pointer"
                   title="Click to view full profile"
                 >
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center group-hover:bg-indigo-50 transition-colors">
+                    <div className="w-9 h-9 bg-slate-100 rounded-xl flex items-center justify-center group-hover:bg-indigo-50 transition-colors">
                       <UserIcon className="w-5 h-5 text-slate-400 group-hover:text-indigo-500 transition-colors" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
-                        <h4 className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors truncate">
+                        <h4 className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors break-words">
                           {user.firstName} {user.lastName}
                         </h4>
                         {onEditUser && (
@@ -342,7 +344,7 @@ export default function DepartmentUsersDialog({
                       <div className="flex flex-col gap-1 mt-1">
                         <div className="flex items-center gap-1.5 text-xs text-slate-500">
                           <Mail className="w-3 h-3" />
-                          <span className="truncate">{user.email}</span>
+                          <span className="break-all">{user.email || "No email"}</span>
                         </div>
                         {user.phone && (
                           <div className="flex items-center gap-1.5 text-xs text-slate-500">
@@ -350,13 +352,43 @@ export default function DepartmentUsersDialog({
                             <span>{formatTo10Digits(user.phone)}</span>
                           </div>
                         )}
-                        <div className="flex items-center gap-1.5 mt-2">
+                        <div className="mt-2 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                           <span className="px-2 py-0.5 bg-slate-100 rounded text-[9px] font-black text-slate-500 border border-slate-200 uppercase tracking-widest">
                             {user.userId || "NO ID"}
                           </span>
                           <span className="px-2 py-0.5 bg-indigo-50 rounded text-[9px] font-black text-indigo-600 border border-indigo-100 uppercase tracking-widest">
                             {getUserRoleLabel(user)}
                           </span>
+                        </div>
+                        <div className="mt-1 grid grid-cols-1 gap-1.5">
+                          <div className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5">
+                            <div className="text-[8px] font-black uppercase tracking-widest text-slate-400">
+                              Department
+                            </div>
+                            <div className="text-[10px] font-bold leading-snug text-slate-700 break-words">
+                              {typeof user.departmentId === "object"
+                                ? user.departmentId?.name
+                                : user.departmentIds
+                                    ?.map((dept) =>
+                                      typeof dept === "object" ? dept.name : dept,
+                                    )
+                                    .filter(Boolean)
+                                    .join(", ") || "Not mapped"}
+                            </div>
+                          </div>
+                          <div className="rounded-lg border border-amber-100 bg-amber-50 px-2 py-1.5">
+                            <div className="text-[8px] font-black uppercase tracking-widest text-amber-500">
+                              Designations
+                            </div>
+                            <div className="text-[10px] font-bold leading-snug text-slate-700 break-words">
+                              {[
+                                ...(user.designation ? [user.designation] : []),
+                                ...(user.designations || []),
+                              ]
+                                .filter((value, index, list) => value && list.indexOf(value) === index)
+                                .join(", ") || "Not assigned"}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -368,13 +400,13 @@ export default function DepartmentUsersDialog({
         </div>
 
         {/* Footer */}
-        <div className="px-4 sm:px-6 py-3 sm:py-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center gap-3 justify-between flex-shrink-0">
+        <div className="px-4 sm:px-6 py-2.5 sm:py-3 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center gap-3 justify-between flex-shrink-0">
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest order-2 sm:order-1">
                 Showing {filteredUsers.length} of {users.length} People
             </span>
           <button
             onClick={onClose}
-            className="w-full sm:w-auto px-8 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-slate-200 order-1 sm:order-2"
+            className="w-full sm:w-auto px-7 py-2 bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-slate-200 order-1 sm:order-2"
           >
             Close
           </button>

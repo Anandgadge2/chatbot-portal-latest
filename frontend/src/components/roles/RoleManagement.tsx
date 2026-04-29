@@ -381,19 +381,19 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="bg-slate-900 rounded-xl p-5 flex items-center justify-between border border-slate-800 shadow-lg shadow-slate-900/20">
+      <div className="bg-slate-900 rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-slate-800 shadow-lg shadow-slate-900/20">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
+          <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center border border-indigo-500/30 shrink-0">
             <Shield className="w-5 h-5 text-indigo-400" />
           </div>
-          <div>
-            <h2 className="text-white font-bold text-lg">Role Management</h2>
-            <p className="text-slate-400 text-sm">
+          <div className="min-w-0">
+            <h2 className="text-white font-bold text-base sm:text-lg truncate">Role Management</h2>
+            <p className="text-slate-400 text-xs sm:text-sm truncate">
               Manage user roles and permissions
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 self-end sm:self-auto">
           <button
             onClick={() => fetchRoles()}
             className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
@@ -407,9 +407,9 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
               setEditingRole(null);
               setForm(emptyForm);
             }}
-            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ring-1 ring-blue-500/50 shadow-lg shadow-slate-900/40 active:scale-95"
+            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all ring-1 ring-blue-500/50 shadow-lg shadow-slate-900/40 active:scale-95 whitespace-nowrap"
           >
-            <Plus className="w-4 h-4" /> New Role
+            <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> New Role
           </button>
         </div>
       </div>
@@ -428,38 +428,38 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
 
       {/* Bulk Action Bar */}
       {selectedIds.size > 0 && (
-        <div className="px-5 py-3 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center justify-between animate-in slide-in-from-top-2 duration-300 shadow-sm">
+        <div className="px-4 py-3 sm:px-5 sm:py-3 bg-indigo-50 border border-indigo-100 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in slide-in-from-top-2 duration-300 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-xs shadow-md">
+            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-xs shadow-md shrink-0">
               {selectedIds.size}
             </div>
-            <div>
-              <p className="text-xs font-black text-indigo-900 uppercase tracking-tighter">
+            <div className="min-w-0">
+              <p className="text-xs font-black text-indigo-900 uppercase tracking-tighter truncate">
                 Authority Units Selected
               </p>
-              <p className="text-[10px] text-indigo-600 font-bold uppercase tracking-widest">
+              <p className="text-[10px] text-indigo-600 font-bold uppercase tracking-widest truncate">
                 Prepare for mass execution
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
             <button
               onClick={() => setSelectedIds(new Set())}
-              className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 px-4 py-2 transition-colors"
+              className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 px-2 py-2 transition-colors"
             >
-              Cancel Selection
+              Cancel
             </button>
             {showBulkConfirm ? (
               <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-2">
-                <span className="text-[10px] font-black text-red-600 uppercase tracking-widest bg-red-50 px-3 py-2 rounded-lg border border-red-100">
-                  Are you absolutely sure?
+                <span className="text-[9px] sm:text-[10px] font-black text-red-600 uppercase tracking-widest bg-red-50 px-2 sm:px-3 py-2 rounded-lg border border-red-100 whitespace-nowrap">
+                  Confirm?
                 </span>
                 <button
                   onClick={handleBulkDelete}
                   disabled={bulkDeleting}
-                  className="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-lg text-xs font-black uppercase tracking-widest shadow-lg shadow-red-200 transition-all active:scale-95 disabled:opacity-50"
+                  className="bg-red-600 hover:bg-red-700 text-white px-4 sm:px-5 py-2 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-widest shadow-lg shadow-red-200 transition-all active:scale-95 disabled:opacity-50"
                 >
-                  {bulkDeleting ? "Executing..." : "Confirm Delete"}
+                  {bulkDeleting ? "Executing..." : "Delete"}
                 </button>
                 <button
                   onClick={() => setShowBulkConfirm(false)}
@@ -471,7 +471,7 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
             ) : (
               <button
                 onClick={() => setShowBulkConfirm(true)}
-                className="bg-red-50 hover:bg-red-600 text-red-600 hover:text-white border border-red-200 px-5 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all active:scale-95 flex items-center gap-2"
+                className="bg-red-50 hover:bg-red-600 text-red-600 hover:text-white border border-red-200 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 flex items-center gap-2"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 Mass Delete
@@ -486,185 +486,267 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
         <div className="text-center py-12 text-slate-500">Loading roles…</div>
       ) : (
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="px-4 py-3 w-12 text-center">
-                  <input
-                    type="checkbox"
-                    checked={allSelected}
-                    ref={(el) => {
-                      if (el) el.indeterminate = someSelected;
-                    }}
-                    onChange={toggleAll}
-                    className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
-                  />
-                </th>
-                <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase w-12 text-center">
-                  SR
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">
-                  Name & Description
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">
-                  Users
-                </th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase">
-                  Action
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="text-center py-20 text-slate-400">
-                    <div className="flex flex-col items-center gap-3">
-                      <Shield className="w-10 h-10 text-slate-200" />
-                      <div>
-                        <p className="font-semibold text-slate-500">
-                          No roles found
-                        </p>
-                        <p className="text-xs">
-                          Create a new role or initialize default ones
-                        </p>
-                      </div>
-                    </div>
-                  </td>
+          {/* Desktop Table View */}
+          <div className="hidden md:block">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200">
+                  <th className="px-4 py-3 w-12 text-center">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      ref={(el) => {
+                        if (el) el.indeterminate = someSelected;
+                      }}
+                      onChange={toggleAll}
+                      className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                    />
+                  </th>
+                  <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase w-12 text-center">
+                    SR
+                  </th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">
+                    Name & Description
+                  </th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">
+                    Users
+                  </th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase">
+                    Action
+                  </th>
                 </tr>
-              ) : (
-                filtered.map((role, i) => (
-                  <tr
-                    key={role._id}
-                    className={`border-b border-slate-100 hover:bg-slate-50 transition-colors ${selectedIds.has(role._id) ? "bg-indigo-50/40" : ""}`}
-                  >
-                    <td className="px-4 py-3 text-center">
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.has(role._id)}
-                        onChange={() => toggleOne(role._id)}
-                        className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
-                      />
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <div className="text-[11px] font-black text-slate-400">
-                        {i + 1}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="font-bold text-slate-800 flex items-center gap-2">
-                        {role.name}
-                        {role.isSystem && (
-                          <span className="px-1.5 py-0.5 bg-indigo-100 text-indigo-600 text-[9px] font-black uppercase rounded border border-indigo-200">
-                            System
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-[11px] text-slate-500 max-w-xs truncate font-medium">
-                        {role.description ||
-                          (role.isSystem
-                            ? "Default system role"
-                            : "Custom role")}
-                      </div>
-
-                      {/* Permission Badges */}
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {role.permissions.map((p) => (
-                          <span
-                            key={p.module}
-                            className="px-1.5 py-0.5 bg-slate-50 rounded text-[8px] font-black text-slate-400 border border-slate-200 uppercase tracking-tighter"
-                            title={p.actions.join(", ")}
-                          >
-                            {p.module}
-                          </span>
-                        ))}
-                        {role.permissions.length === 0 && (
-                          <span className="text-[9px] text-slate-400 italic">
-                            No permissions assigned
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <button
-                        onClick={() => viewUsers(role)}
-                        disabled={!role.userCount || role.userCount === 0}
-                        className={`flex items-center gap-1.5 transition-all group ${
-                          role.userCount && role.userCount > 0
-                            ? "text-indigo-600 hover:scale-105 active:scale-95 cursor-pointer"
-                            : "text-slate-400 cursor-default"
-                        }`}
-                        title={
-                          role.userCount && role.userCount > 0
-                            ? "View Associated Personnel"
-                            : "No users assigned"
-                        }
-                      >
-                        <div
-                          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
-                            role.userCount && role.userCount > 0
-                              ? "bg-indigo-50 group-hover:bg-indigo-600 group-hover:text-white"
-                              : "bg-slate-100"
-                          }`}
-                        >
-                          <Users className="w-3.5 h-3.5" />
+              </thead>
+              <tbody>
+                {filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="text-center py-20 text-slate-400">
+                      <div className="flex flex-col items-center gap-3">
+                        <Shield className="w-10 h-10 text-slate-200" />
+                        <div>
+                          <p className="font-semibold text-slate-500">
+                            No roles found
+                          </p>
+                          <p className="text-xs">
+                            Create a new role or initialize default ones
+                          </p>
                         </div>
-                        <span
-                          className={`text-sm font-black ${
-                            role.userCount && role.userCount > 0
-                              ? "border-b border-dashed border-indigo-200"
-                              : ""
-                          }`}
-                        >
-                          {role.userCount ?? 0}
-                        </span>
-                      </button>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => openEdit(role)}
-                          className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-white hover:shadow-sm transition-all border border-transparent hover:border-slate-200"
-                          title="Edit"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                        {!role.isSystem && (
-                          <button
-                            onClick={() => handleDelete(role)}
-                            className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-white hover:shadow-sm transition-all border border-transparent hover:border-slate-200"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  filtered.map((role, i) => (
+                    <tr
+                      key={role._id}
+                      className={`border-b border-slate-100 hover:bg-slate-50 transition-colors ${selectedIds.has(role._id) ? "bg-indigo-50/40" : ""}`}
+                    >
+                      <td className="px-4 py-3 text-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(role._id)}
+                          onChange={() => toggleOne(role._id)}
+                          className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                        />
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <div className="text-[11px] font-black text-slate-400">
+                          {i + 1}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="font-bold text-slate-800 flex items-center gap-2">
+                          {role.name}
+                          {role.isSystem && (
+                            <span className="px-1.5 py-0.5 bg-indigo-100 text-indigo-600 text-[9px] font-black uppercase rounded border border-indigo-200">
+                              System
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-slate-500 max-w-xs truncate font-medium">
+                          {role.description ||
+                            (role.isSystem
+                              ? "Default system role"
+                              : "Custom role")}
+                        </div>
+
+                        {/* Permission Badges */}
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {role.permissions.map((p) => (
+                            <span
+                              key={p.module}
+                              className="px-1.5 py-0.5 bg-slate-50 rounded text-[8px] font-black text-slate-400 border border-slate-200 uppercase tracking-tighter"
+                              title={p.actions.join(", ")}
+                            >
+                              {p.module}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => viewUsers(role)}
+                          disabled={!role.userCount || role.userCount === 0}
+                          className={`flex items-center gap-1.5 transition-all group ${
+                            role.userCount && role.userCount > 0
+                              ? "text-indigo-600 hover:scale-105 active:scale-95 cursor-pointer"
+                              : "text-slate-400 cursor-default"
+                          }`}
+                        >
+                          <div
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                              role.userCount && role.userCount > 0
+                                ? "bg-indigo-50 group-hover:bg-indigo-600 group-hover:text-white"
+                                : "bg-slate-100"
+                            }`}
+                          >
+                            <Users className="w-3.5 h-3.5" />
+                          </div>
+                          <span className="text-sm font-black">
+                            {role.userCount ?? 0}
+                          </span>
+                        </button>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => openEdit(role)}
+                            className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-white hover:shadow-sm transition-all border border-transparent hover:border-slate-200"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          {!role.isSystem && (
+                            <button
+                              onClick={() => handleDelete(role)}
+                              className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-white hover:shadow-sm transition-all border border-transparent hover:border-slate-200"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden divide-y divide-slate-100">
+            {filtered.length === 0 ? (
+              <div className="text-center py-16 px-4">
+                <Shield className="w-12 h-12 text-slate-200 mx-auto mb-3" />
+                <p className="font-bold text-slate-500 text-sm">No roles found</p>
+                <p className="text-[10px] text-slate-400 uppercase mt-1">Create a new role to begin</p>
+              </div>
+            ) : (
+              filtered.map((role, i) => (
+                <div
+                  key={role._id}
+                  className={`p-4 transition-colors active:bg-slate-50 ${selectedIds.has(role._id) ? "bg-indigo-50/40" : "bg-white"}`}
+                >
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className="pt-0.5">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(role._id)}
+                          onChange={() => toggleOne(role._id)}
+                          className="w-5 h-5 text-indigo-600 rounded-lg border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[10px] font-black text-slate-300">
+                            #{i + 1}
+                          </span>
+                          <h4 className="font-bold text-slate-900 text-sm truncate">
+                            {role.name}
+                          </h4>
+                          {role.isSystem && (
+                            <span className="px-1.5 py-0.5 bg-indigo-50 text-indigo-600 text-[8px] font-black uppercase rounded border border-indigo-100">
+                              System
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-slate-500 font-medium mt-0.5 line-clamp-2">
+                          {role.description || (role.isSystem ? "Default system role" : "Custom role")}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        onClick={() => openEdit(role)}
+                        className="p-2 text-slate-400 hover:text-indigo-600 active:bg-indigo-50 rounded-lg transition-colors"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      {!role.isSystem && (
+                        <button
+                          onClick={() => handleDelete(role)}
+                          className="p-2 text-slate-400 hover:text-red-600 active:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-4 pt-3 border-t border-slate-50">
+                    <div className="flex flex-wrap gap-1 flex-1">
+                      {role.permissions.slice(0, 4).map((p) => (
+                        <span
+                          key={p.module}
+                          className="px-1.5 py-0.5 bg-slate-50 rounded text-[8px] font-black text-slate-400 border border-slate-200 uppercase tracking-tighter"
+                        >
+                          {p.module}
+                        </span>
+                      ))}
+                      {role.permissions.length > 4 && (
+                        <span className="px-1.5 py-0.5 bg-slate-50 rounded text-[8px] font-black text-slate-400 border border-slate-200 uppercase">
+                          +{role.permissions.length - 4}
+                        </span>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={() => viewUsers(role)}
+                      disabled={!role.userCount || role.userCount === 0}
+                      className={`flex items-center gap-1.5 px-2 py-1 rounded-lg transition-all ${
+                        role.userCount && role.userCount > 0
+                          ? "bg-indigo-50 text-indigo-600 active:scale-95"
+                          : "bg-slate-50 text-slate-400"
+                      }`}
+                    >
+                      <Users className="w-3 h-3" />
+                      <span className="text-[11px] font-black">{role.userCount ?? 0}</span>
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       )}
 
       {/* Create/Edit Form Modal */}
       {showForm && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-white rounded-2xl sm:rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 max-h-[95vh] sm:max-h-none flex flex-col">
             {/* Form Header */}
-            <div className="bg-slate-900 px-8 py-6 flex items-center justify-between border-b border-slate-800">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center border border-white/20 shadow-inner">
-                  <Shield className="w-6 h-6 text-blue-400" />
+            <div className="bg-slate-900 px-6 py-4 sm:px-8 sm:py-6 flex items-center justify-between border-b border-slate-800 shrink-0">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/10 rounded-xl sm:rounded-2xl flex items-center justify-center border border-white/20 shadow-inner">
+                  <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400" />
                 </div>
-                <div>
-                  <h3 className="text-white font-black text-lg uppercase tracking-tight">
+                <div className="min-w-0">
+                  <h3 className="text-white font-black text-sm sm:text-lg uppercase tracking-tight truncate">
                     {editingRole ? "Modify Role" : "Register New Role"}
                   </h3>
-                  <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">
+                  <p className="text-slate-400 text-[8px] sm:text-[10px] font-bold uppercase tracking-widest truncate">
                     {editingRole
                       ? "Update authority and access"
-                      : "Define custom organizational permissions"}
+                      : "Define organizational permissions"}
                   </p>
                 </div>
               </div>
@@ -675,21 +757,21 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
                 }}
                 className="text-slate-400 hover:text-white transition-colors p-2 hover:bg-white/5 rounded-xl border border-transparent hover:border-white/10"
               >
-                <X className="w-6 h-6" />
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit}>
-              <div className="p-8 space-y-8 max-h-[65vh] overflow-y-auto custom-scrollbar">
+            <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+              <div className="p-4 sm:p-8 space-y-6 sm:space-y-8 overflow-y-auto custom-scrollbar flex-1">
                 {/* Basic Info */}
-                <div className="space-y-6">
+                <div className="space-y-4 sm:space-y-6">
                   <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
                     <div className="w-1 h-4 bg-indigo-500 rounded-full"></div>
                     <h4 className="font-black text-slate-800 text-[10px] uppercase tracking-widest">
                       Fundamental Identity
                     </h4>
                   </div>
-                  <div className="grid gap-6">
+                  <div className="grid gap-4 sm:gap-6">
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">
                         Role Designation *
@@ -701,7 +783,7 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
                           setForm((p) => ({ ...p, name: e.target.value }))
                         }
                         placeholder="e.g. Finance Supervisor"
-                        className="w-full h-12 bg-slate-50 border-slate-200 rounded-xl px-4 font-bold text-slate-900 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none"
+                        className="w-full h-11 sm:h-12 bg-slate-50 border-slate-200 rounded-xl px-4 font-bold text-slate-900 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none text-sm"
                         required
                       />
                     </div>
@@ -717,25 +799,25 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
                             description: e.target.value,
                           }))
                         }
-                        placeholder="Define the primary responsibilities and boundaries of this role..."
-                        rows={3}
-                        className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 font-medium text-slate-900 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none resize-none"
+                        placeholder="Define responsibilities..."
+                        rows={2}
+                        className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 font-medium text-slate-900 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none resize-none text-sm"
                       />
                     </div>
                   </div>
                 </div>
 
-                {/* Notification Settings - Super Admin and Company Admin */}
+                {/* Notification Settings */}
                 {isCompanyAdminOrHigher(currentUser) && (
-                  <div className="space-y-6">
+                  <div className="space-y-4 sm:space-y-6">
                     <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
                       <div className="w-1 h-4 bg-amber-500 rounded-full"></div>
                       <h4 className="font-black text-slate-800 text-[10px] uppercase tracking-widest">
                         Communication Defaults
                       </h4>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <label className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-200 cursor-pointer hover:bg-white hover:border-indigo-200 transition-all group shadow-sm">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                      <label className="flex items-center gap-3 p-3 sm:p-4 bg-slate-50 rounded-2xl border border-slate-200 cursor-pointer hover:bg-white hover:border-indigo-200 transition-all group shadow-sm">
                         <input
                           type="checkbox"
                           checked={form.notificationSettings?.whatsapp ?? true}
@@ -751,16 +833,16 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
                           className="w-5 h-5 text-indigo-600 rounded-lg border-slate-300 focus:ring-indigo-500"
                         />
                         <div className="flex-1">
-                          <p className="text-[11px] font-black text-slate-900 uppercase">
-                            WhatsApp Notifications
+                          <p className="text-[10px] sm:text-[11px] font-black text-slate-900 uppercase">
+                            WhatsApp
                           </p>
-                          <p className="text-[9px] text-slate-500 font-medium">
-                            Auto-trigger updates via WhatsApp
+                          <p className="text-[8px] sm:text-[9px] text-slate-500 font-medium">
+                            Auto-trigger updates
                           </p>
                         </div>
                       </label>
  
-                      <label className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-200 cursor-pointer hover:bg-white hover:border-indigo-200 transition-all group shadow-sm">
+                      <label className="flex items-center gap-3 p-3 sm:p-4 bg-slate-50 rounded-2xl border border-slate-200 cursor-pointer hover:bg-white hover:border-indigo-200 transition-all group shadow-sm">
                         <input
                           type="checkbox"
                           checked={form.notificationSettings?.email ?? true}
@@ -776,11 +858,11 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
                           className="w-5 h-5 text-indigo-600 rounded-lg border-slate-300 focus:ring-indigo-500"
                         />
                         <div className="flex-1">
-                          <p className="text-[11px] font-black text-slate-900 uppercase">
-                            Email Notifications
+                          <p className="text-[10px] sm:text-[11px] font-black text-slate-900 uppercase">
+                            Email
                           </p>
-                          <p className="text-[9px] text-slate-500 font-medium">
-                            Send status reports via Email
+                          <p className="text-[8px] sm:text-[9px] text-slate-500 font-medium">
+                            Send status reports
                           </p>
                         </div>
                       </label>
@@ -789,7 +871,7 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
                 )}
  
                 {/* Permissions */}
-                <div className="space-y-6">
+                <div className="space-y-4 sm:space-y-6 pb-4">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                     <div className="flex items-center gap-2">
                       <div className="w-1 h-4 bg-indigo-500 rounded-full"></div>
@@ -797,21 +879,14 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
                         Authority Matrix *
                       </h4>
                     </div>
-                    <span className="text-slate-400 text-[9px] font-bold uppercase tracking-wider">
-                      Assign granular module access
-                    </span>
                   </div>
 
                   {modules.length === 0 ? (
-                    <div className="bg-slate-50 rounded-2xl p-8 text-center space-y-3">
+                    <div className="bg-slate-50 rounded-2xl p-6 sm:p-8 text-center space-y-3">
                       <AlertCircle className="w-8 h-8 text-slate-300 mx-auto" />
                       <div>
-                        <p className="text-sm font-black text-slate-500 uppercase tracking-tight">
+                        <p className="text-xs font-black text-slate-500 uppercase tracking-tight">
                           No Features Detected
-                        </p>
-                        <p className="text-[10px] text-slate-400 font-medium">
-                          Please register feature modules first in the Features
-                          tab.
                         </p>
                       </div>
                     </div>
@@ -823,7 +898,7 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
                           className="group border border-slate-200 rounded-2xl overflow-hidden hover:border-indigo-200 transition-all shadow-sm hover:shadow-md"
                         >
                           {/* Module Header */}
-                          <div className="flex items-center gap-4 px-5 py-4 bg-slate-50 group-hover:bg-indigo-50/30 transition-colors">
+                          <div className="flex items-center gap-3 sm:gap-4 px-4 py-3 sm:px-5 sm:py-4 bg-slate-50 group-hover:bg-indigo-50/30 transition-colors">
                             <div className="relative">
                               <input
                                 type="checkbox"
@@ -835,34 +910,34 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
                             </div>
                             <label
                               htmlFor={`mod_${mod.key}`}
-                              className="flex-1 cursor-pointer"
+                              className="flex-1 cursor-pointer min-w-0"
                             >
-                              <div className="font-black text-slate-900 text-xs uppercase tracking-tight">
+                              <div className="font-black text-slate-900 text-[10px] sm:text-xs uppercase tracking-tight truncate">
                                 {mod.label}
                               </div>
-                              <div className="text-[10px] text-slate-500 font-medium line-clamp-1">
+                              <div className="text-[9px] sm:text-[10px] text-slate-500 font-medium line-clamp-1">
                                 {mod.description}
                               </div>
                             </label>
                             {isModuleFullySelected(mod.key) && (
-                              <Check className="w-4 h-4 text-emerald-500" />
+                              <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500 shrink-0" />
                             )}
                           </div>
 
                           {/* Action Checkboxes */}
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 px-6 py-4 bg-white">
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 px-4 py-3 sm:px-6 sm:py-4 bg-white">
                             {mod.actions.map((action: string) => (
                               <label
                                 key={action}
-                                className="flex items-center gap-2.5 cursor-pointer group/action"
+                                className="flex items-center gap-2 cursor-pointer group/action min-w-0"
                               >
                                 <input
                                   type="checkbox"
                                   checked={hasAction(mod.key, action)}
                                   onChange={() => toggleAction(mod.key, action)}
-                                  className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                                  className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 shrink-0"
                                 />
-                                <span className="text-[11px] font-bold text-slate-600 group-hover/action:text-indigo-600 uppercase tracking-wide transition-colors">
+                                <span className="text-[10px] sm:text-[11px] font-bold text-slate-600 group-hover/action:text-indigo-600 uppercase tracking-wide transition-colors truncate">
                                   {ACTION_LABELS[action] || action}
                                 </span>
                               </label>
@@ -876,22 +951,22 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ companyId }) => {
               </div>
 
               {/* Submit */}
-              <div className="p-8 border-t border-slate-100 flex justify-end gap-4 bg-slate-50/50">
+              <div className="p-4 sm:p-8 border-t border-slate-100 flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 bg-slate-50/50 shrink-0">
                 <button
                   type="button"
                   onClick={() => {
                     setShowForm(false);
                     setEditingRole(null);
                   }}
-                  className="px-8 py-3.5 text-[11px] font-black uppercase tracking-widest border border-slate-200 text-slate-500 rounded-2xl hover:bg-white hover:text-slate-800 transition-all active:scale-95"
+                  className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-3.5 text-[10px] sm:text-[11px] font-black uppercase tracking-widest border border-slate-200 text-slate-500 rounded-xl sm:rounded-2xl hover:bg-white hover:text-slate-800 transition-all active:scale-95"
                 >
                   Discard
                 </button>
                 <button
                   type="submit"
-                  className="px-10 py-3.5 text-[11px] font-black uppercase tracking-widest bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl shadow-lg shadow-indigo-600/20 transition-all active:scale-95 flex items-center gap-2"
+                  className="w-full sm:w-auto px-8 sm:px-10 py-3 sm:py-3.5 text-[10px] sm:text-[11px] font-black uppercase tracking-widest bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl sm:rounded-2xl shadow-lg shadow-indigo-600/20 transition-all active:scale-95 flex items-center justify-center gap-2"
                 >
-                  <Check className="w-4.5 h-4.5" />
+                  <Check className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                   {editingRole ? "Publish Changes" : "Create Authority"}
                 </button>
               </div>

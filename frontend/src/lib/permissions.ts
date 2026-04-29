@@ -71,7 +71,6 @@ export enum Module {
   APPOINTMENT = 'APPOINTMENT',                                // CEO/Official appointment booking (consolidated)
   DOCUMENT_UPLOAD = 'DOCUMENT_UPLOAD',                        // Document upload support
   GEO_LOCATION = 'GEO_LOCATION',                             // Geolocation tracking
-  INCIDENT_WILDLIFE = 'INCIDENT_WILDLIFE',                    // Wildlife/Forest incident reporting
   
   // Notification & Communication Modules
   AUTO_NOTIFICATION = 'AUTO_NOTIFICATION',                    // Auto-notify department heads on creation

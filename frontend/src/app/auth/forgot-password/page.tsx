@@ -78,12 +78,8 @@ export default function ForgotPasswordPage() {
 
           <div className="space-y-2">
             <Label className="text-[11px] font-black uppercase tracking-wider text-slate-700">
-              Send OTP via
+              Send OTP via: <span className="text-xs font-black tracking-wider text-slate-700">WhatsApp</span>
             </Label>
-            <div className="h-10 rounded-xl border border-slate-900 bg-slate-900 text-white text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5">
-              <MessageCircle className="w-3.5 h-3.5" />
-              WhatsApp
-            </div>
           </div>
 
           <Button type="submit" className="w-full" disabled={loading}>

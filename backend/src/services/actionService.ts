@@ -17,7 +17,6 @@ import { findOptimalAdmin } from '../utils/userUtils';
 import { GrievanceStatus, AppointmentStatus, UserRole } from '../config/constants';
 import { updateSession } from './sessionService';
 import { logger } from '../config/logger';
-import { ForestService } from './forestService';
 import CitizenProfile from '../models/CitizenProfile';
 import { enforceDailyLimitOrThrow } from './grievanceRateLimitService';
 import { sanitizeGrievanceDetailsForStorage } from '../utils/sanitize';
@@ -133,7 +132,6 @@ export class ActionService {
       }
 
       // Check for citizen consent. 
-      // If the user has reached this step in the flow, they have likely already passed the consent nodes.
       const hasConsent = session?.data?.citizenConsent === true || session?.data?.hasConsent === true;
       
       if (!hasConsent && !session?.data?.flowId) {
@@ -171,15 +169,11 @@ export class ActionService {
         throw new Error('Department selection is mandatory. Please select a department to proceed.');
       }
 
-      // Collect media from session.data.media[] (array) AND any plain-string attachment fields.
-      // The grievance flow may save the upload to session.data.attachmentUrl (string) because
-      // the input step's saveToField is 'attachmentUrl', not 'media'.
       const validMediaTypes = ['image', 'document', 'video'];
       const mediaFromArray: any[] = (session.data.media || []).filter(
         (m: any) => m && m.url && validMediaTypes.includes(m.type)
       );
 
-      // Detect uploaded files stored as plain strings in common field names
       const extraAttachmentFields = ['attachmentUrl', 'attachment', 'fileUrl', 'documentUrl', 'mediaUrl'];
       const extraMedia: any[] = [];
       const existingUrls = new Set(mediaFromArray.map(m => m.url));
@@ -188,7 +182,6 @@ export class ActionService {
         const val = session.data[field];
         if (val && typeof val === 'string' && val.startsWith('http')) {
           if (!existingUrls.has(val)) {
-            // Guess type: if URL contains 'image' or ends with image extension → image, else document
             const isImg = /\.(jpe?g|png|gif|webp|bmp)(\?|$)/i.test(val) || val.includes('/image/') || val.toLowerCase().includes('image');
             extraMedia.push({ url: val, type: isImg ? 'image' : 'document', uploadedAt: new Date(), isCloudinary: val.includes('cloudinary') });
             existingUrls.add(val);
@@ -209,7 +202,6 @@ export class ActionService {
         );
       }
 
-      // Keep canonical key for downstream placeholders/templates.
       if (!session.data.description || !String(session.data.description).trim()) {
         session.data.description = finalDescription;
       }
@@ -242,43 +234,10 @@ export class ActionService {
         } : undefined,
         status: GrievanceStatus.PENDING,
         admin_consent: false,
-        priority: (session.data.category?.toLowerCase().includes('fire') || 
-                   session.data.category?.toLowerCase().includes('wildlife') || 
-                   session.data.category?.toLowerCase().includes('animal')) ? 'HIGH' : 'MEDIUM',
+        priority: 'MEDIUM',
         language: session.language || 'en'
       };
       
-      // 🌲 Forest-Specific Logic: Auto-Lookup Area and Officer
-      let forestArea = null;
-      const hasCoords = hasValidCoordinates &&
-                       parsedLatitude !== 0 &&
-                       parsedLongitude !== 0;
-
-      if (hasCoords) {
-        forestArea = await ForestService.findAreaByLocation(
-          parsedLongitude,
-          parsedLatitude,
-          company._id
-        );
-        if (forestArea) {
-          (grievanceData as any).forestAreaId = forestArea.areaId;
-          // Store area details for placeholders/notifications
-          session.data.forest_range = forestArea.metadata.range || 'Unknown Range';
-          session.data.forest_beat = forestArea.metadata.beat || 'Unknown Beat';
-          session.data.forest_compartment = forestArea.name || forestArea.areaId;
-        } else {
-          console.warn(`📍 ActionService: Location [${session.data.latitude}, ${session.data.longitude}] is outside forest boundaries.`);
-          session.data.forest_range = 'Outside Area';
-          session.data.forest_beat = 'Unmapped';
-          session.data.forest_compartment = 'N/A';
-        }
-      } else {
-        // Fallback for no location
-        session.data.forest_range = 'N/A';
-        session.data.forest_beat = 'N/A';
-        session.data.forest_compartment = 'Not Shared';
-      }
-
       const grievance = new Grievance(grievanceData);
       
       try {
@@ -315,7 +274,6 @@ export class ActionService {
         { upsert: true }
       );
       
-      // Update session with results for placeholders
       session.data.grievanceId = grievance.grievanceId;
       session.data.id = grievance.grievanceId;
       session.data.status = 'PENDING';
@@ -327,21 +285,17 @@ export class ActionService {
       
       const lang = (session.language || 'en') as 'en' | 'hi' | 'or' | 'mr';
       
-      // Set explicit fields for placeholder resolution in success/confirm steps
       session.data.department = dept ? getLocalizedDepartmentName(dept, lang) : (session.data.category || 'Collector & DM');
       session.data.subDepartment = subDept ? getLocalizedDepartmentName(subDept, lang) : '';
       session.data.subDepartmentName = subDept ? getLocalizedDepartmentName(subDept, lang) : '';
       
-      // Keep departmentName the parent-only name for display
       session.data.departmentName = dept ? getLocalizedDepartmentName(dept, lang) : (session.data.category || 'Collector & DM');      
       session.data.subdepartmentName = subDept ? getLocalizedDepartmentName(subDept, lang) : '';
       
-      // Odia & Hindi translated keys for session placeholders to match user request
       session.data['ଗ୍ରିଭନ୍ସଆଇଡି'] = grievance.grievanceId;
       session.data['ବିଭାଗନାମ'] = session.data.departmentName;
       session.data['ଉପବିଭାଗନାମ'] = session.data.subDepartmentName;
       session.data['ବର୍ଣ୍ଣନା'] = session.data.description;
-      // Build evidence URL string for success notification
       const evidenceUrls = sanitizedMedia.map((media: any) => media.url).filter(Boolean);
       session.data.evidenceUrl = evidenceUrls.length > 0 ? evidenceUrls.join(', ') : '';
       
@@ -351,40 +305,18 @@ export class ActionService {
       let autoAssigned = false;
       let assignedAdmins: any[] = [];
 
-      // 🌲 Forest-Specific Assignment & Multi-Notification
-      if (forestArea) {
-        const forestOfficers = await ForestService.findOfficersByArea(forestArea.areaId, company._id);
-        if (forestOfficers && forestOfficers.length > 0) {
-          // Point the grievance to the first officer primarily (for display), 
-          // but we will notify ALL of them.
-          const primaryOfficer = forestOfficers[0];
-          grievance.assignedTo = primaryOfficer._id;
+      const targetDeptId = subDepartmentId || departmentId;
+      if (targetDeptId) {
+        const potentialAdmins = await getHierarchicalDepartmentAdmins(targetDeptId);
+        const targetAdmin = findOptimalAdmin(potentialAdmins);
+        
+        if (targetAdmin) {
+          grievance.assignedTo = targetAdmin._id;
           grievance.status = GrievanceStatus.ASSIGNED;
           await grievance.save();
           autoAssigned = true;
-          assignedAdmins = forestOfficers;
-          session.data.assignedToName = forestOfficers.map(o => o.getFullName()).join(', ');
-          
-          // Store all target officers for the notification loop below
-          (grievance as any)._allTargetOfficers = forestOfficers;
-        }
-      }
-
-      // Fallback to Department Admin assignment
-      if (!autoAssigned) {
-        const targetDeptId = subDepartmentId || departmentId;
-        if (targetDeptId) {
-          const potentialAdmins = await getHierarchicalDepartmentAdmins(targetDeptId);
-          const targetAdmin = findOptimalAdmin(potentialAdmins);
-          
-          if (targetAdmin) {
-            grievance.assignedTo = targetAdmin._id;
-            grievance.status = GrievanceStatus.ASSIGNED;
-            await grievance.save();
-            autoAssigned = true;
-            assignedAdmins = [targetAdmin];
-            session.data.assignedToName = targetAdmin.getFullName();
-          }
+          assignedAdmins = [targetAdmin];
+          session.data.assignedToName = targetAdmin.getFullName();
         }
       }
 
@@ -408,14 +340,11 @@ export class ActionService {
         evidenceUrls: sanitizedMedia.map((media: any) => media.url).filter(Boolean),
         createdAt: grievance.createdAt,
         timeline: grievance.timeline,
-        forest_range: session.data.forest_range,
-        forest_beat: session.data.forest_beat,
         type: 'grievance' as const,
         action: 'confirmation' as const,
         citizenEmail: session.data.citizenEmail
       };
 
-      // ✅ EXECUTE NOTIFICATIONS IN PARALLEL
       const createdAt = grievance.createdAt || new Date();
       const formattedDate = formatTemplateDate(new Date(createdAt));
 
@@ -432,7 +361,6 @@ export class ActionService {
 
       const { notifyDepartmentAdminOnCreation } = await import('./notificationService');
 
-      // Email notifications for admins are preserved in the legacy notification service.
       notifications.push(notifyDepartmentAdminOnCreation({
         ...notificationData,
         type: 'grievance',
@@ -445,8 +373,10 @@ export class ActionService {
           grievanceId: grievance.grievanceId,
           citizenName,
           citizenPhone: userPhone,
-          category: session.data.category || 'General',
-          subDepartmentName: session.data.subDepartmentName || 'N/A',
+          // Use real live department name (main dept) as 'department' in the template
+          category: dept?.name || session.data.category || 'General',
+          // Use real live sub-department name as 'office' in the template
+          subDepartmentName: subDept?.name || 'N/A',
           description: storedDescription,
           status: grievance.status,
           language: session.language || 'en',
@@ -455,10 +385,6 @@ export class ActionService {
         })
       );
 
-
-
-      // Do not block grievance success step delivery to the citizen.
-      // Notifications are processed asynchronously so citizen confirmation is sent first.
       Promise.allSettled(notifications)
         .then((notificationResults) => {
           const failedNotifications = notificationResults.filter(
@@ -522,7 +448,6 @@ export class ActionService {
       session.data.time = appointmentTime;
       await updateSession(session);
       
-      // ✅ AUTO-ASSIGNMENT for Appointment
       if (appointment.departmentId) {
         const potentialAdmins = await getHierarchicalDepartmentAdmins(appointment.departmentId);
         const targetAdmin = findOptimalAdmin(potentialAdmins);
@@ -533,7 +458,6 @@ export class ActionService {
         }
       }
 
-      // ✅ PREPARE NOTIFICATIONS
       const notificationData = {
         type: 'appointment' as const,
         appointmentId: appointment.appointmentId,
@@ -567,13 +491,10 @@ export class ActionService {
 
       const { notifyCitizenOnCreation, notifyDepartmentAdminOnCreation } = await import('./notificationService');
       
-      // Notify citizen only when flow does not already show a success/confirmation node.
-      // This prevents duplicate success messages in WhatsApp chats.
       if (sendCitizenConfirmation) {
         await notifyCitizenOnCreation(notificationData);
       }
 
-      // 2. Admin Creation Notification — Hierarchy Only
       notifications.push(notifyDepartmentAdminOnCreation({
         ...notificationData,
         type: 'appointment',
@@ -587,7 +508,6 @@ export class ActionService {
       throw err;
     }
   }
-
 
   /**
    * Create lead from session data

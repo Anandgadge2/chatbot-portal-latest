@@ -180,6 +180,14 @@ export default function GrievancesPage() {
     return { createdDate, daysPassed, assigneeName, departmentName, officeName };
   };
 
+  const getDeptCategoryLabel = (grievance: Grievance) => {
+    if (isJharsugudaCompany && grievance.status === "REVERTED" && !grievance.category) {
+      return "Collector & DM";
+    }
+
+    return grievance.category || "General";
+  };
+
   const openReminderDialog = (grievance: Grievance) => {
     setGrievanceForReminder(grievance);
     setReminderRemarks("");
@@ -279,36 +287,36 @@ export default function GrievancesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 overflow-x-hidden">
       {/* Header with Gradient */}
       <div className="bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 shadow-xl">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-30"></div>
-        <div className="relative max-w-7xl mx-auto px-6 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm shadow-lg">
-                <FileText className="w-7 h-7 text-white" />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm shadow-lg shrink-0">
+                <FileText className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
               </div>
-              <div>
-                <h1 className="text-2xl font-bold text-white tracking-tight">
+              <div className="min-w-0">
+                <h1 className="text-lg sm:text-2xl font-bold text-white tracking-tight leading-tight">
                   Active Grievances
                 </h1>
-                <p className="text-white/80 mt-0.5">
+                <p className="text-xs sm:text-sm text-white/80 mt-0.5 leading-relaxed">
                   View and manage pending and in-progress grievances
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4 self-start sm:self-auto w-full sm:w-auto">
               <button
                 onClick={() => router.back()}
-                className="flex items-center gap-2 px-4 py-2.5 bg-white/10 text-white rounded-xl hover:bg-white/20 transition-all border border-white/30 backdrop-blur-sm"
+                className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 bg-white/10 text-white rounded-xl hover:bg-white/20 transition-all border border-white/30 backdrop-blur-sm text-sm font-medium flex-1 sm:flex-none"
               >
-                <ArrowLeft className="w-5 h-5" />
+                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                 Back
               </button>
-              <div className="text-right bg-white/10 px-4 py-2 rounded-xl border border-white/20 backdrop-blur-sm">
-                <p className="text-sm text-white/70">Active</p>
-                <p className="text-2xl font-bold text-white">
+              <div className="text-right bg-white/10 px-3 sm:px-4 py-2 rounded-xl border border-white/20 backdrop-blur-sm min-w-[88px] sm:min-w-[96px]">
+                <p className="text-[11px] sm:text-sm text-white/70">Active</p>
+                <p className="text-xl sm:text-2xl font-bold text-white">
                   {grievances.length}
                 </p>
               </div>
@@ -318,14 +326,31 @@ export default function GrievancesPage() {
       </div>
 
       {/* Content Area */}
-      <div className="max-w-7xl mx-auto px-6 py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
         {/* Filters Card */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-200/50 shadow-xl p-6 mb-6">
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-200/50 shadow-xl p-4 sm:p-6 mb-6">
+          <div className="flex items-start justify-between gap-3 mb-4">
+            <div>
+              <h2 className="text-sm sm:text-base font-bold text-slate-900">
+                Filters
+              </h2>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Narrow the list by status, assignment, department, date, and SLA state.
+              </p>
+            </div>
+            <div className="shrink-0 inline-flex items-center rounded-xl bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 border border-blue-100">
+              {filteredGrievances.length} shown
+            </div>
+          </div>
+
           {/* Filters */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3">
             {/* Search */}
-            <div className="relative col-span-2 md:col-span-1 lg:col-span-2">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <div className="relative sm:col-span-2 lg:col-span-2">
+              <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                Search
+              </label>
+              <Search className="absolute left-3 top-[calc(50%+0.8rem)] transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
                 type="text"
                 placeholder="Search by name or ID..."
@@ -333,17 +358,20 @@ export default function GrievancesPage() {
                 onChange={(e) =>
                   setFilters({ ...filters, search: e.target.value })
                 }
-                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
             {/* Status */}
+            <label className="sm:hidden -mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              Status
+            </label>
             <select
               value={filters.status}
               onChange={(e) =>
                 setFilters({ ...filters, status: e.target.value })
               }
-              className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">All Status</option>
               <option value="PENDING">🟡 Pending/Assigned</option>
@@ -351,12 +379,15 @@ export default function GrievancesPage() {
             </select>
 
             {/* Department */}
+            <label className="sm:hidden -mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              Department
+            </label>
             <select
               value={filters.department}
               onChange={(e) =>
                 setFilters({ ...filters, department: e.target.value })
               }
-              className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">All Departments</option>
               {departments.map((dept) => (
@@ -367,12 +398,15 @@ export default function GrievancesPage() {
             </select>
 
             {/* Assignment */}
+            <label className="sm:hidden -mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              Assignment
+            </label>
             <select
               value={filters.assignment}
               onChange={(e) =>
                 setFilters({ ...filters, assignment: e.target.value })
               }
-              className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">All Assignments</option>
               <option value="assigned">✅ Assigned</option>
@@ -380,12 +414,15 @@ export default function GrievancesPage() {
             </select>
 
             {/* Date Range */}
+            <label className="sm:hidden -mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              Date Range
+            </label>
             <select
               value={filters.dateRange}
               onChange={(e) =>
                 setFilters({ ...filters, dateRange: e.target.value })
               }
-              className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">All Time</option>
               <option value="today">📅 Today</option>
@@ -394,12 +431,15 @@ export default function GrievancesPage() {
             </select>
 
             {/* Overdue Filter */}
+            <label className="sm:hidden -mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              SLA Status
+            </label>
             <select
               value={filters.overdue}
               onChange={(e) =>
                 setFilters({ ...filters, overdue: e.target.value })
               }
-              className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">SLA Status</option>
               <option value="overdue">🔴 Overdue</option>
@@ -418,7 +458,7 @@ export default function GrievancesPage() {
                   search: "",
                 })
               }
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors flex items-center justify-center"
+              className="w-full sm:w-auto px-4 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors flex items-center justify-center text-sm font-medium"
             >
               <Filter className="w-4 h-4 mr-2" />
               Reset Filters
@@ -438,8 +478,165 @@ export default function GrievancesPage() {
               <p className="text-gray-600 text-lg">No grievances found</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
+            <>
+              <div className="md:hidden divide-y divide-slate-200">
+                {filteredGrievances.map((grievance, index) => (
+                  <div key={grievance._id} className="p-4 space-y-4">
+                    <div className="flex flex-col gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-700 text-xs font-bold shrink-0">
+                            {index + 1}
+                          </span>
+                          <button
+                            onClick={() => handleViewDetails(grievance)}
+                            className="font-bold text-sm text-blue-700 text-left hover:underline break-all"
+                          >
+                            {grievance.grievanceId}
+                          </button>
+                        </div>
+                        <button
+                          onClick={() => handleViewDetails(grievance)}
+                          className="text-slate-900 hover:text-blue-700 font-bold text-left text-base leading-tight break-words"
+                        >
+                          {grievance.citizenName}
+                        </button>
+                        <div className="flex items-center text-sm text-gray-500 mt-1 break-all">
+                          <Phone className="w-3.5 h-3.5 mr-1.5 text-gray-400 shrink-0" />
+                          {grievance.citizenPhone}
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={`max-w-full px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wide text-center break-words ${getStatusColor(grievance.status)}`}
+                        >
+                          {grievance.status === "PENDING" ||
+                          grievance.status === "ASSIGNED"
+                            ? "Pending/Assigned"
+                            : grievance.status.replace("_", " ")}
+                        </span>
+                        {grievance.status === "RESOLVED" ||
+                        grievance.status === "CLOSED" ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold border border-green-200 text-green-700 bg-green-50">
+                            <CheckCircle className="w-3 h-3" />
+                            Completed
+                          </span>
+                        ) : isOverdue(grievance) ? (
+                          isJharsugudaCompany && isCompanyAdminUser ? (
+                            <button
+                              onClick={() => openReminderDialog(grievance)}
+                              title="Open overdue reminder dialog"
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold border border-red-300 text-red-800 bg-red-50 hover:bg-red-100 max-w-full"
+                            >
+                              <BellRing className="w-3 h-3" />
+                              Overdue
+                            </button>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold border border-red-200 text-red-700 bg-red-50">
+                              <BellRing className="w-3 h-3" />
+                              Overdue
+                            </span>
+                          )
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold border border-green-200 text-green-700 bg-green-50">
+                            <CheckCircle className="w-3 h-3" />
+                            On track
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3">
+                      <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-1">
+                          Department
+                        </p>
+                        <p className="text-sm font-semibold text-slate-900 break-words">
+                          {typeof grievance.departmentId === "object"
+                            ? (grievance.departmentId as any).name
+                            : "General Department"}
+                        </p>
+                        <span className="inline-flex items-center mt-2 px-2 py-0.5 rounded text-[11px] font-medium bg-blue-50 text-blue-600 border border-blue-100 w-fit">
+                          {getDeptCategoryLabel(grievance)}
+                        </span>
+                      </div>
+
+                      <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-1">
+                          Issue Description
+                        </p>
+                        <p className="text-sm text-slate-700 leading-relaxed break-words">
+                          {grievance.description}
+                        </p>
+                      </div>
+
+                      <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-1">
+                          Assignment
+                        </p>
+                        {grievance.assignedTo ? (
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center">
+                              <UserPlus className="w-3.5 h-3.5 mr-1.5 text-green-600 shrink-0" />
+                              <span className="text-sm font-semibold text-gray-900 break-words">
+                                {typeof grievance.assignedTo === "object"
+                                  ? `${grievance.assignedTo.firstName} ${grievance.assignedTo.lastName}`
+                                  : grievance.assignedTo}
+                              </span>
+                            </div>
+                            {grievance.assignedAt && (
+                              <span className="text-[10px] text-gray-500">
+                                Assigned on{" "}
+                                {new Date(grievance.assignedAt).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="inline-flex items-center text-xs text-amber-600 font-medium bg-amber-50 px-2 py-0.5 rounded border border-amber-100">
+                            Pending Assignment
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex flex-col gap-3 rounded-xl bg-slate-50 border border-slate-200 p-3">
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-1">
+                            Raised On
+                          </p>
+                          <div className="flex items-center text-sm font-medium text-gray-900">
+                            <Calendar className="w-3.5 h-3.5 mr-1.5 text-blue-600 shrink-0" />
+                            {formatDate(grievance.createdAt)}
+                          </div>
+                          <span className="text-[10px] text-gray-500 mt-1 block">
+                            {formatISTTime(grievance.createdAt)}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-end gap-2">
+                          {isCompanyAdminOrHigher(user) && (
+                            <button
+                              onClick={() => handleAssignClick(grievance)}
+                              title="Assign Officer"
+                              className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors border border-transparent hover:border-green-200 bg-white"
+                            >
+                              <UserPlus className="w-5 h-5" />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleViewDetails(grievance)}
+                            title="View Full Details"
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-transparent hover:border-blue-200 bg-white"
+                          >
+                            <Eye className="w-5 h-5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200 whitespace-nowrap">
                   <tr>
                     <th className="px-4 py-4 text-center text-xs font-semibold text-slate-600 uppercase tracking-wide">
@@ -514,7 +711,7 @@ export default function GrievancesPage() {
                               : "General Department"}
                           </span>
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-blue-50 text-blue-600 border border-blue-100 w-fit">
-                            {grievance.category || "General"}
+                            {getDeptCategoryLabel(grievance)}
                           </span>
                         </div>
                       </td>
@@ -622,8 +819,9 @@ export default function GrievancesPage() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
-            </div>
+                </table>
+              </div>
+            </>
           )}
         </div>
       </div>

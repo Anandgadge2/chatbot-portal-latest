@@ -386,13 +386,13 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
   return (
     <div className="fixed inset-0 bg-gray-500/10 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <Card className="w-full max-w-lg max-h-[90vh] flex flex-col bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden">
-        <CardHeader className="bg-slate-900 px-6 py-4 border-b border-slate-800 flex flex-row items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/15 rounded-xl flex items-center justify-center border border-white/25 shadow-lg group-hover:scale-105 transition-transform">
-              <Shield className="w-5 h-5 text-white" />
+        <CardHeader className="bg-slate-900 px-5 py-3.5 border-b border-slate-800 flex flex-row items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 bg-white/15 rounded-xl flex items-center justify-center border border-white/25 shadow-lg group-hover:scale-105 transition-transform">
+              <Shield className="w-4.5 h-4.5 text-white" />
             </div>
             <div>
-              <CardTitle className="text-base font-bold text-white uppercase tracking-tight">
+              <CardTitle className="text-[15px] font-bold text-white uppercase tracking-tight">
                 {editingDepartment
                   ? "Modify Department Node"
                   : "Initialize New Department"}
@@ -408,12 +408,12 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
               e.stopPropagation();
               onClose();
             }}
-            className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all duration-300 border border-white/10 group cursor-pointer"
+            className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all duration-300 border border-white/10 group cursor-pointer"
           >
-            <X className="w-5 h-5 text-white group-hover:text-white transition-colors" />
+            <X className="w-4.5 h-4.5 text-white group-hover:text-white transition-colors" />
           </button>
         </CardHeader>
-        <CardContent className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+        <CardContent className="flex-1 overflow-y-auto p-5 custom-scrollbar">
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Company selector - only shown to SuperAdmin if not default */}
             {isSuperAdmin(user) && !defaultCompanyId ? (
@@ -444,7 +444,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
             {/* Department Hierarchy Toggle - Restricted for Dept Admins */}
             {(user?.level || 4) <= 1 ? (
               <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/60 mb-4">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 block text-center">Department Structure</Label>
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2.5 block text-center">Department Structure</Label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
@@ -452,7 +452,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                       setIsSubDepartment(false);
                       setFormData(prev => ({ ...prev, parentDepartmentId: "" }));
                     }}
-                    className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all border ${
+                    className={`flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all border ${
                       !isSubDepartment
                         ? "bg-slate-800 text-white border-slate-700 shadow-md shadow-slate-900/40 ring-1 ring-blue-500/50"
                         : "bg-white text-slate-500 border-slate-200 hover:border-slate-800 hover:text-slate-800"
@@ -464,7 +464,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                   <button
                     type="button"
                     onClick={() => setIsSubDepartment(true)}
-                    className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all border ${
+                    className={`flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all border ${
                       isSubDepartment
                         ? "bg-slate-800 text-white border-slate-700 shadow-md shadow-slate-900/40 ring-1 ring-blue-500/50"
                         : "bg-white text-slate-500 border-slate-200 hover:border-slate-800 hover:text-slate-800"
@@ -479,7 +479,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="bg-indigo-50/50 p-3 rounded-xl border border-indigo-100 mb-4">
+              <div className="bg-indigo-50/50 p-2.5 rounded-xl border border-indigo-100 mb-4">
                 <div className="flex items-baseline justify-between px-2">
                   <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Target Unit Level</span>
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sub-Department</span>
@@ -813,7 +813,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                   : "Associate an existing user account to receive administrative notifications."}
               </p>
             </div>
-            <div className="flex justify-end space-x-3 pt-6 border-t border-slate-200">
+            <div className="flex justify-end space-x-3 pt-5 border-t border-slate-200">
               <Button
                 type="button"
                 variant="outline"

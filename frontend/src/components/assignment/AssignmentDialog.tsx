@@ -9,6 +9,7 @@ import LoadingSpinner from '../ui/LoadingSpinner';
 import { useAuth } from '@/contexts/AuthContext';
 import { SearchableSelect } from '../ui/SearchableSelect';
 import UserDetailsDialog from '../user/UserDetailsDialog';
+import { getUserRoleLabel } from '@/lib/utils/userUtils';
 
 interface AssignmentDialogProps {
   isOpen: boolean;
@@ -21,6 +22,8 @@ interface AssignmentDialogProps {
   currentAssignee?: string | { _id: string; firstName: string; lastName: string };
   currentDepartmentId?: string;
   currentSubDepartmentId?: string;
+  suggestedDepartmentId?: string;
+  suggestedSubDepartmentId?: string;
   userRole?: string;
   canReassignCurrent?: boolean;
   userDepartmentId?: string;
@@ -46,6 +49,8 @@ export default function AssignmentDialog({
   currentAssignee,
   currentDepartmentId,
   currentSubDepartmentId,
+  suggestedDepartmentId,
+  suggestedSubDepartmentId,
   userRole,
   canReassignCurrent = false,
   userDepartmentId,
@@ -250,6 +255,15 @@ export default function AssignmentDialog({
       }
     }
 
+    // 🎯 NEW: Prioritize Suggested Department & Sub-Department from Reverted Grievances
+    if (suggestedDepartmentId) {
+      setSelectedDepartment(suggestedDepartmentId);
+      if (suggestedSubDepartmentId) {
+        setSelectedSubDepartment(suggestedSubDepartmentId);
+      }
+      return;
+    }
+
     // Default: lock to user's dept if DEPARTMENT_ADMIN or operator
     if (!isTopLevelAdmin && (authUser?.departmentIds?.length || 0) > 0) {
       // Use visibleTopDepts which is already filtered by role/mapping
@@ -420,6 +434,11 @@ export default function AssignmentDialog({
       ? `${assignedUser.firstName} ${assignedUser.lastName}`
       : 'officer';
 
+    if (assignmentNote.length > 100) {
+      toast.error('Note exceeds 100 character limit');
+      return;
+    }
+
     const toastId = toast.loading(`Assigning to ${userName}...`);
 
     try {
@@ -474,9 +493,14 @@ export default function AssignmentDialog({
     return currentAssignee;
   };
 
-  const getRoleColor = (role: string) => {
-    switch (role) {
+  const getRoleColor = (roleLabel: string) => {
+    const normalizedRole = roleLabel.toUpperCase().replace(/\s+/g, '_');
+
+    switch (normalizedRole) {
+      case 'SUPER_ADMIN':
+        return 'bg-rose-100 text-rose-700 border-rose-200';
       case 'DEPARTMENT_ADMIN':
+      case 'SUB_DEPARTMENT_ADMIN':
         return 'bg-purple-100 text-purple-700 border-purple-200';
       case 'OPERATOR':
         return 'bg-blue-100 text-blue-700 border-blue-200';
@@ -493,27 +517,27 @@ export default function AssignmentDialog({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent hideClose className="w-[96vw] max-w-2xl max-h-[92vh] sm:max-h-[88vh] overflow-y-auto flex flex-col p-0 gap-0 rounded-2xl sm:rounded-[2rem] border-0 shadow-2xl bg-white">
         <DialogHeader className="relative space-y-0 border-b-0 p-0 text-left">
-          <div className="relative overflow-hidden rounded-t-2xl sm:rounded-t-[2rem] bg-gradient-to-r from-[#1aa6ea] via-[#0d9ee3] to-[#2bb4ef] px-5 py-3 sm:px-6 sm:py-4">
+          <div className="relative overflow-hidden rounded-t-2xl sm:rounded-t-[2rem] bg-gradient-to-r from-[#1aa6ea] via-[#0d9ee3] to-[#2bb4ef] px-4 py-2.5 sm:px-5 sm:py-3">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.2),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.16),transparent_28%)]" />
-            <div className="relative flex items-start justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-3 sm:gap-4">
-                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl border border-white/30 bg-white/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.25)] backdrop-blur-md">
-                  <UserCheck className="h-5 w-5 text-white" />
+            <div className="relative flex items-start justify-between gap-2.5">
+              <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
+                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border border-white/30 bg-white/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.25)] backdrop-blur-md">
+                  <UserCheck className="h-4.5 w-4.5 text-white" />
                 </div>
                 <div className="min-w-0">
-                  <DialogTitle className="flex items-center gap-2 truncate text-xl font-black tracking-tight text-white sm:text-2xl">
-                    Assign {itemType === 'grievance' ? 'Grievance' : 'Appointment'}
+                  <DialogTitle className="flex flex-wrap items-center gap-x-2 gap-y-1 text-lg font-black tracking-tight text-white sm:text-[1.35rem] leading-tight">
+                    <span>Assign {itemType === 'grievance' ? 'Grievance' : 'Appointment'}</span>
                     {displayId && (
-                      <span className="text-xs font-black text-white/60 bg-black/10 px-1.5 py-0.5 rounded-md border border-white/10 font-mono tracking-widest mt-1">
+                      <span className="text-[10px] sm:text-xs font-black text-white/70 bg-black/15 px-2 py-0.5 rounded-md border border-white/10 font-mono tracking-wider inline-flex items-center">
                         #{displayId}
                       </span>
                     )}
                   </DialogTitle>
-                  <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5">
                     <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-cyan-50/90">
                       Currently with
                     </span>
-                    <span className="max-w-full truncate rounded-full border border-white/35 bg-white/16 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.06em] text-white backdrop-blur-sm">
+                    <span className="max-w-full truncate rounded-full border border-white/35 bg-white/16 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-[0.06em] text-white backdrop-blur-sm">
                       {getCurrentAssigneeName()}
                     </span>
                   </div>
@@ -522,7 +546,7 @@ export default function AssignmentDialog({
 
               <button
                 onClick={onClose}
-                className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl border border-white/35 bg-white/12 transition-all duration-200 hover:bg-white/20"
+                className="flex h-7.5 w-7.5 flex-shrink-0 items-center justify-center rounded-lg border border-white/35 bg-white/12 transition-all duration-200 hover:bg-white/20"
                 aria-label="Close assignment dialog"
               >
                 <X className="h-4 w-4 text-white" />
@@ -531,12 +555,12 @@ export default function AssignmentDialog({
           </div>
         </DialogHeader>
 
-        <div className="flex flex-col bg-slate-50 p-4">
+        <div className="flex flex-col bg-slate-50 p-3.5 sm:p-4">
           {/* Filters */}
           <div className="flex flex-col space-y-2">
 
             {/* Department & Sub-Department Dropdowns - Always shown */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
               {/* Department Dropdown */}
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1 flex items-center gap-1.5">
@@ -586,7 +610,7 @@ export default function AssignmentDialog({
 
             {/* Info banner showing current filter scope */}
             {selectedDepartment && (
-              <div className="flex items-center gap-2 px-3 py-2 bg-indigo-50 rounded-xl border border-indigo-100 text-xs text-indigo-600 font-medium">
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 rounded-xl border border-indigo-100 text-xs text-indigo-600 font-medium">
                 <Building2 className="w-3.5 h-3.5 flex-shrink-0" />
                 <span>
                   Showing users from: <strong>
@@ -601,7 +625,7 @@ export default function AssignmentDialog({
               </div>
             )}
             {isUsingCompanyWideFallback && isTopLevelAdmin && (
-              <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-700 font-medium">
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-700 font-medium">
                 <Users className="w-3.5 h-3.5 flex-shrink-0" />
                 <span>
                   No alternate assignee found in selected scope. Showing company-wide users for reassignment.
@@ -616,31 +640,39 @@ export default function AssignmentDialog({
                   <span className="ml-1 text-[9px] font-semibold normal-case tracking-normal text-slate-400">
                     (optional)
                   </span>
+                  <span className={`ml-auto text-[10px] font-bold ${assignmentNote.length > 100 ? 'text-rose-500' : 'text-slate-400'}`}>
+                    {assignmentNote.length}/100
+                  </span>
                 </label>
                 <textarea
                   value={assignmentNote}
                   onChange={(e) => setAssignmentNote(e.target.value)}
                   placeholder="Add context for this sub-department transfer..."
-                  className="min-h-[60px] w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-sm outline-none transition-all placeholder:text-slate-400 focus:border-transparent focus:ring-2 focus:ring-indigo-500"
+                  className={`min-h-[52px] w-full rounded-2xl border ${assignmentNote.length > 100 ? 'border-rose-500 ring-1 ring-rose-500/20' : 'border-slate-200'} bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm outline-none transition-all placeholder:text-slate-400 focus:border-transparent focus:ring-2 focus:ring-indigo-500`}
                 />
+                {assignmentNote.length > 100 && (
+                  <p className="mt-1 text-[10px] font-bold text-rose-500 uppercase tracking-tight px-1">
+                    Character limit exceeded by {assignmentNote.length - 100} characters
+                  </p>
+                )}
               </div>
             )}
           </div>
 
           {/* User Search */}
-          <div className="mt-3 relative group">
+          <div className="mt-2.5 relative group">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
             <input
               type="text"
               placeholder="Search assignees by name or ID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 rounded-2xl border border-slate-200 bg-white text-sm font-medium text-slate-700 shadow-sm outline-none transition-all placeholder:text-slate-400 focus:border-transparent focus:ring-2 focus:ring-indigo-500 hover:border-slate-300"
+              className="w-full pl-11 pr-4 py-2.5 rounded-2xl border border-slate-200 bg-white text-sm font-medium text-slate-700 shadow-sm outline-none transition-all placeholder:text-slate-400 focus:border-transparent focus:ring-2 focus:ring-indigo-500 hover:border-slate-300"
             />
           </div>
 
           {/* Users List */}
-          <div className="mt-3 rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="mt-2.5 rounded-xl border border-slate-200 bg-white shadow-sm">
             {!selectedDepartment ? (
               <div className="p-10 text-center">
                 <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -676,13 +708,13 @@ export default function AssignmentDialog({
                   return (
                     <div
                       key={user._id}
-                      className={`p-4 hover:bg-slate-50 transition-all duration-200 ${
+                      className={`p-3.5 hover:bg-slate-50 transition-all duration-200 ${
                         isCurrentAssignee ? 'bg-blue-50/50' : ''
                       }`}
                     >
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-3">
                         {/* Avatar */}
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md ${
+                        <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md ${
                           isCurrentAssignee 
                             ? 'bg-gradient-to-br from-blue-500 to-indigo-600' 
                             : 'bg-gradient-to-br from-slate-400 to-slate-500'
@@ -706,13 +738,19 @@ export default function AssignmentDialog({
                             <Mail className="w-3.5 h-3.5" />
                             <span className="break-words whitespace-normal">{user.email}</span>
                           </div>
-                          <div className="flex items-center gap-2 mt-2 flex-wrap">
+                          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                             <span className="text-[10px] text-slate-400 font-mono bg-slate-100 px-1.5 py-0.5 rounded">
                               {user.userId}
                             </span>
-                             <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full border ${getRoleColor(user.role || "")}`}>
-                               {(user.role || "CUSTOM").replace('_', ' ')}
-                             </span>
+                            {(() => {
+                              const roleLabel = getUserRoleLabel(user);
+
+                              return (
+                                <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full border ${getRoleColor(roleLabel)}`}>
+                                  {roleLabel}
+                                </span>
+                              );
+                            })()}
                             {userDept && (
                               <span className="flex items-center gap-1 text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
                                 <Building2 className="w-3 h-3" />
@@ -736,14 +774,17 @@ export default function AssignmentDialog({
                             {/* Assign Button */}
                             <Button
                               onClick={() => handleAssign(user._id)}
-                              disabled={assigningUserId !== null || isCurrentAssignee}
+                              disabled={assigningUserId !== null}
+                              title={assignmentNote.length > 100 ? `Note exceeds 100 characters (currently ${assignmentNote.length})` : isCurrentAssignee ? 'Already assigned to this user' : ''}
                               size="sm"
                               className={`min-w-[100px] rounded-xl font-semibold transition-all shadow-md ${
                                 isCurrentAssignee
                                   ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200 shadow-none'
+                                  : assignmentNote.length > 100
+                                  ? 'opacity-50 cursor-not-allowed bg-slate-200 text-slate-500'
                                   : isAssigning
                                   ? 'bg-blue-600'
-                                  : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
+                                  : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white active:scale-95'
                               }`}
                             >
                               {isAssigning ? (
@@ -765,11 +806,12 @@ export default function AssignmentDialog({
                             </Button>
                             {isCurrentAssignee && canReassignCurrent && (
                               <Button
-                                onClick={() => handleAssign(user._id)}
+                                onClick={() => { if (assignmentNote.length <= 100) handleAssign(user._id); }}
                                 disabled={assigningUserId !== null}
+                                title={assignmentNote.length > 100 ? `Note exceeds 100 characters (currently ${assignmentNote.length})` : ''}
                                 size="sm"
                                 variant="outline"
-                                className="min-w-[100px] rounded-xl border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800 font-semibold"
+                                className={`min-w-[100px] rounded-xl border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800 font-semibold transition-all ${assignmentNote.length > 100 ? 'opacity-50 cursor-not-allowed' : 'active:scale-95'}`}
                               >
                                 Reassign
                               </Button>

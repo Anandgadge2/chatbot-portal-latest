@@ -258,7 +258,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-black text-white uppercase tracking-tight">
+                <h2 className="text-sm sm:text-base font-black text-white uppercase tracking-tight">
                   #{grievance.grievanceId}
                 </h2>
                 <span
@@ -349,7 +349,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                       <CheckCircle2 className="w-4 h-4" /> Final Resolution
                       Summary
                     </h3>
-                    <p className="text-sm font-medium text-white leading-relaxed whitespace-pre-wrap">
+                    <p className="text-sm font-medium text-white leading-relaxed whitespace-pre-wrap break-words">
                       {grievance.resolution}
                     </p>
                   </div>
@@ -366,7 +366,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                       <h3 className="text-[10px] font-black uppercase tracking-widest text-sky-700">
                         Transfer Context
                       </h3>
-                      <p className="mt-1 whitespace-pre-wrap text-sm font-medium leading-relaxed text-slate-700">
+                      <p className="mt-1 whitespace-pre-wrap text-sm font-medium leading-relaxed text-slate-700 break-words">
                         {latestTransferNote}
                       </p>
                       <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-semibold text-slate-500">
@@ -739,7 +739,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                         {formatDateTime(createdDate)}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-500 font-medium leading-relaxed bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                    <p className="text-xs text-slate-500 font-medium leading-relaxed bg-slate-50 p-2.5 rounded-lg border border-slate-100 break-words">
                       Securely received via WhatsApp Chatbot and acknowledged in
                       the system repository.
                     </p>
@@ -844,7 +844,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                             </span>
                           </div>
                           <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                            <p className="whitespace-pre-line text-xs text-slate-600 font-medium leading-relaxed">
+                            <p className="whitespace-pre-line text-xs text-slate-600 font-medium leading-relaxed break-words">
                               {desc ||
                                 "Status update logged without additional remarks."}
                             </p>

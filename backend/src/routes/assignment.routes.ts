@@ -143,9 +143,27 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
       }
     }
 
-    // Track old values for timeline
+    // Track old values for timeline + "previously assigned" template variables
     const oldAssignedTo = grievance.assignedTo;
     const oldDepartmentId = grievance.departmentId?._id;
+
+    // Capture OLD dept names BEFORE any department auto-update below
+    const [oldDeptDoc, oldSubDeptDoc] = await Promise.all([
+      grievance.departmentId
+        ? (await import('../models/Department')).default.findById(grievance.departmentId).select('name')
+        : Promise.resolve(null),
+      grievance.subDepartmentId
+        ? (await import('../models/Department')).default.findById(grievance.subDepartmentId).select('name')
+        : Promise.resolve(null)
+    ]);
+    const previousDepartmentName = oldDeptDoc?.name || grievance.category || 'N/A';
+    const previousOfficeName = oldSubDeptDoc?.name || oldDeptDoc?.name || 'N/A';
+
+    const isReassignment = Boolean(oldAssignedTo);
+    // Reassignment template (cross-dept, done by company admin / super admin)
+    // Assignment template (within-dept delegation, done by dept admin)
+    const isCompanyAdmin = !currentUser.departmentId;
+    const useReassignedTemplate = isReassignment && (currentUser.isSuperAdmin || isCompanyAdmin);
 
     // Update grievance
     grievance.assignedTo = assignedUser._id;
@@ -209,23 +227,26 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
     
     await grievance.save();
 
-    const isReassignment = Boolean(oldAssignedTo);
-    
-    // Fetch names for notification to ensure "live" values are used
+    // Fetch NEW dept names (post-save, after any auto-update) for the template
     const [finalDept, finalSubDept] = await Promise.all([
       (await import('../models/Department')).default.findById(grievance.departmentId).select('name'),
-      grievance.subDepartmentId 
+      grievance.subDepartmentId
         ? (await import('../models/Department')).default.findById(grievance.subDepartmentId).select('name')
         : Promise.resolve(null)
     ]);
+    const newDepartmentName = finalDept?.name || grievance.category || 'Collector & DM';
+    const newOfficeName = finalSubDept?.name || finalDept?.name || 'N/A';
 
+    // useReassignedTemplate: company admin / super admin doing a cross-dept reassignment
+    // otherwise: dept admin delegating within dept → use assigned template
     triggerAdminAssignmentNotification({
-      event: isReassignment ? 'grievance_reassigned_admin_v1' : 'grievance_assigned_admin_v1',
+      event: useReassignedTemplate ? 'grievance_reassigned_admin_v2' : 'grievance_assigned_admin_v2',
       companyId: grievance.companyId,
       grievanceId: grievance.grievanceId,
       citizenName: grievance.citizenName,
-      category: finalDept?.name || grievance.category || 'Collector & DM',
-      subDepartmentName: finalSubDept?.name || 'N/A',
+      // New destination dept (where it's going)
+      category: newDepartmentName,
+      subDepartmentName: newOfficeName,
       description: grievance.description,
       recipientPhones: assignedUser.phone ? [assignedUser.phone] : [],
       language: grievance.language,
@@ -234,8 +255,9 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
       remarks: (req.body as any).remarks || (req.body as any).reason || 'Administrative Reassignment',
       submittedOn: grievance.createdAt,
       reassignedOn: new Date(),
-      originalDepartmentName: finalDept?.name || grievance.category || 'Collector & DM',
-      originalOfficeName: finalSubDept?.name || 'N/A',
+      // Old dept (where it came from) — captured BEFORE save
+      originalDepartmentName: previousDepartmentName,
+      originalOfficeName: previousOfficeName,
       media: (grievance.media || []).map((file: any) => ({
         url: file.url,
         type: file.type,

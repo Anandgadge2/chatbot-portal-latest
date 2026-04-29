@@ -20,7 +20,7 @@ export interface NotificationApiMeta {
 const isNotificationRouteMissing = (error: any) => {
   const status = error?.response?.status;
   const message = String(error?.response?.data?.message || '').toLowerCase();
-  return status === 404 && (message.includes('/api/notifications') || message.includes('/notifications'));
+  return status === 404 && message.includes('/api/notifications');
 };
 
 export const notificationAPI = {

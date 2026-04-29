@@ -31,11 +31,6 @@ export const AVAILABLE_MODULES: ModuleConfig[] = [
     name: '📍 Geo Location', 
     description: 'Capture and track GPS coordinates and addresses for location-based services' 
   },
-  { 
-    id: Module.INCIDENT_WILDLIFE, 
-    name: '🦁 Wildlife Incident Reporting', 
-    description: 'Report wildlife/forest incidents with location tracking and urgent routing' 
-  },
   
   // ========================================
   // NOTIFICATION & COMMUNICATION MODULES

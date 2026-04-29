@@ -102,10 +102,11 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
     () => Array.from(new Set(templates.map((template) => template.language))),
     [templates],
   );
-  const categories = useMemo(
-    () => Array.from(new Set(templates.map((template) => template.category))),
-    [templates],
-  );
+  const categories = useMemo(() => {
+    const fromTemplates = templates.map((template) => template.category);
+    // Ensure standard Meta categories are always available for filtering
+    return Array.from(new Set([...fromTemplates, "UTILITY", "MARKETING", "AUTHENTICATION"]));
+  }, [templates]);
 
   const triggerRefresh = () => setRefreshTick((prev) => prev + 1);
 

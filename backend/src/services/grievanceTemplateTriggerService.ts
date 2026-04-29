@@ -86,12 +86,12 @@ export async function getAdminRecipients(companyId: any): Promise<string[]> {
 
 export async function triggerAdminTemplate(options: {
   event:
-    | 'grievance_received_admin_v1'
-    | 'grievance_pending_admin_v1'
-    | 'grievance_assigned_admin_v1'
-    | 'grievance_reassigned_admin_v1'
-    | 'grievance_reverted_company_v1'
-    | 'grievance_reminder_admin_v1';
+    | 'grievance_received_admin_v2'
+    | 'grievance_received_admin_v2'
+    | 'grievance_assigned_admin_v2'
+    | 'grievance_reassigned_admin_v2'
+    | 'grievance_reverted_company_v2'
+    | 'grievance_reminder_admin_v2';
   companyId: any;
   language?: string;
   values?: string[];
@@ -213,15 +213,15 @@ export async function triggerCitizenStatusTemplate(options: {
 
   // 1. Determine the best template to use
   const statusToTemplate: Record<string, string> = {
-    RESOLVED: 'grievance_status_resolved_citizen_v1',
-    REJECTED: 'grievance_status_rejected_citizen_v1',
-    IN_PROGRESS: 'grievance_status_inprogress_citizen_v1'
+    RESOLVED: 'grievance_status_resolved_citizen_v2',
+    REJECTED: 'grievance_status_rejected_citizen_v2',
+    IN_PROGRESS: 'grievance_status_inprogress_citizen_v2'
   };
 
   const specificTemplateName = statusToTemplate[options.status.toUpperCase().replace(/[\s-]+/g, '_')];
   // Use verified, status-specific citizen templates for admin status changes.
   // Fallback remains the generic status template for any non-mapped status.
-  const finalTemplate = specificTemplateName || 'grievance_status_citizen_v1';
+  const finalTemplate = specificTemplateName || 'grievance_status_inprogress_citizen_v2';
 
   const citizenTemplateResult = await triggerCitizenTemplate({
     template: finalTemplate,
@@ -321,7 +321,7 @@ export async function triggerGrievanceNotifications(options: {
           sendTemplateAndAttachments({
             recipientPhone,
             recipientName: 'Administrator',
-            templateName: 'grievance_pending_admin_v1',
+            templateName: 'grievance_received_admin_v2',
             bodyParameters: [
               { type: 'text', text: 'Administrator' },
               { type: 'text', text: sanitizeText(options.grievanceId, 30) },
@@ -351,7 +351,7 @@ export async function triggerGrievanceNotifications(options: {
 }
 
 export async function triggerAdminAssignmentNotification(options: {
-  event: 'grievance_assigned_admin_v1' | 'grievance_reassigned_admin_v1' | 'grievance_reverted_company_v1';
+  event: 'grievance_assigned_admin_v2' | 'grievance_reassigned_admin_v2' | 'grievance_reverted_company_v2';
   companyId: any;
   grievanceId: string;
   citizenName: string;
