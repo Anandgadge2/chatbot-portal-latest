@@ -3453,7 +3453,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                 Filters
                               </Button>
 
-                              {isSuperAdminDrilldown &&
+                              {isSuperAdminUser &&
                                 selectedGrievances.size > 0 && (
                                   <Button
                                     variant="destructive"
@@ -3848,7 +3848,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                         )}
                                         {canDeleteGrievance && (
                                           <button
-                                            onClick={() => handleDeleteGrievance(grievance._id)}
+                                            onClick={() => handleDeleteGrievance(grievance)}
                                             className="h-7 w-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                                             title="Delete"
                                           >

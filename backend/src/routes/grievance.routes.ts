@@ -1461,14 +1461,20 @@ router.put('/:id', requirePermission(Permission.UPDATE_GRIEVANCE), async (req: R
 });
 
 // @route   DELETE /api/grievances/bulk
-// @desc    Bulk soft delete grievances (Super Admin only)
+// @desc    Bulk delete grievances (Super Admin only)
 // @access  Private (Super Admin only)
 router.delete('/bulk', requirePermission(Permission.DELETE_GRIEVANCE), async (req: Request, res: Response) => {
   try {
     const { ids } = req.body;
     const currentUser = req.user!;
 
-    // Removed hardcoded Super Admin check to allow permission-based deletion
+    if (!currentUser.isSuperAdmin) {
+      res.status(403).json({
+        success: false,
+        message: 'Bulk grievance deletion is allowed for superadmin only'
+      });
+      return;
+    }
 
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
       res.status(400).json({
@@ -1478,24 +1484,32 @@ router.delete('/bulk', requirePermission(Permission.DELETE_GRIEVANCE), async (re
       return;
     }
 
-    const result = await Grievance.deleteMany(
-      { _id: { $in: ids } }
-    );
+    const grievances = await Grievance.find({ _id: { $in: ids } })
+      .select('_id companyId departmentId subDepartmentId')
+      .lean();
 
-    // Log each deletion
-    for (const id of ids) {
+    if (grievances.length === 0) {
+      res.status(404).json({
+        success: false,
+        message: 'No grievances found for the provided IDs'
+      });
+      return;
+    }
+
+    for (const grievance of grievances) {
+      await Grievance.findByIdAndDelete(grievance._id);
       await logUserAction(
         req,
         AuditAction.DELETE,
         'Grievance',
-        id
+        grievance._id.toString()
       );
     }
 
     res.json({
       success: true,
-      message: `${result.deletedCount} grievance(s) deleted successfully`,
-      data: { deletedCount: result.deletedCount }
+      message: `${grievances.length} grievance(s) deleted successfully`,
+      data: { deletedCount: grievances.length }
     });
   } catch (error: any) {
     res.status(500).json({
@@ -1507,12 +1521,11 @@ router.delete('/bulk', requirePermission(Permission.DELETE_GRIEVANCE), async (re
 });
 
 // @route   DELETE /api/grievances/:id
-// @desc    Soft delete grievance (Super Admin only)
-// @access  Private (Super Admin only)
+// @desc    Delete a grievance within the caller's permitted scope
+// @access  Private
 router.delete('/:id', requirePermission(Permission.DELETE_GRIEVANCE), async (req: Request, res: Response) => {
   const currentUser = req.user!;
-  
-  // Removed hardcoded Super Admin check to allow permission-based deletion
+
   try {
     const grievance = await Grievance.findById(req.params.id);
 

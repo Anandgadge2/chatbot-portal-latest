@@ -757,7 +757,7 @@ function DashboardPageClientContent() {
     string | null
   >(null);
 
-  // Selection state for bulk delete (Super Admin only)
+  // Selection state for bulk delete
   const [selectedGrievances, setSelectedGrievances] = useState<Set<string>>(
     new Set(),
   );
@@ -1404,7 +1404,7 @@ function DashboardPageClientContent() {
     return revertEntry?.details?.suggestedSubDepartmentId || null;
   }, [selectedGrievanceForAssignment]);
 
-  // Bulk delete handlers (Super Admin only)
+  // Bulk delete handlers
   const handleBulkDeleteGrievances = async () => {
     if (selectedGrievances.size === 0) return;
 

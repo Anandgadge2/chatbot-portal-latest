@@ -225,12 +225,12 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
   const latestTransferActor =
     typeof latestTransferContext?.performedBy === "object" &&
     latestTransferContext?.performedBy
-      ? `${latestTransferContext.performedBy.firstName} ${latestTransferContext.performedBy.lastName}`
+      ? `${(latestTransferContext.performedBy as any).firstName || ""} ${(latestTransferContext.performedBy as any).lastName || ""}`.trim()
       : "";
   const latestTransferTarget = [
     latestTransferContext?.details?.toDepartmentName,
     latestTransferContext?.details?.toSubDepartmentName
-      ? `(${latestTransferContext.details.toSubDepartmentName})`
+      ? `(${latestTransferContext?.details?.toSubDepartmentName})`
       : "",
   ]
     .filter(Boolean)
