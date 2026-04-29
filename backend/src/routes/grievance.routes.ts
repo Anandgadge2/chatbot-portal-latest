@@ -324,6 +324,23 @@ router.post('/', enforceWhatsAppGrievanceCompliance, async (req: Request, res: R
       },
     });
 
+    if (targetAdmin) {
+      const { notifyUser } = await import('../services/inAppNotificationService');
+      await notifyUser({
+        userId: targetAdmin._id,
+        companyId,
+        eventType: 'GRIEVANCE_ASSIGNED',
+        title: 'New Grievance Assigned',
+        message: `Grievance ${grievance.grievanceId} has been auto-assigned to you.`,
+        grievanceId: grievance.grievanceId,
+        grievanceObjectId: grievance._id,
+        meta: {
+          citizenName: grievance.citizenName,
+          category: grievance.category,
+        },
+      });
+    }
+
     Promise.allSettled([
       triggerGrievanceNotifications({
         companyId,
@@ -512,15 +529,20 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
 
     await grievance.save();
 
-    await notifyCompanyAdmins({
-      companyId: grievance.companyId,
-      eventType: 'GRIEVANCE_REVERTED',
-      title: 'Grievance Reverted',
-      message: `Grievance ${grievance.grievanceId} was reverted to company admin for reassignment.`,
-      grievanceId: grievance.grievanceId,
-      grievanceObjectId: grievance._id,
-      meta: { remarks: remarks.trim() },
-    });
+    const targetDeptIdForNotification = previousSubDepartmentId || previousDepartmentId;
+    if (targetDeptIdForNotification) {
+      const { notifyDepartmentAdmins } = await import('../services/inAppNotificationService');
+      await notifyDepartmentAdmins({
+        companyId: grievance.companyId,
+        departmentId: targetDeptIdForNotification,
+        eventType: 'GRIEVANCE_REVERTED',
+        title: 'Grievance Reverted',
+        message: `Grievance ${grievance.grievanceId} was reverted for reassignment by ${currentUser.getFullName()}.`,
+        grievanceId: grievance.grievanceId,
+        grievanceObjectId: grievance._id,
+        meta: { remarks: remarks.trim() },
+      });
+    }
 
     const revertRecipients = await getAdminRecipients(grievance.companyId);
     // Fetch names for Revert notification
@@ -852,6 +874,26 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_GRIEVANCE, 
 
       const { notifyHierarchyOnStatusChange } = await import('../services/notificationService');
       await notifyHierarchyOnStatusChange(hierarchyPayload, oldStatus, status).catch(e => console.error('Admin hierarchy notification failed:', e));
+
+      // ✅ Trigger In-App Notification for Status Change (Upper Hierarchy / Admins)
+      try {
+        const targetDeptId = grievance.subDepartmentId || grievance.departmentId;
+        if (targetDeptId) {
+          const { notifyDepartmentAdmins } = await import('../services/inAppNotificationService');
+          await notifyDepartmentAdmins({
+            companyId: grievance.companyId,
+            departmentId: targetDeptId,
+            eventType: 'GRIEVANCE_STATUS_UPGRADED',
+            title: 'Grievance Status Updated',
+            message: `Grievance ${grievance.grievanceId} status changed from ${oldStatus} to ${status} by ${currentUser.getFullName()}.`,
+            grievanceId: grievance.grievanceId,
+            grievanceObjectId: grievance._id,
+            meta: { fromStatus: oldStatus, toStatus: status, remarks }
+          });
+        }
+      } catch (inAppErr) {
+        logger.error('⚠️ In-App Status Notification failed:', inAppErr);
+      }
     }
 
     await logUserAction(
@@ -1084,26 +1126,61 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
         }
 
         const { notifyUserOnAssignment } = await import('../services/notificationService');
-        await notifyUserOnAssignment({
-          type: 'grievance',
-          action: 'assigned',
-          grievanceId: grievance.grievanceId,
-          citizenName: grievance.citizenName,
-          citizenPhone: grievance.citizenPhone,
-          citizenWhatsApp: grievance.citizenWhatsApp,
-          departmentId: grievance.departmentId,
-          subDepartmentId: grievance.subDepartmentId,
-          companyId: grievance.companyId,
-          description: grievance.description,
-          category: grievance.category,
-          assignedTo: assignedUser._id,
-          assignedByName: req.user!.getFullName(),
-          assignedAt: grievance.assignedAt,
-          createdAt: grievance.createdAt,
-          language: grievance.language,
-          remarks: transferNote,
-          timeline: grievance.timeline
-        });
+          await notifyUserOnAssignment({
+            type: 'grievance',
+            action: 'assigned',
+            grievanceId: grievance.grievanceId,
+            citizenName: grievance.citizenName,
+            citizenPhone: grievance.citizenPhone,
+            citizenWhatsApp: grievance.citizenWhatsApp,
+            departmentId: grievance.departmentId,
+            subDepartmentId: grievance.subDepartmentId,
+            companyId: grievance.companyId,
+            description: grievance.description,
+            category: grievance.category,
+            assignedTo: assignedUser._id,
+            assignedByName: req.user!.getFullName(),
+            assignedAt: grievance.assignedAt,
+            createdAt: grievance.createdAt,
+            language: grievance.language,
+            remarks: transferNote,
+            timeline: grievance.timeline
+          });
+
+          // ✅ IN-APP NOTIFICATION (InAppNotificationService)
+          const { notifyCompanyAdmins, notifyUser } = await import('../services/inAppNotificationService');
+          
+          // 1. Notify the specific assignee
+          await notifyUser({
+            userId: assignedUser._id,
+            companyId: grievance.companyId,
+            eventType: isReassignment ? 'GRIEVANCE_REASSIGNED' : 'GRIEVANCE_ASSIGNED',
+            title: isReassignment ? 'Grievance Reassigned' : 'Grievance Assigned',
+            message: isReassignment 
+              ? `Grievance ${grievance.grievanceId} has been reassigned to you by ${req.user!.getFullName()}.`
+              : `Grievance ${grievance.grievanceId} has been assigned to you.`,
+            grievanceId: grievance.grievanceId,
+            grievanceObjectId: grievance._id,
+            meta: { remarks: transferNote }
+          });
+
+          // 2. Notify Company/Dept admins about the assignment change (Hierarchy: Sub-Dept -> Dept -> Company)
+          const targetDeptId = grievance.subDepartmentId || grievance.departmentId;
+          if (targetDeptId) {
+            const { notifyDepartmentAdmins } = await import('../services/inAppNotificationService');
+            await notifyDepartmentAdmins({
+              companyId: grievance.companyId,
+              departmentId: targetDeptId,
+              eventType: isReassignment ? 'GRIEVANCE_REASSIGNED' : 'GRIEVANCE_ASSIGNED',
+              title: isReassignment ? 'Grievance Reassigned' : 'Grievance Assigned',
+              message: isReassignment 
+                ? `Grievance ${grievance.grievanceId} reassigned to ${assignedUser.getFullName()} by ${req.user!.getFullName()}.`
+                : `Grievance ${grievance.grievanceId} assigned to ${assignedUser.getFullName()}.`,
+              grievanceId: grievance.grievanceId,
+              grievanceObjectId: grievance._id,
+              meta: { assignedTo: assignedUser.getFullName(), remarks: transferNote }
+            });
+          }
       } catch (err: any) {
         logger.error('[GrievanceAssignment] Background notification error:', err?.message || err);
       }
@@ -1213,6 +1290,21 @@ router.post('/:id/reminder', requirePermission(Permission.UPDATE_GRIEVANCE), asy
       grievanceObjectId: grievance._id,
       meta: { reminderCount, remarks: trimmedRemarks },
     });
+
+    // ✅ Trigger In-App Notification for Reminder (to Assigned User)
+    if (grievance.assignedTo) {
+      const { notifyUser } = await import('../services/inAppNotificationService');
+      await notifyUser({
+        userId: (typeof grievance.assignedTo === 'object' ? (grievance.assignedTo as any)._id : grievance.assignedTo) as any,
+        companyId: grievance.companyId,
+        eventType: 'GRIEVANCE_REMINDER',
+        title: 'Overdue Reminder',
+        message: `Grievance ${grievance.grievanceId} has an overdue reminder from company admin. Remarks: ${trimmedRemarks}`,
+        grievanceId: grievance.grievanceId,
+        grievanceObjectId: grievance._id,
+        meta: { reminderCount, remarks: trimmedRemarks },
+      });
+    }
 
     const assignedUser = grievance.assignedTo && typeof grievance.assignedTo === 'object'
       ? grievance.assignedTo as any

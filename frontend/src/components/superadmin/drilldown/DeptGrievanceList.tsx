@@ -123,7 +123,7 @@ const DeptGrievanceList: React.FC<DeptGrievanceListProps> = ({
                 <button
                   onClick={async () => {
                     const response = await grievanceAPI.getById(g._id);
-                    if (response.success) {
+                    if (response.success && response.data?.grievance) {
                       setSelectedGrievance(response.data.grievance);
                       setShowGrievanceDetail(true);
                     }
@@ -154,7 +154,7 @@ const DeptGrievanceList: React.FC<DeptGrievanceListProps> = ({
                   <button
                     onClick={async () => {
                       const response = await grievanceAPI.getById(g._id);
-                      if (response.success) {
+                      if (response.success && response.data?.grievance) {
                         setSelectedGrievance(response.data.grievance);
                         setShowGrievanceDetail(true);
                       }
@@ -215,7 +215,7 @@ const DeptGrievanceList: React.FC<DeptGrievanceListProps> = ({
                       <button
                         onClick={async () => {
                           const response = await grievanceAPI.getById(g._id);
-                          if (response.success) {
+                          if (response.success && response.data?.grievance) {
                             setSelectedGrievance(response.data.grievance);
                             setShowGrievanceDetail(true);
                           }
@@ -255,7 +255,7 @@ const DeptGrievanceList: React.FC<DeptGrievanceListProps> = ({
                       <button
                         onClick={async () => {
                           const response = await grievanceAPI.getById(g._id);
-                          if (response.success) {
+                          if (response.success && response.data?.grievance) {
                             setSelectedGrievance(response.data.grievance);
                             setShowGrievanceDetail(true);
                           }

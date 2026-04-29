@@ -28,6 +28,8 @@ import { grievanceAPI, Grievance } from "@/lib/api/grievance";
 import { appointmentAPI, Appointment } from "@/lib/api/appointment";
 import { leadAPI, Lead } from "@/lib/api/lead";
 import { roleAPI, Role } from "@/lib/api/role";
+import { notificationAPI, InAppNotification } from "@/lib/api/notification";
+
 import {
   Permission,
   hasPermission,
@@ -207,7 +209,94 @@ interface DashboardStats {
 
 function DashboardPageClientContent() {
   const { user: authUser, loading, logout, refreshUser } = useAuth();
+  const [notifications, setNotifications] = useState<InAppNotification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
   const user = authUser as any;
+
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const response = await notificationAPI.getAll({ limit: 10 });
+      if (response.success) {
+        setNotifications(response.data.notifications);
+      }
+    } catch (error) {
+      console.error("Failed to fetch notifications:", error);
+    }
+  }, []);
+
+  const fetchUnreadCount = useCallback(async () => {
+    try {
+      const response = await notificationAPI.getUnreadCount();
+      if (response.success) {
+        setUnreadCount(response.data.unreadCount);
+      }
+    } catch (error) {
+      console.error("Failed to fetch unread count:", error);
+    }
+  }, []);
+
+  const handleMarkNotificationAsRead = async (id: string) => {
+    try {
+      const response = await notificationAPI.markRead(id);
+      if (response.success) {
+        setNotifications((prev) =>
+          prev.map((n) => (n._id === id ? { ...n, isRead: true } : n)),
+        );
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+      }
+    } catch (error) {
+      console.error("Failed to mark notification as read:", error);
+    }
+  };
+
+  const handleMarkAllNotificationsAsRead = async () => {
+    try {
+      const response = await notificationAPI.markAllRead();
+      if (response.success) {
+        setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+        setUnreadCount(0);
+        toast.success("All notifications marked as read");
+      }
+    } catch (error) {
+      console.error("Failed to mark all notifications as read:", error);
+    }
+  };
+
+  const handleNotificationClick = async (notification: InAppNotification) => {
+    if (!notification.isRead) {
+      handleMarkNotificationAsRead(notification._id);
+    }
+
+    if (notification.grievanceObjectId) {
+      try {
+        const response = await grievanceAPI.getById(
+          notification.grievanceObjectId,
+        );
+        if (response.success && response.data?.grievance) {
+          setSelectedGrievance(response.data.grievance);
+          setShowGrievanceDetail(true);
+        }
+      } catch (e) {
+        toast.error("Failed to load grievance details");
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (authUser) {
+      fetchNotifications();
+      fetchUnreadCount();
+
+      const interval = setInterval(() => {
+        fetchUnreadCount();
+        fetchNotifications();
+      }, 30000); // 30 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [authUser, fetchNotifications, fetchUnreadCount]);
+
   const roleName = (user?.role || "").toString().toLowerCase();
   const explicitLevel =
     typeof user?.level === "number" ? (user.level as number) : undefined;
@@ -1079,7 +1168,7 @@ function DashboardPageClientContent() {
       setShowGrievanceDetail(true);
       // Background fetch to ensure timeline and other details are fully loaded
       grievanceAPI.getById(grievanceId).then((response) => {
-        if (response.success) {
+        if (response.success && response.data?.grievance) {
           setSelectedGrievance(response.data.grievance);
         }
       });
@@ -1088,7 +1177,7 @@ function DashboardPageClientContent() {
 
     try {
       const response = await grievanceAPI.getById(grievanceId);
-      if (response.success) {
+      if (response.success && response.data?.grievance) {
         setSelectedGrievance(response.data.grievance);
         setShowGrievanceDetail(true);
       }
@@ -3219,8 +3308,12 @@ function DashboardPageClientContent() {
         refreshing={refreshing}
         onOpenMobileMenu={() => setIsMobileTabMenuOpen(true)}
         onRefresh={handleRefresh}
-        onLogout={logout}
         onProfileClick={handleProfileToggle}
+        notifications={notifications}
+        unreadCount={unreadCount}
+        onMarkAsRead={handleMarkNotificationAsRead}
+        onMarkAllAsRead={handleMarkAllNotificationsAsRead}
+        onNotificationClick={handleNotificationClick}
       />
 
       {/* Content wrapper */}

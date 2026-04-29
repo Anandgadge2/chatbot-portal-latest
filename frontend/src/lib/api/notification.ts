@@ -3,13 +3,20 @@ import { apiClient } from './client';
 export interface InAppNotification {
   _id: string;
   grievanceId?: string;
-  eventType: 'GRIEVANCE_RECEIVED' | 'GRIEVANCE_REMINDER' | 'GRIEVANCE_REVERTED';
+  eventType:
+    | 'GRIEVANCE_RECEIVED'
+    | 'GRIEVANCE_REMINDER'
+    | 'GRIEVANCE_REVERTED'
+    | 'GRIEVANCE_ASSIGNED'
+    | 'GRIEVANCE_REASSIGNED'
+    | 'GRIEVANCE_STATUS_UPGRADED';
   title: string;
   message: string;
   meta?: Record<string, any>;
   isRead: boolean;
   readAt?: string;
   createdAt: string;
+  grievanceObjectId?: string;
 }
 
 export interface NotificationApiMeta {

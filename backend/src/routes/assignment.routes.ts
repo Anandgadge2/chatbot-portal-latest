@@ -267,7 +267,7 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
     }).catch((err) => console.error('Failed to trigger admin assignment template:', err));
 
     // Notify assigned user (fire and forget - don't block response)
-    import('../services/notificationService').then(({ notifyUserOnAssignment }) => {
+    import('../services/notificationService').then(async ({ notifyUserOnAssignment }) => {
       notifyUserOnAssignment({
         type: 'grievance',
         action: 'assigned',
@@ -289,6 +289,36 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
         timeline: grievance.timeline
       }).catch(err => console.error('Failed to send assignment notification:', err));
 
+      // ✅ Trigger In-App Notification to Assignee
+      const { notifyUser, notifyCompanyAdmins } = await import('../services/inAppNotificationService');
+      await notifyUser({
+        userId: assignedUser._id,
+        companyId: grievance.companyId,
+        eventType: isReassignment ? 'GRIEVANCE_REASSIGNED' : 'GRIEVANCE_ASSIGNED',
+        title: isReassignment ? 'Grievance Reassigned' : 'Grievance Assigned',
+        message: `Grievance ${grievance.grievanceId} has been ${isReassignment ? 'reassigned' : 'assigned'} to you by ${currentUser.getFullName()}.`,
+        grievanceId: grievance.grievanceId,
+        grievanceObjectId: grievance._id,
+        meta: {
+          previousAssignee: oldAssignedTo,
+          remarks: (req.body as any).remarks || (req.body as any).reason || '',
+        },
+      });
+
+      // ✅ Trigger In-App Notification to Admins
+      await notifyCompanyAdmins({
+        companyId: grievance.companyId,
+        eventType: isReassignment ? 'GRIEVANCE_REASSIGNED' : 'GRIEVANCE_ASSIGNED',
+        title: isReassignment ? 'Grievance Assignment Update' : 'Grievance Assigned',
+        message: `Grievance ${grievance.grievanceId} has been ${isReassignment ? 'reassigned' : 'assigned'} to ${assignedUser.getFullName()} by ${currentUser.getFullName()}.`,
+        grievanceId: grievance.grievanceId,
+        grievanceObjectId: grievance._id,
+        meta: {
+          assignedTo: assignedUser._id,
+          previousAssignee: oldAssignedTo,
+          remarks: (req.body as any).remarks || (req.body as any).reason || '',
+        },
+      });
     });
 
     // Log action (fire and forget - don't block response)

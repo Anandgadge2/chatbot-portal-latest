@@ -3,7 +3,10 @@ import mongoose, { Document, Schema } from 'mongoose';
 export type NotificationEventType =
   | 'GRIEVANCE_RECEIVED'
   | 'GRIEVANCE_REMINDER'
-  | 'GRIEVANCE_REVERTED';
+  | 'GRIEVANCE_REVERTED'
+  | 'GRIEVANCE_ASSIGNED'
+  | 'GRIEVANCE_REASSIGNED'
+  | 'GRIEVANCE_STATUS_UPGRADED';
 
 export interface INotification extends Document {
   userId: mongoose.Types.ObjectId;
@@ -28,7 +31,14 @@ const NotificationSchema = new Schema<INotification>(
     grievanceObjectId: { type: Schema.Types.ObjectId, ref: 'Grievance' },
     eventType: {
       type: String,
-      enum: ['GRIEVANCE_RECEIVED', 'GRIEVANCE_REMINDER', 'GRIEVANCE_REVERTED'],
+      enum: [
+        'GRIEVANCE_RECEIVED',
+        'GRIEVANCE_REMINDER',
+        'GRIEVANCE_REVERTED',
+        'GRIEVANCE_ASSIGNED',
+        'GRIEVANCE_REASSIGNED',
+        'GRIEVANCE_STATUS_UPGRADED',
+      ],
       required: true,
       index: true,
     },

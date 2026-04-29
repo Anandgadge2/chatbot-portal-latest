@@ -28,3 +28,32 @@ export async function getDepartmentHierarchyIds(departmentId: string | string[])
   return Array.from(allIds);
 }
 
+/**
+ * Recursively find all parent department IDs for a given department.
+ * @param departmentId The child department ID to start from.
+ * @returns An array of department IDs (including the starting ID and all ancestors).
+ */
+export async function getDepartmentParentHierarchyIds(departmentId: string | string[]): Promise<string[]> {
+  const startIds = Array.isArray(departmentId) ? departmentId : [departmentId];
+  const allIds = new Set<string>(startIds.filter(Boolean));
+  let currentLevelIds = [...allIds];
+
+  while (currentLevelIds.length > 0) {
+    const departments = await Department.find({ 
+      _id: { $in: currentLevelIds } 
+    }).select('parentDepartmentId');
+    
+    currentLevelIds = [];
+    for (const dept of departments) {
+      if (dept.parentDepartmentId) {
+        const parentId = dept.parentDepartmentId.toString();
+        if (!allIds.has(parentId)) {
+          allIds.add(parentId);
+          currentLevelIds.push(parentId);
+        }
+      }
+    }
+  }
+
+  return Array.from(allIds);
+}

@@ -222,6 +222,20 @@ export function DashboardNavigation({
               </>
             )}
           </TabsList>
+          
+          <div className="mt-auto p-2 border-t border-slate-100">
+            <Button
+              onClick={onLogout}
+              variant="ghost"
+              className="w-full justify-center group-hover:justify-start h-10 px-0 group-hover:px-4 rounded-xl text-rose-500 hover:text-rose-600 hover:bg-rose-50 transition-all duration-200"
+              title="Logout Account"
+            >
+              <Power className="w-4 h-4 shrink-0" />
+              <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap font-bold text-xs uppercase tracking-wide">
+                Logout
+              </span>
+            </Button>
+          </div>
         </div>
       </aside>
 

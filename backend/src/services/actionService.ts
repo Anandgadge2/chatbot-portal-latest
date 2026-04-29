@@ -317,12 +317,51 @@ export class ActionService {
           autoAssigned = true;
           assignedAdmins = [targetAdmin];
           session.data.assignedToName = targetAdmin.getFullName();
+          logger.info(`✅ Grievance ${grievance.grievanceId} auto-assigned to ${targetAdmin.getFullName()}`);
         }
       }
 
       await updateSession(session);
       
-      // ✅ PREPARE NOTIFICATIONS
+      // ✅ IN-APP NOTIFICATION (InAppNotificationService)
+      try {
+        // 1. Notify Company/Dept admins about the NEW grievance (Hierarchy: Sub-Dept -> Dept -> Company)
+        const { notifyDepartmentAdmins, notifyUser } = await import('./inAppNotificationService');
+        if (targetDeptId) {
+          await notifyDepartmentAdmins({
+            companyId: company._id,
+            departmentId: targetDeptId,
+            eventType: 'GRIEVANCE_RECEIVED',
+            title: 'New Grievance Received',
+            message: `Grievance ${grievance.grievanceId} received from ${citizenName}.`,
+            grievanceId: grievance.grievanceId,
+            grievanceObjectId: grievance._id,
+            meta: { 
+              category: session.data.category,
+              department: session.data.departmentName,
+              subDepartment: session.data.subDepartmentName
+            }
+          });
+        }
+
+        // 2. If auto-assigned, notify the specific assignee
+        if (autoAssigned && assignedAdmins.length > 0) {
+          const targetAdmin = assignedAdmins[0];
+          await notifyUser({
+            userId: targetAdmin._id,
+            companyId: company._id,
+            eventType: 'GRIEVANCE_ASSIGNED',
+            title: 'Grievance Assigned (Auto)',
+            message: `Grievance ${grievance.grievanceId} has been auto-assigned to you.`,
+            grievanceId: grievance.grievanceId,
+            grievanceObjectId: grievance._id
+          });
+        }
+      } catch (inAppErr) {
+        logger.error('⚠️ In-App Notification trigger failed in ActionService:', inAppErr);
+      }
+
+      // ✅ PREPARE EXTERNAL NOTIFICATIONS (WhatsApp/Email)
       logger.info(`🔍 [ActionService] Creating Grievance ${grievance.grievanceId}. Session Desc: "${session.data.description || ''}", Flow Prop: "${session.data.grievance_description || ''}"`);
       const notificationData = {
         grievanceId: grievance.grievanceId,

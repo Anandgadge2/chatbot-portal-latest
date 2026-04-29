@@ -20,9 +20,15 @@ type DashboardHeaderProps = {
   refreshing: boolean;
   onOpenMobileMenu: () => void;
   onRefresh: () => void;
-  onLogout: () => void;
   onProfileClick: () => void;
+  notifications?: any[];
+  unreadCount?: number;
+  onMarkAsRead?: (id: string) => void;
+  onMarkAllAsRead?: () => void;
+  onNotificationClick?: (notification: any) => void;
 };
+
+import { NotificationPopover } from "./NotificationPopover";
 
 export function DashboardHeader({
   user,
@@ -38,8 +44,12 @@ export function DashboardHeader({
   refreshing,
   onOpenMobileMenu,
   onRefresh,
-  onLogout,
   onProfileClick,
+  notifications = [],
+  unreadCount = 0,
+  onMarkAsRead = () => {},
+  onMarkAllAsRead = () => {},
+  onNotificationClick = () => {},
 }: DashboardHeaderProps) {
   return (
     <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 transition-all duration-300 shadow-xl overflow-hidden">
@@ -152,14 +162,13 @@ export function DashboardHeader({
                   )}
                 />
               </Button>
-              <Button
-                onClick={onLogout}
-                variant="ghost"
-                className="h-9 w-9 sm:h-10 sm:w-10 p-0 text-rose-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all duration-300 border border-transparent hover:border-rose-500/20 flex items-center justify-center"
-                title="Logout Account"
-              >
-                <Power className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
-              </Button>
+              <NotificationPopover
+                notifications={notifications}
+                unreadCount={unreadCount}
+                onMarkAsRead={onMarkAsRead}
+                onMarkAllAsRead={onMarkAllAsRead}
+                onNotificationClick={onNotificationClick}
+              />
               <button
                 onClick={onProfileClick}
                 className="flex h-9 w-9 sm:h-10 sm:w-10 bg-white/20 rounded-xl items-center justify-center border border-white/50 shadow-[0_0_15px_rgba(255,255,255,0.1)] group hover:bg-white/30 transition-all duration-300 active:scale-95"

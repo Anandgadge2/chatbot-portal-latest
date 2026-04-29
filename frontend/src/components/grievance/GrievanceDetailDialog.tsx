@@ -205,8 +205,11 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
   };
 
   const statusConfig = getStatusConfig(grievance.status);
-  const createdDate = new Date(grievance.createdAt);
-  const timeAgo = formatDistanceToNow(createdDate, { addSuffix: true });
+  const createdDate = grievance.createdAt ? new Date(grievance.createdAt) : null;
+  const timeAgo = (createdDate && !isNaN(createdDate.getTime())) 
+    ? formatDistanceToNow(createdDate, { addSuffix: true }) 
+    : "Recently";
+  
   const latestTransferContext = [...(grievance.timeline || [])]
     .reverse()
     .find((event: any) => {
@@ -268,7 +271,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                 </span>
               </div>
               <p className="text-xs font-bold text-slate-300 uppercase tracking-widest mt-0.5">
-                Submitted {timeAgo} • {formatDate(createdDate)}
+                Submitted {timeAgo} {createdDate && !isNaN(createdDate.getTime()) ? `• ${formatDate(createdDate)}` : ""}
               </p>
             </div>
           </div>
@@ -736,7 +739,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                         Grievance Registered
                       </span>
                       <span className="text-[9px] font-bold text-slate-400 font-mono">
-                        {formatDateTime(createdDate)}
+                        {createdDate && !isNaN(createdDate.getTime()) ? formatDateTime(createdDate) : "N/A"}
                       </span>
                     </div>
                     <p className="text-xs text-slate-500 font-medium leading-relaxed bg-slate-50 p-2.5 rounded-lg border border-slate-100 break-words">

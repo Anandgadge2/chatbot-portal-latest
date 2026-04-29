@@ -983,7 +983,7 @@ export default function DepartmentDetail() {
                                     <button
                                       onClick={async () => {
                                         const response = await grievanceAPI.getById(g._id);
-                                        if (response.success) {
+                                        if (response.success && response.data?.grievance) {
                                           setSelectedGrievance(response.data.grievance);
                                           setShowGrievanceDetail(true);
                                         }
@@ -1057,7 +1057,7 @@ export default function DepartmentDetail() {
                                     <button
                                       onClick={async () => {
                                         const response = await grievanceAPI.getById(g._id);
-                                        if (response.success) {
+                                        if (response.success && response.data?.grievance) {
                                           setSelectedGrievance(response.data.grievance);
                                           setShowGrievanceDetail(true);
                                         }
