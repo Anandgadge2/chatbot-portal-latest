@@ -1,6 +1,15 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const resolveApiUrl = (): string => {
+  const fromEnv = (process.env.NEXT_PUBLIC_API_URL || '').trim();
+  if (fromEnv) return fromEnv.replace(/\/+$/, '');
+
+  if (typeof window !== 'undefined') {
+    return `${window.location.origin}/api`;
+  }
+
+  return 'http://localhost:5000/api';
+};
 
 class APIClient {
   private client: AxiosInstance;
@@ -9,7 +18,7 @@ class APIClient {
 
   constructor() {
     this.client = axios.create({
-      baseURL: API_URL,
+      baseURL: resolveApiUrl(),
       headers: {
         'Content-Type': 'application/json',
       },
