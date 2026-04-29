@@ -99,9 +99,22 @@ export default function GrievancesPage() {
     setAssignDialogOpen(true);
   };
 
-  const handleAssign = async (userId: string, departmentId?: string, note?: string, additionalDepartmentIds?: string[]) => {
+  const handleAssign = async (
+    userId: string,
+    departmentId?: string,
+    note?: string,
+    additionalDepartmentIds?: string[],
+    additionalAssigneeIds?: string[]
+  ) => {
     if (!grievanceToAssign) return;
-    await grievanceAPI.assign(grievanceToAssign._id, userId, departmentId, note, additionalDepartmentIds);
+    await grievanceAPI.assign(
+      grievanceToAssign._id,
+      userId,
+      departmentId,
+      note,
+      additionalDepartmentIds,
+      additionalAssigneeIds
+    );
     await fetchGrievances();
   };
 

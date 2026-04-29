@@ -7,6 +7,7 @@ export interface IGrievance extends Document {
   departmentId?: mongoose.Types.ObjectId;
   subDepartmentId?: mongoose.Types.ObjectId; // 🏢 Added for hierarchical departments
   additionalDepartmentIds?: mongoose.Types.ObjectId[];
+  additionalAssigneeIds?: mongoose.Types.ObjectId[];
   citizenName: string;
   citizenPhone: string;
   phone_number: string;
@@ -82,6 +83,10 @@ const GrievanceSchema: Schema = new Schema(
     additionalDepartmentIds: [{
       type: Schema.Types.ObjectId,
       ref: 'Department'
+    }],
+    additionalAssigneeIds: [{
+      type: Schema.Types.ObjectId,
+      ref: 'User'
     }],
     citizenName: {
       type: String,

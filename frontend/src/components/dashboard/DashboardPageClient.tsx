@@ -1367,6 +1367,8 @@ function DashboardPageClientContent() {
     userId: string,
     departmentId?: string,
     note?: string,
+    additionalDepartmentIds?: string[],
+    additionalAssigneeIds?: string[],
   ) => {
     if (!selectedGrievanceForAssignment) return;
     await grievanceAPI.assign(
@@ -1374,6 +1376,8 @@ function DashboardPageClientContent() {
       userId,
       departmentId,
       note,
+      additionalDepartmentIds,
+      additionalAssigneeIds,
     );
     fetchGrievances(grievancePage, true);
     fetchDashboardData(true);

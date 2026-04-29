@@ -920,7 +920,14 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_GRIEVANCE, 
 // @access  Private
 router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async (req: Request, res: Response) => {
   try {
-    const { assignedTo, departmentId, note, description, additionalDepartmentIds } = req.body;
+    const {
+      assignedTo,
+      departmentId,
+      note,
+      description,
+      additionalDepartmentIds,
+      additionalAssigneeIds
+    } = req.body;
 
     if (!assignedTo) {
       res.status(400).json({
@@ -980,8 +987,20 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
     const normalizedAdditionalDepartmentIds = Array.isArray(additionalDepartmentIds)
       ? Array.from(new Set(additionalDepartmentIds.map((id: any) => String(id)).filter(Boolean)))
       : [];
+    const normalizedAdditionalAssigneeIds = Array.isArray(additionalAssigneeIds)
+      ? Array.from(
+          new Set(
+            additionalAssigneeIds
+              .map((id: any) => String(id).trim())
+              .filter((id: string) => id && id !== assignedToValue)
+          )
+        )
+      : [];
 
-    if (normalizedAdditionalDepartmentIds.length > 0 && !(isCompanyAdmin || currentUser.isSuperAdmin)) {
+    if (
+      (normalizedAdditionalDepartmentIds.length > 0 || normalizedAdditionalAssigneeIds.length > 0) &&
+      !(isCompanyAdmin || currentUser.isSuperAdmin)
+    ) {
       res.status(403).json({
         success: false,
         message: 'Only company admin can assign grievance to multiple departments'
@@ -1006,6 +1025,26 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
       grievance.additionalDepartmentIds = additionalDepartments.map((department) => department._id) as any;
     } else {
       grievance.additionalDepartmentIds = [];
+    }
+
+    let additionalAssigneeUsers: any[] = [];
+    if (normalizedAdditionalAssigneeIds.length > 0) {
+      additionalAssigneeUsers = await User.find({
+        _id: { $in: normalizedAdditionalAssigneeIds },
+        ...(currentUser.isSuperAdmin ? {} : { companyId: currentUser.companyId })
+      }).select('_id firstName lastName phone departmentIds');
+
+      if (additionalAssigneeUsers.length !== normalizedAdditionalAssigneeIds.length) {
+        res.status(400).json({
+          success: false,
+          message: 'One or more selected users are invalid for this company'
+        });
+        return;
+      }
+
+      grievance.additionalAssigneeIds = additionalAssigneeUsers.map((user) => user._id) as any;
+    } else {
+      grievance.additionalAssigneeIds = [];
     }
     const oldAssignedTo = grievance.assignedTo;
     const oldStatus = grievance.status;
@@ -1122,6 +1161,22 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
         performedBy: req.user!._id,
         timestamp: new Date()
       });
+    }
+
+    if (normalizedAdditionalAssigneeIds.length > 0) {
+      grievance.timeline.push({
+        action: 'MULTI_USER_ASSIGNMENT',
+        details: {
+          grievanceId: grievance.grievanceId,
+          primaryAssigneeId: assignedUser._id,
+          additionalAssigneeIds: normalizedAdditionalAssigneeIds
+        },
+        performedBy: req.user!._id,
+        timestamp: new Date()
+      });
+    }
+
+    if (normalizedAdditionalDepartmentIds.length > 0 || normalizedAdditionalAssigneeIds.length > 0) {
       await grievance.save();
     }
 
@@ -1136,7 +1191,13 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
     // 🚀 BACKGROUND NOTIFICATIONS: Fire and forget to keep UI responsive
     (async () => {
       try {
-        if (assignedUser.phone) {
+        const allRecipientUsers = [assignedUser, ...additionalAssigneeUsers].filter(
+          (user, index, users) =>
+            user?.phone &&
+            users.findIndex((candidate) => candidate?._id?.toString() === user?._id?.toString()) === index
+        );
+
+        if (allRecipientUsers.length > 0) {
           const { triggerAdminAssignmentNotification } = await import('../services/grievanceTemplateTriggerService');
           await triggerAdminAssignmentNotification({
             // useReassignedTemplate: company admin / super admin cross-dept reassignment
@@ -1149,7 +1210,7 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
             category: currentDepartmentName,
             subDepartmentName: currentOfficeName,
             description: grievance.description,
-            recipientPhones: [assignedUser.phone],
+            recipientPhones: allRecipientUsers.map((user) => user.phone).filter(Boolean),
             language: grievance.language,
             assignedByName: req.user!.getFullName(),
             reassignedByName: req.user!.getFullName(),
@@ -1207,6 +1268,29 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
             meta: { remarks: transferNote }
           });
 
+          if (additionalAssigneeUsers.length > 0) {
+            await Promise.all(
+              additionalAssigneeUsers.map((user) =>
+                notifyUser({
+                  userId: user._id,
+                  companyId: grievance.companyId,
+                  eventType: isReassignment ? 'GRIEVANCE_REASSIGNED' : 'GRIEVANCE_ASSIGNED',
+                  title: isReassignment ? 'Grievance Reassigned' : 'Grievance Assigned',
+                  message: isReassignment
+                    ? `Grievance ${grievance.grievanceId} has also been assigned to you by ${req.user!.getFullName()}.`
+                    : `Grievance ${grievance.grievanceId} has also been assigned to you for action.`,
+                  grievanceId: grievance.grievanceId,
+                  grievanceObjectId: grievance._id,
+                  meta: {
+                    remarks: transferNote,
+                    primaryAssignee: assignedUser.getFullName(),
+                    isAdditionalAssignee: true
+                  }
+                })
+              )
+            );
+          }
+
           // 2. Notify Company/Dept admins about the assignment change (Hierarchy: Sub-Dept -> Dept -> Company)
           const targetDeptId = grievance.subDepartmentId || grievance.departmentId;
           if (targetDeptId) {
@@ -1234,7 +1318,12 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
       AuditAction.ASSIGN,
       'Grievance',
       grievance._id.toString(),
-      { assignedTo, departmentId }
+      {
+        assignedTo,
+        departmentId,
+        additionalDepartmentIds: normalizedAdditionalDepartmentIds,
+        additionalAssigneeIds: normalizedAdditionalAssigneeIds
+      }
     ).catch(err => logger.error('[Assignment] Audit log failed:', err));
 
     res.json({
