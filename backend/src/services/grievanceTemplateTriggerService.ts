@@ -121,13 +121,35 @@ export async function triggerAdminTemplate(options: {
 
   if (recipients.length === 0) return;
 
+  const recipientProfiles = await User.find({
+    companyId: options.companyId,
+    phone: { $in: recipients }
+  }).select('phone firstName lastName').lean();
+
+  const recipientNameByPhone = new Map<string, string>();
+  for (const profile of recipientProfiles as any[]) {
+    const normalizedPhone = normalizePhoneNumber(profile.phone);
+    if (!normalizedPhone) continue;
+    const fullName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'Administrator';
+    recipientNameByPhone.set(normalizedPhone, fullName);
+  }
+
   const results = await Promise.allSettled(
-    recipients.map((to) =>
-      sendWhatsAppTemplate(company, to, options.event, safeData || safeValues, language, undefined, undefined, {
+    recipients.map((to) => {
+      const recipientName = recipientNameByPhone.get(to) || safeData?.admin_name || safeData?.recipient_name || 'Administrator';
+      const payloadData = safeData
+        ? {
+            ...safeData,
+            admin_name: sanitizeTemplateDataValue('admin_name', recipientName),
+            recipient_name: sanitizeTemplateDataValue('recipient_name', recipientName)
+          }
+        : safeValues;
+
+      return sendWhatsAppTemplate(company, to, options.event, payloadData, language, undefined, undefined, {
         recipientType: 'ADMIN',
         citizenPhone: options.citizenPhone
-      })
-    )
+      });
+    })
   );
 
   const failures = results.filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
@@ -234,6 +256,8 @@ export async function triggerCitizenStatusTemplate(options: {
       department_name: sanitizeText(options.departmentName, 60),
       sub_department_name: sanitizeText(options.subDepartmentName || 'N/A', 60),
       grievance_summary: sanitizeGrievanceDetailsForTemplate(options.grievanceSummary || options.remarks || 'N/A', 400),
+      action_by: sanitizeText(options.resolvedByName || 'Assigned Officer', 60),
+      action_on: sanitizeText(options.formattedResolvedDate || formatTemplateDate(), 60),
       status: sanitizeText(statusLabel, 30),
       dynamic_message: sanitizeNote(extraMessage),
       remarks: sanitizeNote(extraMessage)

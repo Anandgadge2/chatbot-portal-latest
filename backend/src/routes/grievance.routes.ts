@@ -1450,10 +1450,6 @@ router.post('/:id/reminder', requirePermission(Permission.UPDATE_GRIEVANCE), asy
     const departmentName = (grievance.departmentId as any)?.name || grievance.category || 'Collector & DM';
     const officeName = (grievance.subDepartmentId as any)?.name || 'N/A';
     const dashboardUrl = process.env.FRONTEND_URL || 'https://connect.pugarch.in/';
-    const assigneeName = assignedUser
-      ? `${assignedUser.firstName || ''} ${assignedUser.lastName || ''}`.trim() || 'Assigned Officer'
-      : 'Department Admin';
-
     if (recipientPhones.length > 0) {
       await triggerAdminTemplate({
         event: 'grievance_reminder_admin_v2',
@@ -1462,7 +1458,7 @@ router.post('/:id/reminder', requirePermission(Permission.UPDATE_GRIEVANCE), asy
         recipientPhones,
         citizenPhone: grievance.citizenPhone,
         data: {
-          recipient_name: assigneeName,
+          admin_name: 'Administrator',
           grievance_id: grievance.grievanceId,
           citizen_name: grievance.citizenName || 'N/A',
           department_name: departmentName,

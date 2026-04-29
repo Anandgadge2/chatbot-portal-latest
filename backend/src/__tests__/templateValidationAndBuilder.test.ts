@@ -2,6 +2,7 @@ import { buildCitizenMessage } from '../services/citizenMessageBuilder';
 import { sanitizeText, sanitizeGrievanceDetails, sanitizeNote } from '../utils/sanitize';
 import { validateTemplateVariables } from '../services/templateValidationService';
 import { buildTemplatePayload } from '../services/whatsapp/payload.builder';
+import { formatTemplateDateTime } from '../utils/templateDateTime';
 
 describe('template safety and builder', () => {
   it('sanitizes urls and special chars', () => {
@@ -110,6 +111,12 @@ describe('template safety and builder', () => {
     const body = payload.components.find((component) => component.type === 'body');
     expect(body.parameters[6].text).toBe('26 April 2026 at 11:43:20 pm');
     expect(body.parameters[7].text).toBe('26 April 2026 at 12:01:09 pm');
+  });
+
+  it('formats template datetime in the required admin reminder format', () => {
+    expect(formatTemplateDateTime(new Date('2026-04-29T11:47:36.000Z'))).toBe(
+      '29 April 2026 at 05:17:36 pm'
+    );
   });
 
   it('builds citizen status template using summary and dynamic message values', () => {

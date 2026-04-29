@@ -4,7 +4,11 @@ import CompanyWhatsAppConfig from '../models/CompanyWhatsAppConfig';
 import WhatsAppTemplate from '../models/WhatsAppTemplate';
 import WhatsAppTemplateSyncLog from '../models/WhatsAppTemplateSyncLog';
 import { logger } from '../config/logger';
-import { deactivateMissingTemplates, upsertNormalizedTemplate } from './whatsappTemplateRepository';
+import {
+  deactivateMissingTemplates,
+  ensureAutoTemplateMappings,
+  upsertNormalizedTemplate
+} from './whatsappTemplateRepository';
 
 function extractVariables(text: string): number {
   const matches = text.match(/\{\{\d+\}\}/g) || [];
@@ -72,6 +76,7 @@ export async function syncTemplatesForCompany(companyId: mongoose.Types.ObjectId
   let fetchedCount = 0;
   let upsertedCount = 0;
   let deactivatedCount = 0;
+  let autoMappedCount = 0;
 
   try {
     const headers = {
@@ -127,6 +132,12 @@ export async function syncTemplatesForCompany(companyId: mongoose.Types.ObjectId
       await upsertNormalizedTemplate(companyId, normalized);
       upsertedCount += 1;
     }
+
+    autoMappedCount = await ensureAutoTemplateMappings(
+      companyId,
+      validTemplates.map((template: any) => String(template?.name || '').trim())
+    );
+
     deactivatedCount = await deactivateMissingTemplates(companyId, config.businessAccountId, incomingKeys);
 
     await WhatsAppTemplateSyncLog.create({
@@ -137,7 +148,7 @@ export async function syncTemplatesForCompany(companyId: mongoose.Types.ObjectId
       deactivatedCount
     });
 
-    return { fetchedCount, upsertedCount, deactivatedCount };
+    return { fetchedCount, upsertedCount, deactivatedCount, autoMappedCount };
   } catch (error: any) {
     const status = error?.response?.status;
     const errorMessage = error?.response?.data?.error?.message || error.message;

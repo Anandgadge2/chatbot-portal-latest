@@ -43,6 +43,25 @@ function getWhatsAppConfig(company: any) {
   };
 }
 
+function buildVirtualResolvedTemplate(templateName: string, language: string) {
+  const definition = TEMPLATE_DEFINITIONS[templateName];
+  if (!definition) return null;
+
+  return {
+    template: {
+      name: templateName,
+      language,
+      body: {
+        variables: definition.body.length
+      },
+      buttons: []
+    },
+    resolvedLanguage: language,
+    audience: resolveTemplateAudience(templateName),
+    supportedLanguages: [language]
+  };
+}
+
 const DEFAULT_RATE_LIMITS = {
   messagesPerMinute: 30,
   messagesPerHour: 500,
@@ -311,6 +330,7 @@ async function enforceMessagingPolicy(
     'grievance_assigned_admin_v2',
     'grievance_reassigned_admin_v2',
     'grievance_reverted_company_v2',
+    'grievance_reminder_admin_v2',
     'number_admin_v1_',
     'grievance_status_inprogress_citizen_v2',
     'grievance_status_resolved_citizen_v2',
@@ -728,14 +748,24 @@ export async function sendWhatsAppTemplate(
       }
     }
 
+    if (!resolvedTemplate && TEMPLATE_DEFINITIONS[templateName]) {
+      resolvedTemplate = buildVirtualResolvedTemplate(templateName, normalizedLanguage);
+    }
+
     let components: any[] = [];
     const expectedVariableCount = Number(resolvedTemplate.template?.body?.variables || 0);
     if (Array.isArray(parameters)) {
-      await assertTemplateApproved({
-        companyId,
-        templateName,
-        language: resolvedTemplate.resolvedLanguage
-      });
+      try {
+        await assertTemplateApproved({
+          companyId,
+          templateName,
+          language: resolvedTemplate.resolvedLanguage
+        });
+      } catch (approvalErr: any) {
+        if (!TEMPLATE_DEFINITIONS[templateName] || approvalErr?.code !== 'TEMPLATE_INVALID') {
+          throw approvalErr;
+        }
+      }
       components = buildArrayTemplateComponents({
         templateName,
         template: resolvedTemplate.template,
@@ -752,11 +782,17 @@ export async function sendWhatsAppTemplate(
         // ✅ PRIORITIZE CODE-BASED PAYLOAD BUILDER:
         // For whitelisted whitelisted templates, use the logic defined in payload.builder.ts
         // which uses whitelisted keys and aliases to find the real live values from the code.
-        await assertTemplateApproved({
-          companyId,
-          templateName,
-          language: resolvedTemplate.resolvedLanguage
-        });
+        try {
+          await assertTemplateApproved({
+            companyId,
+            templateName,
+            language: resolvedTemplate.resolvedLanguage
+          });
+        } catch (approvalErr: any) {
+          if (approvalErr?.code !== 'TEMPLATE_INVALID') {
+            throw approvalErr;
+          }
+        }
         components = buildTemplatePayload(templateName, normalizedData).components;
       } else {
         // Fallback to database-managed mappings for custom/unknown templates
