@@ -40,6 +40,7 @@ import leadRoutes from './routes/lead.routes';
 import roleRoutes from './routes/role.routes';
 import moduleRoutes from './routes/module.routes';
 import whatsappTemplateRoutes from './routes/whatsappTemplate.routes';
+import notificationRoutes from './routes/notification.routes';
 import { startWhatsAppTemplateSyncCron } from './services/whatsappTemplateSyncCron';
 
 // Import middleware
@@ -239,6 +240,7 @@ app.use('/api/leads', leadRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/modules', moduleRoutes);
 app.use('/api/templates', whatsappTemplateRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // ================================
 // Error Handling
