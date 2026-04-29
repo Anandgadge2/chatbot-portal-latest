@@ -4,17 +4,18 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
-import mongoose from 'mongoose';
 import 'express-async-errors';
 
 // Load environment variables
 dotenv.config();
 
 // Import configurations
-import { connectDatabase, closeDatabase, isDatabaseConnected } from './config/database';
+import { connectDatabase, closeDatabase, getDatabaseStatus, isDatabaseConnected } from './config/database';
 import { connectRedis, disconnectRedis } from './config/redis';
 import { logger } from './config/logger'; 
 import { configureCloudinary } from './config/cloudinary';
+import { validateRequiredEnv } from './config/env';
+import User from './models/User';
 
 // Import routes
 import authRoutes from './routes/auth.routes';
@@ -52,6 +53,8 @@ import { tenantLimiter } from './middleware/rateLimiter';
 
 const app: Application = express();
 const PORT = process.env.PORT || 5001;
+let startupInitializationPromise: Promise<void> | null = null;
+let startupInitializationError: Error | null = null;
 
 // Trust proxy (required when behind Vercel/nginx; fixes express-rate-limit X-Forwarded-For validation)
 app.set('trust proxy', 1);
@@ -182,6 +185,14 @@ if (process.env.NODE_ENV === 'development') {
 // On Vercel/serverless, ensure DB is connected before any /api route (avoids "users.findOne() buffering timed out")
 const ensureDb = async (_req: Request, _res: Response, next: (err?: any) => void) => {
   try {
+    if (startupInitializationPromise) {
+      await startupInitializationPromise;
+    }
+
+    if (startupInitializationError) {
+      throw startupInitializationError;
+    }
+
     if (isDatabaseConnected()) return next();
     
     logger.info(`⏳ Middleware ensuring DB connection for: ${_req.url}`);
@@ -196,11 +207,14 @@ app.use('/api', ensureDb);
 
 // Health check (basic)
 app.get('/health', (_req: Request, res: Response) => {
+  const dbStatus = getDatabaseStatus();
+
   res.json({
     status: 'OK',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    environment: process.env.NODE_ENV
+    environment: process.env.NODE_ENV,
+    database: dbStatus
   });
 });
 
@@ -255,6 +269,8 @@ app.use(errorHandler);
 // ================================
 // Server Initialization
 const init = async () => {
+  validateRequiredEnv();
+
   // Configure Cloudinary
   try {
     configureCloudinary();
@@ -263,10 +279,11 @@ const init = async () => {
   }
 
   // Connect to MongoDB
-  try {
-    await connectDatabase();
-  } catch (error: any) {
-    logger.error('MongoDB connection failed:', error.message);
+  await connectDatabase();
+
+  const userCount = await User.countDocuments();
+  if (userCount === 0) {
+    logger.error('CRITICAL: users collection is empty at startup');
   }
 
   // ✅ Production safety: ensure indexes match current schemas (ONLY in development/CI, not on every Vercel request)
@@ -307,10 +324,21 @@ const init = async () => {
   }
 };
 
+const runInitialization = (): Promise<void> => {
+  if (!startupInitializationPromise) {
+    startupInitializationPromise = init().catch((error: Error) => {
+      startupInitializationError = error;
+      throw error;
+    });
+  }
+
+  return startupInitializationPromise;
+};
+
 // For local development
 if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
   const startServer = async () => {
-    await init();
+    await runInitialization();
     
     // Create server instance
     const server = app.listen(PORT, () => {
@@ -359,7 +387,7 @@ if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
 } else {
   // In Vercel environment, init needs to be handled
   // We'll call it once at the top level if supported, or rely on lazy-loading
-  init().catch(err => logger.error('Vercel initialization failed:', err));
+  runInitialization().catch(err => logger.error('Vercel initialization failed:', err));
 }
 
 // Handle unhandled promise rejections

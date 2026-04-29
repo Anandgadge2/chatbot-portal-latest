@@ -1,87 +1,125 @@
 import mongoose from 'mongoose';
 import { logger } from './logger';
+import { installDatabaseSafetyGuards } from '../utils/databaseSafety';
+
+const MAX_CONNECTION_RETRIES = 3;
+const RETRY_DELAY_MS = 2000;
+
+const CONNECTION_OPTIONS = {
+  maxPoolSize: 10,
+  minPoolSize: 2,
+  serverSelectionTimeoutMS: 15000,
+  socketTimeoutMS: 45000,
+  connectTimeoutMS: 15000,
+  autoIndex: process.env.NODE_ENV !== 'production',
+  family: 4
+} as const;
 
 let connectionPromise: Promise<void> | null = null;
+let connectionListenersAttached = false;
 
-export const connectDatabase = async (retryCount = 1): Promise<void> => {
-  try {
-    const mongoUri = process.env.MONGODB_URI;
+const attachConnectionListeners = (): void => {
+  if (connectionListenersAttached) {
+    return;
+  }
 
-    if (!mongoUri) {
-      const error = new Error('MONGODB_URI is not defined');
-      logger.error('❌ ' + error.message);
-      throw error;
-    }
+  connectionListenersAttached = true;
 
-    // 1. If already connected, return immediately
-    if (mongoose.connection.readyState === 1) {
-      return;
-    }
+  mongoose.connection.on('connected', () => {
+    logger.info(`MongoDB connected: ${mongoose.connection.host}/${mongoose.connection.name}`);
+  });
 
-    // 2. If connecting, wait for the existing promise
-    if (mongoose.connection.readyState === 2 && connectionPromise) {
-      logger.info('⏳ Database connection already in progress, waiting...');
-      return connectionPromise;
-    }
+  mongoose.connection.on('error', (error) => {
+    logger.error(`MongoDB connection error: ${error.message}`);
+  });
 
-    // 3. Start a new connection
-    const options = {
-      maxPoolSize: 10,
-      serverSelectionTimeoutMS: 15000, // Increased for more reliability during cold starts
-      socketTimeoutMS: 45000,
-      connectTimeoutMS: 15000, // Increased to allow more time for handshake
-      autoIndex: true,
-      family: 4 // Force IPv4 to prevent resolution issues
-    };
+  mongoose.connection.on('disconnected', () => {
+    logger.warn('MongoDB disconnected');
+  });
+};
 
-    logger.info(`🔌 Connecting to MongoDB (v${mongoose.version})...`);
-    
-    // Set global buffer timeout shorter for serverless
-    mongoose.set('bufferTimeoutMS', 10000);
+const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
-    connectionPromise = mongoose.connect(mongoUri, options).then(() => {
-      logger.info('✅ MongoDB connected successfully');
+export const connectDatabase = async (attempt = 1): Promise<void> => {
+  const mongoUri = process.env.MONGODB_URI;
+
+  if (!mongoUri) {
+    const error = new Error('MONGODB_URI is not defined');
+    logger.error(error.message);
+    throw error;
+  }
+
+  if (mongoose.connection.readyState === 1) {
+    return;
+  }
+
+  if (mongoose.connection.readyState === 2 && connectionPromise) {
+    logger.info('MongoDB connection already in progress, waiting for existing attempt');
+    return connectionPromise;
+  }
+
+  attachConnectionListeners();
+  mongoose.set('bufferTimeoutMS', 10000);
+
+  logger.info(`Connecting to MongoDB (attempt ${attempt}/${MAX_CONNECTION_RETRIES})`);
+
+  connectionPromise = mongoose.connect(mongoUri, CONNECTION_OPTIONS)
+    .then(() => {
+      installDatabaseSafetyGuards(mongoose.connection);
+      logger.info('MongoDB connection established successfully');
       connectionPromise = null;
+    })
+    .catch((error: any) => {
+      connectionPromise = null;
+      logger.error(`MongoDB connection attempt ${attempt} failed: ${error.message}`);
+      throw error;
     });
 
+  try {
     await connectionPromise;
-
   } catch (error: any) {
-    connectionPromise = null;
-    
-    if (retryCount > 0) {
-      logger.warn(`⚠️ MongoDB connection attempt failed. Retrying in 2 seconds... (${retryCount} retries left)`);
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      return connectDatabase(retryCount - 1);
+    if (attempt < MAX_CONNECTION_RETRIES) {
+      logger.warn(`Retrying MongoDB connection in ${RETRY_DELAY_MS}ms`);
+      await delay(RETRY_DELAY_MS);
+      return connectDatabase(attempt + 1);
     }
 
-    logger.error('❌ Failed to connect to MongoDB:', error.message);
-    
+    logger.error('MongoDB connection failed after maximum retry attempts');
+
     if (error.reason) {
-      logger.error('🔍 Server Selection Reason:', JSON.stringify(error.reason, null, 2));
+      logger.error(`MongoDB server selection reason: ${JSON.stringify(error.reason)}`);
     }
 
-    if (error.message.includes('IP') || error.message.includes('whitelist') || error.message.includes('selection')) {
-      logger.error('💡 Connection Issue: If this persists, verify your MongoDB Atlas IP Whitelist (0.0.0.0/0 recommended for dynamic IPs).');
-    }
-    
     throw error;
   }
 };
 
-/**
- * Check if database is connected
- */
-export const isDatabaseConnected = (): boolean => {
-  return mongoose.connection.readyState === 1;
+export const isDatabaseConnected = (): boolean => mongoose.connection.readyState === 1;
+
+export const getDatabaseStatus = () => {
+  const stateMap: Record<number, string> = {
+    0: 'disconnected',
+    1: 'connected',
+    2: 'connecting',
+    3: 'disconnecting',
+    99: 'uninitialized'
+  };
+
+  return {
+    connected: mongoose.connection.readyState === 1,
+    readyState: mongoose.connection.readyState,
+    state: stateMap[mongoose.connection.readyState] || 'unknown',
+    host: mongoose.connection.host,
+    port: mongoose.connection.port,
+    name: mongoose.connection.name
+  };
 };
 
-// Export closeDatabase for graceful shutdown
 export const closeDatabase = async (): Promise<void> => {
   try {
     await mongoose.connection.close();
-    logger.info('✅ MongoDB connection closed gracefully');
-  } catch (error) {
-    logger.error('❌ Error closing MongoDB:', error);
+    logger.info('MongoDB connection closed gracefully');
+  } catch (error: any) {
+    logger.error(`Error closing MongoDB connection: ${error.message}`);
   }
 };

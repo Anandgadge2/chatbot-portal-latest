@@ -10,6 +10,7 @@ import { authenticate } from '../middleware/auth';
 import crypto from 'crypto';
 import CompanyWhatsAppConfig from '../models/CompanyWhatsAppConfig';
 import { sendWhatsAppTemplate } from '../services/whatsappService';
+import { logger } from '../config/logger';
 
 
 const router = express.Router();
@@ -25,6 +26,24 @@ const buildPhoneLookupQuery = (rawPhone: string) => {
   );
 
   return variants.length === 1 ? { phone: variants[0] } : { phone: { $in: variants } };
+};
+
+const logLoginAttempt = (
+  req: Request,
+  identifier: string,
+  method: 'PASSWORD' | 'SSO',
+  outcome: string
+): void => {
+  logger.info(
+    JSON.stringify({
+      type: 'auth-login-attempt',
+      method,
+      identifier,
+      outcome,
+      ip: req.ip,
+      timestamp: new Date().toISOString()
+    })
+  );
 };
 
 
@@ -103,8 +122,10 @@ const ensureCompanyAccess = async (user: any) => {
 router.post('/sso/login', async (req: Request, res: Response) => {
   try {
     const ssoToken = req.body.ssoToken || req.body.token;
+    logLoginAttempt(req, 'sso', 'SSO', 'attempt');
 
     if (!ssoToken) {
+      logLoginAttempt(req, 'sso', 'SSO', 'missing-token');
       res.status(400).json({ success: false, message: 'SSO token is required' });
       return;
     }
@@ -121,6 +142,7 @@ router.post('/sso/login', async (req: Request, res: Response) => {
     try {
       decoded = jwt.verify(ssoToken, ssoSecret);
     } catch (error: any) {
+      logLoginAttempt(req, 'sso', 'SSO', error.name === 'TokenExpiredError' ? 'expired-token' : 'invalid-token');
       res.status(401).json({
         success: false,
         message: error.name === 'TokenExpiredError'
@@ -139,6 +161,7 @@ router.post('/sso/login', async (req: Request, res: Response) => {
     const user = await User.findOne(buildPhoneLookupQuery(phone)).populate('companyId').populate('departmentIds');
 
     if (!user) {
+      logLoginAttempt(req, String(phone), 'SSO', 'user-not-found');
       res.status(404).json({ success: false, message: 'No account found with this phone number' });
       return;
     }
@@ -168,6 +191,7 @@ router.post('/sso/login', async (req: Request, res: Response) => {
       user._id.toString(),
       { loginMethod: 'SSO', level: access.level, scope: access.scope }
     );
+    logLoginAttempt(req, String(phone), 'SSO', 'success');
 
     res.json({
       success: true,
@@ -179,6 +203,7 @@ router.post('/sso/login', async (req: Request, res: Response) => {
       }
     });
   } catch (_error: any) {
+    logLoginAttempt(req, 'sso', 'SSO', 'error');
     if (_error?.code === 'ASSIGNED_ROLE_MISSING') {
       res.status(401).json({ success: false, message: 'Assigned role no longer exists' });
       return;
@@ -194,12 +219,16 @@ router.post('/sso/login', async (req: Request, res: Response) => {
 router.post('/login', async (req: Request, res: Response) => {
   try {
     const { phone, email, password } = req.body;
+    const identifier = String(email || phone || 'unknown');
+    logLoginAttempt(req, identifier, 'PASSWORD', 'attempt');
 
     if ((!phone && !email) || !password) {
+      logLoginAttempt(req, identifier, 'PASSWORD', 'validation-failed');
       return res.status(400).json({ success: false, message: 'Phone number or email and password are required' });
     }
 
     if (password.length < 5) {
+      logLoginAttempt(req, identifier, 'PASSWORD', 'password-too-short');
       return res.status(400).json({ success: false, message: 'Password must be at least 5 characters' });
     }
 
@@ -208,6 +237,7 @@ router.post('/login', async (req: Request, res: Response) => {
       const { validatePhoneNumber, normalizePhoneNumber } = await import('../utils/phoneUtils');
       const phoneTrimmed = phone.trim();
       if (!validatePhoneNumber(phoneTrimmed)) {
+        logLoginAttempt(req, identifier, 'PASSWORD', 'invalid-phone-format');
         return res.status(400).json({ success: false, message: 'Phone number must be 10 digits or 12 digits (with country code)' });
       }
       normalizedPhone = normalizePhoneNumber(phoneTrimmed);
@@ -216,6 +246,7 @@ router.post('/login', async (req: Request, res: Response) => {
     const query: any = email ? { email } : buildPhoneLookupQuery(normalizedPhone);
     const user = await User.findOne(query).select('+password').populate('companyId').populate('departmentIds');
     if (!user) {
+      logLoginAttempt(req, identifier, 'PASSWORD', 'user-not-found');
       return res.status(401).json({
         success: false,
         message: email ? 'Email is incorrect. Please check and try again.' : 'Phone number is incorrect. Please check and try again.'
@@ -233,6 +264,7 @@ router.post('/login', async (req: Request, res: Response) => {
 
     const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
+      logLoginAttempt(req, identifier, 'PASSWORD', 'password-mismatch');
       return res.status(401).json({ success: false, message: 'Password is incorrect. Please check and try again.' });
     }
 
@@ -250,6 +282,7 @@ router.post('/login', async (req: Request, res: Response) => {
       user._id.toString(),
       { loginMethod: 'PASSWORD', level: access.level, scope: access.scope }
     );
+    logLoginAttempt(req, identifier, 'PASSWORD', 'success');
 
     return res.json({
       success: true,
@@ -261,6 +294,7 @@ router.post('/login', async (req: Request, res: Response) => {
       }
     });
   } catch (_error: any) {
+    logLoginAttempt(req, String(req.body?.email || req.body?.phone || 'unknown'), 'PASSWORD', 'error');
     if (_error?.code === 'ASSIGNED_ROLE_MISSING') {
       return res.status(401).json({ success: false, message: 'Assigned role no longer exists' });
     }

@@ -3190,6 +3190,19 @@ function DashboardPageClientContent() {
     setIsMobileTabMenuOpen(false);
   };
 
+  const handleProfileToggle = () => {
+    if (activeTab === "profile") {
+      const fallbackTab =
+        previousTab !== "profile" && allowedTabs.has(previousTab)
+          ? previousTab
+          : "overview";
+      handleTabChange(fallbackTab);
+      return;
+    }
+
+    handleTabChange("profile");
+  };
+
   return (
     <div key="final-dashboard-root-v4" className="min-h-screen bg-white">
       <DashboardHeader
@@ -3207,7 +3220,7 @@ function DashboardPageClientContent() {
         onOpenMobileMenu={() => setIsMobileTabMenuOpen(true)}
         onRefresh={handleRefresh}
         onLogout={logout}
-        onProfileClick={() => handleTabChange("profile")}
+        onProfileClick={handleProfileToggle}
       />
 
       {/* Content wrapper */}

@@ -1,17 +1,12 @@
 import express, { Request, Response } from 'express';
 import { getDatabaseStatus } from '../middleware/dbConnection';
-import mongoose from 'mongoose';
+import { getUsersCollectionCount } from '../utils/databaseSafety';
 
 const router = express.Router();
 
-// @route   GET /api/health
-// @desc    Health check endpoint with database status
-// @access  Public
-// @route   GET /api/health
-// @desc    Health check endpoint with database status
-// @access  Public
 router.get('/', async (_req: Request, res: Response) => {
   const dbStatus = getDatabaseStatus();
+  const usersCollectionCount = dbStatus.connected ? await getUsersCollectionCount() : 0;
 
   res.json({
     status: 'OK',
@@ -19,45 +14,36 @@ router.get('/', async (_req: Request, res: Response) => {
     uptime: process.uptime(),
     environment: process.env.NODE_ENV || 'development',
     database: {
-      connected: dbStatus.connected,
-      state: dbStatus.state,
-      host: dbStatus.host,
-      port: dbStatus.port,
-      name: dbStatus.name,
-      readyState: dbStatus.readyState
-    },
-    mongodb: {
-      connected: mongoose.connection.readyState === 1,
-      readyState: mongoose.connection.readyState,
-      states: {
-        0: 'disconnected',
-        1: 'connected',
-        2: 'connecting',
-        3: 'disconnecting'
-      }
+      ...dbStatus,
+      usersCollectionCount
     }
   });
 });
 
-// @route   GET /api/health/db
-// @desc    Database connection status only
-// @access  Public
-router.get('/db', (_req: Request, res: Response) => {
+router.get('/db', async (_req: Request, res: Response) => {
   const dbStatus = getDatabaseStatus();
-  
+  const usersCollectionCount = dbStatus.connected ? await getUsersCollectionCount() : 0;
+
   if (dbStatus.connected) {
     res.json({
       success: true,
       message: 'Database is connected',
-      data: dbStatus
+      data: {
+        connectionStatus: dbStatus,
+        usersCollectionCount
+      }
     });
-  } else {
-    res.status(503).json({
-      success: false,
-      message: 'Database is not connected',
-      data: dbStatus
-    });
+    return;
   }
+
+  res.status(503).json({
+    success: false,
+    message: 'Database is not connected',
+    data: {
+      connectionStatus: dbStatus,
+      usersCollectionCount
+    }
+  });
 });
 
 export default router;
