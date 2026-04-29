@@ -77,7 +77,7 @@ const WhatsAppTemplateSchema = new Schema<IWhatsAppTemplate>(
   { timestamps: true }
 );
 
-WhatsAppTemplateSchema.index({ companyId: 1, name: 1, language: 1, businessAccountId: 1 }, { unique: true });
+WhatsAppTemplateSchema.index({ companyId: 1, name: 1, language: 1 }, { unique: true });
 
 const WhatsAppTemplate: Model<IWhatsAppTemplate> = mongoose.model<IWhatsAppTemplate>('WhatsAppTemplate', WhatsAppTemplateSchema);
 

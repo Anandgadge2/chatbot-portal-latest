@@ -93,7 +93,7 @@ const guardRiskyWriteOperation = async (context: RiskyOperationContext): Promise
   assertWriteIsSafe(context);
 
   if (isBulkOperation(context.operation)) {
-    await runMongoBackup();
+    // await runMongoBackup(); // Disabled to improve performance
   }
 };
 

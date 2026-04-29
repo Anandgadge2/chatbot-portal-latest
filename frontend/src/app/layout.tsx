@@ -1,7 +1,17 @@
+import type { Metadata } from 'next'
 import './globals.css'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { QueryProvider } from '@/lib/query/cache'
+
+export const metadata: Metadata = {
+  title: {
+    default: 'Sahaj Dashboard',
+    template: '%s | Sahaj Dashboard',
+  },
+  description:
+    'Multi-tenant grievance and appointment dashboard for company, department, and platform administrators.',
+}
 
 export default function RootLayout({
   children,

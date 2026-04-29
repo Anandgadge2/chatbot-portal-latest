@@ -62,6 +62,7 @@ export function DashboardHeader({
                 onClick={onOpenMobileMenu}
                 className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg shadow-blue-900/20 border border-slate-200 active:scale-95 transition-transform duration-300 md:hidden overflow-hidden"
                 title="Open sidebar"
+                aria-label="Open sidebar navigation"
               >
                 <Image
                   src="/assets/sahaj.png"
@@ -154,6 +155,7 @@ export function DashboardHeader({
                 disabled={refreshing}
                 className="h-9 w-9 sm:h-10 sm:w-10 p-0 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-xl transition-all duration-300 border border-transparent hover:border-indigo-500/20 md:hidden flex items-center justify-center"
                 title="Refresh data"
+                aria-label="Refresh dashboard data"
               >
                 <RefreshCw
                   className={cn(
@@ -173,6 +175,7 @@ export function DashboardHeader({
                 onClick={onProfileClick}
                 className="flex h-9 w-9 sm:h-10 sm:w-10 bg-white/20 rounded-xl items-center justify-center border border-white/50 shadow-[0_0_15px_rgba(255,255,255,0.1)] group hover:bg-white/30 transition-all duration-300 active:scale-95"
                 title="Profile"
+                aria-label="Open profile panel"
               >
                 <UserIcon className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-white group-hover:scale-110 transition-transform duration-300" />
               </button>

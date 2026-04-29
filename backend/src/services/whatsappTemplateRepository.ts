@@ -9,12 +9,7 @@ export async function upsertNormalizedTemplate(
     { 
       companyId, 
       name: template.name, 
-      language: template.language,
-      $or: [
-        { businessAccountId: template.businessAccountId },
-        { businessAccountId: { $exists: false } },
-        { businessAccountId: null }
-      ]
+      language: template.language
     },
     { $set: template },
     { upsert: true, new: true }

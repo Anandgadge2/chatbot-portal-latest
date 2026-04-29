@@ -81,6 +81,7 @@ export function NotificationPopover({
           variant="ghost"
           className="relative h-9 w-9 sm:h-10 sm:w-10 p-0 text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-all duration-300 border border-white/10 flex items-center justify-center shadow-lg"
           title="Notifications"
+          aria-label={`Open notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
         >
           <Bell className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
           {unreadCount > 0 && (

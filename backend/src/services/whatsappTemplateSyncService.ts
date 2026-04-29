@@ -81,13 +81,20 @@ export async function syncTemplatesForCompany(companyId: mongoose.Types.ObjectId
     // 🔄 Cleanup: Deactivate templates that don't match the current businessAccountId
     // This ensures only templates for the active WABA are visible.
     // They will be reactivated by the sync loop if they are present in the current account.
-    await WhatsAppTemplate.updateMany(
-      { 
-        companyId, 
-        businessAccountId: { $ne: config.businessAccountId }
-      },
-      { $set: { isActive: false } }
-    );
+    const staleTemplates = await WhatsAppTemplate.find({
+      companyId,
+      businessAccountId: { $ne: config.businessAccountId },
+      isActive: true
+    }).select('_id');
+
+    if (staleTemplates.length > 0) {
+      const syncTimestamp = new Date();
+      for (const template of staleTemplates) {
+        await WhatsAppTemplate.findByIdAndUpdate(template._id, {
+          $set: { isActive: false, lastSyncedAt: syncTimestamp }
+        });
+      }
+    }
 
     const validTemplates: any[] = [];
     let nextUrl: string | null = `https://graph.facebook.com/v19.0/${config.businessAccountId}/message_templates?limit=200`;

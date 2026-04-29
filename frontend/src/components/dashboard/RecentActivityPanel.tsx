@@ -176,6 +176,8 @@ export default function RecentActivityPanel({
           onClick={fetchRecentActivities}
           disabled={refreshing}
           className="w-9 h-9 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-lg transition-all"
+          aria-label="Refresh recent activity"
+          title="Refresh recent activity"
         >
           <RefreshCw
             className={`w-4 h-4 text-white ${refreshing ? "animate-spin" : ""}`}

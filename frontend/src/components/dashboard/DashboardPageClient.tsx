@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import {
   useEffect,
   useState,
@@ -56,27 +57,9 @@ import {
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { TableSkeleton } from "@/components/ui/GeneralSkeleton";
 import { Pagination } from "@/components/ui/Pagination";
-import SuperAdminOverview from "@/components/superadmin/SuperAdminOverview";
-import WhatsAppConfigTab from "@/components/superadmin/drilldown/tabs/WhatsAppConfigTab";
-import EmailConfigTab from "@/components/superadmin/drilldown/tabs/EmailConfigTab";
-import ChatbotFlowsTab from "@/components/superadmin/drilldown/tabs/ChatbotFlowsTab";
-import RoleManagement from "@/components/roles/RoleManagement";
-import NotificationManagement from "@/components/superadmin/drilldown/NotificationManagement";
-import { CompanyProvider } from "@/contexts/CompanyContext";
-import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
-import { DashboardDepartmentFilters } from "@/components/dashboard/DashboardDepartmentFilters";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { DashboardNavigation } from "@/components/dashboard/DashboardNavigation";
-import { DashboardTabPanels } from "@/components/dashboard/DashboardTabPanels";
-import { OverviewAppointmentCards } from "@/components/dashboard/OverviewAppointmentCards";
-import { OverviewQuickActions } from "@/components/dashboard/OverviewQuickActions";
-import { OverviewCompanyInfoCard } from "@/components/dashboard/OverviewCompanyInfoCard";
-import { OverviewDepartmentSummary } from "@/components/dashboard/OverviewDepartmentSummary";
-import { OverviewGrievanceKpis } from "@/components/dashboard/OverviewGrievanceKpis";
-import { DashboardDialogs } from "@/components/dashboard/DashboardDialogs";
-import { LoadingDots, SortIcon } from "@/components/dashboard/DashboardPrimitives";
-import { ProfileTab } from "@/components/dashboard/tabs/ProfileTab";
 import { formatTo10Digits, normalizePhoneNumber } from "@/lib/utils/phoneUtils";
 import { useGrievances } from "@/lib/query/useGrievances";
 import { useDashboardStats } from "@/lib/query/useDashboardStats";
@@ -89,6 +72,48 @@ import {
   getDashboardTenantConfig,
   getScopedCompanyId,
 } from "@/lib/tenant-config";
+
+const SuperAdminOverview = dynamic(
+  () => import("@/components/superadmin/SuperAdminOverview"),
+  {
+    loading: () => (
+      <div className="flex min-h-screen items-center justify-center bg-slate-900">
+        <LoadingSpinner text="Loading superadmin dashboard..." />
+      </div>
+    ),
+  },
+);
+
+const DashboardTabPanels = dynamic(
+  () =>
+    import("@/components/dashboard/DashboardTabPanels").then((mod) => ({
+      default: mod.DashboardTabPanels,
+    })),
+  {
+    loading: () => (
+      <div className="flex-1 space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="h-6 w-48 animate-pulse rounded bg-slate-200" />
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div
+              key={index}
+              className="h-32 animate-pulse rounded-2xl bg-slate-100"
+            />
+          ))}
+        </div>
+        <div className="h-80 animate-pulse rounded-2xl bg-slate-100" />
+      </div>
+    ),
+  },
+);
+
+const DashboardDialogs = dynamic(
+  () =>
+    import("@/components/dashboard/DashboardDialogs").then((mod) => ({
+      default: mod.DashboardDialogs,
+    })),
+  { ssr: false },
+);
 
 
 import {
@@ -206,6 +231,30 @@ interface DashboardStats {
   usersByRole?: Array<{ name: string; count: number }>;
 }
 
+const scheduleIdle = (callback: () => void) => {
+  if (typeof window === "undefined") {
+    return () => {};
+  }
+
+  const idleWindow = window as typeof window & {
+    requestIdleCallback?: (
+      callback: IdleRequestCallback,
+      options?: IdleRequestOptions,
+    ) => number;
+    cancelIdleCallback?: (handle: number) => void;
+  };
+
+  if (typeof idleWindow.requestIdleCallback === "function") {
+    const handle = idleWindow.requestIdleCallback(() => callback(), {
+      timeout: 1500,
+    });
+    return () => idleWindow.cancelIdleCallback?.(handle);
+  }
+
+  const handle = window.setTimeout(callback, 250);
+  return () => window.clearTimeout(handle);
+};
+
 
 function DashboardPageClientContent() {
   const { user: authUser, loading, logout, refreshUser } = useAuth();
@@ -285,15 +334,20 @@ function DashboardPageClientContent() {
 
   useEffect(() => {
     if (authUser) {
-      fetchNotifications();
-      fetchUnreadCount();
+      const cancelIdleWork = scheduleIdle(() => {
+        fetchNotifications();
+        fetchUnreadCount();
+      });
 
       const interval = setInterval(() => {
         fetchUnreadCount();
         fetchNotifications();
       }, 30000); // 30 seconds
 
-      return () => clearInterval(interval);
+      return () => {
+        cancelIdleWork();
+        clearInterval(interval);
+      };
     }
   }, [authUser, fetchNotifications, fetchUnreadCount]);
 
@@ -800,6 +854,24 @@ function DashboardPageClientContent() {
   const dashboardStatsCacheRef = useRef<Map<string, DashboardStats>>(new Map());
   const [showAvailabilityCalendar, setShowAvailabilityCalendar] =
     useState(false);
+  const shouldMountDialogs =
+    showDepartmentDialog ||
+    showDeptUsersDialog ||
+    showUserDialog ||
+    showEditUserDialog ||
+    showChangePermissionsDialog ||
+    showUserDetailsDialog ||
+    showGrievanceDetail ||
+    showOverdueReminderDialog ||
+    showAppointmentDetail ||
+    showGrievanceRevertDialog ||
+    showGrievanceAssignment ||
+    showAppointmentAssignment ||
+    showAvailabilityCalendar ||
+    showAppointmentStatusModal ||
+    showGrievanceStatusModal ||
+    showHierarchyDialog ||
+    confirmDialog.isOpen;
 
   // Pagination State
   const [grievancePage, setGrievancePage] = useState(1);
@@ -3350,6 +3422,7 @@ function DashboardPageClientContent() {
             />
             <DashboardTabPanels
               {...{
+                activeTab,
                 allDepartments,
                 appointmentFilters,
                 appointmentPagination,
@@ -3509,102 +3582,104 @@ function DashboardPageClientContent() {
           </div>
         </Tabs>
 
-        <DashboardDialogs
-          visible={true}
-          props={{
-            showDepartmentDialog,
-            setShowDepartmentDialog,
-            editingDepartment,
-            setEditingDepartment,
-            isSuperAdminUser,
-            companyIdParam,
-            fetchDepartmentData: () => {
-              fetchDepartments(departmentPage, true);
-              setEditingDepartment(null);
-            },
-            fetchDashboardData,
-            showUserDialog,
-            setShowUserDialog,
-            fetchUsers,
-            userPage,
-            showEditUserDialog,
-            setShowEditUserDialog,
-            editingUser,
-            setEditingUser,
-            showChangePermissionsDialog,
-            setShowChangePermissionsDialog,
-            showGrievanceDetail,
-            setShowGrievanceDetail,
-            selectedGrievance,
-            setSelectedGrievance,
-            fetchGrievances,
-            grievancePage,
-            showOverdueReminderDialog,
-            setShowOverdueReminderDialog,
-            selectedGrievanceForReminder,
-            dashboardTenantConfig,
-            reminderRemarks,
-            setReminderRemarks,
-            handleSendOverdueReminder,
-            sendingReminder,
-            showAppointmentDetail,
-            setShowAppointmentDetail,
-            selectedAppointment,
-            setSelectedAppointment,
-            showGrievanceRevertDialog,
-            setShowGrievanceRevertDialog,
-            selectedGrievanceForRevert,
-            setSelectedGrievanceForRevert,
-            handleRevertSubmit,
-            selectedGrievanceForAssignment,
-            user,
-            showGrievanceAssignment,
-            setShowGrievanceAssignment,
-            setSelectedGrievanceForAssignment,
-            handleAssignGrievance,
-            isCompanyAdminRole,
-            allDepartments,
-            selectedAppointmentForAssignment,
-            showAppointmentAssignment,
-            setShowAppointmentAssignment,
-            setSelectedAppointmentForAssignment,
-            handleAssignAppointment,
-            fetchAppointments,
-            appointmentPage,
-            showAvailabilityCalendar,
-            setShowAvailabilityCalendar,
-            isCompanyAdminOrHigher,
-            showAppointmentStatusModal,
-            setShowAppointmentStatusModal,
-            selectedAppointmentForStatus,
-            setSelectedAppointmentForStatus,
-            showGrievanceStatusModal,
-            setShowGrievanceStatusModal,
-            selectedGrievanceForStatus,
-            setSelectedGrievanceForStatus,
-            isDepartmentAdminOrHigher,
-            showDeptUsersDialog,
-            setShowDeptUsersDialog,
-            selectedDeptForUsers,
-            setSelectedDeptForUsers,
-            targetCompanyId,
-            setSelectedUserForDetails,
-            setShowUserDetailsDialog,
-            selectedUserForDetails,
-            showUserDetailsDialog,
-            selectedDeptForHierarchy,
-            showHierarchyDialog,
-            setShowHierarchyDialog,
-            setSelectedDeptForHierarchy,
-            confirmDialog,
-            setConfirmDialog,
-            showDepartmentPriorityColumn,
-            grievanceAssignmentCurrentDepartmentId,
-            grievanceAssignmentCurrentSubDepartmentId,
-            grievanceAssignmentSuggestedDepartmentId,
-            grievanceAssignmentSuggestedSubDepartmentId,
-          }}
-        />
+        {shouldMountDialogs && (
+          <DashboardDialogs
+            visible={true}
+            props={{
+              showDepartmentDialog,
+              setShowDepartmentDialog,
+              editingDepartment,
+              setEditingDepartment,
+              isSuperAdminUser,
+              companyIdParam,
+              fetchDepartmentData: () => {
+                fetchDepartments(departmentPage, true);
+                setEditingDepartment(null);
+              },
+              fetchDashboardData,
+              showUserDialog,
+              setShowUserDialog,
+              fetchUsers,
+              userPage,
+              showEditUserDialog,
+              setShowEditUserDialog,
+              editingUser,
+              setEditingUser,
+              showChangePermissionsDialog,
+              setShowChangePermissionsDialog,
+              showGrievanceDetail,
+              setShowGrievanceDetail,
+              selectedGrievance,
+              setSelectedGrievance,
+              fetchGrievances,
+              grievancePage,
+              showOverdueReminderDialog,
+              setShowOverdueReminderDialog,
+              selectedGrievanceForReminder,
+              dashboardTenantConfig,
+              reminderRemarks,
+              setReminderRemarks,
+              handleSendOverdueReminder,
+              sendingReminder,
+              showAppointmentDetail,
+              setShowAppointmentDetail,
+              selectedAppointment,
+              setSelectedAppointment,
+              showGrievanceRevertDialog,
+              setShowGrievanceRevertDialog,
+              selectedGrievanceForRevert,
+              setSelectedGrievanceForRevert,
+              handleRevertSubmit,
+              selectedGrievanceForAssignment,
+              user,
+              showGrievanceAssignment,
+              setShowGrievanceAssignment,
+              setSelectedGrievanceForAssignment,
+              handleAssignGrievance,
+              isCompanyAdminRole,
+              allDepartments,
+              selectedAppointmentForAssignment,
+              showAppointmentAssignment,
+              setShowAppointmentAssignment,
+              setSelectedAppointmentForAssignment,
+              handleAssignAppointment,
+              fetchAppointments,
+              appointmentPage,
+              showAvailabilityCalendar,
+              setShowAvailabilityCalendar,
+              isCompanyAdminOrHigher,
+              showAppointmentStatusModal,
+              setShowAppointmentStatusModal,
+              selectedAppointmentForStatus,
+              setSelectedAppointmentForStatus,
+              showGrievanceStatusModal,
+              setShowGrievanceStatusModal,
+              selectedGrievanceForStatus,
+              setSelectedGrievanceForStatus,
+              isDepartmentAdminOrHigher,
+              showDeptUsersDialog,
+              setShowDeptUsersDialog,
+              selectedDeptForUsers,
+              setSelectedDeptForUsers,
+              targetCompanyId,
+              setSelectedUserForDetails,
+              setShowUserDetailsDialog,
+              selectedUserForDetails,
+              showUserDetailsDialog,
+              selectedDeptForHierarchy,
+              showHierarchyDialog,
+              setShowHierarchyDialog,
+              setSelectedDeptForHierarchy,
+              confirmDialog,
+              setConfirmDialog,
+              showDepartmentPriorityColumn,
+              grievanceAssignmentCurrentDepartmentId,
+              grievanceAssignmentCurrentSubDepartmentId,
+              grievanceAssignmentSuggestedDepartmentId,
+              grievanceAssignmentSuggestedSubDepartmentId,
+            }}
+          />
+        )}
       </main>
     </div>
   );

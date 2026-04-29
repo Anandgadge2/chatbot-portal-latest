@@ -57,12 +57,6 @@ import {
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { TableSkeleton } from "@/components/ui/GeneralSkeleton";
 import { Pagination } from "@/components/ui/Pagination";
-import SuperAdminOverview from "@/components/superadmin/SuperAdminOverview";
-import WhatsAppConfigTab from "@/components/superadmin/drilldown/tabs/WhatsAppConfigTab";
-import EmailConfigTab from "@/components/superadmin/drilldown/tabs/EmailConfigTab";
-import ChatbotFlowsTab from "@/components/superadmin/drilldown/tabs/ChatbotFlowsTab";
-import RoleManagement from "@/components/roles/RoleManagement";
-import NotificationManagement from "@/components/superadmin/drilldown/NotificationManagement";
 import { CompanyProvider } from "@/contexts/CompanyContext";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
@@ -90,6 +84,41 @@ import {
   getDashboardTenantConfig,
   getScopedCompanyId,
 } from "@/lib/tenant-config";
+
+const LazyRoleManagement = dynamic(
+  () => import("@/components/roles/RoleManagement"),
+  {
+    loading: () => <div className="h-64 animate-pulse rounded-2xl bg-slate-100" />,
+  },
+);
+
+const LazyWhatsAppConfigTab = dynamic(
+  () => import("@/components/superadmin/drilldown/tabs/WhatsAppConfigTab"),
+  {
+    loading: () => <div className="h-64 animate-pulse rounded-2xl bg-slate-100" />,
+  },
+);
+
+const LazyEmailConfigTab = dynamic(
+  () => import("@/components/superadmin/drilldown/tabs/EmailConfigTab"),
+  {
+    loading: () => <div className="h-64 animate-pulse rounded-2xl bg-slate-100" />,
+  },
+);
+
+const LazyChatbotFlowsTab = dynamic(
+  () => import("@/components/superadmin/drilldown/tabs/ChatbotFlowsTab"),
+  {
+    loading: () => <div className="h-64 animate-pulse rounded-2xl bg-slate-100" />,
+  },
+);
+
+const LazyNotificationManagement = dynamic(
+  () => import("@/components/superadmin/drilldown/NotificationManagement"),
+  {
+    loading: () => <div className="h-64 animate-pulse rounded-2xl bg-slate-100" />,
+  },
+);
 
 
 import {
@@ -5086,23 +5115,23 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
               {isSuperAdminUser && companyIdParam && (
                 <CompanyProvider companyId={companyIdParam}>
                   <TabsContent value="roles" className="space-y-4">
-                    <RoleManagement companyId={companyIdParam} />
+                    <LazyRoleManagement companyId={companyIdParam} />
                   </TabsContent>
 
                   <TabsContent value="whatsapp" className="space-y-4">
-                    <WhatsAppConfigTab companyId={companyIdParam} />
+                    <LazyWhatsAppConfigTab companyId={companyIdParam} />
                   </TabsContent>
 
                   <TabsContent value="flows" className="space-y-4">
-                    <ChatbotFlowsTab companyId={companyIdParam} />
+                    <LazyChatbotFlowsTab companyId={companyIdParam} />
                   </TabsContent>
 
                   <TabsContent value="notifications" className="space-y-4">
-                    <NotificationManagement companyId={companyIdParam} />
+                    <LazyNotificationManagement companyId={companyIdParam} />
                   </TabsContent>
 
                   <TabsContent value="email" className="space-y-4">
-                    <EmailConfigTab companyId={companyIdParam} />
+                    <LazyEmailConfigTab companyId={companyIdParam} />
                   </TabsContent>
                 </CompanyProvider>
               )}
