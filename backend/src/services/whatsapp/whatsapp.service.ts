@@ -57,7 +57,12 @@ export async function sendTemplateRequest(options: {
 
   while (true) {
     try {
-      return await axios.post(options.url, options.payload, { headers: options.headers });
+      const response = await axios.post(options.url, options.payload, { headers: options.headers });
+      
+      // ✅ SUCCESS LOGGING: Clear visibility for production monitoring
+      console.log(`[WhatsApp Success] ✅ Template "${options.logContext.templateName}" sent to ${options.logContext.to} (${options.logContext.company || 'System'})`);
+      
+      return response;
     } catch (error: any) {
       const parsed = parseWhatsAppApiError(error);
       const status = attempt >= retryCount ? 'FAILED' : 'RETRYING';

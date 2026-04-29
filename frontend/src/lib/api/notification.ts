@@ -31,11 +31,12 @@ const isNotificationRouteMissing = (error: any) => {
 };
 
 export const notificationAPI = {
-  getAll: async (params?: { page?: number; limit?: number; isRead?: boolean }) => {
+  getAll: async (params?: { page?: number; limit?: number; isRead?: boolean; companyId?: string }) => {
     const queryParams = new URLSearchParams();
     if (params?.page) queryParams.append('page', String(params.page));
     if (params?.limit) queryParams.append('limit', String(params.limit));
     if (typeof params?.isRead === 'boolean') queryParams.append('isRead', String(params.isRead));
+    if (params?.companyId) queryParams.append('companyId', params.companyId);
     try {
       const response = await apiClient.get<{ success: boolean; data: { notifications: InAppNotification[]; pagination: any } }>(`/notifications?${queryParams.toString()}`);
       return { ...response, meta: { supported: true } as NotificationApiMeta };
@@ -53,9 +54,10 @@ export const notificationAPI = {
       throw error;
     }
   },
-  getUnreadCount: async () => {
+  getUnreadCount: async (companyId?: string) => {
     try {
-      const response = await apiClient.get<{ success: boolean; data: { unreadCount: number } }>('/notifications/unread-count');
+      const query = companyId ? `?companyId=${companyId}` : '';
+      const response = await apiClient.get<{ success: boolean; data: { unreadCount: number } }>(`/notifications/unread-count${query}`);
       return { ...response, meta: { supported: true } as NotificationApiMeta };
     } catch (error: any) {
       if (isNotificationRouteMissing(error)) {

@@ -78,6 +78,11 @@ export interface ICompanyWhatsAppConfig extends Document {
   
   createdAt: Date;
   updatedAt: Date;
+
+  // Notification Template Mappings
+  templateMappings?: {
+    [eventKey: string]: string; // Maps 'GRIEVANCE_CREATED' -> 'template_name'
+  };
 }
 
 const CompanyWhatsAppConfigSchema: Schema = new Schema(
@@ -183,6 +188,12 @@ const CompanyWhatsAppConfigSchema: Schema = new Schema(
     updatedBy: {
       type: Schema.Types.ObjectId,
       ref: 'User'
+    },
+
+    templateMappings: {
+      type: Map,
+      of: String,
+      default: {}
     }
   },
   {

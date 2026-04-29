@@ -56,6 +56,7 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
     verifyToken: "",
     webhookSecret: "",
   });
+  const [creatingNew, setCreatingNew] = useState(false);
   const [refreshTick, setRefreshTick] = useState(0);
 
   useEffect(() => {
@@ -143,14 +144,15 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
   };
 
   const handleSaveConfig = async () => {
-    if (!config?._id) {
+    if (!config?._id && !creatingNew) {
       toast.error("Configuration ID missing");
       return;
     }
 
     try {
       setSavingConfig(true);
-      const response = await whatsappAPI.updateConfig(config._id, {
+      const payload = {
+        companyId, // Ensure companyId is included for new configs
         phoneNumber: configForm.phoneNumber.trim(),
         displayPhoneNumber: configForm.displayPhoneNumber.trim(),
         phoneNumberId: configForm.phoneNumberId.trim(),
@@ -159,11 +161,26 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
         accessToken: configForm.accessToken.trim(),
         verifyToken: configForm.verifyToken.trim(),
         webhookSecret: configForm.webhookSecret.trim(),
-      });
+      };
+
+      let response;
+      if (creatingNew) {
+        response = await whatsappAPI.saveConfig(payload);
+        setCreatingNew(false);
+      } else {
+        response = await whatsappAPI.updateConfig(config!._id, payload);
+      }
+      
       setEditingConfig(false);
-      toast.success(response?.message || "WhatsApp configuration updated");
+      toast.success(response?.message || `WhatsApp configuration ${creatingNew ? "created" : "updated"}`);
+      
+      // Invalidate the config query to refetch the new data
+      import("@/lib/query/cache").then(({ queryCache }) => {
+        const cacheKey = JSON.stringify(["whatsapp-config", companyId]);
+        queryCache.delete(cacheKey);
+      });
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Failed to update WhatsApp configuration");
+      toast.error(error?.response?.data?.message || `Failed to ${creatingNew ? "create" : "update"} WhatsApp configuration`);
     } finally {
       setSavingConfig(false);
     }
@@ -200,7 +217,7 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
     );
   }
 
-  if (!config) {
+  if (!config && !creatingNew) {
     return (
       <div className="py-20 text-center">
         <div className="flex flex-col items-center gap-4 max-w-md mx-auto">
@@ -211,10 +228,21 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
           <p className="text-sm text-slate-500">
             This company does not have an active WhatsApp configuration.
           </p>
+          <Button 
+            className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-8 rounded-xl shadow-lg shadow-indigo-200"
+            onClick={() => {
+              setCreatingNew(true);
+              setEditingConfig(true);
+            }}
+          >
+            Configure WhatsApp Now
+          </Button>
         </div>
       </div>
     );
   }
+
+  const isActuallyEditing = editingConfig || creatingNew;
 
   return (
     <div className="space-y-6">
@@ -243,15 +271,18 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
                     disabled={savingConfig}
                     onClick={() => {
                       setEditingConfig(false);
-                      setConfigForm({
-                        phoneNumber: config.phoneNumber || "",
-                        displayPhoneNumber: config.displayPhoneNumber || "",
-                        phoneNumberId: config.phoneNumberId || "",
-                        businessAccountId: config.businessAccountId || config.wabaId || "",
-                        accessToken: config.accessToken || "",
-                        verifyToken: config.verifyToken || "",
-                        webhookSecret: config.webhookSecret || "",
-                      });
+                      setCreatingNew(false);
+                      if (config) {
+                        setConfigForm({
+                          phoneNumber: config.phoneNumber || "",
+                          displayPhoneNumber: config.displayPhoneNumber || "",
+                          phoneNumberId: config.phoneNumberId || "",
+                          businessAccountId: config.businessAccountId || config.wabaId || "",
+                          accessToken: config.accessToken || "",
+                          verifyToken: config.verifyToken || "",
+                          webhookSecret: config.webhookSecret || "",
+                        });
+                      }
                     }}
                   >
                     Cancel
@@ -274,11 +305,11 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
               <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone Number</label>
               <input 
                 type="text"
-                value={editingConfig ? configForm.phoneNumber : config.phoneNumber}
+                value={isActuallyEditing ? configForm.phoneNumber : config?.phoneNumber}
                 onChange={(e) => setConfigForm({...configForm, phoneNumber: e.target.value})}
-                readOnly={!editingConfig}
+                readOnly={!isActuallyEditing}
                 className={`w-full p-3 border rounded-xl text-xs ${
-                  editingConfig
+                  isActuallyEditing
                     ? "bg-white border-indigo-200 text-slate-700 focus:ring-2 focus:ring-indigo-100"
                     : "bg-slate-50 border-slate-200 text-slate-600"
                 }`}
@@ -290,11 +321,11 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
               <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Display Phone Number</label>
               <input 
                 type="text"
-                value={editingConfig ? configForm.displayPhoneNumber : config.displayPhoneNumber}
+                value={isActuallyEditing ? configForm.displayPhoneNumber : config?.displayPhoneNumber}
                 onChange={(e) => setConfigForm({...configForm, displayPhoneNumber: e.target.value})}
-                readOnly={!editingConfig}
+                readOnly={!isActuallyEditing}
                 className={`w-full p-3 border rounded-xl text-xs ${
-                  editingConfig
+                  isActuallyEditing
                     ? "bg-white border-indigo-200 text-slate-700 focus:ring-2 focus:ring-indigo-100"
                     : "bg-slate-50 border-slate-200 text-slate-600"
                 }`}
@@ -306,11 +337,11 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
               <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone Number ID</label>
               <input 
                 type="text"
-                value={editingConfig ? configForm.phoneNumberId : config.phoneNumberId}
+                value={isActuallyEditing ? configForm.phoneNumberId : config?.phoneNumberId}
                 onChange={(e) => setConfigForm({...configForm, phoneNumberId: e.target.value})}
-                readOnly={!editingConfig}
+                readOnly={!isActuallyEditing}
                 className={`w-full p-3 border rounded-xl text-xs ${
-                  editingConfig
+                  isActuallyEditing
                     ? "bg-white border-indigo-200 text-slate-700 focus:ring-2 focus:ring-indigo-100"
                     : "bg-slate-50 border-slate-200 text-slate-600"
                 }`}
@@ -322,11 +353,11 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
               <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Business Account ID</label>
               <input 
                 type="text"
-                value={editingConfig ? configForm.businessAccountId : config.businessAccountId}
+                value={isActuallyEditing ? configForm.businessAccountId : config?.businessAccountId}
                 onChange={(e) => setConfigForm({...configForm, businessAccountId: e.target.value})}
-                readOnly={!editingConfig}
+                readOnly={!isActuallyEditing}
                 className={`w-full p-3 border rounded-xl text-xs ${
-                  editingConfig
+                  isActuallyEditing
                     ? "bg-white border-indigo-200 text-slate-700 focus:ring-2 focus:ring-indigo-100"
                     : "bg-slate-50 border-slate-200 text-slate-600"
                 }`}
@@ -338,11 +369,11 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
               <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Permanent Access Token</label>
               <input 
                 type="password"
-                value={editingConfig ? configForm.accessToken : config.accessToken}
+                value={isActuallyEditing ? configForm.accessToken : config?.accessToken}
                 onChange={(e) => setConfigForm({...configForm, accessToken: e.target.value})}
-                readOnly={!editingConfig}
+                readOnly={!isActuallyEditing}
                 className={`w-full p-3 border rounded-xl text-xs ${
-                  editingConfig
+                  isActuallyEditing
                     ? "bg-white border-indigo-200 text-slate-700 focus:ring-2 focus:ring-indigo-100"
                     : "bg-slate-50 border-slate-200 text-slate-600"
                 }`}
@@ -354,11 +385,11 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
               <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Webhook Verify Token</label>
               <input 
                 type="text"
-                value={editingConfig ? configForm.verifyToken : config.verifyToken}
+                value={isActuallyEditing ? configForm.verifyToken : config?.verifyToken}
                 onChange={(e) => setConfigForm({...configForm, verifyToken: e.target.value})}
-                readOnly={!editingConfig}
+                readOnly={!isActuallyEditing}
                 className={`w-full p-3 border rounded-xl text-xs ${
-                  editingConfig
+                  isActuallyEditing
                     ? "bg-white border-indigo-200 text-slate-700 focus:ring-2 focus:ring-indigo-100"
                     : "bg-slate-50 border-slate-200 text-slate-600"
                 }`}
@@ -370,11 +401,11 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
               <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Webhook Secret</label>
               <input 
                 type="text"
-                value={editingConfig ? configForm.webhookSecret : config.webhookSecret}
+                value={isActuallyEditing ? configForm.webhookSecret : config?.webhookSecret}
                 onChange={(e) => setConfigForm({...configForm, webhookSecret: e.target.value})}
-                readOnly={!editingConfig}
+                readOnly={!isActuallyEditing}
                 className={`w-full p-3 border rounded-xl text-xs ${
-                  editingConfig
+                  isActuallyEditing
                     ? "bg-white border-indigo-200 text-slate-700 focus:ring-2 focus:ring-indigo-100"
                     : "bg-slate-50 border-slate-200 text-slate-600"
                 }`}
@@ -384,76 +415,81 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
           </div>
         </CardContent>
       </Card>
-      <Card className="border-0 shadow-sm bg-white overflow-hidden">
-        <CardHeader className="bg-slate-50 border-b border-slate-100 py-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+
+      {!creatingNew && config && (
+        <>
+          <Card className="border-0 shadow-sm bg-white overflow-hidden">
+            <CardHeader className="bg-slate-50 border-b border-slate-100 py-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <CardTitle className="text-base font-bold text-slate-900">
+                    Template Management Dashboard
+                  </CardTitle>
+                  <CardDescription>
+                    View and sync templates, map variables, validate readiness, and send previews.
+                  </CardDescription>
+                </div>
+                <Button onClick={handleSync} disabled={syncing} className="w-full sm:w-auto">
+                  <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
+                  {syncing ? "Syncing..." : "🔄 Sync Templates"}
+                </Button>
+              </div>
+            </CardHeader>
+
+            <CardContent className="p-4 sm:p-5 space-y-4">
+              <TemplateFilters
+                search={search}
+                status={status}
+                language={language}
+                category={category}
+                languages={languages}
+                categories={categories}
+                onSearchChange={setSearch}
+                onStatusChange={setStatus}
+                onLanguageChange={setLanguage}
+                onCategoryChange={setCategory}
+              />
+
+              {loadingTemplates ? (
+                <div className="py-16 flex justify-center">
+                  <LoadingSpinner text="Loading templates..." />
+                </div>
+              ) : templatesError ? (
+                <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                  Failed to load templates. Please retry sync or refresh.
+                </div>
+              ) : (
+                <TemplateTable
+                  templates={templates}
+                  onView={(template) => {
+                    setSelectedTemplate(template);
+                    setIsDrawerOpen(true);
+                  }}
+                  onUse={(template) => {
+                    setSelectedTemplate(template);
+                    setIsDrawerOpen(true);
+                  }}
+                />
+              )}
+            </CardContent>
+          </Card>
+
+          <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl flex items-start gap-4">
+            <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center shrink-0">
+              <AlertCircle className="w-5 h-5 text-amber-600" />
+            </div>
             <div>
-              <CardTitle className="text-base font-bold text-slate-900">
-                Template Management Dashboard
-              </CardTitle>
-              <CardDescription>
-                View and sync templates, map variables, validate readiness, and send previews.
-              </CardDescription>
+              <h5 className="text-[11px] font-black text-amber-900 uppercase tracking-wider mb-1">
+                Production Security Protocol
+              </h5>
+              <p className="text-[11px] text-amber-700/80 font-medium leading-relaxed">
+                Changing credentials affects all active WhatsApp sessions for this organization.
+                Verify webhook URL and token in Meta before syncing or sending templates.
+              </p>
             </div>
-            <Button onClick={handleSync} disabled={syncing} className="w-full sm:w-auto">
-              <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
-              {syncing ? "Syncing..." : "🔄 Sync Templates"}
-            </Button>
           </div>
-        </CardHeader>
-
-        <CardContent className="p-4 sm:p-5 space-y-4">
-          <TemplateFilters
-            search={search}
-            status={status}
-            language={language}
-            category={category}
-            languages={languages}
-            categories={categories}
-            onSearchChange={setSearch}
-            onStatusChange={setStatus}
-            onLanguageChange={setLanguage}
-            onCategoryChange={setCategory}
-          />
-
-          {loadingTemplates ? (
-            <div className="py-16 flex justify-center">
-              <LoadingSpinner text="Loading templates..." />
-            </div>
-          ) : templatesError ? (
-            <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-              Failed to load templates. Please retry sync or refresh.
-            </div>
-          ) : (
-            <TemplateTable
-              templates={templates}
-              onView={(template) => {
-                setSelectedTemplate(template);
-                setIsDrawerOpen(true);
-              }}
-              onUse={(template) => {
-                setSelectedTemplate(template);
-                setIsDrawerOpen(true);
-              }}
-            />
-          )}
-        </CardContent>
-      </Card>
-
-      <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl flex items-start gap-4">
-        <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center shrink-0">
-          <AlertCircle className="w-5 h-5 text-amber-600" />
-        </div>
-        <div>
-          <h5 className="text-[11px] font-black text-amber-900 uppercase tracking-wider mb-1">
-            Production Security Protocol
-          </h5>
-          <p className="text-[11px] text-amber-700/80 font-medium leading-relaxed">
-            Changing credentials affects all active WhatsApp sessions for this organization.
-            Verify webhook URL and token in Meta before syncing or sending templates.
-          </p>
-        </div>
-      </div>
+        </>
+      )}
 
       <TemplateDrawer
         open={isDrawerOpen}

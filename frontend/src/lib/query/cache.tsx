@@ -9,7 +9,7 @@ type CacheEntry<T> = {
   promise?: Promise<T>;
 };
 
-const queryCache = new Map<string, CacheEntry<unknown>>();
+export const queryCache = new Map<string, CacheEntry<unknown>>();
 
 type QueryProviderValue = {
   invalidate: (prefix?: string) => void;

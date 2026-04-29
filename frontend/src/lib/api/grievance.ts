@@ -100,6 +100,7 @@ export const grievanceAPI = {
     assignedTo?: string;
     priority?: string;
     search?: string;
+    slaStatus?: string;
   }): Promise<GrievancesResponse> => {
     const queryParams = new URLSearchParams();
     if (params?.page) queryParams.append('page', params.page.toString());
@@ -110,6 +111,7 @@ export const grievanceAPI = {
     if (params?.assignedTo) queryParams.append('assignedTo', params.assignedTo);
     if (params?.priority) queryParams.append('priority', params.priority);
     if (params?.search) queryParams.append('search', params.search);
+    if (params?.slaStatus) queryParams.append('slaStatus', params.slaStatus);
     
     return apiClient.get(`/grievances?${queryParams.toString()}`);
   },

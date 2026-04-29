@@ -1,22 +1,22 @@
-import type { Metadata } from 'next'
-import './globals.css'
-import { Toaster } from 'react-hot-toast'
-import { AuthProvider } from '@/contexts/AuthContext'
-import { QueryProvider } from '@/lib/query/cache'
+import type { Metadata } from "next";
+import "./globals.css";
+import { Toaster } from "react-hot-toast";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { QueryProvider } from "@/lib/query/cache";
 
 export const metadata: Metadata = {
   title: {
-    default: 'Sahaj Dashboard',
-    template: '%s | Sahaj Dashboard',
+    default: "PugArch Connect Dashboard",
+    template: "%s | PugArch Connect",
   },
   description:
-    'Multi-tenant grievance and appointment dashboard for company, department, and platform administrators.',
-}
+    "Multi-tenant grievance and appointment dashboard for company, department, and platform administrators.",
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="en">
@@ -40,5 +40,5 @@ export default function RootLayout({
         </QueryProvider>
       </body>
     </html>
-  )
+  );
 }

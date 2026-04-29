@@ -51,6 +51,7 @@ function buildVirtualResolvedTemplate(templateName: string, language: string) {
     template: {
       name: templateName,
       language,
+      header: definition.header ? { type: definition.header.type } : undefined,
       body: {
         variables: definition.body.length
       },
@@ -774,9 +775,26 @@ export async function sendWhatsAppTemplate(
         buttonParam
       });
     } else {
-      const normalizedData = Object.fromEntries(
-        Object.entries(parameters || {}).map(([key, value]) => [key, String(value ?? '')])
-      );
+      let normalizedData: Record<string, any> = {};
+      if (Array.isArray(parameters)) {
+        const definition = TEMPLATE_DEFINITIONS[templateName];
+        if (definition) {
+          parameters.forEach((val, idx) => {
+            const key = definition.body[idx]?.key || `param_${idx + 1}`;
+            normalizedData[key] = val;
+          });
+        } else {
+          parameters.forEach((val, idx) => {
+            normalizedData[`param_${idx + 1}`] = val;
+          });
+        }
+      } else {
+        normalizedData = { ...parameters };
+      }
+
+      if (headerParam) normalizedData.header_url = headerParam;
+      if (buttonParam) normalizedData.button_url = buttonParam;
+
 
       if (TEMPLATE_DEFINITIONS[templateName]) {
         // ✅ PRIORITIZE CODE-BASED PAYLOAD BUILDER:
@@ -1221,6 +1239,7 @@ export async function sendWhatsAppMedia(
     };
   }
 }
+
 /**
  * ============================================================
  * SEND MEDIA SEQUENTIALLY (PRODUCTION STYLE)
@@ -1233,45 +1252,67 @@ export async function sendMediaSequentially(
   to: string,
   media: Array<{ url: string; type: 'image' | 'video' | 'document'; caption?: string; filename?: string }>,
   recipientName: string = 'Citizen'
-): Promise<void> {
-  if (!media || !media.length) return;
+): Promise<any[]> {
+  if (!media || !media.length) return [];
 
-  console.log(`🚀 Starting sequential media send to ${to} (${media.length} items)`);
+  console.log(`🚀 [Media Send] Starting sequential media send to ${to} (${media.length} items)`);
 
   const templateMap: Record<'image' | 'video' | 'document', string> = {
     image: 'media_image_v1',
     video: 'media_video_v1',
     document: 'media_document_v1'
   };
+
   const detectType = (url: string): 'image' | 'video' | 'document' => {
-    const normalized = String(url || '').toLowerCase();
-    if (normalized.match(/\.(jpg|jpeg|png|webp)(\?.*)?$/)) return 'image';
-    if (normalized.match(/\.(mp4|mov|avi)(\?.*)?$/)) return 'video';
+    const normalized = String(url || '').toLowerCase().split('?')[0].replace(/\/$/, '');
+    if (normalized.match(/\.(jpg|jpeg|png|webp|heic)$/)) return 'image';
+    if (normalized.match(/\.(mp4|mov|avi|3gp|m4v)$/)) return 'video';
     return 'document';
   };
 
-  const sendMediaTemplate = async (item: { url: string; type: 'image' | 'video' | 'document' }, templateName: string) => {
-    const companyId = company?._id;
-    if (!companyId) throw new Error('Company ID missing for media template send.');
-    const normalizedTo = normalizePhoneNumber(to);
-    const resolvedTemplate = await resolveTemplateRecord({
-      companyId,
-      templateName,
-      requestedLanguage: 'en',
-      companyDefaultLanguage: company?.whatsappConfig?.chatbotSettings?.defaultLanguage
-    });
-    await assertTemplateApproved({
-      companyId,
-      templateName,
-      language: resolvedTemplate.resolvedLanguage
-    });
-    await enforceMessagingPolicy(company, normalizedTo, 'template', templateName);
-    await enforceRateLimit(company, normalizedTo);
-    const { url, headers } = getWhatsAppConfig(company);
-    const payload: any = {
-      messaging_product: 'whatsapp',
-      to: normalizedTo,
-      type: 'template',
+  const results: any[] = [];
+  for (let i = 0; i < media.length; i++) {
+    const item = media[i];
+    try {
+      // Small safety delay (500ms) to maintain order in WhatsApp UI
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const detectedType = item.type || detectType(item.url);
+      const templateName = templateMap[detectedType];
+
+      if (!templateName) {
+        throw new Error(`No media template mapped for type ${detectedType}`);
+      }
+
+      const companyId = company?._id;
+      if (!companyId) throw new Error('Company ID missing for media template send.');
+      
+      const normalizedTo = normalizePhoneNumber(to);
+      const resolvedTemplate = await resolveTemplateRecord({
+        companyId,
+        templateName,
+        requestedLanguage: 'en',
+        companyDefaultLanguage: company?.whatsappConfig?.chatbotSettings?.defaultLanguage
+      });
+
+      // If no DB record exists, use definition-based header type for the payload
+      const definition = TEMPLATE_DEFINITIONS[templateName];
+      const headerTypeForPayload = definition?.header?.type?.toLowerCase() || detectedType;
+
+      await assertTemplateApproved({
+        companyId,
+        templateName,
+        language: resolvedTemplate.resolvedLanguage
+      });
+
+      await enforceMessagingPolicy(company, normalizedTo, 'template', templateName);
+      await enforceRateLimit(company, normalizedTo);
+
+      const { url, headers } = getWhatsAppConfig(company);
+      const payload: any = {
+        messaging_product: 'whatsapp',
+        to: normalizedTo,
+        type: 'template',
         template: {
           name: templateName,
           language: { code: resolvedTemplate.resolvedLanguage },
@@ -1280,8 +1321,11 @@ export async function sendMediaSequentially(
               type: 'header',
               parameters: [
                 {
-                  type: item.type,
-                  [item.type]: { link: item.url }
+                  type: headerTypeForPayload,
+                  [headerTypeForPayload]: { 
+                    link: item.url,
+                    ...(headerTypeForPayload === 'document' ? { filename: item.filename || 'attachment' } : {})
+                  }
                 }
               ]
             },
@@ -1296,52 +1340,29 @@ export async function sendMediaSequentially(
             }
           ]
         }
-    };
+      };
 
-    await sendTemplateRequest({
-      url,
-      headers,
-      payload,
-      retryCount: 1,
-      logContext: {
-        action: 'send_media_template',
-        templateName,
-        to: normalizedTo,
-        company: company?.name
-      }
-    });
-  };
-
-  for (const item of media) {
-    try {
-      // Small safety delay (500ms) recommended to maintain order in WhatsApp UI
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      const detectedType = item.type || detectType(item.url);
-      const templateName = templateMap[detectedType];
-      if (!templateName) {
-        throw new Error(`No media template mapped for type ${detectedType}`);
-      }
-
-      try {
-        await sendMediaTemplate({ ...item, type: detectedType }, templateName);
-      } catch (templateErr: any) {
-        const compliance = await getSessionComplianceContext(company, to);
-        if (!compliance.within24hWindow) {
-          console.warn(
-            `⚠️ Media template send failed for ${item.url}. ` +
-            `Skipping free-form fallback outside 24-hour window.`,
-            templateErr?.message || templateErr
-          );
-          continue;
+      await sendTemplateRequest({
+        url,
+        headers,
+        payload,
+        retryCount: 1,
+        logContext: {
+          action: 'send_media_template',
+          templateName,
+          to: normalizedTo,
+          company: company?.name
         }
+      });
 
-        console.warn(`⚠️ Media template send failed for ${item.url}. Falling back to direct media.`, templateErr?.message || templateErr);
-        await sendWhatsAppMedia(company, to, item.url, detectedType, item.caption, item.filename);
-      }
+      console.log(`✅ [Media Send] Item ${i + 1}/${media.length} sent successfully to ${to} (Type: ${detectedType})`);
+      results.push({ success: true, url: item.url, type: detectedType });
     } catch (err: any) {
-      console.error(`❌ Sequential media send failed for ${item.url}:`, err.message);
-      // We don't throw here to allow other items to attempt delivery
+      console.error(`❌ [Media Send] Item ${i + 1}/${media.length} failed for ${to} (${item.url}):`, err.message);
+      results.push({ success: false, url: item.url, error: err.message });
     }
   }
+
+  console.log(`🏁 [Media Send] Completed sequential send to ${to}. Success: ${results.filter(r => r.success).length}/${media.length}`);
+  return results;
 }

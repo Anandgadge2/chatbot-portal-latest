@@ -264,7 +264,7 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
         caption: file.caption,
         filename: file.filename
       }))
-    }).catch((err) => console.error('Failed to trigger admin assignment template:', err));
+    }).catch((err: Error) => console.error('Failed to trigger admin assignment template:', err));
 
     // Notify assigned user (fire and forget - don't block response)
     import('../services/notificationService').then(async ({ notifyUserOnAssignment }) => {
@@ -287,7 +287,7 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
         language: grievance.language,
         remarks: String((req.body as any).remarks || (req.body as any).note || '').trim(),
         timeline: grievance.timeline
-      }).catch(err => console.error('Failed to send assignment notification:', err));
+      }).catch((err: Error) => console.error('Failed to send assignment notification:', err));
 
       // ✅ Trigger In-App Notification to Assignee
       const { notifyUser, notifyCompanyAdmins } = await import('../services/inAppNotificationService');
@@ -332,7 +332,7 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
         assignedTo: assignedUser.getFullName(),
         grievanceId: grievance.grievanceId
       }
-    ).catch(err => console.error('Failed to log user action:', err));
+    ).catch((err: Error) => console.error('Failed to log user action:', err));
 
     res.json({
       success: true,
@@ -510,7 +510,7 @@ router.put('/appointment/:id/assign', requirePermission(Permission.UPDATE_APPOIN
         timeline: appointment.timeline,
         appointmentDate: appointment.appointmentDate,
         appointmentTime: appointment.appointmentTime
-      } as any).catch(err => console.error('Failed to send assignment notification:', err));
+      } as any).catch((err: Error) => console.error('Failed to send assignment notification:', err));
     });
 
     // Log action (fire and forget - don't block response)
@@ -524,7 +524,7 @@ router.put('/appointment/:id/assign', requirePermission(Permission.UPDATE_APPOIN
         assignedTo: assignedUser.getFullName(),
         appointmentId: appointment.appointmentId
       }
-    ).catch(err => console.error('Failed to log user action:', err));
+    ).catch((err: Error) => console.error('Failed to log user action:', err));
 
     res.json({
       success: true,

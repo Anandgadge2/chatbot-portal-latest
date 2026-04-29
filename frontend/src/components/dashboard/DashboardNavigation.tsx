@@ -117,25 +117,19 @@ export function DashboardNavigation({
         ]
       : []),
     ...(canSeeUsersTab ? [{ value: "users", label: "Users", icon: Users }] : []),
-    ...(isSuperAdminUser && companyIdParam
-      ? [{ value: "roles", label: "Roles", icon: Shield }]
-      : []),
     ...(hasLeadCaptureModule && isViewingCompany
       ? [{ value: "leads", label: "Leads", icon: Target }]
       : []),
   ];
 
   const configurationItems: NavItem[] =
-    isSuperAdminUser && companyIdParam
+    (isSuperAdminUser || user?.isSuperAdmin || user?.level === 0) && companyIdParam
       ? [
           { value: "whatsapp", label: "WhatsApp", icon: MessageSquare },
           { value: "flows", label: "Flows", icon: Workflow },
-          {
-            value: "notifications",
-            label: "Notifications",
-            icon: BellRing,
-          },
+          { value: "notifications", label: "Notifications", icon: BellRing },
           { value: "email", label: "Email", icon: Mail },
+          { value: "roles", label: "Roles", icon: Shield },
         ]
       : [];
 

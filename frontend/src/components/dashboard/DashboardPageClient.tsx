@@ -84,36 +84,10 @@ const SuperAdminOverview = dynamic(
   },
 );
 
-const DashboardTabPanels = dynamic(
-  () =>
-    import("@/components/dashboard/DashboardTabPanels").then((mod) => ({
-      default: mod.DashboardTabPanels,
-    })),
-  {
-    loading: () => (
-      <div className="flex-1 space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="h-6 w-48 animate-pulse rounded bg-slate-200" />
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <div
-              key={index}
-              className="h-32 animate-pulse rounded-2xl bg-slate-100"
-            />
-          ))}
-        </div>
-        <div className="h-80 animate-pulse rounded-2xl bg-slate-100" />
-      </div>
-    ),
-  },
-);
 
-const DashboardDialogs = dynamic(
-  () =>
-    import("@/components/dashboard/DashboardDialogs").then((mod) => ({
-      default: mod.DashboardDialogs,
-    })),
-  { ssr: false },
-);
+import { DashboardTabPanels } from "@/components/dashboard/DashboardTabPanels";
+
+import { DashboardDialogs } from "@/components/dashboard/DashboardDialogs";
 
 
 import {
@@ -263,27 +237,7 @@ function DashboardPageClientContent() {
 
   const user = authUser as any;
 
-  const fetchNotifications = useCallback(async () => {
-    try {
-      const response = await notificationAPI.getAll({ limit: 10 });
-      if (response.success) {
-        setNotifications(response.data.notifications);
-      }
-    } catch (error) {
-      console.error("Failed to fetch notifications:", error);
-    }
-  }, []);
 
-  const fetchUnreadCount = useCallback(async () => {
-    try {
-      const response = await notificationAPI.getUnreadCount();
-      if (response.success) {
-        setUnreadCount(response.data.unreadCount);
-      }
-    } catch (error) {
-      console.error("Failed to fetch unread count:", error);
-    }
-  }, []);
 
   const handleMarkNotificationAsRead = async (id: string) => {
     try {
@@ -332,24 +286,7 @@ function DashboardPageClientContent() {
     }
   };
 
-  useEffect(() => {
-    if (authUser) {
-      const cancelIdleWork = scheduleIdle(() => {
-        fetchNotifications();
-        fetchUnreadCount();
-      });
 
-      const interval = setInterval(() => {
-        fetchUnreadCount();
-        fetchNotifications();
-      }, 30000); // 30 seconds
-
-      return () => {
-        cancelIdleWork();
-        clearInterval(interval);
-      };
-    }
-  }, [authUser, fetchNotifications, fetchUnreadCount]);
 
   const roleName = (user?.role || "").toString().toLowerCase();
   const explicitLevel =
@@ -709,6 +646,50 @@ function DashboardPageClientContent() {
     company,
     userCompanyId: user?.companyId,
   });
+
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const response = await notificationAPI.getAll({ 
+        limit: 10,
+        companyId: scopedCompanyId 
+      });
+      if (response.success) {
+        setNotifications(response.data.notifications);
+      }
+    } catch (error) {
+      console.error("Failed to fetch notifications:", error);
+    }
+  }, [scopedCompanyId]);
+
+  const fetchUnreadCount = useCallback(async () => {
+    try {
+      const response = await notificationAPI.getUnreadCount(scopedCompanyId);
+      if (response.success) {
+        setUnreadCount(response.data.unreadCount);
+      }
+    } catch (error) {
+      console.error("Failed to fetch unread count:", error);
+    }
+  }, [scopedCompanyId]);
+
+  useEffect(() => {
+    if (authUser) {
+      const cancelIdleWork = scheduleIdle(() => {
+        fetchNotifications();
+        fetchUnreadCount();
+      });
+
+      const interval = setInterval(() => {
+        fetchUnreadCount();
+        fetchNotifications();
+      }, 30000); // 30 seconds
+
+      return () => {
+        cancelIdleWork();
+        clearInterval(interval);
+      };
+    }
+  }, [authUser, fetchNotifications, fetchUnreadCount, scopedCompanyId]);
   const dashboardTenantConfig = getDashboardTenantConfig(scopedCompanyId);
   const isJharsugudaCompany = dashboardTenantConfig.isCollectorateJharsuguda;
   const canSendOverdueReminder = isJharsugudaCompany && isCompanyAdminRole;
@@ -3586,7 +3567,6 @@ function DashboardPageClientContent() {
           </div>
         </Tabs>
 
-        {shouldMountDialogs && (
           <DashboardDialogs
             visible={true}
             props={{
@@ -3683,7 +3663,6 @@ function DashboardPageClientContent() {
               grievanceAssignmentSuggestedSubDepartmentId,
             }}
           />
-        )}
       </main>
     </div>
   );

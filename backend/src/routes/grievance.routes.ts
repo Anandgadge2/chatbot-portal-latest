@@ -39,7 +39,7 @@ router.use(authenticate);
 // @access  Private
 router.get('/', requirePermission(Permission.READ_GRIEVANCE), async (req: Request, res: Response) => {
   try {
-    const { page = 1, limit = 20, status, companyId, departmentId, assignedTo, priority, search } = req.query;
+    const { page = 1, limit = 20, status, companyId, departmentId, assignedTo, priority, search, slaStatus } = req.query;
     const currentUser = req.user!;
 
     const query: any = {};
@@ -113,6 +113,43 @@ router.get('/', requirePermission(Permission.READ_GRIEVANCE), async (req: Reques
       else query.assignedTo = assignedTo;
     }
     if (priority) query.priority = priority;
+
+    if (slaStatus) {
+      const now = new Date();
+      const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const fiveDaysAgo = new Date(now.getTime() - 120 * 60 * 60 * 1000);
+
+      const activeStatuses = [
+        GrievanceStatus.PENDING,
+        GrievanceStatus.ASSIGNED,
+        GrievanceStatus.IN_PROGRESS,
+        GrievanceStatus.REVERTED
+      ];
+
+      if (slaStatus === "OVERDUE") {
+        // Only active grievances can be overdue
+        query.status = { $in: activeStatuses };
+        query.$or = [
+          // Case 1: Unassigned - Overdue after 24 hours of creation
+          { assignedTo: null, createdAt: { $lt: oneDayAgo } },
+          // Case 2: Assigned - Overdue after 120 hours of assignment
+          { assignedTo: { $ne: null }, assignedAt: { $lt: fiveDaysAgo } },
+          // Fallback for assigned grievances without assignedAt
+          { assignedTo: { $ne: null }, assignedAt: null, createdAt: { $lt: fiveDaysAgo } }
+        ];
+      } else if (slaStatus === "ON_TRACK") {
+        query.status = { $in: activeStatuses };
+        query.$and = [
+          {
+            $or: [
+              { assignedTo: null, createdAt: { $gte: oneDayAgo } },
+              { assignedTo: { $ne: null }, assignedAt: { $gte: fiveDaysAgo } },
+              { assignedTo: { $ne: null }, assignedAt: null, createdAt: { $gte: fiveDaysAgo } }
+            ]
+          }
+        ];
+      }
+    }
 
     // 🔍 SEARCH LOGIC
     if (search) {
@@ -572,7 +609,7 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
         caption: file.caption,
         filename: file.filename
       }))
-    }).catch((err) => logger.error('Failed to trigger grievance_reverted_company_v2 template', err));
+    }).catch((err: Error) => logger.error('Failed to trigger grievance_reverted_company_v2 template', err));
 
     const { notifyCompanyAdminsOnRevert } = await import('../services/notificationService');
     await notifyCompanyAdminsOnRevert({
@@ -588,7 +625,7 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
       companyId: grievance.companyId,
       remarks: remarks.trim(),
       timeline: grievance.timeline
-    }).catch(err => logger.error('❌ Failed to notify company admins on revert:', err));
+    }).catch((err: Error) => logger.error('❌ Failed to notify company admins on revert:', err));
 
     await logUserAction(req, AuditAction.UPDATE, 'Grievance', grievance._id.toString(), {
       action: 'revert_to_company_admin',
@@ -1198,7 +1235,6 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
         );
 
         if (allRecipientUsers.length > 0) {
-          const { triggerAdminAssignmentNotification } = await import('../services/grievanceTemplateTriggerService');
           await triggerAdminAssignmentNotification({
             // useReassignedTemplate: company admin / super admin cross-dept reassignment
             // grievance_assigned_admin_v2: dept admin delegating within dept
@@ -1449,50 +1485,72 @@ router.post('/:id/reminder', requirePermission(Permission.UPDATE_GRIEVANCE), asy
 
     const departmentName = (grievance.departmentId as any)?.name || grievance.category || 'Collector & DM';
     const officeName = (grievance.subDepartmentId as any)?.name || 'N/A';
-    const dashboardUrl = process.env.FRONTEND_URL || 'https://connect.pugarch.in/';
+    
     if (recipientPhones.length > 0) {
-      await triggerAdminTemplate({
-        event: 'grievance_reminder_admin_v2',
+      const recipientProfiles = await User.find({
         companyId: grievance.companyId,
-        language: grievance.language,
-        recipientPhones,
-        citizenPhone: grievance.citizenPhone,
-        data: {
-          admin_name: 'Administrator',
-          grievance_id: grievance.grievanceId,
-          citizen_name: grievance.citizenName || 'N/A',
-          department_name: departmentName,
-          office_name: officeName,
-          grievance_details: grievance.description || 'N/A',
-          submitted_on: formatTemplateDate(new Date(grievance.createdAt)),
-          assigned_on: formatTemplateDate(assignedDate),
-          reminder_remarks: trimmedRemarks,
-          dashboard_url: dashboardUrl
-        }
-      });
-    }
+        phone: { $in: recipientPhones }
+      }).select('phone firstName lastName').lean();
 
-    const media = (grievance.media || []).map((file: any) => ({
-      url: file.url,
-      type: file.type,
-      caption: `Evidence for grievance ${grievance.grievanceId}`
-    }));
-    if (media.length > 0 && recipientPhones.length > 0) {
-      const config = await CompanyWhatsAppConfig.findOne({ companyId: grievance.companyId, isActive: true }).lean();
-      const company = await Company.findById(grievance.companyId).lean();
-      if (config && company) {
-        const companyPayload = {
-          ...company,
-          _id: grievance.companyId,
-          whatsappConfig: {
-            phoneNumberId: config.phoneNumberId,
-            accessToken: config.accessToken,
-            businessAccountId: config.businessAccountId,
-            rateLimits: config.rateLimits
-          }
-        };
-        await Promise.allSettled(recipientPhones.map((phone) => sendMediaSequentially(companyPayload, phone, media as any)));
+      const nameByPhone = new Map<string, string>();
+      for (const profile of recipientProfiles as any[]) {
+        const normalized = normalizePhoneNumber(profile.phone);
+        if (normalized) {
+          const fullName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
+          if (fullName) nameByPhone.set(normalized, fullName);
+        }
       }
+
+      await Promise.allSettled(
+        recipientPhones.map(async (phone) => {
+          const normalizedTo = normalizePhoneNumber(phone);
+          const recipientName = (normalizedTo && nameByPhone.get(normalizedTo)) || 'Administrator';
+
+          await triggerAdminTemplate({
+            event: 'grievance_reminder_admin_v2',
+            companyId: grievance.companyId,
+            language: grievance.language,
+            recipientPhones: [phone],
+            citizenPhone: grievance.citizenPhone,
+            data: {
+              admin_name: recipientName,
+              grievance_id: grievance.grievanceId,
+              citizen_name: grievance.citizenName || 'N/A',
+              department_name: departmentName,
+              office_name: officeName,
+              grievance_details: grievance.description || 'N/A',
+              submitted_on: formatTemplateDate(new Date(grievance.createdAt)),
+              reminder_remarks: trimmedRemarks
+            }
+          });
+
+          // ✅ Send Media for each recipient with their personalized name
+          const grievanceMedia = (grievance.media || []).map((file: any) => ({
+            url: file.url,
+            type: file.type,
+            caption: `Evidence for grievance ${grievance.grievanceId}`
+          }));
+
+          if (grievanceMedia.length > 0) {
+            const config = await CompanyWhatsAppConfig.findOne({ companyId: grievance.companyId, isActive: true }).lean();
+            const company = await Company.findById(grievance.companyId).lean();
+            if (config && company) {
+              const companyPayload = {
+                ...company,
+                _id: grievance.companyId,
+                whatsappConfig: {
+                  phoneNumberId: config.phoneNumberId,
+                  accessToken: config.accessToken,
+                  businessAccountId: config.businessAccountId,
+                  rateLimits: config.rateLimits
+                }
+              };
+              await sendMediaSequentially(companyPayload, phone, grievanceMedia as any, recipientName);
+            }
+          }
+          return;
+        })
+      );
     }
 
     await logUserAction(

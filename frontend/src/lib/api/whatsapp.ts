@@ -6,4 +6,7 @@ export const whatsappAPI = {
 
   updateConfig: async (configId: string, payload: Record<string, any>): Promise<any> =>
     apiClient.put(`/whatsapp-config/${configId}`, payload),
+
+  saveConfig: async (payload: Record<string, any>): Promise<any> =>
+    apiClient.post(`/whatsapp-config`, payload),
 };

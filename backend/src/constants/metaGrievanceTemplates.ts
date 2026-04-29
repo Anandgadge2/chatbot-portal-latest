@@ -21,7 +21,7 @@ export const META_GRIEVANCE_TEMPLATE_VARIABLE_COUNT: Record<string, number> = {
   grievance_assigned_admin_v2: 9,
   grievance_reassigned_admin_v2: 12,
   grievance_reverted_company_v2: 9,
-  grievance_reminder_admin_v2: 10,
+  grievance_reminder_admin_v2: 8,
   number_admin_v1_: 1,
   grievance_status_inprogress_citizen_v2: 8,
   grievance_status_resolved_citizen_v2: 8,

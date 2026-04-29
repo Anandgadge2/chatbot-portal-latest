@@ -86,7 +86,14 @@ export enum Module {
   // Utility Modules
   STATUS_TRACKING = 'STATUS_TRACKING',                        // Status tracking by reference number
   LEAD_CAPTURE = 'LEAD_CAPTURE',                             // Lead capture for enterprises
-  HIERARCHICAL_DEPARTMENTS = 'HIERARCHICAL_DEPARTMENTS'       // Hierarchical department structure
+  HIERARCHICAL_DEPARTMENTS = 'HIERARCHICAL_DEPARTMENTS',
+  
+  // Platform Modules
+  ANALYTICS = 'ANALYTICS',
+  DASHBOARD = 'DASHBOARD',
+  USER_MANAGEMENT = 'USER_MANAGEMENT',
+  DEPARTMENTS = 'DEPARTMENTS',
+  SETTINGS = 'SETTINGS',
   
   // Note: MULTI_LANGUAGE is always enabled by default and not a selectable module
 }

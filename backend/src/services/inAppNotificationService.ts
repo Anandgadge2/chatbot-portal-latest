@@ -9,8 +9,15 @@ const log = (msg: string) => logger.info(`[InAppNotification] ${msg}`);
 
 const toObjectId = (id: any): mongoose.Types.ObjectId | null => {
   if (!id) return null;
+  if (id instanceof mongoose.Types.ObjectId) return id;
+  
+  // Handle populated objects
+  const finalId = (typeof id === 'object' && id._id) ? id._id : id;
+  
   try {
-    return new mongoose.Types.ObjectId(String(id));
+    const strId = String(finalId);
+    if (!strId || strId === '[object Object]' || strId.length !== 24) return null;
+    return new mongoose.Types.ObjectId(strId);
   } catch {
     return null;
   }

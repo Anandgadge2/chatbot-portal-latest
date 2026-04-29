@@ -673,12 +673,12 @@ async function verifyWebhookRequest(req: WebhookRequest): Promise<VerifiedWebhoo
   }
 
   if (!req.rawBody) {
-    logger.warn('⚠️ rawBody not available for signature verification.');
+    logger.warn('⚠️ rawBody not available for signature verification. Ensure server.ts captures rawBody.');
     return null;
   }
 
   if (!signature.startsWith('sha256=')) {
-    logger.warn('⚠️ Invalid webhook signature format.');
+    logger.warn('⚠️ Invalid webhook signature format (must start with sha256=).');
     return null;
   }
 
@@ -692,44 +692,43 @@ async function verifyWebhookRequest(req: WebhookRequest): Promise<VerifiedWebhoo
     return null;
   }
 
-  /**
-   * Webhook signature secret resolution (per-company, multi-tenant):
-   *   1. webhookSecret field (recommended — store Meta App Secret here)
-   *   2. verifyToken field (fallback — in case admin stored App Secret here)
-   *
-   * The correct value is the Meta "App Secret" from:
-   *   Meta Developer Dashboard → Your App → Settings → Basic → App Secret
-   */
-  const webhookSecret = config.appSecret || config.webhookSecret || config.verifyToken;
-  if (!webhookSecret) {
-    logger.error(
-      `❌ No webhook secret available for phoneNumberId=${phoneNumberId}. ` +
-      `Set the 'App Secret' field in WhatsApp Config (Dashboard → Company → WhatsApp Config → Edit Params).`
-    );
+  // 🛡️ MULTI-SECRET FALLBACK (Robustness for Multi-tenant)
+  // Meta signs payloads using the "App Secret". However, admins might save it in:
+  // 1. appSecret (Proper place)
+  // 2. webhookSecret (Commonly confused)
+  // 3. verifyToken (Sometimes used as fallback)
+  
+  const candidateSecrets = [
+    config.appSecret,
+    config.webhookSecret,
+    config.verifyToken
+  ].filter((s): s is string => Boolean(s && s.trim()));
+
+  if (candidateSecrets.length === 0) {
+    logger.error(`❌ No potential secrets available for phoneNumberId=${phoneNumberId}. Fix: Set App Secret in dashboard.`);
     return null;
   }
 
-  if (!config.appSecret && !config.webhookSecret) {
-    logger.warn(
-      `⚠️ 'appSecret' not set for phoneNumberId=${phoneNumberId}. Using 'verifyToken' as fallback. ` +
-      `For reliability, set the Meta App Secret in the 'App Secret' field via the dashboard.`
-    );
+  let validSecret: string | null = null;
+  for (const secret of candidateSecrets) {
+    const isValid = verifyWebhookSignatureDigest(req.rawBody, signature, secret);
+    if (isValid) {
+      validSecret = secret;
+      break;
+    }
   }
 
-  const isValid = verifyWebhookSignatureDigest(req.rawBody, signature, webhookSecret);
-  if (!isValid) {
+  if (!validSecret) {
     logger.error(
-      `❌ Webhook signature mismatch for phoneNumberId=${phoneNumberId}. ` +
-      `The secret does not match what Meta used to sign the payload. ` +
-      `Fix: Get your App Secret from Meta Developer Dashboard → Settings → Basic → App Secret, ` +
-      `then paste it into the 'Webhook Secret' field in your WhatsApp Config (Dashboard → Company → WhatsApp Config → Edit Params).`
+      `❌ Webhook signature mismatch for phoneNumberId=${phoneNumberId}. Tried ${candidateSecrets.length} candidate secrets. ` +
+      `Ensure the "App Secret" from Meta Developer Dashboard is saved in the WhatsApp Config.`
     );
     return null;
   }
 
   return {
     phoneNumberId,
-    webhookSecret,
+    webhookSecret: validSecret,
     config: {
       companyId: config.companyId,
       phoneNumberId: config.phoneNumberId,

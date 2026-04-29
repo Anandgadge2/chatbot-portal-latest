@@ -229,6 +229,8 @@ export const create = async (req: Request, res: Response) => {
         'USER_MANAGEMENT', 
         'DEPARTMENTS', 
         'ANALYTICS', 
+        'GRIEVANCE',
+        'APPOINTMENT',
         'SETTINGS', 
         ...(enabledModules || [])
       ])),
@@ -247,28 +249,19 @@ export const create = async (req: Request, res: Response) => {
     const { seedDefaultTemplates } = await import('../services/templateSeeder');
     seedDefaultTemplates(company).catch(err => console.error('❌ Template seeding failed:', err));
 
-    // Seeding logic removed per user request. 
-    // SuperAdmin will manually create roles for the company from the dashboard.
-
-    // Create company admin if admin data is provided
-    let adminUser: any = null;
-    if (admin && admin.email && admin.password && admin.firstName && admin.lastName) {
-      console.log('Provisioning administrative ecosystem for company:', admin.email);
-
-      try {
-        const Role = (await import('../models/Role')).default;
-        
-        // 1. Fetch all system roles (Blueprints)
-        const systemRoles = await Role.find({ companyId: null, isSystem: true });
-        
-        // 2. Ensure we have at least the basic templates
-        if (systemRoles.length === 0) {
-           console.log('⚠️ No system roles found to clone. Creating fallback Admin role.');
-           // Fallback creation logic if no templates exist
-        }
-
-        // 3. Clone roles specifically for this company
-        const clonedRoles = await Promise.all(systemRoles.map(async (sr: any) => {
+    // ✅ PROVISION ADMINISTRATIVE ECOSYSTEM (Roles)
+    // We clone roles for EVERY company, regardless of whether an admin user is created immediately.
+    // This ensures that when a SuperAdmin later adds users, the correct roles are already present.
+    let clonedRoles: any[] = [];
+    try {
+      const Role = (await import('../models/Role')).default;
+      
+      // 1. Fetch all system roles (Blueprints)
+      const systemRoles = await Role.find({ companyId: null, isSystem: true });
+      
+      // 2. Clone roles specifically for this company
+      if (systemRoles.length > 0) {
+        clonedRoles = await Promise.all(systemRoles.map(async (sr: any) => {
           const roleData = sr.toObject();
           const { _id, createdAt, updatedAt, ...cleanRoleData } = roleData;
           
@@ -276,17 +269,30 @@ export const create = async (req: Request, res: Response) => {
             ...cleanRoleData,
             name: `${sr.name} (${company.name})`,
             description: `Customized role for ${company.name} based on ${sr.name}`,
-            isSystem: false, // Clones are active instances, not platform-level system roles
+            isSystem: false,
             companyId: company._id,
             createdBy: req.user!._id
           });
         }));
+        console.log(`✅ Provisioned isolated role set (${clonedRoles.length} roles) for ${company.name}`);
+      } else {
+        console.warn('⚠️ No system roles found to clone for company:', company.name);
+      }
+    } catch (roleError: any) {
+      console.error('❌ Role provisioning failed:', roleError);
+    }
 
+    // Create company admin if admin data is provided
+    let adminUser: any = null;
+    if (admin && admin.email && admin.password && admin.firstName && admin.lastName) {
+      console.log('Provisioning administrator for company:', admin.email);
+
+      try {
         // 4. Identify the primary "Company Administrator" from the new clones
         const adminRole = clonedRoles.find(r => r.name.startsWith('Company Administrator'));
         
         if (!adminRole) {
-          throw new Error('Failed to create company-specific administration role');
+          console.warn('⚠️ No "Company Administrator" role found in clones. Admin user creation will use fallback or skip customRoleId.');
         }
 
         // 5. Create the actual admin user linked to the new company-specific role
@@ -296,18 +302,17 @@ export const create = async (req: Request, res: Response) => {
           email: admin.email.toLowerCase().trim(),
           password: admin.password,
           phone: normalizedAdminPhone || normalizedContactPhone || undefined,
-          role: adminRole.name,
-          customRoleId: adminRole._id,
+          role: adminRole ? adminRole.name : 'COMPANY_ADMIN',
+          customRoleId: adminRole ? adminRole._id : undefined,
           companyId: company._id,
           isActive: true,
           rawPassword: admin.password,
           createdBy: req.user!._id
         });
 
-        console.log(`✅ Provisioned isolated role set (${clonedRoles.length} roles) and admin for ${company.name}`);
-      } catch (provisionError: any) {
-        console.error('❌ Hierarchy provisioning failed:', provisionError);
-        // We still return success for company creation since the company record was saved
+        console.log(`✅ Admin user created for ${company.name}`);
+      } catch (adminError: any) {
+        console.error('❌ Admin user provisioning failed:', adminError);
       }
     }
 

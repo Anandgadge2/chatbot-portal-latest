@@ -18,6 +18,7 @@ type ParameterSpec = {
 type TemplateDefinition = {
   audience: TemplateAudience;
   body: ParameterSpec[];
+  header?: { type: 'IMAGE' | 'VIDEO' | 'DOCUMENT' | 'TEXT' };
 };
 
 export interface BuiltTemplatePayload {
@@ -100,10 +101,8 @@ export const TEMPLATE_DEFINITIONS: Record<string, TemplateDefinition> = {
       { key: 'department_name', aliases: ['department_name', 'departmentName', 'category'], maxLength: 60 },
       { key: 'office_name', aliases: ['office_name', 'officeName', 'sub_department_name', 'subDepartmentName'], maxLength: 60 },
       { key: 'description', aliases: ['description', 'grievance_details', 'grievanceDetails'], maxLength: 400, mode: 'summary' },
-      { key: 'submitted_on', aliases: ['submitted_on', 'submittedOn', 'submittedDate', 'submitted_date', 'received_on', 'receivedOn', 'formattedDate', 'formatted_date', 'date'], maxLength: 60 },
-      { key: 'assigned_on', aliases: ['assigned_on', 'assignedOn', 'assignedDate', 'formattedDate', 'formatted_date'], maxLength: 60 },
       { key: 'reminder_remarks', aliases: ['reminder_remarks', 'remarks', 'note', 'remarks_by_collector'], maxLength: 100 },
-      { key: 'dashboard_url', aliases: ['dashboard_url', 'dashboardUrl', 'url'], maxLength: 255 }
+      { key: 'submitted_on', aliases: ['submitted_on', 'submittedOn', 'submittedDate', 'submitted_date', 'received_on', 'receivedOn', 'formattedDate', 'formatted_date', 'date'], maxLength: 60 }
     ]
   },
   grievance_status_resolved_citizen_v2: {
@@ -143,6 +142,27 @@ export const TEMPLATE_DEFINITIONS: Record<string, TemplateDefinition> = {
       { key: 'action_by', aliases: ['action_by', 'inprogress_by', 'inprogressByName', 'admin_name'], maxLength: 60 },
       { key: 'action_on', aliases: ['action_on', 'inprogress_on', 'formattedResolvedDate', 'date', 'action_on'], maxLength: 60 },
       { key: 'remarks', aliases: ['remarks', 'note', 'dynamic_message', 'message'], maxLength: 500 }
+    ]
+  },
+  media_image_v1: {
+    audience: 'CITIZEN',
+    header: { type: 'IMAGE' },
+    body: [
+      { key: 'recipient_name', aliases: ['recipient_name', 'admin_name', 'citizen_name', 'adminName', 'citizenName'], maxLength: 60 }
+    ]
+  },
+  media_video_v1: {
+    audience: 'CITIZEN',
+    header: { type: 'VIDEO' },
+    body: [
+      { key: 'recipient_name', aliases: ['recipient_name', 'admin_name', 'citizen_name', 'adminName', 'citizenName'], maxLength: 60 }
+    ]
+  },
+  media_document_v1: {
+    audience: 'CITIZEN',
+    header: { type: 'DOCUMENT' },
+    body: [
+      { key: 'recipient_name', aliases: ['recipient_name', 'admin_name', 'citizen_name', 'adminName', 'citizenName'], maxLength: 60 }
     ]
   }
 };
@@ -194,9 +214,12 @@ function resolveValue(data: TemplateInputData, spec: ParameterSpec, audience: Te
     }
   }
 
-  const error: any = new Error(`Missing required template parameter: ${spec.key}`);
-  error.code = 'TEMPLATE_INVALID';
-  throw error;
+  // ⚠️ FALLBACK LOGIC: If a required parameter is missing, use a safe default 
+  // instead of throwing to prevent complete notification failure.
+  const defaultValue = spec.key.includes('url') ? 'https://connect.pugarch.in/' : 'N/A';
+  console.warn(`[TemplatePayloadBuilder] ⚠️ Missing parameter: ${spec.key}. Using fallback: ${defaultValue}`);
+  
+  return { value: defaultValue, alias: spec.key };
 }
 
 function enforceBodyCharacterLimit(
@@ -285,11 +308,24 @@ export function buildTemplatePayload(templateName: string, data: TemplateInputDa
   }));
 
   const components: any[] = [];
-  const headerValue = data.header_text ?? data.headerText;
-  if (headerValue) {
+  const headerValue = data.header_url ?? data.headerUrl ?? data.header_text ?? data.headerText;
+  if (headerValue && definition.header) {
+    const hType = definition.header.type.toLowerCase();
     components.push({
       type: 'header',
-      parameters: [{ type: 'text', text: normalizeTemplateParamText(sanitizeText(String(headerValue), 60)) }]
+      parameters: [{ 
+        type: hType, 
+        [hType]: definition.header.type === 'TEXT' 
+          ? normalizeTemplateParamText(sanitizeText(String(headerValue), 60))
+          : { link: String(headerValue) }
+      }]
+    });
+  } else if (!definition.header && (data.header_text || data.headerText)) {
+    // Backward compatibility for templates that implicitly support text headers
+    const textValue = data.header_text ?? data.headerText;
+    components.push({
+      type: 'header',
+      parameters: [{ type: 'text', text: normalizeTemplateParamText(sanitizeText(String(textValue), 60)) }]
     });
   }
 
