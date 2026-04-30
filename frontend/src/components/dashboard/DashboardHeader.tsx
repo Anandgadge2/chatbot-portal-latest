@@ -149,6 +149,7 @@ export const DashboardHeader = memo(function DashboardHeader({
             {isSuperAdminUser && companyIdParam && (
               <Link
                 href="/dashboard"
+                onClick={() => sessionStorage.removeItem("drilldownCompanyId")}
                 className="h-8 px-2 sm:h-9 sm:px-3 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-xl transition-all duration-300 border border-transparent hover:border-indigo-500/20 text-[9px] sm:text-[11px] font-black uppercase tracking-widest flex items-center shrink-0 max-w-[70px] sm:max-w-none"
               >
                 <ArrowLeft className="w-3.5 h-3.5 mr-1 sm:mr-1.5" />

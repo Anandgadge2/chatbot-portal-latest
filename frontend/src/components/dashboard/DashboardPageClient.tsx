@@ -345,41 +345,70 @@ function DashboardPageClientContent() {
   }, [user, isCompanyAdminRole, isSuperAdminUser]);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const companyIdParam = searchParams.get("companyId");
-  const isSuperAdminDrilldown = isSuperAdminUser && !!companyIdParam;
+
+  // State to track drilldown ID without keeping it in the URL
+  const [drilldownId, setDrilldownId] = useState<string | null>(null);
+
+  // Sync URL/SessionStorage to local state and purge URL
+  useEffect(() => {
+    // 1. Check URL first (new drilldown)
+    const urlId = searchParams.get("companyId");
+    // 2. Check Session Storage (persisted drilldown)
+    const sessionId = sessionStorage.getItem("drilldownCompanyId");
+
+    if (urlId) {
+      // New drilldown from Super Admin panel
+      setDrilldownId(urlId);
+      sessionStorage.setItem("drilldownCompanyId", urlId);
+      
+      // Clean URL immediately
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("companyId");
+      const newQuery = params.toString();
+      const newPath = newQuery ? `/dashboard?${newQuery}` : "/dashboard";
+      
+      // Replace URL without the companyId to hide it from the user
+      window.history.replaceState(null, "", newPath);
+    } else if (sessionId) {
+      // Restore from session
+      setDrilldownId(sessionId);
+    }
+  }, [searchParams]);
+
+  const isSuperAdminDrilldown = isSuperAdminUser && !!drilldownId;
   const targetCompanyId = useMemo(
     () =>
-      companyIdParam ||
+      drilldownId ||
       (user?.companyId && typeof user.companyId === "object"
         ? (user.companyId as any)._id
         : user?.companyId),
-    [companyIdParam, user],
+    [drilldownId, user],
   );
   const isViewingCompany = useMemo(
-    () => isCompanyLevel || (isSuperAdminUser && !!companyIdParam),
-    [isCompanyLevel, isSuperAdminUser, companyIdParam],
+    () => isCompanyLevel || (isSuperAdminUser && !!drilldownId),
+    [isCompanyLevel, isSuperAdminUser, drilldownId],
   );
   const canSeeDepartmentsTab = useMemo(() => {
-    if (isSuperAdminUser && companyIdParam) return true;
+    if (isSuperAdminUser && drilldownId) return true;
     if (isCompanyAdminRole || isDepartmentAdminRole) return true;
     if (isSubDepartmentAdminRole) return hasMultiDepartmentMapping;
     return false;
   }, [
     isSuperAdminUser,
-    companyIdParam,
+    drilldownId,
     isCompanyAdminRole,
     isDepartmentAdminRole,
     isSubDepartmentAdminRole,
     hasMultiDepartmentMapping,
   ]);
   const canSeeUsersTab = useMemo(() => {
-    if (isSuperAdminUser && companyIdParam) return true;
+    if (isSuperAdminUser && drilldownId) return true;
     return (
       isCompanyAdminRole || isDepartmentAdminRole || isSubDepartmentAdminRole
     );
   }, [
     isSuperAdminUser,
-    companyIdParam,
+    drilldownId,
     isCompanyAdminRole,
     isDepartmentAdminRole,
     isSubDepartmentAdminRole,
@@ -393,7 +422,7 @@ function DashboardPageClientContent() {
     if (tabFromUrl) return tabFromUrl;
 
     // Priority 2: Company drilldown defaults
-    if (companyIdParam) return "overview";
+    if (drilldownId) return "overview";
 
     // Priority 3: Role-based defaults
     if (!hasPermission(user, Permission.VIEW_ANALYTICS) && !isSuperAdminUser) {
@@ -642,7 +671,7 @@ function DashboardPageClientContent() {
 
   const [company, setCompany] = useState<Company | null>(null);
   const scopedCompanyId = getScopedCompanyId({
-    companyIdParam,
+    companyIdParam: drilldownId,
     company,
     userCompanyId: user?.companyId,
   });
@@ -1746,14 +1775,14 @@ function DashboardPageClientContent() {
   // Handle browser back/forward navigation persistence
   useEffect(() => {
     // Skip if in SuperAdmin overview mode to avoid conflicts with SuperAdminOverview's own state
-    if (isSuperAdminUser && !companyIdParam) return;
+    if (isSuperAdminUser && !drilldownId) return;
 
     const tabFromUrl = searchParams.get("tab");
     if (tabFromUrl && tabFromUrl !== activeTab) {
       setActiveTab(tabFromUrl);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, isSuperAdminUser, companyIdParam]);
+  }, [searchParams, isSuperAdminUser, drilldownId]);
 
   // Sync tab state to URL
   useEffect(() => {
@@ -1771,7 +1800,7 @@ function DashboardPageClientContent() {
         scroll: false,
       });
     }
-  }, [activeTab, router, searchParams, isSuperAdminUser, companyIdParam]);
+  }, [activeTab, router, searchParams, isSuperAdminUser, drilldownId]);
 
   useEffect(() => {
     setMounted(true);
@@ -1786,10 +1815,10 @@ function DashboardPageClientContent() {
   >(null);
 
   const fetchPerformanceData = useCallback(async () => {
-    if (isSuperAdminUser && !companyIdParam) return;
+    if (isSuperAdminUser && !drilldownId) return;
     try {
       const response = await apiClient.get(
-        `/analytics/performance${companyIdParam ? "?companyId=" + companyIdParam : ""}`,
+        `/analytics/performance${drilldownId ? "?companyId=" + drilldownId : ""}`,
       );
       if (response.success) {
         setPerformanceData(response.data);
@@ -1799,7 +1828,7 @@ function DashboardPageClientContent() {
         console.error("Failed to fetch performance data:", error);
       }
     }
-  }, [companyIdParam, isSuperAdminUser]);
+  }, [drilldownId, isSuperAdminUser]);
 
   const filteredDeptCounts = useMemo(() => {
     let filtered = allDepartments;
@@ -1831,7 +1860,7 @@ function DashboardPageClientContent() {
   }, [allDepartments, deptSearch, deptFilters, getParentDepartmentId]);
 
   const fetchDepartmentData = useCallback(async () => {
-    if (isSuperAdminUser && !companyIdParam) return;
+    if (isSuperAdminUser && !drilldownId) return;
     try {
       // Fetch all departments the user has access to, ignoring global analytics filters 
       // to allow independent filtering within the chart section.
@@ -1841,7 +1870,7 @@ function DashboardPageClientContent() {
           : ""; // Fetch all for company admin/super admin
       
       const params = new URLSearchParams();
-      if (companyIdParam) params.append("companyId", companyIdParam);
+      if (drilldownId) params.append("companyId", drilldownId);
       if (deptId) params.append("departmentId", deptId);
 
       const response = await apiClient.get(
@@ -1854,7 +1883,7 @@ function DashboardPageClientContent() {
       console.error("Failed to fetch department data:", error);
     }
   }, [
-    companyIdParam,
+    drilldownId,
     isSuperAdminUser,
     assignedDepartmentIds,
     isSubDepartmentAdminRole,
@@ -1892,7 +1921,7 @@ function DashboardPageClientContent() {
       refresh = false,
       overrideFilters?: { mainDeptId?: string; subDeptId?: string },
     ) => {
-      if (isSuperAdminUser && !companyIdParam) return;
+      if (isSuperAdminUser && !drilldownId) return;
       
       // If we are in the relevant tab, use the hook's refetch for consistency
       if (activeTab === "overview" || activeTab === "analytics") {
@@ -1911,9 +1940,9 @@ function DashboardPageClientContent() {
             : currentFilters?.subDeptId || currentFilters?.mainDeptId || "";
 
         const params = new URLSearchParams();
-        if (companyIdParam) params.append("companyId", companyIdParam);
+        if (drilldownId) params.append("companyId", drilldownId);
         if (deptId) params.append("departmentId", deptId);
-        const cacheKey = `${companyIdParam || currentUserCompanyId || "self"}::${deptId || "all"}`;
+        const cacheKey = `${drilldownId || currentUserCompanyId || "self"}::${deptId || "all"}`;
 
         if (!refresh) {
           const cachedStats = dashboardStatsCacheRef.current.get(cacheKey);
@@ -1944,7 +1973,7 @@ function DashboardPageClientContent() {
       }
     },
     [
-      companyIdParam,
+      drilldownId,
       isSuperAdminUser,
       activeTab,
       analyticsFilters,
@@ -1960,9 +1989,9 @@ function DashboardPageClientContent() {
   const fetchCompany = useCallback(async () => {
     if (!user) return;
 
-    if (isSuperAdminUser && companyIdParam) {
+    if (isSuperAdminUser && drilldownId) {
       try {
-        const response = await companyAPI.getById(companyIdParam);
+        const response = await companyAPI.getById(drilldownId);
         if (response.success) {
           setCompany(response.data.company);
         }
@@ -1983,11 +2012,11 @@ function DashboardPageClientContent() {
       // CompanyAdmin might not have company associated
       console.log("Company details not available:", error.message);
     }
-  }, [user, isSuperAdminUser, companyIdParam]);
+  }, [user, isSuperAdminUser, drilldownId]);
 
   const fetchDepartments = useCallback(
     async (page = departmentPage, isSilent = false) => {
-      if (isSuperAdminUser && !companyIdParam) return;
+      if (isSuperAdminUser && !drilldownId) return;
       if (!isSilent) setLoadingDepartments(true);
       
       if (activeTab === "departments") {
@@ -1999,7 +2028,7 @@ function DashboardPageClientContent() {
       try {
         // For company admin, fetch ALL departments (no pagination limit)
         const fetchLimit =
-          isCompanyLevel || (isSuperAdminUser && companyIdParam)
+          isCompanyLevel || (isSuperAdminUser && drilldownId)
             ? 200
             : departmentPagination.limit;
         const response = await departmentAPI.getAll({
@@ -2011,7 +2040,7 @@ function DashboardPageClientContent() {
           mainDeptId: deptFilters.mainDeptId || undefined,
           subDeptId: deptFilters.subDeptId || undefined,
           companyId:
-            isSuperAdminUser && companyIdParam ? companyIdParam : undefined,
+            isSuperAdminUser && drilldownId ? drilldownId : undefined,
         });
         if (response.success) {
           let filteredDepartments = response.data.departments;
@@ -2076,7 +2105,7 @@ function DashboardPageClientContent() {
       isCompanyLevel,
       isDepartmentLevel,
       user,
-      companyIdParam,
+      drilldownId,
       getParentDepartmentId,
       activeTab,
       refetchDepartmentsHook,
@@ -2084,7 +2113,7 @@ function DashboardPageClientContent() {
   );
 
   const fetchAllDepartments = useCallback(async () => {
-    if (isSuperAdminUser && !companyIdParam) return;
+    if (isSuperAdminUser && !drilldownId) return;
     try {
       const response = await departmentAPI.getAll({
         listAll: true,
@@ -2092,7 +2121,7 @@ function DashboardPageClientContent() {
         page: 1,
         limit: 200,
         companyId:
-          isSuperAdminUser && companyIdParam ? companyIdParam : undefined,
+          isSuperAdminUser && drilldownId ? drilldownId : undefined,
       });
       if (response.success) {
         setAllDepartments(response.data.departments);
@@ -2100,7 +2129,7 @@ function DashboardPageClientContent() {
     } catch (error) {
       console.error("Failed to fetch all departments:", error);
     }
-  }, [isSuperAdminUser, companyIdParam]);
+  }, [isSuperAdminUser, drilldownId]);
 
   const handleSaveDepartmentPriority = useCallback(
     async (dept: Department) => {
@@ -2166,13 +2195,13 @@ function DashboardPageClientContent() {
 
   const handleToggleDepartmentPriorityColumn = useCallback(
     async (checked: boolean) => {
-      if (!isSuperAdminDrilldown || !companyIdParam) {
+      if (!isSuperAdminDrilldown || !drilldownId) {
         toast.error("Only superadmin can change priority column visibility");
         return;
       }
 
       try {
-        const response = await companyAPI.update(companyIdParam, {
+        const response = await companyAPI.update(drilldownId, {
           showDepartmentPriorityColumn: checked,
         });
 
@@ -2202,12 +2231,12 @@ function DashboardPageClientContent() {
         );
       }
     },
-    [companyIdParam, isSuperAdminDrilldown],
+    [drilldownId, isSuperAdminDrilldown],
   );
 
   const fetchUsers = useCallback(
     async (page = userPage, isSilent = false) => {
-      if (isSuperAdminUser && !companyIdParam) return;
+      if (isSuperAdminUser && !drilldownId) return;
       if (!isSilent) setLoadingUsers(true);
 
       if (activeTab === "users") {
@@ -2248,7 +2277,7 @@ function DashboardPageClientContent() {
           status: (userFilters.status as "active" | "inactive") || undefined,
           departmentId: selectedDepartmentId,
           companyId:
-            isSuperAdminUser && companyIdParam ? companyIdParam : undefined,
+            isSuperAdminUser && drilldownId ? drilldownId : undefined,
           sortBy: sortConfig.tab === "users" ? sortConfig.key : undefined,
           sortOrder: sortConfig.tab === "users" ? (sortConfig.direction || undefined) : undefined,
         });
@@ -2277,7 +2306,7 @@ function DashboardPageClientContent() {
       isSubDepartmentAdminRole,
       isOperatorRole,
       isSuperAdminUser,
-      companyIdParam,
+      drilldownId,
       activeTab,
       sortConfig.direction,
       sortConfig.key,
@@ -2288,7 +2317,7 @@ function DashboardPageClientContent() {
 
   const fetchGrievances = useCallback(
     async (page = grievancePage, isSilent = false) => {
-      if (isSuperAdminUser && !companyIdParam) return;
+      if (isSuperAdminUser && !drilldownId) return;
       if (
         !hasModule(Module.GRIEVANCE) ||
         !hasPermission(user, Permission.READ_GRIEVANCE)
@@ -2320,7 +2349,7 @@ function DashboardPageClientContent() {
                 ? "NONE"
                 : undefined,
           companyId:
-            isSuperAdminUser && companyIdParam ? companyIdParam : undefined,
+            isSuperAdminUser && drilldownId ? drilldownId : undefined,
         });
         if (response.success) {
           setGrievances(response.data.grievances);
@@ -2350,7 +2379,7 @@ function DashboardPageClientContent() {
       isSubDepartmentAdminRole,
       isOperatorRole,
       isSuperAdminUser,
-      companyIdParam,
+      drilldownId,
       activeTab,
       refetchGrievances,
     ],
@@ -2358,7 +2387,7 @@ function DashboardPageClientContent() {
 
   const fetchAppointments = useCallback(
     async (page = appointmentPage, isSilent = false) => {
-      if (isSuperAdminUser && !companyIdParam) return;
+      if (isSuperAdminUser && !drilldownId) return;
       if (!canShowAppointmentsInView) {
         return;
       }
@@ -2370,7 +2399,7 @@ function DashboardPageClientContent() {
           limit: appointmentPagination.limit,
           search: (appointmentSearch || "").trim(),
           companyId:
-            isSuperAdminUser && companyIdParam ? companyIdParam : undefined,
+            isSuperAdminUser && drilldownId ? drilldownId : undefined,
         });
         if (response.success) {
           setAppointments(response.data.appointments);
@@ -2395,7 +2424,7 @@ function DashboardPageClientContent() {
       appointmentSearch,
       canShowAppointmentsInView,
       isSuperAdminUser,
-      companyIdParam,
+      drilldownId,
     ],
   );
 
@@ -2457,13 +2486,13 @@ function DashboardPageClientContent() {
   // 🚀 Performance Optimization: Unified Initial Data Fetch
   useEffect(() => {
     if (!mounted || !user) return;
-    if (isSuperAdminUser && !companyIdParam) return;
+    if (isSuperAdminUser && !drilldownId) return;
 
     void Promise.all([fetchCompany(), fetchRoles(), fetchAllDepartments()]);
   }, [
     mounted,
     user,
-    companyIdParam,
+    drilldownId,
     fetchCompany,
     fetchRoles,
     fetchAllDepartments,
@@ -2472,7 +2501,7 @@ function DashboardPageClientContent() {
 
   useEffect(() => {
     if (!mounted || !user) return;
-    if (isSuperAdminUser && !companyIdParam) return;
+    if (isSuperAdminUser && !drilldownId) return;
     if (activeTab !== "overview" && activeTab !== "analytics") return;
     if (stats) return;
 
@@ -2484,12 +2513,12 @@ function DashboardPageClientContent() {
     stats,
     fetchDashboardData,
     isSuperAdminUser,
-    companyIdParam,
+    drilldownId,
   ]);
 
   // 2. Specialized effects for each paginated module (Gated by activeTab for SPA performance)
   useEffect(() => {
-    if (isSuperAdminUser && !companyIdParam) return;
+    if (isSuperAdminUser && !drilldownId) return;
 
     if (activeTab === "analytics" && mounted && user) {
       fetchPerformanceData();
@@ -2502,12 +2531,12 @@ function DashboardPageClientContent() {
     fetchPerformanceData,
     fetchDepartmentData,
     isSuperAdminUser,
-    companyIdParam,
+    drilldownId,
     analyticsFilters,
   ]);
 
   useEffect(() => {
-    if (isSuperAdminUser && !companyIdParam) return;
+    if (isSuperAdminUser && !drilldownId) return;
 
     const shouldFetch =
       activeTab === "departments" ||
@@ -2531,13 +2560,13 @@ function DashboardPageClientContent() {
     fetchDepartments,
     isSuperAdminUser,
     isDepartmentLevel,
-    companyIdParam,
+    drilldownId,
     deptFilters,
     deptSearch,
   ]);
 
   useEffect(() => {
-    if (isSuperAdminUser && !companyIdParam) return;
+    if (isSuperAdminUser && !drilldownId) return;
 
     if (
       activeTab === "users" &&
@@ -2554,7 +2583,7 @@ function DashboardPageClientContent() {
     userPage,
     fetchUsers,
     isSuperAdminUser,
-    companyIdParam,
+    drilldownId,
     userFilters,
     userSearch,
   ]);
@@ -2562,7 +2591,7 @@ function DashboardPageClientContent() {
   // Redundant now that useGrievances hook handles this automatically with caching
   /*
   useEffect(() => {
-    if (isSuperAdminUser && !companyIdParam) return;
+    if (isSuperAdminUser && !drilldownId) return;
 
     if (
       activeTab === "grievances" &&
@@ -2582,14 +2611,14 @@ function DashboardPageClientContent() {
     fetchGrievances,
     hasModule,
     isSuperAdminUser,
-    companyIdParam,
+    drilldownId,
     grievanceFilters,
     grievanceSearch,
   ]);
   */
 
   useEffect(() => {
-    if (isSuperAdminUser && !companyIdParam) return;
+    if (isSuperAdminUser && !drilldownId) return;
 
     if (
       activeTab === "appointments" &&
@@ -2606,12 +2635,12 @@ function DashboardPageClientContent() {
     appointmentPage,
     canShowAppointmentsInView,
     fetchAppointments,
-    companyIdParam,
+    drilldownId,
     isSuperAdminUser,
   ]);
 
   useEffect(() => {
-    if (isSuperAdminUser && !companyIdParam) return;
+    if (isSuperAdminUser && !drilldownId) return;
 
     if (
       activeTab === "leads" &&
@@ -2628,7 +2657,7 @@ function DashboardPageClientContent() {
     fetchLeads,
     hasModule,
     isSuperAdminUser,
-    companyIdParam,
+    drilldownId,
   ]);
 
   // 3. Global Synchronization Listener
@@ -2679,7 +2708,7 @@ function DashboardPageClientContent() {
   // 3. Polling isolated from initial load triggers
   useEffect(() => {
     // Skip polling if in SuperAdmin overview mode
-    if (isSuperAdminUser && !companyIdParam) return;
+    if (isSuperAdminUser && !drilldownId) return;
 
     if (mounted && user) {
       const pollInterval = setInterval(async () => {
@@ -2726,7 +2755,7 @@ function DashboardPageClientContent() {
     fetchAppointments,
     fetchDashboardData,
     hasModule,
-    companyIdParam,
+    drilldownId,
     isSuperAdminUser,
   ]);
 
@@ -3235,7 +3264,7 @@ function DashboardPageClientContent() {
   };
 
   const allowedTabs = useMemo(() => {
-    if (isSuperAdminUser && companyIdParam) {
+    if (isSuperAdminUser && drilldownId) {
       return new Set([
         "overview",
         "analytics",
@@ -3295,7 +3324,7 @@ function DashboardPageClientContent() {
     return new Set(["overview", "profile"]);
   }, [
     isSuperAdminUser,
-    companyIdParam,
+    drilldownId,
     isCompanyAdminRole,
     isDepartmentAdminRole,
     isSubDepartmentAdminRole,
@@ -3355,7 +3384,7 @@ function DashboardPageClientContent() {
     );
   }
 
-  if (isSuperAdminUser && !companyIdParam) {
+  if (isSuperAdminUser && !drilldownId) {
     return <SuperAdminOverview />;
   }
 
@@ -3377,7 +3406,7 @@ function DashboardPageClientContent() {
       <DashboardHeader
         user={user}
         companyName={company?.name}
-        companyIdParam={companyIdParam}
+        companyIdParam={drilldownId}
         isSuperAdminUser={isSuperAdminUser}
         isCompanyLevel={Boolean(isCompanyLevel)}
         isDepartmentLevel={Boolean(isDepartmentLevel)}
@@ -3408,7 +3437,7 @@ function DashboardPageClientContent() {
             <DashboardNavigation
               user={user}
               activeTab={activeTab}
-              companyIdParam={companyIdParam}
+              companyIdParam={drilldownId}
               isMobileTabMenuOpen={isMobileTabMenuOpen}
               isSuperAdminUser={isSuperAdminUser}
               isCompanyAdminRole={isCompanyAdminRole}
@@ -3452,7 +3481,7 @@ function DashboardPageClientContent() {
                 canShowAppointmentsInView,
                 canToggleDepartmentPriorityColumn,
                 company,
-                companyIdParam,
+                companyIdParam: drilldownId,
                 dashboardTenantConfig,
                 departmentData,
                 departmentPage,
@@ -3605,7 +3634,7 @@ function DashboardPageClientContent() {
               editingDepartment,
               setEditingDepartment,
               isSuperAdminUser,
-              companyIdParam,
+              companyIdParam: drilldownId,
               fetchDepartmentData: () => {
                 fetchDepartments(departmentPage, true);
                 setEditingDepartment(null);
