@@ -173,14 +173,7 @@ export function DashboardHeader({
                 />
               </Button>
               
-              <button
-                onClick={onLogout}
-                className="flex h-9 w-9 sm:h-10 sm:w-10 bg-rose-500/5 rounded-xl items-center justify-center border border-rose-500/10 shadow-lg shadow-rose-950/20 group hover:bg-rose-500/20 transition-all duration-300 active:scale-95"
-                title="Logout"
-                aria-label="Logout account"
-              >
-                <Power className="w-5 h-5 text-rose-500 group-hover:scale-110 transition-transform duration-300" />
-              </button>
+              
 
               <NotificationPopover
                 notifications={notifications}
@@ -189,6 +182,14 @@ export function DashboardHeader({
                 onMarkAllAsRead={onMarkAllAsRead}
                 onNotificationClick={onNotificationClick}
               />
+              <button
+                onClick={onLogout}
+                className="flex h-9 w-9 sm:h-10 sm:w-10 bg-rose-500/5 rounded-xl items-center justify-center border border-rose-500/10 shadow-lg shadow-rose-950/20 group hover:bg-rose-500/20 transition-all duration-300 active:scale-95"
+                title="Logout"
+                aria-label="Logout account"
+              >
+                <Power className="w-5 h-5 text-rose-500 group-hover:scale-110 transition-transform duration-300" />
+              </button>
             </div>
           </div>
         </div>
