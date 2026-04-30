@@ -25,6 +25,11 @@ router.post('/', requireSuperAdmin, companyController.create);
 // @access  Private/CompanyAdmin
 router.get('/me', authenticate, companyController.me);
 
+// @route   PUT /api/companies/me
+// @desc    Update current user's company (for CompanyAdmin)
+// @access  Private/CompanyAdmin
+router.put('/me', authenticate, companyController.updateMe);
+
 // @route   GET /api/companies/:id
 // @desc    Get company by ID
 // @access  Private/SuperAdmin

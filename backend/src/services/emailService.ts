@@ -50,13 +50,17 @@ Your grievance {grievanceId} has been rejected. Details: {remarks}`
  */
 let envTransporter: Transporter<SMTPTransport.SentMessageInfo> | null = null;
 
-const isCollectorateJharsugudaCompany = (companyName: string): boolean => {
-  const normalized = companyName.trim().toLowerCase();
-  return normalized.includes('collectorate') && normalized.includes('jharsuguda');
+const JHARSUGUDA_COMPANY_ID = '69ad4c6eb1ad8e405e6c0858';
+
+const isCollectorateJharsugudaCompany = (companyId: string | mongoose.Types.ObjectId): boolean => {
+  if (!companyId) return false;
+  return companyId.toString() === JHARSUGUDA_COMPANY_ID;
 };
 
-const getLocalizedWhatsAppBrandName = (companyName: string, lang: string): string => {
-  if (!isCollectorateJharsugudaCompany(companyName)) {
+const getLocalizedWhatsAppBrandName = (companyName: string, lang: string, companyId?: string | mongoose.Types.ObjectId): string => {
+  if (companyId && !isCollectorateJharsugudaCompany(companyId)) {
+    return companyName || 'Government Digital Portal';
+  } else if (!companyId && !companyName.toLowerCase().includes('jharsuguda')) {
     return companyName || 'Government Digital Portal';
   }
 
@@ -71,7 +75,7 @@ const getLocalizedWhatsAppBrandName = (companyName: string, lang: string): strin
 };
 
 const shouldPreferLocalizedGrievanceConfirmation = (
-  companyName: string,
+  companyId: string | mongoose.Types.ObjectId,
   type: 'grievance' | 'appointment',
   normalizedAction: string,
   lang: string,
@@ -80,7 +84,7 @@ const shouldPreferLocalizedGrievanceConfirmation = (
     type === 'grievance' &&
     normalizedAction === 'confirmation' &&
     ['hi', 'or'].includes(String(lang || 'en').toLowerCase()) &&
-    isCollectorateJharsugudaCompany(companyName)
+    isCollectorateJharsugudaCompany(companyId)
   );
 };
 
@@ -632,7 +636,7 @@ export async function getNotificationWhatsAppMessage(
             const company = await Company.findById(cid).select('name').lean();
             resolvedCompanyName = String(company?.name || '').trim();
           }
-          const localizedBrand = getLocalizedWhatsAppBrandName(resolvedCompanyName, lang);
+          const localizedBrand = getLocalizedWhatsAppBrandName(resolvedCompanyName, lang, cid);
           
           return replacePlaceholders(flowMessage.trim(), {
             ...data,
@@ -656,6 +660,7 @@ export async function getNotificationWhatsAppMessage(
   const localizedBrand = getLocalizedWhatsAppBrandName(
     resolvedCompanyName,
     lang,
+    cid
   );
   const localizedData = {
     ...data,
@@ -678,7 +683,7 @@ export async function getNotificationWhatsAppMessage(
   ].filter(Boolean);
 
   const preferLocalizedConfirmation = shouldPreferLocalizedGrievanceConfirmation(
-    resolvedCompanyName,
+    cid,
     type,
     normalizedAction,
     lang,

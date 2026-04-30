@@ -239,7 +239,7 @@ function DashboardPageClientContent() {
 
 
 
-  const handleMarkNotificationAsRead = async (id: string) => {
+  const handleMarkNotificationAsRead = useCallback(async (id: string) => {
     try {
       const response = await notificationAPI.markRead(id);
       if (response.success) {
@@ -251,9 +251,9 @@ function DashboardPageClientContent() {
     } catch (error) {
       console.error("Failed to mark notification as read:", error);
     }
-  };
+  }, []);
 
-  const handleMarkAllNotificationsAsRead = async () => {
+  const handleMarkAllNotificationsAsRead = useCallback(async () => {
     try {
       const response = await notificationAPI.markAllRead();
       if (response.success) {
@@ -264,7 +264,7 @@ function DashboardPageClientContent() {
     } catch (error) {
       console.error("Failed to mark all notifications as read:", error);
     }
-  };
+  }, []);
 
   const handleNotificationClick = async (notification: InAppNotification) => {
     if (!notification.isRead) {
@@ -899,6 +899,44 @@ function DashboardPageClientContent() {
   });
 
   // Filters for other tabs
+  const [visitedTabs, setVisitedTabs] = useState<Set<string>>(new Set([initialTab]));
+  useEffect(() => {
+    setVisitedTabs((prev) => {
+      if (prev.has(activeTab)) return prev;
+      const next = new Set(prev);
+      next.add(activeTab);
+      return next;
+    });
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (mounted && targetCompanyId) {
+      setGrievanceFilters({
+        status: "",
+        priority: "",
+        mainDeptId: "",
+        subDeptId: "",
+        slaStatus: "",
+        department: "",
+        assignmentStatus: "",
+        dateRange: "",
+      });
+      setOverviewFilters({ mainDeptId: "", subDeptId: "" });
+      setAnalyticsFilters({ mainDeptId: "", subDeptId: "" });
+      setDeptFilters({ status: "", type: "", mainDeptId: "", subDeptId: "" });
+      setUserFilters({ status: "", role: "", mainDeptId: "", subDeptId: "" });
+      setGrievanceSearch("");
+      setAppointmentSearch("");
+      setUserSearch("");
+      setDeptSearch("");
+      setGrievancePage(1);
+      setAppointmentPage(1);
+      setDepartmentPage(1);
+      setUserPage(1);
+      setAppointmentFilters({ status: "", department: "", assignmentStatus: "", dateFilter: "" });
+    }
+  }, [targetCompanyId, mounted]);
+
   const [deptFilters, setDeptFilters] = useState({
     type: "",
     status: "",
@@ -933,7 +971,7 @@ function DashboardPageClientContent() {
     mainDeptId: "",
     subDeptId: "",
     assignmentStatus: "",
-    overdueStatus: "",
+    slaStatus: "",
     dateRange: "",
     priority: "",
   });
@@ -1005,7 +1043,8 @@ function DashboardPageClientContent() {
     departmentId: grievanceFilters.subDeptId || grievanceFilters.mainDeptId,
     priority: grievanceFilters.priority,
     search: grievanceSearch,
-    enabled: mounted && activeTab === "grievances",
+    slaStatus: grievanceFilters.slaStatus,
+    enabled: mounted && (visitedTabs.has("grievances") || activeTab === "grievances"),
   });
 
   const { data: cachedDashboardStats, isLoading: isLoadingStatsFromHook, refetch: refetchDashboardStats } = useDashboardStats({
@@ -1013,7 +1052,7 @@ function DashboardPageClientContent() {
     departmentId: isSubDepartmentAdminRole || isOperatorRole
             ? assignedDepartmentIds[0] || ""
             : (activeTab === "analytics" ? analyticsFilters : overviewFilters)?.subDeptId || (activeTab === "analytics" ? analyticsFilters : overviewFilters)?.mainDeptId || "",
-    enabled: mounted && (activeTab === "overview" || activeTab === "analytics"),
+    enabled: mounted && (visitedTabs.has("overview") || visitedTabs.has("analytics") || activeTab === "overview" || activeTab === "analytics"),
   });
   const { data: cachedDashboardKpis, isLoading: isLoadingKpisFromHook } = useDashboardKpis({
     companyId: targetCompanyId,
@@ -1022,7 +1061,7 @@ function DashboardPageClientContent() {
       : (activeTab === "analytics" ? analyticsFilters : overviewFilters)?.subDeptId ||
         (activeTab === "analytics" ? analyticsFilters : overviewFilters)?.mainDeptId ||
         "",
-    enabled: mounted && (activeTab === "overview" || activeTab === "analytics"),
+    enabled: mounted && (visitedTabs.has("overview") || visitedTabs.has("analytics") || activeTab === "overview" || activeTab === "analytics"),
   });
 
   const { data: cachedDepartmentData, isLoading: isLoadingDeptsFromHook, refetch: refetchDepartmentsHook } = useDepartments({
@@ -1035,7 +1074,7 @@ function DashboardPageClientContent() {
     subDeptId: deptFilters.subDeptId,
     sortBy: sortConfig.tab === "departments" ? sortConfig.key : undefined,
     sortOrder: sortConfig.tab === "departments" ? (sortConfig.direction || undefined) : undefined,
-    enabled: mounted && (activeTab === "departments" || (activeTab === "overview" && isDepartmentLevel)),
+    enabled: mounted && (visitedTabs.has("departments") || activeTab === "departments"),
   });
 
   const { data: cachedUserData, isLoading: isLoadingUsersFromHook, refetch: refetchUsersHook } = useUsers({
@@ -1048,7 +1087,7 @@ function DashboardPageClientContent() {
     status: userFilters.status,
     sortBy: sortConfig.tab === "users" ? sortConfig.key : undefined,
     sortOrder: sortConfig.tab === "users" ? (sortConfig.direction || undefined) : undefined,
-    enabled: mounted && activeTab === "users",
+    enabled: mounted && (visitedTabs.has("users") || activeTab === "users"),
   });
 
   // 🔄 Background Synchronization for Cached Data
@@ -1146,12 +1185,13 @@ function DashboardPageClientContent() {
   );
 
   const canShowAppointmentsInView = useMemo(() => {
-    if (isSuperAdminDrilldown) return false;
     return (
       hasModule(Module.APPOINTMENT) &&
       hasPermission(user, Permission.READ_APPOINTMENT)
     );
-  }, [hasModule, isSuperAdminDrilldown, user]);
+  }, [hasModule, user]);
+
+
 
   // Export functions
   const exportToCSV = (
@@ -2268,13 +2308,11 @@ function DashboardPageClientContent() {
           limit: grievancePagination.limit,
           status: grievanceFilters.status || undefined,
           search: (grievanceSearch || "").trim(),
-          departmentId:
-            isSubDepartmentAdminRole || isOperatorRole
-              ? assignedDepartmentIds[0] || undefined
-              : grievanceFilters.subDeptId ||
-                grievanceFilters.mainDeptId ||
-                grievanceFilters.department ||
-                undefined,
+          departmentId: (isSubDepartmentAdminRole || isOperatorRole) 
+            ? (assignedDepartmentIds[0] || undefined) 
+            : (grievanceFilters.department || undefined),
+          mainDeptId: grievanceFilters.mainDeptId || undefined,
+          subDeptId: grievanceFilters.subDeptId || undefined,
           assignedTo:
             grievanceFilters.assignmentStatus === "assigned"
               ? "ANY"
@@ -2386,7 +2424,7 @@ function DashboardPageClientContent() {
         await fetchDashboardData();
       } else if (activeTab === "analytics") {
         await Promise.all([fetchDashboardData()]);
-      } else if (activeTab === "grievances" || activeTab === "reverted") {
+      } else if (activeTab === "grievances") {
         await fetchGrievances(grievancePage);
       } else if (activeTab === "appointments") {
         await fetchAppointments(appointmentPage);
@@ -2712,8 +2750,10 @@ function DashboardPageClientContent() {
   const getSortedData = (data: any[], tab: string) => {
     let filteredData = data;
 
-    // ⚡ PERFORMANCE OPTIMIZATION: For Users and Departments, the backend now handles ALL filtering and sorting.
+    // ⚡ PERFORMANCE OPTIMIZATION: For Users, Departments, and Grievances, the backend now handles ALL filtering and sorting.
     // Client-side processing is redundant and slow. We bypass it here.
+    // For users and departments, the backend handles filtering.
+    // For grievances, we allow local filtering to catch any pending state updates or complex logic.
     if (tab === "users" || tab === "departments") {
       return data;
     }
@@ -2729,7 +2769,7 @@ function DashboardPageClientContent() {
     }
 
     // Apply grievance filters
-    if (tab === "grievances" || tab === "reverted") {
+    if (tab === "grievances") {
       // Status filter
       if (grievanceFilters.status && grievanceFilters.status !== "ALL") {
         filteredData = filteredData.filter(
@@ -2785,29 +2825,13 @@ function DashboardPageClientContent() {
           filteredData = filteredData.filter((g: Grievance) => !g.assignedTo);
         }
       }
-      // Overdue status filter
-      if (grievanceFilters.overdueStatus) {
+      // Overdue Status Filter
+      if (grievanceFilters.slaStatus) {
         const now = new Date();
         filteredData = filteredData.filter((g: Grievance) => {
           const createdDate = new Date(g.createdAt);
-          const hoursDiff = Math.floor(
-            (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60),
-          );
-
-          let isOverdue = false;
-          let slaHours = 0;
-
-          if (g.assignedTo) {
-            slaHours = 120;
-            const assignedDate = g.assignedAt ? new Date(g.assignedAt) : createdDate;
-            const hoursFromAssigned = Math.floor(
-              (now.getTime() - assignedDate.getTime()) / (1000 * 60 * 60),
-            );
-            isOverdue = hoursFromAssigned > slaHours;
-          } else {
-            slaHours = 24;
-            isOverdue = hoursDiff > slaHours;
-          }
+          const slaLimit = g.slaHours || 120;
+          let isOverdue = (now.getTime() - createdDate.getTime()) > (slaLimit * 60 * 60 * 1000);
 
           if (
             g.status === "RESOLVED" ||
@@ -2817,7 +2841,10 @@ function DashboardPageClientContent() {
             isOverdue = false;
           }
 
-          return grievanceFilters.overdueStatus === "overdue"
+          if (grievanceFilters.slaStatus === "COMPLETED") {
+            return g.status === "RESOLVED" || g.status === "REJECTED";
+          }
+          return grievanceFilters.slaStatus === "OVERDUE"
             ? isOverdue
             : !isOverdue;
         });
@@ -3118,18 +3145,10 @@ function DashboardPageClientContent() {
       } else if (sortConfig.key === "slaStatus") {
         const getSLAScore = (g: any) => {
           if (g.status === "RESOLVED" || g.status === "CLOSED" || g.status === "REJECTED") return 2;
-          const createdDate = new Date(g.createdAt);
           const now = new Date();
-          const hoursDiff = Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60));
-          let isOverdue = false;
-          
-          if (g.assignedTo) {
-            const assignedDate = g.assignedAt ? new Date(g.assignedAt) : createdDate;
-            const hoursFromAssigned = Math.floor((now.getTime() - assignedDate.getTime()) / (1000 * 60 * 60));
-            isOverdue = hoursFromAssigned > 120;
-          } else {
-            isOverdue = hoursDiff > 24;
-          }
+          const createdDate = new Date(g.createdAt);
+          const slaLimit = g.slaHours || 120;
+          const isOverdue = (now.getTime() - createdDate.getTime()) > (slaLimit * 60 * 60 * 1000);
           
           return isOverdue ? 0 : 1;
         };
@@ -3230,6 +3249,7 @@ function DashboardPageClientContent() {
         "flows",
         "notifications",
         "email",
+        "settings",
         "profile",
       ]);
     }
@@ -3241,6 +3261,7 @@ function DashboardPageClientContent() {
         "appointments",
         "departments",
         "users",
+        "settings",
         "profile",
       ]);
     }
@@ -3288,6 +3309,44 @@ function DashboardPageClientContent() {
     }
   }, [activeTab, allowedTabs]);
 
+  const handleTabChange = useCallback((value: string) => {
+    if (!allowedTabs.has(value)) {
+      return;
+    }
+    if (activeTab !== value) {
+      setPreviousTab(activeTab);
+
+      // Handle tab transitions (SPA consistency)
+      setGrievancePage(1);
+      
+      if (activeTab === "overview" && value === "grievances") {
+        setGrievanceFilters((prev) => ({ ...prev, status: "" }));
+      }
+
+      setActiveTab(value);
+    }
+    setIsMobileTabMenuOpen(false);
+  }, [allowedTabs, activeTab]);
+
+  const handleProfileToggle = useCallback(() => {
+    if (activeTab === "profile") {
+      const fallbackTab =
+        previousTab !== "profile" && allowedTabs.has(previousTab)
+          ? previousTab
+          : "overview";
+      handleTabChange(fallbackTab);
+      return;
+    }
+
+    handleTabChange("profile");
+  }, [activeTab, previousTab, allowedTabs, handleTabChange]);
+
+  const handleOpenMobileMenu = useCallback(() => setIsMobileTabMenuOpen(true), []);
+  const handleProfileClick = useCallback(() => handleProfileToggle(), [handleProfileToggle]);
+  const handleMarkAsRead = useCallback((id: string) => handleMarkNotificationAsRead(id), [handleMarkNotificationAsRead]);
+  const handleMarkAllAsRead = useCallback(() => handleMarkAllNotificationsAsRead(), [handleMarkAllNotificationsAsRead]);
+
+
   if (!mounted) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-900">
@@ -3311,43 +3370,7 @@ function DashboardPageClientContent() {
     userFilters.subDeptId,
   ].filter(Boolean).length;
 
-  const handleTabChange = (value: string) => {
-    if (!allowedTabs.has(value)) {
-      return;
-    }
-    if (activeTab !== value) {
-      setPreviousTab(activeTab);
 
-      if (activeTab === "reverted") {
-        setGrievanceFilters((prev) => ({ ...prev, status: "" }));
-      }
-      if (value === "reverted") {
-        setGrievanceFilters((prev) => ({
-          ...prev,
-          status: "REVERTED",
-        }));
-      }
-      if (activeTab === "overview" && value === "grievances") {
-        setGrievanceFilters((prev) => ({ ...prev, status: "" }));
-      }
-
-      setActiveTab(value);
-    }
-    setIsMobileTabMenuOpen(false);
-  };
-
-  const handleProfileToggle = () => {
-    if (activeTab === "profile") {
-      const fallbackTab =
-        previousTab !== "profile" && allowedTabs.has(previousTab)
-          ? previousTab
-          : "overview";
-      handleTabChange(fallbackTab);
-      return;
-    }
-
-    handleTabChange("profile");
-  };
 
   return (
     <div key="final-dashboard-root-v4" className="min-h-screen bg-white">
@@ -3363,14 +3386,14 @@ function DashboardPageClientContent() {
         dashboardBrandTitle={dashboardBrandTitle}
         dashboardBrandSubtitle={dashboardBrandSubtitle}
         refreshing={refreshing}
-        onOpenMobileMenu={() => setIsMobileTabMenuOpen(true)}
+        onOpenMobileMenu={handleOpenMobileMenu}
         onRefresh={handleRefresh}
-        onProfileClick={handleProfileToggle}
+        onProfileClick={handleProfileClick}
         onLogout={logout}
         notifications={notifications}
         unreadCount={unreadCount}
-        onMarkAsRead={handleMarkNotificationAsRead}
-        onMarkAllAsRead={handleMarkAllNotificationsAsRead}
+        onMarkAsRead={handleMarkAsRead}
+        onMarkAllAsRead={handleMarkAllAsRead}
         onNotificationClick={handleNotificationClick}
       />
 
@@ -3391,11 +3414,12 @@ function DashboardPageClientContent() {
               isCompanyAdminRole={isCompanyAdminRole}
               isViewingCompany={Boolean(isViewingCompany)}
               isJharsugudaCompany={isJharsugudaCompany}
-              canViewAnalytics={hasPermission(user, Permission.VIEW_ANALYTICS)}
-              canReadGrievance={hasPermission(user, Permission.READ_GRIEVANCE)}
+              canViewAnalytics={hasPermission(user, Permission.VIEW_ANALYTICS) && hasModule(Module.GRIEVANCE)}
+              canReadGrievance={hasPermission(user, Permission.READ_GRIEVANCE) && hasModule(Module.GRIEVANCE)}
               canShowAppointmentsInView={canShowAppointmentsInView}
               canSeeDepartmentsTab={canSeeDepartmentsTab}
               canSeeUsersTab={canSeeUsersTab}
+              hasGrievanceModule={hasModule(Module.GRIEVANCE)}
               hasLeadCaptureModule={hasModule(Module.LEAD_CAPTURE)}
               refreshing={refreshing}
               onRefresh={handleRefresh}
@@ -3412,9 +3436,11 @@ function DashboardPageClientContent() {
                 activeTab,
                 allDepartments,
                 appointmentFilters,
+                appointmentPage,
                 appointmentPagination,
                 appointmentSearch,
                 appointments,
+                setAppointmentPage,
                 assignedDepartmentSummaries,
                 canAssignGrievance,
                 canDeleteGrievance,
@@ -3478,6 +3504,7 @@ function DashboardPageClientContent() {
                 leads,
                 loadingDepartments,
                 loadingGrievances,
+                loadingAppointments,
                 loadingKpiTiles,
                 loadingLeads,
                 loadingStats,
@@ -3485,6 +3512,7 @@ function DashboardPageClientContent() {
                 navigateToGrievances,
                 normalizedDesignations,
                 openGrievanceDetail,
+                openAppointmentDetail,
                 openOverdueReminderDialog,
                 openUserDetail,
                 overdueKpiCount,

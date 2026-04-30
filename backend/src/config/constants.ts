@@ -115,9 +115,10 @@ export enum NotificationType {
 // ================================
 
 export const SLA_CONFIG = {
-  [GrievanceStatus.PENDING]: 24, // Must be assigned within 24 hours
+  [GrievanceStatus.PENDING]: 120, // Must be resolved within 5 days
   [GrievanceStatus.ASSIGNED]: 120, // Must be resolved within 5 days
   [GrievanceStatus.IN_PROGRESS]: 120, // Must be resolved within 5 days
+  [GrievanceStatus.REVERTED]: 120, // Must be resolved within 5 days
 };
 
 // ================================

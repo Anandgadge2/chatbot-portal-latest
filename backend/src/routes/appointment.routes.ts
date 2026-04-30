@@ -22,9 +22,13 @@ router.get('/', requirePermission(Permission.READ_APPOINTMENT), async (req: Requ
     const { page = 1, limit = 20, status, companyId, departmentId, assignedTo, date, search } = req.query;
     const currentUser = req.user!;
 
-    const query: any = {};
-    const targetCompanyId = (currentUser.isSuperAdmin && companyId) ? companyId : currentUser.companyId;
+    const targetCompanyId = currentUser.isSuperAdmin ? companyId : currentUser.companyId;
 
+    if (!targetCompanyId && !currentUser.isSuperAdmin) {
+      return res.status(403).json({ success: false, message: 'Unauthorized' });
+    }
+
+    const query: any = {};
     if (targetCompanyId) {
       query.companyId = targetCompanyId;
       if (currentUser.departmentId && !currentUser.isSuperAdmin) {
@@ -43,7 +47,16 @@ router.get('/', requirePermission(Permission.READ_APPOINTMENT), async (req: Requ
         const deptIds = await getDepartmentHierarchyIds(departmentId as string);
         query.departmentId = { $in: deptIds };
       }
-    } else if (!currentUser.isSuperAdmin) {
+    } else if (currentUser.isSuperAdmin) {
+      // 🛡️ SECURITY: Super Admin without companyId should see nothing in appointment list
+      return res.json({ 
+        success: true, 
+        data: { 
+          appointments: [], 
+          pagination: { page: 1, limit: Number(limit), total: 0, pages: 0 } 
+        } 
+      });
+    } else {
       return res.status(403).json({ success: false, message: 'Unauthorized' });
     }
 
@@ -548,9 +561,12 @@ router.delete('/bulk', requirePermission(Permission.DELETE_APPOINTMENT), async (
       return;
     }
 
-    const result = await Appointment.deleteMany(
-      { _id: { $in: ids } }
-    );
+    const deleteQuery: any = { _id: { $in: ids } };
+    if (!currentUser.isSuperAdmin) {
+      deleteQuery.companyId = currentUser.companyId;
+    }
+
+    const result = await Appointment.deleteMany(deleteQuery);
 
     // Log each deletion
     for (const id of ids) {

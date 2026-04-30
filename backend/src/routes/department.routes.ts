@@ -36,9 +36,25 @@ router.get('/', requirePermission(Permission.READ_DEPARTMENT), async (req: Reque
   try {
     const { page = 1, limit = 20, search, companyId, listAll, type, status, mainDeptId, subDeptId } = req.query;
     const user = req.user!;
-    const targetCompanyId = (user.isSuperAdmin && companyId) ? companyId : user.companyId;
+    const targetCompanyId = user.isSuperAdmin ? companyId : user.companyId;
+
+    if (!targetCompanyId && !user.isSuperAdmin) {
+       return res.status(403).json({ success: false, message: 'Unauthorized' });
+    }
 
     const query: any = {};
+    if (targetCompanyId) {
+      query.companyId = targetCompanyId;
+    } else if (user.isSuperAdmin) {
+      // 🛡️ SECURITY: Super Admin without companyId should see nothing in department list
+      return res.json({ 
+        success: true, 
+        data: { 
+          departments: [], 
+          pagination: { page: 1, limit: Number(limit), total: 0, pages: 0 } 
+        } 
+      });
+    }
 
     // 1. Core Scoping (Status, Type, Search, Hierarchical)
     if (status === 'active') query.isActive = true;
@@ -69,8 +85,9 @@ router.get('/', requirePermission(Permission.READ_DEPARTMENT), async (req: Reque
       ];
 
       // ✨ Logical Search: Any Matching User's Department
+      // 🛡️ SECURITY: Ensure companyId is strictly scoped in relational search
       const matchingUsers = await User.find({
-        companyId: targetCompanyId || { $exists: true },
+        companyId: targetCompanyId,
         $or: [
           ...buildNameSearchQuery(search as string, 'firstName', 'lastName'),
           { email: { $regex: escapedSearch, $options: 'i' } },
@@ -109,12 +126,8 @@ router.get('/', requirePermission(Permission.READ_DEPARTMENT), async (req: Reque
       }
     }
 
-    // 2. Role-based Scoping
-    if (user.isSuperAdmin) {
-      if (companyId) query.companyId = companyId;
-    } else {
-      query.companyId = user.companyId;
-
+    // 2. Role-based Scoping (Super Admin already handled by targetCompanyId check above)
+    if (!user.isSuperAdmin) {
       const userDepts = [];
       if (user.departmentId) userDepts.push(user.departmentId.toString());
       if (user.departmentIds && Array.isArray(user.departmentIds)) {

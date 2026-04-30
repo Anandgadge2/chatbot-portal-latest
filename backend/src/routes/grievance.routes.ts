@@ -41,11 +41,13 @@ router.get('/', requirePermission(Permission.READ_GRIEVANCE), async (req: Reques
   try {
     const { page = 1, limit = 20, status, companyId, departmentId, assignedTo, priority, search, slaStatus } = req.query;
     const currentUser = req.user!;
+    const targetCompanyId = currentUser.isSuperAdmin ? companyId : currentUser.companyId;
+
+    if (!targetCompanyId && !currentUser.isSuperAdmin) {
+       return res.status(403).json({ success: false, message: 'Unauthorized' });
+    }
 
     const query: any = {};
-    const targetCompanyId = (currentUser.isSuperAdmin && companyId) ? companyId : currentUser.companyId;
-
-    // ... (rest of the query logic matches the existing one)
     if (targetCompanyId) {
       query.companyId = targetCompanyId;
       if (currentUser.isSuperAdmin) {
@@ -72,7 +74,16 @@ router.get('/', requirePermission(Permission.READ_GRIEVANCE), async (req: Reques
           query.status = GrievanceStatus.REVERTED;
           query.departmentId = null;
       }
-    } else if (!currentUser.isSuperAdmin) {
+    } else if (currentUser.isSuperAdmin) {
+      // 🛡️ SECURITY: Super Admin without companyId should see nothing in grievance list
+      return res.json({ 
+        success: true, 
+        data: { 
+          grievances: [], 
+          pagination: { page: 1, limit: Number(limit), total: 0, pages: 0 } 
+        } 
+      });
+    } else {
       return res.status(403).json({ success: false, message: 'Unauthorized' });
     }
 
@@ -116,39 +127,61 @@ router.get('/', requirePermission(Permission.READ_GRIEVANCE), async (req: Reques
     if (priority) query.priority = priority;
 
     if (slaStatus) {
-      const now = new Date();
-      const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-      const fiveDaysAgo = new Date(now.getTime() - 120 * 60 * 60 * 1000);
-
       const activeStatuses = [
         GrievanceStatus.PENDING,
         GrievanceStatus.ASSIGNED,
         GrievanceStatus.IN_PROGRESS,
-        GrievanceStatus.REVERTED
+        GrievanceStatus.REVERTED,
+        'OPEN'
+      ];
+      const completedStatuses = [
+        GrievanceStatus.RESOLVED,
+        GrievanceStatus.REJECTED,
+        'CLOSED'
       ];
 
-      if (slaStatus === "OVERDUE") {
-        // Only active grievances can be overdue
-        query.status = { $in: activeStatuses };
-        query.$or = [
-          // Case 1: Unassigned - Overdue after 24 hours of creation
-          { assignedTo: null, createdAt: { $lt: oneDayAgo } },
-          // Case 2: Assigned - Overdue after 120 hours of assignment
-          { assignedTo: { $ne: null }, assignedAt: { $lt: fiveDaysAgo } },
-          // Fallback for assigned grievances without assignedAt
-          { assignedTo: { $ne: null }, assignedAt: null, createdAt: { $lt: fiveDaysAgo } }
-        ];
-      } else if (slaStatus === "ON_TRACK") {
-        query.status = { $in: activeStatuses };
-        query.$and = [
-          {
-            $or: [
-              { assignedTo: null, createdAt: { $gte: oneDayAgo } },
-              { assignedTo: { $ne: null }, assignedAt: { $gte: fiveDaysAgo } },
-              { assignedTo: { $ne: null }, assignedAt: null, createdAt: { $gte: fiveDaysAgo } }
-            ]
+      if (slaStatus === "COMPLETED") {
+        // Filter for completed items
+        if (query.status) {
+          if (typeof query.status === 'string') {
+            if (!completedStatuses.includes(query.status as any)) {
+              query.status = '__NONE__';
+            }
+          } else if (query.status.$in) {
+            query.status.$in = query.status.$in.filter((s: any) => completedStatuses.includes(s));
+            if (query.status.$in.length === 0) query.status = '__NONE__';
           }
-        ];
+        } else {
+          query.status = { $in: completedStatuses };
+        }
+      } else {
+        // Filter for active items (OVERDUE or ON_TRACK)
+        if (query.status) {
+          if (typeof query.status === 'string') {
+            if (!activeStatuses.includes(query.status as any)) {
+              query.status = '__NONE__';
+            }
+          } else if (query.status.$in) {
+            query.status.$in = query.status.$in.filter((s: any) => activeStatuses.includes(s));
+            if (query.status.$in.length === 0) query.status = '__NONE__';
+          }
+        } else {
+          query.status = { $in: activeStatuses };
+        }
+
+        // ⏱️ Dynamic SLA calculation using $expr
+        const slaExpr = {
+          $gt: [
+            { $subtract: [new Date(), "$createdAt"] },
+            { $multiply: [{ $ifNull: ["$slaHours", 120] }, 60, 60, 1000] }
+          ]
+        };
+
+        if (slaStatus === "OVERDUE") {
+          query.$expr = slaExpr;
+        } else if (slaStatus === "ON_TRACK") {
+          query.$expr = { $not: slaExpr };
+        }
       }
     }
 
@@ -257,6 +290,11 @@ router.post('/', enforceWhatsAppGrievanceCompliance, async (req: Request, res: R
     }
 
     const safeDescription = sanitizeGrievanceDetails(description);
+
+    // 🕒 Capture Company Default SLA at creation
+    const company = await Company.findById(companyId);
+    const slaHours = company?.slaSettings?.defaultSlaHours || 120;
+
     const grievance = await Grievance.create({
       companyId,
       departmentId,
@@ -272,6 +310,7 @@ router.post('/', enforceWhatsAppGrievanceCompliance, async (req: Request, res: R
       location,
       media: media || [],
       status: GrievanceStatus.PENDING,
+      slaHours, // Store the captured default
       admin_consent: false
     });
 
@@ -307,12 +346,33 @@ router.post('/', enforceWhatsAppGrievanceCompliance, async (req: Request, res: R
       targetAdmin = findOptimalAdmin(potentialAdmins);
     }
     
+    // 3. Fallback: Assign to Company Admin (Collector/DM) if no department admin found
+    if (!targetAdmin) {
+      const companyAdmins = await User.find({ 
+        companyId, 
+        $or: [
+          { role: UserRole.COMPANY_ADMIN },
+          { level: 1 }
+        ]
+      }).sort({ createdAt: 1 }).limit(1);
+      
+      if (companyAdmins.length > 0) {
+        targetAdmin = companyAdmins[0];
+      }
+    }
+    
     if (targetAdmin) {
       grievance.assignedTo = targetAdmin._id;
       grievance.status = GrievanceStatus.PENDING;
-      await grievance.save();
       
-      console.log(`🎯 Auto-assigned portal grievance ${grievance.grievanceId} to admin: ${targetAdmin.email}`);
+      // ✅ SLA handling is now encapsulated in the model's pre-save hook 
+      // ensuring it uses the company's default settings.
+      await grievance.save();
+      console.log(`🎯 Auto-assigned portal grievance ${grievance.grievanceId} to admin: ${targetAdmin.email || targetAdmin._id}`);
+    } else {
+      // Emergency fallback: If absolutely no admin found (should not happen in valid company)
+      // we still need an owner. For now, log error.
+      console.error(`❌ Critical: No admin found for company ${companyId} to assign grievance ${grievance.grievanceId}`);
     }
 
     const sanitizedMedia = Array.isArray(media)
@@ -543,8 +603,23 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
     grievance.status = GrievanceStatus.REVERTED;
     grievance.departmentId = undefined;
     grievance.subDepartmentId = undefined;
-    grievance.assignedTo = undefined;
-    grievance.assignedAt = undefined;
+    
+    // ✅ Always-Owned: Reassign to Company Admin instead of clearing
+    const companyAdmins = await User.find({ 
+      companyId: grievance.companyId, 
+      $or: [
+        { role: UserRole.COMPANY_ADMIN },
+        { level: 1 }
+      ]
+    }).sort({ createdAt: 1 }).limit(1);
+
+    if (companyAdmins.length > 0) {
+      grievance.assignedTo = companyAdmins[0]._id;
+      grievance.assignedAt = new Date();
+    } else {
+      grievance.assignedTo = undefined;
+      grievance.assignedAt = undefined;
+    }
 
     grievance.statusHistory.push({
       status: GrievanceStatus.REVERTED,
@@ -686,12 +761,15 @@ router.get('/:id', requirePermission(Permission.READ_GRIEVANCE), async (req: Req
         return;
       }
 
+      // 🎯 Company Admin Bypass: Company-level admins see all grievances in their company
+      const isCompanyAdmin = currentUser.level === 1 || currentUser.role === 'COMPANY_ADMIN';
+      
       // 🎯 Direct Assignee Bypass: If the grievance is assigned to the current user (primary or additional), they ALWAYS have access
       const assignedToId = (grievance.assignedTo as any)?._id?.toString() || grievance.assignedTo?.toString();
       const additionalAssigneeIds = (grievance.additionalAssigneeIds || []).map((id: any) => id.toString());
       const isAssignee = assignedToId === currentUser._id.toString() || additionalAssigneeIds.includes(currentUser._id.toString());
 
-      if (!isAssignee && (currentUser.departmentId || (currentUser.departmentIds && currentUser.departmentIds.length > 0))) {
+      if (!isCompanyAdmin && !isAssignee && (currentUser.departmentId || (currentUser.departmentIds && currentUser.departmentIds.length > 0))) {
         // Dynamic check: Users with assignment permission (Admins) see hierarchy. Others only see their own.
         const canAssign = req.checkPermission(Permission.ASSIGN_GRIEVANCE);
         if (!canAssign) {
@@ -831,6 +909,34 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_GRIEVANCE, 
     }
 
     const oldStatus = grievance.status;
+    const isCompanyAdmin = currentUser.level === 1 || currentUser.role === 'COMPANY_ADMIN';
+    
+    // 🛡️ STATUS PROGRESSION ENFORCEMENT
+    const statusOrder: Record<string, number> = {
+      [GrievanceStatus.PENDING]: 1,
+      [GrievanceStatus.ASSIGNED]: 1, // Treat ASSIGNED same as PENDING for progression
+      [GrievanceStatus.IN_PROGRESS]: 2,
+      [GrievanceStatus.REVERTED]: 0,
+      [GrievanceStatus.RESOLVED]: 3,
+      [GrievanceStatus.REJECTED]: 3
+    };
+
+    const isBackwardTransition = statusOrder[status] < statusOrder[oldStatus];
+    const isFinalState = [GrievanceStatus.RESOLVED, GrievanceStatus.REJECTED].includes(oldStatus);
+
+    if (!isCompanyAdmin && !currentUser.isSuperAdmin) {
+      if (isFinalState) {
+        return res.status(403).json({ success: false, message: 'Grievance is in a final state and cannot be modified.' });
+      }
+      if (isBackwardTransition) {
+        return res.status(403).json({ success: false, message: 'Backward status transitions (e.g. from In-Progress to Pending) are restricted to Company Admins only.' });
+      }
+    }
+
+    if (isBackwardTransition && !remarks?.trim()) {
+      return res.status(400).json({ success: false, message: 'Mandatory reason logging required for status reversal.' });
+    }
+
     const newMedia = req.body.media || [];
     
     // Update status
@@ -1392,6 +1498,46 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
   }
 });
 
+// @route   PUT /api/grievances/:id/sla
+// @desc    Update SLA hours for a grievance (Company Admin only)
+// @access  Private
+router.put('/:id/sla', requirePermission(Permission.UPDATE_GRIEVANCE), async (req: Request, res: Response) => {
+  try {
+    const { slaHours } = req.body as { slaHours: number };
+    const currentUser = req.user!;
+
+    if (!slaHours || typeof slaHours !== 'number') {
+      return res.status(400).json({ success: false, message: 'Valid SLA hours are required' });
+    }
+
+    const grievance = await Grievance.findById(req.params.id);
+    if (!grievance) {
+      return res.status(404).json({ success: false, message: 'Grievance not found' });
+    }
+
+    // Security: Only company admin of the same company
+    const isCompanyAdmin = currentUser.level === 1 || currentUser.roleName?.toLowerCase().includes('company');
+    if (!isCompanyAdmin || grievance.companyId.toString() !== currentUser.companyId?.toString()) {
+      return res.status(403).json({ success: false, message: 'Only company admin can update SLA' });
+    }
+
+    const oldSla = grievance.slaHours || 120;
+    grievance.slaHours = slaHours;
+    grievance.timeline.push({
+      action: 'SLA_UPDATED',
+      details: { oldSla, newSla: slaHours },
+      performedBy: currentUser._id,
+      timestamp: new Date()
+    });
+
+    await grievance.save();
+
+    res.json({ success: true, data: { grievance }, message: `SLA updated to ${slaHours} hours` });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to update SLA', error: error.message });
+  }
+});
+
 // @route   POST /api/grievances/:id/reminder
 // @desc    Send overdue reminder to assigned/designated admin (Jharsuguda company admin only)
 // @access  Private
@@ -1441,13 +1587,13 @@ router.post('/:id/reminder', requirePermission(Permission.UPDATE_GRIEVANCE), asy
     const assignedDate = grievance.assignedAt ? new Date(grievance.assignedAt) : createdDate;
     const hoursSinceCreated = (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60);
     const hoursSinceAssigned = (now.getTime() - assignedDate.getTime()) / (1000 * 60 * 60);
-    const overdue = grievance.status === GrievanceStatus.PENDING
-      ? !grievance.assignedTo
-        ? hoursSinceCreated >= 24
-        : hoursSinceAssigned >= 120
-      : (grievance.status === GrievanceStatus.IN_PROGRESS || grievance.status === GrievanceStatus.ASSIGNED)
-        ? hoursSinceAssigned >= 120
-        : false;
+    const slaHours = grievance.slaHours || 120;
+    const overdue = (grievance.status === GrievanceStatus.PENDING || 
+                    grievance.status === GrievanceStatus.ASSIGNED || 
+                    grievance.status === GrievanceStatus.IN_PROGRESS || 
+                    grievance.status === GrievanceStatus.REVERTED)
+      ? hoursSinceCreated >= slaHours
+      : false;
 
     if (!overdue) {
       return res.status(400).json({ success: false, message: 'Reminder can only be sent for overdue grievances' });
@@ -1737,6 +1883,73 @@ router.delete('/bulk', requirePermission(Permission.DELETE_GRIEVANCE), async (re
     });
   }
 });
+
+// @route   PUT /api/grievances/:id/reopen
+// @desc    Reopen a resolved/rejected grievance (Company Admin only)
+// @access  Private
+router.put('/:id/reopen', requirePermission(Permission.UPDATE_GRIEVANCE), async (req: Request, res: Response) => {
+  try {
+    const currentUser = req.user!;
+    const { remarks } = req.body;
+
+    const isCompanyAdmin = currentUser.level === 1 || currentUser.role === 'COMPANY_ADMIN';
+    if (!isCompanyAdmin && !currentUser.isSuperAdmin) {
+      return res.status(403).json({ success: false, message: 'Only Company Admin can reopen a grievance.' });
+    }
+
+    if (!remarks || !remarks.trim()) {
+      return res.status(400).json({ success: false, message: 'Remarks are required for reopening a grievance.' });
+    }
+
+    const grievance = await Grievance.findById(req.params.id);
+    if (!grievance) {
+      return res.status(404).json({ success: false, message: 'Grievance not found' });
+    }
+
+    const oldStatus = grievance.status;
+    grievance.status = GrievanceStatus.PENDING;
+    grievance.assignedTo = currentUser._id;
+    grievance.assignedAt = new Date();
+    (grievance as any).reopenedCount = ((grievance as any).reopenedCount || 0) + 1;
+    
+    grievance.statusHistory.push({
+      status: GrievanceStatus.PENDING,
+      changedBy: currentUser._id,
+      changedAt: new Date(),
+      remarks: `REOPENED: ${remarks.trim()}`
+    });
+
+    grievance.timeline.push({
+      action: 'REOPENED',
+      details: { fromStatus: oldStatus, remarks: remarks.trim() },
+      performedBy: currentUser._id,
+      timestamp: new Date()
+    });
+
+    await grievance.save();
+
+    // Notify Hierarchy about Reopen
+    const { notifyDepartmentAdmins } = await import('../services/inAppNotificationService');
+    const targetDeptId = grievance.subDepartmentId || grievance.departmentId;
+    if (targetDeptId) {
+      await notifyDepartmentAdmins({
+        companyId: grievance.companyId,
+        departmentId: targetDeptId,
+        eventType: 'GRIEVANCE_REOPENED',
+        title: 'Grievance Reopened',
+        message: `Grievance ${grievance.grievanceId} has been reopened by Company Admin. Remarks: ${remarks.trim()}`,
+        grievanceId: grievance.grievanceId,
+        grievanceObjectId: grievance._id,
+        meta: { remarks: remarks.trim() }
+      });
+    }
+
+    res.json({ success: true, message: 'Grievance reopened successfully', data: { grievance } });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to reopen grievance', error: error.message });
+  }
+});
+
 
 // @route   DELETE /api/grievances/:id
 // @desc    Delete a grievance within the caller's permitted scope

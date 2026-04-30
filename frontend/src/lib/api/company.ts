@@ -35,6 +35,9 @@ export interface Company {
   mainDepartmentCount?: number;
   subDepartmentCount?: number;
   isSuspended: boolean;
+  slaSettings?: {
+    defaultSlaHours: number;
+  };
   isDeleted: boolean;
   createdAt: string;
   updatedAt: string;
@@ -113,6 +116,10 @@ export const companyAPI = {
 
   update: async (id: string, data: Partial<CreateCompanyData>): Promise<{ success: boolean; data: { company: Company } }> => {
     return apiClient.put(`/companies/${id}`, data);
+  },
+
+  updateMe: async (data: any): Promise<{ success: boolean; data: { company: Company } }> => {
+    return apiClient.put('/companies/me', data);
   },
 
   delete: async (id: string): Promise<{ success: boolean; message: string }> => {

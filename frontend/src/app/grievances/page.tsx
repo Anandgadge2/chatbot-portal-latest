@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../contexts/AuthContext";
 import { grievanceAPI, Grievance } from "../../lib/api/grievance";
@@ -63,16 +63,18 @@ export default function GrievancesPage() {
       ? (user.companyId as any)._id
       : user?.companyId || "";
 
-  useEffect(() => {
-    fetchGrievances();
-    fetchDepartments();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const fetchGrievances = async () => {
+  const fetchGrievances = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await grievanceAPI.getAll({ limit: 25 });
+      const apiParams: any = { 
+        limit: 100, // Increase limit for better visibility
+        status: filters.status !== 'all' ? filters.status : undefined,
+        departmentId: filters.department !== 'all' ? filters.department : undefined,
+        search: filters.search || undefined,
+        slaStatus: filters.overdue === 'overdue' ? 'OVERDUE' : (filters.overdue === 'ontrack' ? 'ON_TRACK' : undefined),
+      };
+
+      const response = await grievanceAPI.getAll(apiParams);
       if (response.success) {
         setGrievances(response.data.grievances);
       }
@@ -81,9 +83,9 @@ export default function GrievancesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters.status, filters.department, filters.search, filters.overdue]);
 
-  const fetchDepartments = async () => {
+  const fetchDepartments = useCallback(async () => {
     try {
       const response = await departmentAPI.getAll({ companyId, limit: 25 });
       if (response.success) {
@@ -92,7 +94,15 @@ export default function GrievancesPage() {
     } catch (error) {
       console.error("Failed to load departments:", error);
     }
-  };
+  }, [companyId]);
+
+  useEffect(() => {
+    fetchGrievances();
+  }, [fetchGrievances, filters.status, filters.department, filters.assignment, filters.dateRange, filters.overdue, filters.search]);
+
+  useEffect(() => {
+    fetchDepartments();
+  }, [fetchDepartments]);
 
   const handleAssignClick = (grievance: Grievance) => {
     setGrievanceToAssign(grievance);
@@ -153,7 +163,7 @@ export default function GrievancesPage() {
     );
 
     if (grievance.status === "PENDING") {
-      return hoursDiff > 24; // PENDING should be assigned within 24h
+      return hoursDiff > 120; // Hardened Governance: 120h from creation
     } else if (grievance.status === "ASSIGNED" || grievance.status === "IN_PROGRESS") {
       const assignedDate = grievance.assignedAt
         ? new Date(grievance.assignedAt)
@@ -173,7 +183,7 @@ export default function GrievancesPage() {
       ? new Date(grievance.assignedAt)
       : createdDate;
     const baseDate =
-      grievance.status === "PENDING" ? createdDate : assignedDate;
+      createdDate; // Hardened Governance: Always creation based
     const daysPassed = Math.max(
       1,
       Math.floor((now.getTime() - baseDate.getTime()) / (1000 * 60 * 60 * 24)),
@@ -387,7 +397,7 @@ export default function GrievancesPage() {
               className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">All Status</option>
-              <option value="PENDING">🟡 Pending/Assigned</option>
+              <option value="PENDING">🟡 Pending</option>
               <option value="IN_PROGRESS">🛠️ In Progress</option>
             </select>
 
@@ -525,7 +535,7 @@ export default function GrievancesPage() {
                         >
                           {grievance.status === "PENDING" ||
                           grievance.status === "ASSIGNED"
-                            ? "Pending/Assigned"
+                            ? "Pending"
                             : grievance.status.replace("_", " ")}
                         </span>
                         {grievance.status === "RESOLVED" ||
@@ -765,7 +775,7 @@ export default function GrievancesPage() {
                             className={`px-3 py-1 rounded-full text-[11px] font-bold border uppercase tracking-wider w-fit ${getStatusColor(grievance.status)}`}
                           >
                             {grievance.status === "PENDING" || grievance.status === "ASSIGNED" 
-                              ? "Pending/Assigned" 
+                              ? "Pending" 
                               : grievance.status.replace("_", " ")}
                           </span>
                           {grievance.status === "RESOLVED" || grievance.status === "CLOSED" ? (

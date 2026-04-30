@@ -47,7 +47,7 @@ export function useUsers(params: UseUsersParams) {
       }
       return { users: [], pagination: { total: 0, pages: 0, page: 1, limit: 20 } };
     },
-    staleTime: 45 * 1000, // 45 seconds stale time
+    staleTime: 300 * 1000, // 5 minutes stale time
     enabled,
   });
 }

@@ -16,6 +16,7 @@ declare global {
         filteredPermissions?: { module: string; actions: string[] }[];
         permissionsVersion?: number;
         roleId?: string;
+        roleName?: string;
       };
     }
   }
@@ -79,6 +80,7 @@ export const authenticate = async (
       filteredPermissions: access.filteredPermissions,
       permissionsVersion: access.permissionsVersion,
       roleId: access.roleId,
+      roleName: access.roleName,
     });
 
     next();
@@ -128,6 +130,7 @@ export const optionalAuth = async (
           filteredPermissions: access.filteredPermissions,
           permissionsVersion: access.permissionsVersion,
           roleId: access.roleId,
+          roleName: access.roleName,
         });
       }
     }

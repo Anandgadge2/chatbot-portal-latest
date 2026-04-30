@@ -154,6 +154,28 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
       });
     }
 
+    // 🔒 Strict Status Transition Logic for non-admins
+    const isCompanyAdmin = currentUser.level === 1 || !currentUser.departmentId;
+    if (!currentUser.isSuperAdmin && !isCompanyAdmin) {
+      const statusPriority: Record<string, number> = {
+        [GrievanceStatus.PENDING]: 1,
+        [GrievanceStatus.ASSIGNED]: 1,
+        [GrievanceStatus.IN_PROGRESS]: 2,
+        [GrievanceStatus.RESOLVED]: 3,
+        [GrievanceStatus.REJECTED]: 3,
+      };
+
+      const currentPrio = statusPriority[oldStatus] || 0;
+      const nextPrio = statusPriority[status] || 0;
+
+      if (nextPrio < currentPrio) {
+        return res.status(403).json({
+          success: false,
+          message: `Status regression from ${oldStatus} to ${status} is not allowed. Only Company Admins or higher can reopen or revert grievances.`
+        });
+      }
+    }
+
     // Permission checks
     if (!currentUser.isSuperAdmin) {
       if (grievance.companyId._id.toString() !== currentUser.companyId?.toString()) {

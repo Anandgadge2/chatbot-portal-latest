@@ -37,7 +37,6 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
       query.companyId = targetCompanyId;
       
       // If restricted to a department (for non-Super Admins), scope them.
-      // Support multiple department scoping for the current user
       const userDepts = [];
       if (currentUser.departmentId) userDepts.push(currentUser.departmentId.toString());
       if (currentUser.departmentIds && Array.isArray(currentUser.departmentIds)) {
@@ -84,21 +83,22 @@ router.get('/', requirePermission(Permission.READ_USER), async (req: Request, re
           
         query.departmentIds = { $in: filterDeptIds };
       }
-    } else if (!isSuperAdmin) {
+    } else if (isSuperAdmin) {
+      // 🛡️ SECURITY: Super Admin without companyId should see nothing in user list
+      return res.json({ 
+        success: true, 
+        data: { 
+          users: [], 
+          pagination: { page: 1, limit: Number(limit), total: 0, pages: 0 } 
+        } 
+      });
+    } else {
       // Safety check: Non-SuperAdmins MUST have a companyId
       return res.status(403).json({
         success: false,
         message: 'Unauthorized: User missing company assignment'
       });
-    } else if (departmentId) {
-       // Global Super Admin (no companyId) filtering by department
-       const filterDeptIds = typeof departmentId === 'string' && departmentId.includes(',') 
-         ? departmentId.split(',') 
-         : [departmentId];
-         
-       query.departmentIds = { $in: filterDeptIds };
     }
-    // If Super Admin and NO targetCompanyId, query remains empty (sees everything)
 
     // 🔍 SEARCH LOGIC
     if (search) {

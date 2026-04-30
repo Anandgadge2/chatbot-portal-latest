@@ -1,5 +1,6 @@
 "use client";
 
+import React, { memo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, Power, RefreshCw, User as UserIcon } from "lucide-react";
@@ -31,7 +32,7 @@ type DashboardHeaderProps = {
 
 import { NotificationPopover } from "./NotificationPopover";
 
-export function DashboardHeader({
+export const DashboardHeader = memo(function DashboardHeader({
   user,
   companyName,
   companyIdParam,
@@ -173,7 +174,6 @@ export function DashboardHeader({
                 />
               </Button>
               
-              
 
               <NotificationPopover
                 notifications={notifications}
@@ -196,4 +196,4 @@ export function DashboardHeader({
       </div>
     </header>
   );
-}
+});

@@ -43,7 +43,9 @@ export interface IGrievance extends Document {
   resolvedAt?: Date;
   closedAt?: Date;
   slaDueDate?: Date;
+  slaHours?: number;
   reminderCount?: number;
+  reopenedCount?: number;
   lastReminderAt?: Date;
   lastReminderRemarks?: string;
   language: 'en' | 'hi' | 'mr' | 'or';
@@ -213,6 +215,13 @@ const GrievanceSchema: Schema = new Schema(
     slaDueDate: {
       type: Date
     },
+    slaHours: {
+      type: Number
+    },
+    reopenedCount: {
+      type: Number,
+      default: 0
+    },
     reminderCount: {
       type: Number,
       default: 0
@@ -272,16 +281,30 @@ GrievanceSchema.index({ createdAt: -1 });
 GrievanceSchema.index({ companyId: 1, grievanceId: 1 }, { unique: true, sparse: true });
 
 // Pre-save hook to generate grievanceId (using atomic counter if not provided)
-GrievanceSchema.pre('save', async function (next) {
+GrievanceSchema.pre('save', async function (this: IGrievance, next) {
+  // Handle SLA recalculation on creation or update
+  if (this.isModified('slaHours') || (this.isNew && !this.slaDueDate)) {
+    const hours = this.slaHours || 120;
+    const baseDate = this.createdAt || new Date();
+    const dueDate = new Date(baseDate);
+    dueDate.setMinutes(dueDate.getMinutes() + Math.round(hours * 60));
+    this.slaDueDate = dueDate;
+  }
+
   if (this.isNew && !this.grievanceId) {
     try {
       // Use atomic counter for ID generation (prevents race conditions)
       // Pass companyId for per-company counters
       const { getNextGrievanceId } = await import('../utils/idGenerator');
       this.grievanceId = await getNextGrievanceId(this.companyId as any);
+      
+      if (!this.slaHours) {
+        const Company = mongoose.model('Company');
+        const company = await Company.findById(this.companyId);
+        this.slaHours = (company as any)?.slaSettings?.defaultSlaHours || 120;
+      }
     } catch (error) {
       console.error('❌ Error generating grievance ID:', error);
-      // ✅ Production: do NOT fall back to a non-atomic scan (causes duplicates under concurrency).
       return next(error as any);
     }
     

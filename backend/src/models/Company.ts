@@ -33,6 +33,9 @@ export interface ICompany extends Document {
       };
     };
   };
+  slaSettings?: {
+    defaultSlaHours: number;
+  };
   isActive: boolean;
   isSuspended: boolean;
   permissionsVersion: number;
@@ -141,6 +144,12 @@ const CompanySchema: Schema = new Schema(
           }
         },
         default: {}
+      }
+    },
+    slaSettings: {
+      defaultSlaHours: {
+        type: Number,
+        default: 120 // Default 5 days
       }
     },
     isActive: {

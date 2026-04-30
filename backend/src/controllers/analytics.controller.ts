@@ -66,6 +66,11 @@ const getAnalyticsBaseQuery = async (req: any, companyId?: any, departmentId?: a
   if (currentUser.isSuperAdmin) {
     if (companyId) {
       query.companyId = new mongoose.Types.ObjectId(companyId.toString());
+    } else {
+      // 🛡️ SECURITY: Super Admin without companyId should see nothing
+      // We force a query that will return no results to prevent global leakage.
+      query._id = { $in: [] };
+      return query;
     }
     
     if (departmentId) {
@@ -249,9 +254,6 @@ export const dashboard = async (req: Request, res: Response) => {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const pendingSlaCutoff = new Date(Date.now() - SLA_CONFIG[GrievanceStatus.PENDING] * 60 * 60 * 1000);
-    const assignedSlaCutoff = new Date(Date.now() - SLA_CONFIG[GrievanceStatus.ASSIGNED] * 60 * 60 * 1000);
-
     // Monthly trends (last 6 months) logic moved up for baseQuery reuse
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
@@ -289,13 +291,18 @@ export const dashboard = async (req: Request, res: Response) => {
                   resolvedToday: { $sum: { $cond: [{ $and: [{ $in: ['$status', [GrievanceStatus.RESOLVED, 'CLOSED']] }, { $gte: ['$resolvedAt', new Date(new Date().setHours(0,0,0,0))] }] }, 1, 0] } },
                   highPriority: { $sum: { $cond: [{ $and: [{ $ne: ['$status', GrievanceStatus.RESOLVED] }, { $eq: ['$priority', 'HIGH'] }] }, 1, 0] } },
                   urgentPriority: { $sum: { $cond: [{ $and: [{ $ne: ['$status', GrievanceStatus.RESOLVED] }, { $eq: ['$priority', 'URGENT'] }] }, 1, 0] } },
-                  pendingOverdue: { 
+                  slaBreached: { 
                     $sum: { 
                       $cond: [
                         { 
                           $and: [
-                            { $eq: ['$status', GrievanceStatus.PENDING] }, 
-                            { $lt: ['$createdAt', pendingSlaCutoff] }
+                            { $in: ['$status', [GrievanceStatus.PENDING, GrievanceStatus.ASSIGNED, GrievanceStatus.IN_PROGRESS, GrievanceStatus.REVERTED, 'OPEN']] }, 
+                            { 
+                              $gt: [
+                                { $subtract: [new Date(), "$createdAt"] },
+                                { $multiply: [{ $ifNull: ["$slaHours", 120] }, 3600000] }
+                              ]
+                            }
                           ] 
                         }, 
                         1, 
@@ -303,27 +310,17 @@ export const dashboard = async (req: Request, res: Response) => {
                       ] 
                     } 
                   },
-                  assignedOverdue: { 
+                  pendingOverdue: { 
                     $sum: { 
                       $cond: [
                         { 
                           $and: [
-                            { $in: ['$status', [GrievanceStatus.ASSIGNED, GrievanceStatus.IN_PROGRESS]] }, 
+                            { $in: ['$status', [GrievanceStatus.PENDING, GrievanceStatus.ASSIGNED, GrievanceStatus.IN_PROGRESS, GrievanceStatus.REVERTED, 'OPEN']] }, 
                             { 
-                              $or: [
-                                { 
-                                  $and: [
-                                    { $ne: [{ $type: '$assignedAt' }, 'missing'] }, 
-                                    { $lt: ['$assignedAt', assignedSlaCutoff] }
-                                  ] 
-                                }, 
-                                { 
-                                  $and: [
-                                    { $eq: [{ $type: '$assignedAt' }, 'missing'] }, 
-                                    { $lt: ['$createdAt', assignedSlaCutoff] }
-                                  ] 
-                                }
-                              ] 
+                              $gt: [
+                                { $subtract: [new Date(), "$createdAt"] },
+                                { $multiply: [{ $ifNull: ["$slaHours", 120] }, 3600000] }
+                              ]
                             }
                           ] 
                         }, 
@@ -350,7 +347,7 @@ export const dashboard = async (req: Request, res: Response) => {
               { $sort: { _id: 1 } }
             ],
             byDepartment: [
-              { $group: { _id: { $ifNull: ['$subDepartmentId', '$departmentId'] }, total: { $sum: 1 }, pending: { $sum: { $cond: [{ $in: ['$status', [GrievanceStatus.PENDING, GrievanceStatus.ASSIGNED, GrievanceStatus.IN_PROGRESS, 'OPEN']] }, 1, 0] } } } },
+              { $group: { _id: '$departmentId', total: { $sum: 1 }, pending: { $sum: { $cond: [{ $in: ['$status', [GrievanceStatus.PENDING, GrievanceStatus.ASSIGNED, GrievanceStatus.IN_PROGRESS, 'OPEN']] }, 1, 0] } } } },
               { $match: { _id: { $ne: null } } },
               { $lookup: { from: 'departments', localField: '_id', foreignField: '_id', as: 'dept' } },
               { $unwind: { path: '$dept', preserveNullAndEmptyArrays: true } },
@@ -455,7 +452,7 @@ export const dashboard = async (req: Request, res: Response) => {
     const resolvedToday = gCounts.resolvedToday || 0;
     const highPriorityPending = gCounts.highPriority || 0;
     const urgentPriorityPending = gCounts.urgentPriority || 0;
-    const slaBreachedGrievancesCount = (gCounts.pendingOverdue || 0) + (gCounts.assignedOverdue || 0);
+    const slaBreachedGrievancesCount = gCounts.slaBreached || 0;
 
     const totalAppointments = aCounts.total || 0;
     const requestedAppointments = aCounts.requested || 0;
@@ -597,8 +594,6 @@ export const dashboardKpis = async (req: Request, res: Response) => {
 
     const payloadPromise = (async () => {
       const baseQuery = await getAnalyticsBaseQuery(req, companyId, departmentId);
-      const pendingSlaCutoff = new Date(Date.now() - SLA_CONFIG[GrievanceStatus.PENDING] * 60 * 60 * 1000);
-      const assignedSlaCutoff = new Date(Date.now() - SLA_CONFIG[GrievanceStatus.ASSIGNED] * 60 * 60 * 1000);
 
       const [counts] = await Grievance.aggregate([
         { $match: baseQuery },
@@ -613,28 +608,19 @@ export const dashboardKpis = async (req: Request, res: Response) => {
             reverted: { $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.REVERTED] }, 1, 0] } },
             resolved: { $sum: { $cond: [{ $in: ['$status', [GrievanceStatus.RESOLVED, 'CLOSED']] }, 1, 0] } },
             rejected: { $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.REJECTED] }, 1, 0] } },
-            pendingOverdue: {
+            slaBreached: {
               $sum: {
                 $cond: [
-                  { $and: [{ $eq: ['$status', GrievanceStatus.PENDING] }, { $lt: ['$createdAt', pendingSlaCutoff] }] },
-                  1,
-                  0
-                ]
-              }
-            },
-            assignedOverdue: {
-              $sum: {
-                $cond: [
-                  {
+                  { 
                     $and: [
-                      { $in: ['$status', [GrievanceStatus.ASSIGNED, GrievanceStatus.IN_PROGRESS]] },
-                      {
-                        $or: [
-                          { $and: [{ $ne: [{ $type: '$assignedAt' }, 'missing'] }, { $lt: ['$assignedAt', assignedSlaCutoff] }] },
-                          { $and: [{ $eq: [{ $type: '$assignedAt' }, 'missing'] }, { $lt: ['$createdAt', assignedSlaCutoff] }] }
+                      { $in: ['$status', [GrievanceStatus.PENDING, GrievanceStatus.ASSIGNED, GrievanceStatus.IN_PROGRESS, GrievanceStatus.REVERTED, 'OPEN']] }, 
+                      { 
+                        $gt: [
+                          { $subtract: [new Date(), "$createdAt"] },
+                          { $multiply: [{ $ifNull: ["$slaHours", 120] }, 3600000] }
                         ]
                       }
-                    ]
+                    ] 
                   },
                   1,
                   0
@@ -656,8 +642,8 @@ export const dashboardKpis = async (req: Request, res: Response) => {
           reverted: g.reverted || 0,
           resolved: g.resolved || 0,
           rejected: g.rejected || 0,
-          pendingOverdue: g.pendingOverdue || 0,
-          slaBreached: (g.pendingOverdue || 0) + (g.assignedOverdue || 0),
+          pendingOverdue: g.slaBreached || 0,
+          slaBreached: g.slaBreached || 0,
         }
       };
 

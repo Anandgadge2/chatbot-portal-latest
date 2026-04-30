@@ -38,6 +38,7 @@ export interface Grievance {
   closedAt?: string;
   slaBreached?: boolean;
   slaDueDate?: string;
+  slaHours?: number;
   reminderCount?: number;
   lastReminderAt?: string;
   lastReminderRemarks?: string;
@@ -101,6 +102,8 @@ export const grievanceAPI = {
     priority?: string;
     search?: string;
     slaStatus?: string;
+    mainDeptId?: string;
+    subDeptId?: string;
   }): Promise<GrievancesResponse> => {
     const queryParams = new URLSearchParams();
     if (params?.page) queryParams.append('page', params.page.toString());
@@ -108,6 +111,8 @@ export const grievanceAPI = {
     if (params?.status) queryParams.append('status', params.status);
     if (params?.companyId) queryParams.append('companyId', params.companyId);
     if (params?.departmentId) queryParams.append('departmentId', params.departmentId);
+    if (params?.mainDeptId) queryParams.append('mainDeptId', params.mainDeptId);
+    if (params?.subDeptId) queryParams.append('subDeptId', params.subDeptId);
     if (params?.assignedTo) queryParams.append('assignedTo', params.assignedTo);
     if (params?.priority) queryParams.append('priority', params.priority);
     if (params?.search) queryParams.append('search', params.search);
@@ -163,5 +168,9 @@ export const grievanceAPI = {
 
   sendReminder: async (id: string, remarks: string): Promise<{ success: boolean; data: { grievance: Grievance }; message: string }> => {
     return apiClient.post(`/grievances/${id}/reminder`, { remarks });
+  },
+
+  updateSla: async (id: string, slaHours: number): Promise<{ success: boolean; data: { grievance: Grievance }; message: string }> => {
+    return apiClient.put(`/grievances/${id}/sla`, { slaHours });
   }
 };

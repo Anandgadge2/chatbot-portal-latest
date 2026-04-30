@@ -432,6 +432,42 @@ export const me = async (req: Request, res: Response) => {
   }
 };
 
+export const updateMe = async (req: Request, res: Response) => {
+  try {
+    const currentUser = req.user!;
+    if (!currentUser.companyId) {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+
+    const updateData: any = {};
+    if (req.body.name) updateData.name = req.body.name;
+    if (req.body.nameHi) updateData.nameHi = req.body.nameHi;
+    if (req.body.nameOr) updateData.nameOr = req.body.nameOr;
+    if (req.body.nameMr) updateData.nameMr = req.body.nameMr;
+    if (req.body.contactEmail) updateData.contactEmail = req.body.contactEmail;
+    if (req.body.contactPhone) updateData.contactPhone = req.body.contactPhone;
+    if (req.body.address) updateData.address = req.body.address;
+    if (req.body.selectedLanguages) updateData.selectedLanguages = normalizeSelectedLanguages(req.body.selectedLanguages);
+    if (req.body.slaSettings) updateData.slaSettings = req.body.slaSettings;
+
+    const company = await Company.findByIdAndUpdate(
+      currentUser.companyId,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    );
+
+    if (!company) {
+      return res.status(404).json({ success: false, message: 'Company not found' });
+    }
+
+    await logUserAction(req, AuditAction.UPDATE, 'Company', company._id.toString(), { updates: updateData });
+
+    res.json({ success: true, message: 'Company settings updated', data: { company } });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to update company information', error: error.message });
+  }
+};
+
 export const getById = async (req: Request, res: Response) => {
   try {
     const company = await Company.findById(req.params.id);

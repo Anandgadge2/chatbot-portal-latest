@@ -71,6 +71,7 @@ import { OverviewGrievanceKpis } from "@/components/dashboard/OverviewGrievanceK
 import { DashboardDialogs } from "@/components/dashboard/DashboardDialogs";
 import { LoadingDots, SortIcon } from "@/components/dashboard/DashboardPrimitives";
 import { ProfileTab } from "@/components/dashboard/tabs/ProfileTab";
+import { CompanySettingsTab } from "@/components/company/CompanySettingsTab";
 import { formatTo10Digits, normalizePhoneNumber } from "@/lib/utils/phoneUtils";
 import { useGrievances } from "@/lib/query/useGrievances";
 
@@ -145,6 +146,7 @@ import {
   Unlock,
   Filter,
   X,
+  Clock,
   CalendarClock,
   FileDown,
   BarChart2,
@@ -245,9 +247,11 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
   const {
     allDepartments,
     appointmentFilters,
+    appointmentPage,
     appointmentPagination,
     appointmentSearch,
     appointments,
+    setAppointmentPage,
     assignedDepartmentSummaries,
     canAssignGrievance,
     canDeleteGrievance,
@@ -312,6 +316,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
     leads,
     loadingDepartments,
     loadingGrievances,
+    loadingAppointments,
     loadingKpiTiles,
     loadingLeads,
     loadingStats,
@@ -319,6 +324,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
     navigateToGrievances,
     normalizedDesignations,
     openGrievanceDetail,
+    openAppointmentDetail,
     openOverdueReminderDialog,
     openUserDetail,
     overdueKpiCount,
@@ -466,31 +472,81 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                   last7DaysCount={stats?.grievances.last7Days || 0}
                   onPendingClick={() => {
                     setActiveTab("grievances");
-                    setGrievanceFilters((prev) => ({ ...prev, status: "PENDING" }));
+                    setGrievancePage(1);
+                    setGrievanceSearch("");
+                    setGrievanceFilters((prev) => ({ 
+                      ...prev, 
+                      status: "PENDING",
+                      slaStatus: "",
+                      dateRange: "",
+                      priority: "",
+                      assignmentStatus: ""
+                    }));
                   }}
                   onOverdueClick={() => {
                     setActiveTab("grievances");
+                    setGrievancePage(1);
+                    setGrievanceSearch("");
                     setGrievanceFilters((prev) => ({
                       ...prev,
-                      status: "PENDING",
-                      overdueStatus: "overdue",
+                      status: "", // All active status
+                      slaStatus: "OVERDUE",
+                      dateRange: "",
+                      priority: "",
+                      assignmentStatus: ""
                     }));
                   }}
                   onRevertedClick={() => {
                     setActiveTab("grievances");
-                    setGrievanceFilters((prev) => ({ ...prev, status: "REVERTED" }));
+                    setGrievancePage(1);
+                    setGrievanceSearch("");
+                    setGrievanceFilters((prev) => ({ 
+                      ...prev, 
+                      status: "REVERTED",
+                      slaStatus: "",
+                      dateRange: "",
+                      priority: "",
+                      assignmentStatus: ""
+                    }));
                   }}
                   onResolvedClick={() => {
                     setActiveTab("grievances");
-                    setGrievanceFilters((prev) => ({ ...prev, status: "RESOLVED" }));
+                    setGrievancePage(1);
+                    setGrievanceSearch("");
+                    setGrievanceFilters((prev) => ({ 
+                      ...prev, 
+                      status: "RESOLVED",
+                      slaStatus: "",
+                      dateRange: "",
+                      priority: "",
+                      assignmentStatus: ""
+                    }));
                   }}
                   onRejectedClick={() => {
                     setActiveTab("grievances");
-                    setGrievanceFilters((prev) => ({ ...prev, status: "REJECTED" }));
+                    setGrievancePage(1);
+                    setGrievanceSearch("");
+                    setGrievanceFilters((prev) => ({ 
+                      ...prev, 
+                      status: "REJECTED",
+                      slaStatus: "",
+                      dateRange: "",
+                      priority: "",
+                      assignmentStatus: ""
+                    }));
                   }}
                   onTotalClick={() => {
                     setActiveTab("grievances");
-                    setGrievanceFilters((prev) => ({ ...prev, status: "ALL" }));
+                    setGrievancePage(1);
+                    setGrievanceSearch("");
+                    setGrievanceFilters((prev) => ({ 
+                      ...prev, 
+                      status: "ALL",
+                      slaStatus: "",
+                      dateRange: "",
+                      priority: "",
+                      assignmentStatus: ""
+                    }));
                   }}
                 />
 
@@ -551,31 +607,81 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                     last7DaysCount={stats?.grievances.last7Days || 0}
                     onPendingClick={() => {
                       setActiveTab("grievances");
-                      setGrievanceFilters((prev) => ({ ...prev, status: "PENDING" }));
+                      setGrievancePage(1);
+                      setGrievanceSearch("");
+                      setGrievanceFilters((prev) => ({ 
+                        ...prev, 
+                        status: "PENDING",
+                        slaStatus: "",
+                        dateRange: "",
+                        priority: "",
+                        assignmentStatus: ""
+                      }));
                     }}
                     onOverdueClick={() => {
                       setActiveTab("grievances");
+                      setGrievancePage(1);
+                      setGrievanceSearch("");
                       setGrievanceFilters((prev) => ({
                         ...prev,
-                        status: "PENDING",
-                        overdueStatus: "overdue",
+                        status: "", // All active status
+                        slaStatus: "OVERDUE",
+                        dateRange: "",
+                        priority: "",
+                        assignmentStatus: ""
                       }));
                     }}
                     onRevertedClick={() => {
                       setActiveTab("grievances");
-                      setGrievanceFilters((prev) => ({ ...prev, status: "REVERTED" }));
+                      setGrievancePage(1);
+                      setGrievanceSearch("");
+                      setGrievanceFilters((prev) => ({ 
+                        ...prev, 
+                        status: "REVERTED",
+                        slaStatus: "",
+                        dateRange: "",
+                        priority: "",
+                        assignmentStatus: ""
+                      }));
                     }}
                     onResolvedClick={() => {
                       setActiveTab("grievances");
-                      setGrievanceFilters((prev) => ({ ...prev, status: "RESOLVED" }));
+                      setGrievancePage(1);
+                      setGrievanceSearch("");
+                      setGrievanceFilters((prev) => ({ 
+                        ...prev, 
+                        status: "RESOLVED",
+                        slaStatus: "",
+                        dateRange: "",
+                        priority: "",
+                        assignmentStatus: ""
+                      }));
                     }}
                     onRejectedClick={() => {
                       setActiveTab("grievances");
-                      setGrievanceFilters((prev) => ({ ...prev, status: "REJECTED" }));
+                      setGrievancePage(1);
+                      setGrievanceSearch("");
+                      setGrievanceFilters((prev) => ({ 
+                        ...prev, 
+                        status: "REJECTED",
+                        slaStatus: "",
+                        dateRange: "",
+                        priority: "",
+                        assignmentStatus: ""
+                      }));
                     }}
                     onTotalClick={() => {
                       setActiveTab("grievances");
-                      setGrievanceFilters((prev) => ({ ...prev, status: "ALL" }));
+                      setGrievancePage(1);
+                      setGrievanceSearch("");
+                      setGrievanceFilters((prev) => ({ 
+                        ...prev, 
+                        status: "ALL",
+                        slaStatus: "",
+                        dateRange: "",
+                        priority: "",
+                        assignmentStatus: ""
+                      }));
                     }}
                   />
 
@@ -3563,7 +3669,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                           >
                             <option value="">📋 All Status</option>
                             <option value="ALL">📑 Total(Inc. Resolved/Rejected)</option>
-                            <option value="PENDING">🔸 Pending/Assigned</option>
+                            <option value="PENDING">🔸 Pending</option>
                             <option value="IN_PROGRESS">🛠️ In Progress</option>
                             <option value="RESOLVED">✅ Resolved</option>
                             <option value="REJECTED">❌ Rejected</option>
@@ -3616,11 +3722,11 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
 
                           {/* Overdue Status Filter */}
                           <select
-                            value={grievanceFilters.overdueStatus}
+                            value={grievanceFilters.slaStatus}
                             onChange={(e) => {
                               setGrievanceFilters((prev) => ({
                                 ...prev,
-                                overdueStatus: e.target.value,
+                                slaStatus: e.target.value,
                               }));
                               setGrievancePage(1);
                             }}
@@ -3628,8 +3734,9 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                             title="Filter by overdue status"
                           >
                             <option value="">⏱️ Overdue Status</option>
-                            <option value="overdue">🔴 Overdue</option>
-                            <option value="ontrack">🟢 On Track</option>
+                            <option value="OVERDUE">🔴 Overdue</option>
+                            <option value="ON_TRACK">🟢 On Track</option>
+                            <option value="COMPLETED">✅ Completed</option>
                           </select>
 
                           {/* Date Range Filter */}
@@ -3657,24 +3764,27 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                             grievanceFilters.mainDeptId ||
                             grievanceFilters.subDeptId ||
                             grievanceFilters.assignmentStatus ||
-                            grievanceFilters.overdueStatus ||
+                            grievanceFilters.slaStatus ||
                             grievanceFilters.priority ||
-                            grievanceFilters.dateRange) && (
+                            grievanceFilters.dateRange ||
+                            grievanceSearch) && (
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() =>
+                              onClick={() => {
                                 setGrievanceFilters({
                                   status: "",
                                   department: "",
                                   mainDeptId: "",
                                   subDeptId: "",
                                   assignmentStatus: "",
-                                  overdueStatus: "",
+                                  slaStatus: "",
                                   dateRange: "",
                                   priority: "",
-                                })
-                              }
+                                });
+                                setGrievanceSearch("");
+                                setGrievancePage(1);
+                              }}
                               className="text-[11px] h-8 px-3 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg border border-red-200 font-medium"
                               title="Clear all filters"
                             >
@@ -3727,13 +3837,8 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                 if (grievance.status === "RESOLVED" || grievance.status === "CLOSED" || grievance.status === "REJECTED") {
                                   slaStatus = "completed";
                                 } else if (grievance.status === "PENDING" || grievance.status === "ASSIGNED" || grievance.status === "IN_PROGRESS") {
-                                  if (grievance.assignedTo) {
-                                    const assignedDate = grievance.assignedAt ? new Date(grievance.assignedAt) : createdDate;
-                                    const hoursFromAssigned = Math.floor((now.getTime() - assignedDate.getTime()) / (1000 * 60 * 60));
-                                    if (hoursFromAssigned > 120) slaStatus = "overdue";
-                                  } else {
-                                    if (hoursDiff > 24) slaStatus = "overdue";
-                                  }
+                                  // Hardened Governance: Strictly 120 hours from creation
+                                  if (hoursDiff > 120) slaStatus = "overdue";
                                 }
 
                                 const assignedName = typeof grievance.assignedTo === 'object' && grievance.assignedTo !== null
@@ -3749,7 +3854,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                   : null;
 
                                 const grievanceStatus = grievance.status === 'PENDING' || grievance.status === 'ASSIGNED'
-                                  ? 'PENDING/ASSIGNED' : grievance.status;
+                                  ? 'PENDING' : grievance.status;
 
                                 return (
                                   <div
@@ -3904,6 +4009,47 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                             {grievance.category}
                                           </span>
                                         )}
+                                        
+                                        {/* Revert Remarks & Suggested Dept (Consolidated) */}
+                                        {grievance.status === 'REVERTED' && (() => {
+                                          const latestRevertRemark = grievance.statusHistory
+                                            ?.filter((h: any) => h.status === 'REVERTED')
+                                            .sort((a: any, b: any) => new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime())[0]?.remarks;
+
+                                          const revertEntry = grievance.timeline
+                                            ?.filter((t: any) => t.action === 'REVERTED_TO_COMPANY_ADMIN')
+                                            .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+
+                                          const suggestedDeptId = revertEntry?.details?.suggestedDepartmentId;
+                                          const suggestedSubDeptId = revertEntry?.details?.suggestedSubDepartmentId;
+
+                                          if (!latestRevertRemark && !suggestedDeptId && !suggestedSubDeptId) return null;
+
+                                          return (
+                                            <div className="mt-2 space-y-2">
+                                              {latestRevertRemark && (
+                                                <div className="bg-rose-50 border border-rose-100 rounded-lg p-2">
+                                                  <p className="text-[8px] font-black text-rose-500 uppercase tracking-tighter mb-0.5 flex items-center gap-1">
+                                                    <Undo2 className="w-2.5 h-2.5" /> Revert Remark
+                                                  </p>
+                                                  <p className="text-[10px] text-rose-700 font-bold leading-tight break-words">
+                                                    {latestRevertRemark}
+                                                  </p>
+                                                </div>
+                                              )}
+                                              {(suggestedDeptId || suggestedSubDeptId) && (
+                                                <div className="bg-rose-50/50 border border-rose-100 rounded-lg p-2">
+                                                  <div className="flex items-center gap-1 text-[8px] text-rose-500 font-black uppercase tracking-widest mb-1 opacity-70">
+                                                    <ArrowRightCircle className="w-2.5 h-2.5" /> Proposed Destination
+                                                  </div>
+                                                  <span className="text-[10px] font-bold text-slate-900 leading-none">
+                                                    {allDepartments?.find(d => d._id === (suggestedSubDeptId || suggestedDeptId))?.name || "Target Department"}
+                                                  </span>
+                                                </div>
+                                              )}
+                                            </div>
+                                          );
+                                        })()}
                                       </div>
 
                                       {/* Assigned to */}
@@ -4146,6 +4292,54 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                             <span className="text-[10px] text-orange-400 uppercase">
                                               {grievance.category}
                                             </span>
+                                            
+                                            {/* Desktop Revert Info */}
+                                            {grievance.status === 'REVERTED' && (() => {
+                                              const latestRevertRemark = grievance.statusHistory
+                                                ?.filter((h: any) => h.status === 'REVERTED')
+                                                .sort((a: any, b: any) => new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime())[0]?.remarks;
+
+                                              const revertEntry = grievance.timeline
+                                                ?.filter((t: any) => t.action === 'REVERTED_TO_COMPANY_ADMIN')
+                                                .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+
+                                              const suggestedDeptId = revertEntry?.details?.suggestedDepartmentId;
+                                              const suggestedSubDeptId = revertEntry?.details?.suggestedSubDepartmentId;
+
+                                              if (!latestRevertRemark && !suggestedDeptId && !suggestedSubDeptId) return null;
+
+                                              return (
+                                                <div className="mt-2 space-y-2">
+                                                  {latestRevertRemark && (
+                                                    <div className="bg-rose-50 border border-rose-100 rounded-lg p-2 max-w-[200px]">
+                                                      <p className="text-[9px] font-black text-rose-500 uppercase tracking-tighter mb-0.5 flex items-center gap-1">
+                                                        <Undo2 className="w-2.5 h-2.5" /> Revert Remark
+                                                      </p>
+                                                      <p className="text-[10px] text-rose-700 font-bold leading-tight break-words">
+                                                        {latestRevertRemark}
+                                                      </p>
+                                                    </div>
+                                                  )}
+                                                  {(suggestedDeptId || suggestedSubDeptId) && (
+                                                    <div className="group/suggested max-w-[200px]">
+                                                      <div className="flex items-center gap-1 text-[9px] text-rose-500 font-black uppercase tracking-widest mb-1 opacity-70">
+                                                        <ArrowRightCircle className="w-2.5 h-2.5" /> Proposed Destination
+                                                      </div>
+                                                      <div className="flex items-center gap-2 bg-rose-50/50 border border-rose-100 rounded-lg p-2">
+                                                        <div className="w-6 h-6 bg-rose-100 rounded-md flex items-center justify-center text-rose-600 shrink-0">
+                                                          <Building2 className="w-3.5 h-3.5" />
+                                                        </div>
+                                                        <div className="flex flex-col min-w-0">
+                                                          <span className="text-[10px] font-bold text-slate-900 leading-none truncate">
+                                                            {allDepartments?.find(d => d._id === (suggestedSubDeptId || suggestedDeptId))?.name || "Target Department"}
+                                                          </span>
+                                                        </div>
+                                                      </div>
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              );
+                                            })()}
                                           </div>
                                         </td>
                                         <td className="px-4 py-4">
@@ -4263,7 +4457,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                             }`}
                                           >
                                             {grievance.status === "PENDING" || grievance.status === "ASSIGNED"
-                                              ? "Pending/Assigned"
+                                              ? "Pending"
                                               : grievance.status}
                                           </button>
                                         </td>
@@ -4282,24 +4476,9 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                             let isOverdue = false;
                                             let slaHours = 0;
 
-                                            if (
-                                              grievance.status === "PENDING" || 
-                                              grievance.status === "ASSIGNED" ||
-                                              grievance.status === "IN_PROGRESS"
-                                            ) {
-                                              if (grievance.assignedTo) {
-                                                slaHours = 120;
-                                                const assignedDate = grievance.assignedAt 
-                                                  ? new Date(grievance.assignedAt) 
-                                                  : createdDate;
-                                                const hoursFromAssigned = Math.floor(
-                                                  (now.getTime() - assignedDate.getTime()) / (1000 * 60 * 60)
-                                                );
-                                                isOverdue = hoursFromAssigned > slaHours;
-                                              } else {
-                                                slaHours = 24;
-                                                isOverdue = hoursDiff > slaHours;
-                                              }
+                                            const activeStatuses = ["PENDING", "ASSIGNED", "IN_PROGRESS", "REVERTED"];
+                                            if (activeStatuses.includes(grievance.status)) {
+                                              isOverdue = hoursDiff > 120;
                                             }
                                             if (
                                               grievance.status === "RESOLVED" ||
@@ -4497,423 +4676,6 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                   </TabsContent>
                 )}
 
-              {/* Reverted Grievances Tab - for Company Admin */}
-              {isCompanyLevel &&
-                hasPermission(user, Permission.READ_GRIEVANCE) && (
-                  <TabsContent value="reverted" className="space-y-6">
-                    <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
-                      <CardHeader className="bg-slate-900 px-6 py-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-rose-500/20 rounded-xl flex items-center justify-center border border-rose-500/30">
-                              <Undo2 className="w-5 h-5 text-rose-400" />
-                            </div>
-                            <div>
-                              <CardTitle className="text-base font-bold text-white">
-                                Reverted Grievances
-                              </CardTitle>
-                              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-                                Grievances requiring reassignment after being
-                                reverted
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </CardHeader>
-
-                      <div className="px-6 py-4 bg-slate-50/50 border-b border-slate-200">
-                        {/* Search and Quick Filters */}
-                        <div className="flex items-center justify-between gap-4 mb-3">
-                          <div className="relative flex-1 max-w-md">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                            <input
-                              type="text"
-                              placeholder="Search reverted grievances..."
-                              value={grievanceSearch}
-                              onChange={(e) =>
-                                setGrievanceSearch(e.target.value)
-                              }
-                              className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white shadow-sm text-sm"
-                            />
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={handleRefreshData}
-                              className="border-slate-200 hover:bg-slate-50 rounded-xl"
-                            >
-                              <RefreshCw
-                                className={`w-4 h-4 mr-1.5 ${isRefreshing ? "animate-spin" : ""}`}
-                              />
-                              Refresh
-                            </Button>
-                          </div>
-                        </div>
-
-                        {/* Filter Dropdowns */}
-                        <div className="flex items-center gap-3 flex-wrap">
-                          <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm">
-                            <Filter className="w-3.5 h-3.5 text-rose-500" />
-                            <span className="text-xs font-bold text-slate-600">
-                              Filters
-                            </span>
-                          </div>
-
-                          <select
-                            value={grievanceFilters.mainDeptId}
-                            onChange={(e) =>
-                              setGrievanceFilters((prev) => ({
-                                ...prev,
-                                mainDeptId: e.target.value,
-                                subDeptId: "",
-                              }))
-                            }
-                            className="text-xs px-4 py-2 border border-slate-200 rounded-xl bg-white shadow-sm hover:border-rose-300 transition-colors cursor-pointer min-w-[170px]"
-                          >
-                            <option value="">🏢 Origin Department</option>
-                            {departments
-                              .filter((d) => !d.parentDepartmentId)
-                              .map((d) => (
-                                <option key={d._id} value={d._id}>
-                                  {d.name}
-                                </option>
-                              ))}
-                          </select>
-
-                          <select
-                            value={grievanceFilters.dateRange}
-                            onChange={(e) =>
-                              setGrievanceFilters((prev) => ({
-                                ...prev,
-                                dateRange: e.target.value,
-                              }))
-                            }
-                            className="text-xs px-4 py-2 border border-slate-200 rounded-xl bg-white shadow-sm hover:border-rose-300 transition-colors cursor-pointer"
-                          >
-                            <option value="">📅 All Dates</option>
-                            <option value="today">Today</option>
-                            <option value="week">Last 7 Days</option>
-                            <option value="month">Last 30 Days</option>
-                          </select>
-
-                          {(grievanceSearch ||
-                            grievanceFilters.mainDeptId ||
-                            grievanceFilters.dateRange) && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setGrievanceSearch("");
-                                setGrievanceFilters((prev) => ({
-                                  ...prev,
-                                  mainDeptId: "",
-                                  subDeptId: "",
-                                  dateRange: "",
-                                  priority: "",
-                                }));
-                              }}
-                              className="text-xs h-8 px-3 text-red-600 hover:bg-red-50 rounded-xl border border-red-100"
-                            >
-                              <X className="w-3 h-3 mr-1" /> Clear
-                            </Button>
-                          )}
-
-                          <div className="ml-auto text-xs font-black text-slate-400 uppercase tracking-widest bg-slate-100/50 px-3 py-1.5 rounded-lg">
-                            Showing:{" "}
-                            <span className="text-slate-900">
-                              {getSortedData(grievances, "reverted").length}{" "}
-                              reverted cases
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="p-0">
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-left">
-                            <thead>
-                              <tr className="border-b border-slate-100 bg-slate-50/30">
-                                <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center w-12">
-                                  #
-                                </th>
-                                <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                  Grievance Id
-                                </th>
-                                <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking_widest">
-                                  Citizen Details
-                                </th>
-                                <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                  Description & Remarks
-                                </th>
-                                <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                  Dept & Category
-                                </th>
-                                <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                  Status
-                                </th>
-                                <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">
-                                  Reassign
-                                </th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {getSortedData(grievances, "reverted").length >
-                              0 ? (
-                                getSortedData(grievances, "reverted").map(
-                                  (grievance, index) => {
-                                    const latestRevertRemark =
-                                      grievance.statusHistory
-                                        ?.filter(
-                                          (h: any) => h.status === "REVERTED",
-                                        )
-                                        .sort(
-                                          (a: any, b: any) =>
-                                            new Date(b.changedAt).getTime() -
-                                            new Date(a.changedAt).getTime(),
-                                        )[0]?.remarks;
-
-                                    return (
-                                      <tr
-                                        key={grievance._id}
-                                        className="border-b border-slate-50 hover:bg-slate-50/80 transition-all group"
-                                      >
-                                        <td className="px-4 py-5 text-center">
-                                          <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black group-hover:bg-rose-100 group-hover:text-rose-700 transition-colors shadow-sm">
-                                            {index + 1}
-                                          </span>
-                                        </td>
-                                        <td className="px-4 py-5 font-bold text-sm">
-                                          <button
-                                            onClick={() =>
-                                              openGrievanceDetail(grievance._id)
-                                            }
-                                            className="text-blue-700 hover:text-blue-900 flex items-center gap-1.5 group/id whitespace-nowrap"
-                                          >
-                                            <span className="text-[10px] sm:text-sm font-mono font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 whitespace-nowrap">
-                                              {grievance.grievanceId}
-                                            </span>
-                                            <ExternalLink className="w-3 h-3 opacity-0 group-hover/id:opacity-100 transition-opacity" />
-                                          </button>
-                                          <div className="text-[10px] text-slate-400 font-medium mt-1">
-                                            {new Date(
-                                              grievance.createdAt,
-                                            ).toLocaleDateString()} • {new Date(grievance.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
-                                          </div>
-                                        </td>
-                                        <td className="px-4 py-5">
-                                          <div className="flex flex-col">
-                                            <button
-                                              onClick={() =>
-                                                openGrievanceDetail(
-                                                  grievance._id,
-                                                  grievance,
-                                                )
-                                              }
-                                              className="text-slate-900 font-bold text-sm text-left hover:text-indigo-600 transition-colors"
-                                            >
-                                              {grievance.citizenName}
-                                            </button>
-                                            <div className="flex items-center text-[11px] text-slate-500 font-medium mt-0.5">
-                                              <Phone className="w-3 h-3 mr-1.5 text-slate-400" />
-                                              {formatTo10Digits(
-                                                grievance.citizenPhone,
-                                              )}
-                                            </div>
-                                          </div>
-                                        </td>
-                                        <td className="px-4 py-5 max-w-[250px]">
-                                          <div className="flex flex-col gap-1.5">
-                                            <div
-                                              className="text-xs text-slate-600 line-clamp-1 italic break-words"
-                                              title={grievance.description}
-                                            >
-                                              &quot;{grievance.description}
-                                              &quot;
-                                            </div>
-                                            {latestRevertRemark && (
-                                              <div className="bg-rose-50 border border-rose-100 rounded-lg p-2">
-                                                <p className="text-[10px] font-black text-rose-500 uppercase tracking-tighter mb-0.5 flex items-center gap-1">
-                                                  <Undo2 className="w-2.5 h-2.5" />{" "}
-                                                  Revert Remark
-                                                </p>
-                                                <p className="text-[11px] text-rose-700 font-bold leading-tight break-words">
-                                                  {latestRevertRemark}
-                                                </p>
-                                              </div>
-                                            )}
-                                          </div>
-                                        </td>
-                                        <td className="px-4 py-5">
-                                          <div className="flex flex-col gap-1">
-                                            <div className="flex flex-col">
-                                              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight mb-0.5">
-                                                Original Dept
-                                              </span>
-                                              <span className="text-xs font-semibold text-slate-700">
-                                                {grievance.departmentId &&
-                                                typeof grievance.departmentId ===
-                                                  "object"
-                                                  ? (
-                                                      grievance.departmentId as any
-                                                    ).name
-                                                  : dashboardTenantConfig.revertAdminLabel}
-                                              </span>
-                                            </div>
-
-                                            {(() => {
-                                              const revertEntry =
-                                                grievance.timeline
-                                                  ?.filter(
-                                                    (t: any) =>
-                                                      t.action ===
-                                                      "REVERTED_TO_COMPANY_ADMIN",
-                                                  )
-                                                  .sort(
-                                                    (a: any, b: any) =>
-                                                      new Date(
-                                                        b.timestamp,
-                                                      ).getTime() -
-                                                      new Date(
-                                                        a.timestamp,
-                                                      ).getTime(),
-                                                  )[0];
-
-                                              const suggestedDeptId =
-                                                revertEntry?.details
-                                                  ?.suggestedDepartmentId;
-                                              const suggestedSubDeptId =
-                                                revertEntry?.details
-                                                  ?.suggestedSubDepartmentId;
-
-                                              if (
-                                                suggestedDeptId ||
-                                                suggestedSubDeptId
-                                              ) {
-                                                const suggestedDept =
-                                                  departments.find(
-                                                    (d) =>
-                                                      d._id ===
-                                                      (suggestedSubDeptId ||
-                                                        suggestedDeptId),
-                                                  );
-                                                return (
-                                                  <div className="mt-2 group/suggested">
-                                                    <div className="flex items-center gap-1 text-[9px] text-rose-500 font-black uppercase tracking-widest mb-1 opacity-70">
-                                                      <ArrowRightCircle className="w-2.5 h-2.5" />{" "}
-                                                      Proposed Destination
-                                                    </div>
-                                                    <div className="flex items-center gap-2 bg-rose-50/50 border border-rose-100 rounded-lg p-2 transition-all group-hover/suggested:bg-rose-50">
-                                                      <div className="w-6 h-6 bg-rose-100 rounded-md flex items-center justify-center text-rose-600">
-                                                        <Building2 className="w-3.5 h-3.5" />
-                                                      </div>
-                                                      <div className="flex flex-col">
-                                                        <span className="text-xs font-bold text-slate-900 leading-none">
-                                                          {suggestedDept?.name ||
-                                                            "Target Department"}
-                                                        </span>
-                                                        <span className="text-[9px] font-bold text-rose-500 uppercase mt-0.5 tracking-tighter">
-                                                          Recommended by Admin
-                                                        </span>
-                                                      </div>
-                                                    </div>
-                                                  </div>
-                                                );
-                                              }
-                                              return null;
-                                            })()}
-
-                                            <span className="text-[10px] text-orange-500 font-bold uppercase tracking-tight mt-1">
-                                              {grievance.category}
-                                            </span>
-                                          </div>
-                                        </td>
-                                        <td className="px-4 py-5">
-                                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black bg-rose-50 text-rose-600 border border-rose-100 uppercase tracking-wider">
-                                            REVERTED
-                                          </span>
-                                        </td>
-                                        <td className="px-4 py-5">
-                                          <div className="flex justify-center gap-1.5">
-                                            <Button
-                                              variant="ghost"
-                                              size="sm"
-                                              onClick={() => {
-                                                setSelectedGrievanceForAssignment(
-                                                  grievance,
-                                                );
-                                                setShowGrievanceAssignment(
-                                                  true,
-                                                );
-                                              }}
-                                              className="h-8 w-8 p-0 text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700 rounded-lg shadow-none border-0 transition-all"
-                                              title="Assign to New Official"
-                                            >
-                                              <UserPlus className="w-3.5 h-3.5" />
-                                            </Button>
-                                            <Button
-                                              variant="ghost"
-                                              size="sm"
-                                              onClick={() =>
-                                                openGrievanceDetail(
-                                                  grievance._id,
-                                                  grievance,
-                                                )
-                                              }
-                                              className="h-8 w-8 p-0 text-slate-400 hover:bg-slate-50 hover:text-slate-900 rounded-lg shadow-none border-0 transition-all"
-                                              title="View Case Details"
-                                            >
-                                              <Eye className="w-3.5 h-3.5" />
-                                            </Button>
-                                            {canDeleteGrievance && (
-                                              <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() =>
-                                                  handleDeleteGrievance(grievance)
-                                                }
-                                                disabled={isDeleting}
-                                                className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 hover:text-red-700 rounded-lg shadow-none border-0 transition-all"
-                                                title="Delete grievance"
-                                              >
-                                                <Trash2 className="w-3.5 h-3.5" />
-                                              </Button>
-                                            )}
-                                          </div>
-                                        </td>
-                                      </tr>
-                                    );
-                                  },
-                                )
-                              ) : (
-                                <tr>
-                                  <td
-                                    colSpan={7}
-                                    className="px-4 py-24 text-center"
-                                  >
-                                    <div className="flex flex-col items-center justify-center">
-                                      <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-slate-100">
-                                        <Inbox className="w-8 h-8 text-slate-200" />
-                                      </div>
-                                      <h3 className="text-slate-900 font-bold">
-                                        No Reverted Items
-                                      </h3>
-                                      <p className="text-slate-400 text-xs mt-1 max-w-[200px] mx-auto leading-relaxed">
-                                        All reverted grievances have been
-                                        addressed or none exist currently.
-                                      </p>
-                                    </div>
-                                  </td>
-                                </tr>
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    </Card>
-                  </TabsContent>
-                )}
-
               {/* Appointments Tab - Modern Specialized Calendar Integration */}
               {canShowAppointmentsInView &&
                 (isViewingCompany || isDepartmentLevel) && (
@@ -5106,33 +4868,254 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                           )}
                         </div>
                       </div>
-                   
+                        {/* Appointments Content Area */}
+                        <div className="p-0">
+                          {loadingAppointments ? (
+                            <div className="flex flex-col gap-4 p-4">
+                              {[1, 2, 3, 4].map((i) => (
+                                <div key={i} className="h-24 bg-slate-50 animate-pulse rounded-xl" />
+                              ))}
+                            </div>
+                          ) : getSortedData(appointments, "appointments").length === 0 ? (
+                            <div className="text-center py-20 px-6">
+                              <div className="w-20 h-20 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm border border-white">
+                                <CalendarCheck className="w-10 h-10 text-indigo-500" />
+                              </div>
+                              <h3 className="text-slate-700 text-lg font-bold">No appointments found</h3>
+                              <p className="text-slate-400 text-sm mt-1 max-w-xs mx-auto">
+                                There are no appointments matching your current filters.
+                              </p>
+                              {(appointmentFilters.status || appointmentFilters.dateFilter || appointmentSearch) && (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={() => {
+                                    setAppointmentSearch("");
+                                    setAppointmentFilters({ status: "", department: "", assignmentStatus: "", dateFilter: "" });
+                                  }}
+                                  className="mt-6 border-indigo-200 text-indigo-600 hover:bg-indigo-50"
+                                >
+                                  Clear all filters
+                                </Button>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="flex flex-col">
+                              {/* Desktop Table View */}
+                              <div className="hidden md:block overflow-x-auto">
+                                <table className="w-full border-collapse">
+                                  <thead>
+                                    <tr className="bg-slate-50/80 border-b border-slate-200">
+                                      {isSuperAdminUser && (
+                                        <th className="px-4 py-3.5 text-center">
+                                          <input
+                                            type="checkbox"
+                                            checked={selectedAppointments.size === appointments.length && appointments.length > 0}
+                                            onChange={(e) => {
+                                              if (e.target.checked) {
+                                                setSelectedAppointments(new Set(appointments.map(a => a._id)));
+                                              } else {
+                                                setSelectedAppointments(new Set());
+                                              }
+                                            }}
+                                            className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500"
+                                          />
+                                        </th>
+                                      )}
+                                      <th className="px-4 py-3.5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Sr.</th>
+                                      <th className="px-4 py-3.5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Appointment ID</th>
+                                      <th className="px-4 py-3.5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Citizen</th>
+                                      <th className="px-4 py-3.5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Purpose</th>
+                                      <th className="px-4 py-3.5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Date & Time</th>
+                                      <th className="px-4 py-3.5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Status</th>
+                                      <th className="px-4 py-3.5 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Actions</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-slate-100">
+                                    {getSortedData(appointments, "appointments").map((appointment, idx) => (
+                                      <tr key={appointment._id} className="hover:bg-indigo-50/30 transition-colors group">
+                                        {isSuperAdminUser && (
+                                          <td className="px-4 py-4 text-center">
+                                            <input
+                                              type="checkbox"
+                                              checked={selectedAppointments.has(appointment._id)}
+                                              onChange={(e) => {
+                                                const next = new Set(selectedAppointments);
+                                                if (e.target.checked) next.add(appointment._id);
+                                                else next.delete(appointment._id);
+                                                setSelectedAppointments(next);
+                                              }}
+                                              className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500"
+                                            />
+                                          </td>
+                                        )}
+                                        <td className="px-4 py-4 text-[11px] font-bold text-slate-400">
+                                          {(appointmentPage - 1) * appointmentPagination.limit + idx + 1}
+                                        </td>
+                                        <td className="px-4 py-4">
+                                          <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-[10px] font-mono font-bold text-slate-600">
+                                            {appointment.appointmentId}
+                                          </span>
+                                        </td>
+                                        <td className="px-4 py-4">
+                                          <div className="flex flex-col">
+                                            <span className="text-sm font-bold text-slate-700">{appointment.citizenName}</span>
+                                            <span className="text-[10px] text-slate-400 font-medium">{appointment.citizenPhone}</span>
+                                          </div>
+                                        </td>
+                                        <td className="px-4 py-4">
+                                          <p className="text-xs text-slate-600 line-clamp-1 max-w-[200px]" title={appointment.purpose}>
+                                            {appointment.purpose}
+                                          </p>
+                                        </td>
+                                        <td className="px-4 py-4">
+                                          <div className="flex flex-col">
+                                            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+                                              <Calendar className="w-3.5 h-3.5 text-indigo-500" />
+                                              {new Date(appointment.appointmentDate).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+                                            </div>
+                                            <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-bold ml-5">
+                                              <Clock className="w-3 h-3" />
+                                              {appointment.appointmentTime}
+                                            </div>
+                                          </div>
+                                        </td>
+                                        <td className="px-4 py-4 text-center">
+                                          <span className={cn(
+                                            "inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border",
+                                            appointment.status === 'SCHEDULED' && "bg-blue-50 text-blue-600 border-blue-100",
+                                            appointment.status === 'CONFIRMED' && "bg-indigo-50 text-indigo-600 border-indigo-100",
+                                            appointment.status === 'COMPLETED' && "bg-emerald-50 text-emerald-600 border-emerald-100",
+                                            appointment.status === 'CANCELLED' && "bg-rose-50 text-rose-600 border-rose-100"
+                                          )}>
+                                            {appointment.status}
+                                          </span>
+                                        </td>
+                                        <td className="px-4 py-4 text-right">
+                                          <div className="flex items-center justify-end gap-1">
+                                            <Button 
+                                              variant="ghost" 
+                                              size="sm" 
+                                              onClick={() => openAppointmentDetail(appointment._id, appointment)}
+                                              className="h-8 w-8 p-0 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
+                                            >
+                                              <Eye className="w-4 h-4" />
+                                            </Button>
+                                            {isSuperAdminUser && (
+                                              <Button 
+                                                variant="ghost" 
+                                                size="sm" 
+                                                onClick={async () => {
+                                                  if(confirm("Are you sure you want to delete this appointment?")) {
+                                                    try {
+                                                      const res = await appointmentAPI.delete(appointment._id);
+                                                      if(res.success) {
+                                                        toast.success("Appointment deleted");
+                                                        handleRefreshData();
+                                                      }
+                                                    } catch(err) {
+                                                      toast.error("Failed to delete");
+                                                    }
+                                                  }
+                                                }}
+                                                className="h-8 w-8 p-0 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                                              >
+                                                <Trash2 className="w-4 h-4" />
+                                              </Button>
+                                            )}
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
 
+                              {/* Mobile Card View */}
+                              <div className="md:hidden divide-y divide-slate-100">
+                                {getSortedData(appointments, "appointments").map((appointment) => (
+                                  <div key={appointment._id} className="p-4 bg-white active:bg-slate-50 transition-colors" onClick={() => openAppointmentDetail(appointment._id, appointment)}>
+                                    <div className="flex justify-between items-start mb-2">
+                                      <div className="flex flex-col">
+                                        <span className="text-[10px] font-mono font-bold text-slate-400 mb-1">{appointment.appointmentId}</span>
+                                        <h4 className="font-bold text-slate-800">{appointment.citizenName}</h4>
+                                      </div>
+                                      <span className={cn(
+                                        "px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border",
+                                        appointment.status === 'SCHEDULED' && "bg-blue-50 text-blue-600 border-blue-100",
+                                        appointment.status === 'CONFIRMED' && "bg-indigo-50 text-indigo-600 border-indigo-100",
+                                        appointment.status === 'COMPLETED' && "bg-emerald-50 text-emerald-600 border-emerald-100",
+                                        appointment.status === 'CANCELLED' && "bg-rose-50 text-rose-600 border-rose-100"
+                                      )}>
+                                        {appointment.status}
+                                      </span>
+                                    </div>
+                                    <p className="text-xs text-slate-500 mb-3 line-clamp-2">{appointment.purpose}</p>
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600">
+                                          <Calendar className="w-3.5 h-3.5 text-indigo-500" />
+                                          {new Date(appointment.appointmentDate).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+                                        </div>
+                                        <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600">
+                                          <Clock className="w-3.5 h-3.5 text-indigo-500" />
+                                          {appointment.appointmentTime}
+                                        </div>
+                                      </div>
+                                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                                        <ChevronRight className="w-4 h-4 text-slate-300" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+
+                              {/* Pagination */}
+                              <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/30">
+                                <Pagination
+                                  currentPage={appointmentPage}
+                                  totalPages={appointmentPagination.pages}
+                                  totalItems={appointmentPagination.total}
+                                  onPageChange={(page) => setAppointmentPage(page)}
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
                     </Card>
                   </TabsContent>
                 )}
 
-              {isSuperAdminUser && companyIdParam && (
-                <CompanyProvider companyId={companyIdParam}>
-                  <TabsContent value="roles" className="space-y-4">
-                    <LazyRoleManagement companyId={companyIdParam} />
-                  </TabsContent>
+              {(isSuperAdminUser || isCompanyAdminOrHigher(user)) && (
+                <CompanyProvider companyId={companyIdParam || user?.companyId}>
+                  {isSuperAdminUser && companyIdParam && (
+                    <>
+                      <TabsContent value="roles" className="space-y-4">
+                        <LazyRoleManagement companyId={companyIdParam} />
+                      </TabsContent>
 
-                  <TabsContent value="whatsapp" className="space-y-4">
-                    <LazyWhatsAppConfigTab companyId={companyIdParam} />
-                  </TabsContent>
+                      <TabsContent value="whatsapp" className="space-y-4">
+                        <LazyWhatsAppConfigTab companyId={companyIdParam} />
+                      </TabsContent>
 
-                  <TabsContent value="flows" className="space-y-4">
-                    <LazyChatbotFlowsTab companyId={companyIdParam} />
-                  </TabsContent>
+                      <TabsContent value="flows" className="space-y-4">
+                        <LazyChatbotFlowsTab companyId={companyIdParam} />
+                      </TabsContent>
 
-                  <TabsContent value="notifications" className="space-y-4">
-                    <LazyNotificationManagement companyId={companyIdParam} />
-                  </TabsContent>
+                      <TabsContent value="notifications" className="space-y-4">
+                        <LazyNotificationManagement companyId={companyIdParam} />
+                      </TabsContent>
 
-                  <TabsContent value="email" className="space-y-4">
-                    <LazyEmailConfigTab companyId={companyIdParam} />
-                  </TabsContent>
+                      <TabsContent value="email" className="space-y-4">
+                        <LazyEmailConfigTab companyId={companyIdParam} />
+                      </TabsContent>
+                    </>
+                  )}
+                  {isCompanyAdminOrHigher(user) && (
+                    <TabsContent value="settings" className="space-y-4">
+                      <CompanySettingsTab company={company} onUpdate={handleRefreshData || fetchDashboardData} />
+                    </TabsContent>
+                  )}
                 </CompanyProvider>
               )}
               <TabsContent value="profile" className="space-y-6">

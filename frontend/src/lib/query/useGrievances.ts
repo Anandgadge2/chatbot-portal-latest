@@ -28,7 +28,7 @@ export function useGrievances(params: UseGrievancesParams) {
       }
       return { grievances: [], pagination: { total: 0, pages: 0, page: 1, limit: 20 } };
     },
-    staleTime: 30 * 1000, // 30 seconds stale time
+    staleTime: 300 * 1000, // 5 minutes stale time
     enabled,
   });
 }

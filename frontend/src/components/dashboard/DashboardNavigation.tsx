@@ -13,6 +13,7 @@ import {
   MessageSquare,
   Power,
   RefreshCw,
+  Settings,
   Shield,
   Target,
   TrendingUp,
@@ -39,6 +40,7 @@ type DashboardNavigationProps = {
   canShowAppointmentsInView: boolean;
   canSeeDepartmentsTab: boolean;
   canSeeUsersTab: boolean;
+  hasGrievanceModule: boolean;
   hasLeadCaptureModule: boolean;
   refreshing: boolean;
   onRefresh: () => void;
@@ -76,6 +78,7 @@ export function DashboardNavigation({
   canShowAppointmentsInView,
   canSeeDepartmentsTab,
   canSeeUsersTab,
+  hasGrievanceModule,
   hasLeadCaptureModule,
   refreshing,
   onRefresh,
@@ -88,7 +91,8 @@ export function DashboardNavigation({
     ...(isSuperAdminUser || canViewAnalytics
       ? [{ value: "overview", label: "Overview", icon: LayoutGrid }]
       : []),
-    ...(!isSuperAdminUser || (isSuperAdminUser && companyIdParam)
+    ...((!isSuperAdminUser || (isSuperAdminUser && companyIdParam)) &&
+    hasGrievanceModule
       ? [
           {
             value: "analytics",
@@ -97,7 +101,7 @@ export function DashboardNavigation({
           },
         ]
       : []),
-    ...(canReadGrievance
+    ...(canReadGrievance && hasGrievanceModule
       ? [
           {
             value: "grievances",
@@ -106,6 +110,7 @@ export function DashboardNavigation({
           },
         ]
       : []),
+
     ...((isCompanyAdminRole || (isSuperAdminUser && companyIdParam)) &&
     canShowAppointmentsInView
       ? [{ value: "appointments", label: "Appointments", icon: CalendarCheck }]
@@ -126,13 +131,16 @@ export function DashboardNavigation({
   ];
 
   const configurationItems: NavItem[] =
-    (isSuperAdminUser || user?.isSuperAdmin || user?.level === 0) && companyIdParam
+    (isSuperAdminUser || user?.isSuperAdmin || user?.level <= 1)
       ? [
-          { value: "whatsapp", label: "WhatsApp", icon: MessageSquare },
-          { value: "flows", label: "Flows", icon: Workflow },
-          { value: "notifications", label: "Notifications", icon: BellRing },
-          { value: "email", label: "Email", icon: Mail },
-          { value: "roles", label: "Roles", icon: Shield },
+          ...(isSuperAdminUser ? [
+            { value: "whatsapp", label: "WhatsApp", icon: MessageSquare },
+            { value: "flows", label: "Flows", icon: Workflow },
+            { value: "notifications", label: "Notifications", icon: BellRing },
+            { value: "email", label: "Email", icon: Mail },
+            { value: "roles", label: "Roles", icon: Shield },
+          ] : []),
+          { value: "settings", label: "Settings", icon: Settings },
         ]
       : [];
 
@@ -217,21 +225,33 @@ export function DashboardNavigation({
           <TabsList className="h-auto bg-transparent p-2 flex flex-col gap-1">
             {mainItems.map(renderDesktopItem)}
             {configurationItems.map(renderDesktopItem)}
-            <TabsTrigger
-              value="profile"
+          </TabsList>
+          
+          {/* Sidebar Profile Footer */}
+          <div className="mt-auto border-t border-slate-100 p-2 space-y-1">
+            <button
               onClick={onProfileClick}
               className={cn(
-                desktopTriggerClass,
-                "text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 group/profile"
+                "w-full h-10 rounded-xl flex items-center justify-center group-hover:justify-start px-0 group-hover:px-3 transition-all duration-300",
+                activeTab === "profile" 
+                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-950/20" 
+                  : "text-slate-500 hover:bg-slate-100"
               )}
+              title="Account Profile"
             >
-              <div className="absolute inset-y-0 left-0 w-1 bg-indigo-500 transform -translate-x-full group-hover/profile:translate-x-0 transition-transform duration-300 z-10" />
-              <UserIcon className="w-5 h-5 shrink-0 transition-transform group-hover/profile:scale-110 relative z-20" />
-              <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-xs font-bold uppercase tracking-wide opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap relative z-20">
-                Account Profile
-              </span>
-            </TabsTrigger>
-          </TabsList>
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-blue-500 flex items-center justify-center text-white text-[10px] font-black shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                {user?.firstName?.[0]}{user?.lastName?.[0]}
+              </div>
+              <div className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col items-start leading-none min-w-0">
+                <span className="text-[10px] font-black uppercase tracking-tight truncate w-full">
+                  {user?.firstName} {user?.lastName}
+                </span>
+                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter mt-0.5 truncate w-full">
+                  My Account
+                </span>
+              </div>
+            </button>
+          </div>
         </div>
       </aside>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import {
@@ -40,6 +40,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   canChangeGrievanceStatus,
   isDepartmentAdminOrHigher,
+  isCompanyAdminOrHigher,
 } from "@/lib/permissions";
 import StatusUpdateForm from "./StatusUpdateForm";
 
@@ -137,6 +138,44 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
 
   const [activeTab, setActiveTab] = useState("overview");
   const [isMapOpen, setIsMapOpen] = useState(false);
+  const [isEditingSla, setIsEditingSla] = useState(false);
+  const [newSlaHours, setNewSlaHours] = useState(grievance?.slaHours || 120);
+  const [isSavingSla, setIsSavingSla] = useState(false);
+
+  // Sync newSlaHours when grievance changes
+  useEffect(() => {
+    if (grievance?.slaHours !== undefined) {
+      setNewSlaHours(grievance.slaHours);
+    }
+  }, [grievance?.slaHours, grievance?._id]);
+
+  const isOverdue = useMemo(() => {
+    if (!grievance?.createdAt || ["RESOLVED", "REJECTED", "CLOSED"].includes(grievance.status)) return false;
+    const createdDate = new Date(grievance.createdAt);
+    const slaHours = grievance.slaHours || 120;
+    const dueDate = new Date(createdDate.getTime() + slaHours * 60 * 60 * 1000);
+    return new Date() > dueDate;
+  }, [grievance]);
+
+  const handleUpdateSla = async () => {
+    if (!grievance?._id) return;
+    setIsSavingSla(true);
+    try {
+      const { grievanceAPI } = await import("@/lib/api/grievance");
+      const { default: toast } = await import("react-hot-toast");
+      const response = await grievanceAPI.updateSla(grievance._id, Number(newSlaHours));
+      if (response.success) {
+        toast.success("SLA threshold updated successfully");
+        setIsEditingSla(false);
+        if (onSuccess) onSuccess();
+      }
+    } catch (error: any) {
+      const { default: toast } = await import("react-hot-toast");
+      toast.error(error.message || "Failed to update SLA");
+    } finally {
+      setIsSavingSla(false);
+    }
+  };
 
   if (!isOpen || !grievance) return null;
   const grievanceLatLng = getLatLongFromCoordinates(
@@ -180,7 +219,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
           text: "text-blue-700",
           border: "border-blue-200",
           icon: <RefreshCw className="w-4 h-4" />,
-          label: status === "ASSIGNED" ? "Assigned" : "In Progress",
+          label: status === "ASSIGNED" ? "Pending" : "In Progress",
           gradient: "from-blue-500 to-indigo-600",
         };
       case "PENDING":
@@ -269,6 +308,12 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                 >
                   {statusConfig.label}
                 </span>
+                {isOverdue && (
+                  <span className="px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-widest border border-rose-500 bg-rose-500 bg-opacity-10 text-rose-500 flex items-center gap-1 animate-pulse shadow-sm shadow-rose-900/20">
+                    <AlertCircle className="w-3 h-3" />
+                    Overdue
+                  </span>
+                )}
               </div>
               <p className="text-xs font-bold text-slate-300 uppercase tracking-widest mt-0.5">
                 Submitted {timeAgo} {createdDate && !isNaN(createdDate.getTime()) ? `• ${formatDate(createdDate)}` : ""}
@@ -463,6 +508,50 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                           )}
                       </span>
                     </div>
+
+                    <div className="flex flex-col">
+                      <span className="text-[9px] font-bold text-slate-400 tracking-wider uppercase mb-0.5">
+                        SLA Threshold (Hours)
+                      </span>
+                      {isEditingSla && isCompanyAdminOrHigher(user) ? (
+                        <div className="flex items-center gap-2 mt-1 animate-in fade-in slide-in-from-left-1">
+                          <input
+                            type="number"
+                            value={newSlaHours}
+                            onChange={(e) => setNewSlaHours(Number(e.target.value))}
+                            className="w-20 h-7 px-2 text-xs border border-slate-300 rounded-md focus:ring-1 focus:ring-indigo-500 font-bold"
+                            autoFocus
+                          />
+                          <Button size="sm" className="h-7 px-2 text-[10px] font-black uppercase" onClick={handleUpdateSla} disabled={isSavingSla}>
+                            {isSavingSla ? '...' : 'Save'}
+                          </Button>
+                          <button 
+                            className="text-[10px] text-slate-400 font-bold hover:text-slate-600 px-1" 
+                            onClick={() => setIsEditingSla(false)}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold text-slate-900">
+                            {grievance?.slaHours ?? 120} Hours
+                          </span>
+                          {isCompanyAdminOrHigher(user) && (
+                            <button
+                              onClick={() => {
+                                setNewSlaHours(grievance?.slaHours ?? 120);
+                                setIsEditingSla(true);
+                              }}
+                              className="text-[10px] text-indigo-600 font-black uppercase tracking-widest hover:underline"
+                            >
+                              Adjust
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
                     <div className="flex flex-col">
                       <span className="text-[9px] font-bold text-slate-400 tracking-wider uppercase mb-0.5">
                         Monitoring Officer
