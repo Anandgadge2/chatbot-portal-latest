@@ -26,6 +26,7 @@ type DashboardHeaderProps = {
   onMarkAsRead?: (id: string) => void;
   onMarkAllAsRead?: () => void;
   onNotificationClick?: (notification: any) => void;
+  onLogout: () => void;
 };
 
 import { NotificationPopover } from "./NotificationPopover";
@@ -50,17 +51,23 @@ export function DashboardHeader({
   onMarkAsRead = () => {},
   onMarkAllAsRead = () => {},
   onNotificationClick = () => {},
+  onLogout,
 }: DashboardHeaderProps) {
   return (
-    <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 transition-all duration-300 shadow-xl overflow-hidden">
-      <div className="max-w-[1600px] mx-auto px-4 lg:px-6 relative z-10">
+    <header className="bg-slate-900 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50 transition-all duration-300 shadow-xl overflow-hidden">
+      {/* Background Accent Gradients */}
+      <div className="absolute top-0 right-0 w-1/3 h-full bg-indigo-500/10 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-1/4 h-full bg-blue-500/10 blur-[100px] pointer-events-none" />
+      
+      {/* Content wrapper */}
+      <div className="max-w-[1920px] mx-auto px-4 lg:px-6 relative z-10">
         <div className="flex items-center justify-between min-h-[3.25rem] py-1 sm:h-16">
           <div className="flex items-center gap-3 sm:gap-8 min-w-0 flex-1">
             <div className="flex items-center gap-2 sm:gap-6 group">
               <button
                 type="button"
                 onClick={onOpenMobileMenu}
-                className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg shadow-blue-900/20 border border-slate-200 active:scale-95 transition-transform duration-300 md:hidden overflow-hidden"
+                className="w-10 h-10 bg-white backdrop-blur-sm rounded-xl flex items-center justify-center shadow-lg border border-white/10 active:scale-95 transition-transform duration-300 md:hidden overflow-hidden"
                 title="Open sidebar"
                 aria-label="Open sidebar navigation"
               >
@@ -72,7 +79,7 @@ export function DashboardHeader({
                   className="object-contain"
                 />
               </button>
-              <div className="hidden md:flex w-10 h-10 bg-white rounded-xl items-center justify-center shadow-lg shadow-indigo-900/20 border border-slate-200 group-hover:scale-105 transition-transform duration-300 overflow-hidden">
+              <div className="hidden md:flex w-10 h-10 bg-white/5 backdrop-blur-sm rounded-xl items-center justify-center shadow-lg border border-white/10 group-hover:scale-105 transition-transform duration-300 overflow-hidden">
                 <Image
                   src="/assets/sahaj.png"
                   alt="Sahaj Logo"
@@ -148,12 +155,13 @@ export function DashboardHeader({
                 <span className="sm:hidden text-[8px]">Back</span>
               </Link>
             )}
+
             <div className="flex items-center gap-2 sm:gap-3">
               <Button
                 onClick={onRefresh}
                 variant="ghost"
                 disabled={refreshing}
-                className="h-9 w-9 sm:h-10 sm:w-10 p-0 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-xl transition-all duration-300 border border-transparent hover:border-indigo-500/20 md:hidden flex items-center justify-center"
+                className="h-9 w-9 sm:h-10 sm:w-10 p-0 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-xl transition-all duration-300 border border-transparent hover:border-indigo-500/20 flex items-center justify-center"
                 title="Refresh data"
                 aria-label="Refresh dashboard data"
               >
@@ -164,6 +172,16 @@ export function DashboardHeader({
                   )}
                 />
               </Button>
+              
+              <button
+                onClick={onLogout}
+                className="flex h-9 w-9 sm:h-10 sm:w-10 bg-rose-500/5 rounded-xl items-center justify-center border border-rose-500/10 shadow-lg shadow-rose-950/20 group hover:bg-rose-500/20 transition-all duration-300 active:scale-95"
+                title="Logout"
+                aria-label="Logout account"
+              >
+                <Power className="w-5 h-5 text-rose-500 group-hover:scale-110 transition-transform duration-300" />
+              </button>
+
               <NotificationPopover
                 notifications={notifications}
                 unreadCount={unreadCount}
@@ -171,14 +189,6 @@ export function DashboardHeader({
                 onMarkAllAsRead={onMarkAllAsRead}
                 onNotificationClick={onNotificationClick}
               />
-              <button
-                onClick={onProfileClick}
-                className="flex h-9 w-9 sm:h-10 sm:w-10 bg-white/20 rounded-xl items-center justify-center border border-white/50 shadow-[0_0_15px_rgba(255,255,255,0.1)] group hover:bg-white/30 transition-all duration-300 active:scale-95"
-                title="Profile"
-                aria-label="Open profile panel"
-              >
-                <UserIcon className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-white group-hover:scale-110 transition-transform duration-300" />
-              </button>
             </div>
           </div>
         </div>

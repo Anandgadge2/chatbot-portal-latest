@@ -8,6 +8,8 @@ export interface DashboardKpiStats {
     total: number;
     registeredTotal: number;
     pending: number;
+    assigned: number;
+    inProgress: number;
     reverted: number;
     resolved: number;
     rejected: number;

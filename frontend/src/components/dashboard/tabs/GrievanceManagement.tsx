@@ -83,6 +83,7 @@ export default function GrievanceManagement() {
       case "IN_PROGRESS": return "bg-indigo-500/10 text-indigo-600 border-indigo-200";
       case "RESOLVED": return "bg-emerald-500/10 text-emerald-600 border-emerald-200";
       case "REJECTED": return "bg-red-500/10 text-red-600 border-red-200";
+      case "REVERTED": return "bg-sky-500/10 text-sky-600 border-sky-200";
       default: return "bg-indigo-500/10 text-indigo-600 border-indigo-200";
     }
   };
@@ -132,7 +133,7 @@ export default function GrievanceManagement() {
             
             <div className="flex items-center gap-3">
               <div className="flex bg-slate-50 p-1 rounded-2xl border border-slate-200">
-                {["all", "PENDING", "ASSIGNED", "IN_PROGRESS", "RESOLVED", "REJECTED"].map(s => (
+                {["all", "PENDING", "ASSIGNED", "IN_PROGRESS", "REVERTED", "RESOLVED", "REJECTED"].map(s => (
                   <button
                     key={s}
                     onClick={() => setStatusFilter(s)}

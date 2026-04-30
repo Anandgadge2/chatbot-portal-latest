@@ -358,7 +358,7 @@ function DocumentUploadZone({
           ))}
           <p className="text-[10px] text-emerald-600 font-medium flex items-center gap-1 px-1">
             <CheckCircle2 className="w-3 h-3" />
-            {documents.length} file{documents.length > 1 ? 's' : ''} ready • Will be uploaded to Cloudinary & shared as download links
+            {documents.length} file{documents.length > 1 ? 's' : ''} ready •
           </p>
         </div>
       )}

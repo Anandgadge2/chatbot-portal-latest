@@ -32,7 +32,7 @@ export default function RootLayout({
                   duration: 1000,
                 },
                 error: {
-                  duration: 2000,
+                  duration: 5000,
                 },
               }}
             />

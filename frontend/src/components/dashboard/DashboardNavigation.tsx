@@ -16,6 +16,7 @@ import {
   Shield,
   Target,
   TrendingUp,
+  User as UserIcon,
   Users,
   Workflow,
   X,
@@ -44,6 +45,7 @@ type DashboardNavigationProps = {
   onTabChange: (value: string) => void;
   onCloseMobileMenu: () => void;
   onLogout: () => void;
+  onProfileClick: () => void;
 };
 
 type NavItem = {
@@ -55,7 +57,7 @@ type NavItem = {
 };
 
 const desktopTriggerClass =
-  "w-full justify-center group-hover:justify-start h-10 px-0 group-hover:px-4 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all duration-200";
+  "w-full justify-center group-hover:justify-start h-11 px-0 group-hover:px-4 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white hover:bg-slate-100 transition-all duration-200 relative overflow-hidden group/item";
 
 const mobileButtonClass =
   "w-full justify-start text-xs font-bold uppercase tracking-wide h-11 rounded-xl transition-all duration-200";
@@ -80,6 +82,7 @@ export function DashboardNavigation({
   onTabChange,
   onCloseMobileMenu,
   onLogout,
+  onProfileClick,
 }: DashboardNavigationProps) {
   const mainItems: NavItem[] = [
     ...(isSuperAdminUser || canViewAnalytics
@@ -135,10 +138,10 @@ export function DashboardNavigation({
 
   const getDesktopToneClass = (item: NavItem) => {
     if (item.tone === "rose") {
-      return "w-full justify-start h-10 rounded-xl data-[state=active]:bg-rose-600 data-[state=active]:text-white";
+      return "w-full justify-start h-11 rounded-xl data-[state=active]:bg-rose-600 data-[state=active]:text-white";
     }
     if (item.tone === "emerald") {
-      return "w-full justify-start h-10 rounded-xl data-[state=active]:bg-emerald-600 data-[state=active]:text-white";
+      return "w-full justify-start h-11 rounded-xl data-[state=active]:bg-emerald-600 data-[state=active]:text-white";
     }
     return desktopTriggerClass;
   };
@@ -150,9 +153,13 @@ export function DashboardNavigation({
       <TabsTrigger
         key={item.value}
         value={item.value}
-        className={getDesktopToneClass(item)}
+        className={cn(
+          getDesktopToneClass(item),
+          "relative overflow-hidden group/item h-11"
+        )}
       >
-        <Icon className="w-4 h-4 shrink-0" />
+        <div className="absolute inset-y-0 left-0 w-1 bg-indigo-500 transform -translate-x-full group-hover/item:translate-x-0 transition-transform duration-300 z-10" />
+        <Icon className="w-5 h-5 shrink-0 transition-transform group-hover/item:scale-110 relative z-20" />
         <span
           className={cn(
             isSpecial
@@ -181,7 +188,7 @@ export function DashboardNavigation({
             : "text-slate-600 hover:bg-slate-100/50 hover:text-slate-900",
         )}
       >
-        <Icon className="w-4 h-4 mr-3" />
+        <Icon className="w-5 h-5 mr-3" />
         {item.label}
       </Button>
     );
@@ -209,27 +216,22 @@ export function DashboardNavigation({
           </div>
           <TabsList className="h-auto bg-transparent p-2 flex flex-col gap-1">
             {mainItems.map(renderDesktopItem)}
-            {configurationItems.length > 0 && (
-              <>
-                <div className="h-px bg-slate-100 my-1 mx-2" />
-                {configurationItems.map(renderDesktopItem)}
-              </>
-            )}
-          </TabsList>
-          
-          <div className="mt-auto p-2 border-t border-slate-100">
-            <Button
-              onClick={onLogout}
-              variant="ghost"
-              className="w-full justify-center group-hover:justify-start h-10 px-0 group-hover:px-4 rounded-xl text-rose-500 hover:text-rose-600 hover:bg-rose-50 transition-all duration-200"
-              title="Logout Account"
+            {configurationItems.map(renderDesktopItem)}
+            <TabsTrigger
+              value="profile"
+              onClick={onProfileClick}
+              className={cn(
+                desktopTriggerClass,
+                "text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 group/profile"
+              )}
             >
-              <Power className="w-4 h-4 shrink-0" />
-              <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap font-bold text-xs uppercase tracking-wide">
-                Logout
+              <div className="absolute inset-y-0 left-0 w-1 bg-indigo-500 transform -translate-x-full group-hover/profile:translate-x-0 transition-transform duration-300 z-10" />
+              <UserIcon className="w-5 h-5 shrink-0 transition-transform group-hover/profile:scale-110 relative z-20" />
+              <span className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-xs font-bold uppercase tracking-wide opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap relative z-20">
+                Account Profile
               </span>
-            </Button>
-          </div>
+            </TabsTrigger>
+          </TabsList>
         </div>
       </aside>
 
@@ -250,14 +252,14 @@ export function DashboardNavigation({
             )}
           >
             <div className="bg-slate-900 p-4">
-              <div className="flex items-center justify-end mb-3">
+              <div className="flex items-center justify-end">
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-slate-400 hover:text-white"
+                  className="h-10 w-10 text-slate-900"
                   onClick={onCloseMobileMenu}
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-5 h-5 shrink-0  " />
                 </Button>
               </div>
 
@@ -290,22 +292,22 @@ export function DashboardNavigation({
                         )}
                       </>
                     )}
-                    <div className="flex items-center gap-1.5 mt-2">
+                    {/* <div className="flex items-center gap-1.5 mt-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
                       <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">
                         Online
                       </span>
-                    </div>
+                    </div> */}
                   </div>
                 </div>
               </div>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
-              <div className="px-2 py-3">
-                <h5 className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-4">
+              <div className="px-2">
+                {/* <h5 className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-4">
                   Main Menu
-                </h5>
+                </h5> */}
                 <div className="space-y-1.5">
                   {mainItems.map(renderMobileItem)}
                   {configurationItems.length > 0 && (
@@ -321,13 +323,21 @@ export function DashboardNavigation({
               </div>
             </div>
 
-            <div className="p-4 border-t border-slate-100 bg-slate-50/50">
+            <div className="p-4 border-t border-slate-100 bg-slate-50/50 space-y-2">
+              <Button
+                onClick={onProfileClick}
+                variant="ghost"
+                className="w-full justify-start text-xs font-black uppercase tracking-widest h-11 rounded-xl text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-200"
+              >
+                <UserIcon className="w-5 h-5 mr-3" />
+                My Profile
+              </Button>
               <Button
                 onClick={onLogout}
                 variant="ghost"
-                className="w-full justify-start text-xs font-bold uppercase tracking-wide h-11 rounded-xl text-rose-500 hover:bg-rose-50 hover:text-rose-600 transition-all duration-200"
+                className="w-full justify-start text-xs font-black uppercase tracking-widest h-11 rounded-xl text-rose-500 hover:bg-rose-50 hover:text-rose-600 transition-all duration-200"
               >
-                <Power className="w-4 h-4 mr-3" />
+                <Power className="w-5 h-5 mr-3" />
                 Logout Account
               </Button>
             </div>

@@ -125,11 +125,11 @@ const getAnalyticsBaseQuery = async (req: any, companyId?: any, departmentId?: a
           const mongoIds = nestedIds.map(id => new mongoose.Types.ObjectId(id));
           query.$or = [
             { departmentId: { $in: mongoIds } },
-            { subDepartmentId: { $in: mongoIds } }
+            { subDepartmentId: { $in: mongoIds } },
+            { assignedTo: currentUser._id }
           ];
         } else {
           // ⚠️ SECURITY: Requested an unauthorized department. Force filter to empty or authorized scope.
-          // For analytics, it's safer to just return nothing for the unauthorized filter.
           query._id = { $in: [] }; 
         }
       } else {
@@ -137,7 +137,8 @@ const getAnalyticsBaseQuery = async (req: any, companyId?: any, departmentId?: a
         const mongoIds = authorizedDeptIds.map(id => new mongoose.Types.ObjectId(id));
         query.$or = [
           { departmentId: { $in: mongoIds } },
-          { subDepartmentId: { $in: mongoIds } }
+          { subDepartmentId: { $in: mongoIds } },
+          { assignedTo: currentUser._id }
         ];
       }
     }
@@ -276,16 +277,16 @@ export const dashboard = async (req: Request, res: Response) => {
                 $group: {
                   _id: null,
                   total: { $sum: 1 },
-                  open: { $sum: { $cond: [{ $in: ['$status', [GrievanceStatus.PENDING, GrievanceStatus.ASSIGNED, GrievanceStatus.IN_PROGRESS, GrievanceStatus.REVERTED]] }, 1, 0] } },
-                  pending: { $sum: { $cond: [{ $in: ['$status', [GrievanceStatus.PENDING, GrievanceStatus.ASSIGNED]] }, 1, 0] } },
-                  resolved: { $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.RESOLVED] }, 1, 0] } },
+                  open: { $sum: { $cond: [{ $in: ['$status', [GrievanceStatus.PENDING, GrievanceStatus.ASSIGNED, GrievanceStatus.IN_PROGRESS, GrievanceStatus.REVERTED, 'OPEN']] }, 1, 0] } },
+                  pending: { $sum: { $cond: [{ $in: ['$status', [GrievanceStatus.PENDING, 'OPEN']] }, 1, 0] } },
+                  resolved: { $sum: { $cond: [{ $in: ['$status', [GrievanceStatus.RESOLVED, 'CLOSED']] }, 1, 0] } },
                   inProgress: { $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.IN_PROGRESS] }, 1, 0] } },
                   reverted: { $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.REVERTED] }, 1, 0] } },
                   rejected: { $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.REJECTED] }, 1, 0] } },
-                  assigned: { $sum: 0 },
+                  assigned: { $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.ASSIGNED] }, 1, 0] } },
                   last7Days: { $sum: { $cond: [{ $gte: ['$createdAt', sevenDaysAgo] }, 1, 0] } },
                   last30Days: { $sum: { $cond: [{ $gte: ['$createdAt', thirtyDaysAgo] }, 1, 0] } },
-                  resolvedToday: { $sum: { $cond: [{ $and: [{ $eq: ['$status', GrievanceStatus.RESOLVED] }, { $gte: ['$resolvedAt', new Date(new Date().setHours(0,0,0,0))] }] }, 1, 0] } },
+                  resolvedToday: { $sum: { $cond: [{ $and: [{ $in: ['$status', [GrievanceStatus.RESOLVED, 'CLOSED']] }, { $gte: ['$resolvedAt', new Date(new Date().setHours(0,0,0,0))] }] }, 1, 0] } },
                   highPriority: { $sum: { $cond: [{ $and: [{ $ne: ['$status', GrievanceStatus.RESOLVED] }, { $eq: ['$priority', 'HIGH'] }] }, 1, 0] } },
                   urgentPriority: { $sum: { $cond: [{ $and: [{ $ne: ['$status', GrievanceStatus.RESOLVED] }, { $eq: ['$priority', 'URGENT'] }] }, 1, 0] } },
                   pendingOverdue: { 
@@ -345,11 +346,11 @@ export const dashboard = async (req: Request, res: Response) => {
             ],
             monthly: [
               { $match: { createdAt: { $gte: sixMonthsAgo } } },
-              { $group: { _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } }, count: { $sum: 1 }, resolved: { $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.RESOLVED] }, 1, 0] } } } },
+              { $group: { _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } }, count: { $sum: 1 }, resolved: { $sum: { $cond: [{ $in: ['$status', [GrievanceStatus.RESOLVED, 'CLOSED']] }, 1, 0] } } } },
               { $sort: { _id: 1 } }
             ],
             byDepartment: [
-              { $group: { _id: { $ifNull: ['$subDepartmentId', '$departmentId'] }, total: { $sum: 1 }, pending: { $sum: { $cond: [{ $in: ['$status', [GrievanceStatus.PENDING, GrievanceStatus.ASSIGNED]] }, 1, 0] } } } },
+              { $group: { _id: { $ifNull: ['$subDepartmentId', '$departmentId'] }, total: { $sum: 1 }, pending: { $sum: { $cond: [{ $in: ['$status', [GrievanceStatus.PENDING, GrievanceStatus.ASSIGNED, GrievanceStatus.IN_PROGRESS, 'OPEN']] }, 1, 0] } } } },
               { $match: { _id: { $ne: null } } },
               { $lookup: { from: 'departments', localField: '_id', foreignField: '_id', as: 'dept' } },
               { $unwind: { path: '$dept', preserveNullAndEmptyArrays: true } },
@@ -605,10 +606,12 @@ export const dashboardKpis = async (req: Request, res: Response) => {
           $group: {
             _id: null,
             total: { $sum: 1 },
-            open: { $sum: { $cond: [{ $in: ['$status', [GrievanceStatus.PENDING, GrievanceStatus.ASSIGNED, GrievanceStatus.IN_PROGRESS, GrievanceStatus.REVERTED]] }, 1, 0] } },
-            pending: { $sum: { $cond: [{ $in: ['$status', [GrievanceStatus.PENDING, GrievanceStatus.ASSIGNED]] }, 1, 0] } },
+            open: { $sum: { $cond: [{ $in: ['$status', [GrievanceStatus.PENDING, GrievanceStatus.ASSIGNED, GrievanceStatus.IN_PROGRESS, GrievanceStatus.REVERTED, 'OPEN']] }, 1, 0] } },
+            pending: { $sum: { $cond: [{ $in: ['$status', [GrievanceStatus.PENDING, 'OPEN']] }, 1, 0] } },
+            assigned: { $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.ASSIGNED] }, 1, 0] } },
+            inProgress: { $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.IN_PROGRESS] }, 1, 0] } },
             reverted: { $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.REVERTED] }, 1, 0] } },
-            resolved: { $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.RESOLVED] }, 1, 0] } },
+            resolved: { $sum: { $cond: [{ $in: ['$status', [GrievanceStatus.RESOLVED, 'CLOSED']] }, 1, 0] } },
             rejected: { $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.REJECTED] }, 1, 0] } },
             pendingOverdue: {
               $sum: {
@@ -648,6 +651,8 @@ export const dashboardKpis = async (req: Request, res: Response) => {
           total: g.open || 0,
           registeredTotal: g.total || 0,
           pending: g.pending || 0,
+          assigned: g.assigned || 0,
+          inProgress: g.inProgress || 0,
           reverted: g.reverted || 0,
           resolved: g.resolved || 0,
           rejected: g.rejected || 0,

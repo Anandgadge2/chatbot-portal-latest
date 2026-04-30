@@ -1096,7 +1096,7 @@ function DashboardPageClientContent() {
   }, [cachedUserData]);
 
   const kpiSource = cachedDashboardKpis?.grievances ? cachedDashboardKpis : stats;
-  const pendingKpiCount = kpiSource?.grievances?.pending || 0;
+  const pendingKpiCount = (kpiSource?.grievances?.pending || 0) + (kpiSource?.grievances?.assigned || 0) + (kpiSource?.grievances?.inProgress || 0);
   const revertedKpiCount = kpiSource?.grievances?.reverted || 0;
   const resolvedKpiCount = kpiSource?.grievances?.resolved || 0;
   const rejectedKpiCount = kpiSource?.grievances?.rejected || 0;
@@ -3366,6 +3366,7 @@ function DashboardPageClientContent() {
         onOpenMobileMenu={() => setIsMobileTabMenuOpen(true)}
         onRefresh={handleRefresh}
         onProfileClick={handleProfileToggle}
+        onLogout={logout}
         notifications={notifications}
         unreadCount={unreadCount}
         onMarkAsRead={handleMarkNotificationAsRead}
@@ -3374,7 +3375,7 @@ function DashboardPageClientContent() {
       />
 
       {/* Content wrapper */}
-      <main className="max-w-[1600px] mx-auto px-4 lg:px-6 py-2 sm:py-4">
+      <main className="max-w-[1920px] mx-auto px-4 lg:px-8 xl:px-12 py-4 sm:py-6 lg:py-8">
         <Tabs
           value={activeTab}
           onValueChange={handleTabChange}
@@ -3404,6 +3405,7 @@ function DashboardPageClientContent() {
               }}
               onCloseMobileMenu={() => setIsMobileTabMenuOpen(false)}
               onLogout={logout}
+              onProfileClick={handleProfileToggle}
             />
             <DashboardTabPanels
               {...{

@@ -63,7 +63,8 @@ router.get('/', requirePermission(Permission.READ_GRIEVANCE), async (req: Reques
           const deptIds = await getDepartmentHierarchyIds(rootDeptIds);
           query.$or = [
             { departmentId: { $in: deptIds } },
-            { subDepartmentId: { $in: deptIds } }
+            { subDepartmentId: { $in: deptIds } },
+            { assignedTo: currentUser._id }
           ];
         }
 
@@ -81,8 +82,8 @@ router.get('/', requirePermission(Permission.READ_GRIEVANCE), async (req: Reques
       if (typeof status === 'string' && status.includes(',')) {
         query.status = { $in: status.split(',').map(s => s.trim()) };
       } else if (status === GrievanceStatus.PENDING) {
-        // 🔄 Merge PENDING and ASSIGNED for listing
-        query.status = { $in: [GrievanceStatus.PENDING, GrievanceStatus.ASSIGNED] };
+        // 🔄 Strictly filter by PENDING to match dashboard counts
+        query.status = GrievanceStatus.PENDING;
       } else {
         query.status = status;
       }
@@ -519,8 +520,12 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
         const grievanceDeptId = (grievance.departmentId as any)?._id?.toString() || grievance.departmentId?.toString();
         const grievanceSubDeptId = (grievance.subDepartmentId as any)?._id?.toString() || grievance.subDepartmentId?.toString();
         
+        const assignedToId = (grievance.assignedTo as any)?._id?.toString() || grievance.assignedTo?.toString();
+        const isAssignee = assignedToId === currentUser._id.toString();
+        
         const hasAccess = (grievanceDeptId && authorizedDeptIds.includes(grievanceDeptId)) || 
-                          (grievanceSubDeptId && authorizedDeptIds.includes(grievanceSubDeptId));
+                          (grievanceSubDeptId && authorizedDeptIds.includes(grievanceSubDeptId)) ||
+                          isAssignee;
 
         if (!hasAccess) {
           return res.status(403).json({ success: false, message: 'Access denied: You can only revert grievances within your authorized department scope' });
@@ -681,15 +686,18 @@ router.get('/:id', requirePermission(Permission.READ_GRIEVANCE), async (req: Req
         return;
       }
 
-      if (currentUser.departmentId || (currentUser.departmentIds && currentUser.departmentIds.length > 0)) {
-        // Dynamic check: Users without assignment permission (like basic Operators) only see their own items
+      // 🎯 Direct Assignee Bypass: If the grievance is assigned to the current user (primary or additional), they ALWAYS have access
+      const assignedToId = (grievance.assignedTo as any)?._id?.toString() || grievance.assignedTo?.toString();
+      const additionalAssigneeIds = (grievance.additionalAssigneeIds || []).map((id: any) => id.toString());
+      const isAssignee = assignedToId === currentUser._id.toString() || additionalAssigneeIds.includes(currentUser._id.toString());
+
+      if (!isAssignee && (currentUser.departmentId || (currentUser.departmentIds && currentUser.departmentIds.length > 0))) {
+        // Dynamic check: Users with assignment permission (Admins) see hierarchy. Others only see their own.
         const canAssign = req.checkPermission(Permission.ASSIGN_GRIEVANCE);
         if (!canAssign) {
-          const assignedToId = (grievance.assignedTo as any)?._id?.toString() || grievance.assignedTo?.toString();
-          if (assignedToId !== currentUser._id.toString()) {
-            res.status(403).json({ success: false, message: 'Access denied - not assigned to you' });
-            return;
-          }
+          // If not assigned to them and they aren't an admin, deny access
+          res.status(403).json({ success: false, message: 'Access denied - not assigned to you' });
+          return;
         } else {
           // 🏢 Multi-Department & Hierarchical Scoping
           const userDepts: string[] = [];
@@ -704,10 +712,10 @@ router.get('/:id', requirePermission(Permission.READ_GRIEVANCE), async (req: Req
           const grievanceDeptId = (grievance.departmentId as any)?._id?.toString() || grievance.departmentId?.toString();
           const grievanceSubDeptId = (grievance.subDepartmentId as any)?._id?.toString() || grievance.subDepartmentId?.toString();
           
-          const hasAccess = (grievanceDeptId && authorizedDeptIds.includes(grievanceDeptId)) || 
-                            (grievanceSubDeptId && authorizedDeptIds.includes(grievanceSubDeptId));
+          const hasHierarchyAccess = (grievanceDeptId && authorizedDeptIds.includes(grievanceDeptId)) || 
+                                    (grievanceSubDeptId && authorizedDeptIds.includes(grievanceSubDeptId));
 
-          if (!hasAccess) {
+          if (!hasHierarchyAccess) {
             res.status(403).json({ success: false, message: 'Access denied - grievance not in your authorized department scope' });
             return;
           }
@@ -806,8 +814,13 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_GRIEVANCE, 
           const grievanceDeptId = grievance.departmentId?.toString();
           const grievanceSubDeptId = grievance.subDepartmentId?.toString();
           
+          const assignedToId = (grievance.assignedTo as any)?._id?.toString() || grievance.assignedTo?.toString();
+          const additionalAssigneeIds = (grievance.additionalAssigneeIds || []).map((id: any) => id.toString());
+          const isAssignee = assignedToId === currentUser._id.toString() || additionalAssigneeIds.includes(currentUser._id.toString());
+          
           const hasAccess = (grievanceDeptId && authorizedDeptIds.includes(grievanceDeptId)) || 
-                            (grievanceSubDeptId && authorizedDeptIds.includes(grievanceSubDeptId));
+                            (grievanceSubDeptId && authorizedDeptIds.includes(grievanceSubDeptId)) ||
+                            isAssignee;
 
           if (!hasAccess) {
             res.status(403).json({ success: false, message: 'Access denied - grievance not in your authorized department scope' });
@@ -997,8 +1010,11 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
         const grievanceDeptId = grievance.departmentId?.toString();
         const grievanceSubDeptId = grievance.subDepartmentId?.toString();
         const adminDeptId = currentUser.departmentId?.toString();
-        if (grievanceDeptId !== adminDeptId && grievanceSubDeptId !== adminDeptId) {
-          res.status(403).json({ success: false, message: 'Access denied - grievance not in your department' });
+        const assignedToId = (grievance.assignedTo as any)?._id?.toString() || grievance.assignedTo?.toString();
+        const isAssignee = assignedToId === currentUser._id.toString();
+
+        if (grievanceDeptId !== adminDeptId && grievanceSubDeptId !== adminDeptId && !isAssignee) {
+          res.status(403).json({ success: false, message: 'Access denied - grievance not in your department and not assigned to you' });
           return;
         }
       }
@@ -1458,6 +1474,22 @@ router.post('/:id/reminder', requirePermission(Permission.UPDATE_GRIEVANCE), asy
       grievanceObjectId: grievance._id,
       meta: { reminderCount, remarks: trimmedRemarks },
     });
+
+    // ✅ Trigger In-App Notification for Hierarchy (Sub-Dept, Dept, and Company Admins)
+    const targetDeptId = grievance.subDepartmentId || grievance.departmentId;
+    if (targetDeptId) {
+      const { notifyDepartmentAdmins } = await import('../services/inAppNotificationService');
+      await notifyDepartmentAdmins({
+        companyId: grievance.companyId,
+        departmentId: targetDeptId,
+        eventType: 'GRIEVANCE_REMINDER',
+        title: 'Overdue Reminder Notification',
+        message: `An overdue reminder was sent for grievance ${grievance.grievanceId} to the assigned officer. Remarks: ${trimmedRemarks}`,
+        grievanceId: grievance.grievanceId,
+        grievanceObjectId: grievance._id,
+        meta: { reminderCount, remarks: trimmedRemarks },
+      });
+    }
 
     // ✅ Trigger In-App Notification for Reminder (to Assigned User)
     if (grievance.assignedTo) {
