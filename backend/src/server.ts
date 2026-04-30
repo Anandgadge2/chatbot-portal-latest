@@ -100,12 +100,13 @@ const corsOptions = {
           'http://connect.pugarch.in',
           'https://sahaj.pugarch.in',
           'http://sahaj.pugarch.in',
-          'https://connect-pugarch-backend.vercel.app'
+          'https://connect-pugarch-backend.vercel.app',
+          'https://connect-pugarch.vercel.app'
         ];
 
         // Check if explicitly allowed or matches environment variable
         const isExplicitlyAllowed = ALLOWED_ORIGINS.some(allowed => normalized === normalizeOrigin(allowed));
-        
+
         // Check environment variable
         let isEnvAllowed = false;
         if (frontendUrl) {
