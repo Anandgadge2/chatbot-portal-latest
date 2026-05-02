@@ -135,83 +135,72 @@ router.post('/', requireDatabaseConnection, async (req: Request, res: Response) 
   // ✅ CRITICAL: On Vercel, we MUST await the processing before responding.
   // Using setImmediate or non-awaited promises will result in the process being killed
   // as soon as res.send() is called.
-  
-  const processTask = (async () => {
-    try {
-      if (body.object !== 'whatsapp_business_account') {
-        logger.warn(`⚠️ Unknown webhook object: ${body.object}`);
-        return;
-      }
+  try {
+    if (body.object !== 'whatsapp_business_account') {
+      logger.warn(`⚠️ Unknown webhook object: ${body.object}`);
+      return res.status(200).send('EVENT_RECEIVED');
+    }
 
-      // Iterate through entries and changes to find messages
-      for (const entry of body.entry || []) {
-        for (const change of entry.changes || []) {
-          const value = change.value;
-          const metadata = value?.metadata;
+    // Iterate through entries and changes to find messages
+    for (const entry of body.entry || []) {
+      for (const change of entry.changes || []) {
+        const value = change.value;
+        const metadata = value?.metadata;
 
-          if (!value?.messages) {
-            // logger.info(`ℹ️ Webhook received field: ${change.field}, but no 'messages' content found.`);
-            continue;
-          }
+        if (!value?.messages) {
+          continue;
+        }
 
-          // Resolve company early
-          const company = await getCompanyFromMetadata(metadata, verifiedWebhookContext.config);
-          if (!company) {
-            logger.error(`❌ Could not resolve company for phoneNumberId: ${metadata?.phone_number_id}.`);
-            continue;
-          }
+        // Resolve company early
+        const company = await getCompanyFromMetadata(metadata, verifiedWebhookContext.config);
+        if (!company) {
+          logger.error(`❌ Could not resolve company for phoneNumberId: ${metadata?.phone_number_id}.`);
+          continue;
+        }
 
-          // Process messages sequentially or in parallel?
-          // Sequential is safer for session state, but parallel is faster.
-          // Since it's usually 1 message anyway, we'll keep it simple but awaited.
-          for (const message of value.messages) {
-            try {
-              if (!shouldProcessInboundMessage(message)) {
-                logger.info('ℹ️ Ignoring non-interaction WhatsApp webhook message.', {
-                  type: message?.type,
-                  messageId: message?.id,
-                  from: message?.from
-                });
-                continue;
-              }
-
-              const messageId = message.id;
-
-              // IDEMPOTENCY CHECK
-              if (await isMessageProcessed(messageId)) {
-                logger.info(`⏭️ Message ${messageId} already processed, skipping...`);
-                continue;
-              }
-
-              // Mark message as processed
-              await markMessageAsProcessed(messageId);
-
-              if (message.type === 'interactive') {
-                logger.info(`🔘 Interactive message received from ${message.from}`);
-                await handleInteractiveMessage(message, metadata, company);
-              } else {
-                logger.info(`📝 ${message.type} message received from ${message.from}`);
-                await handleIncomingMessage(message, metadata, company);
-              }
-            } catch (msgErr: any) {
-              logger.error(`❌ Error processing message loop: ${msgErr.message}`, { stack: msgErr.stack });
+        for (const message of value.messages) {
+          try {
+            if (!shouldProcessInboundMessage(message)) {
+              logger.info('ℹ️ Ignoring non-interaction WhatsApp webhook message.', {
+                type: message?.type,
+                messageId: message?.id,
+                from: message?.from
+              });
+              continue;
             }
+
+            const messageId = message.id;
+
+            // IDEMPOTENCY CHECK
+            if (await isMessageProcessed(messageId)) {
+              logger.info(`⏭️ Message ${messageId} already processed, skipping...`);
+              continue;
+            }
+
+            // Mark message as processed
+            await markMessageAsProcessed(messageId);
+
+            if (message.type === 'interactive') {
+              logger.info(`🔘 Interactive message received from ${message.from}`);
+              await handleInteractiveMessage(message, metadata, company);
+            } else {
+              logger.info(`📝 ${message.type} message received from ${message.from}`);
+              await handleIncomingMessage(message, metadata, company);
+            }
+          } catch (msgErr: any) {
+            logger.error(`❌ Error processing message loop: ${msgErr.message}`, { stack: msgErr.stack });
           }
         }
       }
-    } catch (error: any) {
-      logger.error('❌ Webhook background processing failed:', error);
     }
-  })();
+  } catch (error: any) {
+    logger.error('❌ Webhook processing failed:', error);
+  }
 
-  // Respond to WhatsApp immediately to avoid webhook retries and perceived latency.
-  // Keep processing in background.
-  res.status(200).send('EVENT_RECEIVED');
-
-  processTask.catch((error: any) => {
-    logger.error('❌ Webhook background task unhandled failure:', error);
-  });
+  // Respond to WhatsApp AFTER processing is complete to ensure reliability on Vercel.
+  return res.status(200).send('EVENT_RECEIVED');
 });
+
 
 
 /**
