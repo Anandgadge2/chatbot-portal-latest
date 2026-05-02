@@ -3571,7 +3571,7 @@ async function findCompany(companyId: string): Promise<any | null> {
 
     if (waConfig) (company as any).whatsappConfig = waConfig;
 
-    if (!company) return null;
+    return company;
   } catch (err) {
     console.error("❌ Error finding company:", err);
     return null;

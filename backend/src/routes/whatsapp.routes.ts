@@ -351,7 +351,7 @@ async function handleIncomingMessage(message: any, metadata: any, resolvedCompan
     }
 
     const response = await processWhatsAppMessage({
-      companyId: company.companyId,
+      companyId: company._id.toString(),
       from,
       messageText,
       messageType,
@@ -533,7 +533,7 @@ async function handleInteractiveMessage(message: any, metadata: any, resolvedCom
     );
 
     const response = await processWhatsAppMessage({
-      companyId: company.companyId,
+      companyId: company._id.toString(),
       from,
       messageText,
       messageType: 'interactive',
