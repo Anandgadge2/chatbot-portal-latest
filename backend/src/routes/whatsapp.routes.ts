@@ -204,14 +204,13 @@ router.post('/', requireDatabaseConnection, async (req: Request, res: Response) 
     }
   })();
 
-  // Race against a 25s timeout (Vercel limit is 30s)
-  // This ensures we always try to respond 200 to WhatsApp to avoid retries.
-  await Promise.race([
-    processTask,
-    new Promise((resolve) => setTimeout(resolve, 25000))
-  ]);
-
+  // Respond to WhatsApp immediately to avoid webhook retries and perceived latency.
+  // Keep processing in background.
   res.status(200).send('EVENT_RECEIVED');
+
+  processTask.catch((error: any) => {
+    logger.error('❌ Webhook background task unhandled failure:', error);
+  });
 });
 
 

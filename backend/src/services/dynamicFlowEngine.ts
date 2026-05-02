@@ -3460,7 +3460,7 @@ export async function processWhatsAppMessage(
     session.hasConsent = true;
     await updateSession(session);
     
-    await createAuditLog({
+    void createAuditLog({
       action: AuditAction.CONSENT_CHANGE,
       resource: 'WhatsAppUser',
       resourceId: from,
@@ -3470,6 +3470,8 @@ export async function processWhatsAppMessage(
         action: 'SUBSCRIBE',
         message: 'Implicit consent via message initiation'
       }
+    }).catch((error: any) => {
+      console.error(`⚠️ Failed to write consent audit log for ${from}:`, error?.message || error);
     });
     console.log(`✅ User ${from} opted-in/resubscribed via message initiation`);
   }
