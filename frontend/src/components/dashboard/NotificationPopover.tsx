@@ -182,15 +182,7 @@ export function NotificationPopover({
           )}
         </ScrollArea>
         
-        <div className="p-3 border-t border-slate-100 bg-slate-50/50">
-           <Button 
-             variant="outline" 
-             size="sm" 
-             className="w-full text-[14px] font-black text-slate-500 hover:text-slate-900 hover:bg-white hover:border-slate-300 uppercase tracking-widest h-9 rounded-xl transition-all border-slate-200"
-           >
-             View All Activity History
-           </Button>
-        </div>
+        
       </PopoverContent>
     </Popover>
   );
