@@ -2392,6 +2392,7 @@ function DashboardPageClientContent() {
       drilldownId,
       activeTab,
       refetchGrievances,
+      selectedGrievance,
     ],
   );
 

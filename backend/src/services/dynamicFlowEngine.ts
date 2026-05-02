@@ -3445,15 +3445,17 @@ export async function processWhatsAppMessage(
   if (buttonId) console.log(`   ButtonId: ${buttonId}`);
   if (userInput) console.log(`   Text: "${rawInput.substring(0, 80)}"`);
 
-  // ── 1. Find Company ───────────────────────────────────────────────────────
-  const company = await findCompany(companyId);
+  // ── 1. Find Company & Load Session in Parallel ───────────────────────────
+  const [company, session] = await Promise.all([
+    findCompany(companyId),
+    getSession(from, companyId)
+  ]);
+
   if (!company) {
     console.error(`❌ Company not found: ${companyId}`);
     return;
   }
 
-  // ── 2. Load or create session ─────────────────────────────────────────────
-  let session = await getSession(from, companyId);
 
   // ✅ Log User Consent (Incoming message = Implicit Opt-in)
   if (session.hasConsent !== true) {
@@ -3583,7 +3585,7 @@ async function findCompany(companyId: string): Promise<any | null> {
 
     if (waConfig) (company as any).whatsappConfig = waConfig;
 
-    return company;
+    if (!company) return null;
   } catch (err) {
     console.error("❌ Error finding company:", err);
     return null;
@@ -3602,17 +3604,21 @@ async function handleGreeting(
   session: UserSession,
 ): Promise<void> {
   console.log(`🔄 Greeting received: "${trigger}" → restarting flow`);
-  const dailyLimit = await checkDailyLimit({
-    companyId: company._id,
-    phone_number: from,
-  });
+  // Parallelize daily limit check and flow lookup
+  const [dailyLimit, flow] = await Promise.all([
+    checkDailyLimit({
+      companyId: company._id,
+      phone_number: from,
+    }),
+    loadFlowForTrigger(companyId, trigger)
+  ]);
+
   if (!dailyLimit.allowed) {
     console.warn(`⚠️ Blocking flow start due to daily grievance limit for ${from}`);
     await sendWhatsAppMessage(company, from, getSubmissionLimitReachedMessage());
     return;
   }
 
-  const flow = await loadFlowForTrigger(companyId, trigger);
   if (!flow || !flow.isActive) {
     // Try the generic "hi" trigger as fallback
     const fallback = await loadFlowForTrigger(companyId, "hi");
