@@ -24,6 +24,7 @@ import { uploadWhatsAppMediaToCloudinary } from "./mediaService";
 import { ActionService } from "./actionService";
 import { checkDailyLimit } from "./grievanceRateLimitService";
 import { findDepartmentByCategory } from "./departmentMapper";
+import { FlowCacheService } from "./flowCacheService";
 import {
   GrievanceStatus,
   AppointmentStatus,
@@ -3341,17 +3342,12 @@ export async function loadFlowForTrigger(
 
     console.log(`🔍 Flow query:`, JSON.stringify(query, null, 2));
 
-    // First, let's check all flows for this company to see what we have
-    const allFlows = await ChatbotFlow.find({ companyId: companyObjectId });
-    console.log(`📊 Total flows for company: ${allFlows.length}`);
-    allFlows.forEach((f: any) => {
-      const isAssigned = assignedFlowIds.some(
-        (id: any) => id && id.toString && id.toString() === f._id.toString(),
-      );
-      console.log(
-        `  - Flow: ${f.flowName} (${f.flowId}), Active: ${f.isActive}, Assigned: ${isAssigned}, Triggers: ${JSON.stringify(f.triggers?.map((t: any) => t.triggerValue))}`,
-      );
-    });
+    // --- 1. Check Redis Cache First ---
+    const cachedFlow = await FlowCacheService.getCachedFlow(companyObjectId.toString(), trigger);
+    if (cachedFlow) {
+      console.log(`🚀 Using cached flow for trigger "${trigger}"`);
+      return cachedFlow;
+    }
 
     let flow = await ChatbotFlow.findOne(query).sort({
       "triggers.priority": -1,
@@ -3379,29 +3375,19 @@ export async function loadFlowForTrigger(
 
     if (flow) {
       const isAssigned = assignedFlowIds.some(
-        (id: any) => id && id.toString && id.toString() === flow._id.toString(),
+        (id: any) => id && id.toString && id.toString() === (flow as any)._id.toString(),
       );
-      console.log(
-        `✅ Found flow: ${flow.flowName} (${flow.flowId}) for trigger: ${trigger}`,
-      );
-      console.log(
-        `   Assigned to WhatsApp: ${isAssigned ? "YES ✅" : "NO ⚠️"}`,
-      );
-      console.log(`   Start Step ID: ${flow.startStepId}`);
-      console.log(`   Total Steps: ${flow.steps?.length || 0}`);
+      console.log(`✅ Found flow: ${flow.flowName} for trigger: ${trigger}`);
 
-      // Warn if flow is active but not assigned
-      if (!isAssigned && assignedFlowIds.length > 0) {
-        console.warn(
-          `⚠️ Flow is active but not assigned to WhatsApp config. Consider assigning it.`,
-        );
-      }
+      // --- 2. Cache the resolved flow for future messages ---
+      await FlowCacheService.cacheFlow(companyObjectId.toString(), trigger, flow);
+      
+      return flow;
     } else {
-      console.log(
-        `⚠️ No flow found for trigger "${trigger}" in company ${companyObjectId}`,
-      );
-      console.log(`   Query used:`, JSON.stringify(query, null, 2));
+      console.log(`⚠️ No flow found for trigger "${trigger}"`);
+      return null;
     }
+
 
     return flow;
   } catch (error) {
